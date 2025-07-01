@@ -125,7 +125,11 @@ public class ChiTietLenhSanXuat implements Serializable {
     private Integer checked;
 
     @ManyToOne
-    @JsonIgnoreProperties(value = { "chiTietLenhSanXuats" }, allowSetters = true)
+    @JoinColumn(name = "ma_lenh_san_xuat_id", referencedColumnName = "id")
+    @JsonIgnoreProperties(
+        value = { "chiTietLenhSanXuats" },
+        allowSetters = true
+    )
     private LenhSanXuat lenhSanXuat;
 
     public ChiTietLenhSanXuat() {}

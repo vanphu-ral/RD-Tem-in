@@ -4,7 +4,11 @@
       <span>Danh sách thông tin tem theo lệnh sản xuất</span>
 
       <div class="d-flex justify-content-end">
-        <button class="btn btn-info me-2" (click)="reloadPage()" [disabled]="isLoading">
+        <button
+          class="btn btn-info me-2"
+          (click)="reloadPage()"
+          [disabled]="isLoading"
+        >
           <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
           <span>Refresh List</span>
         </button>
@@ -17,13 +21,25 @@
     <div style="overflow: auto; height: 700px">
       <table class="table" aria-describedby="page-heading">
         <thead>
-          <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending" (sortChange)="loadPage()">
+          <tr
+            jhiSort
+            [(predicate)]="predicate"
+            [(ascending)]="ascending"
+            (sortChange)="loadPage()"
+          >
             <th scope="col" jhiSortBy="STT" style="position: sticky; top: 0">
               <span>STT</span>
-              <input type="text" style="width: 10px; border: none; background-color: #006699" />
+              <input
+                type="text"
+                style="width: 10px; border: none; background-color: #006699"
+              />
             </th>
 
-            <th scope="col" jhiSortBy="maLenhSanXuat" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="maLenhSanXuat"
+              style="position: sticky; top: 0"
+            >
               <span>Lệnh sản xuất</span>
               <input
                 #searchInput
@@ -36,11 +52,17 @@
                 (change)="findFucntion()"
               />
               <datalist id="maLenhSanXuat">
-                <option *ngFor="let data of listOfMaLenhSanXuat">{{ data }}</option>
+                <option *ngFor="let data of listOfMaLenhSanXuat">
+                  {{ data }}
+                </option>
               </datalist>
             </th>
 
-            <th scope="col" jhiSortBy="sapCode" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="sapCode"
+              style="position: sticky; top: 0"
+            >
               <span>Mã SAP</span>
               <input
                 #searchInput
@@ -57,7 +79,11 @@
               </datalist>
             </th>
 
-            <th scope="col" jhiSortBy="sapName" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="sapName"
+              style="position: sticky; top: 0"
+            >
               <span>Tên hàng hoá</span>
               <input
                 #searchInput
@@ -72,11 +98,22 @@
                 <option *ngFor="let data of listOfSapName">{{ data }}</option>
               </datalist>
             </th>
-            <th scope="col" jhiSortBy="totalQuantity" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="totalQuantity"
+              style="position: sticky; top: 0"
+            >
               <span>Tổ sản xuất</span>
-              <input style="border: none; width: 3rem; background-color: #006699" disabled />
+              <input
+                style="border: none; width: 3rem; background-color: #006699"
+                disabled
+              />
             </th>
-            <th scope="col" jhiSortBy="workOrderCode" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="workOrderCode"
+              style="position: sticky; top: 0"
+            >
               <span>Mã WO</span>
               <input
                 #searchInput
@@ -89,11 +126,17 @@
                 (change)="findFucntion()"
               />
               <datalist id="workOrderCode">
-                <option *ngFor="let data of listOfWorkOrderCode">{{ data }}</option>
+                <option *ngFor="let data of listOfWorkOrderCode">
+                  {{ data }}
+                </option>
               </datalist>
             </th>
 
-            <th scope="col" jhiSortBy="version" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="version"
+              style="position: sticky; top: 0"
+            >
               <span>Version</span>
               <input
                 #searchInput
@@ -110,7 +153,11 @@
               </datalist>
             </th>
 
-            <th scope="col" jhiSortBy="storageCode" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="storageCode"
+              style="position: sticky; top: 0"
+            >
               <span>Mã kho nhập</span>
               <input
                 #searchInput
@@ -144,15 +191,33 @@
               </datalist>
             </th>
 
-            <th scope="col" jhiSortBy="totalQuantity" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="totalQuantity"
+              style="position: sticky; top: 0"
+            >
               <span>Tổng nhập</span>
-              <input style="border: none; width: 5rem; background-color: #006699" disabled />
+              <input
+                style="border: none; width: 5rem; background-color: #006699"
+                disabled
+              />
             </th>
-            <th scope="col" jhiSortBy="totalQuantity" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="totalQuantity"
+              style="position: sticky; top: 0"
+            >
               <span>Chi tiết</span>
-              <input style="border: none; width: 10rem; background-color: #006699" disabled />
+              <input
+                style="border: none; width: 10rem; background-color: #006699"
+                disabled
+              />
             </th>
-            <th scope="col" jhiSortBy="createBy" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="createBy"
+              style="position: sticky; top: 0"
+            >
               <span>Nhân viên</span>
               <input
                 #searchInput
@@ -166,17 +231,40 @@
               />
             </th>
 
-            <th scope="col" jhiSortBy="entryTime" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="entryTime"
+              style="position: sticky; top: 0"
+            >
               <span>Ngày tạo tem</span>
-              <input type="date" [(ngModel)]="entryTime" [ngModelOptions]="{ standalone: true }" (change)="findFucntion()" />
+              <input
+                type="date"
+                [(ngModel)]="entryTime"
+                [ngModelOptions]="{ standalone: true }"
+                (change)="findFucntion()"
+              />
             </th>
 
-            <th scope="col" jhiSortBy="timeUpdate" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="timeUpdate"
+              style="position: sticky; top: 0"
+            >
               <span>Ngày cập nhật</span>
-              <input type="date" [(ngModel)]="timeUpdate" [ngModelOptions]="{ standalone: true }" (change)="findFucntion()" disabled />
+              <input
+                type="date"
+                [(ngModel)]="timeUpdate"
+                [ngModelOptions]="{ standalone: true }"
+                (change)="findFucntion()"
+                disabled
+              />
             </th>
 
-            <th scope="col" jhiSortBy="trangThai" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="trangThai"
+              style="position: sticky; top: 0"
+            >
               <span>Trạng thái</span>
               <select
                 class="form-control form-select"
@@ -194,21 +282,33 @@
               </select>
             </th>
 
-            <th scope="col" jhiSortBy="comment" style="position: sticky; top: 0">
+            <th
+              scope="col"
+              jhiSortBy="comment"
+              style="position: sticky; top: 0"
+            >
               <span>Lưu ý</span>
-              <input style="border: none; width: 10rem; background-color: #006699" disabled />
+              <input
+                style="border: none; width: 10rem; background-color: #006699"
+                disabled
+              />
             </th>
 
             <th scope="col" style="position: sticky; top: 0; z-index: 5">
               <span>Options</span>
-              <input style="border: none; width: 70%; background-color: #006699" disabled />
+              <input
+                style="border: none; width: 70%; background-color: #006699"
+                disabled
+              />
             </th>
           </tr>
         </thead>
         <tbody>
           <tr
             *ngFor="
-              let lenhSanXuat of lenhSanXuats ?? [] | filter: trangThai | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+              let lenhSanXuat of lenhSanXuats ?? []
+                | filter: trangThai
+                | paginate: { itemsPerPage: itemPerPage, currentPage: page };
               let i = index;
               trackBy: trackId
             "
@@ -221,7 +321,9 @@
             <td>{{ lenhSanXuat.sapCode }}</td>
             <td>{{ lenhSanXuat.sapName }}</td>
             <td>
-              <div [id]="lenhSanXuat.id" class="trang-thai">{{ lenhSanXuat.groupName }}</div>
+              <div [id]="lenhSanXuat.id" class="trang-thai">
+                {{ lenhSanXuat.groupName }}
+              </div>
             </td>
             <td>{{ lenhSanXuat.workOrderCode }}</td>
             <td>{{ lenhSanXuat.version }}</td>
@@ -279,7 +381,12 @@
 
   <div style="display: flex; justify-content: space-between">
     <div>
-      <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage" (change)="findFucntion()">
+      <select
+        class="form-select"
+        aria-label="Default select example"
+        [(ngModel)]="itemPerPage"
+        (change)="findFucntion()"
+      >
         <option value="10">10</option>
         <option value="15">15</option>
         <option value="20">20</option>
@@ -287,11 +394,23 @@
     </div>
 
     <div style="display: flex">
-      <button class="pagination" (click)="firstPage()" [disabled]="firstPageBtn">Trang đầu</button>
-      <button class="pagination" (click)="backPage()" [disabled]="backPageBtn">Trang trước</button>
+      <button
+        class="pagination"
+        (click)="firstPage()"
+        [disabled]="firstPageBtn"
+      >
+        Trang đầu
+      </button>
+      <button class="pagination" (click)="backPage()" [disabled]="backPageBtn">
+        Trang trước
+      </button>
       <button class="pagenumber">{{ pageNumber }}</button>
-      <button class="pagination" (click)="nextPage()" [disabled]="nextPageBtn">Trang sau</button>
-      <button class="pagination" (click)="lastPage()" [disabled]="lastPageBtn">Trang cuối</button>
+      <button class="pagination" (click)="nextPage()" [disabled]="nextPageBtn">
+        Trang sau
+      </button>
+      <button class="pagination" (click)="lastPage()" [disabled]="lastPageBtn">
+        Trang cuối
+      </button>
     </div>
   </div>
 </div>

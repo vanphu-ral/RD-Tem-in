@@ -11,11 +11,20 @@ public class TemInDTO {
     private String createBy;
     private String entryTime;
     private String timeUpdate;
+    private String groupName;
     private String trangThai;
     private Integer itemPerPage;
     private Integer pageNumber;
 
     public TemInDTO() {}
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
 
     public String getMaLenhSanXuat() {
         return maLenhSanXuat;

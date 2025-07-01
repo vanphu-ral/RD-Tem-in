@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 // ☺ đã Test với front-end
 @RestController
 @RequestMapping("/api")
-@Transactional
+//@Transactional
 public class UserController {
 
     @Autowired
@@ -56,22 +56,33 @@ public class UserController {
 
     //☺ xem chi tiet thong so
     @GetMapping("/quan-ly-thong-so/chi-tiet-thong-so/{maThongSo}")
-    public List<QuanLyThongSo> getChiTietThongSo(@PathVariable String maThongSo) {
-        List<QuanLyThongSo> responseList = this.userServices.getChiTietThongSo(maThongSo);
+    public List<QuanLyThongSo> getChiTietThongSo(
+        @PathVariable String maThongSo
+    ) {
+        List<QuanLyThongSo> responseList = this.userServices.getChiTietThongSo(
+            maThongSo
+        );
         return responseList;
     }
 
     //☺ cập nhật thông số
     @PutMapping("/quan-ly-thong-so/cap-nhat-thong-so/{maThongSo}")
-    public String putThongSo(@PathVariable String maThongSo, @RequestBody QuanLyThongSo request) {
+    public String putThongSo(
+        @PathVariable String maThongSo,
+        @RequestBody QuanLyThongSo request
+    ) {
         String result = this.userServices.putThongSo(request, maThongSo);
         return result;
     }
 
     //☺ su kien tim kiem
     @PostMapping("/quan-ly-thong-so/tim-kiem")
-    public List<QuanLyThongSo> timKiemThongSo(@RequestBody QuanLyThongSo request) {
-        List<QuanLyThongSo> responseList = this.userServices.timKiemThongSo(request);
+    public List<QuanLyThongSo> timKiemThongSo(
+        @RequestBody QuanLyThongSo request
+    ) {
+        List<QuanLyThongSo> responseList = this.userServices.timKiemThongSo(
+            request
+        );
         return responseList;
     }
 
@@ -116,22 +127,35 @@ public class UserController {
 
     //☺ xem danh sách thông số thiết bị bằng Nhóm thiết bị
     @GetMapping("/thiet-bi/danh-sach-thong-so-thiet-bi/{loaiThietBi}")
-    public List<ThongSoMay> getDanhSachThongSoMay(@PathVariable String loaiThietBi) {
-        List<ThongSoMay> responseList = this.userServices.getDanhSachThongSoThietBiByLoaiThietBi(loaiThietBi);
+    public List<ThongSoMay> getDanhSachThongSoMay(
+        @PathVariable String loaiThietBi
+    ) {
+        List<ThongSoMay> responseList =
+            this.userServices.getDanhSachThongSoThietBiByLoaiThietBi(
+                loaiThietBi
+            );
         return responseList;
     }
 
     //☺ xem danh sách thông số thiết bị bằng Nhóm thiết bị và mã thiết bị
     @PostMapping("/thiet-bi/danh-sach-thong-so-thiet-bi")
-    public List<ThongSoMay> getDanhSachThongSoMays(@RequestBody ThongSoMay request) {
-        List<ThongSoMay> responseList = this.userServices.getDanhSachThongSoThietBiByLoaiThietBiAndMaThietBi(request);
+    public List<ThongSoMay> getDanhSachThongSoMays(
+        @RequestBody ThongSoMay request
+    ) {
+        List<ThongSoMay> responseList =
+            this.userServices.getDanhSachThongSoThietBiByLoaiThietBiAndMaThietBi(
+                request
+            );
         return responseList;
     }
 
     //☺ xem danh sách thông số thiết bị bằng id thiet bi
     @GetMapping("/thiet-bi/thong-so-thiet-bi/thiet-bi-id/{thietBiId}")
-    public List<ThongSoMay> getDanhSachThongSoMayById(@PathVariable Long thietBiId) {
-        List<ThongSoMay> responseList = this.userServices.getDanhSachThongSoThietBiById(thietBiId);
+    public List<ThongSoMay> getDanhSachThongSoMayById(
+        @PathVariable Long thietBiId
+    ) {
+        List<ThongSoMay> responseList =
+            this.userServices.getDanhSachThongSoThietBiById(thietBiId);
         return responseList;
     }
 
@@ -187,27 +211,39 @@ public class UserController {
 
     //☺Them moi thong tin thong so kich ban
     @PostMapping("/kich-ban/them-moi-thong-so-kich-ban")
-    public void postChiTietKichBan(@RequestBody List<ChiTietKichBan> requestList) {
+    public void postChiTietKichBan(
+        @RequestBody List<ChiTietKichBan> requestList
+    ) {
         this.userServices.postChiTietKichBan(requestList);
     }
 
     //☺Xem danh sach thong so kich ban theo id kịch bản
     @GetMapping("/kich-ban/thong-so-kich-ban/{kichBanId}")
-    public List<ChiTietKichBan> getAllByIdKichBan(@PathVariable Long kichBanId) {
-        List<ChiTietKichBan> responseList = this.userServices.getAllByIdKichBan(kichBanId);
+    public List<ChiTietKichBan> getAllByIdKichBan(
+        @PathVariable Long kichBanId
+    ) {
+        List<ChiTietKichBan> responseList = this.userServices.getAllByIdKichBan(
+            kichBanId
+        );
         return responseList;
     }
 
     //☺Xem danh sach thong so kich ban theo mã kịch bản
     @GetMapping("/kich-ban/thong-so-kich-ban/ma-kich-ban/{maKichBan}")
-    public List<ChiTietKichBan> getAllByMaKichBan(@PathVariable String maKichBan) {
-        List<ChiTietKichBan> responseList = this.userServices.getAllByMaKichBan(maKichBan);
+    public List<ChiTietKichBan> getAllByMaKichBan(
+        @PathVariable String maKichBan
+    ) {
+        List<ChiTietKichBan> responseList = this.userServices.getAllByMaKichBan(
+            maKichBan
+        );
         return responseList;
     }
 
     //☺ cap nhat thong so kich ban
     @PutMapping("/kich-ban/cap-nhat-thong-so-kich-ban")
-    public void putChiTietKichBan(@RequestBody List<ChiTietKichBan> requestList) {
+    public void putChiTietKichBan(
+        @RequestBody List<ChiTietKichBan> requestList
+    ) {
         this.userServices.putChiTietKichBan(requestList);
     }
 
@@ -233,7 +269,9 @@ public class UserController {
     //☺xem chi tiết kich ban theo ma kich ban
     @GetMapping("/kich-ban/chi-tiet-kich-ban-ma-kich-ban/{maKichban}")
     public KichBan getChiTietByMaKichBan(@PathVariable String maKichban) {
-        KichBan responseList = this.userServices.chiTietKichBanByMaKichban(maKichban);
+        KichBan responseList = this.userServices.chiTietKichBanByMaKichban(
+            maKichban
+        );
         return responseList;
     }
 
@@ -251,14 +289,18 @@ public class UserController {
     // ☺ Hien thi danh sach san xuat hang ngay
     @GetMapping("/san-xuat-hang-ngay")
     public List<SanXuatHangNgay> getAllSanXuatHangNgay() {
-        List<SanXuatHangNgay> responseList = this.userServices.getAllSanXuatHangNgay();
+        List<SanXuatHangNgay> responseList =
+            this.userServices.getAllSanXuatHangNgay();
         return responseList;
     }
 
     //☺ Tim kiem noi dung san xuat hang ngay (ok)
     @PostMapping("/san-xuat-hang-ngay/tim-kiem")
-    public List<SanXuatHangNgay> timKiemSanXuatHangNgay(@RequestBody SanXuatHangNgay request) {
-        List<SanXuatHangNgay> responseList = this.userServices.timKiemSanxuatHangNgay(request);
+    public List<SanXuatHangNgay> timKiemSanXuatHangNgay(
+        @RequestBody SanXuatHangNgay request
+    ) {
+        List<SanXuatHangNgay> responseList =
+            this.userServices.timKiemSanxuatHangNgay(request);
         return responseList;
     }
 
@@ -278,7 +320,9 @@ public class UserController {
 
     // ☺Chinh sua noi dung san xuat hang ngay (1)
     @PutMapping("/san-xuat-hang-ngay/cap-nhat")
-    public void putChiTietSanXuat(@RequestBody List<ChiTietSanXuat> requestList) {
+    public void putChiTietSanXuat(
+        @RequestBody List<ChiTietSanXuat> requestList
+    ) {
         this.userServices.putChiTietSanXuat(requestList);
     }
 
@@ -298,14 +342,21 @@ public class UserController {
     //☺ xem thong so san xuat hang ngay theo ma kich ban
     //☺ xem thông số kịch bản sản xuất theo san_xuat_hang_ngay_id
     @GetMapping("/chi-tiet-san-xuat/{sanXuatHangNgayId}")
-    public List<ChiTietSanXuat> getChiTietSanXuatBySanXuatHangNgayId(@PathVariable Long sanXuatHangNgayId) {
-        List<ChiTietSanXuat> responseList = this.userServices.getChiTietSanXuatBySanXuatHangNgayId(sanXuatHangNgayId);
+    public List<ChiTietSanXuat> getChiTietSanXuatBySanXuatHangNgayId(
+        @PathVariable Long sanXuatHangNgayId
+    ) {
+        List<ChiTietSanXuat> responseList =
+            this.userServices.getChiTietSanXuatBySanXuatHangNgayId(
+                sanXuatHangNgayId
+            );
         return responseList;
     }
 
     //☺Them moi thong tin thong so kich ban
     @PostMapping("/san-xuat-hang-ngay/them-moi-thong-so-san-xuat")
-    public void postChiTietSanXuat(@RequestBody List<ChiTietSanXuat> requestList) {
+    public void postChiTietSanXuat(
+        @RequestBody List<ChiTietSanXuat> requestList
+    ) {
         this.userServices.postChiTietSanXuat(requestList);
     }
 
@@ -317,7 +368,10 @@ public class UserController {
     }
 
     @PutMapping("/san-xuat-hang-ngay/{id}")
-    public void changeSignal(@PathVariable Long id, @RequestBody SanXuatHangNgay request) {
+    public void changeSignal(
+        @PathVariable Long id,
+        @RequestBody SanXuatHangNgay request
+    ) {
         this.userServices.changeSignal(id, request);
     }
 
@@ -329,13 +383,17 @@ public class UserController {
     //☺ tìm kiếm mã kịch bản sản xuất theo signal
     @GetMapping("/san-xuat-hang-ngay/{signal}")
     public List<SanXuatHangNgay> findAllBySignal(@PathVariable Long signal) {
-        List<SanXuatHangNgay> responseList = this.userServices.findAllBySignal(signal);
+        List<SanXuatHangNgay> responseList = this.userServices.findAllBySignal(
+            signal
+        );
         return responseList;
     }
 
     @GetMapping("/san-xuat-hang-ngay/ma-kich-ban/{maKichBan}")
     public SanXuatHangNgay getSXHNByMaKichBan(@PathVariable String maKichBan) {
-        SanXuatHangNgay sanXuatHangNgay = this.userServices.getSXHNByMaKichBan(maKichBan);
+        SanXuatHangNgay sanXuatHangNgay = this.userServices.getSXHNByMaKichBan(
+            maKichBan
+        );
         return sanXuatHangNgay;
     }
 
@@ -348,19 +406,27 @@ public class UserController {
     }
 
     @PostMapping("nhom-thiet-bi")
-    public List<NhomThietBi> insertNhomThietBi(@RequestBody List<NhomThietBi> nhomThietBis) {
-        List<NhomThietBi> nhomThietBis1 = this.userServices.insertNhomThietBi(nhomThietBis);
+    public List<NhomThietBi> insertNhomThietBi(
+        @RequestBody List<NhomThietBi> nhomThietBis
+    ) {
+        List<NhomThietBi> nhomThietBis1 = this.userServices.insertNhomThietBi(
+            nhomThietBis
+        );
         return nhomThietBis1;
     }
 
     @PostMapping("nhom-thiet-bi/update")
-    public void updateNhomThietBiNew(@RequestBody List<NhomThietBi> nhomThietBis) {
+    public void updateNhomThietBiNew(
+        @RequestBody List<NhomThietBi> nhomThietBis
+    ) {
         this.userServices.updateNhomThietBiNew(nhomThietBis);
     }
 
     @GetMapping("nhom-thiet-bi/get/{groupId}")
     public List<NhomThietBi> getAllByGroupId(@PathVariable Long groupId) {
-        List<NhomThietBi> nhomThietBis = this.userServices.getAllByGroupId(groupId);
+        List<NhomThietBi> nhomThietBis = this.userServices.getAllByGroupId(
+            groupId
+        );
         return nhomThietBis;
     }
 
@@ -383,31 +449,40 @@ public class UserController {
     //---------------------------------------------- * -----------------------------------------------------------------
     @GetMapping("/kich-ban-change-status")
     public List<KichBanChangeStatus> findAllKBCS() {
-        List<KichBanChangeStatus> responseList = this.userServices.findAllKBCS();
+        List<KichBanChangeStatus> responseList =
+            this.userServices.findAllKBCS();
         return responseList;
     }
 
     @PutMapping("/kich-ban-change-status")
-    public KichBanChangeStatus updateKBCS(@RequestBody KichBanChangeStatus request) {
+    public KichBanChangeStatus updateKBCS(
+        @RequestBody KichBanChangeStatus request
+    ) {
         KichBanChangeStatus response = this.userServices.updateKBCS(request);
         return response;
     }
 
     @PostMapping("/lenh-san-xuat/totalData")
     public Integer getAllLenhSanXuat(@RequestBody TemInDTO request) {
-        Integer responseList = this.userServices.totalDataThongTinTemSanXuat(request);
+        Integer responseList = this.userServices.totalDataThongTinTemSanXuat(
+            request
+        );
         return responseList;
     }
 
     @PostMapping("/lenh-san-xuat")
     public List<LenhSanXuat> timKiemLenhSanXuat(@RequestBody TemInDTO request) {
-        List<LenhSanXuat> responseList = this.userServices.timKiemThongTinTemSanXuat(request);
+        List<LenhSanXuat> responseList =
+            this.userServices.timKiemThongTinTemSanXuat(request);
         return responseList;
     }
 
     @PostMapping("/quan-ly-phe-duyet")
-    public List<LenhSanXuat> timKiemQuanLyPheDuyet(@RequestBody TemInDTO temInDTO) {
-        List<LenhSanXuat> responseList = this.userServices.timKiemQuanLyPheDuyet(temInDTO);
+    public List<LenhSanXuat> timKiemQuanLyPheDuyet(
+        @RequestBody TemInDTO temInDTO
+    ) {
+        List<LenhSanXuat> responseList =
+            this.userServices.timKiemQuanLyPheDuyet(temInDTO);
         return responseList;
     }
 
@@ -419,18 +494,27 @@ public class UserController {
     }
 
     @GetMapping("/chi-tiet-lenh-san-xuat/{maLenhSanXuatId}")
-    public List<ChiTietLenhSanXuat> chiTietLenhSanXuat(@PathVariable Long maLenhSanXuatId) {
-        List<ChiTietLenhSanXuat> responseList = this.userServices.chiTietLenhSanXuat(maLenhSanXuatId);
+    public List<ChiTietLenhSanXuat> chiTietLenhSanXuat(
+        @PathVariable Long maLenhSanXuatId
+    ) {
+        List<ChiTietLenhSanXuat> responseList =
+            this.userServices.chiTietLenhSanXuat(maLenhSanXuatId);
         return responseList;
     }
 
     @PutMapping("/chi-tiet-lenh-san-xuat/{id}")
-    public void updateTrangThaiLenhSanXuat(@PathVariable Long id, @RequestBody LenhSanXuat request) {
+    public void updateTrangThaiLenhSanXuat(
+        @PathVariable Long id,
+        @RequestBody LenhSanXuat request
+    ) {
         this.userServices.updateTrangThaiLenhSanXuat(id, request);
     }
 
     @PutMapping("/chi-tiet-lenh-san-xuat/update/{id}")
-    public void updateChiTietLenhSanXuat(@RequestBody List<ChiTietLenhSanXuat> request, @PathVariable Long id) {
+    public void updateChiTietLenhSanXuat(
+        @RequestBody List<ChiTietLenhSanXuat> request,
+        @PathVariable Long id
+    ) {
         this.userServices.updateChiTietLenhSanXuat(request, id);
     }
 
@@ -472,12 +556,16 @@ public class UserController {
     // ? Quản lý thiết bị
     @GetMapping("scan-machines/{groupId}")
     public List<scanMachines> listMachines(@PathVariable Long groupId) {
-        List<scanMachines> scanMachinesList = this.userServices.listMachines(groupId);
+        List<scanMachines> scanMachinesList = this.userServices.listMachines(
+            groupId
+        );
         return scanMachinesList;
     }
 
     @PostMapping("scan-machines")
-    public void insertScanMachines(@RequestBody List<scanMachines> scanMachines) {
+    public void insertScanMachines(
+        @RequestBody List<scanMachines> scanMachines
+    ) {
         this.userServices.insertScanMachines(scanMachines);
     }
 
@@ -488,17 +576,22 @@ public class UserController {
 
     @GetMapping("scan-group-machines")
     public List<scanGroupMachines> groupMachinesList() {
-        List<scanGroupMachines> scanGroupMachinesList = this.userServices.groupMachinesList();
+        List<scanGroupMachines> scanGroupMachinesList =
+            this.userServices.groupMachinesList();
         return scanGroupMachinesList;
     }
 
     @PostMapping("scan-group-machines")
-    public Long insertGroupMachines(@RequestBody groupMachineDTO scanGroupMachines) {
+    public Long insertGroupMachines(
+        @RequestBody groupMachineDTO scanGroupMachines
+    ) {
         return this.userServices.insertGroupMachines(scanGroupMachines);
     }
 
     @PutMapping("scan-group-machines")
-    public void putGroupMachines(@RequestBody groupMachineDTO scanGroupMachines) {
+    public void putGroupMachines(
+        @RequestBody groupMachineDTO scanGroupMachines
+    ) {
         this.userServices.putGroupMachines(scanGroupMachines);
     }
 
@@ -510,18 +603,24 @@ public class UserController {
 
     @GetMapping("scan-profile-check/machine")
     public List<scanMachines> listAllMachines() {
-        List<scanMachines> scanMachinesList = this.userServices.listAllMachines();
+        List<scanMachines> scanMachinesList =
+            this.userServices.listAllMachines();
         return scanMachinesList;
     }
 
     @GetMapping("scan-profile-check/{productId}")
-    public List<ScanPprofileCheck> listProfileCheckByProduct(@PathVariable Long productId) {
-        List<ScanPprofileCheck> scanPprofileChecks = this.userServices.listProfileCheckByProduct(productId);
+    public List<ScanPprofileCheck> listProfileCheckByProduct(
+        @PathVariable Long productId
+    ) {
+        List<ScanPprofileCheck> scanPprofileChecks =
+            this.userServices.listProfileCheckByProduct(productId);
         return scanPprofileChecks;
     }
 
     @PostMapping("scan-profile-check")
-    public void insertScanProfileCheck(@RequestBody List<ScanPprofileCheck> scanPprofileChecks) {
+    public void insertScanProfileCheck(
+        @RequestBody List<ScanPprofileCheck> scanPprofileChecks
+    ) {
         this.userServices.insertScanProfileCheck(scanPprofileChecks);
     }
 
@@ -531,78 +630,110 @@ public class UserController {
     //    }
 
     @PostMapping("scan-work-order/detail")
-    public void insertDetailCheck(@RequestBody List<detailCheckDTO> scanDetailChecks) {
+    public void insertDetailCheck(
+        @RequestBody List<detailCheckDTO> scanDetailChecks
+    ) {
         this.userServices.insertDetailCheck(scanDetailChecks);
     }
 
     @GetMapping("user-login-history/{orderId}")
-    public List<scanLoginHistory> listLoginByWorkOrder(@PathVariable Long orderId) {
-        List<scanLoginHistory> scanLoginHistories = this.userServices.listLoginByWorkOrder(orderId);
+    public List<scanLoginHistory> listLoginByWorkOrder(
+        @PathVariable Long orderId
+    ) {
+        List<scanLoginHistory> scanLoginHistories =
+            this.userServices.listLoginByWorkOrder(orderId);
         return scanLoginHistories;
     }
 
     @GetMapping("scan-work-order/detail/{orderId}")
-    public List<TongHopResponse> listDetailCheckByWorkOrder(@PathVariable Long orderId) {
-        List<TongHopResponse> scanDetailChecks = this.userServices.listDetailCheckByWorkOrder(orderId);
+    public List<TongHopResponse> listDetailCheckByWorkOrder(
+        @PathVariable Long orderId
+    ) {
+        List<TongHopResponse> scanDetailChecks =
+            this.userServices.listDetailCheckByWorkOrder(orderId);
         return scanDetailChecks;
     }
 
     @GetMapping("scan-work-order/groupId")
     public List<workOrderInfo> listWorkOrderByGroup() {
-        List<workOrderInfo> scanWorkorders = this.userServices.listWorkOrderByGroup();
+        List<workOrderInfo> scanWorkorders =
+            this.userServices.listWorkOrderByGroup();
         return scanWorkorders;
     }
 
     @PostMapping("scan-work-order/orderId")
-    public void updateWorkingWorkOrder(@RequestBody scanWorkorder scanWorkorder) {
+    public void updateWorkingWorkOrder(
+        @RequestBody scanWorkorder scanWorkorder
+    ) {
         this.userServices.updateWorkingWorkOrder(scanWorkorder);
     }
 
     @GetMapping("scan-work-order/{orderId}")
     public workOrderInfo listWorkOrderByGroupById(@PathVariable Long orderId) {
-        workOrderInfo workOrderInfo = this.userServices.listWorkOrderByGroupById(orderId);
+        workOrderInfo workOrderInfo =
+            this.userServices.listWorkOrderByGroupById(orderId);
         return workOrderInfo;
     }
 
     @GetMapping("profile-check/{productId}")
-    public List<TongHopResponse> listProfileCheck(@PathVariable Long productId) {
-        List<TongHopResponse> scanPprofileCheck = this.userServices.listProfileCheck(productId);
+    public List<TongHopResponse> listProfileCheck(
+        @PathVariable Long productId
+    ) {
+        List<TongHopResponse> scanPprofileCheck =
+            this.userServices.listProfileCheck(productId);
         return scanPprofileCheck;
     }
 
     @GetMapping("tong-hop/{orderId}")
     public List<TongHopResponse> tongHop(@PathVariable Long orderId) {
-        List<TongHopResponse> tongHopResponses = this.userServices.tongHop(orderId);
+        List<TongHopResponse> tongHopResponses = this.userServices.tongHop(
+            orderId
+        );
         return tongHopResponses;
     }
 
     @PostMapping("lenh-san-xuat/tong-so-luong")
-    public List<LenhSanXuatDTO> getTongSoLuong(@RequestBody List<LenhSanXuat> lenhSanXuats) {
-        List<LenhSanXuatDTO> lenhSanXuatDTOS = this.userServices.getTongSoLuong(lenhSanXuats);
+    public List<LenhSanXuatDTO> getTongSoLuong(
+        @RequestBody List<LenhSanXuat> lenhSanXuats
+    ) {
+        List<LenhSanXuatDTO> lenhSanXuatDTOS = this.userServices.getTongSoLuong(
+            lenhSanXuats
+        );
         return lenhSanXuatDTOS;
     }
 
     @PutMapping("login-history")
-    public void saveLoginHistoryInfo(@RequestBody scanLoginHistory scanLoginHistory) {
+    public void saveLoginHistoryInfo(
+        @RequestBody scanLoginHistory scanLoginHistory
+    ) {
         this.userServices.saveLoginHistoryInfo(scanLoginHistory);
     }
 
     @PutMapping("work-order-working")
-    public void updateWorkOrderWorking(@RequestBody scanWorkorder scanWorkorder) {
+    public void updateWorkOrderWorking(
+        @RequestBody scanWorkorder scanWorkorder
+    ) {
         this.userServices.updateWorkOrderWorking(scanWorkorder);
     }
 
     @GetMapping("scan-profile-check/versions/{productId}")
-    public List<scanProductVersions> getListVersionsByProductId(@PathVariable Long productId) {
-        List<scanProductVersions> scanProductVersionsList = this.userServices.getListVersionsByProductId(productId);
+    public List<scanProductVersions> getListVersionsByProductId(
+        @PathVariable Long productId
+    ) {
+        List<scanProductVersions> scanProductVersionsList =
+            this.userServices.getListVersionsByProductId(productId);
         return scanProductVersionsList;
     }
 
     // * ---------------------- Quản lý trạm thông tin kiểm tra ----------------------------
     //☺ Lấy danh sách sản phẩm + phân trang + lọc
     @PostMapping("scan-profile-check/panigation")
-    public List<scanProduct> getListProduct(@RequestBody scanProductDTO scanProductDTO) {
-        List<scanProduct> scanProducts = this.userServices.getListProduct(scanProductDTO);
+    public List<scanProduct> getListProduct(
+        @RequestBody scanProductDTO scanProductDTO
+    ) {
+        List<scanProduct> scanProducts = this.userServices.getListProduct(
+            scanProductDTO
+        );
         return scanProducts;
     }
 
@@ -616,22 +747,32 @@ public class UserController {
     // * --------------------- Kiểm soát đối chiếu lệnh sản xuất ---------------------
     //☺ Lấy danh sách lệnh sản xuất + phân trang+ tìm kiếm + sort
     @PostMapping("scan-work-order/panigation")
-    public List<workOrderInfo> getListWorkOrders(@RequestBody ScanWorkOrderDTO scanWorkOrderDTO) {
-        List<workOrderInfo> workOrderInfos = this.userServices.getListWorkOrders(scanWorkOrderDTO);
+    public List<workOrderInfo> getListWorkOrders(
+        @RequestBody ScanWorkOrderDTO scanWorkOrderDTO
+    ) {
+        List<workOrderInfo> workOrderInfos =
+            this.userServices.getListWorkOrders(scanWorkOrderDTO);
         return workOrderInfos;
     }
 
     //☺ Lấy tổng item
     @PostMapping("scan-work-order/total")
-    public Integer getToTalItemWorkOrders(@RequestBody ScanWorkOrderDTO scanWorkOrderDTO) {
-        Integer totalItem = this.userServices.getToTalItemWorkOrders(scanWorkOrderDTO);
+    public Integer getToTalItemWorkOrders(
+        @RequestBody ScanWorkOrderDTO scanWorkOrderDTO
+    ) {
+        Integer totalItem = this.userServices.getToTalItemWorkOrders(
+            scanWorkOrderDTO
+        );
         return totalItem;
     }
 
     //☺ Lấy tổng pass , Ng
     @PostMapping("scan-work-order/total-pass-ng")
-    public List<DetailCheckResponse> getTotalPassNg(@RequestBody ScanWorkOrderDTO scanWorkOrderDTO) {
-        List<DetailCheckResponse> detailCheckResponses = this.userServices.getTotalPassNg(scanWorkOrderDTO);
+    public List<DetailCheckResponse> getTotalPassNg(
+        @RequestBody ScanWorkOrderDTO scanWorkOrderDTO
+    ) {
+        List<DetailCheckResponse> detailCheckResponses =
+            this.userServices.getTotalPassNg(scanWorkOrderDTO);
         return detailCheckResponses;
     }
 
@@ -645,42 +786,58 @@ public class UserController {
 
     // * ------------------------------- version ---------------------
     @PostMapping("scan-profile-check/create-version")
-    public scanProductVersions createVersion(@RequestBody scanProductVersions scanProductVersions) {
-        scanProductVersions scanProductVersionsList = this.userServices.createVersion(scanProductVersions);
+    public scanProductVersions createVersion(
+        @RequestBody scanProductVersions scanProductVersions
+    ) {
+        scanProductVersions scanProductVersionsList =
+            this.userServices.createVersion(scanProductVersions);
         return scanProductVersionsList;
     }
 
     // * ------------------------- Product version ---------------------------------
     //☺ Lấy danh sách profile theo product
     @GetMapping("profile-checks/{productId}")
-    public List<ProfileCheckResponse> getProfileCheckInfo(@PathVariable Long productId) {
-        List<ProfileCheckResponse> profileCheckResponses = this.userServices.getProfileCheckInfo(productId);
+    public List<ProfileCheckResponse> getProfileCheckInfo(
+        @PathVariable Long productId
+    ) {
+        List<ProfileCheckResponse> profileCheckResponses =
+            this.userServices.getProfileCheckInfo(productId);
         return profileCheckResponses;
     }
 
     //☺ Lấy danh sách profile theo product và version
     @PostMapping("profile-checks")
-    public List<ProfileCheckResponse> getProfileCheckInfoWithVersionId(@RequestBody ScanPprofileCheck scanPprofileCheck) {
-        List<ProfileCheckResponse> profileCheckResponses = this.userServices.getProfileCheckInfoWithVersionId(scanPprofileCheck);
+    public List<ProfileCheckResponse> getProfileCheckInfoWithVersionId(
+        @RequestBody ScanPprofileCheck scanPprofileCheck
+    ) {
+        List<ProfileCheckResponse> profileCheckResponses =
+            this.userServices.getProfileCheckInfoWithVersionId(
+                scanPprofileCheck
+            );
         return profileCheckResponses;
     }
 
     //☺ THêm mới profile check
     @PostMapping("profile-checks/insert")
-    public void insertProfileCheck(@RequestBody List<ScanPprofileCheck> scanPprofileChecks) {
+    public void insertProfileCheck(
+        @RequestBody List<ScanPprofileCheck> scanPprofileChecks
+    ) {
         this.userServices.insertProfileCheck(scanPprofileChecks);
     }
 
     //☺ Chỉnh sửa profile
     @PostMapping("profile-checks/update")
-    public void updateScanProfileCheck(@RequestBody List<ProfileCheckDTO> profileCheckDTOS) {
+    public void updateScanProfileCheck(
+        @RequestBody List<ProfileCheckDTO> profileCheckDTOS
+    ) {
         this.userServices.updateScanProfileCheck(profileCheckDTOS);
     }
 
     // * ----------------------- Export -------------------------
     @GetMapping("scan-check-export/{orderId}")
     public List<TongHopResponse> getExportInfo(@PathVariable Long orderId) {
-        List<TongHopResponse> tongHopResponses = this.userServices.getExportInfo(orderId);
+        List<TongHopResponse> tongHopResponses =
+            this.userServices.getExportInfo(orderId);
         return tongHopResponses;
     }
 
