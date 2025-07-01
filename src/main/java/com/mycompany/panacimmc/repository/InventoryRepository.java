@@ -103,7 +103,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,b.Location_Name AS locationName\n" +
         "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
         "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
-        "FROM [Inventory].[dbo].[Inventory] a\n" +
+        "FROM [PanaCIMMC].[dbo].[Inventory] a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
         "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
