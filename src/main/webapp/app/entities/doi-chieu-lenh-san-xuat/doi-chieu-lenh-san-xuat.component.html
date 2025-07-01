@@ -1,0 +1,289 @@
+<div>
+  <h2 id="page-heading" data-cy="DoiChieuLenhSanXuatHeading">
+    <span>Thông tin lệnh sản xuất</span>
+  </h2>
+  <div class="table-responsive">
+    <form>
+      <table class="table" aria-describedby="page-heading">
+        <thead>
+          <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending" (sortChange)="loadPage()">
+            <th scope="col" jhiSortBy="STT">
+              <span>STT</span>
+              <input type="text" style="width: 1px; border: none; background-color: #006699" />
+            </th>
+
+            <th scope="col" jhiSortBy="workOrder">
+              <span>WorkOder</span>
+              <input
+                #searchInput
+                type="text"
+                [(ngModel)]="workOrder"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Tìm kiếm"
+                (change)="findFucntion()"
+              />
+            </th>
+
+            <th scope="col" jhiSortBy="lot">
+              <span>LOT</span>
+              <input
+                #searchInput
+                type="text"
+                [(ngModel)]="lot"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Tìm kiếm"
+                (change)="findFucntion()"
+              />
+            </th>
+
+            <th scope="col" jhiSortBy="machineId">
+              <span>Mã thiết bị</span>
+              <input
+                #searchInput
+                type="text"
+                [(ngModel)]="machineId"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Tìm kiếm"
+                (change)="findFucntion()"
+              />
+            </th>
+
+            <th scope="col" jhiSortBy="productCode">
+              <span>Mã sản phẩm</span>
+              <input
+                #searchInput
+                type="text"
+                [(ngModel)]="productCode"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Tìm kiếm"
+                (change)="findFucntion()"
+              />
+            </th>
+
+            <th scope="col" jhiSortBy="productName">
+              <span>Tên sản phẩm</span>
+              <input
+                #searchInput
+                type="text"
+                [(ngModel)]="productName"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Tìm kiếm"
+                (change)="findFucntion()"
+              />
+            </th>
+
+            <th scope="col" jhiSortBy="working">
+              <span>Trạng thái</span>
+              <input
+                #searchInput
+                type="text"
+                [(ngModel)]="working"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Tìm kiếm"
+                disabled
+              />
+            </th>
+
+            <th scope="col" jhiSortBy="createdAt">
+              <span>Thời gian tiếp nhận</span>
+              <input
+                #searchInput
+                type="date"
+                [(ngModel)]="createdAt"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Tìm kiếm"
+                (change)="findFucntion()"
+              />
+            </th>
+
+            <th scope="col" jhiSortBy="numberOfPlan">
+              <span>Sản lượng kế hoạch</span>
+              <input type="text" style="width: 1px; border: none; background-color: #006699" />
+            </th>
+
+            <th scope="col" jhiSortBy="sumPass">
+              <span>Tổng Pass</span>
+              <input type="text" style="width: 1px; border: none; background-color: #006699" />
+            </th>
+
+            <th scope="col" jhiSortBy="sumNG">
+              <span>Tổng NG</span>
+              <input type="text" style="width: 1px; border: none; background-color: #006699" />
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let item of listOfLenhSanXuat; let i = index"
+            [routerLink]="['/doi-chieu-lenh-san-xuat', 'scan-check']"
+            (click)="getWorkOrderDetail(item.orderId, item.groupId)"
+          >
+            <td>{{ i + 1 }}</td>
+            <td>{{ item.workOrder }}</td>
+            <td>{{ item.lot }}</td>
+            <td>{{ item.groupName }}</td>
+            <td>{{ item.productCode }}</td>
+            <td>{{ item.productName }}</td>
+            <td>{{ item.tenTrangThai }}</td>
+            <td>{{ item.createAt }}</td>
+            <td>{{ item.sanLuong }}</td>
+            <td>{{ item.pass }}</td>
+            <td>{{ item.ng }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </form>
+  </div>
+  <div class="paginate">
+    <div style="display: flex; justify-content: space-between">
+      <div>
+        <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage" (change)="findFucntion()">
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+
+      <div style="display: flex">
+        <button class="pagination" (click)="firstPage()" [disabled]="firstPageBtn">Trang đầu</button>
+        <button class="pagination" (click)="backPage()" [disabled]="backPageBtn">Trang trước</button>
+        <button class="pagenumber">{{ pageNumber }}</button>
+        <button class="pagination" (click)="nextPage()" [disabled]="nextPageBtn">Trang sau</button>
+        <button class="pagination" (click)="lastPage()" [disabled]="lastPageBtn">Trang cuối</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Popup chi tiết thông tin scan -->
+<div class="table-responsive popup-background" role="dialog" *ngIf="popupChiTietThongTinScan === true">
+  <div>
+    <span class="close-btn" (click)="closePopupChiTietThongTinScan()">&times;</span>
+    <div>
+      <div class="popup-chi-tiet-thong-tin-scan">
+        <h2>Chi tiết thông tin scan</h2>
+        <div class="table-container">
+          <div class="table-header">
+            <table class="table table-striped" aria-describedby="page-heading">
+              <thead>
+                <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+                  <th scope="col">WorkOder</th>
+                  <th scope="col">Lot</th>
+                  <th scope="col">Mã sản phẩm</th>
+                  <th scope="col">Tên sản phẩm</th>
+                  <th scope="col">Nhóm máy</th>
+                  <th scope="col">Version</th>
+                  <th scope="col">Trạng thái</th>
+                  <th scope="col">Kế hoạch</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-body">
+            <table class="table table-striped" aria-describedby="page-heading">
+              <thead>
+                <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+                  <th scope="col"><span>Mã máy</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col">
+                    <span>Vị trí</span>
+                    <input #searchInput type="text" [(ngModel)]="position" [ngModelOptions]="{ standalone: true }" placeholder="Tìm kiếm" />
+                  </th>
+                  <th scope="col"><span>Giá trị</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col">
+                    <span>Thông tin check</span><input type="text" style="width: 1px; border: none; background-color: #006699" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <table class="table table-striped" aria-describedby="page-heading">
+              <thead>
+                <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+                  <th scope="col"><span>STT</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col">
+                    <span>Mã máy</span>
+                    <input
+                      #searchInput
+                      type="text"
+                      [(ngModel)]="machineId"
+                      [ngModelOptions]="{ standalone: true }"
+                      placeholder="Tìm kiếm"
+                    />
+                  </th>
+                  <th scope="col"><span>Serial</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col">
+                    <span>Thông tin check</span>
+                    <input
+                      #searchInput
+                      type="text"
+                      [(ngModel)]="checkValue"
+                      [ngModelOptions]="{ standalone: true }"
+                      placeholder="Tìm kiếm"
+                    />
+                  </th>
+                  <th scope="col"><span>Giá trị</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col"><span>Vị trí</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col"><span>Result</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                </tr>
+              </thead>
+            </table>
+            <div class="paginate">
+              <div class="paginate-container">
+                <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage">
+                  <option value="20">20</option>
+                  <option value="30">30</option>
+                  <option value="50">50</option>
+                </select>
+
+                <pagination-controls (pageChange)="page = $event"></pagination-controls>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          id="cancel-save"
+          data-cy="entityCreateCancelButton"
+          class="btn btn-secondary"
+          (click)="closePopupChiTietThongTinScan()"
+        >
+          <fa-icon icon="ban"></fa-icon>&nbsp;<span>Cancel</span>
+        </button>
+        <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" class="btn btn-primary" (click)="openPopupConfirmSave()">
+          <fa-icon icon="save"></fa-icon>&nbsp;<span>Lưu</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="table-responsive popup-background popup-save-info" role="dialog" *ngIf="popupConfirmSave === true">
+  <div>
+    <p>Bạn có chắc chắn muốn lưu thông tin này không?</p>
+    <div class="btn-group-save">
+      <button class="confirm-btn" (click)="closePopupConfirmSave()">Xác nhận</button>
+      <button class="cancel-btn" (click)="closePopupConfirmSave()">Hủy</button>
+    </div>
+  </div>
+</div>

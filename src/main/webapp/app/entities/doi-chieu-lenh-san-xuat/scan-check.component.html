@@ -1,0 +1,341 @@
+<div class="main-container">
+  <div class="group-btn-header">
+    <div class="btn-back">
+      <button type="button" class="btn btn-secondary" (click)="previousState()">
+        <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span>Back</span>
+      </button>
+    </div>
+
+    <div class="btn-actions">
+      <button type="button" class="btn btn-success" (click)="btnStart()" [disabled]="disableStart">Start</button>
+      <button type="button" class="btn btn-warning" (click)="btnPause()" [disabled]="disablePause">Pause</button>
+      <button type="button" class="btn btn-primary" (click)="btnFinish()" [disabled]="disableFinish">Finish</button>
+      <button type="button" class="btn btn-secondary" (click)="getDataExport()">Export</button>
+      <button type="button" class="btn btn-info" (click)="openPopupChiTietThongTinScan()">View Detail Data</button>
+      <div class="div-input">
+        <input
+          id="scanCheck"
+          [(ngModel)]="scanValue"
+          (keyup.enter)="onScan()"
+          placeholder="Scan here"
+          autofocus
+          disabled="{{ ['Waiting', 'Pause', 'Finish'].includes(dataWorkOrder[0].trangThai) }}"
+        />
+      </div>
+    </div>
+  </div>
+  <div class="main-dashboard">
+    <h1>Thông tin giám sát sản xuất</h1>
+  </div>
+  <div class="product-info">
+    <table class="table-info">
+      <thead>
+        <tr>
+          <th>WorkOrder</th>
+          <th>Mã sản phẩm</th>
+          <th>Tên sản phẩm</th>
+          <th>Số lô</th>
+
+          <th>Trạng thái</th>
+          <th>Thời gian chạy</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let element of dataWorkOrder">
+          <td>{{ element.workOrder }}</td>
+          <td>{{ element.productCode }}</td>
+          <td>{{ element.productName }}</td>
+          <td>{{ element.lot }}</td>
+
+          <td>{{ element.tenTrangThai }}</td>
+          <td>{{ getFormattedElapsedTime() }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="container-1">
+    <div class="check-summary">
+      <div>
+        <table class="table-check">
+          <thead>
+            <tr>
+              <th>Sản lượng kế hoạch</th>
+              <th>Tổng kiểm tra</th>
+              <th>Tỉ lệ hoàn thành</th>
+            </tr>
+          </thead>
+          <tbody>
+            <td>{{ dataWorkOrder[0].sanLuong }}</td>
+            <td>{{ totalScans }}</td>
+            <td>{{ rateCompleted }}%</td>
+          </tbody>
+        </table>
+      </div>
+      <div class="group-pie">
+        <div class="group-canvas">
+          <apx-chart
+            [series]="chartSeries"
+            [chart]="chartDetails"
+            [labels]="chartLabels"
+            [title]="chartTitle"
+            [colors]="chartColors"
+            [dataLabels]="chartDataLabels"
+          ></apx-chart>
+          <!-- <canvas baseChart [type]="'pie'" [datasets]="pieChartDatasets" [plugins]="pieChartPlugins"
+            [labels]="pieChartLabels" [legend]="pieChartLegend" [options]="lineChartOptions">
+          </canvas> -->
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="group-station-user container-1">
+    <div class="inspection-stations">
+      <div class="group-input">
+        <H3>Tổng hợp dữ liệu kiểm tra</H3>
+      </div>
+
+      <table class="table-inspection">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Tên trạm</th>
+            <th>Giá trị kiểm tra</th>
+            <th>Tổng lượt Scan</th>
+            <th>Tổng Pass</th>
+            <th>Tổng NG</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ position }}</td>
+            <td>{{ stationName }}</td>
+            <td>{{ checkValue }}</td>
+            <td>{{ totalScans }}</td>
+            <td>{{ totalPass }}</td>
+            <td>{{ totalFail }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="paginate">
+        <div class="paginate-container">
+          <select class="form-select" aria-label="Default select example" [(ngModel)]="itemsPerPage">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+
+          <pagination-controls (pageChange)="page = $event"></pagination-controls>
+        </div>
+      </div>
+    </div>
+    <div class="user-access">
+      <H3>Thông tin người truy cập</H3>
+      <div style="overflow: auto; height: 196px">
+        <table class="table-user">
+          <thead>
+            <tr>
+              <th style="position: sticky; top: 0">Tên người dùng</th>
+              <th style="position: sticky; top: 0">Thời gian đăng nhập</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let element of dataUser | paginate: { id: 'paginate', itemsPerPage: itemPerPage, currentPage: page }">
+              <td>{{ element.username }}</td>
+              <td>{{ element.timeLogin }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="paginate" *ngIf="dataUser && dataUser.length > 0">
+        <div class="paginate-container">
+          <select class="form-select" aria-label="Default select example" [(ngModel)]="itemsPerPage">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="50">50</option>
+          </select>
+
+          <pagination-controls id="paginate" (pageChange)="page = $event"></pagination-controls>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Popup chi tiết thông tin scan -->
+<div class="table-responsive popup-background" role="dialog" *ngIf="popupChiTietThongTinScan === true">
+  <div>
+    <span class="close-btn" (click)="closePopupChiTietThongTinScan()">&times;</span>
+    <div>
+      <div class="popup-chi-tiet-scan">
+        <h2>Chi tiết thông tin scan</h2>
+        <div class="table-container">
+          <div class="table-header">
+            <table class="table table-striped" aria-describedby="page-heading">
+              <thead>
+                <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+                  <th scope="col">WorkOder</th>
+                  <th scope="col">Lot</th>
+                  <th scope="col">Mã sản phẩm</th>
+                  <th scope="col">Tên sản phẩm</th>
+                  <th scope="col">Nhóm máy</th>
+                  <th scope="col">Version</th>
+                  <th scope="col">Trạng thái</th>
+                  <th scope="col">Kế hoạch</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr></tr>
+                <tr *ngFor="let element of dataWorkOrder">
+                  <td>{{ element.workOrder }}</td>
+                  <td>{{ element.lot }}</td>
+                  <td>{{ element.productCode }}</td>
+                  <td>{{ element.productName }}</td>
+                  <td>{{ element.groupName }}</td>
+                  <td>{{ element.version }}</td>
+
+                  <td>{{ element.trangThai }}</td>
+                  <td style="text-align: left">{{ element.sanLuong }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-container-body">
+            <div class="table-body">
+              <table class="table table-striped" aria-describedby="page-heading">
+                <thead>
+                  <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+                    <th scope="col">
+                      <span>Tên trạm</span><input type="text" style="width: 1px; border: none; background-color: #309acf" />
+                    </th>
+                    <th scope="col" style="width: 8rem">
+                      <span>Vị trí</span>
+                      <input
+                        #searchInput
+                        type="text"
+                        [(ngModel)]="this.position"
+                        [ngModelOptions]="{ standalone: true }"
+                        placeholder="Tìm kiếm"
+                        (change)="searchChiTiet1()"
+                      />
+                    </th>
+                    <th scope="col">
+                      <span>Nội dung kiểm tra</span><input type="text" style="width: 1px; border: none; background-color: #309acf" />
+                    </th>
+                    <th scope="col">
+                      <span>Giá trị</span><input type="text" style="width: 1px; border: none; background-color: #309acf" />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of listProfileCheck | paginate: { id: 'paginate1', itemsPerPage: itemPerPage1, currentPage: page1 }">
+                    <td>{{ item.machineName }}</td>
+                    <td>{{ item.position }}</td>
+                    <td style="text-align: left">{{ item.recordName }}</td>
+                    <td style="text-align: left">{{ item.recordValue }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="paginate">
+                <div class="paginate-container">
+                  <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage1">
+                    <option value="10">20</option>
+                    <option value="15">30</option>
+                    <option value="50">50</option>
+                  </select>
+
+                  <pagination-controls id="paginate1" (pageChange)="page1 = $event"></pagination-controls>
+                </div>
+              </div>
+            </div>
+            <div class="table-footer">
+              <div style="height: 324px">
+                <table class="table table-striped" aria-describedby="page-heading">
+                  <thead>
+                    <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+                      <th scope="col"><span>STT</span><input type="text" style="width: 1px; border: none; background-color: #309acf" /></th>
+                      <th scope="col" style="width: 10rem">
+                        <span>Tên trạm</span>
+                        <input
+                          #searchInput
+                          type="text"
+                          [(ngModel)]="machineId"
+                          [ngModelOptions]="{ standalone: true }"
+                          placeholder="Tìm kiếm"
+                          (change)="searchChiTiet2()"
+                        />
+                      </th>
+                      <th scope="col">
+                        <span>Serial</span><input type="text" style="width: 1px; border: none; background-color: #309acf" />
+                      </th>
+                      <th scope="col">
+                        <span>Nội dung kiểm tra</span>
+                        <input
+                          #searchInput
+                          type="text"
+                          [(ngModel)]="tieuChiKiemTra"
+                          [ngModelOptions]="{ standalone: true }"
+                          placeholder="Tìm kiếm"
+                          (change)="searchChiTiet2()"
+                        />
+                      </th>
+                      <th scope="col" style="width: 20rem">
+                        <span>Giá trị</span><input type="text" style="width: 1px; border: none; background-color: #309acf" />
+                      </th>
+                      <th scope="col">
+                        <span>Thời gian</span><input type="text" style="width: 1px; border: none; background-color: #309acf" />
+                      </th>
+                      <th scope="col">
+                        <span>Vị trí</span><input type="text" style="width: 1px; border: none; background-color: #309acf" />
+                      </th>
+                      <th scope="col" style="width: 8rem">
+                        <span>Result</span><input type="text" style="width: 1px; border: none; background-color: #309acf" />
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      *ngFor="
+                        let item of infoCheckMachine | paginate: { id: 'paginate2', itemsPerPage: itemPerPage2, currentPage: page2 };
+                        let i = index
+                      "
+                    >
+                      <td>{{ i + 1 }}</td>
+                      <td>{{ item.tenThietBi }}</td>
+                      <td></td>
+                      <td>{{ item.tieuChiKiemTra }}</td>
+                      <td>{{ item.noiDungDoiChieu }}</td>
+                      <td>{{ item.thoiGianCheck }}</td>
+                      <td>{{ item.viTri }}</td>
+                      <td>{{ item.ketLuan }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="paginate">
+                <div class="paginate-container">
+                  <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage2">
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                  </select>
+
+                  <pagination-controls id="paginate2" (pageChange)="page2 = $event"></pagination-controls>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="table-responsive popup-background popup-save-info" role="dialog" *ngIf="popupConfirmSave === true">
+  <div class="form-popup-alert">
+    <p>Bạn có chắc chắn muốn lưu thông tin này không?</p>
+    <div class="btn-group-save">
+      <button class="confirm-btn" (click)="closePopupConfirmSave()">Xác nhận</button>
+      <button class="cancel-btn" (click)="closePopupConfirmSave()">Hủy</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,419 @@
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/functions';
+// @import '~bootswatch/dist/zephyr/variables';
+// @import 'bootstrap/scss/variables';
+
+$sidebar-background-color: #333;
+$sidebar-text-color: #fff;
+$sidebar-width: 250px;
+
+/* ==========================================================================
+Navbar
+========================================================================== */
+
+// .navbar-version {
+//   font-size: 0.65em;
+//   color: $navbar-dark-color;
+// }
+
+// .profile-image {
+//   height: 1.75em;
+//   width: 1.75em;
+// }
+
+// .navbar {
+//   height: 4rem;
+//   padding: 0.2rem 1rem;
+
+//   a.nav-link {
+//     font-weight: 400;
+//   }
+// }
+
+// .active-nav-link {
+//   background-color: #007bff;
+//   color: #fff;
+// }
+
+/* ==========================================================================
+Logo styles
+========================================================================== */
+// .logo-img {
+//   background-size: 100%;
+//   height: 45px;
+//   width: 16vw;
+//   display: inline-block;
+//   vertical-align: middle;
+//   background: url('../../../content/images/logo.webp') no-repeat center center;
+//   background-size: contain;
+//   margin-bottom: 4vh;
+// }
+.app-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  z-index: 1000;
+  margin-left: 60px;
+  position: fixed;
+  background: #333;
+  padding-right: 5rem;
+}
+
+.btn-collapse {
+  position: relative;
+  transition: transform 0.3s ease;
+  color: #fff;
+  background-color: #333;
+  border: none;
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+}
+
+.app-header.collapsed .btn-collapse {
+  transform: translateX(190px);
+}
+
+.sidebar {
+  position: fixed;
+  max-height: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  top: 0;
+  left: 0px;
+  z-index: 3000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Sử dụng easing function mượt hơn */
+  background-color: $sidebar-background-color;
+  justify-content: space-between;
+  width: 300px;
+  overflow: hidden;
+  /* Quan trọng: ẩn nội dung tràn */
+}
+
+.sidebar-content {
+  flex: 1;
+  z-index: 10000;
+  transition: inherit;
+  overflow: hidden;
+  /* Ngăn chặn nội dung tràn trong khi chuyển đổi */
+}
+
+.sidebar-menu::-webkit-scrollbar {
+  width: 0px;
+}
+
+#manu-bar {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  /* Thêm transition cho khu vực menu */
+}
+
+.sidebar-menu {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  justify-content: flex-start;
+  transition: inherit;
+}
+
+.sidebar a {
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.sidebar-menu-icon {
+  color: white;
+  transition: transform 0.3s ease;
+  /* Thêm transition cho icon */
+}
+
+.sidebar .sidebar-content {
+  max-height: calc(100% - 30px);
+  height: calc(100% - 30px);
+  overflow-y: auto;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.sidebar-img {
+  max-width: 12rem;
+  padding-top: 20px;
+  margin-left: 2px;
+  margin-bottom: 15px;
+  height: auto;
+}
+
+.sidebar .sidebar-content .sidebar-header {
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  transition: inherit;
+  /* Kế thừa transition */
+}
+
+li::marker {
+  content: none;
+}
+
+.sidebar-menu-title {
+  height: 50px;
+  color: white;
+  font-size: 20px;
+  padding: 0 15px;
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s ease;
+  /* Thêm transform cho hiệu ứng trượt */
+  white-space: nowrap;
+  overflow: hidden;
+  transform: translateX(0);
+  /* Khởi tạo vị trí */
+}
+
+.sidebar-submenu-title {
+  color: white;
+  font-size: 16px;
+  padding: 0px;
+  margin-right: 10px;
+  height: 45px;
+  transition: inherit;
+}
+
+.sidebar-submenu-item {
+  padding: 8px 16px;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+  /* Thêm transition cho opacity */
+}
+
+.sidebar-menu-link:hover {
+  background-color: rgb(4, 4, 4);
+  color: rgb(255, 255, 255);
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+  /* Đồng bộ thời gian transition */
+}
+
+.sidebar-submenu-title {
+  text-decoration: none;
+  color: white;
+  display: block;
+}
+
+.sidebar-submenu-item {
+  padding: 8px 16px;
+  transition: background-color 0.2s;
+}
+
+.sidebar-submenu-item:hover {
+  background-color: rgb(0, 0, 0);
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.sidebar-menu-item {
+  margin-right: 3px;
+}
+
+.sidebar-menu-link {
+  padding: 10px 4px;
+  transition:
+    background-color 0.3s ease,
+    padding 0.3s ease;
+  /* Thêm transition cho padding */
+  align-items: center;
+  display: flex;
+}
+
+.btn-toggle-sidebar {
+  width: 60px;
+  height: 50px;
+  display: inline-block;
+  background-color: transparent;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+#menu-bar {
+  height: 500px;
+}
+
+.sidebar-collapse-btn {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-toggle-sidebar mat-icon {
+  color: white;
+  font-size: 36px;
+  width: 60px;
+  height: 30px;
+  transition: transform 0.3s ease;
+  /* Thêm transition cho icon */
+}
+
+.sidebar-toggle {
+  justify-items: center;
+  text-align: center;
+  border-top: 2px solid rgba(255, 255, 255);
+  transition: inherit;
+}
+
+.sidebar-submenu-link {
+  display: flex;
+  align-items: center;
+  height: 45px;
+  padding: 10px 10px;
+  transition:
+    height 0.3s ease,
+    padding 0.3s ease;
+  /* Thêm transition cho kích thước */
+}
+
+.sidebar-submenu-title {
+  display: block;
+  color: #ffffff;
+  text-decoration: none;
+  width: 100%;
+  font-size: 16px;
+  transition:
+    opacity 0.2s ease,
+    font-size 0.3s ease;
+  /* Thêm transition cho font-size */
+}
+
+.sidebar-submenu-item {
+  padding: 0;
+}
+
+::ng-deep .mat-menu-panel {
+  transform: none !important;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Easing function giống khi mở */
+
+  .sidebar-content {
+    margin-right: 0;
+    overflow: hidden;
+    /* Ẩn nội dung tràn khi đóng */
+
+    .sidebar-menu ul {
+      padding-left: 0;
+    }
+  }
+
+  .sidebar-menu-link > div {
+    justify-content: center;
+  }
+
+  .sidebar-menu-icon {
+    margin-right: 0;
+    margin-left: 12px;
+    transform: scale(1.2);
+  }
+
+  .sidebar-menu-link[matmenutriggerfor] {
+    pointer-events: none;
+    cursor: default;
+  }
+
+  .sidebar-submenu-item,
+  .sidebar-submenu-link,
+  .sidebar-submenu-title {
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transition:
+      height 0.2s ease,
+      padding 0.2s ease,
+      opacity 0.2s ease;
+  }
+}
+
+.sidebar.collapsed .sidebar-menu-title {
+  opacity: 0;
+  transform: translateX(-20px);
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s ease;
+}
+
+/* Thêm animation cho các phần tử con khi mở */
+.sidebar:not(.collapsed) {
+  .sidebar-menu-title {
+    animation: fadeInSlide 0.4s ease forwards;
+  }
+
+  .sidebar-submenu-item,
+  .sidebar-submenu-link,
+  .sidebar-submenu-title {
+    animation: fadeIn 0.4s ease forwards;
+  }
+
+  .sidebar-menu-icon {
+    animation: alternate 0.4s ease forwards;
+  }
+}
+
+@keyframes fadeInSlide {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.sidebar {
+  justify-content: flex-start !important; // Đảm bảo các phần tử con xếp từ trên xuống
+}
+
+.sidebar-content {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start !important; // Không căn giữa dọc
+}
+
+.sidebar-menu {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start !important; // Không căn giữa dọc
+}

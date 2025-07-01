@@ -1,0 +1,7 @@
+type Inventory {
+  id: ID
+  maLenhSanXuat: String
+}
+type Query {
+  lenhSanXuatList: [LenhSanXuat]
+}
