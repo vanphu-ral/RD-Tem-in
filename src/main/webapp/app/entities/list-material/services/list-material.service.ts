@@ -1,12 +1,12 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, catchError, map, of, tap } from 'rxjs';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { environment } from 'app/environments/environment';
-import * as XLSX from 'xlsx';
-import * as FileSaver from 'file-saver';
-import { Apollo, gql } from 'apollo-angular';
-import { MaterialItem } from '../dialog/list-material-update-dialog';
-import { AccountService } from 'app/core/auth/account.service';
+import { Injectable } from "@angular/core";
+import { BehaviorSubject, Observable, catchError, map, of, tap } from "rxjs";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { environment } from "app/environments/environment";
+import * as XLSX from "xlsx";
+import * as FileSaver from "file-saver";
+import { Apollo, gql } from "apollo-angular";
+import { MaterialItem } from "../dialog/list-material-update-dialog";
+import { AccountService } from "app/core/auth/account.service";
 // import { GraphQLModule } from 'app/graphql.module';
 
 // #region GraphQL Queries
@@ -135,9 +135,9 @@ export interface approvalHistoryDetailData {
   approver: string;
   requestType: string;
   timeAction: string;
-  'Material ID': number;
-  'Part Number': string;
-  'User data 4': string;
+  "Material ID": number;
+  "Part Number": string;
+  "User data 4": string;
   State: string;
   Location: string;
 }
@@ -214,14 +214,13 @@ interface LocationQueryResponse {
 // #endregion
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class ListMaterialService {
   // #region Public constants
-  fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
-  fileExtension = '.xlsx';
-  fixedTestApiUrl_request_detail = environment.restApiBaseUrl + '/api/material/request-detail/123';
-  fixedTestApiUrl_history_detail = environment.restApiBaseUrl + '/api/material/approval-detail-history/123';
+  fileType =
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
+  fileExtension = ".xlsx";
   // #endregion
   // #region Public observables
   public approvalHistoryDetailData$!: Observable<approvalHistoryDetailData[]>;
@@ -234,9 +233,15 @@ export class ListMaterialService {
   public locationsData$!: Observable<RawGraphQLLocation[]>;
 
   // 2. Sau đó, khai báo và khởi tạo các BehaviorSubject private
-  private _approvalHistoryDetailData = new BehaviorSubject<approvalHistoryDetailData[]>([]);
-  private _allInventoryUpdateRequests = new BehaviorSubject<inventory_update_requests[]>([]);
-  private _requestDetail = new BehaviorSubject<inventory_update_requests_detail[]>([]);
+  private _approvalHistoryDetailData = new BehaviorSubject<
+    approvalHistoryDetailData[]
+  >([]);
+  private _allInventoryUpdateRequests = new BehaviorSubject<
+    inventory_update_requests[]
+  >([]);
+  private _requestDetail = new BehaviorSubject<
+    inventory_update_requests_detail[]
+  >([]);
   private _updateHistoryData = new BehaviorSubject<updateHistoryData[]>([]);
   private _totalCount = new BehaviorSubject<number>(0);
   private _materialsData = new BehaviorSubject<RawGraphQLMaterial[]>([]);
@@ -247,14 +252,17 @@ export class ListMaterialService {
 
   // #region Private subjects & state
   private restBaseUrl = environment.restApiBaseUrl;
-  private apiUrl = this.restBaseUrl + '/inventory';
-  private apiRequest = this.restBaseUrl + '/request';
-  private apiUrl_post_request_update = environment.resApiUpdateUrl + '/request';
-  private apiUrl_post_update = environment.resApiUpdateUrl + '/request';
-  private _updateManageData = new BehaviorSubject<inventory_update_requests[]>([]);
-  private apiRequestDetail = this.restBaseUrl + '/request/detail'; // + /requestCode : lấy chi tiết
-  private apiRequestHistory = this.restBaseUrl + '/request/history'; // post lấy theo tháng, +/requestCode : lấy chi tiết
-  private apiRequestHistoryDetail = this.restBaseUrl + '/request/history/detail';
+  private apiUrl = this.restBaseUrl + "/inventory";
+  private apiRequest = this.restBaseUrl + "/request";
+  private apiUrl_post_request_update = environment.resApiUpdateUrl + "/request";
+  private apiUrl_post_update = environment.resApiUpdateUrl + "/request";
+  private _updateManageData = new BehaviorSubject<inventory_update_requests[]>(
+    [],
+  );
+  private apiRequestDetail = this.restBaseUrl + "/request/detail"; // + /requestCode : lấy chi tiết
+  private apiRequestHistory = this.restBaseUrl + "/request/history"; // post lấy theo tháng, +/requestCode : lấy chi tiết
+  private apiRequestHistoryDetail =
+    this.restBaseUrl + "/request/history/detail";
 
   private _materialsDataFetchedOnce = false;
   private readonly defaultPageSize = 15;
@@ -268,10 +276,18 @@ export class ListMaterialService {
     private accountService: AccountService,
   ) {
     this.loadSelectedIds();
-    this.fetchMaterialsData(0, this.defaultPageSize, undefined, undefined, undefined, false);
+    this.fetchMaterialsData(
+      0,
+      this.defaultPageSize,
+      undefined,
+      undefined,
+      undefined,
+      false,
+    );
     this.fetchLocationsGraphQL();
     this.fetchAllInventoryUpdateRequests();
-    this.approvalHistoryDetailData$ = this._approvalHistoryDetailData.asObservable();
+    this.approvalHistoryDetailData$ =
+      this._approvalHistoryDetailData.asObservable();
     this.updateRequestData$ = this._allInventoryUpdateRequests.asObservable();
     this.updateRequestDetail$ = this._requestDetail.asObservable();
     this.updateHistoryData$ = this._updateHistoryData.asObservable();
@@ -286,32 +302,35 @@ export class ListMaterialService {
 
   public exportExcel(jsonData: any[], fileName: string): void {
     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(jsonData);
-    const wb: XLSX.WorkBook = { Sheets: { data: ws }, SheetNames: ['data'] };
-    const excelBuffer: any = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const wb: XLSX.WorkBook = { Sheets: { data: ws }, SheetNames: ["data"] };
+    const excelBuffer: any = XLSX.write(wb, {
+      bookType: "xlsx",
+      type: "array",
+    });
     this.saveExcelFile(excelBuffer, fileName);
   }
 
-  public fetchApprovalHistoryDetail(requestID: number): void {
-    this.http.get<approvalHistoryDetailData[]>(this.fixedTestApiUrl_history_detail).subscribe({
-      next: data => {
-        this._approvalHistoryDetailData.next(data);
-      },
-      error: err => {
-        console.error(`MaterialService: Error fetching approval history detail data (from fixed URL) for request ${requestID}:`, err);
-        this._approvalHistoryDetailData.next([]);
-      },
-    });
-  }
+  // public fetchApprovalHistoryDetail(requestID: number): void {
+  //   this.http.get<approvalHistoryDetailData[]>(this.fixedTestApiUrl_history_detail).subscribe({
+  //     next: data => {
+  //       this._approvalHistoryDetailData.next(data);
+  //     },
+  //     error: err => {
+  //       console.error(`MaterialService: Error fetching approval history detail data (from fixed URL) for request ${requestID}:`, err);
+  //       this._approvalHistoryDetailData.next([]);
+  //     },
+  //   });
+  // }
 
   public fetchLocationsGraphQL(): void {
     if (!this.apollo) {
-      console.error('Apollo client is not injected into MaterialService.');
+      console.error("Apollo client is not injected into MaterialService.");
       return;
     }
     this.apollo
       .watchQuery<LocationQueryResponse>({
         query: GET_LOCATION_QUERY,
-        fetchPolicy: 'network-only',
+        fetchPolicy: "network-only",
       })
       .valueChanges.subscribe({
         next: ({ data, loading, error }) => {
@@ -319,24 +338,35 @@ export class ListMaterialService {
             return;
           }
           if (error) {
-            console.error('MaterialService (GraphQL): Error fetching locations:', JSON.stringify(error, null, 2));
+            console.error(
+              "MaterialService (GraphQL): Error fetching locations:",
+              JSON.stringify(error, null, 2),
+            );
             this._locationsData.next([]);
             return;
           }
           if (data && data.allLocations) {
             if (Array.isArray(data.allLocations)) {
               this._locationsData.next(data.allLocations);
-              console.log('MaterialService (GraphQL): Locations data successfully fetched:', data.allLocations);
+              console.log(
+                "MaterialService (GraphQL): Locations data successfully fetched:",
+                data.allLocations,
+              );
             } else {
               this._locationsData.next([]);
-              console.warn('MaterialService (GraphQL): allLocations did not return an array.');
+              console.warn(
+                "MaterialService (GraphQL): allLocations did not return an array.",
+              );
             }
           } else {
             this._locationsData.next([]);
           }
         },
-        error: err => {
-          console.error('MaterialService (GraphQL): Subscription error fetching locations:', JSON.stringify(err, null, 2));
+        error: (err) => {
+          console.error(
+            "MaterialService (GraphQL): Subscription error fetching locations:",
+            JSON.stringify(err, null, 2),
+          );
           this._locationsData.next([]);
         },
       });
@@ -350,32 +380,50 @@ export class ListMaterialService {
     sortDirection?: string,
     forceRefresh: boolean = false,
   ): void {
-    if (!forceRefresh && this._materialsDataFetchedOnce && this._materialsData.getValue().length > 0) {
-      console.log('MaterialService (HTTP): Skipping fetch, data already loaded and forceRefresh is false.');
+    if (
+      !forceRefresh &&
+      this._materialsDataFetchedOnce &&
+      this._materialsData.getValue().length > 0
+    ) {
+      console.log(
+        "MaterialService (HTTP): Skipping fetch, data already loaded and forceRefresh is false.",
+      );
       return;
     }
-    console.log(`MaterialService (HTTP): Fetching materials from ${this.apiUrl}. Force refresh: ${forceRefresh}`);
+    console.log(
+      `MaterialService (HTTP): Fetching materials from ${this.apiUrl}. Force refresh: ${forceRefresh}`,
+    );
     this.http.get<RawGraphQLMaterial[]>(this.apiUrl).subscribe({
-      next: apiData => {
+      next: (apiData) => {
         if (Array.isArray(apiData)) {
           const selectedIds = this._selectedIds.value;
-          const filteredData = apiData.filter(item => !this._updatedInventoryIds.has(item.inventoryId));
-          const mappedData = filteredData.map(rawItem => this.mapRawToMaterial(rawItem, selectedIds));
+          const filteredData = apiData.filter(
+            (item) => !this._updatedInventoryIds.has(item.inventoryId),
+          );
+          const mappedData = filteredData.map((rawItem) =>
+            this.mapRawToMaterial(rawItem, selectedIds),
+          );
           this._materialsData.next(mappedData);
           this._totalCount.next(mappedData.length);
           this._materialsDataFetchedOnce = true;
-          console.log('typeof callback:', typeof apiData);
-          console.log('bo hang da cap nhat', filteredData);
-          console.log(`MaterialService (HTTP): Materials data ${forceRefresh ? 'refreshed' : 'loaded'}. Count:`, mappedData.length);
+          console.log("typeof callback:", typeof apiData);
+          console.log("bo hang da cap nhat", filteredData);
+          console.log(
+            `MaterialService (HTTP): Materials data ${forceRefresh ? "refreshed" : "loaded"}. Count:`,
+            mappedData.length,
+          );
         } else {
-          console.warn('MaterialService (HTTP): Materials API did not return an array. Received:', apiData);
+          console.warn(
+            "MaterialService (HTTP): Materials API did not return an array. Received:",
+            apiData,
+          );
           this._materialsData.next([]);
           this._totalCount.next(0);
           this._materialsDataFetchedOnce = true;
         }
       },
-      error: err => {
-        console.error('MaterialService (HTTP): Error fetching materials:', err);
+      error: (err) => {
+        console.error("MaterialService (HTTP): Error fetching materials:", err);
         this._materialsData.next([]);
         this._totalCount.next(0);
         this._materialsDataFetchedOnce = true;
@@ -387,16 +435,22 @@ export class ListMaterialService {
     console.log(`Goi API  ${this.apiRequest}`);
 
     this.http.get<inventory_update_requests[]>(this.apiRequest).subscribe({
-      next: data => {
+      next: (data) => {
         if (Array.isArray(data)) {
           this._allInventoryUpdateRequests.next(data);
-          console.log('MaterialService (HTTP): All inventory update requests data successfully fetched:', data);
+          console.log(
+            "MaterialService (HTTP): All inventory update requests data successfully fetched:",
+            data,
+          );
         } else {
           this._allInventoryUpdateRequests.next([]);
         }
       },
-      error: err => {
-        console.error('MaterialService (HTTP): Error fetching all inventory update requests:', err);
+      error: (err) => {
+        console.error(
+          "MaterialService (HTTP): Error fetching all inventory update requests:",
+          err,
+        );
         this._allInventoryUpdateRequests.next([]);
       },
     });
@@ -404,65 +458,107 @@ export class ListMaterialService {
 
   public toggleItemSelection(materialId: string): void {
     const currentIds = this._selectedIds.value;
-    const newIds = currentIds.includes(materialId) ? currentIds.filter(id => id !== materialId) : [...currentIds, materialId];
+    const newIds = currentIds.includes(materialId)
+      ? currentIds.filter((id) => id !== materialId)
+      : [...currentIds, materialId];
     this._selectedIds.next(newIds);
-    sessionStorage.setItem('selectedMaterialIds', JSON.stringify(newIds));
-    const updatedData = this._materialsData.value.map(item =>
-      item.inventoryId === materialId ? { ...item, checked: !item.checked, select_update: !item.select_update } : item,
+    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
+    const updatedData = this._materialsData.value.map((item) =>
+      item.inventoryId === materialId
+        ? {
+            ...item,
+            checked: !item.checked,
+            select_update: !item.select_update,
+          }
+        : item,
     );
     this._materialsData.next(updatedData);
   }
 
   public removeItemFromUpdate(materialId: string): void {
     const currentIds = this._selectedIds.value;
-    const newIds = currentIds.filter(id => id !== materialId);
+    const newIds = currentIds.filter((id) => id !== materialId);
     this._selectedIds.next(newIds);
-    sessionStorage.setItem('selectedMaterialIds', JSON.stringify(newIds));
-    const updatedData = this._materialsData.value.map(item =>
-      item.inventoryId === materialId ? { ...item, checked: false, select_update: false } : item,
+    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
+    const updatedData = this._materialsData.value.map((item) =>
+      item.inventoryId === materialId
+        ? { ...item, checked: false, select_update: false }
+        : item,
     );
     this._materialsData.next(updatedData);
   }
-  getRequestHistoryDetailsById(id: number | null): Observable<inventory_update_requests_history_detail[]> {
+  getRequestHistoryDetailsById(
+    id: number | null,
+  ): Observable<inventory_update_requests_history_detail[]> {
     if (id === null) {
-      console.error('MaterialService (HTTP): Cannot fetch history details with a null ID.');
+      console.error(
+        "MaterialService (HTTP): Cannot fetch history details with a null ID.",
+      );
       return of<inventory_update_requests_history_detail[]>([]);
     }
 
     const url = `${this.apiRequestHistoryDetail}/${id}`;
-    console.log(`MaterialService (HTTP): Fetching request history details from ${url}`);
+    console.log(
+      `MaterialService (HTTP): Fetching request history details from ${url}`,
+    );
 
     return this.http.get<inventory_update_requests_history_detail[]>(url).pipe(
-      tap(data => console.log(`MaterialService (HTTP): History details for request ${id} successfully fetched:`, data)),
-      catchError((err): Observable<inventory_update_requests_history_detail[]> => {
-        console.error(`MaterialService (HTTP): Error fetching request history details for ID ${id}:`, err);
+      tap((data) =>
+        console.log(
+          `MaterialService (HTTP): History details for request ${id} successfully fetched:`,
+          data,
+        ),
+      ),
+      catchError(
+        (err): Observable<inventory_update_requests_history_detail[]> => {
+          console.error(
+            `MaterialService (HTTP): Error fetching request history details for ID ${id}:`,
+            err,
+          );
 
-        return of<inventory_update_requests_history_detail[]>([]);
-      }),
+          return of<inventory_update_requests_history_detail[]>([]);
+        },
+      ),
     );
   }
-  getRequestHistoryDetailsByRequestCode(requestCode: string | null): Observable<inventory_update_requests_history_detail[]> {
+  getRequestHistoryDetailsByRequestCode(
+    requestCode: string | null,
+  ): Observable<inventory_update_requests_history_detail[]> {
     if (requestCode === null) {
-      console.error('MaterialService (HTTP): Cannot fetch history details with a null ID.');
+      console.error(
+        "MaterialService (HTTP): Cannot fetch history details with a null ID.",
+      );
       return of<inventory_update_requests_history_detail[]>([]);
     }
 
     const url = `${this.apiRequestHistory}/${requestCode}`;
-    console.log(`MaterialService (HTTP): Fetching request history details from ${url}`);
+    console.log(
+      `MaterialService (HTTP): Fetching request history details from ${url}`,
+    );
 
     return this.http.get<inventory_update_requests_history_detail[]>(url).pipe(
-      tap(data => console.log(`MaterialService (HTTP): History details for request ${requestCode} successfully fetched:`, data)),
-      catchError((err): Observable<inventory_update_requests_history_detail[]> => {
-        console.error(`MaterialService (HTTP): Error fetching request history details for ID ${requestCode}:`, err);
+      tap((data) =>
+        console.log(
+          `MaterialService (HTTP): History details for request ${requestCode} successfully fetched:`,
+          data,
+        ),
+      ),
+      catchError(
+        (err): Observable<inventory_update_requests_history_detail[]> => {
+          console.error(
+            `MaterialService (HTTP): Error fetching request history details for ID ${requestCode}:`,
+            err,
+          );
 
-        return of<inventory_update_requests_history_detail[]>([]);
-      }),
+          return of<inventory_update_requests_history_detail[]>([]);
+        },
+      ),
     );
   }
   public clearAllSelections(): void {
     this._selectedIds.next([]);
-    sessionStorage.removeItem('selectedMaterialIds');
-    const cleared = this._materialsData.value.map(item => ({
+    sessionStorage.removeItem("selectedMaterialIds");
+    const cleared = this._materialsData.value.map((item) => ({
       ...item,
       checked: false,
       select_update: false,
@@ -473,14 +569,16 @@ export class ListMaterialService {
   public getDataUpdateRequest(): Observable<inventory_update_requests[]> {
     return this.updateRequestData$.pipe(
       map((requests: any[]) =>
-        requests.map(req => {
+        requests.map((req) => {
           let numericId: number | null = null;
           if (req.id !== null && req.id !== undefined) {
             const parsedId = parseInt(String(req.id), 10);
             if (!isNaN(parsedId)) {
               numericId = parsedId;
             } else {
-              console.warn(`MaterialService: Failed to parse ID '${req.id}' for requestCode '${req.requestCode}'. ID will be set to null.`);
+              console.warn(
+                `MaterialService: Failed to parse ID '${req.id}' for requestCode '${req.requestCode}'. ID will be set to null.`,
+              );
             }
           }
           return { ...req, id: numericId } as inventory_update_requests;
@@ -489,36 +587,59 @@ export class ListMaterialService {
     );
   }
 
-  public getRequestDetailsById(id: number | null): Observable<inventory_update_requests_detail[]> {
-    console.log('dang goi api');
+  public getRequestDetailsById(
+    id: number | null,
+  ): Observable<inventory_update_requests_detail[]> {
+    console.log("dang goi api");
     if (id === null) {
-      console.error('MaterialService (HTTP): Cannot fetch request details with a null ID.');
+      console.error(
+        "MaterialService (HTTP): Cannot fetch request details with a null ID.",
+      );
       return of([]);
     }
     const url = `${this.apiRequestDetail}/${id}`;
     console.log(`MaterialService (HTTP): Fetching request details from ${url}`);
 
     return this.http.get<inventory_update_requests_detail[]>(url).pipe(
-      tap(data => console.log(`MaterialService (HTTP): Details for request ${id} successfully fetched:`, data)),
-      catchError(err => {
-        console.error(`MaterialService (HTTP): Error fetching request details for ID ${id}:`, err);
+      tap((data) =>
+        console.log(
+          `MaterialService (HTTP): Details for request ${id} successfully fetched:`,
+          data,
+        ),
+      ),
+      catchError((err) => {
+        console.error(
+          `MaterialService (HTTP): Error fetching request details for ID ${id}:`,
+          err,
+        );
         return of([]);
       }),
     );
   }
 
   public getItemsForUpdate(): Observable<RawGraphQLMaterial[]> {
-    return this.materialsData$.pipe(map(materials => materials.filter(material => material.checked === true)));
+    return this.materialsData$.pipe(
+      map((materials) =>
+        materials.filter((material) => material.checked === true),
+      ),
+    );
   }
   public uncheckItemsAfterUpdate(ids: string[]): void {
-    const updatedData = this._materialsData.value.map(item =>
-      ids.includes(item.inventoryId) ? { ...item, checked: false, select_update: false } : item,
+    const updatedData = this._materialsData.value.map((item) =>
+      ids.includes(item.inventoryId)
+        ? { ...item, checked: false, select_update: false }
+        : item,
     );
     this._materialsData.next(updatedData);
     // Cập nhật selectedIds luôn nếu cần
-    const newSelectedIds = this._selectedIds.value.filter(id => !ids.includes(id));
+    const newSelectedIds = this._selectedIds.value.filter(
+      (id) => !ids.includes(id),
+    );
     this._selectedIds.next(newSelectedIds);
-    sessionStorage.setItem('selectedMaterialIds', JSON.stringify(newSelectedIds));
+    sessionStorage.setItem(
+      "selectedMaterialIds",
+      JSON.stringify(newSelectedIds),
+    );
   }
 
   public getData(): Observable<RawGraphQLMaterial[]> {
@@ -535,18 +656,29 @@ export class ListMaterialService {
   }
 
   public removeItem(inventoryIdToRemove: string): void {
-    const filteredData = this._materialsData.value.filter(item => item.inventoryId !== inventoryIdToRemove);
+    const filteredData = this._materialsData.value.filter(
+      (item) => item.inventoryId !== inventoryIdToRemove,
+    );
     this._materialsData.next(filteredData);
     const currentSelectedIds = this._selectedIds.value;
     if (currentSelectedIds.includes(inventoryIdToRemove)) {
-      const newSelectedIds = currentSelectedIds.filter(selectedId => selectedId !== inventoryIdToRemove);
+      const newSelectedIds = currentSelectedIds.filter(
+        (selectedId) => selectedId !== inventoryIdToRemove,
+      );
       this._selectedIds.next(newSelectedIds);
-      sessionStorage.setItem('selectedMaterialIds', JSON.stringify(newSelectedIds));
+      sessionStorage.setItem(
+        "selectedMaterialIds",
+        JSON.stringify(newSelectedIds),
+      );
     }
   }
 
   public postInventoryUpdateRequest(
-    dialogData: { updatedItems: MaterialItem[]; selectedWarehouse?: RawGraphQLLocation | string | null; approvers: string[] },
+    dialogData: {
+      updatedItems: MaterialItem[];
+      selectedWarehouse?: RawGraphQLLocation | string | null;
+      approvers: string[];
+    },
     currentUser: string,
   ): Observable<any> {
     const requestCode = `REQ-${Date.now()}`;
@@ -558,27 +690,28 @@ export class ListMaterialService {
       createdTime: currentTime,
       updatedTime: currentTime,
       requestedBy: currentUser,
-      approvedBy: dialogData.approvers ? dialogData.approvers.join(', ') : '',
-      status: 'PENDING',
+      approvedBy: dialogData.approvers ? dialogData.approvers.join(", ") : "",
+      status: "PENDING",
     };
 
-    const requestDetails: inventory_update_requests_detail[] = dialogData.updatedItems.map(item => ({
-      id: null,
-      materialId: item.materialIdentifier,
-      updatedBy: currentUser,
-      createdTime: currentTime,
-      updatedTime: currentTime,
-      productCode: item.partNumber,
-      productName: item.partNumber,
-      quantity: String(item.quantity),
-      quantityChange: String(item.quantityChange),
-      type: item.extendExpiration ? 'EXTEND' : 'MOVE',
-      locationId: item.locationId ?? '',
-      locationName: this.getLocationNameById(item.locationId) ?? '',
-      status: item.calculatedStatus,
-      requestId: null,
-      expiredTime: item.expirationDate ? String(item.expirationDate) : '',
-    }));
+    const requestDetails: inventory_update_requests_detail[] =
+      dialogData.updatedItems.map((item) => ({
+        id: null,
+        materialId: item.materialIdentifier,
+        updatedBy: currentUser,
+        createdTime: currentTime,
+        updatedTime: currentTime,
+        productCode: item.partNumber,
+        productName: item.partNumber,
+        quantity: String(item.quantity),
+        quantityChange: String(item.quantityChange),
+        type: item.extendExpiration ? "EXTEND" : "MOVE",
+        locationId: item.locationId ?? "",
+        locationName: this.getLocationNameById(item.locationId) ?? "",
+        status: item.calculatedStatus,
+        requestId: null,
+        expiredTime: item.expirationDate ? String(item.expirationDate) : "",
+      }));
 
     const payload: UpdateRequestInfo = {
       request: requestHeader,
@@ -586,18 +719,29 @@ export class ListMaterialService {
     };
 
     const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     });
 
-    return this.http.post(this.apiUrl_post_request_update, payload, { headers }).pipe(
-      tap(
-        () => (
-          console.log('MaterialService: Inventory update request successful. Refreshing materials data.'),
-          this.fetchMaterialsData(0, this.defaultPageSize, undefined, undefined, undefined, true)
-          // this.fetchAllInventoryUpdateRequests()
+    return this.http
+      .post(this.apiUrl_post_request_update, payload, { headers })
+      .pipe(
+        tap(
+          () => (
+            console.log(
+              "MaterialService: Inventory update request successful. Refreshing materials data.",
+            ),
+            this.fetchMaterialsData(
+              0,
+              this.defaultPageSize,
+              undefined,
+              undefined,
+              undefined,
+              true,
+            )
+            // this.fetchAllInventoryUpdateRequests()
+          ),
         ),
-      ),
-    );
+      );
   }
 
   public postApproveInventoryUpdate(
@@ -618,28 +762,29 @@ export class ListMaterialService {
       createdTime: currentTime,
       updatedTime: currentTime,
       requestedBy: currentUser,
-      approvedBy: dialogData.approvers ? dialogData.approvers.join(', ') : '',
-      status: 'APPROVE',
+      approvedBy: dialogData.approvers ? dialogData.approvers.join(", ") : "",
+      status: "APPROVE",
     };
 
     // Sử dụng concise arrow function với object literal được bao bọc trong cặp dấu ngoặc đơn
-    const requestDetails: inventory_update_requests_detail[] = dialogData.updatedItems.map(item => ({
-      id: item.id,
-      materialId: String(item.materialId ?? ''),
-      updatedBy: currentUser,
-      createdTime: currentTime,
-      updatedTime: currentTime,
-      productCode: item.productCode,
-      productName: item.productName,
-      quantity: String(item.quantity),
-      type: item.type,
-      locationId: item.locationId ?? '',
-      locationName: item.locationName,
-      status: item.status,
-      requestId: null,
-      quantityChange: String(item.quantityChange),
-      expiredTime: item.expiredTime || '',
-    }));
+    const requestDetails: inventory_update_requests_detail[] =
+      dialogData.updatedItems.map((item) => ({
+        id: item.id,
+        materialId: String(item.materialId ?? ""),
+        updatedBy: currentUser,
+        createdTime: currentTime,
+        updatedTime: currentTime,
+        productCode: item.productCode,
+        productName: item.productName,
+        quantity: String(item.quantity),
+        type: item.type,
+        locationId: item.locationId ?? "",
+        locationName: item.locationName,
+        status: item.status,
+        requestId: null,
+        quantityChange: String(item.quantityChange),
+        expiredTime: item.expiredTime || "",
+      }));
 
     const payload: UpdateInfo = {
       request: requestHeader,
@@ -647,13 +792,22 @@ export class ListMaterialService {
     };
 
     const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     });
 
     return this.http.post(this.apiUrl_post_update, payload, { headers }).pipe(
       tap(() => {
-        console.log('MaterialService: Approve inventory update successful. Refreshing materials data.');
-        this.fetchMaterialsData(0, this.defaultPageSize, undefined, undefined, undefined, true);
+        console.log(
+          "MaterialService: Approve inventory update successful. Refreshing materials data.",
+        );
+        this.fetchMaterialsData(
+          0,
+          this.defaultPageSize,
+          undefined,
+          undefined,
+          undefined,
+          true,
+        );
         this.fetchAllInventoryUpdateRequests();
       }),
     );
@@ -676,28 +830,29 @@ export class ListMaterialService {
       createdTime: currentTime,
       updatedTime: currentTime,
       requestedBy: currentUser,
-      approvedBy: dialogData.approvers ? dialogData.approvers.join(', ') : '',
-      status: 'REJECT',
+      approvedBy: dialogData.approvers ? dialogData.approvers.join(", ") : "",
+      status: "REJECT",
     };
 
     // Chuyển arrow function trong map sang concise body
-    const requestDetails: inventory_update_requests_detail[] = dialogData.updatedItems.map(item => ({
-      id: item.id,
-      materialId: String(item.materialId ?? ''),
-      updatedBy: currentUser,
-      createdTime: currentTime,
-      updatedTime: currentTime,
-      productCode: item.productCode,
-      productName: item.productName,
-      quantity: String(item.quantity),
-      type: item.status,
-      locationId: item.locationId ?? '',
-      locationName: this.getLocationNameById(item.locationId) ?? '',
-      status: 'REJECT',
-      requestId: null,
-      quantityChange: String(item.quantityChange),
-      expiredTime: item.expiredTime || '',
-    }));
+    const requestDetails: inventory_update_requests_detail[] =
+      dialogData.updatedItems.map((item) => ({
+        id: item.id,
+        materialId: String(item.materialId ?? ""),
+        updatedBy: currentUser,
+        createdTime: currentTime,
+        updatedTime: currentTime,
+        productCode: item.productCode,
+        productName: item.productName,
+        quantity: String(item.quantity),
+        type: item.status,
+        locationId: item.locationId ?? "",
+        locationName: this.getLocationNameById(item.locationId) ?? "",
+        status: "REJECT",
+        requestId: null,
+        quantityChange: String(item.quantityChange),
+        expiredTime: item.expiredTime || "",
+      }));
 
     const payload: UpdateInfo = {
       request: requestHeader,
@@ -705,13 +860,22 @@ export class ListMaterialService {
     };
 
     const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     });
 
     return this.http.post(this.apiUrl_post_update, payload, { headers }).pipe(
       tap(() => {
-        console.log('MaterialService: Reject inventory update successful. Refreshing materials data.');
-        this.fetchMaterialsData(0, this.defaultPageSize, undefined, undefined, undefined, true);
+        console.log(
+          "MaterialService: Reject inventory update successful. Refreshing materials data.",
+        );
+        this.fetchMaterialsData(
+          0,
+          this.defaultPageSize,
+          undefined,
+          undefined,
+          undefined,
+          true,
+        );
         this.fetchAllInventoryUpdateRequests();
       }),
     );
@@ -722,7 +886,7 @@ export class ListMaterialService {
   // #region Private methods
 
   private loadSelectedIds(): void {
-    const savedIds = sessionStorage.getItem('selectedMaterialIds');
+    const savedIds = sessionStorage.getItem("selectedMaterialIds");
     if (savedIds) {
       this._selectedIds.next(JSON.parse(savedIds));
     }
@@ -730,36 +894,45 @@ export class ListMaterialService {
 
   private fetchAndInitializeData(): void {
     this.http.get<RawGraphQLMaterial[]>(this.apiUrl).subscribe({
-      next: apiData => {
+      next: (apiData) => {
         const selectedIds = this._selectedIds.value;
-        const updatedData = apiData.map(item => ({
+        const updatedData = apiData.map((item) => ({
           ...item,
           checked: selectedIds.includes(item.inventoryId),
         }));
         this._materialsData.next(updatedData);
-        console.log('MaterialService (HTTP): Data successfully fetched and set to _materialsData:', updatedData);
+        console.log(
+          "MaterialService (HTTP): Data successfully fetched and set to _materialsData:",
+          updatedData,
+        );
       },
-      error: err => {
-        console.error('MaterialService (HTTP): Error fetching data from API:', err);
+      error: (err) => {
+        console.error(
+          "MaterialService (HTTP): Error fetching data from API:",
+          err,
+        );
         this._materialsData.next([]);
         this._totalCount.next(0);
       },
     });
   }
 
-  private mapRawToMaterial(raw: RawGraphQLMaterial, selectedIds: string[]): RawGraphQLMaterial {
+  private mapRawToMaterial(
+    raw: RawGraphQLMaterial,
+    selectedIds: string[],
+  ): RawGraphQLMaterial {
     const locations: RawGraphQLLocation[] = this._locationsData.getValue();
     const locationMap = new Map<string, string>();
-    locations.forEach(loc => {
+    locations.forEach((loc) => {
       let id = loc.locationId;
-      if (typeof id !== 'string') {
+      if (typeof id !== "string") {
         id = String(id);
       }
       id = id.trim().toLowerCase();
       locationMap.set(id, loc.locationName);
     });
     let rawLocationId = raw.locationId;
-    if (typeof rawLocationId !== 'string') {
+    if (typeof rawLocationId !== "string") {
       rawLocationId = String(rawLocationId);
     }
     rawLocationId = rawLocationId.trim().toLowerCase();
@@ -768,7 +941,7 @@ export class ListMaterialService {
       inventoryId: raw.inventoryId,
       checked: selectedIds.includes(raw.inventoryId),
       select_update: false,
-      locationName: locationMap.get(rawLocationId) ?? 'Unknown',
+      locationName: locationMap.get(rawLocationId) ?? "Unknown",
     };
   }
 
@@ -776,7 +949,9 @@ export class ListMaterialService {
     if (!locationId) {
       return null;
     }
-    const location = this._locationsData.value.find(loc => loc.locationId === locationId);
+    const location = this._locationsData.value.find(
+      (loc) => loc.locationId === locationId,
+    );
     return location ? location.locationName : null;
   }
 

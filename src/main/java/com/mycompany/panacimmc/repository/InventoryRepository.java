@@ -51,7 +51,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     );
 
     @Query(
-        value = "SELECT \n" +
+        value = "SELECT top 100 \n" +
         "     a.[Inventory_Id] AS inventoryId\n" +
         "    ,a.[Inventory_PartId] AS partId\n" +
         "    ,a.[Inventory_PartNumber] AS partNumber\n" +
