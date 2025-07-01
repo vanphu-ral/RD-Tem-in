@@ -2,36 +2,56 @@ package com.mycompany.panacimmc.repository;
 
 import com.mycompany.panacimmc.domain.Inventory;
 import com.mycompany.panacimmc.domain.InventoryResponse;
+import java.util.List;
+import javax.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import javax.transaction.Transactional;
-import java.util.List;
-
 @Repository
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     public Inventory findAllByMaterialIdentifier(String materialIdentifier);
-    @Query(value = "UPDATE Inventory SET " +
+
+    @Query(
+        value = "UPDATE Inventory SET " +
         "Inventory_Quantity= ?1 ," +
         "Inventory_Status=3, " +
         "Inventory_UpdatedBy= ?2 ," +
         "Inventory_ExpirationDate= ?3 , " +
         "Inventory_UpdatedDate= ?4 " +
-        "where Inventory_MaterialIdentifier= ?5 ;\n",nativeQuery = true)
+        "where Inventory_MaterialIdentifier= ?5 ;\n",
+        nativeQuery = true
+    )
     @Modifying
-    public void extendIventory(Integer quantity, String updateBy, String expirationDate,String date ,String materialIdentifier);
-    @Query(value = "UPDATE Inventory SET " +
+    public void extendIventory(
+        Integer quantity,
+        String updateBy,
+        String expirationDate,
+        String date,
+        String materialIdentifier
+    );
+
+    @Query(
+        value = "UPDATE Inventory SET " +
         "Inventory_Quantity= ?1 ," +
         "Inventory_Status=3, " +
         "Inventory_UpdatedBy= ?2 ," +
         "Inventory_UpdatedDate= ?3 " +
-        "where Inventory_MaterialIdentifier= ?4 ;\n",nativeQuery = true)
+        "where Inventory_MaterialIdentifier= ?4 ;\n",
+        nativeQuery = true
+    )
     @Modifying
     @Transactional
-    public void updateIventory(Integer quantity, String updateBy,String date ,String materialIdentifier);
-    @Query(value = "SELECT \n" +
+    public void updateIventory(
+        Integer quantity,
+        String updateBy,
+        String date,
+        String materialIdentifier
+    );
+
+    @Query(
+        value = "SELECT \n" +
         "     a.[Inventory_Id] AS inventoryId\n" +
         "    ,a.[Inventory_PartId] AS partId\n" +
         "    ,a.[Inventory_PartNumber] AS partNumber\n" +
@@ -83,7 +103,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,b.Location_Name AS locationName\n" +
         "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
         "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
-        "FROM [panacim_test].[dbo].[Inventory] a\n" +
+        "FROM [Inventory].[dbo].[Inventory] a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
         "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
@@ -92,6 +112,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
-        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' ;\n",nativeQuery = true)
+        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' ;\n",
+        nativeQuery = true
+    )
     public List<InventoryResponse> getInventories();
 }
