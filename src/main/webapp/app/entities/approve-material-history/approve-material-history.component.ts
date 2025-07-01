@@ -32,7 +32,7 @@ export const STATUS_LABELS: Record<string, string> = {
   APPROVE: 'Đã phê duyệt',
   REJECT: 'Từ chối duyệt',
 };
-export interface columnSelectionGroup {
+export interface ColumnSelectionGroup {
   name: string;
   completed: boolean;
   subtasks?: ColumnConfig[];

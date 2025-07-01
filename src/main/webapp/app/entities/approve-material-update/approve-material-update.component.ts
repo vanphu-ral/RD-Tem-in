@@ -348,7 +348,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
     this.dataSoure_update_detail = new MatTableDataSource<inventory_update_requests_detail>([]);
 
     if (this.expandedElement) {
-      this.MaterialService.getRequestDetailsById(element.id!).subscribe(details => {
+      this.MaterialService.getRequestDetailsById(element.id).subscribe(details => {
         const detailsWithReject = details.map(d => ({ ...d, status: 'REJECT' }));
         this.dataSoure_update_detail.data = detailsWithReject;
         this.selection.clear();
@@ -564,11 +564,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
             if (cellValue === searchTerm) {
               return false;
             }
-          } else {
-            if (!cellValue.includes(searchTerm)) {
-              return false;
-            }
-          }
+          } // No need for an additional else, as all cases are handled above
         }
       }
       return true;
