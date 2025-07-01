@@ -11,12 +11,19 @@ import org.springframework.stereotype.Repository;
  */
 @SuppressWarnings("unused")
 @Repository
-public interface ChiTietLenhSanXuatRepository extends JpaRepository<ChiTietLenhSanXuat, Long> {
-    @Query(value = "select * from chi_tiet_lenh_san_xuat ChiTietLenhSanXuat where " + "ma_lenh_san_xuat_id=?1", nativeQuery = true)
-    public List<ChiTietLenhSanXuat> getAllByMaLenhSanXuatId(Long maLenhSanXuatId);
+public interface ChiTietLenhSanXuatRepository
+    extends JpaRepository<ChiTietLenhSanXuat, Long> {
+    @Query(
+        value = "SELECT * FROM chi_tiet_lenh_san_xuat WHERE ma_lenh_san_xuat_id = ?1",
+        nativeQuery = true
+    )
+    List<ChiTietLenhSanXuat> getAllByMaLenhSanXuatId(Long maLenhSanXuatId);
 
     @Modifying
-    @Query(value = "update chi_tiet_lenh_san_xuat set ma_lenh_san_xuat_id = ?1 where id = ?2", nativeQuery = true)
+    @Query(
+        value = "update chi_tiet_lenh_san_xuat set ma_lenh_san_xuat_id = ?1 where id = ?2",
+        nativeQuery = true
+    )
     public void updateMaLenhSanXuatId(Long id, Long reelId);
 
     @Query(
@@ -26,7 +33,8 @@ public interface ChiTietLenhSanXuatRepository extends JpaRepository<ChiTietLenhS
     public ChiTietLenhSanXuat getChiTietLenhSanXuatItem(String reelID);
 
     @Query(
-        value = "" + "select sum(initial_quantity) from chi_tiet_lenh_san_xuat where ma_lenh_san_xuat_id =?1 and trang_thai ='Active' ;",
+        value = "" +
+        "select sum(initial_quantity) from chi_tiet_lenh_san_xuat where ma_lenh_san_xuat_id =?1 and trang_thai ='Active' ;",
         nativeQuery = true
     )
     public String getTongSoLuong(Long id);

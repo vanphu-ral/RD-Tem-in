@@ -127,7 +127,9 @@ public class UserServices {
 
     //☺ Xoá 1 thông số theo mã thông số
     public void delByThongSo(String maThongSo) {
-        List<QuanLyThongSo> entity = quanLyThongSoRepository.findAllByMaThongSo(maThongSo);
+        List<QuanLyThongSo> entity = quanLyThongSoRepository.findAllByMaThongSo(
+            maThongSo
+        );
         //        log.info("entity: " + entity);
         if (entity.isEmpty()) {
             log.info("Không tìm thấy thông số");
@@ -156,13 +158,16 @@ public class UserServices {
 
     //☺ xem chi tiet thong so
     public List<QuanLyThongSo> getChiTietThongSo(String maThongSo) {
-        List<QuanLyThongSo> entities = quanLyThongSoRepository.findAllByMaThongSo(maThongSo);
+        List<QuanLyThongSo> entities =
+            quanLyThongSoRepository.findAllByMaThongSo(maThongSo);
         return entities;
     }
 
     //☺ cap nhat thong so
     public String putThongSo(QuanLyThongSo request, String maThongSo) {
-        QuanLyThongSo entity = quanLyThongSoRepository.getByMaThongSo(maThongSo);
+        QuanLyThongSo entity = quanLyThongSoRepository.getByMaThongSo(
+            maThongSo
+        );
         entity.setMaThongSo(request.getMaThongSo());
         entity.setTenThongSo(request.getTenThongSo());
         entity.setMoTa(request.getMoTa());
@@ -216,7 +221,8 @@ public class UserServices {
         if (entities == null) {
             //            log.info("khong tim thay thiet bi");
         } else {
-            List<ThongSoMay> entityList = thongSoMayRepository.findAllByThietBiId(id);
+            List<ThongSoMay> entityList =
+                thongSoMayRepository.findAllByThietBiId(id);
             thongSoMayRepository.deleteAll(entityList);
             thietBiRepository.delete(entities);
             //            log.info("xoa thanh cong");
@@ -256,16 +262,23 @@ public class UserServices {
             entity.setPhanLoai(request.getPhanLoai());
             thongSoMayRepository.save(entity);
             // lấy id thiết bị
-            ThietBi thietBi = this.thietBiRepository.findAllByLoaiThietBi(entity.getLoaiThietBi());
+            ThietBi thietBi = this.thietBiRepository.findAllByLoaiThietBi(
+                entity.getLoaiThietBi()
+            );
             // update khóa ngoại
-            thongSoMayRepository.updateIdThietBi(thietBi.getId(), entity.getId());
+            thongSoMayRepository.updateIdThietBi(
+                thietBi.getId(),
+                entity.getId()
+            );
         }
     }
 
     //----------------------- Chức năng cập nhật thông số thiết bị -----------------------------------------------
     //☺ xem danh sách thông số thiết bị bằng mã thiết bị
     public List<ThongSoMay> getDanhSachThongSoThietBi(String maThietBi) {
-        List<ThongSoMay> entities = thongSoMayRepository.findAllByMaThietBi(maThietBi);
+        List<ThongSoMay> entities = thongSoMayRepository.findAllByMaThietBi(
+            maThietBi
+        );
         return entities;
     }
 
@@ -276,26 +289,40 @@ public class UserServices {
     }
 
     //☺ xem danh sách thông số thiết bị bằng Nhóm thiết bị
-    public List<ThongSoMay> getDanhSachThongSoThietBiByLoaiThietBi(String loaiThietBi) {
-        List<ThongSoMay> entities = thongSoMayRepository.findAllByLoaiThietBi(loaiThietBi);
+    public List<ThongSoMay> getDanhSachThongSoThietBiByLoaiThietBi(
+        String loaiThietBi
+    ) {
+        List<ThongSoMay> entities = thongSoMayRepository.findAllByLoaiThietBi(
+            loaiThietBi
+        );
         return entities;
     }
 
     //☺ xem danh sách thông số thiết bị bằng Nhóm thiết bị
-    public List<ThongSoMay> getDanhSachThongSoThietBiByLoaiThietBiAndMaThietBi(ThongSoMay request) {
-        List<ThongSoMay> entities = thongSoMayRepository.findAllByLoaiThietBiAndMaThietBi(request.getLoaiThietBi(), request.getMaThietBi());
+    public List<ThongSoMay> getDanhSachThongSoThietBiByLoaiThietBiAndMaThietBi(
+        ThongSoMay request
+    ) {
+        List<ThongSoMay> entities =
+            thongSoMayRepository.findAllByLoaiThietBiAndMaThietBi(
+                request.getLoaiThietBi(),
+                request.getMaThietBi()
+            );
         return entities;
     }
 
     //☺ del thông số thiết bị
     public void delByIdThongSoThietBi(Long idThongSoThietBi) {
-        ThongSoMay entity = thongSoMayRepository.findById(idThongSoThietBi).orElse(null);
+        ThongSoMay entity = thongSoMayRepository
+            .findById(idThongSoThietBi)
+            .orElse(null);
         if (entity == null) {
-            String result = "=============================   khong tim thay thong so";
+            String result =
+                "=============================   khong tim thay thong so";
             log.info(result);
         } else {
             thongSoMayRepository.delete(entity);
-            String result = "===========================    xoa thong so may thanh cong";
+            String result =
+                "===========================    xoa thong so may thanh cong";
             log.info(result);
         }
     }
@@ -307,13 +334,16 @@ public class UserServices {
             boolean result = thongSoMayRepository.existsById(request.getId());
             //cập nhật thông số đã có
             if (result == true) {
-                ThongSoMay entity = thongSoMayRepository.findById(request.getId()).orElse(null);
+                ThongSoMay entity = thongSoMayRepository
+                    .findById(request.getId())
+                    .orElse(null);
                 entity.setThongSo(request.getThongSo());
                 entity.setMoTa(request.getMoTa());
                 entity.setPhanLoai(request.getPhanLoai());
                 entity.setTrangThai(request.getTrangThai());
                 thongSoMayRepository.save(entity);
-            } else { // Thêm mới thông số chưa có
+            } else {
+                // Thêm mới thông số chưa có
                 ThongSoMay entity1 = new ThongSoMay();
                 entity1.setLoaiThietBi(request.getLoaiThietBi());
                 entity1.setMaThietBi(request.getMaThietBi());
@@ -323,9 +353,14 @@ public class UserServices {
                 entity1.setTrangThai(request.getTrangThai());
                 thongSoMayRepository.save(entity1);
                 // lấy id thiết bị
-                ThietBi thietBi = this.thietBiRepository.findAllByLoaiThietBi(entity1.getLoaiThietBi());
+                ThietBi thietBi = this.thietBiRepository.findAllByLoaiThietBi(
+                    entity1.getLoaiThietBi()
+                );
                 // cập nhật khóa ngoại
-                thongSoMayRepository.updateIdThietBi(thietBi.getId(), entity1.getId());
+                thongSoMayRepository.updateIdThietBi(
+                    thietBi.getId(),
+                    entity1.getId()
+                );
             }
         }
     }
@@ -397,28 +432,38 @@ public class UserServices {
             entity.setPhanLoai(request.getPhanLoai());
             chiTietKichBanRepository.save(entity);
             // lấy id kịch bản
-            KichBan kichBan = this.kichBanRepository.findAllByMaKichBan(entity.getMaKichBan());
+            KichBan kichBan = this.kichBanRepository.findAllByMaKichBan(
+                entity.getMaKichBan()
+            );
             // cập nhật khóa ngoại
-            chiTietKichBanRepository.updateIdKichBan(kichBan.getId(), entity.getId());
+            chiTietKichBanRepository.updateIdKichBan(
+                kichBan.getId(),
+                entity.getId()
+            );
         }
     }
 
     //☺ xem danh sach thong so kich ban theo id kịch bản
     public List<ChiTietKichBan> getAllByIdKichBan(Long kichBanId) {
-        List<ChiTietKichBan> entities = chiTietKichBanRepository.findAllByKichBanId(kichBanId);
+        List<ChiTietKichBan> entities =
+            chiTietKichBanRepository.findAllByKichBanId(kichBanId);
         return entities;
     }
 
     //☺ xem danh sach thong so kich ban theo mã kịch bản
     public List<ChiTietKichBan> getAllByMaKichBan(String maKichBan) {
-        List<ChiTietKichBan> entities = chiTietKichBanRepository.getByMaKichBan(maKichBan);
+        List<ChiTietKichBan> entities = chiTietKichBanRepository.getByMaKichBan(
+            maKichBan
+        );
         return entities;
     }
 
     //☺ cap nhat thong so kich ban
     public void putChiTietKichBan(List<ChiTietKichBan> requestList) {
         for (ChiTietKichBan request : requestList) {
-            ChiTietKichBan entity = chiTietKichBanRepository.findById(request.getId()).orElse(null);
+            ChiTietKichBan entity = chiTietKichBanRepository
+                .findById(request.getId())
+                .orElse(null);
             // cap nhat thong so da co
             if (entity != null) {
                 entity.setThongSo(request.getThongSo());
@@ -428,7 +473,8 @@ public class UserServices {
                 entity.setTrungbinh(request.getTrungbinh());
                 entity.setDonVi(request.getDonVi());
                 chiTietKichBanRepository.save(entity);
-            } else { // them moi thong so chua co
+            } else {
+                // them moi thong so chua co
                 ChiTietKichBan entity1 = new ChiTietKichBan();
                 entity1.setMaKichBan(request.getMaKichBan());
                 entity1.setThongSo(request.getThongSo());
@@ -438,9 +484,14 @@ public class UserServices {
                 entity1.setDonVi(request.getDonVi());
                 chiTietKichBanRepository.save(entity1);
                 // lấy id kịch bản
-                KichBan kichBan = this.kichBanRepository.findAllByMaKichBan(entity.getMaKichBan());
+                KichBan kichBan = this.kichBanRepository.findAllByMaKichBan(
+                    entity.getMaKichBan()
+                );
                 // cập nhật khóa ngoại
-                chiTietKichBanRepository.updateIdKichBan(kichBan.getId(), entity1.getId());
+                chiTietKichBanRepository.updateIdKichBan(
+                    kichBan.getId(),
+                    entity1.getId()
+                );
             }
         }
     }
@@ -452,7 +503,8 @@ public class UserServices {
             log.info("khong tim thay kich ban");
         } else {
             // tim kiem thong tin chi tiet kich ban
-            List<ChiTietKichBan> entityList = chiTietKichBanRepository.findAllByKichBanId(id);
+            List<ChiTietKichBan> entityList =
+                chiTietKichBanRepository.findAllByKichBanId(id);
             chiTietKichBanRepository.deleteAll(entityList);
             kichBanRepository.delete(entities);
             log.info("xoa kich ban thanh cong");
@@ -461,7 +513,9 @@ public class UserServices {
 
     //☺ xoa thong so trong kich ban
     public void delByIdChiTietKichBan(Long idChiTietKichBan) {
-        ChiTietKichBan entities = chiTietKichBanRepository.findById(idChiTietKichBan).orElse(null);
+        ChiTietKichBan entities = chiTietKichBanRepository
+            .findById(idChiTietKichBan)
+            .orElse(null);
         if (entities == null) {
             log.info("khong tim thay thong so");
         } else {
@@ -500,18 +554,21 @@ public class UserServices {
     }
 
     //☺ Tim kiem noi dung san xuat hang ngay
-    public List<SanXuatHangNgay> timKiemSanxuatHangNgay(SanXuatHangNgay request) {
-        List<SanXuatHangNgay> entities = sanXuatHangNgayRepository.timKiemSanXuatHangNgay(
-            request.getMaKichBan(),
-            request.getMaThietBi(),
-            request.getLoaiThietBi(),
-            request.getDayChuyen(),
-            request.getMaSanPham(),
-            request.getVersionSanPham(),
-            request.getNgayTao(),
-            request.getTimeUpdate(),
-            request.getTrangThai()
-        );
+    public List<SanXuatHangNgay> timKiemSanxuatHangNgay(
+        SanXuatHangNgay request
+    ) {
+        List<SanXuatHangNgay> entities =
+            sanXuatHangNgayRepository.timKiemSanXuatHangNgay(
+                request.getMaKichBan(),
+                request.getMaThietBi(),
+                request.getLoaiThietBi(),
+                request.getDayChuyen(),
+                request.getMaSanPham(),
+                request.getVersionSanPham(),
+                request.getNgayTao(),
+                request.getTimeUpdate(),
+                request.getTrangThai()
+            );
         //        log.info("" + request);
         return entities;
     }
@@ -532,7 +589,8 @@ public class UserServices {
         String result1 = "maSanPham";
         String result = entity.getMaSanPham();
         // Note lay danh sach thong so theo ma kich ban tu table chi tiet kich ban
-        List<ChiTietKichBan> entities = chiTietKichBanRepository.findAllByMaKichBan(request.getMaKichBan());
+        List<ChiTietKichBan> entities =
+            chiTietKichBanRepository.findAllByMaKichBan(request.getMaKichBan());
         List<ChiTietSanXuat> entityList = new ArrayList<>();
         // Note lưu thông tin thông số sản xuất hàng ngày
         for (ChiTietKichBan entity1 : entities) {
@@ -545,13 +603,24 @@ public class UserServices {
             entity2.setTrungbinh(entity1.getTrungbinh());
             entity2.setDonVi(entity1.getDonVi());
             chiTietSanXuatRepository.save(entity2);
-            result1 += "|" + entity2.getThongSo() + "min|" + entity2.getThongSo() + "max";
+            result1 +=
+                "|" +
+                entity2.getThongSo() +
+                "min|" +
+                entity2.getThongSo() +
+                "max";
             //b3 gán giá trị của thông số
             result += "|" + entity2.getMinValue() + "|" + entity2.getMaxValue();
             //lấy id kịch bản sản xuất hàng ngày
-            SanXuatHangNgay sanXuatHangNgay = this.sanXuatHangNgayRepository.findAllByMaKichBan(entity2.getMaKichBan());
+            SanXuatHangNgay sanXuatHangNgay =
+                this.sanXuatHangNgayRepository.findAllByMaKichBan(
+                    entity2.getMaKichBan()
+                );
             // cập nhật khóa ngoại
-            chiTietSanXuatRepository.updateIdSanXuatHangNgay(sanXuatHangNgay.getId(), entity2.getId());
+            chiTietSanXuatRepository.updateIdSanXuatHangNgay(
+                sanXuatHangNgay.getId(),
+                entity2.getId()
+            );
         }
         entity.setParameterConvert(result1);
         entity.setParameterValueConvert(result);
@@ -568,10 +637,15 @@ public class UserServices {
         String result = "";
         for (ChiTietSanXuat request : requests) {
             if (sanXuatHangNgay == null) {
-                sanXuatHangNgay = this.sanXuatHangNgayRepository.findAllByMaKichBan(request.getMaKichBan());
+                sanXuatHangNgay =
+                    this.sanXuatHangNgayRepository.findAllByMaKichBan(
+                        request.getMaKichBan()
+                    );
                 result1 = "maSanPham";
                 result = sanXuatHangNgay.getMaSanPham();
-                System.out.println("thanh cong !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                System.out.println(
+                    "thanh cong !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                );
             }
             ChiTietSanXuat entity = new ChiTietSanXuat();
             entity.setMaKichBan(request.getMaKichBan());
@@ -582,12 +656,20 @@ public class UserServices {
             entity.setTrungbinh(request.getTrungbinh());
             entity.setDonVi(request.getDonVi());
             entity.setTrangThai(request.getTrangThai());
-            result1 += "|" + entity.getThongSo() + "min|" + entity.getThongSo() + "max";
+            result1 +=
+                "|" +
+                entity.getThongSo() +
+                "min|" +
+                entity.getThongSo() +
+                "max";
             //b3 gán giá trị của thông số
             result += "|" + entity.getMinValue() + "|" + entity.getMaxValue();
             chiTietSanXuatRepository.save(entity);
             // cập nhật khóa ngoại
-            chiTietSanXuatRepository.updateIdSanXuatHangNgay(sanXuatHangNgay.getId(), entity.getId());
+            chiTietSanXuatRepository.updateIdSanXuatHangNgay(
+                sanXuatHangNgay.getId(),
+                entity.getId()
+            );
         }
         sanXuatHangNgay.setParameterConvert(result1);
         sanXuatHangNgay.setParameterValueConvert(result);
@@ -596,7 +678,8 @@ public class UserServices {
 
     //☺ xem danh sach thong so san xuat hang ngay theo id san xuat hang ngay
     public List<ChiTietSanXuat> getAllsById(Long id) {
-        List<ChiTietSanXuat> entities = chiTietSanXuatRepository.findAllBySanXuatHangNgayId(id);
+        List<ChiTietSanXuat> entities =
+            chiTietSanXuatRepository.findAllBySanXuatHangNgayId(id);
         return entities;
     }
 
@@ -607,11 +690,16 @@ public class UserServices {
         String result = "";
         for (ChiTietSanXuat request : requestList) {
             if (sanXuatHangNgay == null) {
-                sanXuatHangNgay = this.sanXuatHangNgayRepository.findAllByMaKichBan(request.getMaKichBan());
+                sanXuatHangNgay =
+                    this.sanXuatHangNgayRepository.findAllByMaKichBan(
+                        request.getMaKichBan()
+                    );
                 result1 = "maSanPham";
                 result = sanXuatHangNgay.getMaSanPham();
             }
-            ChiTietSanXuat entity = chiTietSanXuatRepository.findById(request.getId()).orElse(null);
+            ChiTietSanXuat entity = chiTietSanXuatRepository
+                .findById(request.getId())
+                .orElse(null);
             if (entity != null) {
                 entity.setThongSo(request.getThongSo());
                 entity.setMinValue(request.getMinValue());
@@ -619,9 +707,15 @@ public class UserServices {
                 entity.setTrungbinh(request.getTrungbinh());
                 entity.setDonVi(request.getDonVi());
                 entity.setTrangThai(request.getTrangThai());
-                result1 += "|" + entity.getThongSo() + "min|" + entity.getThongSo() + "max";
+                result1 +=
+                    "|" +
+                    entity.getThongSo() +
+                    "min|" +
+                    entity.getThongSo() +
+                    "max";
                 //b3 gán giá trị của thông số
-                result += "|" + entity.getMinValue() + "|" + entity.getMaxValue();
+                result +=
+                    "|" + entity.getMinValue() + "|" + entity.getMaxValue();
                 chiTietSanXuatRepository.save(entity);
             } else {
                 ChiTietSanXuat entity1 = new ChiTietSanXuat();
@@ -632,11 +726,20 @@ public class UserServices {
                 entity1.setTrungbinh(request.getTrungbinh());
                 entity1.setDonVi(request.getDonVi());
                 entity1.setTrangThai(request.getTrangThai());
-                result1 += "|" + entity1.getThongSo() + "min|" + entity1.getThongSo() + "max";
+                result1 +=
+                    "|" +
+                    entity1.getThongSo() +
+                    "min|" +
+                    entity1.getThongSo() +
+                    "max";
                 //b3 gán giá trị của thông số
-                result += "|" + entity1.getMinValue() + "|" + entity1.getMaxValue();
+                result +=
+                    "|" + entity1.getMinValue() + "|" + entity1.getMaxValue();
                 chiTietSanXuatRepository.save(entity1);
-                chiTietSanXuatRepository.updateIdSanXuatHangNgay(sanXuatHangNgay.getId(), entity1.getId());
+                chiTietSanXuatRepository.updateIdSanXuatHangNgay(
+                    sanXuatHangNgay.getId(),
+                    entity1.getId()
+                );
             }
         }
         sanXuatHangNgay.setParameterConvert(result1);
@@ -646,7 +749,9 @@ public class UserServices {
 
     // ☺ (1)xoa thong so trong noi dung san xuat hang ngay
     public void delByIdChiTietSanXuat(Long idChiTietSanXuat) {
-        ChiTietSanXuat entity = chiTietSanXuatRepository.findById(idChiTietSanXuat).orElse(null);
+        ChiTietSanXuat entity = chiTietSanXuatRepository
+            .findById(idChiTietSanXuat)
+            .orElse(null);
         if (entity == null) {
             log.info("khong tim thay thong so");
         } else {
@@ -657,19 +762,24 @@ public class UserServices {
 
     //☺ xem chi tiet noi dung 1 kich ban san xuat hang ngay
     public SanXuatHangNgay chiTietSanXuat(Long maKichBan) {
-        SanXuatHangNgay entity = sanXuatHangNgayRepository.findById(maKichBan).orElse(null);
+        SanXuatHangNgay entity = sanXuatHangNgayRepository
+            .findById(maKichBan)
+            .orElse(null);
         log.info("thanh cong");
         return entity;
     }
 
     // ☺ xoa kich ban trong sasn xuat hang ngay
     public void delSanXuatHangNgay(Long id) {
-        SanXuatHangNgay entities = sanXuatHangNgayRepository.findById(id).orElse(null);
+        SanXuatHangNgay entities = sanXuatHangNgayRepository
+            .findById(id)
+            .orElse(null);
         if (entities == null) {
             log.info("khong tim thay kich ban");
         } else {
             // tim kiem thong tin chi tiet kich ban
-            List<ChiTietSanXuat> entityList = chiTietSanXuatRepository.findAllBySanXuatHangNgayId(id);
+            List<ChiTietSanXuat> entityList =
+                chiTietSanXuatRepository.findAllBySanXuatHangNgayId(id);
             chiTietSanXuatRepository.deleteAll(entityList);
             sanXuatHangNgayRepository.delete(entities);
             //            log.info("xoa kich ban thanh cong");
@@ -677,14 +787,21 @@ public class UserServices {
     }
 
     //☺ xem thông số kịch bản sản xuất theo san_xuat_hang_ngay_id
-    public List<ChiTietSanXuat> getChiTietSanXuatBySanXuatHangNgayId(Long sanXuatHangNgayId) {
-        List<ChiTietSanXuat> chiTietSanXuatList = this.chiTietSanXuatRepository.findAllBySanXuatHangNgayId(sanXuatHangNgayId);
+    public List<ChiTietSanXuat> getChiTietSanXuatBySanXuatHangNgayId(
+        Long sanXuatHangNgayId
+    ) {
+        List<ChiTietSanXuat> chiTietSanXuatList =
+            this.chiTietSanXuatRepository.findAllBySanXuatHangNgayId(
+                sanXuatHangNgayId
+            );
         return chiTietSanXuatList;
     }
 
     //☺ thay đổi signal khi có sự thay đổi về chi tiết sản xuất
     public void changeSignal(Long id, SanXuatHangNgay request) {
-        SanXuatHangNgay entity = this.sanXuatHangNgayRepository.findById(id).orElse(null);
+        SanXuatHangNgay entity = this.sanXuatHangNgayRepository.findById(
+            id
+        ).orElse(null);
         if (entity != null) {
             entity.setSignal(request.getSignal());
             this.sanXuatHangNgayRepository.save(entity);
@@ -693,20 +810,26 @@ public class UserServices {
 
     //☺ thay doi signal theo makich ban va signal
     public void changeSignal2(SanXuatHangNgay request) {
-        SanXuatHangNgay entity = this.sanXuatHangNgayRepository.findByMaKichBanAndSignal(request.getMaKichBan(), request.getSignal());
+        SanXuatHangNgay entity =
+            this.sanXuatHangNgayRepository.findByMaKichBanAndSignal(
+                request.getMaKichBan(),
+                request.getSignal()
+            );
         entity.setSignal(Long.valueOf(1));
         this.sanXuatHangNgayRepository.save(entity);
     }
 
     //☺ tìm kiếm mã kịch bản sản xuất theo signal
     public List<SanXuatHangNgay> findAllBySignal(Long signal) {
-        List<SanXuatHangNgay> sanXuatHangNgayList = this.sanXuatHangNgayRepository.findAllBySignal(signal);
+        List<SanXuatHangNgay> sanXuatHangNgayList =
+            this.sanXuatHangNgayRepository.findAllBySignal(signal);
         return sanXuatHangNgayList;
     }
 
     //☺ tim kiem thong tin kich ban theo ma kich ban
     public SanXuatHangNgay getSXHNByMaKichBan(String maKichBan) {
-        SanXuatHangNgay sanXuatHangNgay = this.sanXuatHangNgayRepository.findAllByMaKichBan(maKichBan);
+        SanXuatHangNgay sanXuatHangNgay =
+            this.sanXuatHangNgayRepository.findAllByMaKichBan(maKichBan);
         return sanXuatHangNgay;
     }
 
@@ -727,13 +850,17 @@ public class UserServices {
     //☺ update nhom thiet bi
     public void updateNhomThietBiNew(List<NhomThietBi> nhomThietBi) {
         for (NhomThietBi nhomThietBi1 : nhomThietBi) {
-            this.nhomThietBiRepository.updateNhomThietBiNew(nhomThietBi1.getGroupId(), nhomThietBi1.getId());
+            this.nhomThietBiRepository.updateNhomThietBiNew(
+                nhomThietBi1.getGroupId(),
+                nhomThietBi1.getId()
+            );
         }
     }
 
     //☺ Lấy danh sach thiet bi theo group id
     public List<NhomThietBi> getAllByGroupId(Long groupId) {
-        List<NhomThietBi> nhomThietBis = this.nhomThietBiRepository.findAllByGroupId(groupId);
+        List<NhomThietBi> nhomThietBis =
+            this.nhomThietBiRepository.findAllByGroupId(groupId);
         return nhomThietBis;
     }
 
@@ -755,13 +882,17 @@ public class UserServices {
     //------------------------------- Kich ban change status -----------------------------------------
     //☺ lay danh sach kich ban change status
     public List<KichBanChangeStatus> findAllKBCS() {
-        List<KichBanChangeStatus> entityList = this.kichBanChangeStatusRepository.findAll();
+        List<KichBanChangeStatus> entityList =
+            this.kichBanChangeStatusRepository.findAll();
         return entityList;
     }
 
     //☺ cap nhat color_change theo ma kich ban
     public KichBanChangeStatus updateKBCS(KichBanChangeStatus request) {
-        KichBanChangeStatus entity = this.kichBanChangeStatusRepository.findByMaKichBan(request.getMaKichBan());
+        KichBanChangeStatus entity =
+            this.kichBanChangeStatusRepository.findByMaKichBan(
+                request.getMaKichBan()
+            );
         entity.setColorChange(request.getColorChange());
         this.kichBanChangeStatusRepository.save(entity);
         return entity;
@@ -779,22 +910,26 @@ public class UserServices {
     public List<LenhSanXuat> timKiemLenhSanXuat(LenhSanXuat request) {
         List<LenhSanXuat> entities =
             this.lenhSanXuatRepository.timKiemLenhSanXuat(
-                    request.getMaLenhSanXuat(),
-                    request.getSapCode(),
-                    request.getSapName(),
-                    request.getWorkOrderCode(),
-                    request.getVersion(),
-                    request.getStorageCode(),
-                    request.getCreateBy(),
-                    request.getTrangThai()
-                );
+                request.getMaLenhSanXuat(),
+                request.getSapCode(),
+                request.getSapName(),
+                request.getWorkOrderCode(),
+                request.getVersion(),
+                request.getStorageCode(),
+                request.getCreateBy(),
+                request.getTrangThai()
+            );
         return entities;
     }
 
     //☺ Tìm kiếm lệnh sản xuất đi kèm với phân trang
     public List<LenhSanXuat> timKiemQuanLyPheDuyet(TemInDTO temInDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
+        LocalDate firstDay = LocalDate.of(
+            LocalDate.now().getYear(),
+            LocalDate.now().getMonth(),
+            1
+        );
         String entryTime1 = firstDay.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         String timeUpdate1 = firstDay.toString() + " 00:00:00.000";
@@ -809,28 +944,32 @@ public class UserServices {
         }
         List<LenhSanXuat> entities =
             this.lenhSanXuatRepository.timKiemQuanLyPheDuyet(
-                    "%".concat(temInDTO.getMaLenhSanXuat()).concat("%"),
-                    "%".concat(temInDTO.getSapCode()).concat("%"),
-                    "%".concat(temInDTO.getSapName()).concat("%"),
-                    "%".concat(temInDTO.getWorkOrderCode()).concat("%"),
-                    "%".concat(temInDTO.getVersion()).concat("%"),
-                    "%".concat(temInDTO.getStorageCode()).concat("%"),
-                    "%".concat(temInDTO.getCreateBy()).concat("%"),
-                    entryTime1,
-                    entryTime2,
-                    timeUpdate1,
-                    timeUpdate2,
-                    "%".concat(temInDTO.getTrangThai()).concat("%"),
-                    (temInDTO.getPageNumber() - 1) * temInDTO.getItemPerPage(),
-                    temInDTO.getItemPerPage()
-                );
+                "%".concat(temInDTO.getMaLenhSanXuat()).concat("%"),
+                "%".concat(temInDTO.getSapCode()).concat("%"),
+                "%".concat(temInDTO.getSapName()).concat("%"),
+                "%".concat(temInDTO.getWorkOrderCode()).concat("%"),
+                "%".concat(temInDTO.getVersion()).concat("%"),
+                "%".concat(temInDTO.getStorageCode()).concat("%"),
+                "%".concat(temInDTO.getCreateBy()).concat("%"),
+                entryTime1,
+                entryTime2,
+                timeUpdate1,
+                timeUpdate2,
+                "%".concat(temInDTO.getTrangThai()).concat("%"),
+                (temInDTO.getPageNumber() - 1) * temInDTO.getItemPerPage(),
+                temInDTO.getItemPerPage()
+            );
         return entities;
     }
 
     //☺ Lấy thông tin tổng dữ liệu
     public Integer totalData(TemInDTO temInDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
+        LocalDate firstDay = LocalDate.of(
+            LocalDate.now().getYear(),
+            LocalDate.now().getMonth(),
+            1
+        );
         String entryTime1 = firstDay.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         String timeUpdate1 = firstDay.toString() + " 00:00:00.000";
@@ -843,29 +982,33 @@ public class UserServices {
             timeUpdate1 = temInDTO.getTimeUpdate() + " 00:00:00.000";
             timeUpdate2 = temInDTO.getTimeUpdate() + " 23:59:59.000";
         }
-        Integer totalData =
-            this.lenhSanXuatRepository.totalData(
-                    "%".concat(temInDTO.getMaLenhSanXuat()).concat("%"),
-                    "%".concat(temInDTO.getSapCode()).concat("%"),
-                    "%".concat(temInDTO.getSapName()).concat("%"),
-                    "%".concat(temInDTO.getWorkOrderCode()).concat("%"),
-                    "%".concat(temInDTO.getVersion()).concat("%"),
-                    "%".concat(temInDTO.getStorageCode()).concat("%"),
-                    "%".concat(temInDTO.getCreateBy()).concat("%"),
-                    entryTime1,
-                    entryTime2,
-                    timeUpdate1,
-                    timeUpdate2,
-                    "%".concat(temInDTO.getTrangThai()).concat("%")
-                );
+        Integer totalData = this.lenhSanXuatRepository.totalData(
+            "%".concat(temInDTO.getMaLenhSanXuat()).concat("%"),
+            "%".concat(temInDTO.getSapCode()).concat("%"),
+            "%".concat(temInDTO.getSapName()).concat("%"),
+            "%".concat(temInDTO.getWorkOrderCode()).concat("%"),
+            "%".concat(temInDTO.getVersion()).concat("%"),
+            "%".concat(temInDTO.getStorageCode()).concat("%"),
+            "%".concat(temInDTO.getCreateBy()).concat("%"),
+            entryTime1,
+            entryTime2,
+            timeUpdate1,
+            timeUpdate2,
+            "%".concat(temInDTO.getTrangThai()).concat("%")
+        );
         return totalData;
     }
 
     //☺ Tìm kiếm thông tin tem sản xuất đi kèm với phân trang
     public List<LenhSanXuat> timKiemThongTinTemSanXuat(TemInDTO temInDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
-        String entryTime1 = firstDay.toString() + " 00:00:00.000";
+        LocalDate firstDay = LocalDate.of(
+            LocalDate.now().getYear(),
+            LocalDate.now().getMonth(),
+            1
+        );
+        LocalDate thirtyDaysAgo = date.minusDays(29); // Bao gồm hôm nay = 30 ngày
+        String entryTime1 = thirtyDaysAgo.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         if (temInDTO.getEntryTime() != null) {
             entryTime1 = temInDTO.getEntryTime() + " 00:00:00.000";
@@ -873,27 +1016,32 @@ public class UserServices {
         }
         List<LenhSanXuat> entities =
             this.lenhSanXuatRepository.timKiemThongTinTemSanXuat(
-                    "%".concat(temInDTO.getMaLenhSanXuat()).concat("%"),
-                    "%".concat(temInDTO.getSapCode()).concat("%"),
-                    "%".concat(temInDTO.getSapName()).concat("%"),
-                    "%".concat(temInDTO.getWorkOrderCode()).concat("%"),
-                    "%".concat(temInDTO.getVersion()).concat("%"),
-                    "%".concat(temInDTO.getStorageCode()).concat("%"),
-                    "%".concat(temInDTO.getCreateBy()).concat("%"),
-                    entryTime1,
-                    entryTime2,
-                    "%".concat(temInDTO.getTrangThai()).concat("%"),
-                    (temInDTO.getPageNumber() - 1) * temInDTO.getItemPerPage(),
-                    temInDTO.getItemPerPage()
-                );
+                "%".concat(temInDTO.getMaLenhSanXuat()).concat("%"),
+                "%".concat(temInDTO.getSapCode()).concat("%"),
+                "%".concat(temInDTO.getSapName()).concat("%"),
+                "%".concat(temInDTO.getWorkOrderCode()).concat("%"),
+                "%".concat(temInDTO.getVersion()).concat("%"),
+                "%".concat(temInDTO.getStorageCode()).concat("%"),
+                "%".concat(temInDTO.getCreateBy()).concat("%"),
+                entryTime1,
+                entryTime2,
+                "%".concat(temInDTO.getTrangThai()).concat("%"),
+                (temInDTO.getPageNumber() - 1) * temInDTO.getItemPerPage(),
+                temInDTO.getItemPerPage()
+            );
         return entities;
     }
 
     //☺ Lấy thông tin tổng dữ liệu
     public Integer totalDataThongTinTemSanXuat(TemInDTO temInDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
-        String entryTime1 = firstDay.toString() + " 00:00:00.000";
+        LocalDate firstDay = LocalDate.of(
+            LocalDate.now().getYear(),
+            LocalDate.now().getMonth(),
+            1
+        );
+        LocalDate thirtyDaysAgo = date.minusDays(29); // Bao gồm hôm nay = 30 ngày
+        String entryTime1 = thirtyDaysAgo.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
 
         if (temInDTO.getEntryTime() != null) {
@@ -902,29 +1050,34 @@ public class UserServices {
         }
         Integer totalData =
             this.lenhSanXuatRepository.totalDataThongTinTemSanXuat(
-                    "%".concat(temInDTO.getMaLenhSanXuat()).concat("%"),
-                    "%".concat(temInDTO.getSapCode()).concat("%"),
-                    "%".concat(temInDTO.getSapName()).concat("%"),
-                    "%".concat(temInDTO.getWorkOrderCode()).concat("%"),
-                    "%".concat(temInDTO.getVersion()).concat("%"),
-                    "%".concat(temInDTO.getStorageCode()).concat("%"),
-                    "%".concat(temInDTO.getCreateBy()).concat("%"),
-                    entryTime1,
-                    entryTime2,
-                    "%".concat(temInDTO.getTrangThai()).concat("%")
-                );
+                "%".concat(temInDTO.getMaLenhSanXuat()).concat("%"),
+                "%".concat(temInDTO.getSapCode()).concat("%"),
+                "%".concat(temInDTO.getSapName()).concat("%"),
+                "%".concat(temInDTO.getWorkOrderCode()).concat("%"),
+                "%".concat(temInDTO.getVersion()).concat("%"),
+                "%".concat(temInDTO.getStorageCode()).concat("%"),
+                "%".concat(temInDTO.getCreateBy()).concat("%"),
+                entryTime1,
+                entryTime2,
+                "%".concat(temInDTO.getTrangThai()).concat("%")
+            );
         return totalData;
     }
 
     //☺ xem chi tiet lenh san xuat theo ma lenh san xuat id
     public List<ChiTietLenhSanXuat> chiTietLenhSanXuat(Long maLenhSanXuat) {
-        List<ChiTietLenhSanXuat> entities = this.chiTietLenhSanXuatRepository.getAllByMaLenhSanXuatId(maLenhSanXuat);
+        List<ChiTietLenhSanXuat> entities =
+            this.chiTietLenhSanXuatRepository.getAllByMaLenhSanXuatId(
+                maLenhSanXuat
+            );
         return entities;
     }
 
     //☺ Cap nhat trang thai cua lenh san xuat
     public void updateTrangThaiLenhSanXuat(Long id, LenhSanXuat request) {
-        LenhSanXuat lenhSanXuat = this.lenhSanXuatRepository.findById(id).orElse(null);
+        LenhSanXuat lenhSanXuat = this.lenhSanXuatRepository.findById(
+            id
+        ).orElse(null);
         if (lenhSanXuat != null) {
             lenhSanXuat.setTimeUpdate(request.getTimeUpdate());
             lenhSanXuat.setTrangThai(request.getTrangThai());
@@ -934,21 +1087,36 @@ public class UserServices {
     }
 
     //☺ cập nhật chi tiết lệnh sản xuất
-    public void updateChiTietLenhSanXuat(List<ChiTietLenhSanXuat> request, Long id) {
+    public void updateChiTietLenhSanXuat(
+        List<ChiTietLenhSanXuat> request,
+        Long id
+    ) {
         for (ChiTietLenhSanXuat chiTietLenhSanXuat : request) {
-            ChiTietLenhSanXuat entity = this.chiTietLenhSanXuatRepository.findById(chiTietLenhSanXuat.getId()).orElse(null);
+            ChiTietLenhSanXuat entity =
+                this.chiTietLenhSanXuatRepository.findById(
+                    chiTietLenhSanXuat.getId()
+                ).orElse(null);
             if (entity != null) {
-                entity.setInitialQuantity(chiTietLenhSanXuat.getInitialQuantity());
+                entity.setInitialQuantity(
+                    chiTietLenhSanXuat.getInitialQuantity()
+                );
                 entity.setStorageUnit(chiTietLenhSanXuat.getStorageUnit());
-                entity.setSubStorageUnit(chiTietLenhSanXuat.getSubStorageUnit());
+                entity.setSubStorageUnit(
+                    chiTietLenhSanXuat.getSubStorageUnit()
+                );
                 entity.setTrangThai(chiTietLenhSanXuat.getTrangThai());
                 entity.setChecked(chiTietLenhSanXuat.getChecked());
                 this.chiTietLenhSanXuatRepository.save(entity);
             } else {
                 this.chiTietLenhSanXuatRepository.save(chiTietLenhSanXuat);
                 ChiTietLenhSanXuat chiTietLenhSanXuat1 =
-                    this.chiTietLenhSanXuatRepository.getChiTietLenhSanXuatItem(chiTietLenhSanXuat.getReelID());
-                this.chiTietLenhSanXuatRepository.updateMaLenhSanXuatId(id, chiTietLenhSanXuat1.getId());
+                    this.chiTietLenhSanXuatRepository.getChiTietLenhSanXuatItem(
+                        chiTietLenhSanXuat.getReelID()
+                    );
+                this.chiTietLenhSanXuatRepository.updateMaLenhSanXuatId(
+                    id,
+                    chiTietLenhSanXuat1.getId()
+                );
             }
         }
     }
@@ -977,7 +1145,8 @@ public class UserServices {
     //---------------------------------------- * ----------------------------------------------------------------------
     // ---------------------- Nhom san pham ---------------------
     public List<String> getAllNhomSanPham() {
-        List<String> nhomSanPhams = this.nhomSanPhamRepository.getAllNhomSanPham();
+        List<String> nhomSanPhams =
+            this.nhomSanPhamRepository.getAllNhomSanPham();
         System.out.println("thanh cong :                 " + nhomSanPhams);
         return nhomSanPhams;
     }
@@ -986,14 +1155,18 @@ public class UserServices {
     // ? Quản lý thiết bị
     // ?Lấy danh sách thiết bị theo nhóm thiết bị
     public List<scanMachines> listMachines(Long groupId) {
-        List<scanMachines> scanMachinesList = this.scanMachinesRepository.listMachines(groupId);
+        List<scanMachines> scanMachinesList =
+            this.scanMachinesRepository.listMachines(groupId);
         return scanMachinesList;
     }
 
     //☺Thêm mới list thiết bị theo nhóm thiết bị
     public void insertScanMachines(List<scanMachines> scanMachinesList) {
         for (scanMachines scanMachines : scanMachinesList) {
-            this.scanMachinesRepository.postListMachines(scanMachines.getMachineName(), scanMachines.getGroupId());
+            this.scanMachinesRepository.postListMachines(
+                scanMachines.getMachineName(),
+                scanMachines.getGroupId()
+            );
         }
     }
 
@@ -1001,64 +1174,92 @@ public class UserServices {
     public void putListMachines(List<scanMachines> scanMachinesList) {
         for (scanMachines scanMachines : scanMachinesList) {
             this.scanMachinesRepository.putListMachines(
-                    scanMachines.getMachineName(),
-                    scanMachines.getGroupId(),
-                    scanMachines.getGroupId()
-                );
+                scanMachines.getMachineName(),
+                scanMachines.getGroupId(),
+                scanMachines.getGroupId()
+            );
         }
     }
 
     //☺Lấy danh sách nhóm thiết bị
     public List<scanGroupMachines> groupMachinesList() {
-        List<scanGroupMachines> scanGroupMachinesList = this.scanGroupMachinesRepository.groupMachinesList();
+        List<scanGroupMachines> scanGroupMachinesList =
+            this.scanGroupMachinesRepository.groupMachinesList();
         return scanGroupMachinesList;
     }
 
     //☺Thêm mới nhóm thiết bị
     public Long insertGroupMachines(groupMachineDTO scanGroupMachines) {
         this.scanGroupMachinesRepository.insertGroupMachines(
-                scanGroupMachines.getGroupName(),
-                scanGroupMachines.getCreateAt(),
-                scanGroupMachines.getUsername(),
-                scanGroupMachines.getGroupStatus()
-            );
-        Long groupId = this.scanGroupMachinesRepository.getAllByGroupName(scanGroupMachines.getGroupName());
+            scanGroupMachines.getGroupName(),
+            scanGroupMachines.getCreateAt(),
+            scanGroupMachines.getUsername(),
+            scanGroupMachines.getGroupStatus()
+        );
+        Long groupId = this.scanGroupMachinesRepository.getAllByGroupName(
+            scanGroupMachines.getGroupName()
+        );
         return groupId;
     }
 
     //☺Chỉnh sửa thông tin nhóm thiết bị
     public void putGroupMachines(groupMachineDTO scanGroupMachines) {
         this.scanGroupMachinesRepository.putGroupMachines(
-                scanGroupMachines.getGroupName(),
-                scanGroupMachines.getUpdateAt(),
-                scanGroupMachines.getUsername(),
-                scanGroupMachines.getGroupStatus(),
-                scanGroupMachines.getGroupId()
-            );
+            scanGroupMachines.getGroupName(),
+            scanGroupMachines.getUpdateAt(),
+            scanGroupMachines.getUsername(),
+            scanGroupMachines.getGroupStatus(),
+            scanGroupMachines.getGroupId()
+        );
     }
 
     //☺Lấy danh sách sản phẩm
     public List<scanProduct> listProduct() {
-        List<scanProduct> scanProducts = this.scanProductRepository.listProduct();
+        List<scanProduct> scanProducts =
+            this.scanProductRepository.listProduct();
         return scanProducts;
     }
 
     //☺ Lấy danh sách machine
     public List<scanMachines> listAllMachines() {
-        List<scanMachines> scanMachinesList = this.scanMachinesRepository.listAllMachines();
+        List<scanMachines> scanMachinesList =
+            this.scanMachinesRepository.listAllMachines();
         return scanMachinesList;
     }
 
     //☺Lấy danh sách tiêu chí đã khai báo theo sản phẩm
     public List<ScanPprofileCheck> listProfileCheckByProduct(Long productId) {
-        List<ScanPprofileCheck> scanPprofileChecks = this.scanprofileCheckRepository.listProfileCheckByProduct(productId);
+        List<ScanPprofileCheck> scanPprofileChecks =
+            this.scanprofileCheckRepository.listProfileCheckByProduct(
+                productId
+            );
         return scanPprofileChecks;
     }
 
     //☺Thêm mới thông tin tiêu chí khai báo cho sản phẩm
-    public void insertScanProfileCheck(List<ScanPprofileCheck> scanPprofileChecks) {
+    public void insertScanProfileCheck(
+        List<ScanPprofileCheck> scanPprofileChecks
+    ) {
         for (ScanPprofileCheck scanPprofileCheck : scanPprofileChecks) {
             this.scanprofileCheckRepository.insertScanProfileCheck(
+                scanPprofileCheck.getProductId(),
+                scanPprofileCheck.getCheckName(),
+                scanPprofileCheck.getCheckValue(),
+                scanPprofileCheck.getCheckStatus(),
+                scanPprofileCheck.getPosition(),
+                scanPprofileCheck.getVersionId(),
+                scanPprofileCheck.getMachineId()
+            );
+        }
+    }
+
+    //☺ chỉnh sửa thông tin tiêu chí khai báo cho sản phẩm
+    public void updateScanProfileCheck(
+        List<ProfileCheckDTO> scanPprofileChecks
+    ) {
+        for (ProfileCheckDTO scanPprofileCheck : scanPprofileChecks) {
+            if (scanPprofileCheck.getChecked() != null) {
+                this.scanprofileCheckRepository.insertProfileCheck(
                     scanPprofileCheck.getProductId(),
                     scanPprofileCheck.getCheckName(),
                     scanPprofileCheck.getCheckValue(),
@@ -1067,33 +1268,17 @@ public class UserServices {
                     scanPprofileCheck.getVersionId(),
                     scanPprofileCheck.getMachineId()
                 );
-        }
-    }
-
-    //☺ chỉnh sửa thông tin tiêu chí khai báo cho sản phẩm
-    public void updateScanProfileCheck(List<ProfileCheckDTO> scanPprofileChecks) {
-        for (ProfileCheckDTO scanPprofileCheck : scanPprofileChecks) {
-            if (scanPprofileCheck.getChecked() != null) {
-                this.scanprofileCheckRepository.insertProfileCheck(
-                        scanPprofileCheck.getProductId(),
-                        scanPprofileCheck.getCheckName(),
-                        scanPprofileCheck.getCheckValue(),
-                        scanPprofileCheck.getCheckStatus(),
-                        scanPprofileCheck.getPosition(),
-                        scanPprofileCheck.getVersionId(),
-                        scanPprofileCheck.getMachineId()
-                    );
             } else {
                 this.scanprofileCheckRepository.updateScanProfileCheck(
-                        scanPprofileCheck.getProductId(),
-                        scanPprofileCheck.getCheckName(),
-                        scanPprofileCheck.getCheckValue(),
-                        scanPprofileCheck.getCheckStatus(),
-                        scanPprofileCheck.getPosition(),
-                        scanPprofileCheck.getVersionId(),
-                        scanPprofileCheck.getMachineId(),
-                        scanPprofileCheck.getProfileId()
-                    );
+                    scanPprofileCheck.getProductId(),
+                    scanPprofileCheck.getCheckName(),
+                    scanPprofileCheck.getCheckValue(),
+                    scanPprofileCheck.getCheckStatus(),
+                    scanPprofileCheck.getPosition(),
+                    scanPprofileCheck.getVersionId(),
+                    scanPprofileCheck.getMachineId(),
+                    scanPprofileCheck.getProfileId()
+                );
             }
         }
     }
@@ -1102,55 +1287,64 @@ public class UserServices {
     public void insertDetailCheck(List<detailCheckDTO> scanDetailChecks) {
         for (detailCheckDTO scanDetailCheck1 : scanDetailChecks) {
             this.scanDetailCheckRepository.insertDetailCheck(
-                    scanDetailCheck1.getOrderId(),
-                    scanDetailCheck1.getRecordValue(),
-                    scanDetailCheck1.getResult(),
-                    scanDetailCheck1.getPosition(),
-                    scanDetailCheck1.getUsername(),
-                    scanDetailCheck1.getMachineId(),
-                    scanDetailCheck1.getRecordName(),
-                    scanDetailCheck1.getCreateAt()
-                );
+                scanDetailCheck1.getOrderId(),
+                scanDetailCheck1.getRecordValue(),
+                scanDetailCheck1.getResult(),
+                scanDetailCheck1.getPosition(),
+                scanDetailCheck1.getUsername(),
+                scanDetailCheck1.getMachineId(),
+                scanDetailCheck1.getRecordName(),
+                scanDetailCheck1.getCreateAt()
+            );
         }
     }
 
     //☺Lấy thông tin lịch sử đăng nhập theo lệnh sản xuất
     public List<scanLoginHistory> listLoginByWorkOrder(Long orderId) {
-        List<scanLoginHistory> scanLoginHistories = this.scanLoginHistoryRepository.listLoginByWorkOrder(orderId);
+        List<scanLoginHistory> scanLoginHistories =
+            this.scanLoginHistoryRepository.listLoginByWorkOrder(orderId);
         return scanLoginHistories;
     }
 
     //☺Lấy thông tin chi tiết scan sản phẩm theo lệnh sản xuất
     public List<TongHopResponse> listDetailCheckByWorkOrder(Long orderId) {
-        List<TongHopResponse> scanDetailChecks = this.scanDetailCheckRepository.listDetailCheckByWorkOrder(orderId);
+        List<TongHopResponse> scanDetailChecks =
+            this.scanDetailCheckRepository.listDetailCheckByWorkOrder(orderId);
         return scanDetailChecks;
     }
 
     //☺Lấy thông tin lệnh sản xuất theo group máy
     public List<workOrderInfo> listWorkOrderByGroup() {
-        List<workOrderInfo> scanWorkorders = this.scanWorkOrderRepository.listWorkOrderByGroup();
+        List<workOrderInfo> scanWorkorders =
+            this.scanWorkOrderRepository.listWorkOrderByGroup();
         return scanWorkorders;
     }
 
     //☺Cập nhật trạng thái lệnh sản xuất
     public void updateWorkingWorkOrder(scanWorkorder scanWorkorder) {
-        this.scanWorkOrderRepository.updateWorkingWorkOrder(scanWorkorder.getWorking(), scanWorkorder.getOrderId());
+        this.scanWorkOrderRepository.updateWorkingWorkOrder(
+            scanWorkorder.getWorking(),
+            scanWorkorder.getOrderId()
+        );
     }
 
     //☺Lấy thông tin lệnh sản xuất theo orderId
     public workOrderInfo listWorkOrderByGroupById(Long orderId) {
-        workOrderInfo workOrderInfo = this.scanWorkOrderRepository.listWorkOrderByGroupById(orderId);
+        workOrderInfo workOrderInfo =
+            this.scanWorkOrderRepository.listWorkOrderByGroupById(orderId);
         return workOrderInfo;
     }
 
     //☺ lấy thông tin profile check
     public List<TongHopResponse> listProfileCheck(Long productId) {
-        List<TongHopResponse> scanPprofileCheck = this.scanprofileCheckRepository.listProfileCheck(productId);
+        List<TongHopResponse> scanPprofileCheck =
+            this.scanprofileCheckRepository.listProfileCheck(productId);
         return scanPprofileCheck;
     }
 
     public List<TongHopResponse> tongHop(Long orderId) {
-        List<TongHopResponse> tongHopResponses = this.scanDetailCheckRepository.tongHop(orderId);
+        List<TongHopResponse> tongHopResponses =
+            this.scanDetailCheckRepository.tongHop(orderId);
         return tongHopResponses;
     }
 
@@ -1159,7 +1353,11 @@ public class UserServices {
         List<LenhSanXuatDTO> tongHopResponses = new ArrayList<>();
         for (LenhSanXuat lenhSanXuat : lenhSanXuats) {
             LenhSanXuatDTO lenhSanXuatDTO = new LenhSanXuatDTO();
-            lenhSanXuatDTO.setTongSoLuong(this.chiTietLenhSanXuatRepository.getTongSoLuong(lenhSanXuat.getId()));
+            lenhSanXuatDTO.setTongSoLuong(
+                this.chiTietLenhSanXuatRepository.getTongSoLuong(
+                    lenhSanXuat.getId()
+                )
+            );
             tongHopResponses.add(lenhSanXuatDTO);
         }
         return tongHopResponses;
@@ -1168,39 +1366,54 @@ public class UserServices {
     //☺ luu thong tin login
     public void saveLoginHistoryInfo(scanLoginHistory scanLoginHistory) {
         this.scanLoginHistoryRepository.saveLoginHistoryInfo(
-                scanLoginHistory.getUsername(),
-                scanLoginHistory.getTimeLogin(),
-                scanLoginHistory.getOrderId()
-            );
+            scanLoginHistory.getUsername(),
+            scanLoginHistory.getTimeLogin(),
+            scanLoginHistory.getOrderId()
+        );
     }
 
     //☺ Cap nhat trang thai working
     public void updateWorkOrderWorking(scanWorkorder scanWorkorder) {
         this.scanWorkOrderRepository.updateWorkOrderWorking(
-                scanWorkorder.getWorking(),
-                scanWorkorder.getRunTime(),
-                scanWorkorder.getOrderId()
-            );
+            scanWorkorder.getWorking(),
+            scanWorkorder.getRunTime(),
+            scanWorkorder.getOrderId()
+        );
     }
 
     // * ------------------------------------------ Version ----------------------------
     //☺ Lấy thông tin version theo productId
-    public List<scanProductVersions> getListVersionsByProductId(Long productId) {
-        List<scanProductVersions> scanProductVersionsList = this.scanProductVersionRepository.getAllByProductId(productId);
+    public List<scanProductVersions> getListVersionsByProductId(
+        Long productId
+    ) {
+        List<scanProductVersions> scanProductVersionsList =
+            this.scanProductVersionRepository.getAllByProductId(productId);
         return scanProductVersionsList;
     }
 
     //☺ Them moi thong tin version
-    public scanProductVersions createVersion(scanProductVersions scanProductVersionsList) {
+    public scanProductVersions createVersion(
+        scanProductVersions scanProductVersionsList
+    ) {
         scanProductVersions scanProductVersions =
-            this.scanProductVersionRepository.getAllByVersionId(scanProductVersionsList.getVersionId());
+            this.scanProductVersionRepository.getAllByVersionId(
+                scanProductVersionsList.getVersionId()
+            );
         if (scanProductVersions == null) {
             this.scanProductVersionRepository.save(scanProductVersionsList);
         } else {
-            scanProductVersions.setVersion(scanProductVersionsList.getVersion());
-            scanProductVersions.setUpdateAt(scanProductVersionsList.getUpdateAt());
-            scanProductVersions.setUsername(scanProductVersionsList.getUsername());
-            scanProductVersions.setGroupId(scanProductVersionsList.getGroupId());
+            scanProductVersions.setVersion(
+                scanProductVersionsList.getVersion()
+            );
+            scanProductVersions.setUpdateAt(
+                scanProductVersionsList.getUpdateAt()
+            );
+            scanProductVersions.setUsername(
+                scanProductVersionsList.getUsername()
+            );
+            scanProductVersions.setGroupId(
+                scanProductVersionsList.getGroupId()
+            );
             this.scanProductVersionRepository.save(scanProductVersions);
         }
         return scanProductVersionsList;
@@ -1211,7 +1424,11 @@ public class UserServices {
     //☺ Lấy danh sách sản phẩm + phân trang + lọc
     public List<scanProduct> getListProduct(scanProductDTO scanProductDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
+        LocalDate firstDay = LocalDate.of(
+            LocalDate.now().getYear(),
+            LocalDate.now().getMonth(),
+            1
+        );
         String entryTime1 = firstDay.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         if (scanProductDTO.getCreatedAt() != null) {
@@ -1220,43 +1437,53 @@ public class UserServices {
         }
         List<scanProduct> scanProducts =
             this.scanProductRepository.getListProduct(
-                    "%" + scanProductDTO.getProductCode() + "%",
-                    "%" + scanProductDTO.getProductName() + "%",
-                    entryTime1,
-                    entryTime2,
-                    "%" + scanProductDTO.getUsername() + "%",
-                    (scanProductDTO.getPageNumber() - 1) * scanProductDTO.getItemPerPage(),
-                    scanProductDTO.getItemPerPage()
-                );
+                "%" + scanProductDTO.getProductCode() + "%",
+                "%" + scanProductDTO.getProductName() + "%",
+                entryTime1,
+                entryTime2,
+                "%" + scanProductDTO.getUsername() + "%",
+                (scanProductDTO.getPageNumber() - 1) *
+                scanProductDTO.getItemPerPage(),
+                scanProductDTO.getItemPerPage()
+            );
         return scanProducts;
     }
 
     //☺ Lấy tổng phần tử
     public Integer getTotalItemPD(scanProductDTO scanProductDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
+        LocalDate firstDay = LocalDate.of(
+            LocalDate.now().getYear(),
+            LocalDate.now().getMonth(),
+            1
+        );
         String entryTime1 = firstDay.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         if (scanProductDTO.getCreatedAt() != null) {
             entryTime1 = scanProductDTO.getCreatedAt() + " 00:00:00.000";
             entryTime2 = scanProductDTO.getCreatedAt() + " 23:59:59.000";
         }
-        Integer scanProducts =
-            this.scanProductRepository.getTotalItem(
-                    "%" + scanProductDTO.getProductCode() + "%",
-                    "%" + scanProductDTO.getProductName() + "%",
-                    entryTime1,
-                    entryTime2,
-                    "%" + scanProductDTO.getUsername() + "%"
-                );
+        Integer scanProducts = this.scanProductRepository.getTotalItem(
+            "%" + scanProductDTO.getProductCode() + "%",
+            "%" + scanProductDTO.getProductName() + "%",
+            entryTime1,
+            entryTime2,
+            "%" + scanProductDTO.getUsername() + "%"
+        );
         return scanProducts;
     }
 
     // * -------------------------- Kiểm soát đối chiếu lệnh sản xuất -------------------------
     //☺ Lấy danh sách lệnh sản xuất + phân trang+ tìm kiếm + sort
-    public List<workOrderInfo> getListWorkOrders(ScanWorkOrderDTO scanWorkOrderDTO) {
+    public List<workOrderInfo> getListWorkOrders(
+        ScanWorkOrderDTO scanWorkOrderDTO
+    ) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
+        LocalDate firstDay = LocalDate.of(
+            LocalDate.now().getYear(),
+            LocalDate.now().getMonth(),
+            1
+        );
         String entryTime1 = firstDay.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         if (scanWorkOrderDTO.getCreateAt() != null) {
@@ -1265,49 +1492,56 @@ public class UserServices {
         }
         List<workOrderInfo> workOrderInfos =
             this.scanWorkOrderRepository.getListWorkOrders(
-                    "%" + scanWorkOrderDTO.getWorkOrder() + "%",
-                    "%" + scanWorkOrderDTO.getLot() + "%",
-                    "%" + scanWorkOrderDTO.getProductCode() + "%",
-                    "%" + scanWorkOrderDTO.getProductName() + "%",
-                    "%" + scanWorkOrderDTO.getGroupName() + "%",
-                    entryTime1,
-                    entryTime2,
-                    (scanWorkOrderDTO.getPageNumber() - 1) * scanWorkOrderDTO.getItemPerPage(),
-                    scanWorkOrderDTO.getItemPerPage()
-                );
+                "%" + scanWorkOrderDTO.getWorkOrder() + "%",
+                "%" + scanWorkOrderDTO.getLot() + "%",
+                "%" + scanWorkOrderDTO.getProductCode() + "%",
+                "%" + scanWorkOrderDTO.getProductName() + "%",
+                "%" + scanWorkOrderDTO.getGroupName() + "%",
+                entryTime1,
+                entryTime2,
+                (scanWorkOrderDTO.getPageNumber() - 1) *
+                scanWorkOrderDTO.getItemPerPage(),
+                scanWorkOrderDTO.getItemPerPage()
+            );
         return workOrderInfos;
     }
 
     //☺ Lấy tổng item
     public Integer getToTalItemWorkOrders(ScanWorkOrderDTO scanWorkOrderDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
+        LocalDate firstDay = LocalDate.of(
+            LocalDate.now().getYear(),
+            LocalDate.now().getMonth(),
+            1
+        );
         String entryTime1 = firstDay.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         if (scanWorkOrderDTO.getCreateAt() != null) {
             entryTime1 = scanWorkOrderDTO.getCreateAt() + " 00:00:00.000";
             entryTime2 = scanWorkOrderDTO.getCreateAt() + " 23:59:59.000";
         }
-        Integer workOrderInfos =
-            this.scanWorkOrderRepository.getTotalData(
-                    "%" + scanWorkOrderDTO.getWorkOrder() + "%",
-                    "%" + scanWorkOrderDTO.getLot() + "%",
-                    "%" + scanWorkOrderDTO.getProductCode() + "%",
-                    "%" + scanWorkOrderDTO.getProductName() + "%",
-                    "%" + scanWorkOrderDTO.getGroupName() + "%",
-                    entryTime1,
-                    entryTime2
-                );
+        Integer workOrderInfos = this.scanWorkOrderRepository.getTotalData(
+            "%" + scanWorkOrderDTO.getWorkOrder() + "%",
+            "%" + scanWorkOrderDTO.getLot() + "%",
+            "%" + scanWorkOrderDTO.getProductCode() + "%",
+            "%" + scanWorkOrderDTO.getProductName() + "%",
+            "%" + scanWorkOrderDTO.getGroupName() + "%",
+            entryTime1,
+            entryTime2
+        );
         return workOrderInfos;
     }
 
     //☺ Lấy tổng pass , Ng
-    public List<DetailCheckResponse> getTotalPassNg(ScanWorkOrderDTO scanWorkOrderDTO) {
+    public List<DetailCheckResponse> getTotalPassNg(
+        ScanWorkOrderDTO scanWorkOrderDTO
+    ) {
         List<DetailCheckResponse> detailCheckResponses =
             this.scanDetailCheckRepository.getTotalPassNg(
-                    (scanWorkOrderDTO.getPageNumber() - 1) * scanWorkOrderDTO.getItemPerPage(),
-                    scanWorkOrderDTO.getItemPerPage()
-                );
+                (scanWorkOrderDTO.getPageNumber() - 1) *
+                scanWorkOrderDTO.getItemPerPage(),
+                scanWorkOrderDTO.getItemPerPage()
+            );
         return detailCheckResponses;
     }
 
@@ -1321,17 +1555,20 @@ public class UserServices {
     // * ------------------------- Product version ---------------------------------
     //☺ Lấy danh sách profile theo product
     public List<ProfileCheckResponse> getProfileCheckInfo(Long productId) {
-        List<ProfileCheckResponse> profileCheckResponses = this.scanprofileCheckRepository.getProfileCheckInfo(productId);
+        List<ProfileCheckResponse> profileCheckResponses =
+            this.scanprofileCheckRepository.getProfileCheckInfo(productId);
         return profileCheckResponses;
     }
 
     //☺ Lấy danh sách profile theo product và version
-    public List<ProfileCheckResponse> getProfileCheckInfoWithVersionId(ScanPprofileCheck scanPprofileCheck) {
+    public List<ProfileCheckResponse> getProfileCheckInfoWithVersionId(
+        ScanPprofileCheck scanPprofileCheck
+    ) {
         List<ProfileCheckResponse> profileCheckResponses =
             this.scanprofileCheckRepository.getProfileCheckInfoWithVersionId(
-                    scanPprofileCheck.getProductId(),
-                    scanPprofileCheck.getVersionId()
-                );
+                scanPprofileCheck.getProductId(),
+                scanPprofileCheck.getVersionId()
+            );
         return profileCheckResponses;
     }
 
@@ -1339,26 +1576,30 @@ public class UserServices {
     public void insertProfileCheck(List<ScanPprofileCheck> scanPprofileChecks) {
         for (ScanPprofileCheck scanPprofileCheck : scanPprofileChecks) {
             this.scanprofileCheckRepository.insertProfileCheck(
-                    scanPprofileCheck.getProductId(),
-                    scanPprofileCheck.getCheckName(),
-                    scanPprofileCheck.getCheckValue(),
-                    scanPprofileCheck.getCheckStatus(),
-                    scanPprofileCheck.getPosition(),
-                    scanPprofileCheck.getVersionId(),
-                    scanPprofileCheck.getMachineId()
-                );
+                scanPprofileCheck.getProductId(),
+                scanPprofileCheck.getCheckName(),
+                scanPprofileCheck.getCheckValue(),
+                scanPprofileCheck.getCheckStatus(),
+                scanPprofileCheck.getPosition(),
+                scanPprofileCheck.getVersionId(),
+                scanPprofileCheck.getMachineId()
+            );
         }
     }
 
     // * ---------------------------- export -----------------------
     public List<TongHopResponse> getExportInfo(Long orderId) {
-        List<TongHopResponse> tongHopResponses = this.scanDetailCheckRepository.getExportInfo(orderId);
+        List<TongHopResponse> tongHopResponses =
+            this.scanDetailCheckRepository.getExportInfo(orderId);
         return tongHopResponses;
     }
 
     // * -------------------------- Quản lý phê duyệt ------------------------
     //☺ Cập nhật trạng thái khi xuất file csv/ báo lỗi panacim
     public void exportCsvStatus(LenhSanXuat lenhSanXuat) {
-        this.lenhSanXuatRepository.exportCsvStatus(lenhSanXuat.getTrangThai(), lenhSanXuat.getId());
+        this.lenhSanXuatRepository.exportCsvStatus(
+            lenhSanXuat.getTrangThai(),
+            lenhSanXuat.getId()
+        );
     }
 }
