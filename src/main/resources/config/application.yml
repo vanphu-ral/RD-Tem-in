@@ -19,7 +19,7 @@
 spring:
   config:
     activate:
-      on-profile: '!api-docs'
+      on-profile: "!api-docs"
 springdoc:
   api-docs:
     enabled: false
@@ -31,22 +31,22 @@ management:
       exposure:
         include:
           [
-            'configprops',
-            'env',
-            'health',
-            'info',
-            'jhimetrics',
-            'jhiopenapigroups',
-            'logfile',
-            'loggers',
-            'prometheus',
-            'threaddump',
-            'liquibase',
+            "configprops",
+            "env",
+            "health",
+            "info",
+            "jhimetrics",
+            "jhiopenapigroups",
+            "logfile",
+            "loggers",
+            "prometheus",
+            "threaddump",
+            "liquibase",
           ]
   endpoint:
     health:
       show-details: when_authorized
-      roles: 'ROLE_ADMIN_PROFILE'
+      roles: "ROLE_ADMIN_PROFILE"
       probes:
         enabled: true
       group:
@@ -160,12 +160,12 @@ spring:
       client:
         provider:
           oidc:
-            #                        issuer-uri: http://192.168.68.90:8080/auth/realms/QLSX
-            issuer-uri: http://localhost:8180/auth/realms/jhipster
+            issuer-uri: http://192.168.68.90:8080/auth/realms/QLSX
+        #            issuer-uri: http://localhost:8180/auth/realms/jhipster
         registration:
           oidc:
-            client-id: web_app
-            client-secret: web_app
+            client-id: tem_in_test
+            client-secret: tem_in_test
             scope: openid, profile, email,jhipster,roles # last one for refresh tokens
 
 server:
@@ -180,7 +180,7 @@ springdoc:
 # Properties to be exposed on the /info management endpoint
 info:
   # Comma separated list of profiles that will trigger the ribbon to show
-  display-ribbon-on-profiles: 'dev'
+  display-ribbon-on-profiles: "dev"
 
 # ===================================================================
 # JHipster specific properties
@@ -190,7 +190,7 @@ info:
 
 jhipster:
   clientApp:
-    name: 'jhipsterApp'
+    name: "jhipsterApp"
   # By default CORS is disabled. Uncomment to enable.
   # cors:
   #   allowed-origins: "http://localhost:8100,http://localhost:9000"
