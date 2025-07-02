@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import * as FileSaver from "file-saver";
 import { MaterialItem } from "../dialog/list-material-update-dialog";
 import { AccountService } from "app/core/auth/account.service";
+import { ApplicationConfigService } from "app/core/config/application-config.service";
 
 // #region Interfaces
 export interface RawGraphQLLocation {
@@ -171,10 +172,15 @@ export class ListMaterialService {
 
   private apiMaterialUrl = this.restBaseUrl + "/api/inventory";
   private apiRequest = this.restBaseUrl + "/api/request";
-  // private apiRequest = "http://localhost:8085" + "/api/request";
 
-  private apiUrl_post_request_update = this.restBaseUrl + "/api/request";
-  private apiUrl_post_update = this.restBaseUrl + "/api/request";
+  // private apiRequest = "http://localhost:8085" + "/api/request";
+  //  private apiUrl_post_request_update = this.restBaseUrl + "/api/request";
+
+  private apiUrl_post_request_update =
+    this.applicationConfigService.getEndpointFor("api/request");
+
+  private apiUrl_post_update =
+    this.applicationConfigService.getEndpointFor("api/request");
 
   private _updateManageData = new BehaviorSubject<inventory_update_requests[]>(
     [],
@@ -195,6 +201,7 @@ export class ListMaterialService {
   constructor(
     private http: HttpClient,
     private accountService: AccountService,
+    private applicationConfigService: ApplicationConfigService,
   ) {
     this.loadSelectedIds();
     this.fetchMaterialsData(
@@ -729,8 +736,10 @@ export class ListMaterialService {
     startTime: string;
     endTime: string;
   }): Observable<any> {
-    return this.http.get<any>(this.apiRequestHistory, { params: body });
+    return this.http.post(this.apiRequestHistory, body);
   }
+
+  // #region Private methods
 
   private loadSelectedIds(): void {
     const savedIds = sessionStorage.getItem("selectedMaterialIds");
