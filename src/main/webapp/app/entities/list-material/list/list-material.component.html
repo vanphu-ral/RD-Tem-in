@@ -1,4 +1,7 @@
-<div class="function-list" style="display: flex; justify-content: space-between; align-items: center">
+<div
+  class="function-list"
+  style="display: flex; justify-content: space-between; align-items: center"
+>
   <div class="left-group" style="display: flex; align-items: center; gap: 15px">
     <div>
       <h2>Danh sách vật tư</h2>
@@ -7,43 +10,85 @@
       <h2>|</h2>
     </div>
     <div class="listupdate-with-badge">
-      <button *jhiHasAnyAuthority="'ROLE_PANACIM_UPDATE'" mat-raised-button routerLink="update-list">
+      <button
+        *jhiHasAnyAuthority="'ROLE_PANACIM_UPDATE'"
+        mat-raised-button
+        routerLink="update-list"
+      >
         <mat-icon> list_alt</mat-icon>Danh sách cập nhật
       </button>
-      <div *jhiHasAnyAuthority="'ROLE_PANACIM_UPDATE'" class="cart-badge">{{ checkedCount() }}</div>
-    </div>
-    <button mat-raised-button (click)="startScan()"><mat-icon>center_focus_weak</mat-icon> Scan</button>
-
-    <div *ngIf="scanError" class="scan-error" style="color: #f44336; margin-left: 8px">
-      {{ scanError }}
-    </div>
-    <div class="left-group" style="display: flex; align-items: center; gap: 15px">
-      <div *ngIf="isScanMode && !scanResult">
-        <mat-spinner diameter="20"></mat-spinner>
+      <div *jhiHasAnyAuthority="'ROLE_PANACIM_UPDATE'" class="cart-badge">
+        {{ checkedCount() }}
       </div>
-      <button mat-raised-button (click)="refreshScan()"><mat-icon>refresh</mat-icon> Refresh</button>
+    </div>
+    <button mat-raised-button (click)="startScan()">
+      <mat-icon>center_focus_weak</mat-icon> Scan
+    </button>
+
+    <div
+      *ngIf="scanError"
+      class="scan-error"
+      style="color: #f44336; margin-left: 8px"
+    >
+      {{ scanError }}
     </div>
   </div>
 
-  <div class="right-group" style="display: flex; align-items: center; gap: 15px; margin-right: 15px">
+  <div
+    class="right-group"
+    style="display: flex; align-items: center; gap: 15px; margin-right: 15px"
+  >
+    <div
+      class="left-group"
+      style="display: flex; align-items: center; gap: 15px"
+    >
+      <div *ngIf="isScanMode && !scanResult">
+        <mat-spinner diameter="20"></mat-spinner>
+      </div>
+      <button mat-raised-button (click)="refreshScan()">
+        <mat-icon>refresh</mat-icon> Refresh
+      </button>
+    </div>
     <div>
-      <button mat-raised-button mat-button [matMenuTriggerFor]="menu">View mode <mat-icon>keyboard_arrow_down</mat-icon></button>
+      <button mat-raised-button mat-button [matMenuTriggerFor]="menu">
+        View mode <mat-icon>keyboard_arrow_down</mat-icon>
+      </button>
       <mat-menu #menu="matMenu">
         <button mat-menu-item>Danh sách chi tiết</button>
 
-        <button mat-menu-item [matMenuTriggerFor]="subMenu" #menuTrigger="matMenuTrigger">Danh sách tổng hợp</button>
+        <button
+          mat-menu-item
+          [matMenuTriggerFor]="subMenu"
+          #menuTrigger="matMenuTrigger"
+        >
+          Danh sách tổng hợp
+        </button>
       </mat-menu>
       <mat-menu #subMenu="matMenu">
         <form [formGroup]="form">
           <div (click)="$event.stopPropagation()">
-            <mat-selection-list formControlName="sumary_modeControl" name="sumary_modes" [multiple]="false" color="primary">
-              <mat-list-option *ngFor="let mode of sumary_modes" [value]="mode.value">
+            <mat-selection-list
+              formControlName="sumary_modeControl"
+              name="sumary_modes"
+              [multiple]="false"
+              color="primary"
+            >
+              <mat-list-option
+                *ngFor="let mode of sumary_modes"
+                [value]="mode.value"
+              >
                 {{ mode.name }}
               </mat-list-option>
             </mat-selection-list>
           </div>
           <div style="display: flex; justify-content: flex-end; margin: 10px 0">
-            <button mat-button style="background-color: rgb(65, 235, 53); margin-right: 15px" (click)="onLoad()">Load</button>
+            <button
+              mat-button
+              style="background-color: rgb(65, 235, 53); margin-right: 15px"
+              (click)="onLoad()"
+            >
+              Load
+            </button>
           </div>
         </form>
       </mat-menu>
@@ -58,7 +103,12 @@
           <span class="example-list-section">
             <mat-checkbox
               color="primary"
-              style="margin: 0; padding-left: 20px; padding-right: 30px; list-style: none"
+              style="
+                margin: 0;
+                padding-left: 20px;
+                padding-right: 30px;
+                list-style: none;
+              "
               class="example-margin"
               [checked]="columnSelectionGroup().completed"
               [indeterminate]="partiallyComplete()"
@@ -69,10 +119,25 @@
           </span>
           <hr />
           <span class="example-list-section">
-            <ul style="margin: 0; padding-left: 20px; padding-right: 30px; list-style: none">
-              @for (subtask of columnSelectionGroup().subtasks; track subtask; let i = $index) {
+            <ul
+              style="
+                margin: 0;
+                padding-left: 20px;
+                padding-right: 30px;
+                list-style: none;
+              "
+            >
+              @for (
+                subtask of columnSelectionGroup().subtasks;
+                track subtask;
+                let i = $index
+              ) {
                 <li>
-                  <mat-checkbox color="primary" [checked]="subtask.completed" (change)="update($event.checked, i)">
+                  <mat-checkbox
+                    color="primary"
+                    [checked]="subtask.completed"
+                    (change)="update($event.checked, i)"
+                  >
                     {{ subtask.name }}
                   </mat-checkbox>
                 </li>
@@ -83,20 +148,46 @@
       </mat-menu>
     </div>
     <div>
-      <button mat-raised-button (click)="export()"><mat-icon> file_download</mat-icon>Xuất Excel</button>
+      <button mat-raised-button (click)="export()">
+        <mat-icon> file_download</mat-icon>Xuất Excel
+      </button>
     </div>
   </div>
 </div>
 <input
   #scanInput
   type="text"
-  style="opacity: 0; position: absolute; left: -9999px; width: 1px; height: 1px; border: 0"
+  style="
+    opacity: 0;
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    border: 0;
+  "
   (keyup.enter)="onScanEnter(scanInput.value)"
 />
-<div class="full-scroll-table-container" [style.max-width]="tableMaxWidth" style="overflow-x: auto">
-  <table *jhiHasAnyAuthority="'ROLE_PANACIM_VIEW'" mat-table [dataSource]="dataSource" class="mat-elevation-z8 bordered-table">
-    <ng-container *ngFor="let colDef of displayedColumns" [matColumnDef]="colDef">
-      <th mat-header-cell *matHeaderCellDef style="background-color: #548ce8" [ngClass]="'col-' + colDef">
+<div
+  class="full-scroll-table-container"
+  [style.max-width]="tableMaxWidth"
+  style="overflow-x: auto"
+>
+  <table
+    *jhiHasAnyAuthority="'ROLE_PANACIM_VIEW'"
+    mat-table
+    [dataSource]="dataSource"
+    class="mat-elevation-z8 bordered-table"
+  >
+    <ng-container
+      *ngFor="let colDef of displayedColumns"
+      [matColumnDef]="colDef"
+    >
+      <th
+        mat-header-cell
+        *matHeaderCellDef
+        style="background-color: #548ce8"
+        [ngClass]="'col-' + colDef"
+      >
         <!-- Cột Select -->
         <ng-container *ngIf="colDef === 'select'; else headerContent">
           <div style="text-align: center; color: white">
@@ -106,10 +197,14 @@
 
         <!-- Header cho các cột khác -->
         <ng-template #headerContent>
-          <div style="display: flex; color: white; justify-content: space-between">
+          <div
+            style="display: flex; color: white; justify-content: space-between"
+          >
             <div>{{ getColumnDisplayName(colDef) }}</div>
             <div>
-              <mat-icon [matMenuTriggerFor]="filterMenuCol" style="color: white">filter_list</mat-icon>
+              <mat-icon [matMenuTriggerFor]="filterMenuCol" style="color: white"
+                >filter_list</mat-icon
+              >
             </div>
           </div>
 
@@ -118,15 +213,24 @@
             <div class="custom-search-wrapper">
               <!-- DATE PICKER -->
               <ng-container *ngIf="isDateField(colDef); else textInputTemplate">
-                <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
+                <mat-form-field
+                  class="small-form-field"
+                  appearance="fill"
+                  floatLabel="always"
+                >
                   <mat-label>Search Date</mat-label>
                   <input
                     matInput
                     [matDatepicker]="picker"
-                    [placeholder]="'Search (' + (filterModes[colDef] || 'contains') + ')'"
+                    [placeholder]="
+                      'Search (' + (filterModes[colDef] || 'contains') + ')'
+                    "
                     (dateChange)="applyDateFilter(colDef, $event)"
                   />
-                  <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                  <mat-datepicker-toggle
+                    matSuffix
+                    [for]="picker"
+                  ></mat-datepicker-toggle>
                   <mat-datepicker #picker></mat-datepicker>
                 </mat-form-field>
               </ng-container>
@@ -135,14 +239,25 @@
               <ng-template #textInputTemplate>
                 <!-- 1) Nếu đây là cột status, hiển thị select -->
                 <ng-container *ngIf="colDef === 'status'; else normalInput">
-                  <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
+                  <mat-form-field
+                    class="small-form-field"
+                    appearance="fill"
+                    floatLabel="always"
+                  >
                     <mat-label>Search Status</mat-label>
                     <mat-select
-                      [placeholder]="'Search (' + (filterModes[colDef] || 'equals') + ')'"
+                      [placeholder]="
+                        'Search (' + (filterModes[colDef] || 'equals') + ')'
+                      "
                       [value]="(searchTerms[colDef] || {}).value || ''"
-                      (selectionChange)="applySelectFilter(colDef, $event.value)"
+                      (selectionChange)="
+                        applySelectFilter(colDef, $event.value)
+                      "
                     >
-                      <mat-option *ngFor="let opt of statusOptions" [value]="opt.value">
+                      <mat-option
+                        *ngFor="let opt of statusOptions"
+                        [value]="opt.value"
+                      >
                         {{ opt.view }}
                       </mat-option>
                     </mat-select>
@@ -151,12 +266,18 @@
 
                 <!-- 2) Các cột text/scan bình thường -->
                 <ng-template #normalInput>
-                  <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
+                  <mat-form-field
+                    class="small-form-field"
+                    appearance="fill"
+                    floatLabel="always"
+                  >
                     <mat-label>Search</mat-label>
                     <input
                       matInput
                       (keyup)="applyFilter(colDef, $event)"
-                      [placeholder]="'Search (' + (filterModes[colDef] || 'contains') + ')'"
+                      [placeholder]="
+                        'Search (' + (filterModes[colDef] || 'contains') + ')'
+                      "
                     />
                   </mat-form-field>
                 </ng-template>
@@ -166,10 +287,21 @@
 
           <!-- Menu Filter của cột (mỗi cột dùng menu riêng) -->
           <mat-menu #filterMenuCol="matMenu">
-            <button mat-menu-item (click)="setFilterMode(colDef, 'contains')">Có chứa</button>
-            <button mat-menu-item (click)="setFilterMode(colDef, 'not_contains')">Không chứa</button>
-            <button mat-menu-item (click)="setFilterMode(colDef, 'equals')">Bằng</button>
-            <button mat-menu-item (click)="setFilterMode(colDef, 'not_equals')">Không bằng</button>
+            <button mat-menu-item (click)="setFilterMode(colDef, 'contains')">
+              Có chứa
+            </button>
+            <button
+              mat-menu-item
+              (click)="setFilterMode(colDef, 'not_contains')"
+            >
+              Không chứa
+            </button>
+            <button mat-menu-item (click)="setFilterMode(colDef, 'equals')">
+              Bằng
+            </button>
+            <button mat-menu-item (click)="setFilterMode(colDef, 'not_equals')">
+              Không bằng
+            </button>
           </mat-menu>
         </ng-template>
       </th>
@@ -178,7 +310,14 @@
         <ng-container [ngSwitch]="colDef">
           <!-- select -->
           <ng-container *ngSwitchCase="'select'">
-            <div style="display: flex; justify-content: center; align-items: center; width: 100%">
+            <div
+              style="
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+              "
+            >
               <mat-checkbox
                 color="primary"
                 (click)="$event.stopPropagation()"
