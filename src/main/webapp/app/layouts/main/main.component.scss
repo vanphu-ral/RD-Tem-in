@@ -1,0 +1,15 @@
+.router-outlet-page {
+  margin: 15px 5px 5px 5px;
+}
+
+// id="main" class="container-fluid" style="padding-top: 12px; margin-left: 52px"
+#main {
+  padding-top: 12px;
+  margin-left: 52px;
+}
+
+@media (max-width: 1200px) {
+  #main {
+    padding-top: 0px;
+  }
+}

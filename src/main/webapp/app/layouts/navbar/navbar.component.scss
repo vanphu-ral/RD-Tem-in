@@ -1,6 +1,6 @@
-@import 'bootstrap/scss/functions';
-@import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/functions';
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/functions";
 // @import '~bootswatch/dist/zephyr/variables';
 // @import 'bootstrap/scss/variables';
 
@@ -416,4 +416,10 @@ li::marker {
   display: flex;
   flex-direction: column;
   justify-content: flex-start !important; // Không căn giữa dọc
+}
+
+@media (max-width: 1200px) {
+  .app-header {
+    height: 40px;
+  }
 }

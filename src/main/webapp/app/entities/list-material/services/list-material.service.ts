@@ -168,10 +168,13 @@ export class ListMaterialService {
   private _selectedIds = new BehaviorSubject<string[]>([]);
   private _locationsData = new BehaviorSubject<RawGraphQLLocation[]>([]);
 
-  private restBaseUrl = environment.restApiBaseUrl;
+  // private restBaseUrl = environment.restApiBaseUrl;
 
-  private apiMaterialUrl = this.restBaseUrl + "/api/inventory";
-  private apiRequest = this.restBaseUrl + "/api/request";
+  private apiMaterialUrl =
+    this.applicationConfigService.getEndpointFor("/api/inventory");
+
+  private apiRequest =
+    this.applicationConfigService.getEndpointFor("/api/request");
 
   // private apiRequest = "http://localhost:8085" + "/api/request";
   //  private apiUrl_post_request_update = this.restBaseUrl + "/api/request";
@@ -182,22 +185,26 @@ export class ListMaterialService {
   private apiUrl_post_update =
     this.applicationConfigService.getEndpointFor("api/request");
 
-  private _updateManageData = new BehaviorSubject<inventory_update_requests[]>(
-    [],
-  );
-  private apiRequestDetail = this.restBaseUrl + "/api/request/detail"; // + /requestCode : lấy chi tiết
+  private apiRequestDetail = this.applicationConfigService.getEndpointFor(
+    "/api/request/detail",
+  ); // + /requestCode : lấy chi tiết
 
-  private apiRequestHistory = this.restBaseUrl + "/api/request/history"; // post lấy theo tháng, +/requestCode : lấy chi tiết
+  private apiRequestHistory = this.applicationConfigService.getEndpointFor(
+    "/api/request/history",
+  ); // post lấy theo tháng, +/requestCode : lấy chi tiết
 
   private apiRequestHistoryDetail =
-    this.restBaseUrl + "/api/request/history/detail";
+    this.applicationConfigService.getEndpointFor("/api/request/history/detail");
 
   private _materialsDataFetchedOnce = false;
   private readonly defaultPageSize = 15;
-  private _updatedInventoryIds = new Set<string>();
-  // #endregion
 
-  // #region Constructor
+  private _updatedInventoryIds = new Set<string>();
+
+  private _updateManageData = new BehaviorSubject<inventory_update_requests[]>(
+    [],
+  );
+
   constructor(
     private http: HttpClient,
     private accountService: AccountService,

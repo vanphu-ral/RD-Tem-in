@@ -1,21 +1,22 @@
-import { Component, OnInit } from '@angular/core';
-import { Title } from '@angular/platform-browser';
-import { Router, ActivatedRouteSnapshot, NavigationEnd } from '@angular/router';
-import { Account } from 'app/core/auth/account.model';
+import { Component, OnInit } from "@angular/core";
+import { Title } from "@angular/platform-browser";
+import { Router, ActivatedRouteSnapshot, NavigationEnd } from "@angular/router";
+import { Account } from "app/core/auth/account.model";
 
-import { AccountService } from 'app/core/auth/account.service';
-import { LoginService } from 'app/login/login.service';
+import { AccountService } from "app/core/auth/account.service";
+import { LoginService } from "app/login/login.service";
 
 @Component({
-  selector: 'jhi-main',
-  templateUrl: './main.component.html',
+  selector: "jhi-main",
+  templateUrl: "./main.component.html",
+  styleUrls: ["./main.component.scss"],
   standalone: false,
 })
 export class MainComponent implements OnInit {
   inProduction?: boolean;
   isNavbarCollapsed = true;
   openAPIEnabled?: boolean;
-  version = '';
+  version = "";
   account: Account | null = null;
   entitiesNavbarItems: any[] = [];
   isSidebarCollapsed = false;
@@ -31,7 +32,7 @@ export class MainComponent implements OnInit {
     // try to log in automatically
     this.accountService.identity().subscribe();
 
-    this.router.events.subscribe(event => {
+    this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         this.updateTitle();
       }
@@ -49,7 +50,7 @@ export class MainComponent implements OnInit {
   logout(): void {
     this.collapseNavbar();
     this.loginService.logout();
-    this.router.navigate(['']);
+    this.router.navigate([""]);
   }
 
   toggleSidebar(): void {
@@ -57,15 +58,15 @@ export class MainComponent implements OnInit {
   }
 
   closeNav(): void {
-    document.getElementById('main')!.style.marginLeft = '50px';
+    document.getElementById("main")!.style.marginLeft = "50px";
   }
 
   openNav(): void {
-    document.getElementById('main')!.style.marginLeft = '250px';
+    document.getElementById("main")!.style.marginLeft = "250px";
   }
 
   private getPageTitle(routeSnapshot: ActivatedRouteSnapshot): string {
-    const title: string = routeSnapshot.data['pageTitle'] ?? '';
+    const title: string = routeSnapshot.data["pageTitle"] ?? "";
     if (routeSnapshot.firstChild) {
       return this.getPageTitle(routeSnapshot.firstChild) || title;
     }
@@ -75,7 +76,7 @@ export class MainComponent implements OnInit {
   private updateTitle(): void {
     let pageTitle = this.getPageTitle(this.router.routerState.snapshot.root);
     if (!pageTitle) {
-      pageTitle = 'JHipster';
+      pageTitle = "JHipster";
     }
     this.titleService.setTitle(pageTitle);
   }
