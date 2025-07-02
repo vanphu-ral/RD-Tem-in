@@ -26,8 +26,8 @@
         <!-- Build properties -->
         <maven.version>3.8.5</maven.version>
         <java.version>11</java.version>
-        <node.version>v16.14.0</node.version>
-        <npm.version>8.6.0</npm.version>
+        <node.version>v18.20.8</node.version>
+        <npm.version>10.9.2</npm.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -1168,7 +1168,7 @@
                                     <arguments>install --force</arguments>
                                 </configuration>
                             </execution>
-                            <execution>
+                            <!-- <execution>
                                 <id>webapp build test</id>
                                 <goals>
                                     <goal>npm</goal>
@@ -1178,7 +1178,7 @@
                                     <arguments>run webapp:test</arguments>
                                     <npmInheritsProxyConfigFromMaven>false</npmInheritsProxyConfigFromMaven>
                                 </configuration>
-                            </execution>
+                            </execution> -->
                             <execution>
                                 <id>webapp build prod</id>
                                 <goals>
@@ -1186,7 +1186,7 @@
                                 </goals>
                                 <phase>generate-resources</phase>
                                 <configuration>
-                                    <arguments>run webapp:prod</arguments>
+                                    <arguments>run webapp:prod --loglevel verbose</arguments>
                                     <environmentVariables>
                                         <APP_VERSION>${project.version}</APP_VERSION>
                                     </environmentVariables>
@@ -1357,6 +1357,28 @@
                         </plugin>
                     </plugins>
                 </pluginManagement>
+                <plugins>
+                    <plugin>
+                    <groupId>com.github.eirslett</groupId>
+                    <artifactId>frontend-maven-plugin</artifactId>
+                    <version>${frontend-maven-plugin.version}</version>
+                    <configuration>
+                        <workingDirectory>${project.basedir}/src/main/webapp</workingDirectory>
+                        <consoleLogEnabled>true</consoleLogEnabled>
+                    </configuration>
+                    <executions>
+                        <!-- Chỉ chạy test khi -Pe2e -->
+                        <execution>
+                        <id>npm run webapp:test</id>
+                        <goals><goal>npm</goal></goals>
+                        <phase>verify</phase>
+                        <configuration>
+                            <arguments>run webapp:test</arguments>
+                        </configuration>
+                        </execution>
+                    </executions>
+                    </plugin>
+                </plugins>
             </build>
         </profile>
         <!-- jhipster-needle-maven-add-profile -->

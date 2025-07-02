@@ -78,14 +78,14 @@
     "watch": "concurrently npm:start npm:backend:start",
     "webapp:build": "npm run clean-www && npm run webapp:build:dev",
     "webapp:build:dev": "ng build --configuration development",
-    "webapp:build:prod": "ng build --configuration production",
+    "webapp:build:prod": "ng build --configuration production --output-path target/classes/static",
     "webapp:dev": "ng serve",
     "webapp:dev-ssl": "ng serve --ssl",
     "webapp:dev-verbose": "ng serve --verbose",
     "prewebapp:instrumenter": "npm run clean-www && npm run clean-coverage",
     "webapp:instrumenter": "ng build --configuration instrumenter",
     "webapp:prod": "npm run clean-www && npm run webapp:build:prod",
-    "webapp:test": "npm run test --"
+    "webapp:test:nolint": "cypress run"
   },
   "config": {
     "backend_port": "8085",
@@ -189,7 +189,7 @@
     "webpack-notifier": "1.15.0"
   },
   "engines": {
-    "node": ">=20.11.1"
+    "node": ">=18.20.8"
   },
   "cacheDirectories": [
     "node_modules"

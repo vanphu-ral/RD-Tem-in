@@ -212,7 +212,7 @@ th {
   border-radius: 4px;
   font-size: 14px;
   margin-bottom: 12px;
-  font-family: 'Be Vietnam Pro', sans-serif;
+  font-family: "Be Vietnam Pro", sans-serif;
   font-weight: 400;
   font-style: normal;
   transition: all 0.3s ease;
@@ -225,3 +225,95 @@ th {
 // .mat-column-s{
 //   flex: 0 0 150px;
 // }
+/* MOBILE (< 600px) */
+@media (max-width: 599px) {
+}
+
+/* TABLET (600–959px) */
+@media (min-width: 600px) and (max-width: 959px) {
+  ::ng-deep table {
+    th.mat-mdc-header-cell {
+      padding: 6px 8px !important;
+      font-size: 12px !important;
+
+      .search-container {
+        .small-form-field {
+          // width: 100px !important;
+
+          .mat-form-field-infix {
+            padding: 0 2px !important;
+          }
+
+          mat-label {
+            font-size: 9px !important;
+            line-height: 11px !important;
+          }
+
+          input,
+          .mat-select-trigger,
+          mat-datepicker-toggle {
+            font-size: 11px !important;
+            height: 20px !important;
+            padding: 0 2px !important;
+          }
+        }
+      }
+
+      mat-icon {
+        font-size: 16px !important;
+      }
+    }
+
+    td.mat-mdc-cell {
+      padding: 4px 6px !important;
+      font-size: 11px !important;
+    }
+    .mat-column-locationId {
+      min-width: 100px;
+    }
+  }
+}
+/* DESKTOP (>= 960px) */
+@media (min-width: 960px) {
+  ::ng-deep table {
+    th.mat-mdc-header-cell {
+      padding: 6px 8px !important;
+      font-size: 12px !important;
+
+      .search-container {
+        .small-form-field {
+          // width: 100px !important;
+
+          .mat-form-field-infix {
+            padding: 0 2px !important;
+          }
+
+          mat-label {
+            font-size: 9px !important;
+            line-height: 11px !important;
+          }
+
+          input,
+          .mat-select-trigger,
+          mat-datepicker-toggle {
+            font-size: 11px !important;
+            height: 20px !important;
+            padding: 0 2px !important;
+          }
+        }
+      }
+
+      mat-icon {
+        font-size: 20px !important;
+      }
+    }
+
+    td.mat-mdc-cell {
+      padding: 4px 6px !important;
+      font-size: 11px !important;
+    }
+    .mat-column-locationId {
+      min-width: 100px;
+    }
+  }
+}
