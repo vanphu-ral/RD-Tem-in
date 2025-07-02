@@ -51,7 +51,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     );
 
     @Query(
-        value = "SELECT top 100 \n" +
+        value = "SELECT  \n" +
         "     a.[Inventory_Id] AS inventoryId\n" +
         "    ,a.[Inventory_PartId] AS partId\n" +
         "    ,a.[Inventory_PartNumber] AS partNumber\n" +
@@ -103,7 +103,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,b.Location_Name AS locationName\n" +
         "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
         "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
-        "FROM [PanaCIMMC].[dbo].[Inventory] a\n" +
+        "FROM [panacim_test].[dbo].[Inventory] a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
         "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
