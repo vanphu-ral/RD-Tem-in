@@ -252,15 +252,19 @@ export class ListMaterialService {
 
   // #region Private subjects & state
   private restBaseUrl = environment.restApiBaseUrl;
-  private apiUrl = this.restBaseUrl + "/inventory";
-  private apiRequest = this.restBaseUrl + "/request";
-  private apiUrl_post_request_update = environment.resApiUpdateUrl + "/request";
-  private apiUrl_post_update = environment.resApiUpdateUrl + "/request";
+
+  private apiUrl = this.restBaseUrl + "/api/inventory";
+  private apiRequest = this.restBaseUrl + "/api/request";
+  private apiUrl_post_request_update =
+    environment.resApiUpdateUrl + "/api/request";
+  private apiUrl_post_update = environment.resApiUpdateUrl + "/api/request";
+
   private _updateManageData = new BehaviorSubject<inventory_update_requests[]>(
     [],
   );
-  private apiRequestDetail = this.restBaseUrl + "/request/detail"; // + /requestCode : lấy chi tiết
-  private apiRequestHistory = this.restBaseUrl + "/request/history"; // post lấy theo tháng, +/requestCode : lấy chi tiết
+  private apiRequestDetail = this.restBaseUrl + "/api/request/detail"; // + /requestCode : lấy chi tiết
+
+  private apiRequestHistory = this.restBaseUrl + "/api/request/history"; // post lấy theo tháng, +/requestCode : lấy chi tiết
   private apiRequestHistoryDetail =
     this.restBaseUrl + "/request/history/detail";
 
