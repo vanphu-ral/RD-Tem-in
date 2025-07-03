@@ -195,6 +195,8 @@ export class ListMaterialService {
 
   private apiRequestHistoryDetail =
     this.applicationConfigService.getEndpointFor("/api/request/history/detail");
+  private apiLocations =
+    this.applicationConfigService.getEndpointFor("/api/location");
 
   private _materialsDataFetchedOnce = false;
   private readonly defaultPageSize = 15;
@@ -210,6 +212,7 @@ export class ListMaterialService {
     private accountService: AccountService,
     private applicationConfigService: ApplicationConfigService,
   ) {
+    this.fetchLocations();
     this.loadSelectedIds();
     this.fetchMaterialsData(
       0,
@@ -747,6 +750,22 @@ export class ListMaterialService {
   }
 
   // #region Private methods
+
+  private fetchLocations(): void {
+    this.http.get<RawGraphQLLocation[]>(this.apiLocations).subscribe({
+      next: (data) => {
+        this._locationsData.next(data);
+        console.log(
+          "MaterialService (HTTP): Locations data successfully fetched:",
+          data,
+        );
+      },
+      error: (err) => {
+        console.error("Loi lay api locations:", err);
+        this._locationsData.next([]);
+      },
+    });
+  }
 
   private loadSelectedIds(): void {
     const savedIds = sessionStorage.getItem("selectedMaterialIds");

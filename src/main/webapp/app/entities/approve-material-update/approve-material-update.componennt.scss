@@ -389,7 +389,7 @@ td.mat-mdc-cell.status-reject {
   display: flex;
   flex-direction: column;
   height: 900px;
-  width: 1960px;
+  width: 1800px;
 }
 
 .full-scroll-table-container {
@@ -404,6 +404,7 @@ td.mat-mdc-cell.status-reject {
   .title-page h2 {
     font-size: 20px !important;
   }
+
   .phan-cach {
     font-size: 20px;
   }
@@ -411,6 +412,7 @@ td.mat-mdc-cell.status-reject {
   .main-page {
     width: 1050px;
     height: 530px;
+    font-size: 10px;
   }
 
   .full-scroll-table-container {
@@ -422,11 +424,71 @@ td.mat-mdc-cell.status-reject {
     display: block;
   }
 
-  html {
-    font-size: 5px;
+  ::ng-deep #paginator {
+    height: 20px !important;
   }
 
-  .paginator {
-    height: 20px !important;
+  table.mat-table {
+    table-layout: auto;
+  }
+
+  .mat-header-row,
+  .mat-row {
+    height: 20px;
+  }
+
+  #btn-export {
+    height: 25px;
+    font-size: 10px;
+  }
+
+  // chỉnh bảng
+  ::ng-deep .bordered-table .mat-header-cell,
+  ::ng-deep .bordered-table .mat-cell {
+    font-size: 2px;
+  }
+
+  ::ng-deep table {
+    th.mat-mdc-header-cell {
+      padding: 4px 8px !important;
+      font-size: 12px !important;
+
+      .search-container {
+        .small-form-field {
+          .mat-form-field-infix {
+            padding: 0 2px !important;
+          }
+
+          mat-label {
+            font-size: 9px !important;
+            line-height: 11px !important;
+          }
+
+          input,
+          .mat-select-trigger,
+          mat-datepicker-toggle {
+            font-size: 11px !important;
+            height: 20px !important;
+            padding: 0 2px !important;
+          }
+        }
+      }
+
+      mat-icon {
+        font-size: 16px !important;
+      }
+    }
+
+    // tr.mat-mdc-row {
+    //   height: 20px !important;
+    // }
+
+    td.mat-mdc-cell {
+      padding: 0 10px !important;
+      font-size: 12px !important;
+    }
+  }
+  .th-container {
+    max-width: 180px;
   }
 }
