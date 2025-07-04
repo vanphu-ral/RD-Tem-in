@@ -55,7 +55,7 @@ Logo styles
   align-items: center;
   justify-content: space-between;
   height: 60px;
-  z-index: 1000;
+  z-index: 999;
   margin-left: 60px;
   position: fixed;
   background: #333;
@@ -85,19 +85,18 @@ Logo styles
   flex-direction: column;
   top: 0;
   left: 0px;
-  z-index: 3000;
+  z-index: 999;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   /* Sử dụng easing function mượt hơn */
   background-color: $sidebar-background-color;
   justify-content: space-between;
   width: 300px;
   overflow: hidden;
-  /* Quan trọng: ẩn nội dung tràn */
 }
 
 .sidebar-content {
   flex: 1;
-  z-index: 10000;
+  z-index: 9999;
   transition: inherit;
   overflow: hidden;
   /* Ngăn chặn nội dung tràn trong khi chuyển đổi */
@@ -418,8 +417,21 @@ li::marker {
   justify-content: flex-start !important; // Không căn giữa dọc
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1300px) {
   .app-header {
     height: 40px;
+  }
+
+  .sidebar-img {
+    transform: scale(0.8) !important;
+    transform-origin: top left !important;
+  }
+
+  #sidebar-id[style*="width: 60px"] {
+    width: 50px !important;
+  }
+
+  .app-header {
+    margin-left: 50px;
   }
 }

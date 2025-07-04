@@ -1,4 +1,4 @@
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 
 .function-list {
   display: flex;
@@ -64,11 +64,13 @@ ul {
   list-style-type: none;
   margin-top: 4px;
 }
+
 table {
   width: 100%;
   table-layout: auto;
   border-collapse: collapse;
 }
+
 th,
 td {
   padding: 8px;
@@ -109,6 +111,7 @@ th {
   background-color: white;
   border-radius: 4px;
 }
+
 .mat-mdc-form-field-hint-wrapper,
 .mat-mdc-form-field-hint-spacer {
   display: none !important;
@@ -168,6 +171,7 @@ th {
 .custom-search-wrapper {
   height: 20px;
 }
+
 // .custom-search-wrapper {
 //   width: calc(100% - 16px); /* Trừ đi padding */
 //   max-width: 100%; /* Đảm bảo không vượt quá kích thước th */
@@ -188,10 +192,13 @@ th {
 
 .mat-column-Material ID {
   /* Thay 'tenCuaCotCuaBan' bằng tên cột thật của bạn */
-  flex: 0 0 150px; /* flex-grow, flex-shrink, flex-basis */
+  flex: 0 0 150px;
+  /* flex-grow, flex-shrink, flex-basis */
 }
+
 .mat-column-vendor {
-  flex: 0 0 120px; /* Ví dụ: 120px */
+  flex: 0 0 120px;
+  /* Ví dụ: 120px */
   word-wrap: break-word;
   white-space: normal;
 }
@@ -213,10 +220,13 @@ th {
 .th {
   background-color: rgb(49, 110, 241);
 }
+
 .td-flex-center {
   display: flex;
-  justify-content: center; /* căn giữa ngang */
-  align-items: center; /* căn giữa dọc */
+  justify-content: center;
+  /* căn giữa ngang */
+  align-items: center;
+  /* căn giữa dọc */
   height: 100%;
 }
 
@@ -277,6 +287,7 @@ tr.example-detail-row {
   height: 0 !important;
   visibility: collapse !important;
 }
+
 tr.example-detail-row.expanded-row {
   height: auto !important;
   min-height: unset !important;
@@ -302,18 +313,22 @@ tr.example-element-row:not(.example-expanded-row):active {
   position: relative;
   display: block;
 }
+
 ::ng-deep .small-form-field {
   @include mat.form-field-density(-5);
   @include mat.icon-button-density(-5);
   @include mat.datepicker-density(-5);
 }
+
 .small-form-field {
   width: 100%;
   font-size: 13px !important;
 }
+
 .small-form-field-select {
   width: 100% !important;
 }
+
 // ::ng-deep .mat-mdc-form-field-icon-suffix{
 //   top: -5px;
 // }
@@ -331,6 +346,7 @@ td.mat-column-status {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 td.mat-mdc-cell.status-pending,
 td.mat-mdc-cell.status-approve,
 td.mat-mdc-cell.status-reject {
@@ -342,6 +358,7 @@ td.mat-mdc-cell.status-reject {
   text-align: center;
   margin: 14px 10px;
 }
+
 td.mat-mdc-cell span {
   width: 100%;
 }
@@ -359,9 +376,122 @@ td.mat-mdc-cell.status-reject {
   border: 1.5px solid #e53935;
   background-color: #fea8a6;
 }
+
 ::ng-deep .mat-mdc-header-row,
 ::ng-deep .mat-mdc-header-cell {
   position: sticky !important;
   top: 0;
   z-index: 1000 !important;
+}
+
+.main-page {
+  display: flex;
+  flex-direction: column;
+  height: 900px;
+  width: 1950px;
+  padding-left: 5px;
+  margin-top: 5px;
+}
+
+.full-scroll-table-container {
+  height: 100%;
+  //  width: 1660px;
+  max-width: 1950px;
+  max-width: 100%;
+  overflow: auto;
+}
+
+@media (max-width: 1200px) {
+  .title-page h2 {
+    font-size: 20px !important;
+  }
+
+  .phan-cach {
+    font-size: 20px;
+  }
+
+  .main-page {
+    width: 1050px;
+    height: 530px;
+    font-size: 10px;
+    margin-left: 10px;
+  }
+
+  .full-scroll-table-container {
+    // height: 750px;
+    //  width: 1660px;
+    max-width: 1050px;
+    max-height: 540px;
+    overflow-x: auto;
+    display: block;
+  }
+
+  ::ng-deep #paginator {
+    height: 20px !important;
+  }
+
+  table.mat-table {
+    table-layout: auto;
+  }
+
+  .mat-header-row,
+  .mat-row {
+    height: 20px;
+  }
+
+  .btn-export {
+    height: 25px;
+    font-size: 10px;
+  }
+
+  // chỉnh bảng
+  ::ng-deep .bordered-table .mat-header-cell,
+  ::ng-deep .bordered-table .mat-cell {
+    font-size: 2px;
+  }
+
+  ::ng-deep table {
+    th.mat-mdc-header-cell {
+      padding: 4px 8px !important;
+      font-size: 12px !important;
+
+      .search-container {
+        .small-form-field {
+          .mat-form-field-infix {
+            padding: 0 2px !important;
+          }
+
+          mat-label {
+            font-size: 9px !important;
+            line-height: 11px !important;
+          }
+
+          input,
+          .mat-select-trigger,
+          mat-datepicker-toggle {
+            font-size: 11px !important;
+            height: 20px !important;
+            padding: 0 2px !important;
+          }
+        }
+      }
+
+      mat-icon {
+        font-size: 16px !important;
+      }
+    }
+
+    // tr.mat-mdc-row {
+    //   height: 20px !important;
+    // }
+
+    td.mat-mdc-cell {
+      padding: 0 10px !important;
+      font-size: 12px !important;
+    }
+  }
+
+  .th-container {
+    max-width: 180px;
+  }
 }

@@ -655,10 +655,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  onCellBlur(element: MaterialItem, columnName: keyof MaterialItem): void {
-    // Hàm này có thể vẫn hữu ích cho các cột khác (ví dụ: quantity)
-    // Đối với locationId, việc cập nhật đã được xử lý trong valueChanges
-  }
+  onCellBlur(element: MaterialItem, columnName: keyof MaterialItem): void {}
 
   partiallyComplete(): boolean {
     const subtasks = this.selectApprover().sub;
@@ -756,5 +753,4 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       this.itemsDataSource.paginator.firstPage();
     }
   }
-  // #endregion
 }

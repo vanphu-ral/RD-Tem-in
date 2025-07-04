@@ -1,130 +1,143 @@
-<header
-  class="app-header col-md-3 col-12"
-  [class.collapsed]="!isNavbarCollapsed"
->
-  <!-- Collapse sidebar -->
-  <button class="btn-collapse" (click)="toggleSidebar()">
-    <fa-icon icon="bars"></fa-icon>
-  </button>
-  <!-- Logout -->
-  <ng-container *ngIf="account; else loginBtn">
-    <button mat-button [matMenuTriggerFor]="accountMenu" style="color: white">
-      <mat-icon style="width: 40px; height: 30px; font-size: 30px"
-        >account_box</mat-icon
-      >
-      <span *ngIf="!isNavbarCollapsed">{{ account.login }}</span>
-    </button>
-    <mat-menu #accountMenu="matMenu">
-      <button
-        mat-menu-item
-        routerLink="/account/settings"
-        (click)="closeAccountDropdown()"
-      >
-        <mat-icon>settings_applications</mat-icon>
-        <span>Cài đặt</span>
-      </button>
-      <button mat-menu-item (click)="logout()">
-        <mat-icon>exit_to_app</mat-icon>
-        <span>Đăng xuất</span>
-      </button>
-    </mat-menu>
-  </ng-container>
-
-  <ng-template #loginBtn>
-    <button mat-button (click)="login()" style="color: white">
-      <mat-icon style="height: 30px; font-size: 30px; width: 30px"
-        >login</mat-icon
-      >
-      <span>Đăng nhập</span>
-    </button>
-  </ng-template>
-</header>
-<div
-  id="sidebar-id"
-  class="sidebar col-md-3"
-  style="width: 60px; padding-bottom: 0px"
->
-  <a
-    style="padding-top: 0px"
-    style="margin-left: 3px; padding-top: 5px"
-    class="sidebar-brand logo"
-    routerLink="/"
-    (click)="collapseNavbar()"
+<div style="z-index: 999">
+  <header
+    class="app-header col-md-3 col-12"
+    [class.collapsed]="!isNavbarCollapsed"
   >
-    <img
-      src="../../../content/images/logo-rang-dong.webp"
-      alt="Logo-RangDong"
-      class="sidebar-img"
-    />
-  </a>
-  <div [ngSwitch]="account !== null">
-    <nav id="manu-bar" style="max-width: 400px">
-      <div class="sidebar-content" style="margin-right: 10px">
-        <div class="sidebar-menu">
-          <ul
-            style="list-style-type: none; padding-left: 10px; margin-top: 2px"
-          >
-            <li
-              class="sidebar-menu-item"
-              style="marker: none"
-              *ngFor="let menu of menus"
-              [ngClass]="{
-                active: menu.active,
-                'sidebar-dropdown': menu.type === 'dropdown'
-              }"
+    <!-- Collapse sidebar -->
+    <button class="btn-collapse" (click)="toggleSidebar()">
+      <fa-icon icon="bars"></fa-icon>
+    </button>
+    <!-- Logout -->
+    <ng-container *ngIf="account; else loginBtn">
+      <button mat-button [matMenuTriggerFor]="accountMenu" style="color: white">
+        <mat-icon style="width: 40px; height: 30px; font-size: 30px"
+          >account_box</mat-icon
+        >
+        <span *ngIf="!isNavbarCollapsed">{{ account.login }}</span>
+      </button>
+      <mat-menu #accountMenu="matMenu">
+        <button
+          mat-menu-item
+          routerLink="/account/settings"
+          (click)="closeAccountDropdown()"
+        >
+          <mat-icon>settings_applications</mat-icon>
+          <span>Cài đặt</span>
+        </button>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon>exit_to_app</mat-icon>
+          <span>Đăng xuất</span>
+        </button>
+      </mat-menu>
+    </ng-container>
+
+    <ng-template #loginBtn>
+      <button mat-button (click)="login()" style="color: white">
+        <mat-icon style="height: 30px; font-size: 30px; width: 30px"
+          >login</mat-icon
+        >
+        <span>Đăng nhập</span>
+      </button>
+    </ng-template>
+  </header>
+  <div
+    id="sidebar-id"
+    class="sidebar col-md-3"
+    style="width: 60px; padding-bottom: 0px"
+  >
+    <a
+      style="
+        margin-left: 3px;
+        padding-top: 5px;
+        padding-top: 0px;
+        margin-bottom: 0px;
+      "
+      class="sidebar-brand logo"
+      routerLink="/"
+      (click)="collapseNavbar()"
+    >
+      <img
+        style="margin-bottom: 0px"
+        src="../../../content/images/logo-rang-dong.webp"
+        alt="Logo-RangDong"
+        class="sidebar-img"
+      />
+    </a>
+    <div [ngSwitch]="account !== null">
+      <nav id="manu-bar" style="max-width: 400px">
+        <div class="sidebar-content" style="margin-right: 10px">
+          <div class="sidebar-menu">
+            <ul
+              style="list-style-type: none; padding-left: 10px; margin-top: 2px"
             >
-              <div
-                class="sidebar-menu-link"
-                *ngIf="menu.type !== 'header'"
-                (click)="toggle(menu)"
-                style="height: 50px"
+              <li
+                class="sidebar-menu-item"
+                style="marker: none"
+                *ngFor="let menu of menus"
+                [ngClass]="{
+                  active: menu.active,
+                  'sidebar-dropdown': menu.type === 'dropdown'
+                }"
               >
                 <div
-                  routerLink="/home"
-                  style="display: flex; align-items: center"
-                  *ngIf="menu.type === 'home'"
+                  class="sidebar-menu-link"
+                  *ngIf="menu.type !== 'header'"
+                  (click)="toggle(menu)"
+                  style="height: 50px"
                 >
-                  <mat-icon class="sidebar-menu-icon">home</mat-icon>
-                  <a>
-                    <span class="sidebar-menu-title">{{ menu.title }}</span>
-                  </a>
-                </div>
-                <div
-                  style="display: flex; align-items: center"
-                  *ngIf="menu.type !== 'home'"
-                >
-                  <mat-icon class="sidebar-menu-icon">{{ menu.icon }}</mat-icon>
-                  <a>
-                    <span class="sidebar-menu-title">{{ menu.title }}</span>
-                  </a>
-                </div>
-              </div>
-              <div
-                *ngIf="menu.type === 'dropdown'"
-                class="sidebar-submenu"
-                [@slide]="getState(menu)"
-              >
-                <ul>
-                  <li
-                    class="sidebar-submenu-item"
-                    *ngFor="let submenu of menu.submenus"
+                  <div
+                    routerLink="/home"
+                    style="display: flex; align-items: center"
+                    *ngIf="menu.type === 'home'"
                   >
-                    <div class="sidebar-submenu-link">
-                      <a
-                        class="sidebar-submenu-title"
-                        [routerLink]="submenu.link"
-                        style="display: flex; align-items: center; height: 100%"
-                      >
-                        {{ submenu.title }}
-                      </a>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </li>
-          </ul>
+                    <mat-icon class="sidebar-menu-icon">home</mat-icon>
+                    <a>
+                      <span class="sidebar-menu-title">{{ menu.title }}</span>
+                    </a>
+                  </div>
+                  <div
+                    style="display: flex; align-items: center"
+                    *ngIf="menu.type !== 'home'"
+                  >
+                    <mat-icon class="sidebar-menu-icon">{{
+                      menu.icon
+                    }}</mat-icon>
+                    <a>
+                      <span class="sidebar-menu-title">{{ menu.title }}</span>
+                    </a>
+                  </div>
+                </div>
+                <div
+                  *ngIf="menu.type === 'dropdown'"
+                  class="sidebar-submenu"
+                  [@slide]="getState(menu)"
+                >
+                  <ul>
+                    <li
+                      class="sidebar-submenu-item"
+                      *ngFor="let submenu of menu.submenus"
+                    >
+                      <div class="sidebar-submenu-link">
+                        <a
+                          class="sidebar-submenu-title"
+                          [routerLink]="submenu.link"
+                          style="
+                            display: flex;
+                            align-items: center;
+                            height: 100%;
+                          "
+                        >
+                          {{ submenu.title }}
+                        </a>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </div>
   </div>
 </div>

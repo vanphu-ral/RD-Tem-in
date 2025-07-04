@@ -21,10 +21,9 @@
     >
       <div>
         <button
-          id="btn-export"
+          class="btn-export"
           type="button"
           (click)="export()"
-          class="btn btn-danger"
           mat-raised-button
         >
           <mat-icon>file_download</mat-icon>Xuất Excel
@@ -40,7 +39,7 @@
       justify-content: space-between;
     "
   >
-    <div class="full-scroll-table-container">
+    <div class="full-scroll-table-container" style="z-index: 99">
       <table
         *jhiHasAnyAuthority="'ROLE_PANACIM_VIEW'"
         mat-table
@@ -508,7 +507,7 @@
                   justify-content: space-between;
                   align-items: center;
                   margin-top: 0px;
-                  padding: 10px;
+                  padding: 10px 0px 10px 0px;
                   color: #000;
                   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
                 "
@@ -518,6 +517,7 @@
                   <div style="display: flex; align-items: center; gap: 3px">
                     <div>
                       <button
+                        class="btn-export"
                         (click)="refuseRequest(element.id!)"
                         [disabled]="element.id === null"
                         style="
@@ -525,10 +525,8 @@
                           background-color: rgb(245, 64, 32);
                           color: white;
                           font-family: &quot;roboto&quot;, sans-serif;
-                          font-weight: bold;
                         "
                         type="button"
-                        class="btn btn-danger"
                         mat-raised-button
                       >
                         Từ chối
@@ -536,6 +534,7 @@
                     </div>
                     <div>
                       <button
+                        class="btn-export"
                         (click)="acceptRequest(element.id!)"
                         [disabled]="element.id === null"
                         style="
@@ -543,19 +542,23 @@
                           background-color: rgb(20, 202, 62);
                           color: white;
                           font-family: &quot;roboto&quot;, sans-serif;
-                          font-weight: bold;
                         "
                         type="button"
-                        class="btn btn-danger"
                         mat-raised-button
                       >
                         Phê duyệt
                       </button>
                     </div>
                     <button
+                      class="btn-export"
                       mat-raised-button
                       color="primary"
                       (click)="exportExpandedDetails(element)"
+                      style="
+                        width: 140px;
+                        color: white;
+                        font-family: &quot;roboto&quot;, sans-serif;
+                      "
                     >
                       <mat-icon>file_download</mat-icon>
                       Xuất Excel

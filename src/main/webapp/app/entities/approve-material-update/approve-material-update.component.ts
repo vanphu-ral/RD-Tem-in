@@ -71,7 +71,7 @@ export interface FilterDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [FormBuilder],
   templateUrl: "./approve-material-update.component.html",
-  styleUrls: ["./approve-material-update.componennt.scss"],
+  styleUrls: ["./approve-material-update.component.scss"],
   animations: [
     trigger("detailExpand", [
       state(

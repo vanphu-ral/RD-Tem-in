@@ -16,6 +16,7 @@
 .full-width-field {
   width: 100%;
 }
+
 .read-only-property {
   padding: 8px 0;
   font-size: 0.9em;
@@ -34,6 +35,7 @@ mat-dialog-content {
   max-height: 70vh;
   overflow-y: auto;
 }
+
 mat-dialog-actions .dialog-notice {
   font-size: 14px;
   font-style: italic;
@@ -42,6 +44,7 @@ mat-dialog-actions .dialog-notice {
   text-align: left;
   padding: 30px 15px;
 }
+
 mat-dialog-actions .dialog-accept-btn {
   width: 150px;
   height: 40px;
@@ -161,6 +164,7 @@ th {
   justify-content: center;
   width: 100%;
 }
+
 .text-center {
   text-align: center;
 }
@@ -219,9 +223,11 @@ th {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid #ddd;
 }
+
 .mat-column-locationId {
   width: 100%;
 }
+
 // .mat-column-s{
 //   flex: 0 0 150px;
 // }
@@ -268,11 +274,13 @@ th {
       padding: 4px 6px !important;
       font-size: 11px !important;
     }
+
     .mat-column-locationId {
       min-width: 100px;
     }
   }
 }
+
 /* DESKTOP (>= 960px) */
 @media (min-width: 960px) {
   ::ng-deep table {
@@ -312,6 +320,7 @@ th {
       padding: 4px 6px !important;
       font-size: 11px !important;
     }
+
     .mat-column-locationId {
       min-width: 100px;
     }
