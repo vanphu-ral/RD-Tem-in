@@ -1,25 +1,48 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
-import { MatTableDataSource } from '@angular/material/table';
-import { ChangeDetectionStrategy, signal } from '@angular/core';
-import { FormBuilder, FormsModule, ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
-import { MatMenuTrigger } from '@angular/material/menu';
-import { MatSort } from '@angular/material/sort';
-import { PageEvent, MatPaginator } from '@angular/material/paginator';
-import { MatDialog } from '@angular/material/dialog';
-import { Subscription, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { animate, state, style, transition, trigger } from '@angular/animations';
-import { SelectionModel } from '@angular/cdk/collections';
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ViewChild,
+  ElementRef,
+  OnDestroy,
+  ChangeDetectorRef,
+} from "@angular/core";
+import { Router, RouterModule } from "@angular/router";
+import { MatTableDataSource } from "@angular/material/table";
+import { ChangeDetectionStrategy, signal } from "@angular/core";
+import {
+  FormBuilder,
+  FormsModule,
+  ReactiveFormsModule,
+  FormGroup,
+  FormControl,
+} from "@angular/forms";
+import { MatMenuTrigger } from "@angular/material/menu";
+import { MatSort } from "@angular/material/sort";
+import { PageEvent, MatPaginator } from "@angular/material/paginator";
+import { MatDialog } from "@angular/material/dialog";
+import { Subscription, Subject, forkJoin } from "rxjs";
+import { map, takeUntil, tap } from "rxjs/operators";
+import {
+  animate,
+  state,
+  style,
+  transition,
+  trigger,
+} from "@angular/animations";
+import { SelectionModel } from "@angular/cdk/collections";
 import {
   inventory_update_requests,
   inventory_update_requests_history_detail,
   ListMaterialService,
-} from '../list-material/services/list-material.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDatepickerInputEvent } from '@angular/material/datepicker';
-import { DialogContentExampleDialogComponent, ConfirmDialogData } from '../list-material/confirm-dialog/confirm-dialog.component';
-import { TimestampToDatePipe } from 'app/shared/pipes/timestamp-to-date';
+} from "../list-material/services/list-material.service";
+import { MatSnackBar } from "@angular/material/snack-bar";
+import { MatDatepickerInputEvent } from "@angular/material/datepicker";
+import {
+  DialogContentExampleDialogComponent,
+  ConfirmDialogData,
+} from "../list-material/confirm-dialog/confirm-dialog.component";
+import { TimestampToDatePipe } from "app/shared/pipes/timestamp-to-date";
 
 export interface ColumnConfig {
   name: string;
@@ -28,9 +51,9 @@ export interface ColumnConfig {
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Đang chờ duyệt',
-  APPROVE: 'Đã phê duyệt',
-  REJECT: 'Từ chối duyệt',
+  PENDING: "Đang chờ duyệt",
+  APPROVE: "Đã phê duyệt",
+  REJECT: "Từ chối duyệt",
 };
 export interface ColumnSelectionGroup {
   name: string;
@@ -44,23 +67,29 @@ export interface FilterDialogData {
 }
 
 @Component({
-  selector: 'jhi-approve-material-update',
+  selector: "jhi-approve-material-update",
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [FormBuilder],
-  templateUrl: './approve-material-history.component.html',
-  styleUrls: ['./approve-material-history.componennt.scss'],
+  templateUrl: "./approve-material-history.component.html",
+  styleUrls: ["./approve-material-history.componennt.scss"],
   animations: [
-    trigger('detailExpand', [
+    trigger("detailExpand", [
       state(
-        'collapsed, void',
+        "collapsed, void",
         style({
-          height: '0px',
-          minHeight: '0',
+          height: "0px",
+          minHeight: "0",
         }),
       ),
-      state('expanded', style({ height: '*' })),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
-      transition('expanded <=> void', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
+      state("expanded", style({ height: "*" })),
+      transition(
+        "expanded <=> collapsed",
+        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)"),
+      ),
+      transition(
+        "expanded <=> void",
+        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)"),
+      ),
     ]),
   ],
 })
@@ -68,28 +97,41 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   // #region Public properties
 
   expandedElement: inventory_update_requests | null = null;
-  selection = new SelectionModel<inventory_update_requests_history_detail>(true, []);
+  selection = new SelectionModel<inventory_update_requests_history_detail>(
+    true,
+    [],
+  );
   STATUS_LABELS = STATUS_LABELS;
-  tableMaxWidth: string = '100%';
-  displayedColumns: string[] = ['detail', 'requestCode', 'createdTime', 'updatedTime', 'requestedBy', 'approvedBy', 'status'];
-  displayedColumnsDetails: string[] = [
-    'materialId',
-    'requestCode',
-    'requestedBy',
-    'quantity',
-    'quantityChange',
-    'expiredTime',
-    'requestType',
-    'oldLocation',
-    'newLocation',
-    'approvedTime',
-    'requestedTime',
-    'status',
+  tableMaxWidth: string = "100%";
+  displayedColumns: string[] = [
+    "detail",
+    "requestCode",
+    "createdTime",
+    "updatedTime",
+    "requestedBy",
+    "approvedBy",
+    "status",
   ];
-  tableWidth: string = '100%';
-  value = '';
-  dataSource_update_manage = new MatTableDataSource<inventory_update_requests>();
-  dataSoure_history_detail = new MatTableDataSource<inventory_update_requests_history_detail>();
+  displayedColumnsDetails: string[] = [
+    "materialId",
+    "requestCode",
+    "requestedBy",
+    "quantity",
+    "quantityChange",
+    "expiredTime",
+    "requestType",
+    "oldLocation",
+    "newLocation",
+    "approvedTime",
+    "requestedTime",
+    "status",
+  ];
+  tableWidth: string = "100%";
+  value = "";
+  dataSource_update_manage =
+    new MatTableDataSource<inventory_update_requests>();
+  dataSoure_history_detail =
+    new MatTableDataSource<inventory_update_requests_history_detail>();
   columnFilters: { [key: string]: string } = {};
   pageEvent: PageEvent | undefined;
   length = 0;
@@ -101,14 +143,17 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   showFirstLastButtons = true;
   disabled = false;
 
-  public searchTerms: { [columnDef: string]: { mode: string; value: string } } = {};
+  public searchTerms: { [columnDef: string]: { mode: string; value: string } } =
+    {};
   public activeFilters: { [columnDef: string]: any[] } = {};
   public filterModes: { [columnDef: string]: string } = {};
 
-  @ViewChild(MatPaginator, { static: false, read: MatPaginator }) paginator!: MatPaginator;
-  @ViewChild('detailPaginator', { static: false }) detailPaginator!: MatPaginator;
-  @ViewChild('menuTrigger') menuTrigger!: MatMenuTrigger;
-  @ViewChild('sort') sort!: MatSort;
+  @ViewChild(MatPaginator, { static: false, read: MatPaginator })
+  paginator!: MatPaginator;
+  @ViewChild("detailPaginator", { static: false })
+  detailPaginator!: MatPaginator;
+  @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
+  @ViewChild("sort") sort!: MatSort;
   // #region Constructor
   private tsPipe = new TimestampToDatePipe();
   private sidebarSubscription!: Subscription;
@@ -119,7 +164,8 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
     // private sidebarService: any
   ) {}
   // #endregion
-  public isExpansionDetailRow = (i: number, row: object): boolean => Object.prototype.hasOwnProperty.call(row, 'detailRow');
+  public isExpansionDetailRow = (i: number, row: object): boolean =>
+    Object.prototype.hasOwnProperty.call(row, "detailRow");
 
   // #endregion
 
@@ -141,9 +187,9 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       APPROVE: 2,
       REJECT: 1,
     };
-    this.sort.active = 'status';
-    this.sort.direction = 'desc';
-    this.sort.sortChange.emit({ active: 'status', direction: 'desc' });
+    this.sort.active = "status";
+    this.sort.direction = "desc";
+    this.sort.sortChange.emit({ active: "status", direction: "desc" });
   }
   // #endregion
 
@@ -156,31 +202,34 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
     }
   }
 
-  public applyDateFilter(colDef: string, event: MatDatepickerInputEvent<Date>): void {
+  public applyDateFilter(
+    colDef: string,
+    event: MatDatepickerInputEvent<Date>,
+  ): void {
     const dateValue: Date | null = event.value;
     if (dateValue) {
       const formattedDate = dateValue
-        .toLocaleDateString('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
+        .toLocaleDateString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
         })
         .toLowerCase();
-      const selectedMode = this.filterModes[colDef] || 'contains';
+      const selectedMode = this.filterModes[colDef] || "contains";
 
       this.searchTerms[colDef] = {
         mode: selectedMode,
         value: formattedDate,
       };
     } else {
-      this.searchTerms[colDef] = { mode: '', value: '' };
+      this.searchTerms[colDef] = { mode: "", value: "" };
     }
     this.applyCombinedFilters();
   }
 
   public applyFilter(colDef: string, eventOrValue: Event | string): void {
     let rawValue: string;
-    if (typeof eventOrValue === 'string') {
+    if (typeof eventOrValue === "string") {
       rawValue = eventOrValue;
     } else {
       rawValue = (eventOrValue.target as HTMLInputElement).value;
@@ -189,7 +238,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
 
     if (!this.searchTerms[colDef]) {
       this.searchTerms[colDef] = {
-        mode: this.filterModes[colDef] || 'contains',
+        mode: this.filterModes[colDef] || "contains",
         value: filterValue,
       };
     } else {
@@ -203,19 +252,86 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   public onLoad(): void {}
 
   public export(): void {
-    const raw = this.dataSource_update_manage.filteredData;
-    const toExport = raw.map(r => ({
-      requestCode: r.requestCode,
-      updatedBy: r.requestedBy,
-      approvedBy: r.approvedBy,
-      status: r.status,
-      createdTime: this.tsPipe.transform(r.createdTime),
-      updatedTime: this.tsPipe.transform(r.updatedTime),
-    }));
-    this.MaterialService.exportExcel(toExport, 'Danh_Sach_Lich_Su_Cap_Nhat');
+    const parents = this.dataSource_update_manage.filteredData;
+    if (!parents.length) {
+      return;
+    }
+
+    const detailCalls = parents.map((parent) =>
+      this.MaterialService.getRequestHistoryDetailsByRequestCode(
+        parent.requestCode,
+      ).pipe(
+        tap((details) => {
+          console.log(
+            `[export] received ${details.length} details for`,
+            parent.requestCode,
+            details,
+          );
+        }),
+        map((details) => ({ parent, details })),
+      ),
+    );
+
+    // 2) forkJoin + subscribe
+    forkJoin(detailCalls).subscribe({
+      next: (results) => {
+        console.log("[export] all details fetched:", results);
+        const rows: any[] = [];
+
+        results.forEach(({ parent, details }) => {
+          if (details.length) {
+            details.forEach((d) => {
+              rows.push({
+                requestCode: parent.requestCode,
+                requestedBy: parent.requestedBy,
+                approvedBy: parent.approvedBy,
+                updatedTime: this.tsPipe.transform(parent.updatedTime),
+
+                materialId: d.materialId,
+                quantity: d.quantity,
+                quantityChange: d.quantityChange,
+                requestType: d.requestType,
+                oldLocation: d.oldLocation,
+                newLocation: d.newLocation,
+                expiredTime: this.tsPipe.transform(d.expiredTime),
+                approvedTime: this.tsPipe.transform(d.approvedTime),
+                requestedTime: this.tsPipe.transform(d.requestedTime),
+                status: this.STATUS_LABELS[d.status] || d.status,
+              });
+            });
+          } else {
+            rows.push({
+              requestCode: parent.requestCode,
+              requestedBy: parent.requestedBy,
+              approvedBy: parent.approvedBy,
+              updatedTime: this.tsPipe.transform(parent.updatedTime),
+
+              materialId: "",
+              quantity: "",
+              quantityChange: "",
+              requestType: "",
+              oldLocation: "",
+              newLocation: "",
+              expiredTime: "",
+              approvedTime: "",
+              requestedTime: "",
+              status: "",
+            });
+          }
+        });
+
+        // 3) Xuất Excel
+        this.MaterialService.exportExcel(rows, "Danh_Sach_Lich_Su_Cap_Nhat");
+      },
+      error: (err) => {
+        console.error("ForkJoin error:", err);
+      },
+    });
   }
 
-  public exportExpandedDetails(requestElement: inventory_update_requests): void {
+  public exportExpandedDetails(
+    requestElement: inventory_update_requests,
+  ): void {
     if (
       this.expandedElement &&
       this.expandedElement.requestCode === requestElement.requestCode &&
@@ -229,7 +345,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       const endIndex = startIndex + pageSize;
       const currentPageData = dataSource.data.slice(startIndex, endIndex);
 
-      const toExport = currentPageData.map(row => ({
+      const toExport = currentPageData.map((row) => ({
         materialId: row.materialId,
         requestCode: row.requestCode,
         requestedBy: row.requestedBy,
@@ -244,10 +360,10 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
         status: this.STATUS_LABELS[row.status] || row.status,
       }));
 
-      const fileName = `ChiTietYeuCau_${requestElement.requestCode ?? 'data'}`;
+      const fileName = `ChiTietYeuCau_${requestElement.requestCode ?? "data"}`;
       this.MaterialService.exportExcel(toExport, fileName);
     } else {
-      console.warn('Không thể xuất dữ liệu chi tiết', {
+      console.warn("Không thể xuất dữ liệu chi tiết", {
         currentExpandedId: this.expandedElement?.requestCode,
         targetElementId: requestElement.id,
         detailDataCount: this.dataSoure_history_detail.data.length,
@@ -256,15 +372,19 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   }
 
   public toggleRowExpansion(element: inventory_update_requests): void {
-    console.log('toggleRowExpansion', element);
+    console.log("toggleRowExpansion", element);
     const isAlreadyExpanded = this.expandedElement === element;
     this.expandedElement = isAlreadyExpanded ? null : element;
 
-    this.selection = new SelectionModel<inventory_update_requests_history_detail>(true, []);
-    this.dataSoure_history_detail = new MatTableDataSource<inventory_update_requests_history_detail>([]);
+    this.selection =
+      new SelectionModel<inventory_update_requests_history_detail>(true, []);
+    this.dataSoure_history_detail =
+      new MatTableDataSource<inventory_update_requests_history_detail>([]);
 
     if (this.expandedElement) {
-      this.MaterialService.getRequestHistoryDetailsByRequestCode(element.requestCode).subscribe(details => {
+      this.MaterialService.getRequestHistoryDetailsByRequestCode(
+        element.requestCode,
+      ).subscribe((details) => {
         this.dataSoure_history_detail.data = details;
         setTimeout(() => {
           this.dataSoure_history_detail.paginator = this.detailPaginator;
@@ -396,11 +516,14 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   //   });
   // }
 
-  public handleDetailStatusChange(row: inventory_update_requests_history_detail, isChecked: boolean): void {
-    const newStatus = isChecked ? 'APPROVE' : 'REJECT';
+  public handleDetailStatusChange(
+    row: inventory_update_requests_history_detail,
+    isChecked: boolean,
+  ): void {
+    const newStatus = isChecked ? "APPROVE" : "REJECT";
 
     const currentData = this.dataSoure_history_detail.data;
-    const rowIndex = currentData.findIndex(item => item.id === row.id);
+    const rowIndex = currentData.findIndex((item) => item.id === row.id);
 
     if (rowIndex > -1) {
       const originalItemInDataSource = currentData[rowIndex];
@@ -409,7 +532,9 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       newDataSourceData[rowIndex] = updatedItem;
       this.dataSoure_history_detail.data = newDataSourceData;
 
-      const itemsInSelectionWithSameId = this.selection.selected.filter(selectedItem => selectedItem.id === row.id);
+      const itemsInSelectionWithSameId = this.selection.selected.filter(
+        (selectedItem) => selectedItem.id === row.id,
+      );
       if (itemsInSelectionWithSameId.length > 0) {
         this.selection.deselect(...itemsInSelectionWithSameId);
       }
@@ -417,9 +542,14 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       if (isChecked) {
         this.selection.select(updatedItem);
       }
-      console.log(`Đã cập nhật status cho item ID ${updatedItem.id}: ${updatedItem.status}`);
+      console.log(
+        `Đã cập nhật status cho item ID ${updatedItem.id}: ${updatedItem.status}`,
+      );
     } else {
-      console.warn('Không tìm thấy dòng trong dataSource để cập nhật status:', row);
+      console.warn(
+        "Không tìm thấy dòng trong dataSource để cập nhật status:",
+        row,
+      );
     }
     this.cdr.markForCheck();
   }
@@ -435,17 +565,17 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
     let newDataSourceData: inventory_update_requests_history_detail[];
 
     if (isCurrentlyAllSelected) {
-      newDataSourceData = this.dataSoure_history_detail.data.map(dRow => ({
+      newDataSourceData = this.dataSoure_history_detail.data.map((dRow) => ({
         ...dRow,
-        status: 'REJECT',
+        status: "REJECT",
       }));
       this.dataSoure_history_detail.data = newDataSourceData;
       this.selection.clear();
       console.log('Đã bỏ chọn tất cả và cập nhật status thành "Từ chối"');
     } else {
-      newDataSourceData = this.dataSoure_history_detail.data.map(dRow => ({
+      newDataSourceData = this.dataSoure_history_detail.data.map((dRow) => ({
         ...dRow,
-        status: 'APPROVE',
+        status: "APPROVE",
       }));
       this.dataSoure_history_detail.data = newDataSourceData;
       this.selection.select(...this.dataSoure_history_detail.data);
@@ -456,9 +586,9 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
 
   public checkboxLabel(row?: inventory_update_requests_history_detail): string {
     if (!row) {
-      return `${this.isAllSelected() ? 'deselect' : 'select'} all`;
+      return `${this.isAllSelected() ? "deselect" : "select"} all`;
     }
-    return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row`;
+    return `${this.selection.isSelected(row) ? "deselect" : "select"} row`;
   }
 
   public handlePageEvent(e: PageEvent): void {
@@ -469,7 +599,9 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
 
   public setPageSizeOptions(setPageSizeOptionsInput: string): void {
     if (setPageSizeOptionsInput) {
-      this.pageSizeOptions = setPageSizeOptionsInput.split(',').map(str => +str);
+      this.pageSizeOptions = setPageSizeOptionsInput
+        .split(",")
+        .map((str) => +str);
     }
   }
 
@@ -483,7 +615,10 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   // #endregion
   // #region Filter Predicate
   ngOnInitFilterPredicate(): void {
-    this.dataSource_update_manage.filterPredicate = (data: inventory_update_requests, filter: string): boolean => {
+    this.dataSource_update_manage.filterPredicate = (
+      data: inventory_update_requests,
+      filter: string,
+    ): boolean => {
       const combinedFilters = JSON.parse(filter) as {
         textFilters: { [columnDef: string]: { mode: string; value: string } };
         dialogFilters: { [columnDef: string]: any[] };
@@ -491,14 +626,19 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
 
       if (combinedFilters.textFilters) {
         for (const colDef in combinedFilters.textFilters) {
-          if (!Object.prototype.hasOwnProperty.call(combinedFilters.textFilters, colDef)) {
+          if (
+            !Object.prototype.hasOwnProperty.call(
+              combinedFilters.textFilters,
+              colDef,
+            )
+          ) {
             continue;
           }
 
           const filterObj = combinedFilters.textFilters[colDef];
           const searchMode = filterObj.mode;
           const searchTerm = filterObj.value.trim().toLowerCase();
-          if (searchTerm === '') {
+          if (searchTerm === "") {
             continue;
           }
 
@@ -507,35 +647,46 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
             return false;
           }
 
-          let cellValue = '';
-          if (colDef === 'status') {
+          let cellValue = "";
+          if (colDef === "status") {
             // chuyển code sang label tiếng Việt
             cellValue = STATUS_LABELS[rawValue] || rawValue.toLowerCase();
             const codeValue = rawValue.toLowerCase();
             if (
-              (searchMode === 'contains' && !cellValue.toLowerCase().includes(searchTerm) && !codeValue.includes(searchTerm)) ||
-              (searchMode === 'not_contains' && (cellValue.toLowerCase().includes(searchTerm) || codeValue.includes(searchTerm))) ||
-              (searchMode === 'equals' && cellValue.toLowerCase() !== searchTerm && codeValue !== searchTerm) ||
-              (searchMode === 'not_equals' && (cellValue.toLowerCase() === searchTerm || codeValue === searchTerm))
+              (searchMode === "contains" &&
+                !cellValue.toLowerCase().includes(searchTerm) &&
+                !codeValue.includes(searchTerm)) ||
+              (searchMode === "not_contains" &&
+                (cellValue.toLowerCase().includes(searchTerm) ||
+                  codeValue.includes(searchTerm))) ||
+              (searchMode === "equals" &&
+                cellValue.toLowerCase() !== searchTerm &&
+                codeValue !== searchTerm) ||
+              (searchMode === "not_equals" &&
+                (cellValue.toLowerCase() === searchTerm ||
+                  codeValue === searchTerm))
             ) {
               return false;
             }
             continue;
           }
 
-          if (['createdTime', 'updatedTime'].includes(colDef)) {
+          if (["createdTime", "updatedTime"].includes(colDef)) {
             let dateObj: Date;
 
-            if (typeof rawValue === 'number') {
+            if (typeof rawValue === "number") {
               dateObj = new Date(rawValue * 1000);
-            } else if (typeof rawValue === 'string') {
+            } else if (typeof rawValue === "string") {
               const trimmed = rawValue.trim();
               const digitsOnly = /^\d+$/;
               if (digitsOnly.test(trimmed)) {
                 dateObj = new Date(Number(trimmed) * 1000);
               } else {
-                const bracketIndex = trimmed.indexOf('[');
-                const processed = bracketIndex > -1 ? trimmed.substring(0, bracketIndex) : trimmed;
+                const bracketIndex = trimmed.indexOf("[");
+                const processed =
+                  bracketIndex > -1
+                    ? trimmed.substring(0, bracketIndex)
+                    : trimmed;
                 dateObj = new Date(processed);
               }
             } else {
@@ -547,29 +698,29 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
             }
 
             cellValue = dateObj
-              .toLocaleDateString('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
+              .toLocaleDateString("vi-VN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
               })
               .toLowerCase();
           } else {
             cellValue = String(rawValue).trim().toLowerCase();
           }
 
-          if (searchMode === 'contains') {
+          if (searchMode === "contains") {
             if (!cellValue.includes(searchTerm)) {
               return false;
             }
-          } else if (searchMode === 'not_contains') {
+          } else if (searchMode === "not_contains") {
             if (cellValue.includes(searchTerm)) {
               return false;
             }
-          } else if (searchMode === 'equals') {
+          } else if (searchMode === "equals") {
             if (cellValue !== searchTerm) {
               return false;
             }
-          } else if (searchMode === 'not_equals') {
+          } else if (searchMode === "not_equals") {
             if (cellValue === searchTerm) {
               return false;
             }
@@ -583,20 +734,31 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
 
       if (combinedFilters.dialogFilters) {
         for (const colDef in combinedFilters.dialogFilters) {
-          if (!Object.prototype.hasOwnProperty.call(combinedFilters.dialogFilters, colDef)) {
+          if (
+            !Object.prototype.hasOwnProperty.call(
+              combinedFilters.dialogFilters,
+              colDef,
+            )
+          ) {
             continue;
           }
-          const selectedValuesFromDialog = combinedFilters.dialogFilters[colDef];
-          if (!selectedValuesFromDialog || selectedValuesFromDialog.length === 0) {
+          const selectedValuesFromDialog =
+            combinedFilters.dialogFilters[colDef];
+          if (
+            !selectedValuesFromDialog ||
+            selectedValuesFromDialog.length === 0
+          ) {
             continue;
           }
 
-          const normalizedSelectedValues = selectedValuesFromDialog.map(val => String(val).trim().toLowerCase());
+          const normalizedSelectedValues = selectedValuesFromDialog.map((val) =>
+            String(val).trim().toLowerCase(),
+          );
           const cellValue = (data as any)[colDef]
             ? String((data as any)[colDef])
                 .trim()
                 .toLowerCase()
-            : '';
+            : "";
           if (!normalizedSelectedValues.includes(cellValue)) {
             return false;
           }
@@ -614,7 +776,10 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       dialogFilters: this.activeFilters,
       timestamp: new Date().getTime(),
     };
-    console.log('[applyCombinedFilters] - combinedFilterData:', combinedFilterData);
+    console.log(
+      "[applyCombinedFilters] - combinedFilterData:",
+      combinedFilterData,
+    );
     this.dataSource_update_manage.filter = JSON.stringify(combinedFilterData);
 
     if (this.dataSource_update_manage.paginator) {
@@ -623,22 +788,30 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   }
 
   private loadData(): void {
-    this.MaterialService.getDataUpdateRequest().subscribe(items => {
-      const filtered = items.filter(item => ['APPROVE', 'REJECT'].includes(item.status));
-      const statusRank: Record<string, number> = { PENDING: 3, APPROVE: 2, REJECT: 1 };
+    this.MaterialService.getDataUpdateRequest().subscribe((items) => {
+      const filtered = items.filter((item) =>
+        ["APPROVE", "REJECT"].includes(item.status),
+      );
+      const statusRank: Record<string, number> = {
+        PENDING: 3,
+        APPROVE: 2,
+        REJECT: 1,
+      };
       filtered.sort((a, b) => {
         const sa = statusRank[a.status] || 0;
         const sb = statusRank[b.status] || 0;
         if (sa !== sb) {
           return sb - sa;
         }
-        return new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime();
+        return (
+          new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime()
+        );
       });
       this.dataSource_update_manage.data = filtered;
       setTimeout(() => {
-        this.sort.active = 'status';
-        this.sort.direction = 'desc';
-        this.sort.sortChange.emit({ active: 'status', direction: 'desc' });
+        this.sort.active = "status";
+        this.sort.direction = "desc";
+        this.sort.sortChange.emit({ active: "status", direction: "desc" });
       });
     });
   }

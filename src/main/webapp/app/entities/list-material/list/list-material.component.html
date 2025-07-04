@@ -1,365 +1,393 @@
-<div class="function-list">
-  <!-- NHÓM 1: Title -->
-  <div class="group-title">
-    <h2>Danh sách vật tư</h2>
-  </div>
-  <!-- NHÓM 2: Nút chính (update / scan / refresh) -->
-  <div class="group-buttons-main">
-    <div class="group-buttons primary">
-      <!-- Cập nhật -->
-      <ng-container *jhiHasAnyAuthority="'ROLE_PANACIM_UPDATE'">
-        <div class="listupdate-with-badge">
-          <button class="btn-update" mat-raised-button routerLink="update-list">
-            <mat-icon>list_alt</mat-icon>
-            <span class="btn-text">Cập nhật</span>
-          </button>
-          <div class="cart-badge">{{ checkedCount() }}</div>
-        </div>
-      </ng-container>
-
-      <!-- Scan -->
-      <button class="btn-scan" mat-button (click)="startScan()">
-        <mat-icon>center_focus_weak</mat-icon>
-        <span class="btn-text">Scan</span>
-      </button>
-      <div *ngIf="scanError" class="scan-error">{{ scanError }}</div>
-      <div *ngIf="isScanMode && !scanResult">
-        <mat-spinner diameter="20"></mat-spinner>
-      </div>
-      <!-- Refresh -->
-      <button class="btn-refresh" mat-button (click)="refreshScan()">
-        <mat-icon>refresh</mat-icon>
-        <span class="btn-text">Refresh</span>
-      </button>
+<div class="main-page" style="display: flex; flex-direction: column">
+  <div class="function-list">
+    <!-- NHÓM 1: Title -->
+    <div class="group-title">
+      <h2>Danh sách vật tư</h2>
     </div>
-    <!-- NHÓM 3: Nút phụ (view‐mode / columns / export) -->
-    <div class="group-buttons secondary">
-      <!-- View mode -->
-      <button mat-button [matMenuTriggerFor]="menu" class="btn-view">
-        <mat-icon>visibility</mat-icon>
-        <span class="btn-text">View</span>
-        <mat-icon class="icon-down">keyboard_arrow_down</mat-icon>
-      </button>
-      <mat-menu #menu="matMenu">
-        <button mat-menu-item>Danh sách chi tiết</button>
-        <button mat-menu-item [matMenuTriggerFor]="subMenu">
-          Danh sách tổng hợp
-        </button>
-      </mat-menu>
-
-      <!-- Column selection -->
-      <button
-        mat-button
-        [matMenuTriggerFor]="menucolumnselect"
-        class="btn-column"
-      >
-        <mat-icon>view_column</mat-icon>
-        <span class="btn-text">Columns</span>
-        <mat-icon class="icon-down">keyboard_arrow_down</mat-icon>
-      </button>
-
-      <mat-menu #subMenu="matMenu">
-        <form [formGroup]="form">
-          <div (click)="$event.stopPropagation()">
-            <mat-selection-list
-              formControlName="sumary_modeControl"
-              name="sumary_modes"
-              [multiple]="false"
-              color="primary"
-            >
-              <mat-list-option
-                *ngFor="let mode of sumary_modes"
-                [value]="mode.value"
-              >
-                {{ mode.name }}
-              </mat-list-option>
-            </mat-selection-list>
-          </div>
-          <div style="display: flex; justify-content: flex-end; margin: 10px 0">
+    <!-- NHÓM 2: Nút chính (update / scan / refresh) -->
+    <div class="group-buttons-main">
+      <div class="group-buttons primary">
+        <!-- Cập nhật -->
+        <ng-container *jhiHasAnyAuthority="'ROLE_PANACIM_UPDATE'">
+          <div class="listupdate-with-badge">
             <button
-              mat-button
-              style="background-color: rgb(65, 235, 53); margin-right: 15px"
-              (click)="onLoad()"
+              class="btn-update"
+              mat-raised-button
+              routerLink="update-list"
             >
-              Load
+              <mat-icon>list_alt</mat-icon>
+              <span class="btn-text">Cập nhật</span>
             </button>
-          </div>
-        </form>
-      </mat-menu>
-      <button class="btn-export" mat-button (click)="export()">
-        <mat-icon>file_download</mat-icon>
-        <span class="btn-text">Xuất Excel</span>
-      </button>
-    </div>
-  </div>
-  <!-- <div>
-    <button mat-raised-button [matMenuTriggerFor]="menucolumnselect">
-      Column selection
-      <mat-icon>keyboard_arrow_down</mat-icon>
-    </button> -->
-  <mat-menu #menucolumnselect="matMenu">
-    <section class="example-section" (click)="$event.stopPropagation()">
-      <span class="example-list-section">
-        <mat-checkbox
-          color="primary"
-          style="
-            margin: 0;
-            padding-left: 20px;
-            padding-right: 30px;
-            list-style: none;
-          "
-          class="example-margin"
-          [checked]="columnSelectionGroup().completed"
-          [indeterminate]="partiallyComplete()"
-          (change)="update($event.checked)"
-        >
-          {{ columnSelectionGroup().name }}
-        </mat-checkbox>
-      </span>
-      <hr />
-      <span class="example-list-section">
-        <ul
-          style="
-            margin: 0;
-            padding-left: 20px;
-            padding-right: 30px;
-            list-style: none;
-          "
-        >
-          @for (
-            subtask of columnSelectionGroup().subtasks;
-            track subtask;
-            let i = $index
-          ) {
-            <li>
-              <mat-checkbox
-                color="primary"
-                [checked]="subtask.completed"
-                (change)="update($event.checked, i)"
-              >
-                {{ subtask.name }}
-              </mat-checkbox>
-            </li>
-          }
-        </ul>
-      </span>
-    </section>
-  </mat-menu>
-  <!-- </div> -->
-  <div>
-    <!-- Export -->
-  </div>
-</div>
-<input
-  #scanInput
-  type="text"
-  style="
-    opacity: 0;
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    border: 0;
-  "
-  (keyup.enter)="onScanEnter(scanInput.value)"
-/>
-<div
-  class="full-scroll-table-container"
-  [style.max-width]="tableMaxWidth"
-  style="overflow-x: auto"
->
-  <table
-    *jhiHasAnyAuthority="'ROLE_PANACIM_VIEW'"
-    mat-table
-    [dataSource]="dataSource"
-    class="mat-elevation-z8 bordered-table"
-  >
-    <ng-container
-      *ngFor="let colDef of displayedColumns"
-      [matColumnDef]="colDef"
-    >
-      <th
-        mat-header-cell
-        *matHeaderCellDef
-        style="background-color: #548ce8"
-        [ngClass]="'col-' + colDef"
-      >
-        <!-- Cột Select -->
-        <ng-container *ngIf="colDef === 'select'; else headerContent">
-          <div style="text-align: center; color: white">
-            <div>{{ getColumnDisplayName(colDef) }}</div>
+            <div class="cart-badge">{{ checkedCount() }}</div>
           </div>
         </ng-container>
 
-        <!-- Header cho các cột khác -->
-        <ng-template #headerContent>
-          <div
-            style="display: flex; color: white; justify-content: space-between"
-          >
-            <div>{{ getColumnDisplayName(colDef) }}</div>
-            <div>
-              <mat-icon [matMenuTriggerFor]="filterMenuCol" style="color: white"
-                >filter_list</mat-icon
+        <!-- Scan -->
+        <button class="btn-scan" mat-button (click)="startScan()">
+          <mat-icon>center_focus_weak</mat-icon>
+          <span class="btn-text">Scan</span>
+        </button>
+        <div *ngIf="scanError" class="scan-error">{{ scanError }}</div>
+        <div *ngIf="isScanMode && !scanResult">
+          <mat-spinner diameter="20"></mat-spinner>
+        </div>
+        <!-- Refresh -->
+        <button class="btn-refresh" mat-button (click)="refreshScan()">
+          <mat-icon>refresh</mat-icon>
+          <span class="btn-text">Refresh</span>
+        </button>
+      </div>
+      <!-- NHÓM 3: Nút phụ (view‐mode / columns / export) -->
+      <div class="group-buttons secondary">
+        <!-- View mode -->
+        <button mat-button [matMenuTriggerFor]="menu" class="btn-view">
+          <mat-icon>visibility</mat-icon>
+          <span class="btn-text">View</span>
+          <mat-icon class="icon-down">keyboard_arrow_down</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item>Danh sách chi tiết</button>
+          <button mat-menu-item [matMenuTriggerFor]="subMenu">
+            Danh sách tổng hợp
+          </button>
+        </mat-menu>
+
+        <!-- Column selection -->
+        <button
+          mat-button
+          [matMenuTriggerFor]="menucolumnselect"
+          class="btn-column"
+        >
+          <mat-icon>view_column</mat-icon>
+          <span class="btn-text">Columns</span>
+          <mat-icon class="icon-down">keyboard_arrow_down</mat-icon>
+        </button>
+
+        <mat-menu #subMenu="matMenu">
+          <form [formGroup]="form">
+            <div (click)="$event.stopPropagation()">
+              <mat-selection-list
+                formControlName="sumary_modeControl"
+                name="sumary_modes"
+                [multiple]="false"
+                color="primary"
               >
-            </div>
-          </div>
-
-          <!-- Container cho thanh search/filter -->
-          <div class="search-container">
-            <div class="custom-search-wrapper">
-              <!-- DATE PICKER -->
-              <ng-container *ngIf="isDateField(colDef); else textInputTemplate">
-                <mat-form-field
-                  class="small-form-field"
-                  appearance="fill"
-                  floatLabel="always"
+                <mat-list-option
+                  *ngFor="let mode of sumary_modes"
+                  [value]="mode.value"
                 >
-                  <mat-label>Search Date</mat-label>
-                  <input
-                    matInput
-                    [matDatepicker]="picker"
-                    [placeholder]="
-                      'Search (' + (filterModes[colDef] || 'contains') + ')'
-                    "
-                    (dateChange)="applyDateFilter(colDef, $event)"
-                  />
-                  <mat-datepicker-toggle
-                    matSuffix
-                    [for]="picker"
-                  ></mat-datepicker-toggle>
-                  <mat-datepicker #picker></mat-datepicker>
-                </mat-form-field>
-              </ng-container>
-
-              <!-- TEXT OR STATUS SELECT -->
-              <ng-template #textInputTemplate>
-                <!-- 1) Nếu đây là cột status, hiển thị select -->
-                <ng-container *ngIf="colDef === 'status'; else normalInput">
-                  <mat-form-field
-                    class="small-form-field"
-                    appearance="fill"
-                    floatLabel="always"
-                  >
-                    <mat-label>Search Status</mat-label>
-                    <mat-select
-                      [placeholder]="
-                        'Search (' + (filterModes[colDef] || 'equals') + ')'
-                      "
-                      [value]="(searchTerms[colDef] || {}).value || ''"
-                      (selectionChange)="
-                        applySelectFilter(colDef, $event.value)
-                      "
-                    >
-                      <mat-option
-                        *ngFor="let opt of statusOptions"
-                        [value]="opt.value"
-                      >
-                        {{ opt.view }}
-                      </mat-option>
-                    </mat-select>
-                  </mat-form-field>
-                </ng-container>
-
-                <!-- 2) Các cột text/scan bình thường -->
-                <ng-template #normalInput>
-                  <mat-form-field
-                    class="small-form-field"
-                    appearance="fill"
-                    floatLabel="always"
-                  >
-                    <mat-label>Search</mat-label>
-                    <input
-                      matInput
-                      (keyup)="applyFilter(colDef, $event)"
-                      [placeholder]="
-                        'Search (' + (filterModes[colDef] || 'contains') + ')'
-                      "
-                    />
-                  </mat-form-field>
-                </ng-template>
-              </ng-template>
+                  {{ mode.name }}
+                </mat-list-option>
+              </mat-selection-list>
             </div>
-          </div>
-
-          <!-- Menu Filter của cột (mỗi cột dùng menu riêng) -->
-          <mat-menu #filterMenuCol="matMenu">
-            <button mat-menu-item (click)="setFilterMode(colDef, 'contains')">
-              Có chứa
-            </button>
-            <button
-              mat-menu-item
-              (click)="setFilterMode(colDef, 'not_contains')"
+            <div
+              style="display: flex; justify-content: flex-end; margin: 10px 0"
             >
-              Không chứa
-            </button>
-            <button mat-menu-item (click)="setFilterMode(colDef, 'equals')">
-              Bằng
-            </button>
-            <button mat-menu-item (click)="setFilterMode(colDef, 'not_equals')">
-              Không bằng
-            </button>
-          </mat-menu>
-        </ng-template>
-      </th>
+              <button
+                mat-button
+                style="background-color: rgb(65, 235, 53); margin-right: 15px"
+                (click)="onLoad()"
+              >
+                Load
+              </button>
+            </div>
+          </form>
+        </mat-menu>
+        <button class="btn-export" mat-button (click)="export()">
+          <mat-icon>file_download</mat-icon>
+          <span class="btn-text">Xuất Excel</span>
+        </button>
+      </div>
+    </div>
+    <!-- <div>
+      <button mat-raised-button [matMenuTriggerFor]="menucolumnselect">
+        Column selection
+        <mat-icon>keyboard_arrow_down</mat-icon>
+      </button> -->
+    <mat-menu #menucolumnselect="matMenu">
+      <section class="example-section" (click)="$event.stopPropagation()">
+        <span class="example-list-section">
+          <mat-checkbox
+            color="primary"
+            style="
+              margin: 0;
+              padding-left: 20px;
+              padding-right: 30px;
+              list-style: none;
+            "
+            class="example-margin"
+            [checked]="columnSelectionGroup().completed"
+            [indeterminate]="partiallyComplete()"
+            (change)="update($event.checked)"
+          >
+            {{ columnSelectionGroup().name }}
+          </mat-checkbox>
+        </span>
+        <hr />
+        <span class="example-list-section">
+          <ul
+            style="
+              margin: 0;
+              padding-left: 20px;
+              padding-right: 30px;
+              list-style: none;
+            "
+          >
+            @for (
+              subtask of columnSelectionGroup().subtasks;
+              track subtask;
+              let i = $index
+            ) {
+              <li>
+                <mat-checkbox
+                  color="primary"
+                  [checked]="subtask.completed"
+                  (change)="update($event.checked, i)"
+                >
+                  {{ subtask.name }}
+                </mat-checkbox>
+              </li>
+            }
+          </ul>
+        </span>
+      </section>
+    </mat-menu>
+    <!-- </div> -->
+    <div>
+      <!-- Export -->
+    </div>
+  </div>
+  <input
+    #scanInput
+    type="text"
+    style="
+      opacity: 0;
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      border: 0;
+    "
+    (keyup.enter)="onScanEnter(scanInput.value)"
+  />
+  <div
+    class="full-scroll-table-container"
+    [style.max-width]="tableMaxWidth"
+    style="overflow-x: auto"
+  >
+    <table
+      *jhiHasAnyAuthority="'ROLE_PANACIM_VIEW'"
+      mat-table
+      [dataSource]="dataSource"
+      class="mat-elevation-z8 bordered-table"
+    >
+      <ng-container
+        *ngFor="let colDef of displayedColumns"
+        [matColumnDef]="colDef"
+      >
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="background-color: #548ce8"
+          [ngClass]="'col-' + colDef"
+        >
+          <!-- Cột Select -->
+          <ng-container *ngIf="colDef === 'select'; else headerContent">
+            <mat-checkbox
+              color="primary"
+              (click)="$event.stopPropagation()"
+              (change)="toggleAllRows()"
+              [checked]="isAllSelected()"
+              [indeterminate]="isSomeSelected()"
+              [disabled]="!filterApplied"
+              [aria-label]="checkboxLabel()"
+            >
+            </mat-checkbox>
+          </ng-container>
 
-      <td mat-cell *matCellDef="let row" [ngClass]="'col-' + colDef">
-        <ng-container [ngSwitch]="colDef">
-          <!-- select -->
-          <ng-container *ngSwitchCase="'select'">
+          <!-- Header cho các cột khác -->
+          <ng-template #headerContent>
             <div
               style="
                 display: flex;
-                justify-content: center;
-                align-items: center;
-                width: 100%;
+                color: white;
+                justify-content: space-between;
               "
             >
-              <mat-checkbox
-                color="primary"
-                (click)="$event.stopPropagation()"
-                (change)="handleRowToggle(row)"
-                [checked]="selection.isSelected(row)"
-              >
-              </mat-checkbox>
+              <div>{{ getColumnDisplayName(colDef) }}</div>
+              <div>
+                <mat-icon
+                  [matMenuTriggerFor]="filterMenuCol"
+                  style="color: white"
+                  >filter_list</mat-icon
+                >
+              </div>
             </div>
-          </ng-container>
 
-          <!-- status -->
-          <ng-container *ngSwitchCase="'status'">
-            {{ row.status | statusLabel }}
-          </ng-container>
+            <!-- Container cho thanh search/filter -->
+            <div class="search-container">
+              <div class="custom-search-wrapper">
+                <!-- DATE PICKER -->
+                <ng-container
+                  *ngIf="isDateField(colDef); else textInputTemplate"
+                >
+                  <mat-form-field
+                    class="small-form-field"
+                    appearance="fill"
+                    floatLabel="always"
+                  >
+                    <mat-label>Search Date</mat-label>
+                    <input
+                      matInput
+                      [matDatepicker]="picker"
+                      [placeholder]="
+                        'Search (' + (filterModes[colDef] || 'contains') + ')'
+                      "
+                      (dateChange)="applyDateFilter(colDef, $event)"
+                    />
+                    <mat-datepicker-toggle
+                      matSuffix
+                      [for]="picker"
+                    ></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                  </mat-form-field>
+                </ng-container>
 
-          <!-- date -->
-          <ng-container *ngSwitchDefault>
-            <ng-container *ngIf="isDateField(colDef); else plainCell">
-              {{ row[colDef] | timestampToDate }}
+                <!-- TEXT OR STATUS SELECT -->
+                <ng-template #textInputTemplate>
+                  <!-- 1) Nếu đây là cột status, hiển thị select -->
+                  <ng-container *ngIf="colDef === 'status'; else normalInput">
+                    <mat-form-field
+                      class="small-form-field"
+                      appearance="fill"
+                      floatLabel="always"
+                    >
+                      <mat-label>Search Status</mat-label>
+                      <mat-select
+                        [placeholder]="
+                          'Search (' + (filterModes[colDef] || 'equals') + ')'
+                        "
+                        [value]="(searchTerms[colDef] || {}).value || ''"
+                        (selectionChange)="
+                          applySelectFilter(colDef, $event.value)
+                        "
+                      >
+                        <mat-option
+                          *ngFor="let opt of statusOptions"
+                          [value]="opt.value"
+                        >
+                          {{ opt.view }}
+                        </mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </ng-container>
+
+                  <!-- 2) Các cột text/scan bình thường -->
+                  <ng-template #normalInput>
+                    <mat-form-field
+                      class="small-form-field"
+                      appearance="fill"
+                      floatLabel="always"
+                    >
+                      <mat-label>Search</mat-label>
+                      <input
+                        matInput
+                        (keyup)="applyFilter(colDef, $event)"
+                        [placeholder]="
+                          'Search (' + (filterModes[colDef] || 'contains') + ')'
+                        "
+                      />
+                    </mat-form-field>
+                  </ng-template>
+                </ng-template>
+              </div>
+            </div>
+
+            <!-- Menu Filter của cột (mỗi cột dùng menu riêng) -->
+            <mat-menu #filterMenuCol="matMenu">
+              <button mat-menu-item (click)="setFilterMode(colDef, 'contains')">
+                Có chứa
+              </button>
+              <button
+                mat-menu-item
+                (click)="setFilterMode(colDef, 'not_contains')"
+              >
+                Không chứa
+              </button>
+              <button mat-menu-item (click)="setFilterMode(colDef, 'equals')">
+                Bằng
+              </button>
+              <button
+                mat-menu-item
+                (click)="setFilterMode(colDef, 'not_equals')"
+              >
+                Không bằng
+              </button>
+            </mat-menu>
+          </ng-template>
+        </th>
+
+        <td mat-cell *matCellDef="let row" [ngClass]="'col-' + colDef">
+          <ng-container [ngSwitch]="colDef">
+            <!-- select -->
+            <ng-container *ngSwitchCase="'select'">
+              <div
+                style="
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  width: 100%;
+                "
+              >
+                <mat-checkbox
+                  color="primary"
+                  (click)="$event.stopPropagation()"
+                  (change)="
+                    materialService.toggleItemSelection(row.inventoryId)
+                  "
+                  [checked]="row.checked"
+                >
+                </mat-checkbox>
+              </div>
             </ng-container>
-            <ng-template #plainCell>
-              {{ row[colDef] }}
-            </ng-template>
+
+            <!-- status -->
+            <ng-container *ngSwitchCase="'status'">
+              {{ row.status | statusLabel }}
+            </ng-container>
+
+            <!-- date -->
+            <ng-container *ngSwitchDefault>
+              <ng-container *ngIf="isDateField(colDef); else plainCell">
+                {{ row[colDef] | timestampToDate }}
+              </ng-container>
+              <ng-template #plainCell>
+                {{ row[colDef] }}
+              </ng-template>
+            </ng-container>
           </ng-container>
-        </ng-container>
-      </td>
-    </ng-container>
+        </td>
+      </ng-container>
 
-    <tr mat-header-row *matHeaderRowDef="displayedColumns" sticky></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
-</div>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns" sticky></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
 
-<div>
-  <mat-paginator
-    #paginator
-    class="demo-paginator"
-    (page)="handlePageEvent($event)"
-    [length]="length"
-    [pageSize]="pageSize"
-    [disabled]="disabled"
-    [showFirstLastButtons]="showFirstLastButtons"
-    [pageSizeOptions]="showPageSizeOptions ? pageSizeOptions : []"
-    [hidePageSize]="hidePageSize"
-    [pageIndex]="pageIndex"
-    aria-label="Select page"
-  >
-  </mat-paginator>
+  <div>
+    <mat-paginator
+      #paginator
+      class="demo-paginator"
+      (page)="handlePageEvent($event)"
+      [length]="length"
+      [pageSize]="pageSize"
+      [disabled]="disabled"
+      [showFirstLastButtons]="showFirstLastButtons"
+      [pageSizeOptions]="showPageSizeOptions ? pageSizeOptions : []"
+      [hidePageSize]="hidePageSize"
+      [pageIndex]="pageIndex"
+      aria-label="Select page"
+    >
+    </mat-paginator>
+  </div>
 </div>

@@ -16,6 +16,7 @@
 .full-width-field {
   width: 100%;
 }
+
 .read-only-property {
   padding: 8px 0;
   font-size: 0.9em;
@@ -34,6 +35,7 @@ mat-dialog-content {
   max-height: 70vh;
   overflow-y: auto;
 }
+
 mat-dialog-actions .dialog-notice {
   font-size: 14px;
   font-style: italic;
@@ -42,6 +44,7 @@ mat-dialog-actions .dialog-notice {
   text-align: left;
   padding: 30px 15px;
 }
+
 mat-dialog-actions .dialog-accept-btn {
   width: 150px;
   height: 40px;
@@ -161,6 +164,30 @@ th {
   justify-content: center;
   width: 100%;
 }
+::ng-deep table {
+  .mat-column-locationId {
+    min-width: 150px !important;
+  }
+}
+
+.cdk-global-overlay-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.dialog-center-pane .cdk-overlay-pane {
+  position: static !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-center-pane .mat-dialog-container {
+  margin: 0 !important;
+  max-height: 80vh;
+  overflow: auto;
+}
+
 .text-center {
   text-align: center;
 }
@@ -219,9 +246,11 @@ th {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid #ddd;
 }
+
 .mat-column-locationId {
   width: 100%;
 }
+
 // .mat-column-s{
 //   flex: 0 0 150px;
 // }
@@ -268,17 +297,19 @@ th {
       padding: 4px 6px !important;
       font-size: 11px !important;
     }
+
     .mat-column-locationId {
       min-width: 100px;
     }
   }
 }
+
 /* DESKTOP (>= 960px) */
 @media (min-width: 960px) {
   ::ng-deep table {
     th.mat-mdc-header-cell {
       padding: 6px 8px !important;
-      font-size: 12px !important;
+      font-size: 14px !important;
 
       .search-container {
         .small-form-field {
@@ -290,13 +321,13 @@ th {
 
           mat-label {
             font-size: 9px !important;
-            line-height: 11px !important;
+            line-height: 12px !important;
           }
 
           input,
           .mat-select-trigger,
           mat-datepicker-toggle {
-            font-size: 11px !important;
+            font-size: 12px !important;
             height: 20px !important;
             padding: 0 2px !important;
           }
@@ -310,8 +341,9 @@ th {
 
     td.mat-mdc-cell {
       padding: 4px 6px !important;
-      font-size: 11px !important;
+      font-size: 13px !important;
     }
+
     .mat-column-locationId {
       min-width: 100px;
     }

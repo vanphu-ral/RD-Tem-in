@@ -21,8 +21,8 @@ import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
-import { Subscription, Subject } from "rxjs";
-import { takeUntil } from "rxjs/operators";
+import { Subscription, Subject, forkJoin } from "rxjs";
+import { map, takeUntil } from "rxjs/operators";
 import {
   animate,
   state,
@@ -276,16 +276,65 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
   public onLoad(): void {}
 
   public export(): void {
-    const raw = this.dataSource_update_manage.filteredData;
-    const toExport = raw.map((r) => ({
-      requestCode: r.requestCode,
-      updatedBy: r.requestedBy,
-      approvedBy: r.approvedBy,
-      status: r.status,
-      createdTime: this.tsPipe.transform(r.createdTime),
-      updatedTime: this.tsPipe.transform(r.updatedTime),
-    }));
-    this.MaterialService.exportExcel(toExport, "Danh_Sach_De_Nghi_Cap_Nhat");
+    const parents = this.dataSource_update_manage.filteredData;
+    if (!parents.length) {
+      return;
+    }
+
+    const detailCalls = parents.map((parent) =>
+      this.MaterialService.getRequestDetailsById(parent.id).pipe(
+        map((details) => ({ parent, details })),
+      ),
+    );
+    forkJoin(detailCalls).subscribe({
+      next: (results) => {
+        const rowsToExport: any[] = [];
+        results.forEach(({ parent, details }) => {
+          if (details && details.length > 0) {
+            details.forEach((d) => {
+              rowsToExport.push({
+                // cột CHA
+                requestCode: parent.requestCode,
+                requestedBy: parent.requestedBy,
+                approvedBy: parent.approvedBy,
+                updatedTime: this.tsPipe.transform(parent.updatedTime),
+
+                // cột CON
+                materialIdentifier: d.productCode,
+                productName: d.productName,
+                locationName: d.locationName,
+                quantity: d.quantity,
+                quantityChange: d.quantityChange,
+                expirationDate: this.tsPipe.transform(d.expiredTime),
+              });
+            });
+          } else {
+            rowsToExport.push({
+              requestCode: parent.requestCode,
+              requestedBy: parent.requestedBy,
+              approvedBy: parent.approvedBy,
+              updatedTime: this.tsPipe.transform(parent.updatedTime),
+
+              materialIdentifier: "",
+              productName: "",
+              locationName: "",
+              quantity: "",
+              quantityChange: "",
+              expirationDate: "",
+            });
+          }
+        });
+
+        // 4. Gọi service xuất Excel
+        this.MaterialService.exportExcel(
+          rowsToExport,
+          "Danh_Sach_De_Nghi_Cap_Nhat",
+        );
+      },
+      error: (err) => {
+        console.error("Lỗi khi fetch details để export:", err);
+      },
+    });
   }
 
   public exportExpandedDetails(request: inventory_update_requests): void {
@@ -315,65 +364,43 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
     row: inventory_update_requests_detail,
     isChecked: boolean,
   ): void {
-    const currentData = this.dataSoure_update_detail.data;
-    const rowIndex = currentData.findIndex((item) => item.id === row.id);
+    row.status = isChecked ? "APPROVE" : "REJECT";
 
-    if (rowIndex > -1) {
-      const originalItemInDataSource = currentData[rowIndex];
-
-      const updatedItem = { ...originalItemInDataSource };
-      const newDataSourceData = [...currentData];
-      newDataSourceData[rowIndex] = updatedItem;
-      this.dataSoure_update_detail.data = newDataSourceData;
-
-      const itemsInSelectionWithSameId = this.selection.selected.filter(
-        (selectedItem) => selectedItem.id === row.id,
-      );
-      if (itemsInSelectionWithSameId.length > 0) {
-        this.selection.deselect(...itemsInSelectionWithSameId);
-      }
-
-      if (isChecked) {
-        this.selection.select(updatedItem);
-      }
-      console.log(
-        `Đã ${isChecked ? "chọn" : "bỏ chọn"} item ID ${updatedItem.id}`,
-      );
+    if (isChecked) {
+      this.selection.select(row);
     } else {
-      console.warn(
-        "Không tìm thấy dòng trong dataSource để cập nhật selection:",
-        row,
-      );
+      this.selection.deselect(row);
     }
+
+    console.log(`Đã ${isChecked ? "chọn" : "bỏ"} item ID ${row.id}`);
+
     this.cdr.markForCheck();
   }
 
   public isAllSelected(): boolean {
     const numSelected = this.selection.selected.length;
     const numRows = this.dataSoure_update_detail.data.length;
-    return numSelected === numRows;
+    return numRows > 0 && numSelected === numRows;
+  }
+  public isSomeSelected(): boolean {
+    const numSelected = this.selection.selected.length;
+    const numRows = this.dataSoure_update_detail.data.length;
+    return numSelected > 0 && numSelected < numRows;
   }
 
   public toggleAllRows(): void {
-    const isCurrentlyAllSelected = this.isAllSelected();
-    let newDataSourceData: inventory_update_requests_detail[];
-
-    if (isCurrentlyAllSelected) {
-      newDataSourceData = this.dataSoure_update_detail.data.map((dRow) => ({
-        ...dRow,
-        status: "REJECT",
-      }));
-      this.dataSoure_update_detail.data = newDataSourceData;
+    if (this.isAllSelected()) {
       this.selection.clear();
-      console.log('Đã bỏ chọn tất cả và cập nhật status thành "Từ chối"');
+      this.dataSoure_update_detail.data.forEach(
+        (row) => (row.status = "REJECT"),
+      );
+      console.log("Đã bỏ chọn tất cả");
     } else {
-      newDataSourceData = this.dataSoure_update_detail.data.map((dRow) => ({
-        ...dRow,
-        status: "APPROVE",
-      }));
-      this.dataSoure_update_detail.data = newDataSourceData;
+      this.dataSoure_update_detail.data.forEach(
+        (row) => (row.status = "APPROVE"),
+      );
       this.selection.select(...this.dataSoure_update_detail.data);
-      console.log('Đã chọn tất cả và cập nhật status thành "Chấp thuận"');
+      console.log("Đã chọn tất cả");
     }
     this.cdr.markForCheck();
   }
@@ -503,10 +530,17 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
             currentUser,
           ).subscribe({
             next: (response) => {
+              this.snackBar.open(`Đã từ chối yêu cầu ${requestId}.`, "Đóng", {
+                duration: 3000,
+              });
               this.loadData();
             },
             error: (err) => {
-              console.error(`Lỗi khi từ chối yêu cầu ${requestId}:`, err);
+              this.snackBar.open(
+                `Lỗi khi từ chối yêu cầu ${requestId}.`,
+                "Đóng",
+                { duration: 3000 },
+              );
             },
           });
         });
@@ -518,6 +552,17 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
     if (this.selection.selected.length === 0) {
       this.snackBar.open(
         "Vui lòng chọn ít nhất 1 hàng chi tiết để phê duyệt.",
+        "Đóng",
+        { duration: 3000 },
+      );
+      return;
+    }
+    const invalidMoves = this.selection.selected.filter(
+      (item) => item.type === "MOVE" && !item.locationName,
+    );
+    if (invalidMoves.length > 0) {
+      this.snackBar.open(
+        "Vui lòng chọn kho mới cho các yêu cầu chuyển kho trước khi phê duyệt.",
         "Đóng",
         { duration: 3000 },
       );

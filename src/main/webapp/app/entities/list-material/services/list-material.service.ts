@@ -212,6 +212,15 @@ export class ListMaterialService {
     private accountService: AccountService,
     private applicationConfigService: ApplicationConfigService,
   ) {
+    const saved = sessionStorage.getItem("selectedMaterialIds");
+    if (saved) {
+      try {
+        this._selectedIds.next(JSON.parse(saved));
+      } catch {
+        /* empty */
+      }
+    }
+
     this.fetchLocations();
     this.loadSelectedIds();
     this.fetchMaterialsData(
@@ -333,18 +342,12 @@ export class ListMaterialService {
     const newIds = currentIds.includes(materialId)
       ? currentIds.filter((id) => id !== materialId)
       : [...currentIds, materialId];
+
     this._selectedIds.next(newIds);
     sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
-    const updatedData = this._materialsData.value.map((item) =>
-      item.inventoryId === materialId
-        ? {
-            ...item,
-            checked: !item.checked,
-            select_update: !item.select_update,
-          }
-        : item,
-    );
-    this._materialsData.next(updatedData);
+
+    const updated = this.applySelectionFlags(this._materialsData.value, newIds);
+    this._materialsData.next(updated);
   }
 
   public removeItemFromUpdate(materialId: string): void {
@@ -750,6 +753,17 @@ export class ListMaterialService {
   }
 
   // #region Private methods
+  private applySelectionFlags(
+    raws: RawGraphQLMaterial[],
+    selectedIds: string[],
+  ): RawGraphQLMaterial[] {
+    const set = new Set(selectedIds);
+    return raws.map((m) => ({
+      ...m,
+      checked: set.has(m.inventoryId),
+      select_update: set.has(m.inventoryId),
+    }));
+  }
 
   private fetchLocations(): void {
     this.http.get<RawGraphQLLocation[]>(this.apiLocations).subscribe({

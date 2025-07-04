@@ -268,14 +268,6 @@ th {
   gap: 0;
 }
 
-.full-scroll-table-container {
-  height: 750px;
-  //  width: 1660px;
-  // max-width: 1860px;
-  // max-width: 100%;
-  overflow: auto;
-}
-
 ::ng-deep .small-form-field {
   @include mat.form-field-density(-5);
   @include mat.icon-button-density(-5);
@@ -312,10 +304,23 @@ th {
   background: #548ce8;
 }
 
+.main-page {
+  display: flex;
+  flex-direction: column;
+  height: 900px;
+  width: 1860px;
+}
+
+.full-scroll-table-container {
+  height: 900px;
+  //  width: 1860px;
+  // width: 1860px;
+  max-width: 100%;
+  overflow: auto;
+}
+
 .scan-error {
   color: #f44336;
-  /* đỏ */
-  margin-top: 8px;
   font-size: 14px;
 }
 
@@ -356,108 +361,115 @@ th {
 
 /* TABLET (600–959px) */
 @media (min-width: 600px) and (max-width: 959px) {
-  .function-list {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 0 18px 0 0;
+  .main-page {
+    max-width: 812px;
 
-    .group-title {
-      margin-bottom: 4px;
-    }
+    .function-list {
+      flex-direction: column;
+      align-items: flex-start;
+      max-width: 812px;
+      gap: 8px;
+      padding: 0 18px 0 0;
 
-    .group-buttons-main {
-      display: flex;
-      width: 100%;
-      padding: 0;
-    }
+      .group-title {
+        margin-bottom: 4px;
+      }
 
-    .group-buttons.primary {
-      width: 70%;
-      justify-content: flex-start;
-      gap: 5px;
+      .group-buttons-main {
+        display: flex;
+        width: 100%;
+        padding: 0;
+      }
 
-      button.btn-scan,
-      button.btn-refresh {
-        .btn-text {
+      .group-buttons.primary {
+        width: 70%;
+        justify-content: flex-start;
+        gap: 5px;
+
+        button.btn-scan,
+        button.btn-refresh {
+          .btn-text {
+            display: none;
+          }
+
+          justify-content: center !important;
+          align-items: center !important;
+          padding: 0px 0px 0 6px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
+        }
+      }
+
+      .group-buttons.secondary {
+        width: 30%;
+        justify-content: flex-end;
+        gap: 8px;
+
+        .btn-text,
+        .icon-down {
           display: none;
         }
 
-        justify-content: center !important;
-        align-items: center !important;
-        padding: 0px 0px 0 6px !important;
-        min-width: 40px !important;
-        min-height: 40px !important;
+        button {
+          padding: 0 !important;
+          min-width: 40px !important;
+          padding: 0px 0px 0 5px !important;
+          min-height: 40px !important;
+        }
       }
     }
-
-    .group-buttons.secondary {
-      width: 30%;
-      justify-content: flex-end;
-      gap: 8px;
-
-      .btn-text,
-      .icon-down {
-        display: none;
-      }
-
-      button {
-        padding: 0 !important;
-        min-width: 40px !important;
-        padding: 0px 0px 0 5px !important;
-        min-height: 40px !important;
-      }
+    .full-scroll-table-container {
+      max-width: 813px;
     }
-  }
+    ::ng-deep table {
+      th.mat-mdc-header-cell {
+        padding: 4px 8px !important;
+        font-size: 12px !important;
 
-  ::ng-deep table {
-    th.mat-mdc-header-cell {
-      padding: 4px 8px !important;
-      font-size: 12px !important;
+        .search-container {
+          .small-form-field {
+            // width: 100px !important;
 
-      .search-container {
-        .small-form-field {
-          // width: 100px !important;
+            .mat-form-field-infix {
+              padding: 0 2px !important;
+            }
 
-          .mat-form-field-infix {
-            padding: 0 2px !important;
+            mat-label {
+              font-size: 9px !important;
+              line-height: 11px !important;
+            }
+
+            input,
+            .mat-select-trigger,
+            mat-datepicker-toggle {
+              font-size: 11px !important;
+              height: 20px !important;
+              padding: 0 2px !important;
+            }
           }
+        }
 
-          mat-label {
-            font-size: 9px !important;
-            line-height: 11px !important;
-          }
-
-          input,
-          .mat-select-trigger,
-          mat-datepicker-toggle {
-            font-size: 11px !important;
-            height: 20px !important;
-            padding: 0 2px !important;
-          }
+        mat-icon {
+          font-size: 16px !important;
         }
       }
 
-      mat-icon {
-        font-size: 16px !important;
+      tr.mat-mdc-row {
+        height: 20px !important;
       }
-    }
 
-    tr.mat-mdc-row {
-      height: 20px !important;
-    }
-
-    td.mat-mdc-cell {
-      padding: 0 4px !important;
-      font-size: 10px !important;
+      td.mat-mdc-cell {
+        padding: 0 4px !important;
+        font-size: 10px !important;
+      }
     }
   }
 }
 
 /* DESKTOP (>= 960px) */
-@media (min-width: 959px) and (max-width: 1439) {
+@media (min-width: 959px) and (max-width: 1439px) {
   .function-list {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
     gap: 8px;
     padding: 0 18px 0 0;

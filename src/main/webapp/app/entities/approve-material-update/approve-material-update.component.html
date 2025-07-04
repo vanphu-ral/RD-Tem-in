@@ -479,7 +479,7 @@
             [ngClass]="{
               'status-pending': element.status === 'PENDING',
               'status-approve': element.status === 'APPROVE',
-              'status-reject': element.status === 'REJECT'
+              'status-reject': element.status === 'REJECT',
             }"
           >
             <span>
@@ -591,9 +591,11 @@
                     <mat-checkbox
                       color="primary"
                       (click)="$event.stopPropagation()"
-                      (change)="$event ? toggleAllRows() : null"
-                      [checked]="selection.hasValue() && isAllSelected()"
-                      [indeterminate]="selection.hasValue() && !isAllSelected()"
+                      (change)="toggleAllRows()"
+                      [checked]="isAllSelected()"
+                      [indeterminate]="
+                        selection.selected.length > 0 && !isAllSelected()
+                      "
                       [aria-label]="checkboxLabel()"
                     >
                     </mat-checkbox>
