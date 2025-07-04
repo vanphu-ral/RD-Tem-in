@@ -4,9 +4,7 @@
     align-items: center;
     gap: 40px;
     margin-top: 10px;
-    margin-left: 5px;
-    padding: 3px;
-    z-index: 99999;
+    padding: 1.5em;
   "
 >
   <h2 style="font-weight: bold; font-size: 20px" mat-dialog-title>
@@ -477,7 +475,7 @@
                     <input
                       class="editable-cell"
                       type="text"
-                      placeholder="Nhập để chọn kho"
+                      placeholder="Chọn kho cho tất cả"
                       aria-label="Kho"
                       matInput
                       formControlName="selectedWarehouseControl"
@@ -629,10 +627,14 @@
               <div class="search-container">
                 <div class="custom-search-wrapper">
                   <input
+                    #hdrInput
                     type="number"
                     class="custom-search-input"
                     placeholder="Nhập số để áp dụng cho tất cả"
                     [(ngModel)]="headerQuantityChange"
+                    [min]="0"
+                    [max]="minQuantityAcrossRows"
+                    (input)="clampHeaderQuantity(hdrInput)"
                     (keyup.enter)="applyHeaderQuantityChange()"
                     (blur)="applyHeaderQuantityChange()"
                   />
@@ -644,9 +646,12 @@
         <td mat-cell *matCellDef="let element">
           <input
             matInput
-            class="editable-cell"
             type="number"
+            class="editable-cell"
             [(ngModel)]="element.quantityChange"
+            [min]="0"
+            [max]="element.quantity"
+            (input)="clampQuantity($event, element)"
             (ngModelChange)="onQuantityChange(element)"
           />
         </td>

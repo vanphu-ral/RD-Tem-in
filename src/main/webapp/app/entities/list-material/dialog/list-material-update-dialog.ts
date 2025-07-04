@@ -390,7 +390,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     formGroup
       .get("selectedWarehouseItem")
       ?.setValue(selectedWarehouse, { emitEvent: true });
-    item.locationId = selectedWarehouse.value;
+    item.selectedWarehouse = selectedWarehouse;
+    item.extendExpiration = false;
     console.log(
       `Row change: Item ${item.materialIdentifier} locationId updated to: ${item.locationId}`,
     );
@@ -408,7 +409,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         formGroup
           .get("selectedWarehouseItem")
           ?.setValue(selectedWarehouse, { emitEvent: true });
-        item.locationId = selectedWarehouse.value;
+        item.selectedWarehouse = selectedWarehouse;
         console.log(
           `Header update: Item ${item.materialIdentifier} locationId updated to: ${item.locationId}`,
         );
@@ -431,17 +432,18 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     }
   }
   applyHeaderQuantityChange(): void {
-    if (
-      this.headerQuantityChange !== null &&
-      this.headerQuantityChange !== undefined &&
-      this.itemsDataSource
-    ) {
-      this.itemsDataSource.data.forEach((item) => {
-        item.quantityChange = this.headerQuantityChange as number;
-        item._isChanged = true;
-      });
-    }
+    const qty = Number(this.headerQuantityChange);
+    const max = this.minQuantityAcrossRows;
+    const safeQty = qty > max ? max : qty;
+    this.headerQuantityChange = safeQty;
+
+    this.itemsDataSource.data.forEach((item) => {
+      item.quantityChange = safeQty;
+      item._isChanged = true;
+    });
+    this.itemsDataSource._updateChangeSubscription();
   }
+
   toggleAllRenewal(): void {
     this.itemsDataSource.data.forEach(
       (row) => (row.enable_input_expirated = this.headerEnableInputRenewal),
@@ -545,6 +547,32 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       this.isSelectHeader = true;
     }
   }
+  get minQuantityAcrossRows(): number {
+    const q = this.itemsDataSource?.data.map((d) => d.quantity) || [];
+    return q.length ? Math.min(...q) : 0;
+  }
+  clampHeaderQuantity(input: HTMLInputElement): void {
+    const val = Number(input.value);
+    const max = this.minQuantityAcrossRows;
+    if (val > max) {
+      this.snackBar.open(
+        `Không thể nhập lớn hơn ${max} (số nhỏ nhất trong các dòng)`,
+        "Đóng",
+        { duration: 2000, panelClass: ["snackbar-error"] },
+      );
+      input.value = String(max);
+      this.headerQuantityChange = max;
+    }
+  }
+
+  clampQuantity(event: Event, item: MaterialItem): void {
+    const input = event.target as HTMLInputElement;
+    const val = Number(input.value);
+    if (val > item.quantity) {
+      input.value = String(item.quantity);
+    }
+  }
+
   onQuantityChange(element: MaterialItem): void {
     if (element.quantityChange > element.quantity) {
       this.snackBar.open(
@@ -555,10 +583,11 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
           panelClass: ["snackbar-error"],
         },
       );
-      element.quantityChange = element.quantity; // Reset lại về max
+      element.quantityChange = element.quantity;
     }
     element._isChanged = true;
   }
+
   onSelectSubApprover(idx: number): void {
     this.selectedSubApproverIndex = idx;
     const current = this.selectApprover();
@@ -608,13 +637,25 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       });
       return;
     }
-    const hasSelectedWarehouse =
-      (!!selectedWarehouseValue && selectedWarehouseValue.value) ||
-      this.itemsDataSource.data.some((item) => !!item.locationId);
+    const headerWarehouseValue = this.dialogForm.get("selectedWarehouseControl")
+      ?.value?.value;
+    const headerWarehouseSet = !!headerWarehouseValue;
 
-    const hasAnyExtend = this.itemsDataSource.data.some(
-      (item) => item.extendExpiration,
+    const allRowsValid = this.itemsDataSource.data.every(
+      (item) =>
+        headerWarehouseSet ||
+        !!item.selectedWarehouse?.value ||
+        item.extendExpiration,
     );
+
+    if (!allRowsValid) {
+      this.snackBar.open(
+        "Vui lòng với mỗi hàng chọn Chuyển kho hoặc Gia hạn",
+        "Đóng",
+        { duration: 3000, panelClass: ["snackbar-error"] },
+      );
+      return;
+    }
 
     const dialogData: ConfirmDialogData = {
       message: "Bạn có muốn gửi đề nghị cập nhật cho các vật tư này không?",
@@ -627,6 +668,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       {
         width: "450px",
         data: dialogData,
+        panelClass: "dialog-center-pane",
         disableClose: true,
         autoFocus: false,
       },

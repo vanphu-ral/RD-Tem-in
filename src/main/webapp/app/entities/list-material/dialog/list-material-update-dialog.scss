@@ -286,7 +286,7 @@ th {
   ::ng-deep table {
     th.mat-mdc-header-cell {
       padding: 6px 8px !important;
-      font-size: 12px !important;
+      font-size: 14px !important;
 
       .search-container {
         .small-form-field {
@@ -298,13 +298,13 @@ th {
 
           mat-label {
             font-size: 9px !important;
-            line-height: 11px !important;
+            line-height: 12px !important;
           }
 
           input,
           .mat-select-trigger,
           mat-datepicker-toggle {
-            font-size: 11px !important;
+            font-size: 12px !important;
             height: 20px !important;
             padding: 0 2px !important;
           }
@@ -318,7 +318,7 @@ th {
 
     td.mat-mdc-cell {
       padding: 4px 6px !important;
-      font-size: 11px !important;
+      font-size: 13px !important;
     }
 
     .mat-column-locationId {
