@@ -1,7 +1,9 @@
 package com.mycompany.myapp.web.rest;
 
+import com.mycompany.myapp.domain.InventoriesResponse;
 import com.mycompany.myapp.service.InventoryService;
 import com.mycompany.myapp.service.dto.InventoryDTO;
+import com.mycompany.myapp.service.dto.InventoryRequestDTO;
 import com.mycompany.panacimmc.domain.Inventory;
 import com.mycompany.panacimmc.domain.InventoryResponse;
 import java.util.List;
@@ -17,9 +19,11 @@ public class InventoryController {
     @Autowired
     InventoryService inventoryService;
 
-    @GetMapping("")
-    public List<InventoryResponse> getInventories() {
-        return this.inventoryService.getInventories();
+    @PostMapping("")
+    public InventoriesResponse getInventoriesResponse(
+        @RequestBody InventoryRequestDTO request
+    ) {
+        return this.inventoryService.getInventoriesResponse(request);
     }
 
     @PostMapping("/update")
