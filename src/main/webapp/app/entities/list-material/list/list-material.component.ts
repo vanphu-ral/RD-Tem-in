@@ -150,9 +150,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
   dataSource = new MatTableDataSource<RawGraphQLMaterial>();
   length = 0;
-  pageSize = 15;
+  pageSize = 50;
   pageIndex = 0;
-  pageSizeOptions = [10, 15, 25, 50, 100];
+  pageSizeOptions = [15, 25, 50, 100, 150];
   hidePageSize = false;
   showPageSizeOptions = true;
   showFirstLastButtons = true;
@@ -169,10 +169,14 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
   sumary_modeControl = new FormControl();
   selectedAggregated: string = "";
+
+  // đối tượng chứa cột  thông tin tìm kiếm
   public searchTerms: { [columnDef: string]: { mode: string; value: string } } =
     {};
   public activeFilters: { [columnDef: string]: any[] } = {};
+
   public filterModes: { [columnDef: string]: string } = {};
+
   filteredValues: any = {
     materialIdentifier: "",
   };
@@ -819,21 +823,19 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       this.dataSource.paginator.firstPage();
     }
   }
+  // .filter(([_, t]) => !!t.value)
+
+  // lấy dữ liệu cho lọc tìm kiếm
   private fetchData(): void {
-    const filtersObject = Object.entries(this.searchTerms)
-      .filter(([_, t]) => !!t.value)
-      .reduce(
-        (acc, [key, t]) => ({
-          ...acc,
-          [`filter.${key}.mode`]: t.mode,
-          [`filter.${key}.value`]: t.value,
-        }),
-        {},
-      );
+    const filtersObject = Object.entries(this.searchTerms).map(([key, t]) => ({
+      field: key,
+      mode: t.mode,
+      value: t.value,
+    }));
     const filterString = JSON.stringify(filtersObject);
 
     this.materialService.fetchMaterialsData(
-      this.pageIndex * this.pageSize,
+      this.pageIndex, // trang hiện tại
       this.pageSize,
       filterString,
     );
