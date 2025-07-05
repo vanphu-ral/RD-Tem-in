@@ -112,8 +112,66 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
-        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' ;\n",
+        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
+        "WHERE a.Inventory_MaterialIdentifier like ?1 " +
+        "AND a.Inventory_Status like ?2 " +
+        "AND a.Inventory_PartNumber like ?3 " +
+        "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
+        "AND ( ?5 IS NULL OR a.Inventory_AvailableQuantity = ?5 ) " +
+        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?6 " +
+        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
+        "AND b.Location_Name like ?8 " +
+        "AND ( ?9 IS NULL OR a.Inventory_ExpirationDate like ?9) " +
+        "ORDER BY a.Inventory_UpdatedDate desc " +
+        "OFFSET ?10 ROWS FETCH NEXT ?11 ROWS ONLY ;\n",
         nativeQuery = true
     )
-    public List<InventoryResponse> getInventories();
+    public List<InventoryResponse> getInventories(
+        String materialIdentifier,
+        String status,
+        String partNumber,
+        Integer quantity,
+        Integer availableQuantity,
+        String lotNumber,
+        String userData4,
+        String locationName,
+        String expirationDate,
+        Integer pageNumber,
+        Integer itemPerPage
+    );
+
+    @Query(
+        value = "SELECT  count(*) " +
+        "FROM [panacim_test].[dbo].[Inventory] a\n" +
+        "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
+        "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
+        "  ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        "\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
+        "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
+        "WHERE a.Inventory_MaterialIdentifier like ?1 " +
+        "AND a.Inventory_Status like ?2 " +
+        "AND a.Inventory_PartNumber like ?3 " +
+        "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
+        "AND ( ?5 IS NULL OR a.Inventory_AvailableQuantity = ?5 ) " +
+        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?6 " +
+        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
+        "AND b.Location_Name like ?8 " +
+        "AND ( ?9 IS NULL OR a.Inventory_ExpirationDate like ?9) ;",
+        nativeQuery = true
+    )
+    public Integer getTotalInventories(
+        String materialIdentifier,
+        String status,
+        String partNumber,
+        Integer quantity,
+        Integer availableQuantity,
+        String lotNumber,
+        String userData4,
+        String locationName,
+        String expirationDate
+    );
 }
