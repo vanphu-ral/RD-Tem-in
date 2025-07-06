@@ -25,6 +25,7 @@ import {
 } from "../services/list-material.service";
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { AccountService } from "app/core/auth/account.service";
+import { MatSnackBar } from "@angular/material/snack-bar";
 
 interface sumary_mode {
   value: string;
@@ -105,7 +106,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       {
         name: "Available Quantity",
         matColumnDef: "availableQuantity",
-        completed: false,
+        completed: true,
       },
       {
         name: "Material TraceId",
@@ -130,7 +131,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         matColumnDef: "expirationDate",
         completed: true,
       },
-      { name: "Received Date", matColumnDef: "receivedDate", completed: true },
+      { name: "Received Date", matColumnDef: "receivedDate", completed: false },
       { name: "Updated Date", matColumnDef: "updatedDate", completed: false },
       { name: "Updated By", matColumnDef: "updatedBy", completed: false },
       {
@@ -183,7 +184,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   // #endregion
 
   // #region ViewChild
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatPaginator, { static: false }) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
   @ViewChild("scanInput") scanInput!: ElementRef<HTMLInputElement>;
@@ -201,6 +202,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     private cdr: ChangeDetectorRef,
     private accountService: AccountService,
+    private snackBar: MatSnackBar,
   ) {
     this.form = new FormGroup({
       sumary_modeControl: new FormControl(null),
@@ -487,13 +489,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public isAllSelected(): boolean {
-    const rows = this.dataSource.filteredData || [];
-    return rows.length > 0 && rows.every((r) => r.checked);
+    const page = this.getCurrentPageRows();
+    return page.length > 0 && page.every((r) => r.checked);
   }
   public isSomeSelected(): boolean {
-    const rows = this.dataSource.filteredData || [];
-    const numChecked = rows.filter((r) => r.checked).length;
-    return numChecked > 0 && numChecked < rows.length;
+    const page = this.getCurrentPageRows();
+    const sel = page.filter((r) => r.checked).length;
+    return sel > 0 && sel < page.length;
   }
 
   updateChecked(element: any, isChecked: boolean): void {
@@ -539,23 +541,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public toggleAllRows(): void {
-    const rows = this.dataSource.filteredData || [];
-    if (!rows.length) {
-      return;
-    }
+    const page = this.getCurrentPageRows();
 
     if (this.isAllSelected()) {
-      rows.forEach((r) => {
-        if (r.checked) {
-          this.materialService.toggleItemSelection(r.inventoryId);
-        }
-      });
+      page.forEach(
+        (r) =>
+          r.checked && this.materialService.toggleItemSelection(r.inventoryId),
+      );
     } else {
-      rows.forEach((r) => {
-        if (!r.checked) {
-          this.materialService.toggleItemSelection(r.inventoryId);
-        }
-      });
+      page.forEach(
+        (r) =>
+          !r.checked && this.materialService.toggleItemSelection(r.inventoryId),
+      );
     }
   }
 
@@ -584,7 +581,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const inventoryTerm = scanString.split("#")[0].trim().toLowerCase();
     if (!inventoryTerm) {
-      this.scanError = "Không nhận diện được mã vật tư, vui lòng thử lại!";
+      this.openError("Không nhận diện được mã vật tư, vui lòng thử lại!");
       this.isScanMode = false;
       return;
     }
@@ -601,10 +598,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const matchCount = this.dataSource.filteredData.length;
     if (matchCount === 0) {
-      this.scanError = `Không tìm thấy vật tư "${inventoryTerm}"`;
+      this.openError(`Không tìm thấy vật tư "${inventoryTerm}"`);
       this.isScanMode = false;
       return;
     }
+  }
+  openError(message: string): void {
+    this.snackBar.open(message, "Đóng", {
+      duration: 3000,
+      panelClass: ["snackbar-error"],
+      horizontalPosition: "center",
+      verticalPosition: "bottom",
+    });
   }
 
   refreshScan(): void {
@@ -804,6 +809,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   //   // #endregion
 
   //   // #region Private methods
+  private getCurrentPageRows(): RawGraphQLMaterial[] {
+    const filtered = this.dataSource.filteredData || [];
+    if (!this.paginator) {
+      return filtered;
+    }
+
+    const pageIndex = this.paginator.pageIndex || 0;
+    const pageSize = this.paginator.pageSize || filtered.length;
+    const start = pageIndex * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }
+
   private applyCombinedFilters(): void {
     const combinedFilterData = {
       textFilters: this.searchTerms,

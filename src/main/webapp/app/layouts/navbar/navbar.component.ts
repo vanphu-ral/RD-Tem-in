@@ -1,51 +1,58 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, Input, OnInit } from "@angular/core";
+import { Router } from "@angular/router";
 
-import { VERSION } from 'app/app.constants';
-import { Account } from 'app/core/auth/account.model';
-import { AccountService } from 'app/core/auth/account.service';
-import { LoginService } from 'app/login/login.service';
-import { ProfileService } from 'app/layouts/profiles/profile.service';
-import { EntityNavbarItems } from 'app/entities/entity-navbar-items';
-import { MainComponent } from '../main/main.component';
-import { NavbarService } from './navbar.service';
-import { trigger, state, style, transition, animate } from '@angular/animations';
-import { Observable, of } from 'rxjs';
+import { VERSION } from "app/app.constants";
+import { Account } from "app/core/auth/account.model";
+import { AccountService } from "app/core/auth/account.service";
+import { LoginService } from "app/login/login.service";
+import { ProfileService } from "app/layouts/profiles/profile.service";
+import { EntityNavbarItems } from "app/entities/entity-navbar-items";
+import { MainComponent } from "../main/main.component";
+import { NavbarService } from "./navbar.service";
+import {
+  trigger,
+  state,
+  style,
+  transition,
+  animate,
+} from "@angular/animations";
+import { Observable, of } from "rxjs";
+import { ResponsiveService } from "app/shared/responsive/responsive.service";
 
 @Component({
-  selector: 'jhi-navbar',
-  templateUrl: './navbar.component.html',
-  styleUrls: ['./navbar.component.scss'],
+  selector: "jhi-navbar",
+  templateUrl: "./navbar.component.html",
+  styleUrls: ["./navbar.component.scss"],
   standalone: false,
   animations: [
-    trigger('slide', [
-      state('up', style({ height: 0, overflow: 'hidden' })),
-      state('down', style({ height: '*', overflow: 'hidden' })),
-      transition('up  <=> down', animate('200ms ease-in-out')),
+    trigger("slide", [
+      state("up", style({ height: 0, overflow: "hidden" })),
+      state("down", style({ height: "*", overflow: "hidden" })),
+      transition("up  <=> down", animate("200ms ease-in-out")),
     ]),
   ],
 })
 export class NavbarComponent implements OnInit {
+  isHandset$ = this.responsive.isHandset$;
   inProduction?: boolean;
-  isNavbarCollapsed = true;
+  public isCollapsed = true;
   openAPIEnabled?: boolean;
-  version = '';
+  version = "";
   account: Account | null = null;
   entitiesNavbarItems: any[] = [];
   isOpenMenu = false;
-  showLogo = 'false';
+  showLogo = "false";
   menus: any[] = [];
   isAccountOpen = false;
   accountMenu = {
-    type: 'dropdown',
+    type: "dropdown",
     active: this.isAccountOpen,
-    title: 'Tài khoản',
-    icon: 'account_box',
+    title: "Tài khoản",
+    icon: "account_box",
     submenus: [],
   };
 
   public isSidebarCollapsed: boolean = false;
-  @Input() isCollapsed: boolean = false;
 
   constructor(
     private loginService: LoginService,
@@ -54,22 +61,31 @@ export class NavbarComponent implements OnInit {
     private router: Router,
     private mainComponent: MainComponent,
     public navbarservice: NavbarService,
+    public responsive: ResponsiveService,
   ) {
     if (VERSION) {
-      this.version = VERSION.toLowerCase().startsWith('v') ? VERSION : `v${VERSION}`;
+      this.version = VERSION.toLowerCase().startsWith("v")
+        ? VERSION
+        : `v${VERSION}`;
     }
   }
 
   ngOnInit(): void {
+    this.isHandset$.subscribe((isMobile) => {
+      if (isMobile) {
+        this.isCollapsed = true;
+      }
+    });
+
     this.navbarservice.setSidebarState(true);
     this.entitiesNavbarItems = EntityNavbarItems;
     this.menus = this.navbarservice.getMenuList();
-    this.profileService.getProfileInfo().subscribe(profileInfo => {
+    this.profileService.getProfileInfo().subscribe((profileInfo) => {
       this.inProduction = profileInfo.inProduction;
       this.openAPIEnabled = profileInfo.openAPIEnabled;
     });
 
-    this.accountService.getAuthenticationState().subscribe(account => {
+    this.accountService.getAuthenticationState().subscribe((account) => {
       this.account = account;
     });
   }
@@ -77,8 +93,8 @@ export class NavbarComponent implements OnInit {
     return of(this.navbarservice.getSidebarState());
   }
   toggle(currentMenu: any): void {
-    if (currentMenu.type === 'dropdown') {
-      this.menus.forEach(element => {
+    if (currentMenu.type === "dropdown") {
+      this.menus.forEach((element) => {
         if (element === currentMenu) {
           currentMenu.active = !currentMenu.active;
         } else {
@@ -90,17 +106,17 @@ export class NavbarComponent implements OnInit {
 
   getState(currentMenu: any): string {
     if (currentMenu.active) {
-      return 'down';
+      return "down";
     } else {
-      return 'up';
+      return "up";
     }
   }
   toggleNavbar(): void {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
     if (this.isSidebarCollapsed) {
       // Optionally, collapse all active submenus when the sidebar collapses
-      this.menus.forEach(menu => {
-        if (menu.type === 'dropdown') {
+      this.menus.forEach((menu) => {
+        if (menu.type === "dropdown") {
           menu.active = false;
         }
       });
@@ -111,52 +127,59 @@ export class NavbarComponent implements OnInit {
     this.accountMenu.active = this.isAccountOpen;
   }
   toggleDropDownProfile(): void {
-    const ul = document.querySelector('.nav-item-profile.dropdown ul') as HTMLElement;
+    const ul = document.querySelector(
+      ".nav-item-profile.dropdown ul",
+    ) as HTMLElement;
 
     const displayValue = ul.style.display;
-    if (displayValue === 'block') {
-      ul.style.display = 'none';
+    if (displayValue === "block") {
+      ul.style.display = "none";
     } else {
-      ul.style.display = 'block';
+      ul.style.display = "block";
     }
   }
 
   toggleDropDownStamp(): void {
-    const ul = document.querySelector('.nav-item-stamp.dropdown ul') as HTMLElement;
+    const ul = document.querySelector(
+      ".nav-item-stamp.dropdown ul",
+    ) as HTMLElement;
 
     const displayValue = ul.style.display;
-    if (displayValue === 'block') {
-      ul.style.display = 'none';
+    if (displayValue === "block") {
+      ul.style.display = "none";
     } else {
-      ul.style.display = 'block';
+      ul.style.display = "block";
     }
   }
 
   toggleDropDownStamp2(): void {
-    const ul = document.querySelector('.nav-item-stamp2.dropdown ul') as HTMLElement;
+    const ul = document.querySelector(
+      ".nav-item-stamp2.dropdown ul",
+    ) as HTMLElement;
 
     const displayValue = ul.style.display;
-    if (displayValue === 'block') {
-      ul.style.display = 'none';
+    if (displayValue === "block") {
+      ul.style.display = "none";
     } else {
-      ul.style.display = 'block';
+      ul.style.display = "block";
     }
   }
   toggleDropDownMaterial(): void {
-    const ul = document.querySelector('.nav-item-material.dropdown ul') as HTMLElement;
+    const ul = document.querySelector(
+      ".nav-item-material.dropdown ul",
+    ) as HTMLElement;
 
     const displayValue = ul.style.display;
-    if (displayValue === 'block') {
-      ul.style.display = 'none';
+    if (displayValue === "block") {
+      ul.style.display = "none";
     } else {
-      ul.style.display = 'block';
+      ul.style.display = "block";
     }
   }
 
   collapseNavbar(): void {
-    this.isNavbarCollapsed = true;
-    document.getElementById('sidebar-id')!.style.width = '60px';
-    this.mainComponent.closeNav();
+    this.isCollapsed = true;
+    document.getElementById("sidebar-id")!.style.width = "60px";
   }
 
   login(): void {
@@ -166,19 +189,19 @@ export class NavbarComponent implements OnInit {
   logout(): void {
     this.collapseNavbar();
     this.loginService.logout();
-    this.router.navigate(['']);
+    this.router.navigate([""]);
   }
   closeAccountDropdown(): void {
     this.isAccountOpen = false;
   }
 
   toggleSidebar(): void {
-    this.isNavbarCollapsed = !this.isNavbarCollapsed;
-    if (this.isNavbarCollapsed === true) {
-      document.getElementById('sidebar-id')!.style.width = '60px';
+    this.isCollapsed = !this.isCollapsed;
+    if (this.isCollapsed === true) {
+      document.getElementById("sidebar-id")!.style.width = "60px";
       this.mainComponent.closeNav();
     } else {
-      document.getElementById('sidebar-id')!.style.width = '250px';
+      document.getElementById("sidebar-id")!.style.width = "250px";
       this.mainComponent.openNav();
     }
   }

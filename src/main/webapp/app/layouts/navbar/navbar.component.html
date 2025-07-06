@@ -1,21 +1,28 @@
 <div style="z-index: 999">
   <header
-    class="app-header col-md-3 col-12"
-    [class.collapsed]="!isNavbarCollapsed"
+    class="app-header"
+    [class.collapsed]="isCollapsed"
+    [class.expanded]="!isCollapsed"
   >
     <!-- Collapse sidebar -->
     <button class="btn-collapse" (click)="toggleSidebar()">
       <fa-icon icon="bars"></fa-icon>
     </button>
+
     <!-- Logout -->
     <ng-container *ngIf="account; else loginBtn">
-      <button mat-button [matMenuTriggerFor]="accountMenu" style="color: white">
+      <button
+        mat-button
+        [matMenuTriggerFor]="accountMenu"
+        class="login-button"
+        style="color: white"
+      >
         <mat-icon style="width: 40px; height: 30px; font-size: 30px"
           >account_box</mat-icon
         >
-        <span *ngIf="!isNavbarCollapsed">{{ account.login }}</span>
+        <span *ngIf="!isCollapsed">{{ account.login }}</span>
       </button>
-      <mat-menu #accountMenu="matMenu">
+      <mat-menu class="menu-lg-button" #accountMenu="matMenu">
         <button
           mat-menu-item
           routerLink="/account/settings"
@@ -44,6 +51,9 @@
     id="sidebar-id"
     class="sidebar col-md-3"
     style="width: 60px; padding-bottom: 0px"
+    [class.collapsed]="isCollapsed && !(isHandset$ | async)"
+    [class.expanded]="!isCollapsed && !(isHandset$ | async)"
+    [class.hidden]="isCollapsed && (isHandset$ | async)"
   >
     <a
       style="
@@ -53,7 +63,6 @@
         margin-bottom: 0px;
       "
       class="sidebar-brand logo"
-      routerLink="/"
       (click)="collapseNavbar()"
     >
       <img
@@ -64,7 +73,7 @@
       />
     </a>
     <div [ngSwitch]="account !== null">
-      <nav id="manu-bar" style="max-width: 400px">
+      <nav id="manu-bar" style="max-width: 400px; height: 100vh">
         <div class="sidebar-content" style="margin-right: 10px">
           <div class="sidebar-menu">
             <ul
@@ -76,7 +85,7 @@
                 *ngFor="let menu of menus"
                 [ngClass]="{
                   active: menu.active,
-                  'sidebar-dropdown': menu.type === 'dropdown'
+                  'sidebar-dropdown': menu.type === 'dropdown',
                 }"
               >
                 <div
@@ -86,7 +95,7 @@
                   style="height: 50px"
                 >
                   <div
-                    routerLink="/home"
+                    routerLink="/"
                     style="display: flex; align-items: center"
                     *ngIf="menu.type === 'home'"
                   >

@@ -12,6 +12,7 @@ import {
 } from "../dialog/list-material-update-dialog";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { environment } from "../../../environments/environment";
+import { Overlay } from "@angular/cdk/overlay";
 
 @Injectable({
   providedIn: "root",
@@ -21,6 +22,7 @@ export class MaterialUpdateService {
     private materialService: ListMaterialService,
     private dialog: MatDialog,
     private http: HttpClient,
+    private overlay: Overlay,
   ) {}
   //  private apiUrl = environment.restApiBaseUrl + '/api/post/request-update';
 
@@ -60,7 +62,8 @@ export class MaterialUpdateService {
         maxHeight: "90vh",
         panelClass: "dialog-center-pane",
         data: { items: itemsToUpdate },
-        autoFocus: false, // Thêm autoFocus: false vào đây
+        autoFocus: false,
+        scrollStrategy: this.overlay.scrollStrategies.block(),
       });
     }
     return undefined;

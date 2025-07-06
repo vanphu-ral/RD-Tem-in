@@ -27,23 +27,23 @@
           <mat-icon>center_focus_weak</mat-icon>
           <span class="btn-text">Scan</span>
         </button>
-        <div *ngIf="scanError" class="scan-error">{{ scanError }}</div>
+        <!-- <div *ngIf="scanError" class="scan-error">{{ scanError }}</div> -->
         <div *ngIf="isScanMode && !scanResult">
           <mat-spinner diameter="20"></mat-spinner>
         </div>
         <!-- Refresh -->
+      </div>
+      <!-- NHÓM 3: Nút phụ (view‐mode / columns / export) -->
+      <div class="group-buttons secondary">
         <button class="btn-refresh" mat-button (click)="refreshScan()">
           <mat-icon>refresh</mat-icon>
           <span class="btn-text">Refresh</span>
         </button>
-      </div>
-      <!-- NHÓM 3: Nút phụ (view‐mode / columns / export) -->
-      <div class="group-buttons secondary">
         <!-- View mode -->
         <button mat-button [matMenuTriggerFor]="menu" class="btn-view">
           <mat-icon>visibility</mat-icon>
           <span class="btn-text">View</span>
-          <mat-icon class="icon-down">keyboard_arrow_down</mat-icon>
+          <!-- <mat-icon class="icon-down">keyboard_arrow_down</mat-icon> -->
         </button>
         <mat-menu #menu="matMenu">
           <button mat-menu-item>Danh sách chi tiết</button>
@@ -60,7 +60,7 @@
         >
           <mat-icon>view_column</mat-icon>
           <span class="btn-text">Columns</span>
-          <mat-icon class="icon-down">keyboard_arrow_down</mat-icon>
+          <!-- <mat-icon class="icon-down">keyboard_arrow_down</mat-icon> -->
         </button>
 
         <mat-menu #subMenu="matMenu">
@@ -199,7 +199,6 @@
               (change)="toggleAllRows()"
               [checked]="isAllSelected()"
               [indeterminate]="isSomeSelected()"
-              [disabled]="!filterApplied"
               [aria-label]="checkboxLabel()"
             >
             </mat-checkbox>
