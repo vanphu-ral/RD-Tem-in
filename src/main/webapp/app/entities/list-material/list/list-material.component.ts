@@ -234,6 +234,15 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((total) => {
         this.length = total;
+        if (this.paginator) {
+          this.paginator.length = total;
+
+          if (total > 0 && this.pageIndex > 0) {
+            const maxPageIndex = Math.ceil(total / this.pageSize) - 1;
+            this.pageIndex = Math.min(this.pageIndex, maxPageIndex);
+            this.paginator.pageIndex = this.pageIndex;
+          }
+        }
         this.cdr.markForCheck();
       });
 
@@ -245,116 +254,109 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         this.checkedCount.set(ids.length);
       });
 
-    // this.sidebarSubscription = this.sidebarService.sidebarToggled$.pipe(takeUntil(this.ngUnsubscribe)).subscribe(isSidebarOpen => {
-    //   this.updateTableMaxWidth(isSidebarOpen);
-    // });
+    // this.dataSource.filterPredicate = (
+    //   data: RawGraphQLMaterial,
+    //   filter: string,
+    // ): boolean => {
+    //   const { textFilters, dialogFilters } = JSON.parse(filter) as {
+    //     textFilters: { [col: string]: { mode: string; value: string } };
+    //     dialogFilters: { [col: string]: any[] };
+    //   };
 
-    this.materialService.totalCount$
-      .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((count) => {
-        this.length = count;
-        this.cdr.markForCheck();
-      });
+    //   for (const colDef in textFilters) {
+    //     if (!Object.prototype.hasOwnProperty.call(textFilters, colDef)) {
+    //       continue;
+    //     }
 
-    this.dataSource.filterPredicate = (
-      data: RawGraphQLMaterial,
-      filter: string,
-    ): boolean => {
-      const { textFilters, dialogFilters } = JSON.parse(filter) as {
-        textFilters: { [col: string]: { mode: string; value: string } };
-        dialogFilters: { [col: string]: any[] };
-      };
+    //     const { mode: searchMode, value } = textFilters[colDef];
+    //     const searchTerm = value.trim().toLowerCase();
+    //     if (!searchTerm) {
+    //       continue;
+    //     }
 
-      for (const colDef in textFilters) {
-        if (!Object.prototype.hasOwnProperty.call(textFilters, colDef)) {
-          continue;
-        }
+    //     const cellValueRaw = (data as any)[colDef];
+    //     let cellValue: string;
 
-        const { mode: searchMode, value } = textFilters[colDef];
-        const searchTerm = value.trim().toLowerCase();
-        if (!searchTerm) {
-          continue;
-        }
+    //     // 1) Cột status: chuyển number → label
+    //     if (colDef === "status") {
+    //       const n =
+    //         typeof cellValueRaw === "string"
+    //           ? parseInt(cellValueRaw, 10)
+    //           : cellValueRaw;
+    //       cellValue = this.getStatusLabel(n).toLowerCase();
+    //     }
+    //     // 2) Các cột date
+    //     else if (
+    //       [
+    //         "expirationDate",
+    //         "receivedDate",
+    //         "updatedDate",
+    //         "checkinDate",
+    //       ].includes(colDef)
+    //     ) {
+    //       let dt: Date;
+    //       if (typeof cellValueRaw === "number") {
+    //         dt = new Date(cellValueRaw * 1000);
+    //       } else if (
+    //         typeof cellValueRaw === "string" &&
+    //         /^\d+$/.test(cellValueRaw)
+    //       ) {
+    //         dt = new Date(Number(cellValueRaw) * 1000);
+    //       } else {
+    //         dt = new Date(cellValueRaw);
+    //       }
+    //       if (isNaN(dt.getTime())) {
+    //         return false;
+    //       }
+    //       cellValue = dt
+    //         .toLocaleDateString("vi-VN", {
+    //           day: "2-digit",
+    //           month: "2-digit",
+    //           year: "numeric",
+    //         })
+    //         .toLowerCase();
+    //     }
+    //     // 3) Các cột còn lại: normal text
+    //     else {
+    //       cellValue = String(cellValueRaw).trim().toLowerCase();
+    //     }
 
-        const cellValueRaw = (data as any)[colDef];
-        let cellValue: string;
+    //     // So sánh theo mode
+    //     switch (searchMode) {
+    //       case "equals":
+    //         if (cellValue !== searchTerm) {
+    //           return false;
+    //         }
+    //         break;
+    //       case "contains":
+    //         if (!cellValue.includes(searchTerm)) {
+    //           return false;
+    //         }
+    //         break;
+    //       case "not_contains":
+    //         if (cellValue.includes(searchTerm)) {
+    //           return false;
+    //         }
+    //         break;
+    //       case "not_equals":
+    //         if (cellValue === searchTerm) {
+    //           return false;
+    //         }
+    //         break;
+    //     }
+    //   }
 
-        // 1) Cột status: chuyển number → label
-        if (colDef === "status") {
-          const n =
-            typeof cellValueRaw === "string"
-              ? parseInt(cellValueRaw, 10)
-              : cellValueRaw;
-          cellValue = this.getStatusLabel(n).toLowerCase();
-        }
-        // 2) Các cột date
-        else if (
-          [
-            "expirationDate",
-            "receivedDate",
-            "updatedDate",
-            "checkinDate",
-          ].includes(colDef)
-        ) {
-          let dt: Date;
-          if (typeof cellValueRaw === "number") {
-            dt = new Date(cellValueRaw * 1000);
-          } else if (
-            typeof cellValueRaw === "string" &&
-            /^\d+$/.test(cellValueRaw)
-          ) {
-            dt = new Date(Number(cellValueRaw) * 1000);
-          } else {
-            dt = new Date(cellValueRaw);
-          }
-          if (isNaN(dt.getTime())) {
-            return false;
-          }
-          cellValue = dt
-            .toLocaleDateString("vi-VN", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })
-            .toLowerCase();
-        }
-        // 3) Các cột còn lại: normal text
-        else {
-          cellValue = String(cellValueRaw).trim().toLowerCase();
-        }
-
-        // So sánh theo mode
-        switch (searchMode) {
-          case "equals":
-            if (cellValue !== searchTerm) {
-              return false;
-            }
-            break;
-          case "contains":
-            if (!cellValue.includes(searchTerm)) {
-              return false;
-            }
-            break;
-          case "not_contains":
-            if (cellValue.includes(searchTerm)) {
-              return false;
-            }
-            break;
-          case "not_equals":
-            if (cellValue === searchTerm) {
-              return false;
-            }
-            break;
-        }
-      }
-
-      return true;
-    };
+    //   return true;
+    // };
   }
 
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
+    if (this.paginator) {
+      this.paginator.pageIndex = this.pageIndex;
+      this.paginator.pageSize = this.pageSize;
+    }
   }
 
   onLoad(): void {
@@ -463,6 +465,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   handlePageEvent(e: PageEvent): void {
     this.pageSize = e.pageSize;
     this.pageIndex = e.pageIndex;
+    if (this.paginator) {
+      this.paginator.pageIndex = this.pageIndex;
+    }
+    // if (this.paginator) {
+    //   this.paginator.pageIndex = this.pageIndex;
+    // }
+
     this.fetchData();
   }
 
@@ -642,6 +651,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.applyCombinedFilters();
     this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
     this.fetchData();
   }
 
@@ -818,46 +830,31 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       combinedFilterData,
     );
     this.dataSource.filter = JSON.stringify(combinedFilterData);
-
+    this.pageIndex = 0;
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
   }
   // .filter(([_, t]) => !!t.value)
 
-  // lấy dữ liệu cho lọc tìm kiếm
   private fetchData(): void {
-    const filtersObject = Object.entries(this.searchTerms).map(([key, t]) => ({
-      field: key,
-      mode: t.mode,
-      value: t.value,
-    }));
-    const filterString = JSON.stringify(filtersObject);
+    const filtersWithMode = Object.entries(this.searchTerms)
+      .filter(
+        ([_, t]) => t.value !== undefined && t.value !== null && t.value !== "",
+      )
+      .map(([key, t]) => ({
+        field: key,
+        mode: t.mode || "contains", // Cung cấp giá trị mặc định nếu mode chưa được set
+        value: t.value,
+      }));
 
+    const filterString = JSON.stringify(filtersWithMode);
+
+    // Chuyển đổi pageIndex từ 0-based (Material) sang 1-based (Backend)
     this.materialService.fetchMaterialsData(
-      this.pageIndex, // trang hiện tại
+      this.pageIndex + 1,
       this.pageSize,
       filterString,
     );
   }
-
-  //   private updateTableMaxWidth(isSidebarOpen: boolean): void {
-  //     if (isSidebarOpen) {
-  //       this.tableMaxWidth = '1880px';
-  //     } else {
-  //       this.tableMaxWidth = '1670px';
-  //     }
-  //     this.cdr.markForCheck();
-  //   }
-  //   public exportExcel(jsonData: any[], fileName: string): void {
-  //     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(jsonData);
-  //     const wb: XLSX.WorkBook = { Sheets: { 'data': ws }, SheetNames: ['data'] };
-  //     const excelBuffer: any = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  //     this.saveExcelFile(excelBuffer, fileName);
-  //   }
-  //   private saveExcelFile(buffer: any, fileName: string): void {
-  //     const data: Blob = new Blob([buffer], { type: this.fileType });
-  //     FileSaver.saveAs(data, fileName + this.fileExtension);
-  //   }
-  // #endregion
 }

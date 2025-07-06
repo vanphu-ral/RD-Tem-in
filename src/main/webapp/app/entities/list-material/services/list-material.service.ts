@@ -255,7 +255,6 @@ export class ListMaterialService {
   }
 
   public fetchMaterialsData(
-    // offset: number, //phần bỏ qua khi phân trang
     pageIndex: number, // số trang hiện tại
     limit: number, // số lượng mỗi trang
     filter?: string,
@@ -293,8 +292,17 @@ export class ListMaterialService {
 
     // body kèm với search filter
     const body: { [key: string]: any } = {
-      pageIndex: pageIndex,
-      size: limit,
+      materialIdentifier: "",
+      status: "",
+      partNumber: "",
+      quantity: null,
+      availableQuantity: null,
+      lotNumber: "",
+      userData4: "",
+      locationName: "",
+      expirationDate: "",
+      pageNumber: pageIndex,
+      itemPerPage: limit,
     };
 
     if (filter) {
@@ -314,23 +322,26 @@ export class ListMaterialService {
       `MaterialService (HTTP): Fetching materials from ${this.apiMaterialUrl} with POST. Force refresh: ${forceRefresh}`,
     );
     interface ApiMaterialResponse {
-      count: number;
-      inventory: RawGraphQLMaterial[];
+      totalItems: number;
+      inventories: RawGraphQLMaterial[];
     }
+    console.log("log api material moi", body);
     this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).subscribe({
       next: (response) => {
-        if (response?.inventory && Array.isArray(response.inventory)) {
+        console.log("log response", response);
+        if (response?.inventories && Array.isArray(response.inventories)) {
+          this._totalCount.next(response.totalItems);
           const selectedIds = this._selectedIds.value;
-          const filteredData = response.inventory.filter(
+          const filteredData = response.inventories.filter(
             (item) => !this._updatedInventoryIds.has(item.inventoryId),
           );
           const mappedData = filteredData.map((rawItem) =>
             this.mapRawToMaterial(rawItem, selectedIds),
           );
           this._materialsData.next(mappedData);
-          this._totalCount.next(mappedData.length);
+          this._totalCount.next(response.totalItems);
           this._materialsDataFetchedOnce = true;
-          console.log("typeof callback:", typeof response.inventory);
+          console.log("typeof callback:", typeof response.inventories);
           console.log("bo hang da cap nhat", filteredData);
           console.log(
             `MaterialService (HTTP): Materials data ${forceRefresh ? "refreshed" : "loaded"}. Count:`,
