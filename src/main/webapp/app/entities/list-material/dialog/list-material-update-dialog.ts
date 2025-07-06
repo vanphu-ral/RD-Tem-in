@@ -11,7 +11,7 @@ import {
 import { Router } from "@angular/router";
 import { MatTableDataSource } from "@angular/material/table";
 import { ChangeDetectionStrategy, signal, WritableSignal } from "@angular/core";
-import { FormBuilder, FormGroup, FormControl } from "@angular/forms";
+import { FormBuilder, FormGroup, FormControl, FormArray } from "@angular/forms";
 import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
@@ -222,19 +222,28 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         .get("selectedWarehouseControl")
         ?.updateValueAndValidity({ emitEvent: true });
     });
+    this.itemsDataSource.data.forEach((item) => {
+      item.quantityChange = item.quantity;
+    });
 
     this.filteredWarehouses = this.dialogForm
       .get("selectedWarehouseControl")!
       .valueChanges.pipe(
         startWith(this.dialogForm.get("selectedWarehouseControl")?.value || ""),
         map((value: unknown) =>
-          typeof value === "string" ? value : (value as { name: string })?.name,
+          typeof value === "string"
+            ? value
+            : (value as { name: string })?.name || "",
         ),
-        map((name: string) =>
-          name
+        map((name: string) => {
+          // Lọc theo tên
+          const filtered = name
             ? this._filterWarehouses(name)
-            : this.warehouseSelection?.slice() || [],
-        ),
+            : this.warehouseSelection.slice();
+
+          // Sắp xếp ưu tiên tên ngắn lên trước
+          return filtered.sort((a, b) => a.name.length - b.name.length);
+        }),
       );
 
     // Định nghĩa interface cho filter được parse từ JSON
@@ -431,17 +440,29 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         return "N/A";
     }
   }
-  applyHeaderQuantityChange(): void {
-    const qty = Number(this.headerQuantityChange);
-    const max = this.minQuantityAcrossRows;
-    const safeQty = qty > max ? max : qty;
-    this.headerQuantityChange = safeQty;
+  // applyHeaderQuantityChange(): void {
+  //   const qty = Number(this.headerQuantityChange);
+  //   const max = this.minQuantityAcrossRows;
+  //   const safeQty = qty > max ? max : qty;
+  //   this.headerQuantityChange = safeQty;
 
-    this.itemsDataSource.data.forEach((item) => {
-      item.quantityChange = safeQty;
-      item._isChanged = true;
-    });
-    this.itemsDataSource._updateChangeSubscription();
+  //   this.itemsDataSource.data.forEach((item) => {
+  //     item.quantityChange = safeQty;
+  //     item._isChanged = true;
+  //   });
+  //   this.itemsDataSource._updateChangeSubscription();
+  // }
+  applyHeaderQuantityChange(): void {
+    if (
+      this.headerQuantityChange !== null &&
+      this.headerQuantityChange !== undefined &&
+      this.itemsDataSource
+    ) {
+      this.itemsDataSource.data.forEach((item) => {
+        item.quantityChange = this.headerQuantityChange as number;
+        item._isChanged = true;
+      });
+    }
   }
 
   toggleAllRenewal(): void {
@@ -554,15 +575,15 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   clampHeaderQuantity(input: HTMLInputElement): void {
     const val = Number(input.value);
     const max = this.minQuantityAcrossRows;
-    if (val > max) {
-      this.snackBar.open(
-        `Không thể nhập lớn hơn ${max} (số nhỏ nhất trong các dòng)`,
-        "Đóng",
-        { duration: 2000, panelClass: ["snackbar-error"] },
-      );
-      input.value = String(max);
-      this.headerQuantityChange = max;
-    }
+    // if (val > max) {
+    //   this.snackBar.open(
+    //     `Không thể nhập lớn hơn ${max} (số nhỏ nhất trong các dòng)`,
+    //     "Đóng",
+    //     { duration: 2000, panelClass: ["snackbar-error"] },
+    //   );
+    //   input.value = String(max);
+    //   this.headerQuantityChange = max;
+    // }
   }
 
   clampQuantity(event: Event, item: MaterialItem): void {
@@ -574,17 +595,17 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   }
 
   onQuantityChange(element: MaterialItem): void {
-    if (element.quantityChange > element.quantity) {
-      this.snackBar.open(
-        "Không thể chuyển giá trị lớn hơn số lượng hiện tại",
-        "Đóng",
-        {
-          duration: 3000,
-          panelClass: ["snackbar-error"],
-        },
-      );
-      element.quantityChange = element.quantity;
-    }
+    // if (element.quantityChange > element.quantity) {
+    //   this.snackBar.open(
+    //     "Không thể chuyển giá trị lớn hơn số lượng hiện tại",
+    //     "Đóng",
+    //     {
+    //       duration: 3000,
+    //       panelClass: ["snackbar-error"],
+    //     },
+    //   );
+    //   element.quantityChange = element.quantity;
+    // }
     element._isChanged = true;
   }
 
@@ -640,6 +661,20 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     const headerWarehouseValue = this.dialogForm.get("selectedWarehouseControl")
       ?.value?.value;
     const headerWarehouseSet = !!headerWarehouseValue;
+    const allQtyProvided = this.itemsDataSource.data.every(
+      (item) =>
+        item.quantityChange !== null &&
+        item.quantityChange !== undefined &&
+        item.quantityChange !== 0,
+    );
+    if (!allQtyProvided) {
+      this.snackBar.open(
+        "Số lượng không được để trống và phải lớn hơn 0!",
+        "Đóng",
+        { duration: 3000, panelClass: ["snackbar-error"] },
+      );
+      return;
+    }
 
     const allRowsValid = this.itemsDataSource.data.every(
       (item) =>

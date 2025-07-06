@@ -27,6 +27,19 @@
   }
 }
 
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  font-weight: bold;
+  margin-top: 10px;
+  padding: 0.5em 1.5rem;
+
+  .dialog-title {
+    font-size: 25px;
+  }
+}
+
 mat-divider {
   margin-top: 20px;
 }
@@ -39,6 +52,7 @@ mat-dialog-content {
 mat-dialog-actions .dialog-notice {
   font-size: 14px;
   font-style: italic;
+  font-weight: 500;
   text-decoration: underline;
   flex: 1;
   text-align: left;
@@ -57,6 +71,7 @@ mat-dialog-actions .dialog-accept-btn {
 
 .mat-typography {
   padding-top: 0px;
+  padding-bottom: 0px;
 }
 
 .custom-search-input {
@@ -113,7 +128,18 @@ th {
 .bordered-table {
   border-collapse: collapse;
   width: 100%;
-  border: 1px solid #e40b0b;
+
+  .mat-column-locationId {
+    min-width: 140px;
+    .search-container {
+      padding-top: 9px;
+    }
+  }
+  .mat-column-quantityChange {
+    .search-container {
+      padding-top: 9px;
+    }
+  }
 }
 
 .bordered-table th,
@@ -211,12 +237,11 @@ th {
 }
 
 .custom-approver-button {
-  height: 55px;
-  width: 210px;
+  height: 40px;
+  width: 200px;
   border-radius: 4px;
   font-size: 14px;
   margin-bottom: 12px;
-  font-family: "Be Vietnam Pro", sans-serif;
   font-weight: 400;
   font-style: normal;
   transition: all 0.3s ease;
@@ -224,15 +249,22 @@ th {
   border: 1px solid #ddd;
 }
 
-.mat-column-locationId {
-  width: 100%;
-}
-
 // .mat-column-s{
 //   flex: 0 0 150px;
 // }
 /* MOBILE (< 600px) */
 @media (max-width: 599px) {
+  .dialog-header {
+    display: block;
+
+    .dialog-title {
+      font-size: 20px;
+      margin: 10px 5px;
+    }
+    .dialog-footer {
+      flex-direction: column;
+    }
+  }
 }
 
 /* TABLET (600–959px) */

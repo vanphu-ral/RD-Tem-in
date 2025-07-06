@@ -1,15 +1,5 @@
-<div
-  style="
-    display: flex;
-    align-items: center;
-    gap: 40px;
-    margin-top: 10px;
-    padding: 1.5em;
-  "
->
-  <h2 style="font-weight: bold; font-size: 20px" mat-dialog-title>
-    Chỉnh sửa thông tin vật tư
-  </h2>
+<div class="dialog-header">
+  <h2 mat-dialog-title class="dialog-title">Cập nhật vật tư</h2>
   <div style="align-items: center">
     <button
       style="display: flex; align-items: center; justify-content: space-between"
@@ -626,17 +616,23 @@
               </div>
               <div class="search-container">
                 <div class="custom-search-wrapper">
-                  <input
+                  <!-- <input
                     #hdrInput
                     type="number"
                     class="custom-search-input"
                     placeholder="Nhập số để áp dụng cho tất cả"
                     [(ngModel)]="headerQuantityChange"
-                    [min]="0"
-                    [max]="minQuantityAcrossRows"
                     (input)="clampHeaderQuantity(hdrInput)"
                     (keyup.enter)="applyHeaderQuantityChange()"
                     (blur)="applyHeaderQuantityChange()"
+                  /> -->
+                  <input
+                    #hdrInput
+                    type="number"
+                    class="custom-search-input"
+                    placeholder="Nhập số cho tất cả"
+                    [(ngModel)]="headerQuantityChange"
+                    (keyup.enter)="applyHeaderQuantityChange()"
                   />
                 </div>
               </div>
@@ -649,10 +645,6 @@
             type="number"
             class="editable-cell"
             [(ngModel)]="element.quantityChange"
-            [min]="0"
-            [max]="element.quantity"
-            (input)="clampQuantity($event, element)"
-            (ngModelChange)="onQuantityChange(element)"
           />
         </td>
       </ng-container>
@@ -664,10 +656,10 @@
           style="background-color: #548ce8"
         >
           <button mat-raised-button (click)="scanLocationForAll()">
-            <mat-icon>center_focus_weak</mat-icon> Scan all
+            <mat-icon>center_focus_weak</mat-icon> Scan
           </button>
           <button mat-raised-button (click)="refreshForAll()">
-            <mat-icon>refresh</mat-icon> All
+            <mat-icon>refresh</mat-icon> Fresh
           </button>
           <!-- <mat-spinner *ngIf="scanLoadingAll" diameter="20" style="margin-left: 8px"></mat-spinner> -->
         </th>
@@ -717,12 +709,14 @@
   </div>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
+<mat-dialog-actions align="end" class="dialog-footer">
   <span class="dialog-notice"
     >Nếu chọn gia hạn, hệ thống sẽ tự động gia hạn thêm 15 ngày.</span
   >
-  <button mat-button (click)="onCancel()">Hủy</button>
-  <button mat-stroked-button class="dialog-accept-btn" (click)="onSave()">
-    Gửi đề nghị
-  </button>
+  <div>
+    <button mat-button (click)="onCancel()">Hủy</button>
+    <button mat-stroked-button class="dialog-accept-btn" (click)="onSave()">
+      Gửi đề nghị
+    </button>
+  </div>
 </mat-dialog-actions>

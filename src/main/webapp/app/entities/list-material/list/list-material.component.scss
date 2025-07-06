@@ -71,6 +71,14 @@
 .bordered-table {
   border-collapse: collapse;
   width: 100%;
+  .mat-column-select {
+    text-align: center;
+    ::ng-deep .mat-mdc-checkbox {
+      .mdc-form-field > label {
+        padding-left: 0px !important;
+      }
+    }
+  }
 }
 
 .bordered-table th,
@@ -140,7 +148,12 @@ th {
   padding: 0;
   overflow: visible;
 }
-
+::ng-deep .mat-mdc-select-value {
+  font-size: 13px;
+}
+::ng-deep .mat-form-field-appearance-fill .mat-mdc-select-arrow-wrapper {
+  transform: none !important;
+}
 .header-content {
   display: flex;
   flex-direction: column;
@@ -326,35 +339,59 @@ th {
 
 /* MOBILE (< 600px) */
 @media (max-width: 599px) {
-  .function-list {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    padding: 8px;
+  .main-page {
+    width: 400px;
 
-    .group-title {
-      text-align: center;
-    }
+    .function-list {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 8px;
 
-    .group-buttons {
-      justify-content: space-around;
-      width: 100%;
-
-      /* Chỉ hiện icon, ẩn text */
-      .btn-text {
-        display: none;
+      .group-title {
+        text-align: left;
       }
 
-      button {
-        min-width: 40px;
-        min-height: 40px;
-        padding: 0;
-      }
-    }
+      .group-buttons-main {
+        flex-direction: column;
+        .group-buttons {
+          justify-content: flex-start;
+          width: 100%;
 
-    .scan-error {
-      font-size: 12px;
-      text-align: center;
+          &.primary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+            button {
+              min-width: 80px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          &.secondary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+            button {
+              min-width: 80px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          /* Chỉ hiện icon, ẩn text */
+          .btn-text,
+          .icon-down {
+            display: none;
+          }
+        }
+      }
+
+      .scan-error {
+        font-size: 12px;
+        text-align: center;
+      }
     }
   }
 }
@@ -373,6 +410,7 @@ th {
 
       .group-title {
         margin-bottom: 4px;
+        font-weight: bold;
       }
 
       .group-buttons-main {
@@ -413,14 +451,16 @@ th {
         button {
           padding: 0 !important;
           min-width: 40px !important;
-          padding: 0px 0px 0 5px !important;
+          padding: 0px 0px 0 8px !important;
           min-height: 40px !important;
         }
       }
     }
+
     .full-scroll-table-container {
       max-width: 813px;
     }
+
     ::ng-deep table {
       th.mat-mdc-header-cell {
         padding: 4px 8px !important;

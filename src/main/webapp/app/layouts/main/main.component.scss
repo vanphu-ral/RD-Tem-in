@@ -1,13 +1,31 @@
-.router-outlet-page {
-  margin: 15px 5px 5px 5px;
-}
-
 // id="main" class="container-fluid" style="padding-top: 12px; margin-left: 52px"
 #main {
-  padding-top: 15px;
+  padding-top: 25px;
   margin-left: 60px;
+  height: calc(var(--vh) * 100);
 }
 
+@media (max-width: 599px) {
+  #main {
+    margin-top: 60px;
+    margin-left: 0 !important;
+    width: 100%;
+  }
+}
+@media (min-width: 600px) and (max-width: 959px) {
+  #main {
+    margin-top: 60px;
+    margin-left: 0 !important;
+    width: 100%;
+  }
+}
+@media (min-width: 960px) {
+  #main {
+    margin-top: 70px;
+    margin-left: 60px;
+    width: 100%;
+  }
+}
 @media (max-width: 1200px) {
   #main {
     padding-top: 0px;
