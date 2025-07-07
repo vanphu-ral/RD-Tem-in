@@ -15,8 +15,14 @@ import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
-import { Subscription, Subject } from "rxjs";
-import { takeUntil } from "rxjs/operators";
+import { Subscription, Subject, of } from "rxjs";
+import {
+  takeUntil,
+  map,
+  catchError,
+  distinctUntilChanged,
+  first,
+} from "rxjs/operators";
 import * as XLSX from "xlsx";
 import { SelectionModel } from "@angular/cdk/collections";
 import {
@@ -26,6 +32,8 @@ import {
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { AccountService } from "app/core/auth/account.service";
 import { MatSnackBar } from "@angular/material/snack-bar";
+import { ActivatedRoute } from "@angular/router";
+import { HttpParams } from "@angular/common/http";
 
 interface sumary_mode {
   value: string;
@@ -152,7 +160,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   dataSource = new MatTableDataSource<RawGraphQLMaterial>();
   length = 0;
   pageSize = 50;
-  pageIndex = 0;
+  pageIndex = 1;
   pageSizeOptions = [15, 25, 50, 100, 150];
   hidePageSize = false;
   showPageSizeOptions = true;
@@ -204,6 +212,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     public materialService: ListMaterialService,
     private dialog: MatDialog,
     private router: Router,
+    private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
     private accountService: AccountService,
     private snackBar: MatSnackBar,
@@ -225,140 +234,77 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       ? [...this.displayedColumns]
       : this.displayedColumns.filter((c) => c !== "select");
 
-    this.materialService.materialsData$
-      .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((data) => {
-        this.dataSource.data = data;
-        this.checkedCount.set(data.filter((i) => i.checked).length);
-        this.cdr.markForCheck();
-      });
-    this.materialService.totalCount$
-      .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((total) => {
-        this.length = total;
-        if (this.paginator) {
-          this.paginator.length = total;
+    // this.materialService.materialsData$
+    //   .pipe(
+    //     takeUntil(this.ngUnsubscribe),
+    //     distinctUntilChanged(),
+    //   )
+    //   .subscribe((data) => {
+    //     this.dataSource.data = data;
+    //     this.checkedCount.set(data.filter((i) => i.checked).length);
+    //     this.cdr.markForCheck();
+    //   });
 
-          if (total > 0 && this.pageIndex > 0) {
-            const maxPageIndex = Math.ceil(total / this.pageSize) - 1;
-            this.pageIndex = Math.min(this.pageIndex, maxPageIndex);
-            this.paginator.pageIndex = this.pageIndex;
-          }
-        }
-        this.cdr.markForCheck();
-      });
+    // this.materialService.totalCount$
+    //   .pipe(
+    //     takeUntil(this.ngUnsubscribe),
+    //     distinctUntilChanged(),
+    //   )
+    //   .subscribe((total) => {
+    //     this.length = total;
+    //     if (this.paginator) {
+    //       this.paginator.length = total;
 
-    this.fetchData();
-
-    this.materialService.selectedIds$
-      .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((ids) => {
-        this.checkedCount.set(ids.length);
-      });
-
-    // this.dataSource.filterPredicate = (
-    //   data: RawGraphQLMaterial,
-    //   filter: string,
-    // ): boolean => {
-    //   const { textFilters, dialogFilters } = JSON.parse(filter) as {
-    //     textFilters: { [col: string]: { mode: string; value: string } };
-    //     dialogFilters: { [col: string]: any[] };
-    //   };
-
-    //   for (const colDef in textFilters) {
-    //     if (!Object.prototype.hasOwnProperty.call(textFilters, colDef)) {
-    //       continue;
-    //     }
-
-    //     const { mode: searchMode, value } = textFilters[colDef];
-    //     const searchTerm = value.trim().toLowerCase();
-    //     if (!searchTerm) {
-    //       continue;
-    //     }
-
-    //     const cellValueRaw = (data as any)[colDef];
-    //     let cellValue: string;
-
-    //     // 1) Cột status: chuyển number → label
-    //     if (colDef === "status") {
-    //       const n =
-    //         typeof cellValueRaw === "string"
-    //           ? parseInt(cellValueRaw, 10)
-    //           : cellValueRaw;
-    //       cellValue = this.getStatusLabel(n).toLowerCase();
-    //     }
-    //     // 2) Các cột date
-    //     else if (
-    //       [
-    //         "expirationDate",
-    //         "receivedDate",
-    //         "updatedDate",
-    //         "checkinDate",
-    //       ].includes(colDef)
-    //     ) {
-    //       let dt: Date;
-    //       if (typeof cellValueRaw === "number") {
-    //         dt = new Date(cellValueRaw * 1000);
-    //       } else if (
-    //         typeof cellValueRaw === "string" &&
-    //         /^\d+$/.test(cellValueRaw)
-    //       ) {
-    //         dt = new Date(Number(cellValueRaw) * 1000);
-    //       } else {
-    //         dt = new Date(cellValueRaw);
+    //       if (total > 0 && this.pageIndex > 0) {
+    //         const maxPageIndex = Math.ceil(total / this.pageSize) - 1;
+    //         this.pageIndex = Math.min(this.pageIndex, maxPageIndex);
+    //         this.paginator.pageIndex = this.pageIndex;
     //       }
-    //       if (isNaN(dt.getTime())) {
-    //         return false;
-    //       }
-    //       cellValue = dt
-    //         .toLocaleDateString("vi-VN", {
-    //           day: "2-digit",
-    //           month: "2-digit",
-    //           year: "numeric",
-    //         })
-    //         .toLowerCase();
     //     }
-    //     // 3) Các cột còn lại: normal text
-    //     else {
-    //       cellValue = String(cellValueRaw).trim().toLowerCase();
-    //     }
+    //     this.cdr.markForCheck();
+    //   });
 
-    //     // So sánh theo mode
-    //     switch (searchMode) {
-    //       case "equals":
-    //         if (cellValue !== searchTerm) {
-    //           return false;
-    //         }
-    //         break;
-    //       case "contains":
-    //         if (!cellValue.includes(searchTerm)) {
-    //           return false;
-    //         }
-    //         break;
-    //       case "not_contains":
-    //         if (cellValue.includes(searchTerm)) {
-    //           return false;
-    //         }
-    //         break;
-    //       case "not_equals":
-    //         if (cellValue === searchTerm) {
-    //           return false;
-    //         }
-    //         break;
-    //     }
-    //   }
-
-    //   return true;
-    // };
+    this.route.queryParams
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+      )
+      .subscribe((params) => {
+        // Gọi hàm đã sửa và truyền params mới nhất vào
+        this.fetchDataAndUpdateUI(params);
+      });
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.paginator = this.paginator;
+    // this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
-    if (this.paginator) {
-      this.paginator.pageIndex = this.pageIndex;
-      this.paginator.pageSize = this.pageSize;
-    }
+
+    this.route.queryParams
+      .pipe(takeUntil(this.ngUnsubscribe), first())
+      .subscribe((params) => {
+        if (this.paginator) {
+          const page = +params["page"] || 1;
+          const pageSize = +params["pageSize"] || 10;
+          this.paginator.pageIndex = page - 1;
+          this.paginator.pageSize = pageSize;
+        }
+      });
+
+    // Xử lý khi người dùng thay đổi trang
+    this.paginator.page
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        distinctUntilChanged(), // Tránh trigger nhiều lần
+      )
+      .subscribe(() => {
+        this.router.navigate(["/list-material"], {
+          queryParams: {
+            page: this.paginator.pageIndex + 1,
+            pageSize: this.paginator.pageSize,
+          },
+          queryParamsHandling: "merge",
+        });
+      });
   }
 
   onLoad(): void {
@@ -429,6 +375,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.filterModes[colDef] = mode;
     console.log(`[setFilterMode] - Cột ${colDef} đã chọn mode: ${mode}`);
   }
+
   public applyDateFilter(
     colDef: string,
     event: MatDatepickerInputEvent<Date>,
@@ -458,6 +405,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.applyCombinedFilters();
   }
+
   applySelectFilter(col: string, value: string): void {
     const mode = this.filterModes[col] || "equals";
     this.searchTerms[col] = { mode, value };
@@ -467,9 +415,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   handlePageEvent(e: PageEvent): void {
     this.pageSize = e.pageSize;
     this.pageIndex = e.pageIndex;
-    if (this.paginator) {
-      this.paginator.pageIndex = this.pageIndex;
-    }
+    // if (this.paginator) {
+    //   this.paginator.pageIndex = this.pageIndex;
+    // }
     // if (this.paginator) {
     //   this.paginator.pageIndex = this.pageIndex;
     // }
@@ -643,23 +591,46 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       .map((col) => col.matColumnDef);
   }
 
+  // public applyFilter(colDef: string, event: Event): void {
+  //   const filterValue = (event.target as HTMLInputElement).value;
+  //   const selectedMode = this.filterModes[colDef] || "contains";
+  //   this.searchTerms[colDef] = {
+  //     mode: selectedMode,
+  //     value: filterValue.trim().toLowerCase(),
+  //   };
+  //   console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
+  //   this.filterApplied = Object.values(this.searchTerms).some(
+  //     (term) => !!term.value,
+  //   );
+  //   this.applyCombinedFilters();
+  //   this.pageIndex = 1;
+  //   if (this.paginator) {
+  //     this.paginator.pageIndex = 1;
+  //   }
+  //   this.fetchData();
+  // }
   public applyFilter(colDef: string, event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     const selectedMode = this.filterModes[colDef] || "contains";
+
     this.searchTerms[colDef] = {
       mode: selectedMode,
       value: filterValue.trim().toLowerCase(),
     };
-    console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
-    this.filterApplied = Object.values(this.searchTerms).some(
-      (term) => !!term.value,
-    );
-    this.applyCombinedFilters();
-    this.pageIndex = 0;
-    if (this.paginator) {
-      this.paginator.pageIndex = 0;
-    }
-    this.fetchData();
+
+    const filters: { [key: string]: string } = {};
+    Object.entries(this.searchTerms).forEach(([field, term]) => {
+      if (term.value) {
+        filters[field] = term.value;
+      }
+    });
+    filters["page"] = "1";
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: filters,
+      queryParamsHandling: "merge",
+    });
   }
 
   isDateField(colDef: string): boolean {
@@ -831,7 +802,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       return filtered;
     }
 
-    const pageIndex = this.paginator.pageIndex || 0;
+    const pageIndex = this.paginator.pageIndex || 1;
     const pageSize = this.paginator.pageSize || filtered.length;
     const start = pageIndex * pageSize;
     return filtered.slice(start, start + pageSize);
@@ -847,31 +818,143 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       combinedFilterData,
     );
     this.dataSource.filter = JSON.stringify(combinedFilterData);
-    this.pageIndex = 0;
+    this.pageIndex = 1;
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
   }
   // .filter(([_, t]) => !!t.value)
 
+  // private fetchData(): void {
+
+  //   this.materialService.fetchMaterialsData(
+  //     this.paginator?.pageIndex || 1, // pageIndex
+  //     this.paginator?.pageSize || 10, // limit
+
+  //   ).pipe(
+  //     takeUntil(this.ngUnsubscribe)
+  //   ).subscribe({
+  //     next: (response) => {
+  //       this.length = response.totalItems;
+  //       this.dataSource.data = response.inventories || [];
+
+  //       // Cập nhật thông tin paginator
+  //       if (this.paginator) {
+  //         this.paginator.length = response.totalItems;
+  //       }
+  //     },
+  //     error: (error) => {
+  //       console.error('Error fetching materials:', error);
+  //       this.length = 0;
+  //       this.dataSource.data = [];
+  //       if (this.paginator) {
+  //         this.paginator.length = 0;
+  //       }
+  //     }
+  //   });
+  // }
+  // private fetchData(): void {
+  //   const params = this.route.snapshot.queryParams;
+
+  //   // Build filters object only with allowed properties
+  //   const allowedFilterKeys = [
+  //     'materialIdentifier', 'status', 'partNumber', 'quantity', 'availableQuantity',
+  //     'lotNumber', 'userData4', 'locationName', 'expirationDate'];
+
+  //   const filters: { [key: string]: any } = {};
+  //   for (const key of allowedFilterKeys) {
+  //     if (params[key] !== undefined) {
+  //       filters[key] = params[key];
+  //     }
+  //   }
+  //   const page = params.page ? +params.page : (this.paginator?.pageIndex ?? 0) + 1;
+
+  //   this.materialService.fetchMaterialsData(
+  //     page,
+  //     this.paginator?.pageSize || 10,
+  //     filters
+  //   ).pipe(
+  //     takeUntil(this.ngUnsubscribe)
+  //   ).subscribe({
+  //     next: (response) => {
+  //       this.length = response.totalItems;
+  //       this.dataSource.data = response.inventories || [];
+
+  //       // Cập nhật paginator nhưng không thay đổi trang hiện tại
+  //       if (this.paginator) {
+  //         this.paginator.length = response.totalItems;
+  //       }
+  //     },
+  //     error: (error) => {
+  //       console.error('Error fetching materials:', error);
+  //       this.length = 0;
+  //       this.dataSource.data = [];
+  //       if (this.paginator) {
+  //         this.paginator.length = 0;
+  //       }
+  //     }
+  //   });
+  // }
+
   private fetchData(): void {
-    const filtersWithMode = Object.entries(this.searchTerms)
-      .filter(
-        ([_, t]) => t.value !== undefined && t.value !== null && t.value !== "",
-      )
-      .map(([key, t]) => ({
-        field: key,
-        mode: t.mode || "contains", // Cung cấp giá trị mặc định nếu mode chưa được set
-        value: t.value,
-      }));
+    const params = this.route.snapshot.queryParams;
+  }
 
-    const filterString = JSON.stringify(filtersWithMode);
+  private fetchDataAndUpdateUI(params: { [key: string]: any }): void {
+    const allowedFilterKeys = [
+      "materialIdentifier",
+      "status",
+      "partNumber",
+      "quantity",
+      "availableQuantity",
+      "lotNumber",
+      "userData4",
+      "locationName",
+      "expirationDate",
+    ];
+    const filters: { [key: string]: any } = {};
+    for (const key of allowedFilterKeys) {
+      if (params[key] !== undefined) {
+        filters[key] = params[key];
+      }
+    }
 
-    // Chuyển đổi pageIndex từ 0-based (Material) sang 1-based (Backend)
-    this.materialService.fetchMaterialsData(
-      this.pageIndex + 1,
-      this.pageSize,
-      filterString,
-    );
+    const page = params["page"] ? +params["page"] : 1;
+    const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
+
+    this.materialService
+      .fetchMaterialsData(page, pageSize, filters)
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((response) => {
+        const totalItems = response.totalItems;
+        this.length = totalItems;
+        this.dataSource.data = response.inventories || [];
+        console.log("trang hiện tại: ", page);
+        console.log("số lượng bản ghi đọc từ api: ", totalItems);
+        if (this.paginator) {
+          this.paginator.length = totalItems;
+          this.paginator.pageIndex = page - 1;
+          this.paginator.pageSize = pageSize;
+          if (totalItems > 0 && this.pageIndex > 0) {
+            const maxPageIndex = Math.ceil(totalItems / this.pageSize) - 1;
+            if (page - 1 > maxPageIndex) {
+              console.log("trang hiện tại: ", page);
+              console.log("số lượng bản ghi đọc từ api: ", totalItems);
+              // this.pageIndex = maxPageIndex;
+              this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: { page: maxPageIndex + 1 },
+                queryParamsHandling: "merge",
+                replaceUrl: true,
+              });
+              return;
+            }
+          }
+        }
+        this.checkedCount.set(
+          response.inventories.filter((i) => i.checked).length,
+        );
+        this.cdr.markForCheck();
+      });
   }
 }
