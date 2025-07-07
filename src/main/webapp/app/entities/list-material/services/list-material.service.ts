@@ -156,6 +156,8 @@ export class ListMaterialService {
   public selectedIds$!: Observable<string[]>;
   public locationsData$!: Observable<RawGraphQLLocation[]>;
 
+  //  lấy dữ liệu tổng hợp
+
   private _approvalHistoryDetailData = new BehaviorSubject<
     approvalHistoryDetailData[]
   >([]);

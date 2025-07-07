@@ -75,6 +75,7 @@
                 <mat-list-option
                   *ngFor="let mode of sumary_modes"
                   [value]="mode.value"
+                  [routerLink]="mode.link"
                 >
                   {{ mode.name }}
                 </mat-list-option>

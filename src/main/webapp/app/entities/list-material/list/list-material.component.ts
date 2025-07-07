@@ -38,6 +38,7 @@ import { HttpParams } from "@angular/common/http";
 interface sumary_mode {
   value: string;
   name: string;
+  link: string;
 }
 export interface ColumnConfig {
   name: string;
@@ -171,10 +172,14 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   checkedCount = signal(0);
   form!: FormGroup;
   sumary_modes: sumary_mode[] = [
-    { value: "partNumber", name: "Part Number" },
-    { value: "locationName", name: "Location Name" },
-    { value: "userData4", name: "User Data 4" },
-    { value: "lotNumber", name: "Lot Number" },
+    { value: "partNumber", name: "Part Number", link: "/list-material/sumary" },
+    {
+      value: "locationName",
+      name: "Location Name",
+      link: "/list-material/sumary",
+    },
+    { value: "userData4", name: "User Data 4", link: "/list-material/sumary" },
+    { value: "lotNumber", name: "Lot Number", link: "/list-material/sumary" },
   ];
   sumary_modeControl = new FormControl();
   selectedAggregated: string = "";
@@ -292,10 +297,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Xử lý khi người dùng thay đổi trang
     this.paginator.page
-      .pipe(
-        takeUntil(this.ngUnsubscribe),
-        distinctUntilChanged(), // Tránh trigger nhiều lần
-      )
+      .pipe(takeUntil(this.ngUnsubscribe), distinctUntilChanged())
       .subscribe(() => {
         this.router.navigate(["/list-material"], {
           queryParams: {
@@ -823,78 +825,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       this.dataSource.paginator.firstPage();
     }
   }
-  // .filter(([_, t]) => !!t.value)
-
-  // private fetchData(): void {
-
-  //   this.materialService.fetchMaterialsData(
-  //     this.paginator?.pageIndex || 1, // pageIndex
-  //     this.paginator?.pageSize || 10, // limit
-
-  //   ).pipe(
-  //     takeUntil(this.ngUnsubscribe)
-  //   ).subscribe({
-  //     next: (response) => {
-  //       this.length = response.totalItems;
-  //       this.dataSource.data = response.inventories || [];
-
-  //       // Cập nhật thông tin paginator
-  //       if (this.paginator) {
-  //         this.paginator.length = response.totalItems;
-  //       }
-  //     },
-  //     error: (error) => {
-  //       console.error('Error fetching materials:', error);
-  //       this.length = 0;
-  //       this.dataSource.data = [];
-  //       if (this.paginator) {
-  //         this.paginator.length = 0;
-  //       }
-  //     }
-  //   });
-  // }
-  // private fetchData(): void {
-  //   const params = this.route.snapshot.queryParams;
-
-  //   // Build filters object only with allowed properties
-  //   const allowedFilterKeys = [
-  //     'materialIdentifier', 'status', 'partNumber', 'quantity', 'availableQuantity',
-  //     'lotNumber', 'userData4', 'locationName', 'expirationDate'];
-
-  //   const filters: { [key: string]: any } = {};
-  //   for (const key of allowedFilterKeys) {
-  //     if (params[key] !== undefined) {
-  //       filters[key] = params[key];
-  //     }
-  //   }
-  //   const page = params.page ? +params.page : (this.paginator?.pageIndex ?? 0) + 1;
-
-  //   this.materialService.fetchMaterialsData(
-  //     page,
-  //     this.paginator?.pageSize || 10,
-  //     filters
-  //   ).pipe(
-  //     takeUntil(this.ngUnsubscribe)
-  //   ).subscribe({
-  //     next: (response) => {
-  //       this.length = response.totalItems;
-  //       this.dataSource.data = response.inventories || [];
-
-  //       // Cập nhật paginator nhưng không thay đổi trang hiện tại
-  //       if (this.paginator) {
-  //         this.paginator.length = response.totalItems;
-  //       }
-  //     },
-  //     error: (error) => {
-  //       console.error('Error fetching materials:', error);
-  //       this.length = 0;
-  //       this.dataSource.data = [];
-  //       if (this.paginator) {
-  //         this.paginator.length = 0;
-  //       }
-  //     }
-  //   });
-  // }
 
   private fetchData(): void {
     const params = this.route.snapshot.queryParams;
