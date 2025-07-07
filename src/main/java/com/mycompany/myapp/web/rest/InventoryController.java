@@ -33,6 +33,13 @@ public class InventoryController {
         return this.inventoryService.getDataGroupByPartNumber(request);
     }
 
+    @PostMapping("/group-by-part-number/detail")
+    public List<InventoryResponse> getDataDetailPartNumber(
+        @RequestBody InventoryRequestDTO request
+    ) {
+        return this.inventoryService.getDataGroupByPartNumber(request);
+    }
+
     @GetMapping("")
     public List<InventoryResponse> getDataNew() {
         return this.inventoryService.serachNew();

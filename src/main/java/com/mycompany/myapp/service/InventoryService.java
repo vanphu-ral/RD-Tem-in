@@ -38,6 +38,16 @@ public class InventoryService {
         );
     }
 
+    public List<InventoryResponse> getDataDetailByPartNumber(
+        InventoryRequestDTO request
+    ) {
+        return this.inventoryRepository.getDataDetailByPartNumber(
+            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+            (request.getPageNumber() - 1) * request.getItemPerPage(),
+            request.getItemPerPage()
+        );
+    }
+
     public InventoriesResponse getInventoriesResponse(
         InventoryRequestDTO request
     ) {
