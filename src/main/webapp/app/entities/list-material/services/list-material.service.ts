@@ -199,7 +199,7 @@ export class ListMaterialService {
     this.applicationConfigService.getEndpointFor("/api/location");
 
   private _materialsDataFetchedOnce = false;
-  private readonly defaultPageSize = 15;
+  private readonly defaultPageSize = 20;
 
   private _updatedInventoryIds = new Set<string>();
 
@@ -231,6 +231,7 @@ export class ListMaterialService {
       undefined,
       false,
     );
+
     this.fetchAllInventoryUpdateRequests();
     this.approvalHistoryDetailData$ =
       this._approvalHistoryDetailData.asObservable();
@@ -254,40 +255,93 @@ export class ListMaterialService {
   }
 
   public fetchMaterialsData(
-    offset: number,
-    limit: number,
+    pageIndex: number, // số trang hiện tại
+    limit: number, // số lượng mỗi trang
     filter?: string,
     sortBy?: string,
     sortDirection?: string,
-    forceRefresh: boolean = false,
+    forceRefresh: boolean = true,
   ): void {
-    if (
-      !forceRefresh &&
-      this._materialsDataFetchedOnce &&
-      this._materialsData.getValue().length > 0
-    ) {
-      console.log(
-        "MaterialService (HTTP): Skipping fetch, data already loaded and forceRefresh is false.",
-      );
-      return;
+    // if (
+    //   !forceRefresh &&
+    //   this._materialsDataFetchedOnce &&
+    //   this._materialsData.getValue().length > 0
+    // ) {
+    //   console.log(
+    //     "MaterialService (HTTP): Skipping fetch, data already loaded and forceRefresh is false.",
+    //   );
+    //   return;
+    // }
+
+    // {
+    //   page: 1,
+    //   size: 2,
+    //   {
+    //     {
+    //        feild1: name,
+    //        mode: constain,
+    //        value:a
+    //     },
+    //    {
+    //        feild2: tuoi,
+    //        mode: equal,
+    //        value:0
+    //     },
+    //   }
+    // }
+
+    // body kèm với search filter
+    const body: { [key: string]: any } = {
+      materialIdentifier: "",
+      status: "",
+      partNumber: "",
+      quantity: null,
+      availableQuantity: null,
+      lotNumber: "",
+      userData4: "",
+      locationName: "",
+      expirationDate: "",
+      pageNumber: pageIndex,
+      itemPerPage: limit,
+    };
+
+    if (filter) {
+      try {
+        const filterObject = JSON.parse(filter);
+        Object.assign(body, filterObject);
+      } catch (e) {
+        console.error("Error parsing filter string:", e);
+      }
     }
+
+    if (sortBy && sortDirection) {
+      body["sort"] = `${sortBy},${sortDirection}`;
+    }
+
     console.log(
-      `MaterialService (HTTP): Fetching materials from ${this.apiMaterialUrl}. Force refresh: ${forceRefresh}`,
+      `MaterialService (HTTP): Fetching materials from ${this.apiMaterialUrl} with POST. Force refresh: ${forceRefresh}`,
     );
-    this.http.get<RawGraphQLMaterial[]>(this.apiMaterialUrl).subscribe({
-      next: (apiData) => {
-        if (Array.isArray(apiData)) {
+    interface ApiMaterialResponse {
+      totalItems: number;
+      inventories: RawGraphQLMaterial[];
+    }
+    console.log("log api material moi", body);
+    this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).subscribe({
+      next: (response) => {
+        console.log("log response", response);
+        if (response?.inventories && Array.isArray(response.inventories)) {
+          this._totalCount.next(response.totalItems);
           const selectedIds = this._selectedIds.value;
-          const filteredData = apiData.filter(
+          const filteredData = response.inventories.filter(
             (item) => !this._updatedInventoryIds.has(item.inventoryId),
           );
           const mappedData = filteredData.map((rawItem) =>
             this.mapRawToMaterial(rawItem, selectedIds),
           );
           this._materialsData.next(mappedData);
-          this._totalCount.next(mappedData.length);
+          this._totalCount.next(response.totalItems);
           this._materialsDataFetchedOnce = true;
-          console.log("typeof callback:", typeof apiData);
+          console.log("typeof callback:", typeof response.inventories);
           console.log("bo hang da cap nhat", filteredData);
           console.log(
             `MaterialService (HTTP): Materials data ${forceRefresh ? "refreshed" : "loaded"}. Count:`,
@@ -296,7 +350,7 @@ export class ListMaterialService {
         } else {
           console.warn(
             "MaterialService (HTTP): Materials API did not return an array. Received:",
-            apiData,
+            response,
           );
           this._materialsData.next([]);
           this._totalCount.next(0);
@@ -362,6 +416,7 @@ export class ListMaterialService {
     );
     this._materialsData.next(updatedData);
   }
+
   getRequestHistoryDetailsById(
     id: number | null,
   ): Observable<inventory_update_requests_history_detail[]> {
@@ -397,6 +452,7 @@ export class ListMaterialService {
       ),
     );
   }
+
   getRequestHistoryDetailsByRequestCode(
     requestCode: string | null,
   ): Observable<inventory_update_requests_history_detail[]> {

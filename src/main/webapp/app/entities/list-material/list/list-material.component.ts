@@ -25,6 +25,7 @@ import {
 } from "../services/list-material.service";
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { AccountService } from "app/core/auth/account.service";
+import { MatSnackBar } from "@angular/material/snack-bar";
 
 interface sumary_mode {
   value: string;
@@ -105,7 +106,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       {
         name: "Available Quantity",
         matColumnDef: "availableQuantity",
-        completed: false,
+        completed: true,
       },
       {
         name: "Material TraceId",
@@ -130,7 +131,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         matColumnDef: "expirationDate",
         completed: true,
       },
-      { name: "Received Date", matColumnDef: "receivedDate", completed: true },
+      { name: "Received Date", matColumnDef: "receivedDate", completed: false },
       { name: "Updated Date", matColumnDef: "updatedDate", completed: false },
       { name: "Updated By", matColumnDef: "updatedBy", completed: false },
       {
@@ -150,9 +151,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
   dataSource = new MatTableDataSource<RawGraphQLMaterial>();
   length = 0;
-  pageSize = 15;
+  pageSize = 50;
   pageIndex = 0;
-  pageSizeOptions = [10, 15, 25, 50, 100];
+  pageSizeOptions = [15, 25, 50, 100, 150];
   hidePageSize = false;
   showPageSizeOptions = true;
   showFirstLastButtons = true;
@@ -169,10 +170,14 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
   sumary_modeControl = new FormControl();
   selectedAggregated: string = "";
+
+  // đối tượng chứa cột  thông tin tìm kiếm
   public searchTerms: { [columnDef: string]: { mode: string; value: string } } =
     {};
   public activeFilters: { [columnDef: string]: any[] } = {};
+
   public filterModes: { [columnDef: string]: string } = {};
+
   filteredValues: any = {
     materialIdentifier: "",
   };
@@ -183,7 +188,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   // #endregion
 
   // #region ViewChild
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatPaginator, { static: false }) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
   @ViewChild("scanInput") scanInput!: ElementRef<HTMLInputElement>;
@@ -201,6 +206,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     private cdr: ChangeDetectorRef,
     private accountService: AccountService,
+    private snackBar: MatSnackBar,
   ) {
     this.form = new FormGroup({
       sumary_modeControl: new FormControl(null),
@@ -230,6 +236,15 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((total) => {
         this.length = total;
+        if (this.paginator) {
+          this.paginator.length = total;
+
+          if (total > 0 && this.pageIndex > 0) {
+            const maxPageIndex = Math.ceil(total / this.pageSize) - 1;
+            this.pageIndex = Math.min(this.pageIndex, maxPageIndex);
+            this.paginator.pageIndex = this.pageIndex;
+          }
+        }
         this.cdr.markForCheck();
       });
 
@@ -241,116 +256,109 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         this.checkedCount.set(ids.length);
       });
 
-    // this.sidebarSubscription = this.sidebarService.sidebarToggled$.pipe(takeUntil(this.ngUnsubscribe)).subscribe(isSidebarOpen => {
-    //   this.updateTableMaxWidth(isSidebarOpen);
-    // });
+    // this.dataSource.filterPredicate = (
+    //   data: RawGraphQLMaterial,
+    //   filter: string,
+    // ): boolean => {
+    //   const { textFilters, dialogFilters } = JSON.parse(filter) as {
+    //     textFilters: { [col: string]: { mode: string; value: string } };
+    //     dialogFilters: { [col: string]: any[] };
+    //   };
 
-    this.materialService.totalCount$
-      .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((count) => {
-        this.length = count;
-        this.cdr.markForCheck();
-      });
+    //   for (const colDef in textFilters) {
+    //     if (!Object.prototype.hasOwnProperty.call(textFilters, colDef)) {
+    //       continue;
+    //     }
 
-    this.dataSource.filterPredicate = (
-      data: RawGraphQLMaterial,
-      filter: string,
-    ): boolean => {
-      const { textFilters, dialogFilters } = JSON.parse(filter) as {
-        textFilters: { [col: string]: { mode: string; value: string } };
-        dialogFilters: { [col: string]: any[] };
-      };
+    //     const { mode: searchMode, value } = textFilters[colDef];
+    //     const searchTerm = value.trim().toLowerCase();
+    //     if (!searchTerm) {
+    //       continue;
+    //     }
 
-      for (const colDef in textFilters) {
-        if (!Object.prototype.hasOwnProperty.call(textFilters, colDef)) {
-          continue;
-        }
+    //     const cellValueRaw = (data as any)[colDef];
+    //     let cellValue: string;
 
-        const { mode: searchMode, value } = textFilters[colDef];
-        const searchTerm = value.trim().toLowerCase();
-        if (!searchTerm) {
-          continue;
-        }
+    //     // 1) Cột status: chuyển number → label
+    //     if (colDef === "status") {
+    //       const n =
+    //         typeof cellValueRaw === "string"
+    //           ? parseInt(cellValueRaw, 10)
+    //           : cellValueRaw;
+    //       cellValue = this.getStatusLabel(n).toLowerCase();
+    //     }
+    //     // 2) Các cột date
+    //     else if (
+    //       [
+    //         "expirationDate",
+    //         "receivedDate",
+    //         "updatedDate",
+    //         "checkinDate",
+    //       ].includes(colDef)
+    //     ) {
+    //       let dt: Date;
+    //       if (typeof cellValueRaw === "number") {
+    //         dt = new Date(cellValueRaw * 1000);
+    //       } else if (
+    //         typeof cellValueRaw === "string" &&
+    //         /^\d+$/.test(cellValueRaw)
+    //       ) {
+    //         dt = new Date(Number(cellValueRaw) * 1000);
+    //       } else {
+    //         dt = new Date(cellValueRaw);
+    //       }
+    //       if (isNaN(dt.getTime())) {
+    //         return false;
+    //       }
+    //       cellValue = dt
+    //         .toLocaleDateString("vi-VN", {
+    //           day: "2-digit",
+    //           month: "2-digit",
+    //           year: "numeric",
+    //         })
+    //         .toLowerCase();
+    //     }
+    //     // 3) Các cột còn lại: normal text
+    //     else {
+    //       cellValue = String(cellValueRaw).trim().toLowerCase();
+    //     }
 
-        const cellValueRaw = (data as any)[colDef];
-        let cellValue: string;
+    //     // So sánh theo mode
+    //     switch (searchMode) {
+    //       case "equals":
+    //         if (cellValue !== searchTerm) {
+    //           return false;
+    //         }
+    //         break;
+    //       case "contains":
+    //         if (!cellValue.includes(searchTerm)) {
+    //           return false;
+    //         }
+    //         break;
+    //       case "not_contains":
+    //         if (cellValue.includes(searchTerm)) {
+    //           return false;
+    //         }
+    //         break;
+    //       case "not_equals":
+    //         if (cellValue === searchTerm) {
+    //           return false;
+    //         }
+    //         break;
+    //     }
+    //   }
 
-        // 1) Cột status: chuyển number → label
-        if (colDef === "status") {
-          const n =
-            typeof cellValueRaw === "string"
-              ? parseInt(cellValueRaw, 10)
-              : cellValueRaw;
-          cellValue = this.getStatusLabel(n).toLowerCase();
-        }
-        // 2) Các cột date
-        else if (
-          [
-            "expirationDate",
-            "receivedDate",
-            "updatedDate",
-            "checkinDate",
-          ].includes(colDef)
-        ) {
-          let dt: Date;
-          if (typeof cellValueRaw === "number") {
-            dt = new Date(cellValueRaw * 1000);
-          } else if (
-            typeof cellValueRaw === "string" &&
-            /^\d+$/.test(cellValueRaw)
-          ) {
-            dt = new Date(Number(cellValueRaw) * 1000);
-          } else {
-            dt = new Date(cellValueRaw);
-          }
-          if (isNaN(dt.getTime())) {
-            return false;
-          }
-          cellValue = dt
-            .toLocaleDateString("vi-VN", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })
-            .toLowerCase();
-        }
-        // 3) Các cột còn lại: normal text
-        else {
-          cellValue = String(cellValueRaw).trim().toLowerCase();
-        }
-
-        // So sánh theo mode
-        switch (searchMode) {
-          case "equals":
-            if (cellValue !== searchTerm) {
-              return false;
-            }
-            break;
-          case "contains":
-            if (!cellValue.includes(searchTerm)) {
-              return false;
-            }
-            break;
-          case "not_contains":
-            if (cellValue.includes(searchTerm)) {
-              return false;
-            }
-            break;
-          case "not_equals":
-            if (cellValue === searchTerm) {
-              return false;
-            }
-            break;
-        }
-      }
-
-      return true;
-    };
+    //   return true;
+    // };
   }
 
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
+    if (this.paginator) {
+      this.paginator.pageIndex = this.pageIndex;
+      this.paginator.pageSize = this.pageSize;
+    }
   }
 
   onLoad(): void {
@@ -459,6 +467,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   handlePageEvent(e: PageEvent): void {
     this.pageSize = e.pageSize;
     this.pageIndex = e.pageIndex;
+    if (this.paginator) {
+      this.paginator.pageIndex = this.pageIndex;
+    }
+    // if (this.paginator) {
+    //   this.paginator.pageIndex = this.pageIndex;
+    // }
+
     this.fetchData();
   }
 
@@ -487,13 +502,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public isAllSelected(): boolean {
-    const rows = this.dataSource.filteredData || [];
-    return rows.length > 0 && rows.every((r) => r.checked);
+    const page = this.getCurrentPageRows();
+    return page.length > 0 && page.every((r) => r.checked);
   }
   public isSomeSelected(): boolean {
-    const rows = this.dataSource.filteredData || [];
-    const numChecked = rows.filter((r) => r.checked).length;
-    return numChecked > 0 && numChecked < rows.length;
+    const page = this.getCurrentPageRows();
+    const sel = page.filter((r) => r.checked).length;
+    return sel > 0 && sel < page.length;
   }
 
   updateChecked(element: any, isChecked: boolean): void {
@@ -539,23 +554,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public toggleAllRows(): void {
-    const rows = this.dataSource.filteredData || [];
-    if (!rows.length) {
-      return;
-    }
+    const page = this.getCurrentPageRows();
 
     if (this.isAllSelected()) {
-      rows.forEach((r) => {
-        if (r.checked) {
-          this.materialService.toggleItemSelection(r.inventoryId);
-        }
-      });
+      page.forEach(
+        (r) =>
+          r.checked && this.materialService.toggleItemSelection(r.inventoryId),
+      );
     } else {
-      rows.forEach((r) => {
-        if (!r.checked) {
-          this.materialService.toggleItemSelection(r.inventoryId);
-        }
-      });
+      page.forEach(
+        (r) =>
+          !r.checked && this.materialService.toggleItemSelection(r.inventoryId),
+      );
     }
   }
 
@@ -584,7 +594,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const inventoryTerm = scanString.split("#")[0].trim().toLowerCase();
     if (!inventoryTerm) {
-      this.scanError = "Không nhận diện được mã vật tư, vui lòng thử lại!";
+      this.openError("Không nhận diện được mã vật tư, vui lòng thử lại!");
       this.isScanMode = false;
       return;
     }
@@ -601,10 +611,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const matchCount = this.dataSource.filteredData.length;
     if (matchCount === 0) {
-      this.scanError = `Không tìm thấy vật tư "${inventoryTerm}"`;
+      this.openError(`Không tìm thấy vật tư "${inventoryTerm}"`);
       this.isScanMode = false;
       return;
     }
+  }
+  openError(message: string): void {
+    this.snackBar.open(message, "Đóng", {
+      duration: 3000,
+      panelClass: ["snackbar-error"],
+      horizontalPosition: "center",
+      verticalPosition: "bottom",
+    });
   }
 
   refreshScan(): void {
@@ -638,6 +656,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.applyCombinedFilters();
     this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
     this.fetchData();
   }
 
@@ -804,6 +825,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   //   // #endregion
 
   //   // #region Private methods
+  private getCurrentPageRows(): RawGraphQLMaterial[] {
+    const filtered = this.dataSource.filteredData || [];
+    if (!this.paginator) {
+      return filtered;
+    }
+
+    const pageIndex = this.paginator.pageIndex || 0;
+    const pageSize = this.paginator.pageSize || filtered.length;
+    const start = pageIndex * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }
+
   private applyCombinedFilters(): void {
     const combinedFilterData = {
       textFilters: this.searchTerms,
@@ -814,48 +847,31 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       combinedFilterData,
     );
     this.dataSource.filter = JSON.stringify(combinedFilterData);
-
+    this.pageIndex = 0;
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
   }
-  private fetchData(): void {
-    const filtersObject = Object.entries(this.searchTerms)
-      .filter(([_, t]) => !!t.value)
-      .reduce(
-        (acc, [key, t]) => ({
-          ...acc,
-          [`filter.${key}.mode`]: t.mode,
-          [`filter.${key}.value`]: t.value,
-        }),
-        {},
-      );
-    const filterString = JSON.stringify(filtersObject);
+  // .filter(([_, t]) => !!t.value)
 
+  private fetchData(): void {
+    const filtersWithMode = Object.entries(this.searchTerms)
+      .filter(
+        ([_, t]) => t.value !== undefined && t.value !== null && t.value !== "",
+      )
+      .map(([key, t]) => ({
+        field: key,
+        mode: t.mode || "contains", // Cung cấp giá trị mặc định nếu mode chưa được set
+        value: t.value,
+      }));
+
+    const filterString = JSON.stringify(filtersWithMode);
+
+    // Chuyển đổi pageIndex từ 0-based (Material) sang 1-based (Backend)
     this.materialService.fetchMaterialsData(
-      this.pageIndex * this.pageSize,
+      this.pageIndex + 1,
       this.pageSize,
       filterString,
     );
   }
-
-  //   private updateTableMaxWidth(isSidebarOpen: boolean): void {
-  //     if (isSidebarOpen) {
-  //       this.tableMaxWidth = '1880px';
-  //     } else {
-  //       this.tableMaxWidth = '1670px';
-  //     }
-  //     this.cdr.markForCheck();
-  //   }
-  //   public exportExcel(jsonData: any[], fileName: string): void {
-  //     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(jsonData);
-  //     const wb: XLSX.WorkBook = { Sheets: { 'data': ws }, SheetNames: ['data'] };
-  //     const excelBuffer: any = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  //     this.saveExcelFile(excelBuffer, fileName);
-  //   }
-  //   private saveExcelFile(buffer: any, fileName: string): void {
-  //     const data: Blob = new Blob([buffer], { type: this.fileType });
-  //     FileSaver.saveAs(data, fileName + this.fileExtension);
-  //   }
-  // #endregion
 }

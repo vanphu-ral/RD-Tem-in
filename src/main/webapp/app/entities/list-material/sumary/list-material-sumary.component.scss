@@ -1,8 +1,44 @@
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 .function-list {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 16px;
+  flex-wrap: nowrap;
+  padding: 0;
+
+  .group-title {
+    flex: 0 0 auto;
+  }
+
+  .group-buttons-main {
+    display: flex;
+    width: 100%;
+  }
+
+  .group-buttons {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    &.primary,
+    &.secondary {
+      width: 50%;
+
+      button {
+        box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+        background-color: #fff;
+      }
+
+      .btn-text {
+        display: inline;
+      }
+    }
+
+    &.secondary {
+      justify-content: flex-end;
+    }
+  }
 }
 
 .bordered-table {
@@ -243,4 +279,61 @@ th {
   top: 0;
   z-index: 100;
   background: #548ce8;
+}
+@media (max-width: 599px) {
+  .main-page {
+    width: 400px;
+
+    .function-list {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 8px;
+
+      .group-title {
+        text-align: left;
+      }
+
+      .group-buttons-main {
+        flex-direction: column;
+        .group-buttons {
+          justify-content: flex-start;
+          width: 100%;
+
+          &.primary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+            button {
+              min-width: 110px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          &.secondary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+            button {
+              min-width: 110px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          /* Chỉ hiện icon, ẩn text */
+          .btn-text,
+          .icon-down {
+            display: none;
+          }
+        }
+      }
+
+      .scan-error {
+        font-size: 12px;
+        text-align: center;
+      }
+    }
+  }
 }
