@@ -46,9 +46,9 @@ spring:
 partner:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://192.168.68.62:1433;database=panacim_test;encrypt=true;trustServerCertificate=true;
-    username: sa
-    password: Led@R@ngDong
+    url: jdbc:sqlserver://172.168.6.3:1433;database=PanaCIMMC;encrypt=true;trustServerCertificate=true;
+    username: itcntt
+    password: it-cntt@16
     hikari:
       poolName: Hikari
       auto-commit: false
