@@ -33,11 +33,32 @@ public class InventoryController {
         return this.inventoryService.getDataGroupByPartNumber(request);
     }
 
-    @PostMapping("/group-by-part-number/detail")
-    public List<InventoryResponse> getDataDetailPartNumber(
+    @PostMapping("/group-by-lot-number")
+    public List<InventoryResponse> getDataGroupByLotNumber(
         @RequestBody InventoryRequestDTO request
     ) {
-        return this.inventoryService.getDataGroupByPartNumber(request);
+        return this.inventoryService.getDataGroupByLotNumber(request);
+    }
+
+    @PostMapping("/group-by-user-data-4")
+    public List<InventoryResponse> getDataGroupByUserData4(
+        @RequestBody InventoryRequestDTO request
+    ) {
+        return this.inventoryService.getDataGroupByUserData4(request);
+    }
+
+    @PostMapping("/group-by-location-name")
+    public List<InventoryResponse> getDataGroupByLocationName(
+        @RequestBody InventoryRequestDTO request
+    ) {
+        return this.inventoryService.getDataGroupByLocationName(request);
+    }
+
+    @PostMapping("/detail")
+    public List<InventoryResponse> getDataDetail(
+        @RequestBody InventoryRequestDTO request
+    ) {
+        return this.inventoryService.getDataDetail(request);
     }
 
     @GetMapping("")

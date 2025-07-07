@@ -38,10 +38,43 @@ public class InventoryService {
         );
     }
 
-    public List<InventoryResponse> getDataDetailByPartNumber(
+    public List<InventoryResponse> getDataGroupByLotNumber(
         InventoryRequestDTO request
     ) {
-        return this.inventoryRepository.getDataDetailByPartNumber(
+        return this.inventoryRepository.getDataGroupByLotNumber(
+            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+            "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
+            (request.getPageNumber() - 1) * request.getItemPerPage(),
+            request.getItemPerPage()
+        );
+    }
+
+    public List<InventoryResponse> getDataGroupByUserData4(
+        InventoryRequestDTO request
+    ) {
+        return this.inventoryRepository.getDataGroupByUserData4(
+            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+            "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",
+            (request.getPageNumber() - 1) * request.getItemPerPage(),
+            request.getItemPerPage()
+        );
+    }
+
+    public List<InventoryResponse> getDataGroupByLocationName(
+        InventoryRequestDTO request
+    ) {
+        return this.inventoryRepository.getDataGroupByLocationName(
+            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+            "%" +
+            Optional.ofNullable(request.getLocationName()).orElse("") +
+            "%",
+            (request.getPageNumber() - 1) * request.getItemPerPage(),
+            request.getItemPerPage()
+        );
+    }
+
+    public List<InventoryResponse> getDataDetail(InventoryRequestDTO request) {
+        return this.inventoryRepository.getDataDetail(
             "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
             "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
             "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",

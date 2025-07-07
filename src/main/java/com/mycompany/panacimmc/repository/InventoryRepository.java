@@ -44,6 +44,99 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Query(
         value = "SELECT  \n" +
         "    a.[Inventory_PartNumber] AS partNumber\n" +
+        "    ,sum(a.[Inventory_Quantity]) AS quantity\n" +
+        "    ,sum(a.[Inventory_AvailableQuantity]) AS availableQuantity \n" +
+        "    ,count(a.[Inventory_MaterialIdentifier]) AS recordCount \n" +
+        "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
+        "FROM Inventory a\n" +
+        "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
+        "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
+        "  ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        "\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
+        "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
+        "AND a.Inventory_PartNumber like ?1 " +
+        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName like ?2 " +
+        "GROUP BY d1.InventoryMaterialTraceDetail_MaterialTraceDataName " +
+        "ORDER BY a.Inventory_PartNumber desc " +
+        "OFFSET ?3 ROWS FETCH NEXT ?4 ROWS ONLY ;\n",
+        nativeQuery = true
+    )
+    public List<InventoryResponse> getDataGroupByUserData4(
+        String partNumber,
+        String userData4,
+        Integer pageNumber,
+        Integer itemPerPage
+    );
+
+    @Query(
+        value = "SELECT  \n" +
+        "    a.[Inventory_PartNumber] AS partNumber\n" +
+        "    ,b.Location_Name AS locationName\n" +
+        "    ,sum(a.[Inventory_Quantity]) AS quantity\n" +
+        "    ,sum(a.[Inventory_AvailableQuantity]) AS availableQuantity \n" +
+        "    ,count(a.[Inventory_MaterialIdentifier]) AS recordCount \n" +
+        "FROM Inventory a\n" +
+        "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
+        "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
+        "  ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        "\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
+        "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
+        "AND a.Inventory_PartNumber like ?1 " +
+        "AND b.Location_Name like ?2 " +
+        "GROUP BY a.[Inventory_PartNumber] " +
+        "ORDER BY a.Inventory_PartNumber desc " +
+        "OFFSET ?3 ROWS FETCH NEXT ?4 ROWS ONLY ;\n",
+        nativeQuery = true
+    )
+    public List<InventoryResponse> getDataGroupByLocationName(
+        String partNumber,
+        String locationName,
+        Integer pageNumber,
+        Integer itemPerPage
+    );
+
+    @Query(
+        value = "SELECT  \n" +
+        "    a.[Inventory_PartNumber] AS partNumber\n" +
+        "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
+        "    ,sum(a.[Inventory_Quantity]) AS quantity\n" +
+        "    ,sum(a.[Inventory_AvailableQuantity]) AS availableQuantity \n" +
+        "    ,count(a.[Inventory_MaterialIdentifier]) AS recordCount \n" +
+        "FROM Inventory a\n" +
+        "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
+        "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
+        "  ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        "\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
+        "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
+        "AND a.Inventory_PartNumber like ?1 " +
+        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
+        "GROUP BY a.[Inventory_PartNumber] " +
+        "ORDER BY a.Inventory_PartNumber desc " +
+        "OFFSET ?3 ROWS FETCH NEXT ?4 ROWS ONLY ;\n",
+        nativeQuery = true
+    )
+    public List<InventoryResponse> getDataGroupByLotNumber(
+        String partNumber,
+        String lotNumber,
+        Integer pageNumber,
+        Integer itemPerPage
+    );
+
+    @Query(
+        value = "SELECT  \n" +
+        "    a.[Inventory_PartNumber] AS partNumber\n" +
         "    ,a.[Inventory_Quantity] AS quantity\n" +
         "    ,a.[Inventory_AvailableQuantity] AS availableQuantity\n" +
         "    ,a.[Inventory_MaterialIdentifier] AS materialIdentifier\n" +
@@ -72,7 +165,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "OFFSET ?5 ROWS FETCH NEXT ?6 ROWS ONLY ;\n",
         nativeQuery = true
     )
-    public List<InventoryResponse> getDataDetailByPartNumber(
+    public List<InventoryResponse> getDataDetail(
         String partNumber,
         String lotNumber,
         String userData4,
@@ -249,6 +342,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
         "WHERE a.Inventory_MaterialIdentifier like ?1 " +
+        "Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_Status like ?2 " +
         "AND a.Inventory_PartNumber like ?3 " +
         "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
@@ -288,6 +382,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
         "WHERE a.Inventory_MaterialIdentifier like ?1 " +
+        "AND Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_Status like ?2 " +
         "AND a.Inventory_PartNumber like ?3 " +
         "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
