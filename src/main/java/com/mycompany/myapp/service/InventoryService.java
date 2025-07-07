@@ -43,6 +43,11 @@ public class InventoryService {
     ) {
         return this.inventoryRepository.getDataDetailByPartNumber(
             "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+            "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
+            "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",
+            "%" +
+            Optional.ofNullable(request.getLocationName()).orElse("") +
+            "%",
             (request.getPageNumber() - 1) * request.getItemPerPage(),
             request.getItemPerPage()
         );
