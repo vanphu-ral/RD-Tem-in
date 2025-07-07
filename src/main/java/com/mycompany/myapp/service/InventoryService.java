@@ -28,29 +28,163 @@ public class InventoryService {
         return this.inventoryRepository.getDataNew();
     }
 
-    public List<InventoryResponse> getDataGroupByPartNumber(
+    public InventoriesResponse getDataGroupByPartNumber(
         InventoryRequestDTO request
     ) {
-        return this.inventoryRepository.getDataGroupByPartNumber(
-            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
-            (request.getPageNumber() - 1) * request.getItemPerPage(),
-            request.getItemPerPage()
+        InventoriesResponse inventoriesResponse = new InventoriesResponse();
+        inventoriesResponse.setTotalItems(
+            this.inventoryRepository.getTotalDataGroupByPartNumber(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
         );
+        inventoriesResponse.setInventories(
+            this.inventoryRepository.getDataGroupByPartNumber(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        return inventoriesResponse;
     }
 
-    public List<InventoryResponse> getDataDetailByPartNumber(
+    public InventoriesResponse getDataGroupByLotNumber(
         InventoryRequestDTO request
     ) {
-        return this.inventoryRepository.getDataDetailByPartNumber(
-            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
-            "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
-            "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",
-            "%" +
-            Optional.ofNullable(request.getLocationName()).orElse("") +
-            "%",
-            (request.getPageNumber() - 1) * request.getItemPerPage(),
-            request.getItemPerPage()
+        InventoriesResponse inventoriesResponse = new InventoriesResponse();
+        inventoriesResponse.setTotalItems(
+            this.inventoryRepository.getTotalDataGroupByLotNumber(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLotNumber()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
         );
+        inventoriesResponse.setInventories(
+            this.inventoryRepository.getDataGroupByLotNumber(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLotNumber()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        return inventoriesResponse;
+    }
+
+    public InventoriesResponse getDataGroupByUserData4(
+        InventoryRequestDTO request
+    ) {
+        InventoriesResponse inventoriesResponse = new InventoriesResponse();
+        inventoriesResponse.setTotalItems(
+            this.inventoryRepository.getTotalDataGroupByUserData4(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData4()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        inventoriesResponse.setInventories(
+            this.inventoryRepository.getDataGroupByUserData4(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData4()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        return inventoriesResponse;
+    }
+
+    public InventoriesResponse getDataGroupByLocationName(
+        InventoryRequestDTO request
+    ) {
+        InventoriesResponse inventoriesResponse = new InventoriesResponse();
+        inventoriesResponse.setTotalItems(
+            this.inventoryRepository.getTotalDataGroupByLocationName(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLocationName()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        inventoriesResponse.setInventories(
+            this.inventoryRepository.getDataGroupByLocationName(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLocationName()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        return inventoriesResponse;
+    }
+
+    public InventoriesResponse getDataDetail(InventoryRequestDTO request) {
+        InventoriesResponse inventoriesResponse = new InventoriesResponse();
+        inventoriesResponse.setTotalItems(
+            this.inventoryRepository.getTotalDataDetail(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLotNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData4()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLocationName()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        inventoriesResponse.setInventories(
+            this.inventoryRepository.getDataDetail(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLotNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData4()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLocationName()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        return inventoriesResponse;
     }
 
     public InventoriesResponse getInventoriesResponse(
