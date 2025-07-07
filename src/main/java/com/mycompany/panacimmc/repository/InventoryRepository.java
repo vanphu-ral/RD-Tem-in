@@ -368,7 +368,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
-        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 ",
+        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where a.Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 ",
         nativeQuery = true
     )
     public List<InventoryResponse> getDataNew();
@@ -474,7 +474,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
         "WHERE a.Inventory_MaterialIdentifier like ?1 " +
-        "Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
+        "AND a.Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_Status like ?2 " +
         "AND a.Inventory_PartNumber like ?3 " +
         "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
@@ -514,7 +514,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
         "WHERE a.Inventory_MaterialIdentifier like ?1 " +
-        "AND Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
+        "AND a.Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_Status like ?2 " +
         "AND a.Inventory_PartNumber like ?3 " +
         "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
