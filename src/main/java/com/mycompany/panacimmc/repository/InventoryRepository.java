@@ -15,6 +15,33 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     @Query(
         value = "SELECT  \n" +
+        "    a.[Inventory_PartNumber] AS partNumber\n" +
+        "    ,sum(a.[Inventory_Quantity]) AS quantity\n" +
+        "    ,sum(a.[Inventory_AvailableQuantity]) AS availableQuantity\n" +
+        "FROM [panacim_test].[dbo].[Inventory] a\n" +
+        "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
+        "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
+        "  ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        "\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
+        "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
+        "AND a.Inventory_PartNumber like ?1 " +
+        "GROUP BY a.[Inventory_PartNumber] " +
+        "ORDER BY a.Inventory_PartNumber desc " +
+        "OFFSET ?2 ROWS FETCH NEXT ?3 ROWS ONLY ;\n",
+        nativeQuery = true
+    )
+    public List<InventoryResponse> getDataGroupByPartNumber(
+        String partNumber,
+        Integer pageNumber,
+        Integer itemPerPage
+    );
+
+    @Query(
+        value = "SELECT  \n" +
         "     a.[Inventory_Id] AS inventoryId\n" +
         "    ,a.[Inventory_PartId] AS partId\n" +
         "    ,a.[Inventory_PartNumber] AS partNumber\n" +

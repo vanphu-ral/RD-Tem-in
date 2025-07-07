@@ -28,6 +28,16 @@ public class InventoryService {
         return this.inventoryRepository.getDataNew();
     }
 
+    public List<InventoryResponse> getDataGroupByPartNumber(
+        InventoryRequestDTO request
+    ) {
+        return this.inventoryRepository.getDataGroupByPartNumber(
+            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+            (request.getPageNumber() - 1) * request.getItemPerPage(),
+            request.getItemPerPage()
+        );
+    }
+
     public InventoriesResponse getInventoriesResponse(
         InventoryRequestDTO request
     ) {

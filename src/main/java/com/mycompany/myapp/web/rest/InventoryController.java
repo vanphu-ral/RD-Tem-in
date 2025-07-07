@@ -26,7 +26,14 @@ public class InventoryController {
         return this.inventoryService.getInventoriesResponse(request);
     }
 
-    @GetMapping
+    @PostMapping("/group-by-part-number")
+    public List<InventoryResponse> getDataGroupByPartNumber(
+        @RequestBody InventoryRequestDTO request
+    ) {
+        return this.inventoryService.getDataGroupByPartNumber(request);
+    }
+
+    @GetMapping("")
     public List<InventoryResponse> getDataNew() {
         return this.inventoryService.serachNew();
     }

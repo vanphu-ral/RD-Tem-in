@@ -54,4 +54,5 @@ public interface InventoryResponse {
     String getLocationName();
     String getUserData4();
     String getLotNumber();
+    String getRecordCount();
 }
