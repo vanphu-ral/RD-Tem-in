@@ -24,6 +24,10 @@ public class InventoryService {
         return this.inventoryRepository.findAll();
     }
 
+    public List<InventoryResponse> serachNew() {
+        return this.inventoryRepository.getDataNew();
+    }
+
     public InventoriesResponse getInventoriesResponse(
         InventoryRequestDTO request
     ) {

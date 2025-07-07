@@ -26,6 +26,11 @@ public class InventoryController {
         return this.inventoryService.getInventoriesResponse(request);
     }
 
+    @GetMapping
+    public List<InventoryResponse> getDataNew() {
+        return this.inventoryService.serachNew();
+    }
+
     @PostMapping("/update")
     public ResponseEntity<?> updateInventory(
         @RequestBody List<InventoryDTO> request
