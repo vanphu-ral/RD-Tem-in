@@ -39,6 +39,10 @@ export interface RawGraphQLMaterial {
   materialType: string;
   checkinDate: string;
 }
+export interface ApiMaterialResponse {
+  totalItems: number;
+  inventories: any[];
+}
 
 export interface updateHistoryData {
   requestID: number;
@@ -134,7 +138,6 @@ interface UpdateRequestDetailQueryResponse {
 interface LocationQueryResponse {
   allLocations: RawGraphQLLocation[];
 }
-// #endregion
 
 @Injectable({
   providedIn: "root",
@@ -224,12 +227,9 @@ export class ListMaterialService {
     this.fetchLocations();
     this.loadSelectedIds();
     this.fetchMaterialsData(
-      0,
+      1,
       this.defaultPageSize,
-      undefined,
-      undefined,
-      undefined,
-      false,
+      // false,
     );
 
     this.fetchAllInventoryUpdateRequests();
@@ -254,116 +254,122 @@ export class ListMaterialService {
     this.saveExcelFile(excelBuffer, fileName);
   }
 
-  public fetchMaterialsData(
-    pageIndex: number, // số trang hiện tại
-    limit: number, // số lượng mỗi trang
-    filter?: string,
-    sortBy?: string,
-    sortDirection?: string,
-    forceRefresh: boolean = true,
-  ): void {
-    // if (
-    //   !forceRefresh &&
-    //   this._materialsDataFetchedOnce &&
-    //   this._materialsData.getValue().length > 0
-    // ) {
-    //   console.log(
-    //     "MaterialService (HTTP): Skipping fetch, data already loaded and forceRefresh is false.",
-    //   );
-    //   return;
-    // }
+  // lấy dư liệu cho trang danh sách
+  // public fetchMaterialsData(
+  //   pageIndex: number, // số trang hiện tại
+  //   limit: number, // số lượng mỗi trang
+  //   // forceRefresh: boolean = true,
+  // ): Observable<ApiMaterialResponse> {
 
-    // {
-    //   page: 1,
-    //   size: 2,
-    //   {
-    //     {
-    //        feild1: name,
-    //        mode: constain,
-    //        value:a
-    //     },
-    //    {
-    //        feild2: tuoi,
-    //        mode: equal,
-    //        value:0
-    //     },
-    //   }
-    // }
+  //   // body kèm với search filter
+  //   const body: { [key: string]: any } = {
+  //     materialIdentifier: "",
+  //     status: "",
+  //     partNumber: "",
+  //     quantity: null,
+  //     availableQuantity: null,
+  //     lotNumber: "",
+  //     userData4: "",
+  //     locationName: "",
+  //     expirationDate: "",
+  //     pageNumber: pageIndex,
+  //     itemPerPage: limit,
+  //   };
 
-    // body kèm với search filter
-    const body: { [key: string]: any } = {
-      materialIdentifier: "",
-      status: "",
-      partNumber: "",
-      quantity: null,
-      availableQuantity: null,
-      lotNumber: "",
-      userData4: "",
-      locationName: "",
-      expirationDate: "",
-      pageNumber: pageIndex,
+  //   console.log("log api material moi", body);
+  //   return this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).pipe(
+  //     tap((response) => {
+  //       console.log("log response", response);
+  //       if (response?.inventories && Array.isArray(response.inventories)) {
+  //         this._totalCount.next(response.totalItems);
+  //         const selectedIds = this._selectedIds.value;
+  //         const filteredData = response.inventories.filter(
+  //           (item) => !this._updatedInventoryIds.has(item.inventoryId),
+  //         );
+  //         const mappedData = filteredData.map((rawItem) =>
+  //           this.mapRawToMaterial(rawItem, selectedIds),
+  //         );
+  //         this._materialsData.next(mappedData);
+  //         // this._totalCount.next(response.totalItems); // Đã gọi ở trên
+  //         this._materialsDataFetchedOnce = true;
+  //         console.log("typeof callback:", typeof response.inventories);
+  //         console.log("bo hang da cap nhat", filteredData);
+  //         console.log(
+  //           // `MaterialService (HTTP): Materials data ${forceRefresh ? "refreshed" : "loaded"}. Count:`,
+  //           mappedData.length,
+  //         );
+  //       } else {
+  //         console.warn(
+  //           "MaterialService (HTTP): Materials API did not return an array. Received:",
+  //           response,
+  //         );
+  //         this._materialsData.next([]);
+  //         this._totalCount.next(0);
+  //         this._materialsDataFetchedOnce = true;
+  //       }
+  //     }),
+  //     catchError((err) => {
+  //       console.error("MaterialService (HTTP): Error fetching materials:", err);
+  //       this._materialsData.next([]);
+  //       this._totalCount.next(0);
+  //       this._materialsDataFetchedOnce = true;
+  //       // Quan trọng: Trả về một Observable mới (ví dụ: of()) để luồng không bị ngắt
+  //       return of({ totalItems: 0, inventories: [] } as ApiMaterialResponse);
+  //     }),
+  //   );
+  // }
+  fetchMaterialsData(
+    pageIndex: number, // Số trang (bắt đầu từ 0 hoặc 1 tùy BE)
+    limit: number, // Số lượng item/trang
+    filters?: {
+      // Filter tùy chọn (có thể không gửi)
+      materialIdentifier?: string;
+      status?: string;
+      partNumber?: string;
+      quantity?: number | null;
+      availableQuantity?: number | null;
+      lotNumber?: string;
+      userData4?: string;
+      locationName?: string;
+      expirationDate?: string;
+    },
+  ): Observable<ApiMaterialResponse> {
+    const body = {
+      materialIdentifier: filters?.materialIdentifier ?? "",
+      status: filters?.status ?? "",
+      partNumber: filters?.partNumber ?? "",
+      quantity: filters?.quantity ?? null,
+      availableQuantity: filters?.availableQuantity ?? null,
+      lotNumber: filters?.lotNumber ?? "",
+      userData4: filters?.userData4 ?? "",
+      locationName: filters?.locationName ?? "",
+      expirationDate: filters?.expirationDate ?? "",
+      pageNumber: pageIndex, //  pageIndex + 1
       itemPerPage: limit,
     };
 
-    if (filter) {
-      try {
-        const filterObject = JSON.parse(filter);
-        Object.assign(body, filterObject);
-      } catch (e) {
-        console.error("Error parsing filter string:", e);
-      }
-    }
+    console.log("Request Body:", JSON.stringify(body, null, 2));
 
-    if (sortBy && sortDirection) {
-      body["sort"] = `${sortBy},${sortDirection}`;
-    }
-
-    console.log(
-      `MaterialService (HTTP): Fetching materials from ${this.apiMaterialUrl} with POST. Force refresh: ${forceRefresh}`,
-    );
-    interface ApiMaterialResponse {
-      totalItems: number;
-      inventories: RawGraphQLMaterial[];
-    }
-    console.log("log api material moi", body);
-    this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).subscribe({
-      next: (response) => {
-        console.log("log response", response);
-        if (response?.inventories && Array.isArray(response.inventories)) {
+    return this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).pipe(
+      tap((response) => {
+        console.log("API Response invent:", response);
+        if (response?.inventories) {
           this._totalCount.next(response.totalItems);
-          const selectedIds = this._selectedIds.value;
-          const filteredData = response.inventories.filter(
-            (item) => !this._updatedInventoryIds.has(item.inventoryId),
-          );
-          const mappedData = filteredData.map((rawItem) =>
-            this.mapRawToMaterial(rawItem, selectedIds),
-          );
+          const mappedData = response.inventories
+            .filter((item) => !this._updatedInventoryIds.has(item.inventoryId))
+            .map((rawItem) =>
+              this.mapRawToMaterial(rawItem, this._selectedIds.value),
+            );
           this._materialsData.next(mappedData);
-          this._totalCount.next(response.totalItems);
-          this._materialsDataFetchedOnce = true;
-          console.log("typeof callback:", typeof response.inventories);
-          console.log("bo hang da cap nhat", filteredData);
-          console.log(
-            `MaterialService (HTTP): Materials data ${forceRefresh ? "refreshed" : "loaded"}. Count:`,
-            mappedData.length,
-          );
-        } else {
-          console.warn(
-            "MaterialService (HTTP): Materials API did not return an array. Received:",
-            response,
-          );
-          this._materialsData.next([]);
-          this._totalCount.next(0);
-          this._materialsDataFetchedOnce = true;
         }
-      },
-      error: (err) => {
-        console.error("MaterialService (HTTP): Error fetching materials:", err);
+      }),
+      catchError((err) => {
+        console.error("API Error:", err);
         this._materialsData.next([]);
         this._totalCount.next(0);
-        this._materialsDataFetchedOnce = true;
-      },
-    });
+        return of({ totalItems: 0, inventories: [] });
+      }),
+    );
   }
 
   public fetchAllInventoryUpdateRequests(): void {
@@ -660,12 +666,9 @@ export class ListMaterialService {
           );
           // After a successful update, force a refresh of the main materials list
           this.fetchMaterialsData(
-            0,
+            1,
             this.defaultPageSize,
-            undefined,
-            undefined,
-            undefined,
-            true,
+            // true,
           );
           this.fetchAllInventoryUpdateRequests(); // Also refresh the list of update requests
         }),
@@ -725,12 +728,9 @@ export class ListMaterialService {
           "MaterialService: Approve inventory update successful. Refreshing materials data.",
         );
         this.fetchMaterialsData(
-          0,
+          1,
           this.defaultPageSize,
-          undefined,
-          undefined,
-          undefined,
-          true,
+          // true,
         );
         this.fetchAllInventoryUpdateRequests();
       }),
@@ -789,12 +789,9 @@ export class ListMaterialService {
           "MaterialService: Reject inventory update successful. Refreshing materials data.",
         );
         this.fetchMaterialsData(
-          0,
+          1,
           this.defaultPageSize,
-          undefined,
-          undefined,
-          undefined,
-          true,
+          // true,
         );
         this.fetchAllInventoryUpdateRequests();
       }),
@@ -842,31 +839,6 @@ export class ListMaterialService {
     if (savedIds) {
       this._selectedIds.next(JSON.parse(savedIds));
     }
-  }
-
-  private fetchAndInitializeData(): void {
-    this.http.get<RawGraphQLMaterial[]>(this.apiMaterialUrl).subscribe({
-      next: (apiData) => {
-        const selectedIds = this._selectedIds.value;
-        const updatedData = apiData.map((item) => ({
-          ...item,
-          checked: selectedIds.includes(item.inventoryId),
-        }));
-        this._materialsData.next(updatedData);
-        console.log(
-          "MaterialService (HTTP): Data successfully fetched and set to _materialsData:",
-          updatedData,
-        );
-      },
-      error: (err) => {
-        console.error(
-          "MaterialService (HTTP): Error fetching data from API:",
-          err,
-        );
-        this._materialsData.next([]);
-        this._totalCount.next(0);
-      },
-    });
   }
 
   private mapRawToMaterial(
