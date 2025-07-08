@@ -36,9 +36,7 @@ public class InventoryService {
             this.inventoryRepository.getTotalDataGroupByPartNumber(
                 "%" +
                 Optional.ofNullable(request.getPartNumber()).orElse("") +
-                "%",
-                (request.getPageNumber() - 1) * request.getItemPerPage(),
-                request.getItemPerPage()
+                "%"
             )
         );
         inventoriesResponse.setInventories(
@@ -64,9 +62,7 @@ public class InventoryService {
                 "%",
                 "%" +
                 Optional.ofNullable(request.getLotNumber()).orElse("") +
-                "%",
-                (request.getPageNumber() - 1) * request.getItemPerPage(),
-                request.getItemPerPage()
+                "%"
             )
         );
         inventoriesResponse.setInventories(
@@ -95,9 +91,7 @@ public class InventoryService {
                 "%",
                 "%" +
                 Optional.ofNullable(request.getUserData4()).orElse("") +
-                "%",
-                (request.getPageNumber() - 1) * request.getItemPerPage(),
-                request.getItemPerPage()
+                "%"
             )
         );
         inventoriesResponse.setInventories(
@@ -126,9 +120,7 @@ public class InventoryService {
                 "%",
                 "%" +
                 Optional.ofNullable(request.getLocationName()).orElse("") +
-                "%",
-                (request.getPageNumber() - 1) * request.getItemPerPage(),
-                request.getItemPerPage()
+                "%"
             )
         );
         inventoriesResponse.setInventories(
@@ -161,9 +153,7 @@ public class InventoryService {
                 "%",
                 "%" +
                 Optional.ofNullable(request.getLocationName()).orElse("") +
-                "%",
-                (request.getPageNumber() - 1) * request.getItemPerPage(),
-                request.getItemPerPage()
+                "%"
             )
         );
         inventoriesResponse.setInventories(

@@ -54,16 +54,10 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_PartNumber like ?1 " +
-        "GROUP BY a.[Inventory_PartNumber] " +
-        "ORDER BY a.Inventory_PartNumber desc " +
-        "OFFSET ?2 ROWS FETCH NEXT ?3 ROWS ONLY ;\n",
+        "GROUP BY a.[Inventory_PartNumber] ;",
         nativeQuery = true
     )
-    public Integer getTotalDataGroupByPartNumber(
-        String partNumber,
-        Integer pageNumber,
-        Integer itemPerPage
-    );
+    public Integer getTotalDataGroupByPartNumber(String partNumber);
 
     @Query(
         value = "SELECT  \n" +
@@ -110,16 +104,12 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_PartNumber like ?1 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName like ?2 " +
-        "GROUP BY d1.InventoryMaterialTraceDetail_MaterialTraceDataName " +
-        "ORDER BY a.Inventory_PartNumber desc " +
-        "OFFSET ?3 ROWS FETCH NEXT ?4 ROWS ONLY ;\n",
+        "GROUP BY d1.InventoryMaterialTraceDetail_MaterialTraceDataName ;\n",
         nativeQuery = true
     )
     public Integer getTotalDataGroupByUserData4(
         String partNumber,
-        String userData4,
-        Integer pageNumber,
-        Integer itemPerPage
+        String userData4
     );
 
     @Query(
@@ -167,16 +157,12 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_PartNumber like ?1 " +
         "AND b.Location_Name like ?2 " +
-        "GROUP BY a.[Inventory_PartNumber] " +
-        "ORDER BY a.Inventory_PartNumber desc " +
-        "OFFSET ?3 ROWS FETCH NEXT ?4 ROWS ONLY ;\n",
+        "GROUP BY a.[Inventory_PartNumber] ;\n",
         nativeQuery = true
     )
     public Integer getTotalDataGroupByLocationName(
         String partNumber,
-        String locationName,
-        Integer pageNumber,
-        Integer itemPerPage
+        String locationName
     );
 
     @Query(
@@ -224,16 +210,12 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_PartNumber like ?1 " +
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
-        "GROUP BY a.[Inventory_PartNumber] " +
-        "ORDER BY a.Inventory_PartNumber desc " +
-        "OFFSET ?3 ROWS FETCH NEXT ?4 ROWS ONLY ;\n",
+        "GROUP BY a.[Inventory_PartNumber] ;\n",
         nativeQuery = true
     )
     public Integer getTotalDataGroupByLotNumber(
         String partNumber,
-        String lotNumber,
-        Integer pageNumber,
-        Integer itemPerPage
+        String lotNumber
     );
 
     @Query(
@@ -292,18 +274,14 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?3 " +
         "AND b.Location_Name like ?4 " +
-        "GROUP BY a.[Inventory_PartNumber] " +
-        "ORDER BY a.Inventory_PartNumber desc " +
-        "OFFSET ?5 ROWS FETCH NEXT ?6 ROWS ONLY ;\n",
+        "GROUP BY a.[Inventory_PartNumber] ;\n",
         nativeQuery = true
     )
     public Integer getTotalDataDetail(
         String partNumber,
         String lotNumber,
         String userData4,
-        String locationName,
-        Integer pageNumber,
-        Integer itemPerPage
+        String locationName
     );
 
     @Query(
