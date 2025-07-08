@@ -35,6 +35,7 @@ import {
 interface sumary_mode {
   value: string;
   name: string;
+  link: string;
 }
 interface ExportDetailRow {
   [key: string]: string | number | null | undefined;
@@ -116,10 +117,14 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   expandedElement: AggregatedPartData | null = null;
   form!: FormGroup;
   sumary_modes: sumary_mode[] = [
-    { value: "partNumber", name: "Part Number" },
-    { value: "locationName", name: "Location Name" },
-    { value: "userData4", name: "User Data 4" },
-    { value: "lotNumber", name: "Lot Number" },
+    { value: "partNumber", name: "Part Number", link: "/list-material/sumary" },
+    {
+      value: "locationName",
+      name: "Location Name",
+      link: "/list-material/sumary",
+    },
+    { value: "userData4", name: "User Data 4", link: "/list-material/sumary" },
+    { value: "lotNumber", name: "Lot Number", link: "/list-material/sumary" },
   ];
   sumary_modeControl = new FormControl();
   selectedAggregated: string = "";
@@ -140,17 +145,13 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     { value: "expired", view: "Expired" },
   ];
   aggregatedParts: AggregatedPartData[] = [];
-  // #endregion
 
-  // #region ViewChild
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChildren("detailPaginator") detailPaginators!: QueryList<MatPaginator>;
   @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
   @ViewChild("detailPaginator") detailPaginator!: MatPaginator;
-  // #endregion
 
-  // #region Constructor
   constructor(
     private MaterialService: ListMaterialService,
     private dialog: MatDialog,
@@ -175,6 +176,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     }
     this.route.queryParams.subscribe((params) => {
       const mainField = params["mode"] || "partNumber";
+      // Nếu đã là partNumber thì chỉ group theo 1 trường, ngược lại thì group theo 2 trường
       this.groupingFields =
         mainField === "partNumber" ? ["partNumber"] : [mainField, "partNumber"];
       this.displayedColumns = [
@@ -544,8 +546,16 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
               if (!cellValue.includes(searchTerm)) {
                 return false;
               }
+            } else if (searchMode === "not_contains") {
+              if (cellValue.includes(searchTerm)) {
+                return false;
+              }
             } else if (searchMode === "equals") {
               if (cellValue !== searchTerm) {
+                return false;
+              }
+            } else if (searchMode === "not_equals") {
+              if (cellValue === searchTerm) {
                 return false;
               }
             } else {
@@ -640,8 +650,18 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
             return false;
           }
           break;
+        case "not_equals":
+          if (cellValue === term) {
+            return false;
+          }
+          break;
         case "contains":
           if (!cellValue.includes(term)) {
+            return false;
+          }
+          break;
+        case "not_contains":
+          if (cellValue.includes(term)) {
             return false;
           }
           break;

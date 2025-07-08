@@ -41,10 +41,12 @@ import { AccountService } from "app/core/auth/account.service";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { ActivatedRoute } from "@angular/router";
 import { HttpParams } from "@angular/common/http";
+import { HttpClient } from "@angular/common/http";
 
 interface sumary_mode {
   value: string;
   name: string;
+  link: string;
 }
 export interface ColumnConfig {
   name: string;
@@ -71,6 +73,7 @@ export interface FilterDialogData {
 })
 export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   // #region Public properties
+
   value = "";
   tableMaxWidth: string = "100%";
   displayedColumns: string[] = [
@@ -179,10 +182,14 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   form!: FormGroup;
   locale = "en-GB";
   sumary_modes: sumary_mode[] = [
-    { value: "partNumber", name: "Part Number" },
-    { value: "locationName", name: "Location Name" },
-    { value: "userData4", name: "User Data 4" },
-    { value: "lotNumber", name: "Lot Number" },
+    { value: "partNumber", name: "Part Number", link: "/list-material/sumary" },
+    {
+      value: "locationName",
+      name: "Location Name",
+      link: "/list-material/sumary",
+    },
+    { value: "userData4", name: "User Data 4", link: "/list-material/sumary" },
+    { value: "lotNumber", name: "Lot Number", link: "/list-material/sumary" },
   ];
   sumary_modeControl = new FormControl();
   selectedAggregated: string = "";
@@ -230,6 +237,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private accountService: AccountService,
     private snackBar: MatSnackBar,
+    private http: HttpClient,
     private fb: FormBuilder,
   ) {
     this.form = new FormGroup({
@@ -328,15 +336,53 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onLoad(): void {
-    const selectedMode: string = this.form.get("sumary_modeControl")?.value;
-    if (selectedMode) {
-      this.router.navigate(["/list-material/sumary"], {
-        queryParams: { mode: selectedMode },
-      });
-    } else {
-      console.warn("Chưa chọn chế độ tổng hợp.");
+    const selectedMode: string = this.form.get("sumary_modeControl")?.value[0];
+    let body: any;
+    let apiUrl: string;
+    console.log(selectedMode);
+    switch (selectedMode) {
+      case "partNumber":
+        apiUrl = this.materialService.apiSumaryByPart;
+        body = {
+          partNumber: "",
+          pageNumber: 1,
+          numberPerPage: 50,
+        };
+        break;
+      case "lotNumber":
+        apiUrl = this.materialService.apiSumaryByLot;
+        body = {
+          partNumber: "",
+          lotNumber: "",
+          pageNumber: 1,
+          numberPerPage: 50,
+        };
+        break;
+      case "userData4":
+        apiUrl = this.materialService.apiSumaryByUserData4;
+        body = {
+          partNumber: "",
+          userData4: "",
+          pageNumber: 1,
+          numberPerPage: 50,
+        };
+        break;
+      case "locationName":
+        apiUrl = this.materialService.apiSumaryByLocation;
+        body = {
+          partNumber: "",
+          locationName: "",
+          pageNumber: 1,
+          numberPerPage: 50,
+        };
+        break;
+      default:
+        console.warn("Chưa chọn chế độ tổng hợp.");
+        return;
     }
+    this.materialService.fetchDataSumary(apiUrl, body);
   }
+
   ngOnDestroy(): void {
     this.ngUnsubscribe.next();
     this.ngUnsubscribe.complete();
@@ -669,24 +715,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       .map((col) => col.matColumnDef);
   }
 
-  // public applyFilter(colDef: string, event: Event): void {
-  //   const filterValue = (event.target as HTMLInputElement).value;
-  //   const selectedMode = this.filterModes[colDef] || "contains";
-  //   this.searchTerms[colDef] = {
-  //     mode: selectedMode,
-  //     value: filterValue.trim().toLowerCase(),
-  //   };
-  //   console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
-  //   this.filterApplied = Object.values(this.searchTerms).some(
-  //     (term) => !!term.value,
-  //   );
-  //   this.applyCombinedFilters();
-  //   this.pageIndex = 1;
-  //   if (this.paginator) {
-  //     this.paginator.pageIndex = 1;
-  //   }
-  //   this.fetchData();
-  // }
   public applyFilter(colDef: string, event: Event): void {
     const raw = (event.target as HTMLInputElement).value.trim().toLowerCase();
     const selectedMode = this.filterModes[colDef] || "contains";
@@ -728,65 +756,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     ];
     return dateFields.includes(colDef);
   }
-
-  public convertTimestampToDate(timestamp: number): string {
-    if (!timestamp) {
-      return "";
-    }
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }
-
-  //   public applyDateFilter(colDef: string, event: MatDatepickerInputEvent<Date>): void {
-  //     const dateValue: Date | null = event.value;
-  //     if (dateValue) {
-  //       const formattedDate = dateValue
-  //         .toLocaleDateString('vi-VN', {
-  //           day: '2-digit',
-  //           month: '2-digit',
-  //           year: 'numeric',
-  //         })
-  //         .toLowerCase();
-
-  //       console.log(`[applyDateFilter] Ngày được chọn từ DatePicker ở cột ${colDef}: ${formattedDate}`);
-
-  //       this.searchTerms[colDef] = {
-  //         mode: 'equals',
-  //         value: formattedDate,
-  //       };
-  //     } else {
-  //       this.searchTerms[colDef] = { mode: 'contains', value: '' };
-  //     }
-  //     this.applyCombinedFilters();
-  //   }
-
-  //   openFilterDialog(colDef: string): void {
-  //     const currentColumnValues = this.dataSource.data.map(
-  //       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  //       item => (item as any)[colDef],
-  //     );
-  //     const selectedValuesForColumn = this.activeFilters[colDef] || [];
-  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  //     const dialogRef = this.dialog.open(FilterDialogComponent, {
-  //       width: 'auto',
-  //       data: {
-  //         columnName: this.getColumnDisplayName(colDef),
-  //         currentValues: currentColumnValues,
-  //         selectedValues: selectedValuesForColumn,
-  //       },
-  //     });
-
-  //     dialogRef.afterClosed().subscribe((result: string[] | undefined) => {
-  //       if (result) {
-  //         this.activeFilters[colDef] = result;
-  //         this.applyCombinedFilters();
-  //       }
-  //     });
-  //   }
 
   export(): void {
     const exportColumns = this.displayedColumns.filter(
@@ -881,6 +850,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   //   // #endregion
 
+  public convertTimestampToDate(timestamp: number): string {
+    if (!timestamp) {
+      return "";
+    }
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
   //   // #region Private methods
   private fetchPage(params: any): void {
     const page = params.page ? +params.page : 1;
@@ -954,78 +935,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       this.dataSource.paginator.firstPage();
     }
   }
-  // .filter(([_, t]) => !!t.value)
-
-  // private fetchData(): void {
-
-  //   this.materialService.fetchMaterialsData(
-  //     this.paginator?.pageIndex || 1, // pageIndex
-  //     this.paginator?.pageSize || 10, // limit
-
-  //   ).pipe(
-  //     takeUntil(this.ngUnsubscribe)
-  //   ).subscribe({
-  //     next: (response) => {
-  //       this.length = response.totalItems;
-  //       this.dataSource.data = response.inventories || [];
-
-  //       // Cập nhật thông tin paginator
-  //       if (this.paginator) {
-  //         this.paginator.length = response.totalItems;
-  //       }
-  //     },
-  //     error: (error) => {
-  //       console.error('Error fetching materials:', error);
-  //       this.length = 0;
-  //       this.dataSource.data = [];
-  //       if (this.paginator) {
-  //         this.paginator.length = 0;
-  //       }
-  //     }
-  //   });
-  // }
-  // private fetchData(): void {
-  //   const params = this.route.snapshot.queryParams;
-
-  //   // Build filters object only with allowed properties
-  //   const allowedFilterKeys = [
-  //     'materialIdentifier', 'status', 'partNumber', 'quantity', 'availableQuantity',
-  //     'lotNumber', 'userData4', 'locationName', 'expirationDate'];
-
-  //   const filters: { [key: string]: any } = {};
-  //   for (const key of allowedFilterKeys) {
-  //     if (params[key] !== undefined) {
-  //       filters[key] = params[key];
-  //     }
-  //   }
-  //   const page = params.page ? +params.page : (this.paginator?.pageIndex ?? 0) + 1;
-
-  //   this.materialService.fetchMaterialsData(
-  //     page,
-  //     this.paginator?.pageSize || 10,
-  //     filters
-  //   ).pipe(
-  //     takeUntil(this.ngUnsubscribe)
-  //   ).subscribe({
-  //     next: (response) => {
-  //       this.length = response.totalItems;
-  //       this.dataSource.data = response.inventories || [];
-
-  //       // Cập nhật paginator nhưng không thay đổi trang hiện tại
-  //       if (this.paginator) {
-  //         this.paginator.length = response.totalItems;
-  //       }
-  //     },
-  //     error: (error) => {
-  //       console.error('Error fetching materials:', error);
-  //       this.length = 0;
-  //       this.dataSource.data = [];
-  //       if (this.paginator) {
-  //         this.paginator.length = 0;
-  //       }
-  //     }
-  //   });
-  // }
 
   private fetchData(): void {
     const params = this.route.snapshot.queryParams;

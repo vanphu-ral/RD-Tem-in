@@ -139,6 +139,49 @@ interface LocationQueryResponse {
   allLocations: RawGraphQLLocation[];
 }
 
+interface SumaryByPart {
+  "partNumber ": string;
+  "totalQuantity ": string;
+  totalAvailableQuantity: number;
+  recordCount: number;
+  details: Detail;
+}
+interface SumaryByUserData4 {
+  "partNumber ": string;
+  "userData4 ": string;
+  totalQuantity: number;
+  totalAvailableQuantity: number;
+  recordCount: 3;
+  details: Detail;
+}
+interface SumaryByLocation {
+  "locationName ": string;
+  "partNumber ": string;
+  totalQuantity: number;
+  totalAvailableQuantity: number;
+  recordCount: 3;
+  details: Detail;
+}
+interface SumaryByLot {
+  "partNumber ": string;
+  "lotNumber ": string;
+  totalQuantity: number;
+  totalAvailableQuantity: number;
+  recordCount: 3;
+  details: Detail;
+}
+
+interface Detail {
+  partnumber: string;
+  lotNumber: string;
+  userData4: string;
+  locationName: string;
+  availableQuantity: number;
+  receivedDate: string;
+  expirationDate: string;
+  status: string;
+}
+
 @Injectable({
   providedIn: "root",
 })
@@ -155,6 +198,21 @@ export class ListMaterialService {
   public materialsData$!: Observable<RawGraphQLMaterial[]>;
   public selectedIds$!: Observable<string[]>;
   public locationsData$!: Observable<RawGraphQLLocation[]>;
+
+  //  lấy dữ liệu tổng hợp
+  //  url api tong hop
+  public apiSumaryByPart = this.applicationConfigService.getEndpointFor(
+    "/api/inventory/group-by-part-number",
+  );
+  public apiSumaryByLot = this.applicationConfigService.getEndpointFor(
+    "/api/inventory/group-by-lot-number",
+  );
+  public apiSumaryByUserData4 = this.applicationConfigService.getEndpointFor(
+    "/api/inventory/group-by-user-data-4",
+  );
+  public apiSumaryByLocation = this.applicationConfigService.getEndpointFor(
+    "/api/inventory/group-by-location-name",
+  );
   public selectedItems$!: Observable<RawGraphQLMaterial[]>;
 
   private _approvalHistoryDetailData = new BehaviorSubject<
@@ -258,70 +316,22 @@ export class ListMaterialService {
     this.saveExcelFile(excelBuffer, fileName);
   }
 
-  // lấy dư liệu cho trang danh sách
-  // public fetchMaterialsData(
-  //   pageIndex: number, // số trang hiện tại
-  //   limit: number, // số lượng mỗi trang
-  //   // forceRefresh: boolean = true,
-  // ): Observable<ApiMaterialResponse> {
+  // lấy dữ liệu trang tổng hợp
 
-  //   // body kèm với search filter
-  //   const body: { [key: string]: any } = {
-  //     materialIdentifier: "",
-  //     status: "",
-  //     partNumber: "",
-  //     quantity: null,
-  //     availableQuantity: null,
-  //     lotNumber: "",
-  //     userData4: "",
-  //     locationName: "",
-  //     expirationDate: "",
-  //     pageNumber: pageIndex,
-  //     itemPerPage: limit,
-  //   };
+  fetchDataSumary(apiUrl: string, body: any): void {
+    console.log(body);
+    console.log(apiUrl);
+    this.http.post(apiUrl, body).subscribe({
+      next: (response) => {
+        console.log(body);
+      },
+      error: (err) => {
+        console.error("Lỗi khi lấy dữ liệu cho chế độ ", err);
+      },
+    });
+  }
+  //  lấy dư liệu cho trang danh sach
 
-  //   console.log("log api material moi", body);
-  //   return this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).pipe(
-  //     tap((response) => {
-  //       console.log("log response", response);
-  //       if (response?.inventories && Array.isArray(response.inventories)) {
-  //         this._totalCount.next(response.totalItems);
-  //         const selectedIds = this._selectedIds.value;
-  //         const filteredData = response.inventories.filter(
-  //           (item) => !this._updatedInventoryIds.has(item.inventoryId),
-  //         );
-  //         const mappedData = filteredData.map((rawItem) =>
-  //           this.mapRawToMaterial(rawItem, selectedIds),
-  //         );
-  //         this._materialsData.next(mappedData);
-  //         // this._totalCount.next(response.totalItems); // Đã gọi ở trên
-  //         this._materialsDataFetchedOnce = true;
-  //         console.log("typeof callback:", typeof response.inventories);
-  //         console.log("bo hang da cap nhat", filteredData);
-  //         console.log(
-  //           // `MaterialService (HTTP): Materials data ${forceRefresh ? "refreshed" : "loaded"}. Count:`,
-  //           mappedData.length,
-  //         );
-  //       } else {
-  //         console.warn(
-  //           "MaterialService (HTTP): Materials API did not return an array. Received:",
-  //           response,
-  //         );
-  //         this._materialsData.next([]);
-  //         this._totalCount.next(0);
-  //         this._materialsDataFetchedOnce = true;
-  //       }
-  //     }),
-  //     catchError((err) => {
-  //       console.error("MaterialService (HTTP): Error fetching materials:", err);
-  //       this._materialsData.next([]);
-  //       this._totalCount.next(0);
-  //       this._materialsDataFetchedOnce = true;
-  //       // Quan trọng: Trả về một Observable mới (ví dụ: of()) để luồng không bị ngắt
-  //       return of({ totalItems: 0, inventories: [] } as ApiMaterialResponse);
-  //     }),
-  //   );
-  // }
   fetchMaterialsData(
     pageIndex: number, // Số trang (bắt đầu từ 0 hoặc 1 tùy BE)
     limit: number, // Số lượng item/trang
