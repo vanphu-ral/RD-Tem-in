@@ -8,20 +8,29 @@ import {
   ElementRef,
   OnDestroy,
   ChangeDetectorRef,
-} from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
-import { MatTableDataSource } from '@angular/material/table';
-import { ChangeDetectionStrategy, signal } from '@angular/core';
-import { FormBuilder, FormGroup, FormControl } from '@angular/forms';
-import { MatMenuTrigger } from '@angular/material/menu';
-import { MatSort } from '@angular/material/sort';
-import { PageEvent, MatPaginator } from '@angular/material/paginator';
-import { MatDialog } from '@angular/material/dialog';
-import { Subscription, Subject } from 'rxjs';
-import { takeUntil, startWith } from 'rxjs/operators';
-import { animate, state, style, transition, trigger } from '@angular/animations';
-import { MatDatepickerInputEvent } from '@angular/material/datepicker';
-import { ListMaterialService, RawGraphQLMaterial } from '../services/list-material.service';
+} from "@angular/core";
+import { Router, ActivatedRoute } from "@angular/router";
+import { MatTableDataSource } from "@angular/material/table";
+import { ChangeDetectionStrategy, signal } from "@angular/core";
+import { FormBuilder, FormGroup, FormControl } from "@angular/forms";
+import { MatMenuTrigger } from "@angular/material/menu";
+import { MatSort } from "@angular/material/sort";
+import { PageEvent, MatPaginator } from "@angular/material/paginator";
+import { MatDialog } from "@angular/material/dialog";
+import { Subscription, Subject } from "rxjs";
+import { takeUntil, startWith } from "rxjs/operators";
+import {
+  animate,
+  state,
+  style,
+  transition,
+  trigger,
+} from "@angular/animations";
+import { MatDatepickerInputEvent } from "@angular/material/datepicker";
+import {
+  ListMaterialService,
+  RawGraphQLMaterial,
+} from "../services/list-material.service";
 
 interface sumary_mode {
   value: string;
@@ -55,34 +64,43 @@ export interface AggregatedPartData {
 }
 
 @Component({
-  selector: 'jhi-list-material-sumary',
+  selector: "jhi-list-material-sumary",
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [FormBuilder],
-  templateUrl: './list-material-sumary.component.html',
-  styleUrls: ['./list-material-sumary.component.scss'],
+  templateUrl: "./list-material-sumary.component.html",
+  styleUrls: ["./list-material-sumary.component.scss"],
   animations: [
-    trigger('detailExpand', [
+    trigger("detailExpand", [
       state(
-        'collapsed',
+        "collapsed",
         style({
-          height: '0px',
-          minHeight: '0',
-          visibility: 'hidden',
-          display: 'none',
+          height: "0px",
+          minHeight: "0",
+          visibility: "hidden",
+          display: "none",
         }),
       ),
-      state('expanded', style({ height: '*', visibility: 'visible' })),
-      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')),
+      state("expanded", style({ height: "*", visibility: "visible" })),
+      transition(
+        "expanded <=> collapsed",
+        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)"),
+      ),
     ]),
   ],
 })
 export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   // #region Public properties
-  tableWidth: string = '100%';
-  value = '';
-  groupingFields: string[] = ['partNumber', 'locationName']; // mặc định
+  tableWidth: string = "100%";
+  value = "";
+  groupingFields: string[] = ["partNumber", "locationName"]; // mặc định
   checkedCount = signal(0);
-  displayedColumns: string[] = ['expand', ...this.groupingFields, 'totalQuantity', 'totalAvailableQuantity', 'count'];
+  displayedColumns: string[] = [
+    "expand",
+    ...this.groupingFields,
+    "totalQuantity",
+    "totalAvailableQuantity",
+    "count",
+  ];
   dataSource = new MatTableDataSource<AggregatedPartData>();
   length = 0;
   pageSize = 15;
@@ -94,29 +112,32 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   disabled = false;
   pageEvent: PageEvent | undefined;
   groupedData: AggregatedPartData[] = [];
-  groupingField: string = 'groupingKey';
+  groupingField: string = "groupingKey";
   expandedElement: AggregatedPartData | null = null;
   form!: FormGroup;
   sumary_modes: sumary_mode[] = [
-    { value: 'partNumber', name: 'Part Number' },
-    { value: 'locationName', name: 'Location Name' },
-    { value: 'userData4', name: 'User Data 4' },
-    { value: 'lotNumber', name: 'Lot Number' },
+    { value: "partNumber", name: "Part Number" },
+    { value: "locationName", name: "Location Name" },
+    { value: "userData4", name: "User Data 4" },
+    { value: "lotNumber", name: "Lot Number" },
   ];
   sumary_modeControl = new FormControl();
-  selectedAggregated: string = '';
-  public searchTerms: { [columnDef: string]: { mode: string; value: string } } = {};
+  selectedAggregated: string = "";
+  public searchTerms: { [columnDef: string]: { mode: string; value: string } } =
+    {};
   public activeFilters: { [columnDef: string]: any[] } = {};
   public filterModes: { [columnDef: string]: string } = {};
-  public filterField = this.groupingField || 'groupingKey';
-  public searchTermsDetail: { [colDetail: string]: { mode: string; value: string } } = {};
+  public filterField = this.groupingField || "groupingKey";
+  public searchTermsDetail: {
+    [colDetail: string]: { mode: string; value: string };
+  } = {};
   public activeFiltersDetail: { [colDetail: string]: any[] } = {};
   public filterModesDetail: { [colDetail: string]: string } = {};
   statusOptions = [
-    { value: '', view: '-- All --' },
-    { value: 'available', view: 'Available' },
-    { value: 'consumed', view: 'Consumed' },
-    { value: 'expired', view: 'Expired' },
+    { value: "", view: "-- All --" },
+    { value: "available", view: "Available" },
+    { value: "consumed", view: "Consumed" },
+    { value: "expired", view: "Expired" },
   ];
   aggregatedParts: AggregatedPartData[] = [];
   // #endregion
@@ -124,9 +145,9 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   // #region ViewChild
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
-  @ViewChildren('detailPaginator') detailPaginators!: QueryList<MatPaginator>;
-  @ViewChild('menuTrigger') menuTrigger!: MatMenuTrigger;
-  @ViewChild('detailPaginator') detailPaginator!: MatPaginator;
+  @ViewChildren("detailPaginator") detailPaginators!: QueryList<MatPaginator>;
+  @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
+  @ViewChild("detailPaginator") detailPaginator!: MatPaginator;
   // #endregion
 
   // #region Constructor
@@ -145,24 +166,32 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
   // #region Lifecycle hooks
   ngOnInit(): void {
-    if (!sessionStorage.getItem('aggregatedPageReloaded')) {
-      sessionStorage.setItem('aggregatedPageReloaded', 'true');
+    if (!sessionStorage.getItem("aggregatedPageReloaded")) {
+      sessionStorage.setItem("aggregatedPageReloaded", "true");
       location.reload();
       return;
     } else {
-      sessionStorage.removeItem('aggregatedPageReloaded');
+      sessionStorage.removeItem("aggregatedPageReloaded");
     }
-    this.route.queryParams.subscribe(params => {
-      const mainField = params['mode'] || 'partNumber';
-      // Nếu đã là partNumber thì chỉ group theo 1 trường, ngược lại thì group theo 2 trường
-      this.groupingFields = mainField === 'partNumber' ? ['partNumber'] : [mainField, 'partNumber'];
-      this.displayedColumns = ['expand', ...this.groupingFields, 'totalQuantity', 'totalAvailableQuantity', 'count'];
-      this.MaterialService.materialsData$.subscribe((data: RawGraphQLMaterial[]) => {
-        console.log('[ngOnInit] Received materialsData:', data);
-        this.groupData(data);
-        console.log('[ngOnInit] groupedData:', this.groupedData);
-        this.applyCombinedFilters();
-      });
+    this.route.queryParams.subscribe((params) => {
+      const mainField = params["mode"] || "partNumber";
+      this.groupingFields =
+        mainField === "partNumber" ? ["partNumber"] : [mainField, "partNumber"];
+      this.displayedColumns = [
+        "expand",
+        ...this.groupingFields,
+        "totalQuantity",
+        "totalAvailableQuantity",
+        "count",
+      ];
+      this.MaterialService.materialsData$.subscribe(
+        (data: RawGraphQLMaterial[]) => {
+          console.log("[ngOnInit] Received materialsData:", data);
+          this.groupData(data);
+          console.log("[ngOnInit] groupedData:", this.groupedData);
+          this.applyCombinedFilters();
+        },
+      );
     });
   }
 
@@ -170,7 +199,9 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
     // Khởi tạo filter predicate sau khi dữ liệu đã được gán type AggregatedPartData
-    this.detailPaginators.changes.pipe(startWith(this.detailPaginators)).subscribe(() => this.bindDetailPaginators());
+    this.detailPaginators.changes
+      .pipe(startWith(this.detailPaginators))
+      .subscribe(() => this.bindDetailPaginators());
     this.ngOnInitFilterPredicate();
   }
 
@@ -178,12 +209,12 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
   // #region Public methods
   onLoad(): void {
-    const selectedMode = this.form.get('sumary_modeControl')?.value;
+    const selectedMode = this.form.get("sumary_modeControl")?.value;
     if (selectedMode) {
-      sessionStorage.setItem('aggregatedPageReloaded', 'true');
+      sessionStorage.setItem("aggregatedPageReloaded", "true");
       this.router
-        .navigate(['/list-material/sumary'], {
-          queryParams: { mode: selectedMode, groupBy: 'partNumber' },
+        .navigate(["/list-material/sumary"], {
+          queryParams: { mode: selectedMode, groupBy: "partNumber" },
         })
         .then(() => {
           location.reload();
@@ -192,23 +223,25 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   }
 
   goBackToList(): void {
-    this.router.navigate(['/list-material']);
+    this.router.navigate(["/list-material"]);
   }
 
   groupData(data: RawGraphQLMaterial[]): void {
     if (!data || data.length === 0) {
-      console.warn('Không có dữ liệu để nhóm.');
+      console.warn("Không có dữ liệu để nhóm.");
       return;
     }
-    const groupingFields = Array.isArray(this.groupingFields) ? this.groupingFields : [];
+    const groupingFields = Array.isArray(this.groupingFields)
+      ? this.groupingFields
+      : [];
     if (groupingFields.length === 0) {
-      console.warn('Không có trường group hợp lệ!');
+      console.warn("Không có trường group hợp lệ!");
       return;
     }
     const groups = new Map<string, AggregatedPartData>();
-    data.forEach(item => {
+    data.forEach((item) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      const key = this.groupingFields.map(f => (item as any)[f]).join('|');
+      const key = this.groupingFields.map((f) => (item as any)[f]).join("|");
       if (!key) {
         console.warn(`Item không có đủ trường group:`, item);
         return;
@@ -221,7 +254,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
           details: [],
         };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        this.groupingFields.forEach(f => (group[f] = (item as any)[f]));
+        this.groupingFields.forEach((f) => (group[f] = (item as any)[f]));
         groups.set(key, group);
       }
       const group = groups.get(key)!;
@@ -230,8 +263,10 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       group.count++;
       group.details.push(item);
     });
-    this.groupedData = Array.from(groups.values()).filter(group => group.totalQuantity !== 0);
-    this.groupedData.forEach(row => {
+    this.groupedData = Array.from(groups.values()).filter(
+      (group) => group.totalQuantity !== 0,
+    );
+    this.groupedData.forEach((row) => {
       row.detailDataSource = new MatTableDataSource(row.details);
     });
     this.dataSource.data = this.groupedData;
@@ -250,7 +285,9 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
   setPageSizeOptions(setPageSizeOptionsInput: string): void {
     if (setPageSizeOptionsInput) {
-      this.pageSizeOptions = setPageSizeOptionsInput.split(',').map(str => +str);
+      this.pageSizeOptions = setPageSizeOptionsInput
+        .split(",")
+        .map((str) => +str);
     }
   }
 
@@ -261,18 +298,21 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       JSON.stringify(row),
     );
     if (inventoryId === undefined || inventoryId === null) {
-      console.error('[ListMaterialComponent] Material ID is undefined or null for row:', JSON.stringify(row));
+      console.error(
+        "[ListMaterialComponent] Material ID is undefined or null for row:",
+        JSON.stringify(row),
+      );
       return;
     }
     this.MaterialService.toggleItemSelection(inventoryId);
   }
 
   export(): void {
-    const formattedData = this.dataSource.filteredData.map(row => {
+    const formattedData = this.dataSource.filteredData.map((row) => {
       const { details, detailDataSource, ...rest } = row;
       return rest;
     });
-    const fileName = 'báo_cáo_tổng_hợp_theo_' + this.groupingFields.join('_');
+    const fileName = "báo_cáo_tổng_hợp_theo_" + this.groupingFields.join("_");
     this.MaterialService.exportExcel(formattedData, fileName);
   }
 
@@ -305,37 +345,49 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   // }
   exportDetailExcel(row: AggregatedPartData): void {
     if (!row.detailDataSource) {
-      console.warn('Không có dữ liệu bảng con để export.');
+      console.warn("Không có dữ liệu bảng con để export.");
       return;
     }
-    const detailColumns = ['partNumber', 'lotNumber', 'receivedDate', 'availableQuantity', 'expirationDate', 'status'];
+    const detailColumns = [
+      "partNumber",
+      "lotNumber",
+      "receivedDate",
+      "availableQuantity",
+      "expirationDate",
+      "status",
+    ];
     const dataSource = row.detailDataSource;
     const pageIndex = dataSource.paginator?.pageIndex ?? 0;
-    const pageSize = dataSource.paginator?.pageSize ?? dataSource.filteredData.length;
+    const pageSize =
+      dataSource.paginator?.pageSize ?? dataSource.filteredData.length;
     const startIndex = pageIndex * pageSize;
     const endIndex = startIndex + pageSize;
     const currentPageData = dataSource.filteredData.slice(startIndex, endIndex);
 
-    const formattedDetails: ExportDetailRow[] = currentPageData.map((detail: RawGraphQLMaterial) => {
-      const result: ExportDetailRow = {};
-      this.groupingFields.forEach(f => {
-        result[f] = row[f];
-      });
-      detailColumns.forEach(col => {
-        if (col === 'receivedDate' || col === 'expirationDate') {
-          // Format ngày tháng
-          result[col] = this.convertTimestampToDate((detail as any)[col]);
-        } else if (col === 'status') {
-          // Format status
-          result[col] = this.getStatusLabel((detail as any)[col]);
-        } else {
-          result[col] = (detail as any)[col];
-        }
-      });
-      return result;
-    });
+    const formattedDetails: ExportDetailRow[] = currentPageData.map(
+      (detail: RawGraphQLMaterial) => {
+        const result: ExportDetailRow = {};
+        this.groupingFields.forEach((f) => {
+          result[f] = row[f];
+        });
+        detailColumns.forEach((col) => {
+          if (col === "receivedDate" || col === "expirationDate") {
+            // Format ngày tháng
+            result[col] = this.convertTimestampToDate((detail as any)[col]);
+          } else if (col === "status") {
+            // Format status
+            result[col] = this.getStatusLabel((detail as any)[col]);
+          } else {
+            result[col] = (detail as any)[col];
+          }
+        });
+        return result;
+      },
+    );
 
-    const groupName = this.groupingFields.map(f => `${f}_${row[f]}`).join('_');
+    const groupName = this.groupingFields
+      .map((f) => `${f}_${row[f]}`)
+      .join("_");
     const fileName = `báo_cáo_tổng_hợp_chi_tiet_theo_${groupName}`;
     this.MaterialService.exportExcel(formattedDetails, fileName);
   }
@@ -348,9 +400,11 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   }
 
   public applyFilter(colDef: string, event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value.trim().toLowerCase();
-    const selectedMode = this.filterModes[colDef] || 'contains';
-    const filterKey = colDef === 'groupingKey' ? this.groupingField : colDef;
+    const filterValue = (event.target as HTMLInputElement).value
+      .trim()
+      .toLowerCase();
+    const selectedMode = this.filterModes[colDef] || "contains";
+    const filterKey = colDef === "groupingKey" ? this.groupingField : colDef;
     if (!this.searchTerms[filterKey]) {
       this.searchTerms[filterKey] = {
         mode: selectedMode,
@@ -359,7 +413,10 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     } else {
       this.searchTerms[filterKey].value = filterValue;
     }
-    console.log(`[applyFilter] - Cột ${filterKey}:`, this.searchTerms[filterKey]);
+    console.log(
+      `[applyFilter] - Cột ${filterKey}:`,
+      this.searchTerms[filterKey],
+    );
     this.applyCombinedFilters();
   }
 
@@ -368,51 +425,65 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.applyCombinedFilters();
   }
 
-  public applyDateFilter(row: AggregatedPartData, colDetail: string, event: MatDatepickerInputEvent<Date>): void {
+  public applyDateFilter(
+    row: AggregatedPartData,
+    colDetail: string,
+    event: MatDatepickerInputEvent<Date>,
+  ): void {
     const dateValue: Date | null = event.value;
     if (dateValue) {
       const formattedDate = dateValue
-        .toLocaleDateString('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
+        .toLocaleDateString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
         })
         .toLowerCase();
       this.searchTermsDetail[colDetail] = {
-        mode: 'equals',
+        mode: "equals",
         value: formattedDate,
       };
     } else {
-      this.searchTermsDetail[colDetail] = { mode: 'contains', value: '' };
+      this.searchTermsDetail[colDetail] = { mode: "contains", value: "" };
     }
     this.applyCombinedFiltersDetail(row);
   }
   getStatusLabel(code: number | string): string {
-    const n = typeof code === 'string' ? parseInt(code, 10) : code;
+    const n = typeof code === "string" ? parseInt(code, 10) : code;
     switch (n) {
       case 3:
-        return 'available';
+        return "available";
       case 6:
-        return 'consumed';
+        return "consumed";
       case 19:
-        return 'expired';
+        return "expired";
       default:
-        return '';
+        return "";
     }
   }
 
-  applySelectFilterDetail(row: AggregatedPartData, col: string, value: string): void {
-    const filterValue = (value || '').trim().toLowerCase();
-    const mode = this.filterModesDetail[col] || 'equals';
+  applySelectFilterDetail(
+    row: AggregatedPartData,
+    col: string,
+    value: string,
+  ): void {
+    const filterValue = (value || "").trim().toLowerCase();
+    const mode = this.filterModesDetail[col] || "equals";
     this.searchTermsDetail[col] = {
       mode,
       value: filterValue,
     };
     this.applyCombinedFiltersDetail(row);
   }
-  applyDetailFilter(row: AggregatedPartData, colDetail: string, event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value.trim().toLowerCase();
-    const selectedMode = this.filterModesDetail[colDetail] || 'contains';
+  applyDetailFilter(
+    row: AggregatedPartData,
+    colDetail: string,
+    event: Event,
+  ): void {
+    const filterValue = (event.target as HTMLInputElement).value
+      .trim()
+      .toLowerCase();
+    const selectedMode = this.filterModesDetail[colDetail] || "contains";
     this.searchTermsDetail[colDetail] = {
       mode: selectedMode,
       value: filterValue,
@@ -425,52 +496,56 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     // Áp dụng filter lên detailDataSource của row đó
     this.applyCombinedFiltersDetail(row);
   }
-  public setFilterModeDetail(row: AggregatedPartData, colDt: string, mode: string): void {
+  public setFilterModeDetail(
+    row: AggregatedPartData,
+    colDt: string,
+    mode: string,
+  ): void {
     this.filterModesDetail[colDt] = mode;
     this.applyCombinedFiltersDetail(row);
   }
   public convertTimestampToDate(timestamp: number): string {
     if (!timestamp) {
-      return '';
+      return "";
     }
     const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   }
   ngOnInitFilterPredicate(): void {
-    this.dataSource.filterPredicate = (data: AggregatedPartData, filter: string): boolean => {
+    this.dataSource.filterPredicate = (
+      data: AggregatedPartData,
+      filter: string,
+    ): boolean => {
       const combinedFilters = JSON.parse(filter) as {
         textFilters: { [columnDef: string]: { mode: string; value: string } };
         dialogFilters: { [columnDef: string]: any[] };
       };
       if (combinedFilters.textFilters) {
         for (const colDef in combinedFilters.textFilters) {
-          if (Object.prototype.hasOwnProperty.call(combinedFilters.textFilters, colDef)) {
+          if (
+            Object.prototype.hasOwnProperty.call(
+              combinedFilters.textFilters,
+              colDef,
+            )
+          ) {
             const filterObj = combinedFilters.textFilters[colDef];
             const searchMode = filterObj.mode;
             const searchTerm = filterObj.value.trim().toLowerCase();
-            if (searchTerm === '') {
+            if (searchTerm === "") {
               continue;
             }
             let cellValue = (data as any)[colDef];
-            cellValue = cellValue ? String(cellValue).trim().toLowerCase() : '';
-            if (searchMode === 'contains') {
+            cellValue = cellValue ? String(cellValue).trim().toLowerCase() : "";
+            if (searchMode === "contains") {
               if (!cellValue.includes(searchTerm)) {
                 return false;
               }
-            } else if (searchMode === 'not_contains') {
-              if (cellValue.includes(searchTerm)) {
-                return false;
-              }
-            } else if (searchMode === 'equals') {
+            } else if (searchMode === "equals") {
               if (cellValue !== searchTerm) {
-                return false;
-              }
-            } else if (searchMode === 'not_equals') {
-              if (cellValue === searchTerm) {
                 return false;
               }
             } else {
@@ -483,17 +558,28 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       }
       if (combinedFilters.dialogFilters) {
         for (const colDef in combinedFilters.dialogFilters) {
-          if (Object.prototype.hasOwnProperty.call(combinedFilters.dialogFilters, colDef)) {
-            const selectedValuesFromDialog = combinedFilters.dialogFilters[colDef];
-            if (!selectedValuesFromDialog || selectedValuesFromDialog.length === 0) {
+          if (
+            Object.prototype.hasOwnProperty.call(
+              combinedFilters.dialogFilters,
+              colDef,
+            )
+          ) {
+            const selectedValuesFromDialog =
+              combinedFilters.dialogFilters[colDef];
+            if (
+              !selectedValuesFromDialog ||
+              selectedValuesFromDialog.length === 0
+            ) {
               continue;
             }
-            const normalizedSelectedValues = selectedValuesFromDialog.map(val => String(val).trim().toLowerCase());
+            const normalizedSelectedValues = selectedValuesFromDialog.map(
+              (val) => String(val).trim().toLowerCase(),
+            );
             const cellValue = (data as any)[colDef]
               ? String((data as any)[colDef])
                   .trim()
                   .toLowerCase()
-              : '';
+              : "";
             if (!normalizedSelectedValues.includes(cellValue)) {
               return false;
             }
@@ -517,48 +603,45 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     const tf = combined.textFilters || {};
     for (const col of Object.keys(tf)) {
       const { mode, value } = tf[col];
-      const term = (value || '').trim().toLowerCase();
+      const term = (value || "").trim().toLowerCase();
       if (!term) {
         continue;
       }
       let cellValue: string;
-      if (col === 'status') {
+      if (col === "status") {
         cellValue = this.getStatusLabel(data.status).toLowerCase();
-      } else if (['expirationDate', 'receivedDate', 'updatedDate', 'checkinDate'].includes(col)) {
+      } else if (
+        [
+          "expirationDate",
+          "receivedDate",
+          "updatedDate",
+          "checkinDate",
+        ].includes(col)
+      ) {
         const ts = Number((data as any)[col] || 0) * 1000;
         const dt = new Date(ts);
         cellValue = isNaN(dt.getTime())
-          ? ''
+          ? ""
           : dt
-              .toLocaleDateString('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
+              .toLocaleDateString("vi-VN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
               })
               .toLowerCase();
       } else {
-        cellValue = String((data as any)[col] ?? '')
+        cellValue = String((data as any)[col] ?? "")
           .trim()
           .toLowerCase();
       }
       switch (mode) {
-        case 'equals':
+        case "equals":
           if (cellValue !== term) {
             return false;
           }
           break;
-        case 'not_equals':
-          if (cellValue === term) {
-            return false;
-          }
-          break;
-        case 'contains':
+        case "contains":
           if (!cellValue.includes(term)) {
-            return false;
-          }
-          break;
-        case 'not_contains':
-          if (cellValue.includes(term)) {
             return false;
           }
           break;
@@ -599,7 +682,8 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     if (!row.detailDataSource) {
       row.detailDataSource = new MatTableDataSource(row.details);
     }
-    row.detailDataSource.filterPredicate = this.detailFilterPredicate.bind(this);
+    row.detailDataSource.filterPredicate =
+      this.detailFilterPredicate.bind(this);
   }
 
   private bindDetailPaginators(): void {

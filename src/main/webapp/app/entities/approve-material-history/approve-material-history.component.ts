@@ -656,15 +656,9 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
               (searchMode === "contains" &&
                 !cellValue.toLowerCase().includes(searchTerm) &&
                 !codeValue.includes(searchTerm)) ||
-              (searchMode === "not_contains" &&
-                (cellValue.toLowerCase().includes(searchTerm) ||
-                  codeValue.includes(searchTerm))) ||
               (searchMode === "equals" &&
                 cellValue.toLowerCase() !== searchTerm &&
-                codeValue !== searchTerm) ||
-              (searchMode === "not_equals" &&
-                (cellValue.toLowerCase() === searchTerm ||
-                  codeValue === searchTerm))
+                codeValue !== searchTerm)
             ) {
               return false;
             }
@@ -712,16 +706,8 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
             if (!cellValue.includes(searchTerm)) {
               return false;
             }
-          } else if (searchMode === "not_contains") {
-            if (cellValue.includes(searchTerm)) {
-              return false;
-            }
           } else if (searchMode === "equals") {
             if (cellValue !== searchTerm) {
-              return false;
-            }
-          } else if (searchMode === "not_equals") {
-            if (cellValue === searchTerm) {
               return false;
             }
           } else {

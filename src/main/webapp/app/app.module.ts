@@ -32,6 +32,13 @@ import { FooterComponent } from "./layouts/footer/footer.component";
 import { PageRibbonComponent } from "./layouts/profiles/page-ribbon.component";
 import { ErrorComponent } from "./layouts/error/error.component";
 import { MatIconModule } from "@angular/material/icon";
+import { DatePipe } from "@angular/common";
+import {
+  MatNativeDateModule,
+  DateAdapter,
+  MAT_DATE_FORMATS,
+  MAT_DATE_LOCALE,
+} from "@angular/material/core";
 // import { NgxPaginationModule } from 'ngx-pagination';
 // import { NgSelectModule } from '@ng-select/ng-select';
 // import { Ng2SearchPipeModule } from 'ng2-search-filter';
@@ -45,6 +52,15 @@ import { IdleService } from "./entities/list-material/services/idle.service";
 export function initIdle(idle: IdleService) {
   return () => {};
 }
+export const MY_DATE_FORMATS = {
+  parse: { dateInput: "DD/MM/YYYY" },
+  display: {
+    dateInput: "DD/MM/YYYY",
+    monthYearLabel: "MMMM YYYY",
+    dateA11yLabel: "DD/MM/YYYY",
+    monthYearA11yLabel: "MMMM YYYY",
+  },
+};
 
 @NgModule({
   declarations: [
@@ -60,6 +76,7 @@ export function initIdle(idle: IdleService) {
     BrowserAnimationsModule,
     SharedModule,
     HomeModule,
+    MatNativeDateModule,
     AppRoutingModule,
     ReactiveFormsModule,
     ListMaterialModule,
@@ -85,7 +102,8 @@ export function initIdle(idle: IdleService) {
   ],
   providers: [
     Title,
-    { provide: LOCALE_ID, useValue: "en" },
+    DatePipe,
+    { provide: LOCALE_ID, useValue: "vi" },
     { provide: NgbDateAdapter, useClass: NgbDateDayjsAdapter },
     httpInterceptorProviders,
     IdleService,
@@ -95,6 +113,8 @@ export function initIdle(idle: IdleService) {
       deps: [IdleService],
       multi: true,
     },
+    { provide: MAT_DATE_LOCALE, useValue: "en-GB" },
+    { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
   ],
 })
 export class AppModule {
