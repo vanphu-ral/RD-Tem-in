@@ -18,7 +18,13 @@ import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
 import { Subscription, Subject } from "rxjs";
-import { takeUntil, startWith } from "rxjs/operators";
+import {
+  takeUntil,
+  map,
+  catchError,
+  distinctUntilChanged,
+  first,
+} from "rxjs/operators";
 import {
   animate,
   state,
@@ -30,7 +36,12 @@ import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import {
   ListMaterialService,
   RawGraphQLMaterial,
+  DataSumary,
 } from "../services/list-material.service";
+import { Observable } from "rxjs";
+import { APISumaryResponse } from "../services/list-material.service";
+import { HttpParams } from "@angular/common/http";
+import { HttpClient } from "@angular/common/http";
 
 interface sumary_mode {
   value: string;
@@ -50,11 +61,13 @@ export interface columnSelectionGroup {
   completed: boolean;
   subtasks?: ColumnConfig[];
 }
+
 export interface FilterDialogData {
   columnName: string;
   currentValues: any[];
   selectedValues: any[];
 }
+
 export interface AggregatedPartData {
   [key: string]: any;
   totalQuantity: number;
@@ -91,22 +104,33 @@ export interface AggregatedPartData {
 })
 export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   // #region Public properties
+  // public summaryData?: APISumaryResponse;
+
   tableWidth: string = "100%";
   value = "";
-  groupingFields: string[] = ["partNumber", "locationName"]; // mặc định
+  groupingFields: string[] = [
+    "partNumber",
+    "locationName",
+    "userData4",
+    "lotNumber",
+  ];
   checkedCount = signal(0);
   displayedColumns: string[] = [
     "expand",
-    ...this.groupingFields,
-    "totalQuantity",
-    "totalAvailableQuantity",
-    "count",
+    this.groupingFields[0],
+    this.groupingFields[1],
+    this.groupingFields[2],
+    this.groupingFields[3],
+    "quantity",
+    "availableQuantity",
+    "recordCount",
   ];
-  dataSource = new MatTableDataSource<AggregatedPartData>();
+  // dataSource = new MatTableDataSource<AggregatedPartData>();
+  dataSource: MatTableDataSource<DataSumary>;
   length = 0;
-  pageSize = 15;
-  pageIndex = 0;
-  pageSizeOptions = [10, 15, 25, 50, 100];
+  pageSize = 50;
+  pageIndex = 1;
+  pageSizeOptions = [15, 25, 50, 100, 150];
   hidePageSize = false;
   showPageSizeOptions = true;
   showFirstLastButtons = true;
@@ -151,128 +175,169 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   @ViewChildren("detailPaginator") detailPaginators!: QueryList<MatPaginator>;
   @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
   @ViewChild("detailPaginator") detailPaginator!: MatPaginator;
-
+  sumaryData$: Observable<DataSumary[]> | undefined;
+  private ngUnsubscribe = new Subject<void>();
   constructor(
+    public materialService: ListMaterialService,
     private MaterialService: ListMaterialService,
     private dialog: MatDialog,
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
   ) {
+    this.dataSource = new MatTableDataSource<DataSumary>();
+    // const navigation = this.router.getCurrentNavigation();
+    const navigationState = this.router.getCurrentNavigation()?.extras
+      .state as { data: DataSumary[] };
+
+    // const state = navigationState?.extras.state as { data: DataSumary[] };
+    if (navigationState?.data) {
+      this.dataSource.data = navigationState.data;
+      console.log("nhận dữ liệu cho trang sumary:", this.dataSource);
+    } else {
+      console.warn("Không có dữ liệu được truyền qua state");
+      this.router.navigate(["/list-material"]);
+    }
+    // this.summaryData = this.router.getCurrentNavigation()?.extras.state?.['data'];
     this.form = new FormGroup({
       sumary_modeControl: new FormControl(null),
     });
+    this.sumaryData$ = this.MaterialService.sumaryData$;
   }
-  // #endregion
 
-  // #region Lifecycle hooks
   ngOnInit(): void {
-    if (!sessionStorage.getItem("aggregatedPageReloaded")) {
-      sessionStorage.setItem("aggregatedPageReloaded", "true");
-      location.reload();
-      return;
-    } else {
-      sessionStorage.removeItem("aggregatedPageReloaded");
-    }
     this.route.queryParams.subscribe((params) => {
-      const mainField = params["mode"] || "partNumber";
-      // Nếu đã là partNumber thì chỉ group theo 1 trường, ngược lại thì group theo 2 trường
-      this.groupingFields =
-        mainField === "partNumber" ? ["partNumber"] : [mainField, "partNumber"];
-      this.displayedColumns = [
-        "expand",
-        ...this.groupingFields,
-        "totalQuantity",
-        "totalAvailableQuantity",
-        "count",
-      ];
-      this.MaterialService.materialsData$.subscribe(
-        (data: RawGraphQLMaterial[]) => {
-          console.log("[ngOnInit] Received materialsData:", data);
-          this.groupData(data);
-          console.log("[ngOnInit] groupedData:", this.groupedData);
-          this.applyCombinedFilters();
-        },
-      );
+      const mode = params["mode"];
+      if (mode) {
+        this.loadDataByMode(mode);
+        this.form.get("sumary_modeControl")?.setValue([mode]); // nếu bạn muốn đồng bộ lại form
+      } else {
+        console.warn("Không có mode trong queryParams");
+      }
     });
+
+    this.form = new FormGroup({
+      sumary_modeControl: new FormControl([]),
+    });
+
+    this.sumaryData$ = this.MaterialService.sumaryData$;
+
+    // this.loadDataSumary();
+    this.route.queryParams
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+      )
+      .subscribe((params) => {
+        // Gọi hàm đã sửa và truyền params mới nhất vào
+        this.fetchDataAndUpdateUISumary(params);
+      });
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.paginator = this.paginator;
-    this.dataSource.sort = this.sort;
-    // Khởi tạo filter predicate sau khi dữ liệu đã được gán type AggregatedPartData
-    this.detailPaginators.changes
-      .pipe(startWith(this.detailPaginators))
-      .subscribe(() => this.bindDetailPaginators());
-    this.ngOnInitFilterPredicate();
+    // this.dataSource.paginator = this.paginator;
+    this.route.queryParams
+      .pipe(takeUntil(this.ngUnsubscribe), first())
+      .subscribe((params) => {
+        if (this.paginator) {
+          const page = +params["page"] || 1;
+          const pageSize = +params["pageSize"] || 10;
+          this.paginator.pageIndex = page - 1;
+          this.paginator.pageSize = pageSize;
+        }
+      });
   }
 
   // #endregion
 
   // #region Public methods
+  // onLoad(): void {
+  //   const selectedMode = this.form.get("sumary_modeControl")?.value;
+  //   if (selectedMode) {
+  //     sessionStorage.setItem("aggregatedPageReloaded", "true");
+  //     this.router
+  //       .navigate(["/list-material/sumary"], {
+  //         queryParams: { mode: selectedMode, groupBy: "partNumber" },
+  //       })
+  //       .then(() => {
+  //         location.reload();
+  //       });
+  //   }
+  // }
+
+  // onLoad(): void {
+  //   const selectedMode: string = this.form.get("sumary_modeControl")?.value[0];
+  //   let body: any;
+  //   let apiUrl: string;
+  //   console.log(selectedMode);
+  //   switch (selectedMode) {
+  //     case "partNumber":
+  //       apiUrl = this.materialService.apiSumaryByPart;
+  //       body = {
+  //         partNumber: "",
+  //         pageNumber: 1,
+  //         itemPerPage: 50,
+  //       };
+  //       break;
+  //     case "lotNumber":
+  //       apiUrl = this.materialService.apiSumaryByLot;
+  //       body = {
+  //         partNumber: "",
+  //         lotNumber: "",
+  //         pageNumber: 1,
+  //         itemPerPage: 50,
+  //       };
+  //       break;
+  //     case "userData4":
+  //       apiUrl = this.materialService.apiSumaryByUserData4;
+  //       body = {
+  //         partNumber: "",
+  //         userData4: "",
+  //         pageNumber: 1,
+  //         itemPerPage: 50,
+  //       };
+  //       break;
+  //     case "locationName":
+  //       apiUrl = this.materialService.apiSumaryByLocation;
+  //       body = {
+  //         partNumber: "",
+  //         locationName: "",
+  //         pageNumber: 1,
+  //         itemPerPage: 50,
+  //       };
+  //       break;
+  //     default:
+  //       console.warn("Chưa chọn chế độ tổng hợp.");
+  //       return;
+  //   }
+  //   this.materialService.fetchDataSumary(apiUrl, body).subscribe({
+  //     next: (response: APISumaryResponse) => {
+  //       console.log("Dữ liệu nhận được từ API:", response);
+  //       this.router.navigate(['/list-material/sumary'], {
+  //         state: { data: response.inventories },
+  //         queryParams: { mode: selectedMode }
+  //       });
+  //     },
+  //     error: (err) => {
+  //       console.error("Lỗi khi gọi API, không điều hướng", err);
+  //     }
+  //   })
+  // }
   onLoad(): void {
-    const selectedMode = this.form.get("sumary_modeControl")?.value;
-    if (selectedMode) {
-      sessionStorage.setItem("aggregatedPageReloaded", "true");
-      this.router
-        .navigate(["/list-material/sumary"], {
-          queryParams: { mode: selectedMode, groupBy: "partNumber" },
-        })
-        .then(() => {
-          location.reload();
-        });
+    const selectedMode: string = this.form.get("sumary_modeControl")?.value[0];
+    if (!selectedMode) {
+      console.warn("Chưa chọn chế độ tổng hợp.");
+      return;
     }
+
+    this.router.navigate(["/list-material/sumary"], {
+      queryParams: { mode: selectedMode },
+    });
   }
+  export(): void {}
 
   goBackToList(): void {
     this.router.navigate(["/list-material"]);
-  }
-
-  groupData(data: RawGraphQLMaterial[]): void {
-    if (!data || data.length === 0) {
-      console.warn("Không có dữ liệu để nhóm.");
-      return;
-    }
-    const groupingFields = Array.isArray(this.groupingFields)
-      ? this.groupingFields
-      : [];
-    if (groupingFields.length === 0) {
-      console.warn("Không có trường group hợp lệ!");
-      return;
-    }
-    const groups = new Map<string, AggregatedPartData>();
-    data.forEach((item) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      const key = this.groupingFields.map((f) => (item as any)[f]).join("|");
-      if (!key) {
-        console.warn(`Item không có đủ trường group:`, item);
-        return;
-      }
-      if (!groups.has(key)) {
-        const group: AggregatedPartData = {
-          totalQuantity: 0,
-          totalAvailableQuantity: 0,
-          count: 0,
-          details: [],
-        };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        this.groupingFields.forEach((f) => (group[f] = (item as any)[f]));
-        groups.set(key, group);
-      }
-      const group = groups.get(key)!;
-      group.totalQuantity += Number(item.quantity) || 0;
-      group.totalAvailableQuantity += Number(item.availableQuantity) || 0;
-      group.count++;
-      group.details.push(item);
-    });
-    this.groupedData = Array.from(groups.values()).filter(
-      (group) => group.totalQuantity !== 0,
-    );
-    this.groupedData.forEach((row) => {
-      row.detailDataSource = new MatTableDataSource(row.details);
-    });
-    this.dataSource.data = this.groupedData;
-    this.length = this.groupedData.length;
   }
 
   toggleRow(element: AggregatedPartData): void {
@@ -309,42 +374,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.MaterialService.toggleItemSelection(inventoryId);
   }
 
-  export(): void {
-    const formattedData = this.dataSource.filteredData.map((row) => {
-      const { details, detailDataSource, ...rest } = row;
-      return rest;
-    });
-    const fileName = "báo_cáo_tổng_hợp_theo_" + this.groupingFields.join("_");
-    this.MaterialService.exportExcel(formattedData, fileName);
-  }
-
-  // exportDetailExcel(row: AggregatedPartData): void {
-  //   if (!row.detailDataSource) {
-  //     console.warn('Không có dữ liệu bảng con để export.');
-  //     return;
-  //   }
-  //   const detailColumns = ['partNumber', 'lotNumber', 'receivedDate', 'availableQuantity', 'expirationDate', 'status'];
-
-  //   const groupValues: { [key: string]: any } = {};
-  //   this.groupingFields.forEach(f => {
-  //     groupValues[f] = row[f];
-  //   });
-
-  //   const formattedDetails: ExportDetailRow[] = row.detailDataSource.filteredData.map((detail: RawGraphQLMaterial) => {
-  //     const result: ExportDetailRow = {};
-  //     this.groupingFields.forEach(f => {
-  //       result[f] = row[f];
-  //     });
-  //     detailColumns.forEach(col => {
-  //       result[col] = (detail as any)[col];
-  //     });
-  //     return result;
-  //   });
-
-  //   const groupName = this.groupingFields.map(f => `${f}_${row[f]}`).join('_');
-  //   const fileName = `báo_cáo_tổng_hợp_chi_tiet_theo_${groupName}`;
-  //   this.MaterialService.exportExcel(formattedDetails, fileName);
-  // }
   exportDetailExcel(row: AggregatedPartData): void {
     if (!row.detailDataSource) {
       console.warn("Không có dữ liệu bảng con để export.");
@@ -377,7 +406,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
             // Format ngày tháng
             result[col] = this.convertTimestampToDate((detail as any)[col]);
           } else if (col === "status") {
-            // Format status
             result[col] = this.getStatusLabel((detail as any)[col]);
           } else {
             result[col] = (detail as any)[col];
@@ -463,6 +491,56 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         return "";
     }
   }
+  loadDataByMode(mode: string): void {
+    let body: any;
+    let apiUrl: string;
+
+    switch (mode) {
+      case "partNumber":
+        apiUrl = this.materialService.apiSumaryByPart;
+        body = { partNumber: "", pageNumber: 1, itemPerPage: 50 };
+        break;
+      case "lotNumber":
+        apiUrl = this.materialService.apiSumaryByLot;
+        body = {
+          partNumber: "",
+          lotNumber: "",
+          pageNumber: 1,
+          itemPerPage: 50,
+        };
+        break;
+      case "userData4":
+        apiUrl = this.materialService.apiSumaryByUserData4;
+        body = {
+          partNumber: "",
+          userData4: "",
+          pageNumber: 1,
+          itemPerPage: 50,
+        };
+        break;
+      case "locationName":
+        apiUrl = this.materialService.apiSumaryByLocation;
+        body = {
+          partNumber: "",
+          locationName: "",
+          pageNumber: 1,
+          itemPerPage: 50,
+        };
+        break;
+      default:
+        console.warn("Chế độ không hợp lệ:", mode);
+        return;
+    }
+
+    this.materialService.fetchDataSumary(apiUrl, body).subscribe({
+      next: (response: APISumaryResponse) => {
+        this.dataSource.data = response.inventories;
+      },
+      error: (err) => {
+        console.error("Lỗi khi fetch dữ liệu theo mode:", err);
+      },
+    });
+  }
 
   applySelectFilterDetail(
     row: AggregatedPartData,
@@ -490,10 +568,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       mode: selectedMode,
       value: filterValue,
     };
-    // console.log(
-    //   `[applyDetailFilter] - Cột ${colDetail}:`,
-    //   this.searchTermsDetail[colDetail]
-    // );
 
     // Áp dụng filter lên detailDataSource của row đó
     this.applyCombinedFiltersDetail(row);
@@ -517,92 +591,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       year: "numeric",
     });
   }
-  ngOnInitFilterPredicate(): void {
-    this.dataSource.filterPredicate = (
-      data: AggregatedPartData,
-      filter: string,
-    ): boolean => {
-      const combinedFilters = JSON.parse(filter) as {
-        textFilters: { [columnDef: string]: { mode: string; value: string } };
-        dialogFilters: { [columnDef: string]: any[] };
-      };
-      if (combinedFilters.textFilters) {
-        for (const colDef in combinedFilters.textFilters) {
-          if (
-            Object.prototype.hasOwnProperty.call(
-              combinedFilters.textFilters,
-              colDef,
-            )
-          ) {
-            const filterObj = combinedFilters.textFilters[colDef];
-            const searchMode = filterObj.mode;
-            const searchTerm = filterObj.value.trim().toLowerCase();
-            if (searchTerm === "") {
-              continue;
-            }
-            let cellValue = (data as any)[colDef];
-            cellValue = cellValue ? String(cellValue).trim().toLowerCase() : "";
-            if (searchMode === "contains") {
-              if (!cellValue.includes(searchTerm)) {
-                return false;
-              }
-            } else if (searchMode === "not_contains") {
-              if (cellValue.includes(searchTerm)) {
-                return false;
-              }
-            } else if (searchMode === "equals") {
-              if (cellValue !== searchTerm) {
-                return false;
-              }
-            } else if (searchMode === "not_equals") {
-              if (cellValue === searchTerm) {
-                return false;
-              }
-            } else {
-              if (!cellValue.includes(searchTerm)) {
-                return false;
-              }
-            }
-          }
-        }
-      }
-      if (combinedFilters.dialogFilters) {
-        for (const colDef in combinedFilters.dialogFilters) {
-          if (
-            Object.prototype.hasOwnProperty.call(
-              combinedFilters.dialogFilters,
-              colDef,
-            )
-          ) {
-            const selectedValuesFromDialog =
-              combinedFilters.dialogFilters[colDef];
-            if (
-              !selectedValuesFromDialog ||
-              selectedValuesFromDialog.length === 0
-            ) {
-              continue;
-            }
-            const normalizedSelectedValues = selectedValuesFromDialog.map(
-              (val) => String(val).trim().toLowerCase(),
-            );
-            const cellValue = (data as any)[colDef]
-              ? String((data as any)[colDef])
-                  .trim()
-                  .toLowerCase()
-              : "";
-            if (!normalizedSelectedValues.includes(cellValue)) {
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    };
-  }
 
-  // #endregion
-
-  // #region Private methods
   public detailFilterPredicate = (data: any, filter: string): boolean => {
     let combined: { textFilters: any; dialogFilters: any };
     try {
@@ -705,18 +694,104 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     row.detailDataSource.filterPredicate =
       this.detailFilterPredicate.bind(this);
   }
-
-  private bindDetailPaginators(): void {
-    const pagArr = this.detailPaginators.toArray();
-    this.dataSource.data.forEach((row, idx) => {
-      const ds = row.detailDataSource;
-      const pag = pagArr[idx];
-      if (ds && pag) {
-        ds.paginator = pag;
+  private fetchDataAndUpdateUISumary(params: { [key: string]: any }): void {
+    const allowedFilterKeys = ["partNumber", "locationName"];
+    const filters: { [key: string]: any } = {};
+    for (const key of allowedFilterKeys) {
+      if (params[key] !== undefined) {
+        filters[key] = params[key];
       }
-    });
-    this.cdr.markForCheck();
-  }
+    }
 
-  // #endregion
+    const page = params["page"] ? +params["page"] : 1;
+    const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
+
+    this.materialService
+      .fetchMaterialsData(page, pageSize, filters)
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((response) => {
+        const totalItems = response.totalItems;
+        this.length = totalItems;
+        this.dataSource.data = response.inventories || [];
+        console.log("trang hiện tại: ", page);
+        console.log("số lượng bản ghi đọc từ api: ", totalItems);
+        if (this.paginator) {
+          this.paginator.length = totalItems;
+          this.paginator.pageIndex = page - 1;
+          this.paginator.pageSize = pageSize;
+          if (totalItems > 0 && this.pageIndex > 0) {
+            const maxPageIndex = Math.ceil(totalItems / this.pageSize) - 1;
+            if (page - 1 > maxPageIndex) {
+              console.log("trang hiện tại: ", page);
+              console.log("số lượng bản ghi đọc từ api: ", totalItems);
+              // this.pageIndex = maxPageIndex;
+              this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: { page: maxPageIndex + 1 },
+                queryParamsHandling: "merge",
+                replaceUrl: true,
+              });
+              return;
+            }
+          }
+        }
+        this.checkedCount.set(
+          response.inventories.filter((i) => i.checked).length,
+        );
+        this.cdr.markForCheck();
+      });
+  }
+  private fetchDataAndUpdateUISumaryDetail(params: {
+    [key: string]: any;
+  }): void {
+    const allowedFilterKeys = [
+      "partNumber",
+      "locationName",
+      "userDate4",
+      "lotNumber",
+    ];
+    const filters: { [key: string]: any } = {};
+    for (const key of allowedFilterKeys) {
+      if (params[key] !== undefined) {
+        filters[key] = params[key];
+      }
+    }
+    const page = params["page"] ? +params["page"] : 1;
+    const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
+
+    this.materialService
+      .fetchMaterialsData(page, pageSize, filters)
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((response) => {
+        const totalItems = response.totalItems;
+        this.length = totalItems;
+        this.dataSource.data = response.inventories || [];
+        console.log("trang hiện tại: ", page);
+        console.log("số lượng bản ghi đọc từ api: ", totalItems);
+        if (this.paginator) {
+          this.paginator.length = totalItems;
+          this.paginator.pageIndex = page - 1;
+          this.paginator.pageSize = pageSize;
+          if (totalItems > 0 && this.pageIndex > 0) {
+            const maxPageIndex = Math.ceil(totalItems / this.pageSize) - 1;
+            if (page - 1 > maxPageIndex) {
+              console.log("trang hiện tại: ", page);
+              console.log("số lượng bản ghi đọc từ api: ", totalItems);
+              // this.pageIndex = maxPageIndex;
+              this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: { page: maxPageIndex + 1 },
+                queryParamsHandling: "merge",
+                replaceUrl: true,
+              });
+              return;
+            }
+          }
+        }
+        this.checkedCount.set(
+          response.inventories.filter((i) => i.checked).length,
+        );
+        this.cdr.markForCheck();
+      });
+  }
 }

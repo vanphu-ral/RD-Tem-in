@@ -39,6 +39,17 @@ export interface RawGraphQLMaterial {
   materialType: string;
   checkinDate: string;
 }
+
+export interface DataSumary {
+  availableQuantity: string;
+  locationName: string;
+  partNumber: string;
+  quantity: string;
+  recordCount: string;
+  lotNumber: string;
+  userData4: string;
+}
+
 export interface ApiMaterialResponse {
   totalItems: number;
   inventories: any[];
@@ -139,47 +150,52 @@ interface LocationQueryResponse {
   allLocations: RawGraphQLLocation[];
 }
 
-interface SumaryByPart {
-  "partNumber ": string;
-  "totalQuantity ": string;
-  totalAvailableQuantity: number;
-  recordCount: number;
-  details: Detail;
-}
-interface SumaryByUserData4 {
-  "partNumber ": string;
-  "userData4 ": string;
-  totalQuantity: number;
-  totalAvailableQuantity: number;
-  recordCount: 3;
-  details: Detail;
-}
-interface SumaryByLocation {
-  "locationName ": string;
-  "partNumber ": string;
-  totalQuantity: number;
-  totalAvailableQuantity: number;
-  recordCount: 3;
-  details: Detail;
-}
-interface SumaryByLot {
-  "partNumber ": string;
-  "lotNumber ": string;
-  totalQuantity: number;
-  totalAvailableQuantity: number;
-  recordCount: 3;
-  details: Detail;
-}
+// interface SumaryByPart {
+//   "partNumber ": string;
+//   "totalQuantity ": string;
+//   totalAvailableQuantity: number;
+//   recordCount: number;
+//   details: Detail;
+// }
+// interface SumaryByUserData4 {
+//   "partNumber ": string;
+//   "userData4 ": string;
+//   totalQuantity: number;
+//   totalAvailableQuantity: number;
+//   recordCount: 3;
+//   details: Detail;
+// }
+// interface SumaryByLocation {
+//   "locationName ": string;
+//   "partNumber ": string;
+//   totalQuantity: number;
+//   totalAvailableQuantity: number;
+//   recordCount: 3;
+//   details: Detail;
+// }
+// interface SumaryByLot {
+//   "partNumber ": string;
+//   "lotNumber ": string;
+//   totalQuantity: number;
+//   totalAvailableQuantity: number;
+//   recordCount: 3;
+//   details: Detail;
+// }
 
-interface Detail {
-  partnumber: string;
-  lotNumber: string;
-  userData4: string;
-  locationName: string;
-  availableQuantity: number;
-  receivedDate: string;
-  expirationDate: string;
-  status: string;
+// interface Detail {
+//   partnumber: string;
+//   lotNumber: string;
+//   userData4: string;
+//   locationName: string;
+//   availableQuantity: number;
+//   receivedDate: string;
+//   expirationDate: string;
+//   status: string;
+// }
+
+export interface APISumaryResponse {
+  totalItems: number;
+  inventories: any[];
 }
 
 @Injectable({
@@ -198,7 +214,7 @@ export class ListMaterialService {
   public materialsData$!: Observable<RawGraphQLMaterial[]>;
   public selectedIds$!: Observable<string[]>;
   public locationsData$!: Observable<RawGraphQLLocation[]>;
-
+  public sumaryData$: Observable<DataSumary[]>;
   //  lấy dữ liệu tổng hợp
   //  url api tong hop
   public apiSumaryByPart = this.applicationConfigService.getEndpointFor(
@@ -213,6 +229,12 @@ export class ListMaterialService {
   public apiSumaryByLocation = this.applicationConfigService.getEndpointFor(
     "/api/inventory/group-by-location-name",
   );
+
+  private _summaryDataSource = new BehaviorSubject<DataSumary[]>([]);
+  private _SumaryData = new BehaviorSubject<DataSumary[]>([]);
+  // public get summaryData$(): Observable<DataSumary[]> {
+  //   return this.summaryDataSource.asObservable();
+  // }
 
   private _approvalHistoryDetailData = new BehaviorSubject<
     approvalHistoryDetailData[]
@@ -300,6 +322,7 @@ export class ListMaterialService {
     this.materialsData$ = this._materialsData.asObservable();
     this.selectedIds$ = this._selectedIds.asObservable();
     this.locationsData$ = this._locationsData.asObservable();
+    this.sumaryData$ = this._SumaryData.asObservable();
   }
 
   public exportExcel(jsonData: any[], fileName: string): void {
@@ -313,19 +336,27 @@ export class ListMaterialService {
   }
 
   // lấy dữ liệu trang tổng hợp
-
-  fetchDataSumary(apiUrl: string, body: any): void {
+  fetchDataSumary(apiUrl: string, body: any): Observable<APISumaryResponse> {
     console.log(body);
     console.log(apiUrl);
-    this.http.post(apiUrl, body).subscribe({
-      next: (response) => {
-        console.log(body);
-      },
-      error: (err) => {
+    return this.http.post<APISumaryResponse>(apiUrl, body).pipe(
+      tap((response) => {
+        console.log(response);
+        if (response?.inventories) {
+          this._totalCount.next(response.totalItems);
+          this._SumaryData.next(response.inventories);
+        } else {
+          this._SumaryData.next([]);
+        }
+      }),
+      catchError((err) => {
         console.error("Lỗi khi lấy dữ liệu cho chế độ ", err);
-      },
-    });
+        this._SumaryData.next([]);
+        return of({ inventories: [], totalItems: 0 } as APISumaryResponse);
+      }),
+    );
   }
+
   //  lấy dư liệu cho trang danh sach
 
   fetchMaterialsData(

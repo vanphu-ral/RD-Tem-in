@@ -1,4 +1,5 @@
 @use "@angular/material" as mat;
+
 .function-list {
   display: flex;
   justify-content: space-between;
@@ -90,12 +91,14 @@ ul {
   list-style-type: none;
   margin-top: 4px;
 }
+
 table {
   // width: 100%;
   // table-layout: auto;
   border-collapse: collapse;
-  width: 1660px;
+  width: 1560px;
 }
+
 th,
 td {
   padding: 8px;
@@ -136,6 +139,7 @@ th {
   background-color: white;
   border-radius: 4px;
 }
+
 .mat-mdc-form-field-hint-wrapper,
 .mat-mdc-form-field-hint-spacer {
   display: none !important;
@@ -213,6 +217,7 @@ th {
 .mat-column-Material ID {
   flex: 0 0 150px;
 }
+
 .mat-column-vendor {
   flex: 0 0 120px;
   word-wrap: break-word;
@@ -236,27 +241,32 @@ th {
 .th {
   background-color: #548ce8;
 }
+
 .inner-table {
   z-index: 1 !important;
   position: relative;
   display: block;
 }
+
 .full-scroll-table-container {
   height: 750px;
   //  width: 1660px;
-  max-width: 1860px;
+  max-width: 1700px;
   max-width: 100%;
   overflow: auto;
 }
+
 ::ng-deep .small-form-field {
   @include mat.form-field-density(-5);
   @include mat.icon-button-density(-5);
   @include mat.datepicker-density(-5);
 }
+
 .small-form-field {
   width: 100% !important;
   font-size: 13px !important;
 }
+
 // ::ng-deep .mat-mdc-form-field-icon-suffix{
 //   top: -5px;
 // }
@@ -264,6 +274,7 @@ th {
   width: 24px;
   height: 24px;
 }
+
 //  height: 400px;
 //   width: 550px;
 //   max-width: 100%;
@@ -280,6 +291,7 @@ th {
   z-index: 100;
   background: #548ce8;
 }
+
 @media (max-width: 599px) {
   .main-page {
     width: 400px;
@@ -296,6 +308,7 @@ th {
 
       .group-buttons-main {
         flex-direction: column;
+
         .group-buttons {
           justify-content: flex-start;
           width: 100%;
@@ -304,6 +317,7 @@ th {
             width: 100%;
             margin-bottom: 5px;
             margin-top: 5px;
+
             button {
               min-width: 110px;
               min-height: 40px;
@@ -315,6 +329,7 @@ th {
             width: 100%;
             margin-bottom: 5px;
             margin-top: 5px;
+
             button {
               min-width: 110px;
               min-height: 40px;

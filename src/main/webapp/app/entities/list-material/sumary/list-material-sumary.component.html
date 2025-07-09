@@ -1,4 +1,7 @@
-<div class="main-page" style="display: flex; flex-direction: column">
+<div
+  class="main-page"
+  style="display: flex; flex-direction: column; max-width: 97%"
+>
   <div class="function-list">
     <div class="group-title">
       <h2>Tổng hợp vật tư</h2>
@@ -182,7 +185,7 @@
         </th>
         <td mat-cell *matCellDef="let element">{{ element[groupField] }}</td>
       </ng-container>
-      <ng-container matColumnDef="totalQuantity">
+      <ng-container matColumnDef="quantity">
         <th
           mat-header-cell
           *matHeaderCellDef
@@ -211,25 +214,25 @@
               <mat-menu #filterTotalQuantity="matMenu">
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('totalQuantity', 'contains')"
+                  (click)="setFilterMode('quantity', 'contains')"
                 >
                   Có chứa
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('totalQuantity', 'not_contains')"
+                  (click)="setFilterMode('quantity', 'not_contains')"
                 >
                   Không chứa
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('totalQuantity', 'equals')"
+                  (click)="setFilterMode('quantity', 'equals')"
                 >
                   Bằng
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('totalQuantity', 'not_equals')"
+                  (click)="setFilterMode('quantity', 'not_equals')"
                 >
                   Không bằng
                 </button>
@@ -243,11 +246,11 @@
                   >
                     <mat-label>Search</mat-label>
                     <input
-                      (keyup)="applyFilter('totalQuantity', $event)"
+                      (keyup)="applyFilter('quantity', $event)"
                       matInput
                       [placeholder]="
                         'Search (' +
-                        (filterModes['totalQuantity'] || 'contains') +
+                        (filterModes['quantity'] || 'contains') +
                         ')'
                       "
                     />
@@ -258,10 +261,10 @@
           </div>
         </th>
         <td mat-cell *matCellDef="let element">
-          {{ element["totalQuantity"] }}
+          {{ element["quantity"] }}
         </td>
       </ng-container>
-      <ng-container matColumnDef="totalAvailableQuantity">
+      <ng-container matColumnDef="availableQuantity">
         <th
           mat-header-cell
           *matHeaderCellDef
@@ -296,23 +299,19 @@
                 </button>
                 <button
                   mat-menu-item
-                  (click)="
-                    setFilterMode('totalAvailableQuantity', 'not_contains')
-                  "
+                  (click)="setFilterMode('availableQuantity', 'not_contains')"
                 >
                   Không chứa
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('totalAvailableQuantity', 'equals')"
+                  (click)="setFilterMode('availableQuantity', 'equals')"
                 >
                   Bằng
                 </button>
                 <button
                   mat-menu-item
-                  (click)="
-                    setFilterMode('totalAvailableQuantity', 'not_equals')
-                  "
+                  (click)="setFilterMode('availableQuantity', 'not_equals')"
                 >
                   Không bằng
                 </button>
@@ -326,11 +325,11 @@
                   >
                     <mat-label>Search</mat-label>
                     <input
-                      (keyup)="applyFilter('totalAvailableQuantity', $event)"
+                      (keyup)="applyFilter('availableQuantity', $event)"
                       matInput
                       [placeholder]="
                         'Search (' +
-                        (filterModes['totalAvailableQuantity'] || 'contains') +
+                        (filterModes['availableQuantity'] || 'contains') +
                         ')'
                       "
                     />
@@ -341,10 +340,10 @@
           </div>
         </th>
         <td mat-cell *matCellDef="let element">
-          {{ element["totalAvailableQuantity"] }}
+          {{ element["availableQuantity"] }}
         </td>
       </ng-container>
-      <ng-container matColumnDef="count">
+      <ng-container matColumnDef="recordCount">
         <th
           mat-header-cell
           *matHeaderCellDef
@@ -373,25 +372,25 @@
               <mat-menu #filtercount="matMenu">
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('count', 'contains')"
+                  (click)="setFilterMode('recordCount', 'contains')"
                 >
                   Có chứa
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('count', 'not_contains')"
+                  (click)="setFilterMode('recordCount', 'not_contains')"
                 >
                   Không chứa
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('count', 'equals')"
+                  (click)="setFilterMode('recordCount', 'equals')"
                 >
                   Bằng
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('count', 'not_equals')"
+                  (click)="setFilterMode('recordCount', 'not_equals')"
                 >
                   Không bằng
                 </button>
@@ -405,10 +404,12 @@
                   >
                     <mat-label>Search</mat-label>
                     <input
-                      (keyup)="applyFilter('count', $event)"
+                      (keyup)="applyFilter('recordCount', $event)"
                       matInput
                       [placeholder]="
-                        'Search (' + (filterModes['count'] || 'contains') + ')'
+                        'Search (' +
+                        (filterModes['recordCount'] || 'contains') +
+                        ')'
                       "
                     />
                   </mat-form-field>
@@ -417,7 +418,7 @@
             </div>
           </div>
         </th>
-        <td mat-cell *matCellDef="let element">{{ element["count"] }}</td>
+        <td mat-cell *matCellDef="let element">{{ element["recordCount"] }}</td>
       </ng-container>
       <ng-container matColumnDef="detailRow">
         <td
@@ -427,6 +428,7 @@
         >
           <div class="inner-table" style="padding: 16px">
             <div>
+              <!-- thêm thông tin bảng đang hiển thị -->
               <button
                 style="margin: 15px; float: right"
                 mat-raised-button
@@ -1097,7 +1099,6 @@
     <mat-paginator
       #paginator
       class="demo-paginator"
-      (page)="handlePageEvent($event)"
       [length]="length"
       [pageSize]="pageSize"
       [disabled]="disabled"

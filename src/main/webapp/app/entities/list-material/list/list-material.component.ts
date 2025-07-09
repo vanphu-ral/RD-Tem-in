@@ -26,8 +26,10 @@ import {
 import * as XLSX from "xlsx";
 import { SelectionModel } from "@angular/cdk/collections";
 import {
+  APISumaryResponse,
   RawGraphQLMaterial,
   ListMaterialService,
+  DataSumary,
 } from "../services/list-material.service";
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { AccountService } from "app/core/auth/account.service";
@@ -293,7 +295,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         body = {
           partNumber: "",
           pageNumber: 1,
-          numberPerPage: 50,
+          itemPerPage: 50,
         };
         break;
       case "lotNumber":
@@ -302,7 +304,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           partNumber: "",
           lotNumber: "",
           pageNumber: 1,
-          numberPerPage: 50,
+          itemPerPage: 50,
         };
         break;
       case "userData4":
@@ -311,7 +313,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           partNumber: "",
           userData4: "",
           pageNumber: 1,
-          numberPerPage: 50,
+          itemPerPage: 50,
         };
         break;
       case "locationName":
@@ -320,14 +322,24 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           partNumber: "",
           locationName: "",
           pageNumber: 1,
-          numberPerPage: 50,
+          itemPerPage: 50,
         };
         break;
       default:
         console.warn("Chưa chọn chế độ tổng hợp.");
         return;
     }
-    this.materialService.fetchDataSumary(apiUrl, body);
+    this.materialService.fetchDataSumary(apiUrl, body).subscribe({
+      next: (response: APISumaryResponse) => {
+        console.log("Dữ liệu nhận được từ API:", response);
+        this.router.navigate(["/list-material/sumary"], {
+          state: { data: response.inventories },
+        });
+      },
+      error: (err) => {
+        console.error("Lỗi khi gọi API, không điều hướng", err);
+      },
+    });
   }
 
   ngOnDestroy(): void {

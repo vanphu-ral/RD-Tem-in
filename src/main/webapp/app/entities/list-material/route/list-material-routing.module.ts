@@ -25,11 +25,11 @@ const listMaterialRoute: Routes = [
     component: ListMaterialUpdateComponent,
     canActivate: [UserRouteAccessService],
   },
-  {
-    path: "list-material/sumary",
-    component: ListMaterialSumaryComponent,
-    canActivate: [UserRouteAccessService],
-  },
+  // {
+  //   path: "list-material/sumary",
+  //   component: ListMaterialSumaryComponent,
+  //   canActivate: [UserRouteAccessService],
+  // },
 ];
 
 @NgModule({
