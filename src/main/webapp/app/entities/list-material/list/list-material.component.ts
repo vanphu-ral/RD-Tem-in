@@ -321,30 +321,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
-
-    // this.route.queryParams
-    //   .pipe(takeUntil(this.ngUnsubscribe), first())
-    //   .subscribe((params) => {
-    //     if (this.paginator) {
-    //       const page = +params["page"] || 1;
-    //       const pageSize = +params["pageSize"] || this.pageSize;
-    //       this.paginator.pageIndex = page - 1;
-    //       this.paginator.pageSize = pageSize;
-    //     }
-    //   });
-
-    // Xử lý khi người dùng thay đổi trang
-    // this.paginator.page
-    //   .pipe(takeUntil(this.ngUnsubscribe), distinctUntilChanged())
-    //   .subscribe(() => {
-    //     this.router.navigate(["/list-material"], {
-    //       queryParams: {
-    //         page: this.paginator.pageIndex + 1,
-    //         pageSize: this.paginator.pageSize,
-    //       },
-    //       queryParamsHandling: "merge",
-    //     });
-    //   });
   }
 
   onLoad(): void {

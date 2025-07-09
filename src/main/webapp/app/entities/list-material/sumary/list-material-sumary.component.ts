@@ -190,19 +190,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     private cdr: ChangeDetectorRef,
   ) {
     this.dataSource = new MatTableDataSource<DataSumary>();
-    // // const navigation = this.router.getCurrentNavigation();
-    // const navigationState = this.router.getCurrentNavigation()?.extras
-    //   .state as { data: DataSumary[] };
-
-    // if (navigationState?.data) {
-    //   this.dataSource.data = navigationState.data;
-    //   console.log("nhận dữ liệu cho trang sumary:", this.dataSource);
-    // } else {
-    //   console.warn("Không có dữ liệu được truyền qua state");
-    //   this.router.navigate(["/list-material"]);
-    // }
-
-    // this.sumaryData$ = this.materialService.sumaryData$;
   }
 
   ngOnInit(): void {
@@ -233,6 +220,8 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.form = new FormGroup({
       sumary_modeControl: new FormControl<string[]>([]),
     });
+
+    // this.sumaryData$ = this.materialService.sumaryData$;
 
     this.route.queryParams
       .pipe(
@@ -304,6 +293,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
   onLoad(): void {
     const selectedMode: string = this.form.get("sumary_modeControl")?.value[0];
+    console.log("mode na: ", selectedMode);
     if (!selectedMode) {
       console.warn("Chưa chọn chế độ tổng hợp.");
       return;
@@ -713,30 +703,20 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
     this.isLoading = true;
     this.materialService
-      .fetchDataSumary(apiUrl, body)
-      .pipe(
-        takeUntil(this.ngUnsubscribe),
-        finalize(() => (this.isLoading = false)),
-      )
-      .subscribe({
-        next: (response) => {
-          const total = response.totalItems || 0;
-
-          this.length = total;
-          this.pageIndex = page - 1;
-          this.dataSource.data = response.inventories || [];
-
-          if (this.paginator) {
-            this.paginator.length = total;
-            this.paginator.pageIndex = page - 1;
-          }
-
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          console.error("Error loading summary data", err);
-          this.clearSummary();
-        },
+      .fetchDataSumary(apiUrl, body) //
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((response) => {
+        console.log("response  API:", response);
+        console.log("response.totalItems:", response.totalItems);
+        const totalItems = response.totalItems;
+        this.length = totalItems;
+        this.pageIndex = page - 1;
+        this.dataSource.data = response.inventories || [];
+        if (this.paginator) {
+          this.paginator.length = totalItems;
+          this.paginator.pageIndex = page - 1;
+        }
+        this.cdr.markForCheck();
       });
   }
 
