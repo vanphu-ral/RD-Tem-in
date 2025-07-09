@@ -15,8 +15,69 @@
 
 .function-list {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 16px;
+  flex-wrap: nowrap;
+  padding: 0;
+
+  .group-title {
+    flex: 0 0 auto;
+  }
+
+  .group-buttons-main {
+    display: flex;
+    width: 100%;
+  }
+
+  .group-buttons {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    &.primary,
+    &.secondary {
+      width: 50%;
+
+      button {
+        box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+        background-color: #fff;
+      }
+
+      .btn-text {
+        display: inline;
+      }
+    }
+
+    &.primary {
+      justify-content: flex-start;
+
+      .listupdate-with-badge {
+        position: relative;
+        display: inline-block;
+      }
+
+      .cart-badge {
+        position: absolute;
+        top: -10px;
+        right: -4px;
+        background-color: rgb(48, 58, 188);
+        color: white;
+        border-radius: 50%;
+        padding: 0px 7px;
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 1.5;
+        min-width: 20px;
+        height: 20px;
+        text-align: center;
+      }
+    }
+
+    &.secondary {
+      justify-content: flex-end;
+    }
+  }
 }
 
 .bordered-table {
@@ -388,7 +449,7 @@ td.mat-mdc-cell.status-reject {
 .main-page {
   display: flex;
   flex-direction: column;
-  height: 900px;
+  // height: 900px;
   width: 1950px;
   margin-top: 5px;
   padding-left: 5px;
@@ -397,9 +458,86 @@ td.mat-mdc-cell.status-reject {
 .full-scroll-table-container {
   height: 100%;
   //  width: 1660px;
-  max-width: 1950px;
+  // max-width: 1950px;
   max-width: 100%;
   overflow: auto;
+}
+
+// .detail-table{
+//   ::ng-deep th.mat-mdc-header-cell{
+//     max-height: 40px;
+//   }
+// }
+
+@media (max-width: 599px) {
+  .main-page {
+    max-width: 400px;
+    margin: 0px !important;
+
+    .function-list {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 8px;
+
+      .group-title {
+        text-align: left;
+      }
+
+      .group-buttons-main {
+        flex-direction: column;
+
+        .group-buttons {
+          justify-content: flex-start;
+          width: 100%;
+
+          &.primary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+
+            button {
+              min-width: 80px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          &.secondary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+
+            button {
+              min-width: 80px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          /* Chỉ hiện icon, ẩn text */
+          .btn-text,
+          .icon-down {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .full-scroll-table-container {
+      max-width: 400px;
+    }
+
+    .paginator {
+      .mat-mdc-paginator-outer-container {
+        max-width: 400px;
+
+        .mat-mdc-paginator-container {
+          max-width: 400px;
+        }
+      }
+    }
+  }
 }
 
 @media (max-width: 1200px) {

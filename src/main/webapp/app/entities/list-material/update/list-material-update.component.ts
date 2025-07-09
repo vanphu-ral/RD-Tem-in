@@ -15,7 +15,7 @@ import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
-import { Subscription } from "rxjs";
+import { filter, Subject, Subscription, takeUntil } from "rxjs";
 import { SelectionModel } from "@angular/cdk/collections";
 import {
   RawGraphQLMaterial,
@@ -157,6 +157,7 @@ export class ListMaterialUpdateComponent
   // #region Private properties
   private dataSubscription: Subscription | undefined;
   private sidebarSubscription!: Subscription;
+  private ngUnsubscribe = new Subject<void>();
 
   // #endregion
 
@@ -174,24 +175,24 @@ export class ListMaterialUpdateComponent
 
   // #region Lifecycle hooks
   ngOnInit(): void {
-    this.dataSubscription = this.materialService
-      .getItemsForUpdate()
-      .subscribe((itemsToUpdate) => {
-        let processedItems: RawGraphQLMaterial[] = [];
-        if (itemsToUpdate && itemsToUpdate.length > 0) {
-          processedItems = itemsToUpdate.map((item) => ({
-            ...item,
-            select_update: true,
-          }));
-          this.dataSource.data = processedItems;
-          this.selection.clear();
-          processedItems.forEach((row) => this.selection.select(row));
-          this.initializeColumnSelection(processedItems);
-        } else {
-          this.dataSource.data = [];
-          this.selection.clear();
-          this.initializeColumnSelection([]);
-        }
+    this.materialService.selectedItems$
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((items: RawGraphQLMaterial[]) => {
+        console.log("[Component-update] selectedItems$ emitted:", items);
+        const rows = items.map((item) => ({
+          ...item,
+          select_update: true,
+        }));
+        console.log("[Component-update] rows after mapping:", rows);
+        this.dataSource.data = rows;
+        console.log(
+          "[Component-update] dataSource.data set to:",
+          this.dataSource.data,
+        );
+        this.selection.clear();
+        rows.forEach((r) => this.selection.select(r));
+
+        this.initializeColumnSelection(rows);
         this.updateDisplayedColumns();
       });
 
@@ -199,6 +200,7 @@ export class ListMaterialUpdateComponent
 
     this.dataSource.filterPredicate = (
       data: RawGraphQLMaterial,
+      // eslint-disable-next-line @typescript-eslint/no-shadow
       filter: string,
     ): boolean => {
       const combinedFilters = JSON.parse(filter) as {
@@ -272,16 +274,6 @@ export class ListMaterialUpdateComponent
             break;
           case "contains":
             if (!cellValue.includes(searchTerm)) {
-              return false;
-            }
-            break;
-          case "not_contains":
-            if (cellValue.includes(searchTerm)) {
-              return false;
-            }
-            break;
-          case "not_equals":
-            if (cellValue === searchTerm) {
               return false;
             }
             break;

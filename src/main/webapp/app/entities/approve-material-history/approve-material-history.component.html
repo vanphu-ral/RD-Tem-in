@@ -1,32 +1,15 @@
 <div class="main-page" style="display: flex; flex-direction: column">
-  <div
-    class="function-list"
-    style="display: flex; justify-content: space-between; align-items: center"
-  >
-    <div
-      class="left-group"
-      style="display: flex; align-items: center; gap: 15px"
-    >
-      <div class="title-page">
-        <h2>Lịch sử phê duyệt cập nhật vật tư</h2>
-      </div>
-      <div style="margin: 0 10px">
-        <h2 class="phan-cach">|</h2>
-      </div>
+  <div class="function-list">
+    <div class="group-title">
+      <h2>Lịch sử đề nghị cập nhật</h2>
     </div>
 
-    <div
-      class="right-group"
-      style="display: flex; align-items: center; gap: 15px; margin-right: 0px"
-    >
-      <div>
-        <button
-          class="btn-export"
-          type="button"
-          (click)="export()"
-          mat-raised-button
-        >
-          <mat-icon>file_download</mat-icon>Xuất Excel
+    <div class="group-buttons-main">
+      <div class="group-buttons primary"></div>
+      <div class="group-buttons secondary">
+        <button class="btn-export" mat-button (click)="export()">
+          <mat-icon>file_download</mat-icon>
+          <span class="btn-text">Xuất Excel</span>
         </button>
       </div>
     </div>
@@ -115,21 +98,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('requestCode', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('requestCode', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('requestCode', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -193,21 +164,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('createdTime', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('createdTime', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('createdTime', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -277,21 +236,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('updatedTime', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('updatedTime', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('updatedTime', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -361,21 +308,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('requestedBy', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('requestedBy', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('requestedBy', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -438,21 +373,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('approvedBy', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('approvedBy', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('approvedBy', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -516,21 +439,9 @@
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('status', 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
                   (click)="setFilterMode('status', 'equals')"
                 >
                   Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('status', 'not_equals')"
-                >
-                  Không bằng
                 </button>
               </mat-menu>
               <div class="search-container">
@@ -560,7 +471,7 @@
             [ngClass]="{
               'status-pending': element.status === 'PENDING',
               'status-approve': element.status === 'APPROVE',
-              'status-reject': element.status === 'REJECT'
+              'status-reject': element.status === 'REJECT',
             }"
           >
             <span>

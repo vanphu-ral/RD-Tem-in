@@ -159,6 +159,7 @@
   </div>
   <input
     #scanInput
+    [(ngModel)]="scanResult"
     type="text"
     style="
       opacity: 0;
@@ -175,6 +176,10 @@
     [style.max-width]="tableMaxWidth"
     style="overflow-x: auto"
   >
+    <div class="overlay-spinner" *ngIf="isLoading">
+      <!-- <mat-spinner diameter="50"></mat-spinner> -->
+      <div class="loader"></div>
+    </div>
     <table
       *jhiHasAnyAuthority="'ROLE_PANACIM_VIEW'"
       mat-table
@@ -199,7 +204,6 @@
               (change)="toggleAllRows()"
               [checked]="isAllSelected()"
               [indeterminate]="isSomeSelected()"
-              [aria-label]="checkboxLabel()"
             >
             </mat-checkbox>
           </ng-container>
@@ -238,12 +242,21 @@
                     <mat-label>Search Date</mat-label>
                     <input
                       matInput
+                      #filterInput
                       [matDatepicker]="picker"
-                      [placeholder]="
-                        'Search (' + (filterModes[colDef] || 'contains') + ')'
+                      [ngModel]="dateInputs[colDef] || ''"
+                      (dateChange)="
+                        applyDatePickerByPicker(colDef, $event.value)
                       "
-                      (dateChange)="applyDateFilter(colDef, $event)"
+                      (input)="
+                        applyDatePickerByTyping(
+                          colDef,
+                          $any($event.target).value
+                        )
+                      "
+                      placeholder="dd/MM/yyyy"
                     />
+
                     <mat-datepicker-toggle
                       matSuffix
                       [for]="picker"
@@ -256,19 +269,16 @@
                 <ng-template #textInputTemplate>
                   <!-- 1) Nếu đây là cột status, hiển thị select -->
                   <ng-container *ngIf="colDef === 'status'; else normalInput">
-                    <mat-form-field
-                      class="small-form-field"
-                      appearance="fill"
-                      floatLabel="always"
-                    >
+                    <mat-form-field class="small-form-field" appearance="fill">
                       <mat-label>Search Status</mat-label>
                       <mat-select
-                        [placeholder]="
-                          'Search (' + (filterModes[colDef] || 'equals') + ')'
-                        "
-                        [value]="(searchTerms[colDef] || {}).value || ''"
+                        #filterInput
+                        [value]="searchTerms['status']?.value || ''"
                         (selectionChange)="
-                          applySelectFilter(colDef, $event.value)
+                          applySelectFilter('status', $event.value)
+                        "
+                        [placeholder]="
+                          'Search (' + (filterModes['status'] || 'equals') + ')'
                         "
                       >
                         <mat-option
@@ -291,7 +301,9 @@
                       <mat-label>Search</mat-label>
                       <input
                         matInput
-                        (keyup)="applyFilter(colDef, $event)"
+                        #filterInput
+                        [value]="searchTerms[colDef]?.value || ''"
+                        (input)="applyFilter(colDef, $event)"
                         [placeholder]="
                           'Search (' + (filterModes[colDef] || 'contains') + ')'
                         "
@@ -307,20 +319,8 @@
               <button mat-menu-item (click)="setFilterMode(colDef, 'contains')">
                 Có chứa
               </button>
-              <button
-                mat-menu-item
-                (click)="setFilterMode(colDef, 'not_contains')"
-              >
-                Không chứa
-              </button>
               <button mat-menu-item (click)="setFilterMode(colDef, 'equals')">
                 Bằng
-              </button>
-              <button
-                mat-menu-item
-                (click)="setFilterMode(colDef, 'not_equals')"
-              >
-                Không bằng
               </button>
             </mat-menu>
           </ng-template>
@@ -341,9 +341,7 @@
                 <mat-checkbox
                   color="primary"
                   (click)="$event.stopPropagation()"
-                  (change)="
-                    materialService.toggleItemSelection(row.inventoryId)
-                  "
+                  (change)="onRowToggle(row)"
                   [checked]="row.checked"
                 >
                 </mat-checkbox>
@@ -375,6 +373,7 @@
 
   <div>
     <mat-paginator
+      *ngIf="length > pageSize"
       #paginator
       class="demo-paginator"
       [length]="length"
@@ -385,6 +384,7 @@
       [hidePageSize]="hidePageSize"
       [pageIndex]="pageIndex"
       aria-label="Select page"
+      (page)="onPageChange($event)"
     >
     </mat-paginator>
   </div>

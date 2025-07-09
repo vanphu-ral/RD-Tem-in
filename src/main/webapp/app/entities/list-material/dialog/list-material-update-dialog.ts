@@ -15,6 +15,7 @@ import { FormBuilder, FormGroup, FormControl, FormArray } from "@angular/forms";
 import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
+// import { KeycloakApiService,UserDto  } from "../services/KeycloakApiService";
 import {
   MatDialog,
   MatDialogRef,
@@ -91,6 +92,9 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   myControl = new FormControl("");
   headerQuantityChange: number | null = null;
   filteredOptions!: string[];
+  // approvers: WritableSignal<UserDto[]> = signal<UserDto[]>([]);
+  // selectedApprover: WritableSignal<UserDto | null> = signal<UserDto | null>(null);
+
   selectApprover: WritableSignal<SelectApproverpprover> =
     signal<SelectApproverpprover>({
       name: "Select all",
@@ -163,6 +167,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     private materialService: ListMaterialService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
+    // private kcApi: KeycloakApiService,
   ) {
     this.dialogForm = this.fb.group({
       selectedWarehouseControl: [null],
@@ -225,6 +230,21 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     this.itemsDataSource.data.forEach((item) => {
       item.quantityChange = item.quantity;
     });
+    // this.kcApi.getUsersByRole('ROLE_PANACIM_ADMIN', 0, 100).subscribe({
+    //   next: (list) => {
+    //     console.log('[ApproverSelect] Fetched users:', list);
+    //     if (Array.isArray(list) && list.length > 0) {
+    //       this.approvers.set(list);
+    //     } else {
+    //       console.warn('[ApproverSelect] API trả về mảng rỗng hoặc không phải mảng:', list);
+    //       this.approvers.set([]);
+    //     }
+    //   },
+    //   error: (err) => {
+    //     console.error('[ApproverSelect] Lỗi fetch users Keycloak:', err);
+    //     this.approvers.set([]);
+    //   }
+    // });
 
     this.filteredWarehouses = this.dialogForm
       .get("selectedWarehouseControl")!
@@ -323,16 +343,6 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
               return false;
             }
             break;
-          case "not_contains":
-            if (cellValue.includes(searchTerm)) {
-              return false;
-            }
-            break;
-          case "not_equals":
-            if (cellValue === searchTerm) {
-              return false;
-            }
-            break;
         }
       }
 
@@ -393,7 +403,9 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     }
     return this.itemFormGroups.get(itemIdentifier)!;
   }
-
+  // onSelectApprover(user: UserDto): void {
+  //   this.selectedApprover.set(user);
+  // }
   rowWarehouseChanged(selectedWarehouse: Warehouse, item: MaterialItem): void {
     const formGroup = this.getFormGroupForItem(item);
     formGroup

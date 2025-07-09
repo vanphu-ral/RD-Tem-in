@@ -9,7 +9,7 @@ import {
   OnDestroy,
   ChangeDetectorRef,
 } from "@angular/core";
-import { Router, ActivatedRoute } from "@angular/router";
+import { Router, ActivatedRoute, Params } from "@angular/router";
 import { MatTableDataSource } from "@angular/material/table";
 import { ChangeDetectionStrategy, signal } from "@angular/core";
 import { FormBuilder, FormGroup, FormControl } from "@angular/forms";
@@ -19,6 +19,7 @@ import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
 import { Subscription, Subject } from "rxjs";
 import {
+  filter,
   takeUntil,
   map,
   catchError,
@@ -152,8 +153,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   ];
   sumary_modeControl = new FormControl();
   selectedAggregated: string = "";
-  public searchTerms: { [columnDef: string]: { mode: string; value: string } } =
-    {};
+  public searchTerms: { [columnDef: string]: { value: string } } = {};
   public activeFilters: { [columnDef: string]: any[] } = {};
   public filterModes: { [columnDef: string]: string } = {};
   public filterField = this.groupingField || "groupingKey";
@@ -179,69 +179,87 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   private ngUnsubscribe = new Subject<void>();
   constructor(
     public materialService: ListMaterialService,
-    private MaterialService: ListMaterialService,
     private dialog: MatDialog,
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
   ) {
     this.dataSource = new MatTableDataSource<DataSumary>();
-    // const navigation = this.router.getCurrentNavigation();
-    const navigationState = this.router.getCurrentNavigation()?.extras
-      .state as { data: DataSumary[] };
+    // // const navigation = this.router.getCurrentNavigation();
+    // const navigationState = this.router.getCurrentNavigation()?.extras
+    //   .state as { data: DataSumary[] };
 
-    if (navigationState?.data) {
-      this.dataSource.data = navigationState.data;
-      console.log("nhận dữ liệu cho trang sumary:", this.dataSource);
-    } else {
-      console.warn("Không có dữ liệu được truyền qua state");
-      this.router.navigate(["/list-material"]);
-    }
+    // if (navigationState?.data) {
+    //   this.dataSource.data = navigationState.data;
+    //   console.log("nhận dữ liệu cho trang sumary:", this.dataSource);
+    // } else {
+    //   console.warn("Không có dữ liệu được truyền qua state");
+    //   this.router.navigate(["/list-material"]);
+    // }
 
-    this.form = new FormGroup({
-      sumary_modeControl: new FormControl(null),
-    });
-    this.sumaryData$ = this.MaterialService.sumaryData$;
+    // this.sumaryData$ = this.materialService.sumaryData$;
   }
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe((params) => {
-      const mode = params["mode"];
-      if (mode) {
-        this.loadDataByMode(mode);
-        this.form.get("sumary_modeControl")?.setValue([mode]);
-      } else {
-        console.warn("Không có mode trong queryParams");
-      }
-    });
-
     this.form = new FormGroup({
-      sumary_modeControl: new FormControl([]),
+      sumary_modeControl: new FormControl(null),
     });
 
-    this.sumaryData$ = this.MaterialService.sumaryData$;
+    // this.sumaryData$ = this.materialService.sumaryData$;
 
+    // this.route.queryParams
+    //   .pipe(
+    //     takeUntil(this.ngUnsubscribe),
+    //     distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+    //   )
+    //   .subscribe((params) => {
+    //     this.fetchDataAndUpdateUISumary(params);
+    //   });
     this.route.queryParams
       .pipe(
-        takeUntil(this.ngUnsubscribe),
+        filter((params: Params) => !!params["mode"]),
         distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+        takeUntil(this.ngUnsubscribe),
       )
       .subscribe((params) => {
+        console.log("URL hợp lệ, đang fetch dữ liệu với params:", params);
+
+        const modeFromUrl = params["mode"];
+        if (this.form.get("sumary_modeControl")?.value?.[0] !== modeFromUrl) {
+          this.form
+            .get("sumary_modeControl")
+            ?.setValue([modeFromUrl], { emitEvent: false });
+        }
         this.fetchDataAndUpdateUISumary(params);
       });
   }
 
   ngAfterViewInit(): void {
-    this.route.queryParams
-      .pipe(takeUntil(this.ngUnsubscribe), first())
-      .subscribe((params) => {
-        if (this.paginator) {
-          const page = +params["page"] || 1;
-          const pageSize = +params["pageSize"] || 10;
-          this.paginator.pageIndex = page - 1;
-          this.paginator.pageSize = pageSize;
-        }
-      });
+    if (this.paginator) {
+      this.paginator.page
+        .pipe(takeUntil(this.ngUnsubscribe))
+        .subscribe((pageEvent: PageEvent) => {
+          this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: {
+              page: pageEvent.pageIndex + 1,
+              pageSize: pageEvent.pageSize,
+            },
+            queryParamsHandling: "merge",
+          });
+        });
+    }
+
+    // this.route.queryParams
+    //   .pipe(takeUntil(this.ngUnsubscribe), first())
+    //   .subscribe((params) => {
+    //     if (this.paginator) {
+    //       const page = +params["page"] || 1;
+    //       const pageSize = +params["pageSize"] || 10;
+    //       this.paginator.pageIndex = page - 1;
+    //       this.paginator.pageSize = pageSize;
+    //     }
+    //   });
   }
 
   onLoad(): void {
@@ -293,7 +311,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       );
       return;
     }
-    this.MaterialService.toggleItemSelection(inventoryId);
+    this.materialService.toggleItemSelection(inventoryId);
   }
 
   exportDetailExcel(row: AggregatedPartData): void {
@@ -341,8 +359,9 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       .map((f) => `${f}_${row[f]}`)
       .join("_");
     const fileName = `báo_cáo_tổng_hợp_chi_tiet_theo_${groupName}`;
-    this.MaterialService.exportExcel(formattedDetails, fileName);
+    this.materialService.exportExcel(formattedDetails, fileName);
   }
+
   openMenuManually(): void {
     this.menuTrigger.openMenu();
   }
@@ -359,7 +378,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     const filterKey = colDef === "groupingKey" ? this.groupingField : colDef;
     if (!this.searchTerms[filterKey]) {
       this.searchTerms[filterKey] = {
-        mode: selectedMode,
         value: filterValue,
       };
     } else {
@@ -369,12 +387,10 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       `[applyFilter] - Cột ${filterKey}:`,
       this.searchTerms[filterKey],
     );
-    this.applyCombinedFilters();
   }
 
   public setFilterMode(colDef: string, mode: string): void {
     this.filterModes[colDef] = mode;
-    this.applyCombinedFilters();
   }
 
   public applyDateFilter(
@@ -398,7 +414,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     } else {
       this.searchTermsDetail[colDetail] = { mode: "contains", value: "" };
     }
-    this.applyCombinedFiltersDetail(row);
   }
   getStatusLabel(code: number | string): string {
     const n = typeof code === "string" ? parseInt(code, 10) : code;
@@ -413,56 +428,57 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         return "";
     }
   }
-  loadDataByMode(mode: string): void {
-    let body: any;
-    let apiUrl: string;
 
-    switch (mode) {
-      case "partNumber":
-        apiUrl = this.materialService.apiSumaryByPart;
-        body = { partNumber: "", pageNumber: 1, itemPerPage: 50 };
-        break;
-      case "lotNumber":
-        apiUrl = this.materialService.apiSumaryByLot;
-        body = {
-          partNumber: "",
-          lotNumber: "",
-          pageNumber: 1,
-          itemPerPage: 50,
-        };
-        break;
-      case "userData4":
-        apiUrl = this.materialService.apiSumaryByUserData4;
-        body = {
-          partNumber: "",
-          userData4: "",
-          pageNumber: 1,
-          itemPerPage: 50,
-        };
-        break;
-      case "locationName":
-        apiUrl = this.materialService.apiSumaryByLocation;
-        body = {
-          partNumber: "",
-          locationName: "",
-          pageNumber: 1,
-          itemPerPage: 50,
-        };
-        break;
-      default:
-        console.warn("Chế độ không hợp lệ:", mode);
-        return;
-    }
+  // loadDataByMode(mode: string): void {
+  //   let body: any;
+  //   let apiUrl: string;
 
-    this.materialService.fetchDataSumary(apiUrl, body).subscribe({
-      next: (response: APISumaryResponse) => {
-        this.dataSource.data = response.inventories;
-      },
-      error: (err) => {
-        console.error("Lỗi khi fetch dữ liệu theo mode:", err);
-      },
-    });
-  }
+  //   switch (mode) {
+  //     case "partNumber":
+  //       apiUrl = this.materialService.apiSumaryByPart;
+  //       body = { partNumber: "", pageNumber: 1, itemPerPage: 50 };
+  //       break;
+  //     case "lotNumber":
+  //       apiUrl = this.materialService.apiSumaryByLot;
+  //       body = {
+  //         partNumber: "",
+  //         lotNumber: "",
+  //         pageNumber: 1,
+  //         itemPerPage: 50,
+  //       };
+  //       break;
+  //     case "userData4":
+  //       apiUrl = this.materialService.apiSumaryByUserData4;
+  //       body = {
+  //         partNumber: "",
+  //         userData4: "",
+  //         pageNumber: 1,
+  //         itemPerPage: 50,
+  //       };
+  //       break;
+  //     case "locationName":
+  //       apiUrl = this.materialService.apiSumaryByLocation;
+  //       body = {
+  //         partNumber: "",
+  //         locationName: "",
+  //         pageNumber: 1,
+  //         itemPerPage: 50,
+  //       };
+  //       break;
+  //     default:
+  //       console.warn("Chế độ không hợp lệ:", mode);
+  //       return;
+  //   }
+
+  //   this.materialService.fetchDataSumary(apiUrl, body).subscribe({
+  //     next: (response: APISumaryResponse) => {
+  //       this.dataSource.data = response.inventories;
+  //     },
+  //     error: (err) => {
+  //       console.error("Lỗi khi fetch dữ liệu theo mode:", err);
+  //     },
+  //   });
+  // }
 
   applySelectFilterDetail(
     row: AggregatedPartData,
@@ -475,7 +491,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       mode,
       value: filterValue,
     };
-    this.applyCombinedFiltersDetail(row);
   }
   applyDetailFilter(
     row: AggregatedPartData,
@@ -490,9 +505,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       mode: selectedMode,
       value: filterValue,
     };
-
-    // Áp dụng filter lên detailDataSource của row đó
-    this.applyCombinedFiltersDetail(row);
   }
   public setFilterModeDetail(
     row: AggregatedPartData,
@@ -500,7 +512,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     mode: string,
   ): void {
     this.filterModesDetail[colDt] = mode;
-    this.applyCombinedFiltersDetail(row);
   }
   public convertTimestampToDate(timestamp: number): string {
     if (!timestamp) {
@@ -514,10 +525,10 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     });
   }
 
-  public detailFilterPredicate = (data: any, filter: string): boolean => {
+  public detailFilterPredicate = (data: any, filterdetail: string): boolean => {
     let combined: { textFilters: any; dialogFilters: any };
     try {
-      combined = JSON.parse(filter);
+      combined = JSON.parse(filterdetail);
     } catch {
       return true;
     }
@@ -580,34 +591,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     }
     return true;
   };
-  private applyCombinedFilters(): void {
-    const combinedFilterData = {
-      textFilters: this.searchTerms,
-      dialogFilters: this.activeFilters,
-      timestamp: new Date().getTime(),
-    };
-    this.dataSource.filter = JSON.stringify(combinedFilterData);
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
-  }
-
-  private applyCombinedFiltersDetail(row: AggregatedPartData): void {
-    if (!row.detailDataSource) {
-      row.detailDataSource = new MatTableDataSource(row.details);
-      row.detailDataSource.filterPredicate = this.detailFilterPredicate;
-    }
-    this.ensureDetailDataSource(row);
-    const combinedFilterData = {
-      textFilters: this.searchTermsDetail,
-      dialogFilters: this.activeFiltersDetail,
-      timestamp: Date.now(),
-    };
-    row.detailDataSource.filter = JSON.stringify(combinedFilterData);
-    if (row.detailDataSource.paginator) {
-      row.detailDataSource.paginator.firstPage();
-    }
-  }
 
   private ensureDetailDataSource(row: AggregatedPartData): void {
     if (!row.detailDataSource) {
@@ -618,13 +601,46 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   }
 
   private fetchDataAndUpdateUISumary(params: { [key: string]: any }): void {
-    const allowedFilterKeys = ["partNumber", "locationName"];
+    console.log("log params: ", params);
+    const mode = params["mode"];
+    let apiUrl: string;
+    let allowedFilterKeys: string[] = [];
+    switch (mode) {
+      case "partNumber":
+        apiUrl = this.materialService.apiSumaryByPart;
+        allowedFilterKeys = ["partNumber"];
+        break;
+      case "lotNumber":
+        apiUrl = this.materialService.apiSumaryByLot;
+        allowedFilterKeys = ["partNumber", "lotNumber"];
+        break;
+      case "userData4":
+        apiUrl = this.materialService.apiSumaryByUserData4;
+        allowedFilterKeys = ["partNumber", "userData4"];
+        break;
+      case "locationName":
+        apiUrl = this.materialService.apiSumaryByLocation;
+        allowedFilterKeys = ["partNumber", "locationName"];
+        break;
+      default:
+        console.warn(
+          "Chế độ không hợp lệ hoặc không có, không fetch dữ liệu:",
+          mode,
+        );
+        this.dataSource.data = [];
+        this.length = 0;
+        return;
+    }
+
     const filters: { [key: string]: any } = {};
     for (const key of allowedFilterKeys) {
-      if (params[key] !== undefined) {
+      if (params[key] !== undefined && params[key] !== null) {
         filters[key] = params[key];
+      } else {
+        filters[key] = "";
       }
     }
+
     const page = params["page"] ? +params["page"] : 1;
     const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
 
@@ -633,43 +649,21 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       pageNumber: page,
       itemPerPage: pageSize,
     };
-
+    console.log("day la body: ", body);
     this.materialService
-      .fetchDataSumary("/list-material/sumary", body)
+      .fetchDataSumary(apiUrl, body) //
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((response) => {
+        console.log("response  API:", response);
+        console.log("response.totalItems:", response.totalItems);
         const totalItems = response.totalItems;
-
         this.length = totalItems;
         this.pageIndex = page - 1;
-        this.pageSize = pageSize;
         this.dataSource.data = response.inventories || [];
-
-        console.log("Trang summary hiện tại: ", page);
-        console.log("Số lượng bản ghi summary từ api: ", totalItems);
-
         if (this.paginator) {
           this.paginator.length = totalItems;
-          this.paginator.pageIndex = this.pageIndex;
-          this.paginator.pageSize = this.pageSize;
-
-          if (totalItems > 0) {
-            const maxPageIndex = Math.ceil(totalItems / pageSize) - 1;
-            if (page - 1 > maxPageIndex) {
-              this.router.navigate([], {
-                relativeTo: this.route,
-                queryParams: { page: maxPageIndex + 1 },
-                queryParamsHandling: "merge",
-                replaceUrl: true,
-              });
-              return;
-            }
-          }
+          this.paginator.pageIndex = page - 1;
         }
-
-        this.checkedCount.set(
-          (response.inventories || []).filter((i) => i.checked).length,
-        );
         this.cdr.markForCheck();
       });
   }

@@ -143,21 +143,9 @@
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode(groupField, 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
                   (click)="setFilterMode(groupField, 'equals')"
                 >
                   Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode(groupField, 'not_equals')"
-                >
-                  Không bằng
                 </button>
               </mat-menu>
               <div class="search-container">
@@ -480,30 +468,10 @@
                         <button
                           mat-menu-item
                           (click)="
-                            setFilterModeDetail(
-                              row,
-                              'partNumber',
-                              'not_contains'
-                            )
-                          "
-                        >
-                          Does not contain
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
                             setFilterModeDetail(row, 'partNumber', 'equals')
                           "
                         >
                           Equals
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
-                            setFilterModeDetail(row, 'partNumber', 'not_equals')
-                          "
-                        >
-                          Does not equal
                         </button>
                       </mat-menu>
                       <div class="search-container">
@@ -580,35 +548,11 @@
                             setFilterModeDetail(
                               row,
                               'availableQuantity',
-                              'not_contains'
-                            )
-                          "
-                        >
-                          Không chứa
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
-                            setFilterModeDetail(
-                              row,
-                              'availableQuantity',
                               'equals'
                             )
                           "
                         >
                           Bằng
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
-                            setFilterModeDetail(
-                              row,
-                              'availableQuantity',
-                              'not_equals'
-                            )
-                          "
-                        >
-                          Không bằng
                         </button>
                       </mat-menu>
                       <div class="search-container">
@@ -682,30 +626,10 @@
                         <button
                           mat-menu-item
                           (click)="
-                            setFilterModeDetail(
-                              row,
-                              'lotNumber',
-                              'not_contains'
-                            )
-                          "
-                        >
-                          Không chứa
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
                             setFilterModeDetail(row, 'lotNumber', 'equals')
                           "
                         >
                           Bằng
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
-                            setFilterModeDetail(row, 'lotNumber', 'not_equals')
-                          "
-                        >
-                          Không bằng
                         </button>
                       </mat-menu>
                       <div class="search-container">
@@ -774,34 +698,10 @@
                         <button
                           mat-menu-item
                           (click)="
-                            setFilterModeDetail(
-                              row,
-                              'receivedDate',
-                              'not_contains'
-                            )
-                          "
-                        >
-                          Không chứa
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
                             setFilterModeDetail(row, 'receivedDate', 'equals')
                           "
                         >
                           Bằng
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
-                            setFilterModeDetail(
-                              row,
-                              'receivedDate',
-                              'not_equals'
-                            )
-                          "
-                        >
-                          Không bằng
                         </button>
                       </mat-menu>
                       <div class="search-container">
@@ -870,25 +770,9 @@
                         </button>
                         <button
                           mat-menu-item
-                          (click)="
-                            setFilterModeDetail(row, 'status', 'not_contains')
-                          "
-                        >
-                          Does not contain
-                        </button>
-                        <button
-                          mat-menu-item
                           (click)="setFilterModeDetail(row, 'status', 'equals')"
                         >
                           Equals
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
-                            setFilterModeDetail(row, 'status', 'not_equals')
-                          "
-                        >
-                          Does not equal
                         </button>
                       </mat-menu>
                       <div class="search-container">
@@ -974,34 +858,10 @@
                         <button
                           mat-menu-item
                           (click)="
-                            setFilterModeDetail(
-                              row,
-                              'expirationDate',
-                              'not_contains'
-                            )
-                          "
-                        >
-                          Does not contain
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
                             setFilterModeDetail(row, 'expirationDate', 'equals')
                           "
                         >
                           Equals
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="
-                            setFilterModeDetail(
-                              row,
-                              'expirationDate',
-                              'not_equals'
-                            )
-                          "
-                        >
-                          Does not equal
                         </button>
                       </mat-menu>
                       <div class="search-container">

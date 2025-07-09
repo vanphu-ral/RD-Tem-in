@@ -1,42 +1,37 @@
 <div class="dialog-header">
   <h2 mat-dialog-title class="dialog-title">Cập nhật vật tư</h2>
   <div style="align-items: center">
-    <button
-      style="display: flex; align-items: center; justify-content: space-between"
+    <!-- <button
       mat-raised-button
-      [matMenuTriggerFor]="menucolumnselect"
+      [matMenuTriggerFor]="menu"
       class="custom-approver-button"
     >
       <span class="button-text">
-        {{ selectedSubApproverIndex >= 0 ?
-        selectApprover().sub[selectedSubApproverIndex].name : 'Chọn người duyệt'
+        {{ selectedApprover()
+          ? (selectedApprover()!.firstName + ' ' + selectedApprover()!.lastName)
+          : 'Chọn người duyệt'
         }}
       </span>
-      <mat-icon style="margin-left: 3px" class="button-icon"
-        >keyboard_arrow_down</mat-icon
-      >
+      <mat-icon class="button-icon">keyboard_arrow_down</mat-icon>
     </button>
-    <mat-menu #menucolumnselect="matMenu">
-      <section class="example-section" (click)="$event.stopPropagation()">
-        <span class="example-list-section">
-          <div style="max-height: 300px; overflow-y: auto; min-width: 220px">
-            <mat-radio-group
-              [value]="selectedSubApproverIndex"
-              (change)="onSelectSubApprover($event.value)"
-              color="primary"
-            >
-              <mat-radio-button
-                *ngFor="let sub of selectApprover().sub; let idx = index"
-                [value]="idx"
-                style="display: block; margin-left: 20px; margin-right: 30px"
-              >
-                {{ sub.name }}
-              </mat-radio-button>
-            </mat-radio-group>
-          </div>
-        </span>
-      </section>
-    </mat-menu>
+
+    <mat-menu #menu="matMenu">
+      <div style="max-height: 300px; overflow-y: auto; min-width: 220px; padding: 8px;">
+        <mat-radio-group
+          [value]="selectedApprover()"
+          (change)="onSelectApprover($event.value)"
+        >
+          <mat-radio-button
+            *ngFor="let user of approvers(); let i = index"
+            [value]="user"
+            style="display: block; margin: 4px 0; padding-left: 16px;"
+          >
+            {{ user.firstName }} {{ user.lastName }}
+            <small style="opacity: .7">({{ user.username }})</small>
+          </mat-radio-button>
+        </mat-radio-group>
+      </div>
+    </mat-menu> -->
   </div>
 
   <!-- <div style="display: flex; align-items: center; margin-top: 10px;">
@@ -98,21 +93,9 @@
               </button>
               <button
                 mat-menu-item
-                (click)="setFilterMode( 'materialIdentifier' , 'not_contains')"
-              >
-                Không chứa
-              </button>
-              <button
-                mat-menu-item
                 (click)="setFilterMode( 'materialIdentifier' , 'equals')"
               >
                 Bằng
-              </button>
-              <button
-                mat-menu-item
-                (click)="setFilterMode( 'materialIdentifier' , 'not_equals')"
-              >
-                Không bằng
               </button>
             </mat-menu>
             <div class="search-container">
@@ -168,21 +151,9 @@
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode( 'partNumber' , 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
                   (click)="setFilterMode( 'partNumber' , 'equals')"
                 >
                   Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode( 'partNumber' , 'not_equals')"
-                >
-                  Không bằng
                 </button>
               </mat-menu>
               <div class="search-container">
@@ -236,21 +207,9 @@
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode( 'expirationDate' , 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
                   (click)="setFilterMode( 'expirationDate' , 'equals')"
                 >
                   Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode( 'expirationDate' , 'not_equals')"
-                >
-                  Không bằng
                 </button>
               </mat-menu>
               <div class="search-container">
@@ -305,21 +264,9 @@
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode( 'calculatedStatus' , 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
                   (click)="setFilterMode( 'calculatedStatus' , 'equals')"
                 >
                   Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode( 'calculatedStatus' , 'not_equals')"
-                >
-                  Không bằng
                 </button>
               </mat-menu>
               <div class="search-container">
@@ -565,21 +512,9 @@
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode( 'quantity' , 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
                   (click)="setFilterMode( 'quantity' , 'equals')"
                 >
                   Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode( 'quantity' , 'not_equals')"
-                >
-                  Không bằng
                 </button>
               </mat-menu>
               <div class="search-container">
