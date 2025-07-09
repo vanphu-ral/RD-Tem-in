@@ -187,9 +187,12 @@ public class InventoryService {
 
     public List<InventoryResponse> getInventories(InventoryRequestDTO request) {
         System.out.println("get pageNumber: " + request.getPageNumber());
-        Long expirationTimestamp = request.getExpirationDate() != null
-            ? Long.parseLong(request.getExpirationDate())
-            : null;
+        Long expirationTimestamp = Optional.ofNullable(
+            request.getExpirationDate()
+        )
+            .filter(s -> !s.isEmpty())
+            .map(Long::parseLong)
+            .orElse(null);
         return this.inventoryRepository.getInventories(
             "%" +
             Optional.ofNullable(request.getMaterialIdentifier()).orElse("") +
@@ -210,9 +213,12 @@ public class InventoryService {
     }
 
     public Integer getTotalInventories(InventoryRequestDTO request) {
-        Long expirationTimestamp = request.getExpirationDate() != null
-            ? Long.parseLong(request.getExpirationDate())
-            : null;
+        Long expirationTimestamp = Optional.ofNullable(
+            request.getExpirationDate()
+        )
+            .filter(s -> !s.isEmpty())
+            .map(Long::parseLong)
+            .orElse(null);
         return this.inventoryRepository.getTotalInventories(
             "%" +
             Optional.ofNullable(request.getMaterialIdentifier()).orElse("") +
