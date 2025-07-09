@@ -385,6 +385,10 @@ th {
           }
         }
       }
+      .mat-mdc-button > .mat-icon,
+      .mat-mdc-raised-button > .mat-icon {
+        margin-right: 0 !important;
+      }
     }
   }
 }

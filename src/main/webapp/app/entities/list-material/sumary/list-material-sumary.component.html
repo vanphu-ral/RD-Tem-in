@@ -9,6 +9,10 @@
     <div class="group-buttons-main">
       <div class="group-buttons primary"></div>
       <div class="group-buttons secondary">
+        <button class="btn-refresh" mat-button (click)="refreshFilters()">
+          <mat-icon>refresh</mat-icon>
+          <span class="btn-text">Refresh</span>
+        </button>
         <!-- View mode -->
         <button mat-button [matMenuTriggerFor]="menu" class="btn-view">
           <mat-icon>visibility</mat-icon>
@@ -16,7 +20,9 @@
           <!-- <mat-icon class="icon-down">keyboard_arrow_down</mat-icon> -->
         </button>
         <mat-menu #menu="matMenu">
-          <button mat-menu-item>Danh sách chi tiết</button>
+          <button mat-menu-item [routerLink]="'/list-material'">
+            Danh sách chi tiết
+          </button>
           <button mat-menu-item [matMenuTriggerFor]="subMenu">
             Danh sách tổng hợp
           </button>
@@ -61,6 +67,10 @@
   </div>
 
   <div class="full-scroll-table-container">
+    <div class="overlay-spinner" *ngIf="isLoading">
+      <!-- <mat-spinner diameter="50"></mat-spinner> -->
+      <div class="loader"></div>
+    </div>
     <table
       mat-table
       [dataSource]="dataSource"
@@ -120,12 +130,9 @@
                 "
               >
                 <div class="column-title">
-                  {{
-                    groupField
-                      ? (groupField.toString() | titlecase)
-                      : "Đang tải..."
-                  }}
+                  {{ fieldLabels[groupField] || groupField }}
                 </div>
+
                 <div>
                   <mat-icon
                     [matMenuTriggerFor]="filterMenu"
@@ -157,8 +164,9 @@
                   >
                     <mat-label>Search</mat-label>
                     <input
-                      (keyup)="applyFilter(groupField, $event)"
                       matInput
+                      (keyup)="applyFilter(groupField, $event)"
+                      [value]="filterValues[groupField] || ''"
                       [placeholder]="
                         'Search (' +
                         (filterModes[groupField] || 'contains') +
@@ -191,15 +199,15 @@
                 "
               >
                 <div class="column-title">Total Quantity</div>
-                <div>
+                <!-- <div>
                   <mat-icon
                     [matMenuTriggerFor]="filterTotalQuantity"
                     style="color: white"
                     >filter_list</mat-icon
                   >
-                </div>
+                </div> -->
               </div>
-              <mat-menu #filterTotalQuantity="matMenu">
+              <!-- <mat-menu #filterTotalQuantity="matMenu">
                 <button
                   mat-menu-item
                   (click)="setFilterMode('quantity', 'contains')"
@@ -224,8 +232,8 @@
                 >
                   Không bằng
                 </button>
-              </mat-menu>
-              <div class="search-container">
+              </mat-menu> -->
+              <!-- <div class="search-container">
                 <div class="custom-search-wrapper">
                   <mat-form-field
                     class="small-form-field"
@@ -244,7 +252,7 @@
                     />
                   </mat-form-field>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
         </th>
@@ -270,15 +278,15 @@
                 "
               >
                 <div class="column-title">Total Available Quantity</div>
-                <div>
+                <!-- <div>
                   <mat-icon
                     [matMenuTriggerFor]="filterTotalQuantity"
                     style="color: white"
                     >filter_list</mat-icon
                   >
-                </div>
+                </div> -->
               </div>
-              <mat-menu #filterTotalQuantity="matMenu">
+              <!-- <mat-menu #filterTotalQuantity="matMenu">
                 <button
                   mat-menu-item
                   (click)="setFilterMode('totalAvailableQuantity', 'contains')"
@@ -303,8 +311,8 @@
                 >
                   Không bằng
                 </button>
-              </mat-menu>
-              <div class="search-container">
+              </mat-menu> -->
+              <!-- <div class="search-container">
                 <div class="custom-search-wrapper">
                   <mat-form-field
                     class="small-form-field"
@@ -323,7 +331,7 @@
                     />
                   </mat-form-field>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
         </th>
@@ -349,15 +357,15 @@
                 "
               >
                 <div class="column-title">Record Count</div>
-                <div>
+                <!-- <div>
                   <mat-icon
                     [matMenuTriggerFor]="filtercount"
                     style="color: white"
                     >filter_list</mat-icon
                   >
-                </div>
+                </div> -->
               </div>
-              <mat-menu #filtercount="matMenu">
+              <!-- <mat-menu #filtercount="matMenu">
                 <button
                   mat-menu-item
                   (click)="setFilterMode('recordCount', 'contains')"
@@ -382,8 +390,8 @@
                 >
                   Không bằng
                 </button>
-              </mat-menu>
-              <div class="search-container">
+              </mat-menu> -->
+              <!-- <div class="search-container">
                 <div class="custom-search-wrapper">
                   <mat-form-field
                     class="small-form-field"
@@ -402,7 +410,7 @@
                     />
                   </mat-form-field>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
         </th>

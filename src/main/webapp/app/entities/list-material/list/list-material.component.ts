@@ -396,6 +396,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (response: APISumaryResponse) => {
         console.log("Dữ liệu nhận được từ API:", response);
         this.router.navigate(["/list-material/sumary"], {
+          queryParams: { mode: selectedMode },
           state: { data: response.inventories },
         });
       },
@@ -479,11 +480,12 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public applyDatePickerByPicker(col: string, date: Date): void {
+    this.isLoading = true;
     this.setDateFilter(col, date);
   }
   public applyDatePickerByTyping(col: string, raw: string): void {
     console.log("Typing raw date:", col, raw);
-
+    this.isLoading = true;
     if (raw === "") {
       this.setDateFilter(col, null);
       return;

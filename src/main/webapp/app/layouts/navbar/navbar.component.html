@@ -47,6 +47,14 @@
       </button>
     </ng-template>
   </header>
+  <ng-container *ngIf="isHandset$ | async">
+    <div
+      class="sidebar-overlay"
+      *ngIf="!isCollapsed"
+      (click)="collapseNavbar()"
+    ></div>
+  </ng-container>
+
   <div
     id="sidebar-id"
     class="sidebar col-md-3"

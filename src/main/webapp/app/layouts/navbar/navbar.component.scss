@@ -64,6 +64,7 @@ Logo styles
 
   .login-button {
     margin-right: 30px;
+
     .menu-lg-button {
       margin-right: 80px;
     }
@@ -74,6 +75,15 @@ Logo styles
 
   &.expanded {
   }
+}
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
 }
 
 .btn-collapse {
@@ -478,11 +488,30 @@ li::marker {
   flex-direction: column;
   justify-content: flex-start !important; // Không căn giữa dọc
 }
+
 @media (max-width: 599px) {
   .app-header {
     height: 40px;
+    .login-button {
+      margin-right: 20px;
+    }
+  }
+  .btn-collapse {
+    .app-header.expanded & {
+      left: 220px !important;
+    }
+  }
+
+  .sidebar {
+    width: 220px !important;
+
+    &.expanded {
+      width: 220px !important;
+      opacity: 1;
+    }
   }
 }
+
 @media (min-width: 600px) and (max-width: 959px) {
   .app-header {
     height: 50px;

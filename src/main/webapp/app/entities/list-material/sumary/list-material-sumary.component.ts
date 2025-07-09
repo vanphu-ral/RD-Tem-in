@@ -25,6 +25,8 @@ import {
   catchError,
   distinctUntilChanged,
   first,
+  debounceTime,
+  finalize,
 } from "rxjs/operators";
 import {
   animate,
@@ -115,17 +117,10 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     "userData4",
     "lotNumber",
   ];
+  selectedGroupingField = this.groupingFields[0];
   checkedCount = signal(0);
-  displayedColumns: string[] = [
-    "expand",
-    this.groupingFields[0],
-    this.groupingFields[1],
-    this.groupingFields[2],
-    this.groupingFields[3],
-    "quantity",
-    "availableQuantity",
-    "recordCount",
-  ];
+  displayedColumns: string[] = [];
+
   // dataSource = new MatTableDataSource<AggregatedPartData>();
   dataSource: MatTableDataSource<DataSumary>;
   length = 0;
@@ -156,10 +151,16 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   public searchTerms: { [columnDef: string]: { value: string } } = {};
   public activeFilters: { [columnDef: string]: any[] } = {};
   public filterModes: { [columnDef: string]: string } = {};
-  public filterField = this.groupingField || "groupingKey";
+  filterValues: Record<string, string> = {};
   public searchTermsDetail: {
     [colDetail: string]: { mode: string; value: string };
   } = {};
+  public fieldLabels: Record<string, string> = {
+    partNumber: "Part Number",
+    locationName: "Location Name",
+    userData4: "User Data 4",
+    lotNumber: "Lot Number",
+  };
   public activeFiltersDetail: { [colDetail: string]: any[] } = {};
   public filterModesDetail: { [colDetail: string]: string } = {};
   statusOptions = [
@@ -169,6 +170,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     { value: "expired", view: "Expired" },
   ];
   aggregatedParts: AggregatedPartData[] = [];
+  isLoading = false;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -177,6 +179,9 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   @ViewChild("detailPaginator") detailPaginator!: MatPaginator;
   sumaryData$: Observable<DataSumary[]> | undefined;
   private ngUnsubscribe = new Subject<void>();
+  private destroy$ = new Subject<void>();
+  private filterInput$ = new Subject<{ col: string; value: string }>();
+
   constructor(
     public materialService: ListMaterialService,
     private dialog: MatDialog,
@@ -201,36 +206,71 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.buildDisplayedColumns();
+    this.filterInput$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged((a, b) => a.col === b.col && a.value === b.value),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(({ col, value }) => {
+        this.filterValues[col] = value;
+        const newParams = { ...this.route.snapshot.queryParams };
+        if (value) {
+          newParams[col] = value;
+        } else {
+          delete newParams[col];
+        }
+        newParams["page"] = 1;
+
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: newParams,
+          replaceUrl: true,
+        });
+      });
+
     this.form = new FormGroup({
-      sumary_modeControl: new FormControl(null),
+      sumary_modeControl: new FormControl<string[]>([]),
     });
 
-    // this.sumaryData$ = this.materialService.sumaryData$;
-
-    // this.route.queryParams
-    //   .pipe(
-    //     takeUntil(this.ngUnsubscribe),
-    //     distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-    //   )
-    //   .subscribe((params) => {
-    //     this.fetchDataAndUpdateUISumary(params);
-    //   });
     this.route.queryParams
       .pipe(
-        filter((params: Params) => !!params["mode"]),
+        filter((params) => typeof params["mode"] === "string"),
         distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-        takeUntil(this.ngUnsubscribe),
+        takeUntil(this.destroy$),
       )
       .subscribe((params) => {
-        console.log("URL hợp lệ, đang fetch dữ liệu với params:", params);
+        const mode = params["mode"] as string;
 
-        const modeFromUrl = params["mode"];
-        if (this.form.get("sumary_modeControl")?.value?.[0] !== modeFromUrl) {
+        if (this.form.get("sumary_modeControl")!.value !== mode) {
           this.form
-            .get("sumary_modeControl")
-            ?.setValue([modeFromUrl], { emitEvent: false });
+            .get("sumary_modeControl")!
+            .setValue([mode], { emitEvent: false });
+        }
+
+        if (this.selectedGroupingField !== mode) {
+          this.selectedGroupingField = mode;
+          this.buildDisplayedColumns();
         }
         this.fetchDataAndUpdateUISumary(params);
+      });
+
+    this.form
+      .get("sumary_modeControl")!
+      .valueChanges.pipe(
+        filter((arr): arr is string[] => Array.isArray(arr) && arr.length > 0),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((arr) => {
+        const mode = arr[0];
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { mode },
+          queryParamsHandling: "merge",
+          replaceUrl: true,
+        });
       });
   }
 
@@ -369,28 +409,35 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   closeMenuManually(): void {
     this.menuTrigger.closeMenu();
   }
+  refreshFilters(): void {
+    this.filterValues = {};
 
-  public applyFilter(colDef: string, event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value
-      .trim()
-      .toLowerCase();
-    const selectedMode = this.filterModes[colDef] || "contains";
-    const filterKey = colDef === "groupingKey" ? this.groupingField : colDef;
-    if (!this.searchTerms[filterKey]) {
-      this.searchTerms[filterKey] = {
-        value: filterValue,
-      };
-    } else {
-      this.searchTerms[filterKey].value = filterValue;
+    const { mode, pageSize } = this.route.snapshot.queryParams;
+
+    const newParams: any = { page: 1 };
+    if (mode) {
+      newParams.mode = mode;
     }
-    console.log(
-      `[applyFilter] - Cột ${filterKey}:`,
-      this.searchTerms[filterKey],
-    );
+    if (pageSize) {
+      newParams.pageSize = pageSize;
+    }
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: newParams,
+      replaceUrl: true,
+    });
+  }
+
+  applyFilter(col: string, e: KeyboardEvent): void {
+    const value = (e.target as HTMLInputElement).value.trim();
+    this.isLoading = true;
+    this.filterInput$.next({ col, value });
   }
 
   public setFilterMode(colDef: string, mode: string): void {
     this.filterModes[colDef] = mode;
+    this.selectedGroupingField = colDef;
+    this.buildDisplayedColumns();
   }
 
   public applyDateFilter(
@@ -599,72 +646,97 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     row.detailDataSource.filterPredicate =
       this.detailFilterPredicate.bind(this);
   }
+  private buildDisplayedColumns(): void {
+    const cols = ["expand"];
+    cols.push("partNumber");
+    if (this.selectedGroupingField !== "partNumber") {
+      cols.push(this.selectedGroupingField);
+    }
+    cols.push("quantity", "availableQuantity", "recordCount");
+
+    this.displayedColumns = cols;
+  }
+
+  private clearSummary(): void {
+    this.length = 0;
+    this.pageIndex = 0;
+    this.dataSource.data = [];
+    if (this.paginator) {
+      this.paginator.length = 0;
+      this.paginator.pageIndex = 0;
+    }
+    this.cdr.markForCheck();
+  }
 
   private fetchDataAndUpdateUISumary(params: { [key: string]: any }): void {
-    console.log("log params: ", params);
-    const mode = params["mode"];
-    let apiUrl: string;
-    let allowedFilterKeys: string[] = [];
-    switch (mode) {
-      case "partNumber":
-        apiUrl = this.materialService.apiSumaryByPart;
-        allowedFilterKeys = ["partNumber"];
-        break;
-      case "lotNumber":
-        apiUrl = this.materialService.apiSumaryByLot;
-        allowedFilterKeys = ["partNumber", "lotNumber"];
-        break;
-      case "userData4":
-        apiUrl = this.materialService.apiSumaryByUserData4;
-        allowedFilterKeys = ["partNumber", "userData4"];
-        break;
-      case "locationName":
-        apiUrl = this.materialService.apiSumaryByLocation;
-        allowedFilterKeys = ["partNumber", "locationName"];
-        break;
-      default:
-        console.warn(
-          "Chế độ không hợp lệ hoặc không có, không fetch dữ liệu:",
-          mode,
-        );
-        this.dataSource.data = [];
-        this.length = 0;
-        return;
+    const mode = params["mode"] as string | undefined;
+
+    if (!mode) {
+      this.clearSummary();
+      return;
     }
 
-    const filters: { [key: string]: any } = {};
-    for (const key of allowedFilterKeys) {
-      if (params[key] !== undefined && params[key] !== null) {
-        filters[key] = params[key];
-      } else {
-        filters[key] = "";
-      }
-    }
+    const page = +params["page"] || 1;
+    const pageSize = +params["pageSize"] || 50;
 
-    const page = params["page"] ? +params["page"] : 1;
-    const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
-
-    const body = {
-      filters,
+    const body: Record<string, any> = {
       pageNumber: page,
       itemPerPage: pageSize,
     };
-    console.log("day la body: ", body);
+
+    let apiUrl: string;
+    switch (mode) {
+      case "partNumber":
+        apiUrl = this.materialService.apiSumaryByPart;
+        body.partNumber = params.partNumber ?? "";
+        break;
+      case "lotNumber":
+        apiUrl = this.materialService.apiSumaryByLot;
+        body.partNumber = params.partNumber ?? "";
+        body.lotNumber = params.lotNumber ?? "";
+        break;
+      case "userData4":
+        apiUrl = this.materialService.apiSumaryByUserData4;
+        body.partNumber = params.partNumber ?? "";
+        body.userData4 = params.userData4 ?? "";
+        break;
+      case "locationName":
+        apiUrl = this.materialService.apiSumaryByLocation;
+        body.partNumber = params.partNumber ?? "";
+        body.locationName = params.locationName ?? "";
+        break;
+      default:
+        console.warn("Unknown summary mode:", mode);
+        this.clearSummary();
+        return;
+    }
+
+    this.isLoading = true;
     this.materialService
-      .fetchDataSumary(apiUrl, body) //
-      .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((response) => {
-        console.log("response  API:", response);
-        console.log("response.totalItems:", response.totalItems);
-        const totalItems = response.totalItems;
-        this.length = totalItems;
-        this.pageIndex = page - 1;
-        this.dataSource.data = response.inventories || [];
-        if (this.paginator) {
-          this.paginator.length = totalItems;
-          this.paginator.pageIndex = page - 1;
-        }
-        this.cdr.markForCheck();
+      .fetchDataSumary(apiUrl, body)
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        finalize(() => (this.isLoading = false)),
+      )
+      .subscribe({
+        next: (response) => {
+          const total = response.totalItems || 0;
+
+          this.length = total;
+          this.pageIndex = page - 1;
+          this.dataSource.data = response.inventories || [];
+
+          if (this.paginator) {
+            this.paginator.length = total;
+            this.paginator.pageIndex = page - 1;
+          }
+
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          console.error("Error loading summary data", err);
+          this.clearSummary();
+        },
       });
   }
 
