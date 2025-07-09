@@ -187,8 +187,7 @@ public class InventoryService {
 
     public List<InventoryResponse> getInventories(InventoryRequestDTO request) {
         System.out.println("get pageNumber: " + request.getPageNumber());
-        Long expirationTimestamp = (request.getExpirationDate() != null &&
-                !request.getExpirationDate().isEmpty())
+        Long expirationTimestamp = request.getExpirationDate() != null
             ? Long.parseLong(request.getExpirationDate())
             : null;
         return this.inventoryRepository.getInventories(
@@ -211,8 +210,7 @@ public class InventoryService {
     }
 
     public Integer getTotalInventories(InventoryRequestDTO request) {
-        Long expirationTimestamp = (request.getExpirationDate() != null &&
-                !request.getExpirationDate().isEmpty())
+        Long expirationTimestamp = request.getExpirationDate() != null
             ? Long.parseLong(request.getExpirationDate())
             : null;
         return this.inventoryRepository.getTotalInventories(
