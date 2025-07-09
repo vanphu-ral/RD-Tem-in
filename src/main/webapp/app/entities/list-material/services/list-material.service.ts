@@ -336,34 +336,41 @@ export class ListMaterialService {
   }
 
   // lấy dữ liệu trang tổng hợp
+  // fetchDataSumary(apiUrl: string, body: any): Observable<APISumaryResponse> {
+  //   console.log(body);
+  //   console.log(apiUrl);
+  //   return this.http.post<APISumaryResponse>(apiUrl, body).pipe(
+  //     tap((response) => {
+  //       console.log(response);
+  //       if (response?.inventories) {
+  //         this._totalCount.next(response.totalItems);
+  //         this._SumaryData.next(response.inventories);
+  //       } else {
+  //         this._SumaryData.next([]);
+  //       }
+  //     }),
+  //     catchError((err) => {
+  //       console.error("Lỗi khi lấy dữ liệu cho chế độ ", err);
+  //       this._SumaryData.next([]);
+  //       return of({ inventories: [], totalItems: 0 } as APISumaryResponse);
+  //     }),
+  //   );
+  // }
   fetchDataSumary(apiUrl: string, body: any): Observable<APISumaryResponse> {
-    console.log(body);
-    console.log(apiUrl);
     return this.http.post<APISumaryResponse>(apiUrl, body).pipe(
-      tap((response) => {
-        console.log(response);
-        if (response?.inventories) {
-          this._totalCount.next(response.totalItems);
-          this._SumaryData.next(response.inventories);
-        } else {
-          this._SumaryData.next([]);
-        }
-      }),
       catchError((err) => {
-        console.error("Lỗi khi lấy dữ liệu cho chế độ ", err);
-        this._SumaryData.next([]);
+        console.error("Lỗi khi lấy dữ liệu summary: ", err);
+
         return of({ inventories: [], totalItems: 0 } as APISumaryResponse);
       }),
     );
   }
-
   //  lấy dư liệu cho trang danh sach
 
   fetchMaterialsData(
-    pageIndex: number, // Số trang (bắt đầu từ 0 hoặc 1 tùy BE)
+    pageIndex: number,
     limit: number, // Số lượng item/trang
     filters?: {
-      // Filter tùy chọn (có thể không gửi)
       materialIdentifier?: string;
       status?: string;
       partNumber?: string;
