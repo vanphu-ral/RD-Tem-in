@@ -200,9 +200,7 @@ public class InventoryService {
             "%" +
             Optional.ofNullable(request.getLocationName()).orElse("") +
             "%",
-            "%" +
-            Optional.ofNullable(request.getExpirationDate()).orElse("") +
-            "%",
+            Long.parseLong(request.getExpirationDate()),
             (request.getPageNumber() - 1) * request.getItemPerPage(),
             request.getItemPerPage()
         );
@@ -222,9 +220,7 @@ public class InventoryService {
             "%" +
             Optional.ofNullable(request.getLocationName()).orElse("") +
             "%",
-            "%" +
-            Optional.ofNullable(request.getExpirationDate()).orElse("") +
-            "%"
+            Long.parseLong(request.getExpirationDate())
         );
     }
 
