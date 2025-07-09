@@ -6,6 +6,8 @@ import {
   ElementRef,
   OnDestroy,
   ChangeDetectorRef,
+  QueryList,
+  ViewChildren,
 } from "@angular/core";
 import { Router } from "@angular/router";
 import { MatTableDataSource } from "@angular/material/table";
@@ -16,12 +18,17 @@ import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
 import { Subscription, Subject, of } from "rxjs";
+import { formatDate } from "@angular/common";
 import {
   takeUntil,
   map,
   catchError,
   distinctUntilChanged,
   first,
+  debounceTime,
+  skip,
+  take,
+  finalize,
 } from "rxjs/operators";
 import * as XLSX from "xlsx";
 import { SelectionModel } from "@angular/cdk/collections";
@@ -156,9 +163,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   });
   statusOptions = [
     { value: "", view: "-- All --" },
-    { value: "available", view: "Available" },
-    { value: "consumed", view: "Consumed" },
-    { value: "expired", view: "Expired" },
+    { value: "3", view: "Available" },
+    { value: "6", view: "Consumed" },
+    { value: "19", view: "Expired" },
   ];
   dataSource = new MatTableDataSource<RawGraphQLMaterial>();
   length = 0;
@@ -173,6 +180,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   selection = new SelectionModel<RawGraphQLMaterial>(true, []);
   checkedCount = signal(0);
   form!: FormGroup;
+  locale = "en-GB";
   sumary_modes: sumary_mode[] = [
     { value: "partNumber", name: "Part Number", link: "/list-material/sumary" },
     {
@@ -187,11 +195,12 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedAggregated: string = "";
 
   // đối tượng chứa cột  thông tin tìm kiếm
-  public searchTerms: { [columnDef: string]: { mode: string; value: string } } =
-    {};
+  public scanPending = false;
   public activeFilters: { [columnDef: string]: any[] } = {};
-
-  public filterModes: { [columnDef: string]: string } = {};
+  searchTerms: Record<string, any> = {};
+  filterModes: Record<string, string> = {};
+  isLoading = false;
+  filterForm!: FormGroup;
 
   filteredValues: any = {
     materialIdentifier: "",
@@ -200,6 +209,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   scanResult = "";
   scanError = "";
   filterApplied: boolean = false;
+  filterInputs!: QueryList<ElementRef<HTMLInputElement | HTMLSelectElement>>;
+  dateInputs: Record<string, string> = {};
+
   // #endregion
 
   // #region ViewChild
@@ -207,11 +219,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
   @ViewChild("scanInput") scanInput!: ElementRef<HTMLInputElement>;
+  @ViewChildren("filterInput", { read: ElementRef })
   // #endregion
 
   // #region Private properties
   private sidebarSubscription!: Subscription;
   private ngUnsubscribe = new Subject<void>();
+
   // #endregion
 
   // #region Constructor
@@ -224,6 +238,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     private accountService: AccountService,
     private snackBar: MatSnackBar,
     private http: HttpClient,
+    private fb: FormBuilder,
   ) {
     this.form = new FormGroup({
       sumary_modeControl: new FormControl(null),
@@ -233,53 +248,91 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // #region Lifecycle hooks
   ngOnInit(): void {
+    this.isLoading = true;
+
     this.updateDisplayedColumns();
+
     const canUpdate = this.accountService.hasAnyAuthority([
       "ROLE_PANACIM_UPDATE",
       "ROLE_PANACIM_ADMIN",
     ]);
+    this.materialService.selectedIds$
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((ids) => this.checkedCount.set(ids.length));
+
+    this.route.queryParams.pipe(first()).subscribe((params) => {
+      const allowed = this.displayedColumns.filter((c) => c !== "select");
+      for (const col of allowed) {
+        const v = params[col];
+        if (v != null && v !== "") {
+          const m = params[col + "Mode"] || this.filterModes[col] || "contains";
+          this.searchTerms[col] = { mode: m, value: v };
+          this.filterModes[col] = m;
+          if (this.isDateField(col)) {
+            const ms = parseInt(v, 10) * 1000;
+            this.dateInputs[col] = formatDate(
+              new Date(ms),
+              "dd/MM/yyyy",
+              this.locale,
+            );
+          }
+        }
+      }
+    });
+
+    this.route.queryParams
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((params) => {
+        console.log("[DBG] queryParams fired:", params);
+        this.pageIndex = params.page ? +params.page - 1 : 0;
+        this.pageSize = params.pageSize ? +params.pageSize : this.pageSize;
+        this.isLoading = true;
+        this.fetchPage(params);
+      });
+
     this.displayedColumns = canUpdate
       ? [...this.displayedColumns]
       : this.displayedColumns.filter((c) => c !== "select");
 
-    this.route.queryParams
-      .pipe(
-        takeUntil(this.ngUnsubscribe),
-        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-      )
-      .subscribe((params) => {
-        // Gọi hàm đã sửa và truyền params mới nhất vào
-        this.fetchDataAndUpdateUI(params);
-      });
+    const allowedCols = this.displayedColumns.filter((c) => c !== "select");
+  }
+  onPageChange(event: PageEvent): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: event.pageIndex + 1,
+        pageSize: event.pageSize,
+      },
+      queryParamsHandling: "merge",
+    });
   }
 
   ngAfterViewInit(): void {
-    // this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
 
-    this.route.queryParams
-      .pipe(takeUntil(this.ngUnsubscribe), first())
-      .subscribe((params) => {
-        if (this.paginator) {
-          const page = +params["page"] || 1;
-          const pageSize = +params["pageSize"] || 10;
-          this.paginator.pageIndex = page - 1;
-          this.paginator.pageSize = pageSize;
-        }
-      });
+    // this.route.queryParams
+    //   .pipe(takeUntil(this.ngUnsubscribe), first())
+    //   .subscribe((params) => {
+    //     if (this.paginator) {
+    //       const page = +params["page"] || 1;
+    //       const pageSize = +params["pageSize"] || this.pageSize;
+    //       this.paginator.pageIndex = page - 1;
+    //       this.paginator.pageSize = pageSize;
+    //     }
+    //   });
 
     // Xử lý khi người dùng thay đổi trang
-    this.paginator.page
-      .pipe(takeUntil(this.ngUnsubscribe), distinctUntilChanged())
-      .subscribe(() => {
-        this.router.navigate(["/list-material"], {
-          queryParams: {
-            page: this.paginator.pageIndex + 1,
-            pageSize: this.paginator.pageSize,
-          },
-          queryParamsHandling: "merge",
-        });
-      });
+    // this.paginator.page
+    //   .pipe(takeUntil(this.ngUnsubscribe), distinctUntilChanged())
+    //   .subscribe(() => {
+    //     this.router.navigate(["/list-material"], {
+    //       queryParams: {
+    //         page: this.paginator.pageIndex + 1,
+    //         pageSize: this.paginator.pageSize,
+    //       },
+    //       queryParamsHandling: "merge",
+    //     });
+    //   });
   }
 
   onLoad(): void {
@@ -334,6 +387,19 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.ngUnsubscribe.next();
     this.ngUnsubscribe.complete();
   }
+
+  onFilterChange(col: string): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        ...this.searchTerms,
+        page: 1,
+        pageSize: this.pageSize,
+      },
+      queryParamsHandling: "merge",
+    });
+  }
+
   // #endregion
 
   // #region Public methods
@@ -384,45 +450,90 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         return "";
     }
   }
-  public setFilterMode(colDef: string, mode: string): void {
-    this.filterModes[colDef] = mode;
-    console.log(`[setFilterMode] - Cột ${colDef} đã chọn mode: ${mode}`);
+  setFilterMode(col: string, mode: string): void {
+    this.filterModes[col] = mode;
+    this.onFilterChange(col);
   }
 
-  public applyDateFilter(
-    colDef: string,
-    event: MatDatepickerInputEvent<Date>,
-  ): void {
-    const dateValue: Date | null = event.value;
-    if (dateValue) {
-      // Chuyển đổi ngày chọn từ picker thành chuỗi theo định dạng dd/MM/yyyy
-      const formattedDate = dateValue
-        .toLocaleDateString("vi-VN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        })
-        .toLowerCase();
-
-      console.log(
-        `[applyDateFilter] Ngày được chọn từ DatePicker ở cột ${colDef}: ${formattedDate}`,
-      );
-
-      // Lưu vào searchTerms với mode "equals"
-      this.searchTerms[colDef] = {
-        mode: "equals",
-        value: formattedDate,
+  applyDatePickerFilter(col: string, date: Date | null): void {
+    if (date) {
+      const start =
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0) /
+        1000;
+      const end =
+        Date.UTC(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          23,
+          59,
+          59,
+        ) / 1000;
+      this.searchTerms[col] = {
+        mode: "between",
+        value: [start.toString(), end.toString()],
       };
+      this.filterModes[col] = "between";
+      this.dateInputs[col] = formatDate(date, "dd/MM/yyyy", this.locale);
     } else {
-      this.searchTerms[colDef] = { mode: "contains", value: "" };
+      delete this.searchTerms[col];
+      delete this.filterModes[col];
+      delete this.dateInputs[col];
     }
-    this.applyCombinedFilters();
+    console.log("[DBG] searchTerms after date pick:", this.searchTerms);
+    this.updateRouteWithFilters();
   }
 
-  applySelectFilter(col: string, value: string): void {
-    const mode = this.filterModes[col] || "equals";
-    this.searchTerms[col] = { mode, value };
-    this.applyCombinedFilters();
+  onDateInputChange(col: string, str: string): void {
+    this.dateInputs[col] = str;
+
+    if (!str) {
+      delete this.searchTerms[col];
+      delete this.filterModes[col];
+      this.updateRouteWithFilters();
+      return;
+    }
+
+    const parts = str.split("/");
+    if (parts.length === 3) {
+      const d = +parts[0],
+        m = +parts[1] - 1,
+        y = +parts[2];
+      const date = new Date(y, m, d);
+      if (
+        date.getFullYear() === y &&
+        date.getMonth() === m &&
+        date.getDate() === d
+      ) {
+        const ts = Math.floor(date.getTime() / 1000).toString();
+        this.filterModes[col] = "equals";
+        this.searchTerms[col] = { mode: "equals", value: ts };
+        this.updateRouteWithFilters();
+      }
+    }
+  }
+
+  public applySelectFilter(col: string, selected: string): void {
+    if (selected) {
+      this.filterModes[col] = "equals";
+      this.searchTerms[col] = { mode: "equals", value: selected };
+    } else {
+      delete this.searchTerms[col];
+      delete this.filterModes[col];
+    }
+
+    const params: any = { page: "1", pageSize: this.pageSize.toString() };
+    Object.entries(this.searchTerms).forEach(([field, term]) => {
+      params[field] = term.value;
+      // nếu ẩy mode lên URL:
+      // params[field+'Mode'] = term.mode;
+    });
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      replaceUrl: true,
+    });
   }
 
   handlePageEvent(e: PageEvent): void {
@@ -463,28 +574,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public isAllSelected(): boolean {
-    const page = this.getCurrentPageRows();
+    const page = this.dataSource.data;
     return page.length > 0 && page.every((r) => r.checked);
   }
+
   public isSomeSelected(): boolean {
-    const page = this.getCurrentPageRows();
+    const page = this.dataSource.data;
     const sel = page.filter((r) => r.checked).length;
     return sel > 0 && sel < page.length;
   }
-  public toggleAllRows(): void {
-    const page = this.getCurrentPageRows();
-
-    if (this.isAllSelected()) {
-      page.forEach(
-        (r) =>
-          r.checked && this.materialService.toggleItemSelection(r.inventoryId),
-      );
-    } else {
-      page.forEach(
-        (r) =>
-          !r.checked && this.materialService.toggleItemSelection(r.inventoryId),
-      );
-    }
+  onRowToggle(row: RawGraphQLMaterial): void {
+    this.materialService.toggleItemSelection(row.inventoryId);
+    row.checked = !row.checked;
   }
 
   updateChecked(element: any, isChecked: boolean): void {
@@ -529,6 +630,19 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     return numSelected > 0 && numSelected < this.dataSource.data.length;
   }
 
+  public toggleAllRows(): void {
+    const pageIds = this.dataSource.data.map((r) => r.inventoryId);
+    if (this.isAllSelected()) {
+      this.materialService.deselectItems(pageIds);
+    } else {
+      this.materialService.selectItems(pageIds);
+    }
+    // cập nhật UI ngay
+    this.dataSource.data = this.materialService.mergeChecked(
+      this.dataSource.data,
+    );
+  }
+
   startScan(): void {
     this.scanError = "";
     this.scanResult = "";
@@ -542,12 +656,11 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   exitScanMode(): void {
     this.isScanMode = false;
   }
-  onScanEnter(rawValue: string): void {
-    this.scanError = "";
 
-    const scanString = rawValue.trim();
+  onScanEnter(rawValue: string): void {
+    const scanString = this.scanResult.trim();
     if (!scanString) {
-      // this.scanError = 'Không nhận diện được mã vật tư, vui lòng thử lại!';
+      this.openError("Không nhận diện được mã vật tư, vui lòng thử lại!");
       this.isScanMode = false;
       return;
     }
@@ -558,24 +671,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       this.isScanMode = false;
       return;
     }
-    this.scanResult = inventoryTerm.trim().toLowerCase();
-    const mode = this.filterModes["materialIdentifier"] || "contains";
+    this.filterModes["materialIdentifier"] = "equals";
+    this.scanPending = true;
     this.searchTerms["materialIdentifier"] = {
-      mode: this.filterModes["materialIdentifier"] || "equals",
+      mode: "equals",
       value: inventoryTerm,
     };
-    this.dataSource.filter = JSON.stringify({
-      textFilters: this.searchTerms,
-      dialogFilters: {},
-    });
 
-    const matchCount = this.dataSource.filteredData.length;
-    if (matchCount === 0) {
-      this.openError(`Không tìm thấy vật tư "${inventoryTerm}"`);
-      this.isScanMode = false;
-      return;
-    }
+    this.updateRouteWithFilters();
+
+    this.isScanMode = false;
   }
+
   openError(message: string): void {
     this.snackBar.open(message, "Đóng", {
       duration: 3000,
@@ -586,14 +693,19 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   refreshScan(): void {
-    this.scanError = "";
     this.scanResult = "";
-    delete this.searchTerms["materialIdentifier"];
-    this.dataSource.filter = JSON.stringify({
-      textFilters: this.searchTerms,
-      dialogFilters: {},
-    });
-    this.dataSource.paginator?.firstPage();
+    this.searchTerms = {};
+    this.filterModes = {};
+
+    this.materialService.clearSelection();
+
+    this.checkedCount.set(0);
+
+    this.dataSource.data = this.materialService.mergeChecked(
+      this.dataSource.data,
+    );
+
+    this.updateRouteWithFilters();
     this.isScanMode = false;
   }
 
@@ -604,26 +716,34 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public applyFilter(colDef: string, event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value;
+    const raw = (event.target as HTMLInputElement).value.trim().toLowerCase();
     const selectedMode = this.filterModes[colDef] || "contains";
 
-    this.searchTerms[colDef] = {
-      mode: selectedMode,
-      value: filterValue.trim().toLowerCase(),
-    };
+    if (raw) {
+      this.searchTerms[colDef] = {
+        mode: selectedMode,
+        value: raw,
+      };
+    } else {
+      delete this.searchTerms[colDef];
+      delete this.filterModes[colDef];
+    }
 
-    const filters: { [key: string]: string } = {};
+    const params: any = {
+      page: "1",
+      pageSize: this.pageSize.toString(),
+    };
     Object.entries(this.searchTerms).forEach(([field, term]) => {
       if (term.value) {
-        filters[field] = term.value;
+        params[field] = term.value;
+        params[field + "Mode"] = term.mode;
       }
     });
-    filters["page"] = "1";
 
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: filters,
-      queryParamsHandling: "merge",
+      queryParams: params,
+      replaceUrl: true,
     });
   }
 
@@ -742,6 +862,52 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  //   // #region Private methods
+  private fetchPage(params: any): void {
+    const page = params.page ? +params.page : 1;
+    const pageSize = params.pageSize ? +params.pageSize : this.pageSize;
+
+    const { page: _, pageSize: __, ...filters } = params;
+
+    this.isLoading = true;
+    this.materialService
+      .fetchMaterialsData(page, pageSize, filters)
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe((resp) => {
+        this.length = resp.totalItems;
+
+        this.dataSource.data = this.materialService.mergeChecked(
+          resp.inventories,
+        );
+      });
+  }
+
+  private updateRouteWithFilters(): void {
+    const params: any = {
+      page: 1,
+      pageSize: this.pageSize,
+    };
+
+    Object.entries(this.searchTerms).forEach(([col, term]) => {
+      if (term.value) {
+        if (term.mode === "between" && Array.isArray(term.value)) {
+          params[col + "From"] = term.value[0];
+          params[col + "To"] = term.value[1];
+          params[col + "Mode"] = "between";
+        } else {
+          params[col] = term.value;
+          params[col + "Mode"] = term.mode;
+        }
+      }
+    });
+    console.log("[DBG] updateRouteWithFilters → params:", params);
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      replaceUrl: true,
+    });
+  }
   private getCurrentPageRows(): RawGraphQLMaterial[] {
     const filtered = this.dataSource.filteredData || [];
     if (!this.paginator) {
@@ -775,36 +941,46 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private fetchDataAndUpdateUI(params: { [key: string]: any }): void {
-    const allowedFilterKeys = [
-      "materialIdentifier",
-      "status",
-      "partNumber",
-      "quantity",
-      "availableQuantity",
-      "lotNumber",
-      "userData4",
-      "locationName",
-      "expirationDate",
-    ];
-    const filters: { [key: string]: any } = {};
-    for (const key of allowedFilterKeys) {
-      if (params[key] !== undefined) {
-        filters[key] = params[key];
+    const filters: any = {};
+    Object.keys(params).forEach((k) => {
+      if (["page", "pageSize"].includes(k)) {
+        return;
       }
-    }
+      if (params[k] !== "" && params[k] != null) {
+        filters[k] = params[k];
+      }
+    });
+    const page = +params.page || 1;
+    const pageSize = +params.pageSize || this.pageSize;
 
-    const page = params["page"] ? +params["page"] : 1;
-    const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
+    // const page = params["page"] ? +params["page"] : 1;
+    // const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
 
     this.materialService
       .fetchMaterialsData(page, pageSize, filters)
-      .pipe(takeUntil(this.ngUnsubscribe))
+      .pipe(take(1))
       .subscribe((response) => {
+        const items = response.inventories;
+        this.materialService.updatePageData(items);
+        const withCheck = this.materialService.getPageWithSelection(items);
+        this.dataSource.data = withCheck;
+        this.updateSelectedItemsCount();
         const totalItems = response.totalItems;
         this.length = totalItems;
         this.dataSource.data = response.inventories || [];
         console.log("trang hiện tại: ", page);
         console.log("số lượng bản ghi đọc từ api: ", totalItems);
+        //scan
+        if (this.scanPending) {
+          if (!response.inventories.length) {
+            this.openError(
+              `Không tìm thấy vật tư "${this.searchTerms["materialIdentifier"].value}"`,
+            );
+          }
+          this.scanPending = false;
+          this.isScanMode = false;
+        }
+        //end scan
         if (this.paginator) {
           this.paginator.length = totalItems;
           this.paginator.pageIndex = page - 1;
@@ -825,9 +1001,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
             }
           }
         }
-        this.checkedCount.set(
-          response.inventories.filter((i) => i.checked).length,
-        );
+        // this.checkedCount.set(
+        //   response.inventories.filter((i) => i.checked).length,
+        // );
         this.cdr.markForCheck();
       });
   }

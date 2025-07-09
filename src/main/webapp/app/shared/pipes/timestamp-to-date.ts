@@ -1,22 +1,22 @@
-import { Injectable, Pipe, PipeTransform } from '@angular/core';
+import { Injectable, Pipe, PipeTransform } from "@angular/core";
 
 @Pipe({
-  name: 'timestampToDate',
+  name: "timestampToDate",
   standalone: true,
 })
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class TimestampToDatePipe implements PipeTransform {
-  transform(value: any, locale: string = 'vi-VN'): string {
+  transform(value: any, locale: string = "vi-VN"): string {
     if (!value) {
-      return '';
+      return "";
     }
 
     let date: Date;
 
     // Nếu value là chuỗi
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       // Nếu chuỗi chứa dấu "[" (ví dụ: vết thêm [Asia/Bangkok])
-      const bracketIndex = value.indexOf('[');
+      const bracketIndex = value.indexOf("[");
       if (bracketIndex > -1) {
         // Loại bỏ phần [Asia/Bangkok]
         value = value.substring(0, bracketIndex);
@@ -28,7 +28,7 @@ export class TimestampToDatePipe implements PipeTransform {
         //chuyển chuỗi thành đối tượng Date
         date = new Date(value);
       }
-    } else if (typeof value === 'number') {
+    } else if (typeof value === "number") {
       // Nếu là số và nhỏ hơn 1e12, xử lý như timestamp theo giây
       if (value < 1e12) {
         date = new Date(value * 1000);
@@ -40,21 +40,21 @@ export class TimestampToDatePipe implements PipeTransform {
     }
 
     if (isNaN(date.getTime())) {
-      return 'Invalid Date';
+      return "Invalid Date";
     }
 
-    // Định dạng ngày: "dd/MM/yyyy"
+    // Định dạng ngày: "yyyy/MM/dd"
     const optionsDate: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     };
 
     // Định dạng thời gian: "HH:mm:ss"
     const optionsTime: Intl.DateTimeFormatOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
       hour12: false,
     };
 

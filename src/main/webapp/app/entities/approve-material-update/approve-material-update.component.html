@@ -1,32 +1,15 @@
 <div class="main-page" style="display: flex; flex-direction: column">
-  <div
-    class="function-list"
-    style="display: flex; justify-content: space-between; align-items: center"
-  >
-    <div
-      class="left-group"
-      style="display: flex; align-items: center; gap: 15px"
-    >
-      <div class="title-page">
-        <h2>Quản lý đề nghị cập nhật vật tư</h2>
-      </div>
-      <div style="margin: 0 10px">
-        <h2 class="phan-cach">|</h2>
-      </div>
+  <div class="function-list">
+    <div class="group-title">
+      <h2>Quản lý đề nghị cập nhật</h2>
     </div>
 
-    <div
-      class="right-group"
-      style="display: flex; align-items: center; margin-right: 0px"
-    >
-      <div>
-        <button
-          class="btn-export"
-          type="button"
-          (click)="export()"
-          mat-raised-button
-        >
-          <mat-icon>file_download</mat-icon>Xuất Excel
+    <div class="group-buttons-main">
+      <div class="group-buttons primary"></div>
+      <div class="group-buttons secondary">
+        <button class="btn-export" mat-button (click)="export()">
+          <mat-icon>file_download</mat-icon>
+          <span class="btn-text">Xuất Excel</span>
         </button>
       </div>
     </div>
@@ -116,21 +99,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('requestCode', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('requestCode', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('requestCode', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -194,21 +165,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('createdTime', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('createdTime', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('createdTime', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -278,21 +237,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('requestedBy', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('requestedBy', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('requestedBy', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -355,21 +302,9 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="setFilterMode('approvedBy', 'not_contains')"
-                  >
-                    Không chứa
-                  </button>
-                  <button
-                    mat-menu-item
                     (click)="setFilterMode('approvedBy', 'equals')"
                   >
                     Bằng
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="setFilterMode('approvedBy', 'not_equals')"
-                  >
-                    Không bằng
                   </button>
                 </mat-menu>
                 <div class="search-container">
@@ -433,21 +368,9 @@
                 </button>
                 <button
                   mat-menu-item
-                  (click)="setFilterMode('status', 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
                   (click)="setFilterMode('status', 'equals')"
                 >
                   Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('status', 'not_equals')"
-                >
-                  Không bằng
                 </button>
               </mat-menu>
               <div class="search-container">
@@ -478,7 +401,7 @@
             [ngClass]="{
               'status-pending': element.status === 'PENDING',
               'status-approve': element.status === 'APPROVE',
-              'status-reject': element.status === 'REJECT'
+              'status-reject': element.status === 'REJECT',
             }"
           >
             <span>
@@ -515,7 +438,12 @@
                 <h5>Danh sách cập nhật chi tiết</h5>
                 <div>
                   <div style="display: flex; align-items: center; gap: 3px">
-                    <div>
+                    <div
+                      *jhiHasAnyAuthority="
+                        'ROLE_PANACIM_APPROVE';
+                        rOLE_PANACIM_ADMIN
+                      "
+                    >
                       <button
                         class="btn-export"
                         (click)="refuseRequest(element.id!)"
@@ -531,8 +459,6 @@
                       >
                         Từ chối
                       </button>
-                    </div>
-                    <div>
                       <button
                         class="btn-export"
                         (click)="acceptRequest(element.id!)"
@@ -570,7 +496,7 @@
               <table
                 mat-table
                 [dataSource]="dataSoure_update_detail"
-                class="mat-elevation-z8 bordered-table"
+                class="mat-elevation-z8 bordered-table detail-table"
               >
                 <ng-container matColumnDef="select">
                   <th

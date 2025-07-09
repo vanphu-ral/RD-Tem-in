@@ -298,6 +298,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
                 requestedBy: parent.requestedBy,
                 approvedBy: parent.approvedBy,
                 updatedTime: this.tsPipe.transform(parent.updatedTime),
+                status: STATUS_LABELS[parent.status] || parent.status,
 
                 // cột CON
                 materialIdentifier: d.productCode,
@@ -306,6 +307,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
                 quantity: d.quantity,
                 quantityChange: d.quantityChange,
                 expirationDate: this.tsPipe.transform(d.expiredTime),
+                type: d.type,
               });
             });
           } else {
@@ -314,6 +316,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
               requestedBy: parent.requestedBy,
               approvedBy: parent.approvedBy,
               updatedTime: this.tsPipe.transform(parent.updatedTime),
+              status: STATUS_LABELS[parent.status] || parent.status,
 
               materialIdentifier: "",
               productName: "",
@@ -321,6 +324,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
               quantity: "",
               quantityChange: "",
               expirationDate: "",
+              type: "",
             });
           }
         });
@@ -668,15 +672,9 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
               (searchMode === "contains" &&
                 !cellValue.toLowerCase().includes(searchTerm) &&
                 !codeValue.includes(searchTerm)) ||
-              (searchMode === "not_contains" &&
-                (cellValue.toLowerCase().includes(searchTerm) ||
-                  codeValue.includes(searchTerm))) ||
               (searchMode === "equals" &&
                 cellValue.toLowerCase() !== searchTerm &&
-                codeValue !== searchTerm) ||
-              (searchMode === "not_equals" &&
-                (cellValue.toLowerCase() === searchTerm ||
-                  codeValue === searchTerm))
+                codeValue !== searchTerm)
             ) {
               return false;
             }
@@ -724,19 +722,11 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
             if (!cellValue.includes(searchTerm)) {
               return false;
             }
-          } else if (searchMode === "not_contains") {
-            if (cellValue.includes(searchTerm)) {
-              return false;
-            }
           } else if (searchMode === "equals") {
             if (cellValue !== searchTerm) {
               return false;
             }
-          } else if (searchMode === "not_equals") {
-            if (cellValue === searchTerm) {
-              return false;
-            }
-          } // No need for an additional else, as all cases are handled above
+          }
         }
       }
       return true;

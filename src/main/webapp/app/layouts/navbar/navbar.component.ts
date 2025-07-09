@@ -189,6 +189,7 @@ export class NavbarComponent implements OnInit {
   logout(): void {
     this.collapseNavbar();
     this.loginService.logout();
+    sessionStorage.removeItem("selectedMaterialIds");
     this.router.navigate([""]);
   }
   closeAccountDropdown(): void {

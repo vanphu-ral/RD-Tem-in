@@ -213,6 +213,7 @@ export class ListMaterialService {
   public apiSumaryByLocation = this.applicationConfigService.getEndpointFor(
     "/api/inventory/group-by-location-name",
   );
+  public selectedItems$!: Observable<RawGraphQLMaterial[]>;
 
   private _approvalHistoryDetailData = new BehaviorSubject<
     approvalHistoryDetailData[]
@@ -227,7 +228,9 @@ export class ListMaterialService {
   private _totalCount = new BehaviorSubject<number>(0);
   private _materialsData = new BehaviorSubject<RawGraphQLMaterial[]>([]);
   private _selectedIds = new BehaviorSubject<string[]>([]);
+  private _materialsCache = new Map<string, RawGraphQLMaterial>();
   private _locationsData = new BehaviorSubject<RawGraphQLLocation[]>([]);
+  private _selectedItems = new BehaviorSubject<RawGraphQLMaterial[]>([]);
 
   // private restBaseUrl = environment.restApiBaseUrl;
 
@@ -300,6 +303,7 @@ export class ListMaterialService {
     this.materialsData$ = this._materialsData.asObservable();
     this.selectedIds$ = this._selectedIds.asObservable();
     this.locationsData$ = this._locationsData.asObservable();
+    this.selectedItems$ = this._selectedItems.asObservable();
   }
 
   public exportExcel(jsonData: any[], fileName: string): void {
@@ -362,6 +366,7 @@ export class ListMaterialService {
 
     return this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).pipe(
       tap((response) => {
+        this.cachePage(response.inventories);
         console.log("API Response invent:", response);
         if (response?.inventories) {
           this._totalCount.next(response.totalItems);
@@ -407,30 +412,73 @@ export class ListMaterialService {
     });
   }
 
-  public toggleItemSelection(materialId: string): void {
-    const currentIds = this._selectedIds.value;
-    const newIds = currentIds.includes(materialId)
-      ? currentIds.filter((id) => id !== materialId)
-      : [...currentIds, materialId];
+  public clearSelection(): void {
+    this._selectedIds.next([]);
+    sessionStorage.removeItem("selectedMaterialIds");
+    const cleared = this._materialsData.value.map((item) => ({
+      ...item,
+      checked: false,
+      select_update: false,
+    }));
+    this._materialsData.next(cleared);
+    console.log("[Service] clearSelection → newIds:", this._selectedIds.value);
+    this.refreshSelectedItems();
+  }
 
+  public toggleItemSelection(materialId: string): void {
+    const ids = this._selectedIds.value;
+    const newIds = ids.includes(materialId)
+      ? ids.filter((x) => x !== materialId)
+      : [...ids, materialId];
     this._selectedIds.next(newIds);
     sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
-
-    const updated = this.applySelectionFlags(this._materialsData.value, newIds);
-    this._materialsData.next(updated);
+    console.log(
+      "[Service] toggleItemSelection → newIds:",
+      this._selectedIds.value,
+    );
+    this.refreshSelectedItems();
+  }
+  selectItems(ids: string[]): void {
+    const set = new Set([...this._selectedIds.value, ...ids]);
+    const newIds = Array.from(set);
+    this._selectedIds.next(newIds);
+    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
+    console.log("[Service] selectItems → newIds:", this._selectedIds.value);
+    this.refreshSelectedItems();
+  }
+  deselectItems(ids: string[]): void {
+    const newIds = this._selectedIds.value.filter((x) => !ids.includes(x));
+    this._selectedIds.next(newIds);
+    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
+    console.log("[Service] deselectItems → newIds:", this._selectedIds.value);
+    this.refreshSelectedItems();
+  }
+  mergeChecked(page: RawGraphQLMaterial[]): RawGraphQLMaterial[] {
+    const ids = this._selectedIds.value;
+    return page.map((item) => ({
+      ...item,
+      checked: ids.includes(item.inventoryId),
+    }));
+  }
+  updatePageData(pageItems: RawGraphQLMaterial[]): void {
+    console.log("[Service] caching page items:", pageItems.length);
+    pageItems.forEach((item) =>
+      this._materialsCache.set(item.inventoryId, item),
+    );
+  }
+  getPageWithSelection(pageItems: RawGraphQLMaterial[]): RawGraphQLMaterial[] {
+    const ids = this._selectedIds.value;
+    return pageItems.map((item) => ({
+      ...item,
+      checked: ids.includes(item.inventoryId),
+    }));
   }
 
   public removeItemFromUpdate(materialId: string): void {
-    const currentIds = this._selectedIds.value;
-    const newIds = currentIds.filter((id) => id !== materialId);
+    const newIds = this._selectedIds.value.filter((id) => id !== materialId);
     this._selectedIds.next(newIds);
     sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
-    const updatedData = this._materialsData.value.map((item) =>
-      item.inventoryId === materialId
-        ? { ...item, checked: false, select_update: false }
-        : item,
-    );
-    this._materialsData.next(updatedData);
+    this.refreshSelectedItems();
   }
 
   getRequestHistoryDetailsById(
@@ -595,7 +643,7 @@ export class ListMaterialService {
   }
 
   public getSelectedIds(): Observable<string[]> {
-    return this.selectedIds$;
+    return this._selectedIds.asObservable();
   }
 
   public addItem(item: RawGraphQLMaterial): void {
@@ -815,7 +863,18 @@ export class ListMaterialService {
     return this.http.post(this.apiRequestHistory, body);
   }
 
-  // ////////////////////////////////////////// private
+  // #region Private methods
+  private refreshSelectedItems(): void {
+    const items = this._selectedIds.value
+      .map((id) => this._materialsCache.get(id))
+      .filter((i): i is RawGraphQLMaterial => !!i);
+    console.log("[Service] refreshSelectedItems →", items);
+    this._selectedItems.next(items);
+  }
+  private cachePage(items: RawGraphQLMaterial[]): void {
+    items.forEach((i) => this._materialsCache.set(i.inventoryId, i));
+    console.log("[Service] cachePage → cache size:", this._materialsCache.size);
+  }
   private applySelectionFlags(
     raws: RawGraphQLMaterial[],
     selectedIds: string[],
