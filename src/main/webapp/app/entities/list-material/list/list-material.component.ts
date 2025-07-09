@@ -225,6 +225,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   // #region Private properties
   private sidebarSubscription!: Subscription;
   private ngUnsubscribe = new Subject<void>();
+  private filterChange$ = new Subject<void>();
+  private dateFilters: Record<string, string> = {};
+  private readonly FULL_DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
 
   // #endregion
 
@@ -259,6 +262,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.materialService.selectedIds$
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((ids) => this.checkedCount.set(ids.length));
+
+    //debounceTime
+    this.filterChange$
+      .pipe(debounceTime(300), takeUntil(this.ngUnsubscribe))
+      .subscribe(() => {
+        this.updateRouteWithFilters();
+      });
 
     this.route.queryParams.pipe(first()).subscribe((params) => {
       const allowed = this.displayedColumns.filter((c) => c !== "select");
@@ -386,6 +396,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.ngUnsubscribe.next();
     this.ngUnsubscribe.complete();
+    this.filterChange$.complete();
   }
 
   onFilterChange(col: string): void {
@@ -455,33 +466,29 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.onFilterChange(col);
   }
 
-  applyDatePickerFilter(col: string, date: Date | null): void {
-    if (date) {
-      const start =
-        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0) /
-        1000;
-      const end =
-        Date.UTC(
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate(),
-          23,
-          59,
-          59,
-        ) / 1000;
-      this.searchTerms[col] = {
-        mode: "between",
-        value: [start.toString(), end.toString()],
-      };
-      this.filterModes[col] = "between";
-      this.dateInputs[col] = formatDate(date, "dd/MM/yyyy", this.locale);
-    } else {
-      delete this.searchTerms[col];
-      delete this.filterModes[col];
-      delete this.dateInputs[col];
+  public applyDatePickerByPicker(col: string, date: Date): void {
+    this.setDateFilter(col, date);
+  }
+  public applyDatePickerByTyping(col: string, raw: string): void {
+    console.log("Typing raw date:", col, raw);
+
+    if (raw === "") {
+      this.setDateFilter(col, null);
+      return;
     }
-    console.log("[DBG] searchTerms after date pick:", this.searchTerms);
-    this.updateRouteWithFilters();
+    raw = raw.trim();
+    if (this.FULL_DATE_REGEX.test(raw)) {
+      const [dd, mm, yyyy] = raw.split("/").map((n) => +n);
+      if (
+        mm >= 1 &&
+        mm <= 12 &&
+        dd >= 1 &&
+        dd <= new Date(yyyy, mm, 0).getDate()
+      ) {
+        this.setDateFilter(col, new Date(yyyy, mm - 1, dd));
+        return;
+      }
+    }
   }
 
   onDateInputChange(col: string, str: string): void {
@@ -522,18 +529,14 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       delete this.filterModes[col];
     }
 
-    const params: any = { page: "1", pageSize: this.pageSize.toString() };
-    Object.entries(this.searchTerms).forEach(([field, term]) => {
-      params[field] = term.value;
-      // nếu ẩy mode lên URL:
-      // params[field+'Mode'] = term.mode;
-    });
+    // const params: any = { page: "1", pageSize: this.pageSize.toString() };
+    // Object.entries(this.searchTerms).forEach(([field, term]) => {
+    //   params[field] = term.value;
+    //   // nếu ẩy mode lên URL:
+    //   // params[field+'Mode'] = term.mode;
+    // });
 
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: params,
-      replaceUrl: true,
-    });
+    this.filterChange$.next();
   }
 
   handlePageEvent(e: PageEvent): void {
@@ -717,34 +720,16 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public applyFilter(colDef: string, event: Event): void {
     const raw = (event.target as HTMLInputElement).value.trim().toLowerCase();
-    const selectedMode = this.filterModes[colDef] || "contains";
+    const mode = this.filterModes[colDef] || "contains";
 
     if (raw) {
-      this.searchTerms[colDef] = {
-        mode: selectedMode,
-        value: raw,
-      };
+      this.searchTerms[colDef] = { mode, value: raw };
     } else {
       delete this.searchTerms[colDef];
       delete this.filterModes[colDef];
     }
 
-    const params: any = {
-      page: "1",
-      pageSize: this.pageSize.toString(),
-    };
-    Object.entries(this.searchTerms).forEach(([field, term]) => {
-      if (term.value) {
-        params[field] = term.value;
-        params[field + "Mode"] = term.mode;
-      }
-    });
-
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: params,
-      replaceUrl: true,
-    });
+    this.filterChange$.next();
   }
 
   isDateField(colDef: string): boolean {
@@ -863,19 +848,35 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   //   // #region Private methods
-  private fetchPage(params: any): void {
-    const page = params.page ? +params.page : 1;
-    const pageSize = params.pageSize ? +params.pageSize : this.pageSize;
+  private setDateFilter(col: string, date: Date | null): void {
+    if (date) {
+      // UTC-midnight → epoch seconds
+      const d0 = new Date(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0),
+      );
+      const ts = Math.floor(d0.getTime() / 1000).toString();
 
+      this.searchTerms[col] = ts;
+      this.dateInputs[col] = formatDate(d0, "dd/MM/yyyy", this.locale);
+    } else {
+      delete this.searchTerms[col];
+      delete this.dateInputs[col];
+    }
+
+    this.filterChange$.next();
+  }
+  private fetchPage(params: any): void {
+    const page = +params.page || 1;
+    const pageSize = +params.pageSize || this.pageSize;
     const { page: _, pageSize: __, ...filters } = params;
 
+    console.log("API filters:", filters);
     this.isLoading = true;
     this.materialService
       .fetchMaterialsData(page, pageSize, filters)
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe((resp) => {
         this.length = resp.totalItems;
-
         this.dataSource.data = this.materialService.mergeChecked(
           resp.inventories,
         );
@@ -883,24 +884,16 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private updateRouteWithFilters(): void {
-    const params: any = {
-      page: 1,
-      pageSize: this.pageSize,
-    };
+    const params: any = { page: 1, pageSize: this.pageSize };
 
     Object.entries(this.searchTerms).forEach(([col, term]) => {
-      if (term.value) {
-        if (term.mode === "between" && Array.isArray(term.value)) {
-          params[col + "From"] = term.value[0];
-          params[col + "To"] = term.value[1];
-          params[col + "Mode"] = "between";
-        } else {
-          params[col] = term.value;
-          params[col + "Mode"] = term.mode;
-        }
+      if (this.isDateField(col)) {
+        params[col] = term;
+      } else {
+        params[col] = term.value;
+        params[col + "Mode"] = term.mode;
       }
     });
-    console.log("[DBG] updateRouteWithFilters → params:", params);
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -908,6 +901,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       replaceUrl: true,
     });
   }
+
   private getCurrentPageRows(): RawGraphQLMaterial[] {
     const filtered = this.dataSource.filteredData || [];
     if (!this.paginator) {

@@ -245,9 +245,18 @@
                       #filterInput
                       [matDatepicker]="picker"
                       [ngModel]="dateInputs[colDef] || ''"
-                      (dateChange)="applyDatePickerFilter(colDef, $event.value)"
+                      (dateChange)="
+                        applyDatePickerByPicker(colDef, $event.value)
+                      "
+                      (input)="
+                        applyDatePickerByTyping(
+                          colDef,
+                          $any($event.target).value
+                        )
+                      "
                       placeholder="dd/MM/yyyy"
                     />
+
                     <mat-datepicker-toggle
                       matSuffix
                       [for]="picker"
