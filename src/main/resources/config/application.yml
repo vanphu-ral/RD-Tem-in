@@ -24,6 +24,12 @@ springdoc:
   api-docs:
     enabled: false
 ---
+keycloak:
+  server-url: http://192.168.68.90:8080/auth
+  realm: QLSX
+  client-id: tem_in_test
+  username: admin
+  password: 123321
 management:
   endpoints:
     web:
@@ -160,12 +166,12 @@ spring:
       client:
         provider:
           oidc:
-            #            issuer-uri: http://192.168.68.90:8080/auth/realms/QLSX
-            issuer-uri: http://localhost:8180/auth/realms/jhipster
+            issuer-uri: http://192.168.68.90:8080/auth/realms/QLSX
+        #            issuer-uri: http://localhost:8180/auth/realms/jhipster
         registration:
           oidc:
-            client-id: web_app
-            client-secret: web_app
+            client-id: tem_in_test
+            client-secret: tem_in_test
             scope: openid, profile, email,jhipster,roles # last one for refresh tokens
 
 server:

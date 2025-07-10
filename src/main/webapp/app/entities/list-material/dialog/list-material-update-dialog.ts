@@ -21,17 +21,18 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA,
 } from "@angular/material/dialog";
-import { Subscription, Observable } from "rxjs";
+import { Subscription, Observable, Subject } from "rxjs";
 import { SelectionModel } from "@angular/cdk/collections";
 import {
   RawGraphQLMaterial,
   ListMaterialService,
   RawGraphQLLocation,
+  UserSummary,
 } from "../services/list-material.service";
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { MaterialUpdateService } from "../services/material-update.service";
-import { startWith, map } from "rxjs/operators";
+import { startWith, map, takeUntil } from "rxjs/operators";
 import {
   DialogContentExampleDialogComponent,
   ConfirmDialogData,
@@ -92,21 +93,24 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   myControl = new FormControl("");
   headerQuantityChange: number | null = null;
   filteredOptions!: string[];
+  approvers: UserSummary[] = [];
+  selectedApprover?: UserSummary;
+
   // approvers: WritableSignal<UserDto[]> = signal<UserDto[]>([]);
   // selectedApprover: WritableSignal<UserDto | null> = signal<UserDto | null>(null);
 
-  selectApprover: WritableSignal<SelectApproverpprover> =
-    signal<SelectApproverpprover>({
-      name: "Select all",
-      completed: false,
-      sub: [
-        { name: "admin1", completed: false },
-        { name: "admin2", completed: false },
-        { name: "admin3", completed: false },
-        { name: "admin4", completed: false },
-        { name: "admin5", completed: false },
-      ],
-    });
+  // selectApprover: WritableSignal<SelectApproverpprover> =
+  //   signal<SelectApproverpprover>({
+  //     name: "Select all",
+  //     completed: false,
+  //     sub: [
+  //       { name: "admin1", completed: false },
+  //       { name: "admin2", completed: false },
+  //       { name: "admin3", completed: false },
+  //       { name: "admin4", completed: false },
+  //       { name: "admin5", completed: false },
+  //     ],
+  //   });
   warehouseSelection: Array<{ value: string; name: string }> = [];
   filteredWarehouses!: Observable<Array<{ value: string; name: string }>>;
   displayableItemKeys: string[][] = [];
@@ -151,6 +155,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   public activeFilters: { [columnDef: string]: any[] } = {};
   public filterModes: { [columnDef: string]: string } = {};
   private isSelectHeader: boolean = false;
+  private ngUnsubscribe = new Subject<void>();
+
   // #endregion
 
   // #region Constructor
@@ -227,6 +233,14 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         .get("selectedWarehouseControl")
         ?.updateValueAndValidity({ emitEvent: true });
     });
+    this.materialService
+      .getApprovers()
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((list) => {
+        this.approvers = list;
+        this.cdr.markForCheck();
+      });
+
     this.itemsDataSource.data.forEach((item) => {
       item.quantityChange = item.quantity;
     });
@@ -621,12 +635,12 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     element._isChanged = true;
   }
 
-  onSelectSubApprover(idx: number): void {
-    this.selectedSubApproverIndex = idx;
-    const current = this.selectApprover();
-    current.sub.forEach((sub, i) => (sub.completed = i === idx));
-    this.selectApprover.set({ ...current });
-  }
+  // onSelectSubApprover(idx: number): void {
+  //   this.selectedSubApproverIndex = idx;
+  //   const current = this.selectApprover();
+  //   current.sub.forEach((sub, i) => (sub.completed = i === idx));
+  //   this.selectApprover.set({ ...current });
+  // }
   // get selectedSubApproverIndex(): number {
   //   return this.selectApprover().sub.findIndex(sub => sub.completed);
   // }
@@ -659,11 +673,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     const selectedWarehouseValue = this.dialogForm.get(
       "selectedWarehouseControl",
     )?.value;
-    const selectedApprovers = this.selectApprover()
-      .sub.filter((s) => s.completed)
-      .map((s) => s.name);
-
-    if (!selectedApprovers.length) {
+    const approver = this.dialogForm.get("selectedApproverControl")!.value;
+    if (!approver) {
       this.snackBar.open("Yêu cầu chọn người duyệt!", "Đóng", {
         duration: 3000,
         panelClass: ["snackbar-error"],
@@ -727,13 +738,13 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
           this.dialogRef.close({
             updatedItems: this.itemsDataSource.data,
             selectedWarehouse: selectedWarehouseValue,
-            approvers: selectedApprovers,
+            approvers: approver,
           });
         } else {
           this.dialogRef.close({
             updatedItems: this.itemsDataSource.data,
             selectedWarehouse: null,
-            approvers: selectedApprovers,
+            approvers: approver,
           });
         }
       }
@@ -746,28 +757,28 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
 
   onCellBlur(element: MaterialItem, columnName: keyof MaterialItem): void {}
 
-  partiallyComplete(): boolean {
-    const subtasks = this.selectApprover().sub;
-    if (!subtasks) {
-      return false;
-    }
-    const allCompleted = subtasks.every((sub) => sub.completed);
-    const anyCompleted = subtasks.some((sub) => sub.completed);
-    return anyCompleted && !allCompleted;
-  }
+  // partiallyComplete(): boolean {
+  //   const subtasks = this.selectApprover().sub;
+  //   if (!subtasks) {
+  //     return false;
+  //   }
+  //   const allCompleted = subtasks.every((sub) => sub.completed);
+  //   const anyCompleted = subtasks.some((sub) => sub.completed);
+  //   return anyCompleted && !allCompleted;
+  // }
 
-  update(completed: boolean, index?: number): void {
-    const currentGroup = this.selectApprover();
+  // update(completed: boolean, index?: number): void {
+  //   const currentGroup = this.selectApprover();
 
-    if (index === undefined) {
-      currentGroup.completed = completed;
-      currentGroup.sub!.forEach((sub) => (sub.completed = completed));
-    } else {
-      currentGroup.sub![index].completed = completed;
-    }
+  //   if (index === undefined) {
+  //     currentGroup.completed = completed;
+  //     currentGroup.sub!.forEach((sub) => (sub.completed = completed));
+  //   } else {
+  //     currentGroup.sub![index].completed = completed;
+  //   }
 
-    this.selectApprover.set({ ...currentGroup });
-  }
+  //   this.selectApprover.set({ ...currentGroup });
+  // }
 
   toggleAllExtendExpiration(checked: boolean): void {
     if (this.itemsDataSource && this.itemsDataSource.data) {

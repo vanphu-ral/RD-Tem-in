@@ -781,7 +781,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
     this.isLoading = false;
     this.materialService
-      .fetchDataSumary(apiUrl, body) //
+      .fetchDataSumary(apiUrl, body)
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => {

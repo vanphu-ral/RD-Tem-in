@@ -1,6 +1,7 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.domain.*;
+import com.mycompany.myapp.service.KeycloakUserService;
 import com.mycompany.myapp.service.UserServices;
 import com.mycompany.myapp.service.dto.*;
 import java.util.List;
@@ -18,10 +19,25 @@ import org.springframework.web.bind.annotation.*;
 //@Transactional
 public class UserController {
 
+    private final KeycloakUserService userService;
+    private static final List<String> APPROVER_ROLES = List.of(
+        "ROLE_PANACIM_APPROVE",
+        "ROLE_PANACIM_ADMIN"
+    );
+
     @Autowired
     private UserServices userServices;
 
     protected Logger logger;
+
+    public UserController(KeycloakUserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/approvers")
+    public List<UserSummary> listApprovers() {
+        return userService.getUsersByRoles(APPROVER_ROLES);
+    }
 
     //☺ Template login - Chức năng xác thực tài khoản
     //    @PostMapping("/login")

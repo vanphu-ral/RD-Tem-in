@@ -32,6 +32,14 @@
         </mat-radio-group>
       </div>
     </mat-menu> -->
+    <mat-form-field appearance="fill">
+      <mat-label>Chọn Approver</mat-label>
+      <mat-select [(value)]="selectedApprover">
+        <mat-option *ngFor="let u of approvers" [value]="u">
+          {{ u.username }} ({{ u.email }})
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
   </div>
 
   <!-- <div style="display: flex; align-items: center; margin-top: 10px;">

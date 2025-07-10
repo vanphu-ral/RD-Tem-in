@@ -1,5 +1,14 @@
 import { Injectable } from "@angular/core";
-import { BehaviorSubject, Observable, catchError, map, of, tap } from "rxjs";
+import {
+  BehaviorSubject,
+  Observable,
+  Subject,
+  catchError,
+  map,
+  of,
+  takeUntil,
+  tap,
+} from "rxjs";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { environment } from "app/environments/environment";
 import * as XLSX from "xlsx";
@@ -12,6 +21,11 @@ import { ApplicationConfigService } from "app/core/config/application-config.ser
 export interface RawGraphQLLocation {
   locationId: string;
   locationName: string;
+}
+export interface UserSummary {
+  id: string;
+  username: string;
+  email: string;
 }
 
 export interface RawGraphQLMaterial {
@@ -257,6 +271,7 @@ export class ListMaterialService {
   private _materialsCache = new Map<string, RawGraphQLMaterial>();
   private _locationsData = new BehaviorSubject<RawGraphQLLocation[]>([]);
   private _selectedItems = new BehaviorSubject<RawGraphQLMaterial[]>([]);
+  private destroy$ = new Subject<void>();
 
   // private restBaseUrl = environment.restApiBaseUrl;
 
@@ -308,6 +323,7 @@ export class ListMaterialService {
     private accountService: AccountService,
     private applicationConfigService: ApplicationConfigService,
   ) {
+    this.selectedItems$ = this._selectedItems.asObservable();
     const saved = sessionStorage.getItem("selectedMaterialIds");
     if (saved) {
       try {
@@ -316,14 +332,12 @@ export class ListMaterialService {
         /* empty */
       }
     }
-
+    this.refreshSelectedItems();
     this.fetchLocations();
     this.loadSelectedIds();
-    this.fetchMaterialsData(
-      1,
-      this.defaultPageSize,
-      // false,
-    );
+    this.fetchMaterialsData(1, this.defaultPageSize)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe();
 
     this.fetchAllInventoryUpdateRequests();
     this.approvalHistoryDetailData$ =
@@ -418,6 +432,7 @@ export class ListMaterialService {
         console.log("API Response invent:", response);
         if (response?.inventories) {
           this._totalCount.next(response.totalItems);
+          this.refreshSelectedItems();
           const mappedData = response.inventories
             .filter((item) => !this._updatedInventoryIds.has(item.inventoryId))
             .map((rawItem) =>
@@ -930,6 +945,15 @@ export class ListMaterialService {
           // true,
         );
         this.fetchAllInventoryUpdateRequests();
+      }),
+    );
+  }
+  public getApprovers(): Observable<UserSummary[]> {
+    return this.http.get<UserSummary[]>("/api/approvers").pipe(
+      tap((users) => console.log("Approvers fetched:", users)),
+      catchError((err) => {
+        console.error("Fetch approvers error:", err);
+        return of([] as UserSummary[]);
       }),
     );
   }
