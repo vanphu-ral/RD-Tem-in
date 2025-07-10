@@ -704,7 +704,13 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.isLoading = true;
     this.materialService
       .fetchDataSumary(apiUrl, body) //
-      .pipe(takeUntil(this.ngUnsubscribe))
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
       .subscribe((response) => {
         console.log("response  API:", response);
         console.log("response.totalItems:", response.totalItems);
