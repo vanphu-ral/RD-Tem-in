@@ -197,6 +197,10 @@ export interface APISumaryResponse {
   totalItems: number;
   inventories: any[];
 }
+export interface APIDetailResponse {
+  inventories: RawGraphQLMaterial[];
+  totalItems: number;
+}
 
 @Injectable({
   providedIn: "root",
@@ -270,6 +274,10 @@ export class ListMaterialService {
 
   private apiUrl_post_update =
     this.applicationConfigService.getEndpointFor("api/request");
+
+  private apiSumaryDetail = this.applicationConfigService.getEndpointFor(
+    "/api/inventory/detail",
+  );
 
   private apiRequestDetail = this.applicationConfigService.getEndpointFor(
     "/api/request/detail",
@@ -510,6 +518,37 @@ export class ListMaterialService {
       ...item,
       checked: ids.includes(item.inventoryId),
     }));
+  }
+
+  public getDetailSumary(
+    pageIndex: number,
+    limit: number,
+    filters?: {
+      partNumber?: string;
+      locationName?: string;
+      userData4?: string;
+      lotNumber?: string;
+    },
+  ): Observable<APIDetailResponse> {
+    console.log("Đang gọi API lấy chi tiết summary...");
+    const url = this.apiSumaryDetail;
+    const safeFilters = filters ?? {};
+    const body = {
+      partNumber: filters?.partNumber ?? "",
+      locationName: filters?.locationName ?? "",
+      userData4: filters?.userData4 ?? "",
+      lotNumber: filters?.lotNumber ?? "",
+      pageNumber: pageIndex + 1,
+      itemPerPage: limit,
+    };
+
+    return this.http.post<APIDetailResponse>(url, body).pipe(
+      tap((response) => console.log("API chi tiết trả về:", response)),
+      catchError((err): Observable<APIDetailResponse> => {
+        console.error("Lỗi khi lấy chi tiết summary:", err);
+        return of({ inventories: [], totalItems: 0 });
+      }),
+    );
   }
 
   public removeItemFromUpdate(materialId: string): void {
@@ -760,15 +799,14 @@ export class ListMaterialService {
           console.log(
             "MaterialService: Inventory update request successful. Refreshing materials data.",
           );
-          // After a successful update, force a refresh of the main materials list
+
           this.fetchMaterialsData(
             1,
             this.defaultPageSize,
             // true,
           );
-          this.fetchAllInventoryUpdateRequests(); // Also refresh the list of update requests
+          this.fetchAllInventoryUpdateRequests();
         }),
-        // Consider adding catchError here if specific error handling for this POST is needed
       );
   }
 

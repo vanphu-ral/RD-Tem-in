@@ -71,13 +71,25 @@ export interface FilterDialogData {
   selectedValues: any[];
 }
 
-export interface AggregatedPartData {
-  [key: string]: any;
-  totalQuantity: number;
-  totalAvailableQuantity: number;
-  count: number;
-  details: RawGraphQLMaterial[];
+// export interface AggregatedDetailData {
+//   [key: string]: any;
+//   totalQuantity: number;
+//   totalAvailableQuantity: number;
+//   count: number;
+//   details: RawGraphQLMaterial[];
+//   detailDataSource?: MatTableDataSource<RawGraphQLMaterial>;
+// }
+export interface AggregatedDetailData {
+  partNumber: string;
+  locationName: string;
+  userData4: string;
+  lotNumber: string;
+
   detailDataSource?: MatTableDataSource<RawGraphQLMaterial>;
+  detailTotalItems?: number;
+  detailPageIndex?: number;
+  detailPageSize?: number;
+  isLoadingDetails?: boolean;
 }
 
 @Component({
@@ -121,7 +133,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   checkedCount = signal(0);
   displayedColumns: string[] = [];
 
-  // dataSource = new MatTableDataSource<AggregatedPartData>();
+  // dataSource = new MatTableDataSource<AggregatedDetailData>();
   dataSource: MatTableDataSource<DataSumary>;
   length = 0;
   pageSize = 50;
@@ -132,9 +144,9 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   showFirstLastButtons = true;
   disabled = false;
   pageEvent: PageEvent | undefined;
-  groupedData: AggregatedPartData[] = [];
+  groupedData: AggregatedDetailData[] = [];
   groupingField: string = "groupingKey";
-  expandedElement: AggregatedPartData | null = null;
+  expandedElement: AggregatedDetailData | null = null;
   form!: FormGroup;
   sumary_modes: sumary_mode[] = [
     { value: "partNumber", name: "Part Number", link: "/list-material/sumary" },
@@ -169,7 +181,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     { value: "consumed", view: "Consumed" },
     { value: "expired", view: "Expired" },
   ];
-  aggregatedParts: AggregatedPartData[] = [];
+  aggregatedParts: AggregatedDetailData[] = [];
   isLoading = false;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -310,10 +322,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.router.navigate(["/list-material"]);
   }
 
-  toggleRow(element: AggregatedPartData): void {
-    this.expandedElement = this.expandedElement === element ? null : element;
-  }
-
   handlePageEvent(e: PageEvent): void {
     this.pageEvent = e;
     this.pageSize = e.pageSize;
@@ -344,7 +352,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.materialService.toggleItemSelection(inventoryId);
   }
 
-  exportDetailExcel(row: AggregatedPartData): void {
+  exportDetailExcel(row: AggregatedDetailData): void {
     if (!row.detailDataSource) {
       console.warn("Không có dữ liệu bảng con để export.");
       return;
@@ -368,9 +376,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     const formattedDetails: ExportDetailRow[] = currentPageData.map(
       (detail: RawGraphQLMaterial) => {
         const result: ExportDetailRow = {};
-        this.groupingFields.forEach((f) => {
-          result[f] = row[f];
-        });
+        this.groupingFields.forEach((f) => {});
         detailColumns.forEach((col) => {
           if (col === "receivedDate" || col === "expirationDate") {
             // Format ngày tháng
@@ -385,9 +391,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       },
     );
 
-    const groupName = this.groupingFields
-      .map((f) => `${f}_${row[f]}`)
-      .join("_");
+    const groupName = this.groupingFields.join("_");
     const fileName = `báo_cáo_tổng_hợp_chi_tiet_theo_${groupName}`;
     this.materialService.exportExcel(formattedDetails, fileName);
   }
@@ -431,7 +435,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   }
 
   public applyDateFilter(
-    row: AggregatedPartData,
+    row: AggregatedDetailData,
     colDetail: string,
     event: MatDatepickerInputEvent<Date>,
   ): void {
@@ -517,8 +521,78 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   //   });
   // }
 
+  toggleRow(element: AggregatedDetailData): void {
+    // Nếu click vào dòng đang mở thì đóng lại
+    if (this.expandedElement === element) {
+      this.expandedElement = null;
+      return;
+    }
+
+    // Mở dòng mới
+    this.expandedElement = element;
+
+    // Nếu dữ liệu đã được tải trước đó thì không làm gì cả
+    if (element.detailDataSource) {
+      return;
+    }
+
+    element.isLoadingDetails = true;
+    const initialPageIndex = 0;
+    const initialPageSize = 10; // Hoặc bất kỳ giá trị mặc định nào bạn muốn
+
+    const filters = {
+      partNumber: element.partNumber,
+      locationName: element.locationName,
+      userData4: element.userData4,
+      lotNumber: element.lotNumber,
+    };
+
+    this.materialService
+      .getDetailSumary(initialPageIndex, initialPageSize, filters)
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((response) => {
+        // Cập nhật trạng thái cho dòng này
+        element.detailTotalItems = response.totalItems;
+        element.detailPageIndex = initialPageIndex;
+        element.detailPageSize = initialPageSize;
+
+        // Tạo DataSource mới cho bảng chi tiết
+        element.detailDataSource = new MatTableDataSource(response.inventories);
+
+        element.isLoadingDetails = false;
+        this.cdr.markForCheck(); // Báo cho Angular cập nhật giao diện
+      });
+  }
+
+  handleDetailPaging(event: PageEvent, element: AggregatedDetailData): void {
+    element.isLoadingDetails = true;
+
+    const filters = {
+      partNumber: element.partNumber,
+      locationName: element.locationName,
+      userData4: element.userData4,
+      lotNumber: element.lotNumber,
+    };
+
+    // Gọi lại service với thông tin trang mới từ PageEvent
+    this.materialService
+      .getDetailSumary(event.pageIndex, event.pageSize, filters)
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((response) => {
+        // Cập nhật lại các thuộc tính phân trang
+        element.detailTotalItems = response.totalItems;
+        element.detailPageIndex = event.pageIndex;
+        element.detailPageSize = event.pageSize;
+
+        // Cập nhật dữ liệu cho DataSource đã có
+        element.detailDataSource!.data = response.inventories;
+
+        element.isLoadingDetails = false;
+        this.cdr.markForCheck();
+      });
+  }
   applySelectFilterDetail(
-    row: AggregatedPartData,
+    row: AggregatedDetailData,
     col: string,
     value: string,
   ): void {
@@ -530,7 +604,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     };
   }
   applyDetailFilter(
-    row: AggregatedPartData,
+    row: AggregatedDetailData,
     colDetail: string,
     event: Event,
   ): void {
@@ -543,8 +617,19 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       value: filterValue,
     };
   }
+  public handleFatherPaging(event: PageEvent): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: event.pageIndex + 1,
+        pageSize: event.pageSize,
+      },
+      queryParamsHandling: "merge",
+    });
+  }
+
   public setFilterModeDetail(
-    row: AggregatedPartData,
+    row: AggregatedDetailData,
     colDt: string,
     mode: string,
   ): void {
@@ -629,13 +714,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     return true;
   };
 
-  private ensureDetailDataSource(row: AggregatedPartData): void {
-    if (!row.detailDataSource) {
-      row.detailDataSource = new MatTableDataSource(row.details);
-    }
-    row.detailDataSource.filterPredicate =
-      this.detailFilterPredicate.bind(this);
-  }
   private buildDisplayedColumns(): void {
     const cols = ["expand"];
     cols.push("partNumber");
@@ -701,7 +779,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         return;
     }
 
-    this.isLoading = true;
+    this.isLoading = false;
     this.materialService
       .fetchDataSumary(apiUrl, body) //
       .pipe(takeUntil(this.ngUnsubscribe))

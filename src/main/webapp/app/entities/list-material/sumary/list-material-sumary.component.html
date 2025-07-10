@@ -935,9 +935,11 @@
             </table>
             <mat-paginator
               #detailPaginator
-              [pageSizeOptions]="[15, 20, 25]"
-              [pageSize]="15"
-              [length]="row.detailDataSource?.data.length || 0"
+              [pageSizeOptions]="[20, 25, 50]"
+              [pageSize]="row.detailPageSize"
+              [pageIndex]="row.detailPageIndex"
+              [length]="row.detailTotalItems"
+              (page)="handleDetailPaging($event, row)"
               showFirstLastButtons
             >
             </mat-paginator>
@@ -974,6 +976,7 @@
       [pageSizeOptions]="showPageSizeOptions ? pageSizeOptions : []"
       [hidePageSize]="hidePageSize"
       [pageIndex]="pageIndex"
+      (page)="handleFatherPaging($event)"
       aria-label="Select page"
     >
     </mat-paginator>
