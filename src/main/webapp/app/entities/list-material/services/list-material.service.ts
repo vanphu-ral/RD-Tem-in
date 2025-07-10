@@ -317,7 +317,7 @@ export class ListMaterialService {
       }
     }
 
-    this.fetchLocations();
+    // this.fetchLocations();
     this.loadSelectedIds();
     this.fetchMaterialsData(
       1,
@@ -872,6 +872,21 @@ export class ListMaterialService {
       }),
     );
   }
+
+  //  lấy data location hỗ trợ gửi request
+  public fetchLocations(): void {
+    this.http.get<RawGraphQLLocation[]>(this.apiLocations).subscribe({
+      next: (data) => {
+        this._locationsData.next(data);
+        console.log("Da lay du lieu locations:", data);
+      },
+      error: (err) => {
+        console.error("Loi lay api locations:", err);
+        this._locationsData.next([]);
+      },
+    });
+  }
+
   // Từ chối cập nhật vào db
   public postRejectInventoryUpdate(
     parentRequestId: number | null,
@@ -963,22 +978,6 @@ export class ListMaterialService {
       checked: set.has(m.inventoryId),
       select_update: set.has(m.inventoryId),
     }));
-  }
-
-  private fetchLocations(): void {
-    this.http.get<RawGraphQLLocation[]>(this.apiLocations).subscribe({
-      next: (data) => {
-        this._locationsData.next(data);
-        console.log(
-          "MaterialService (HTTP): Locations data successfully fetched:",
-          data,
-        );
-      },
-      error: (err) => {
-        console.error("Loi lay api locations:", err);
-        this._locationsData.next([]);
-      },
-    });
   }
 
   private loadSelectedIds(): void {
