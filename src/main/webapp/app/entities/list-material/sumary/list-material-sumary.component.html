@@ -433,6 +433,9 @@
                 <mat-icon> file_download</mat-icon>Xuất Excel
               </button>
             </div>
+            <div class="detail-spinner" *ngIf="row.isLoadingDetails">
+              <div class="loader"></div>
+            </div>
             <table
               mat-table
               [dataSource]="row.detailDataSource"
@@ -797,9 +800,7 @@
                                 (filterModesDetail['status'] || 'equals') +
                                 ')'
                               "
-                              [value]="
-                                (searchTerms['status'] || {}).value || ''
-                              "
+                              [value]="searchTermsDetail['status']?.value || ''"
                               (selectionChange)="
                                 applySelectFilterDetail(
                                   row,
@@ -861,7 +862,7 @@
                             )
                           "
                         >
-                          Contains
+                          Có chứa
                         </button>
                         <button
                           mat-menu-item
@@ -869,7 +870,7 @@
                             setFilterModeDetail(row, 'expirationDate', 'equals')
                           "
                         >
-                          Equals
+                          Bằng
                         </button>
                       </mat-menu>
                       <div class="search-container">
@@ -879,24 +880,19 @@
                             appearance="fill"
                             floatLabel="always"
                           >
-                            <mat-label>Search Date</mat-label>
+                            <mat-label>Search</mat-label>
                             <input
+                              (keyup)="
+                                applyDetailFilter(row, 'expirationDate', $event)
+                              "
                               matInput
-                              [matDatepicker]="picker"
                               [placeholder]="
                                 'Search (' +
-                                (filterModes['expirationDate'] || 'contains') +
+                                (filterModesDetail['expirationDate'] ||
+                                  'contains') +
                                 ')'
                               "
-                              (dateChange)="
-                                applyDateFilter(row, 'expirationDate', $event)
-                              "
                             />
-                            <mat-datepicker-toggle
-                              matSuffix
-                              [for]="picker"
-                            ></mat-datepicker-toggle>
-                            <mat-datepicker #picker></mat-datepicker>
                           </mat-form-field>
                         </div>
                       </div>

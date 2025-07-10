@@ -33,12 +33,25 @@
       </div>
     </mat-menu> -->
     <mat-form-field appearance="fill">
-      <mat-label>Chọn Approver</mat-label>
-      <mat-select [(value)]="selectedApprover">
-        <mat-option *ngFor="let u of approvers" [value]="u">
-          {{ u.username }} ({{ u.email }})
+      <mat-label>Chọn người duyệt</mat-label>
+
+      <input
+        type="text"
+        matInput
+        [formControl]="approverCtrl"
+        [matAutocomplete]="auto"
+        placeholder="Nhập mã người duyệt"
+      />
+
+      <mat-autocomplete
+        #auto="matAutocomplete"
+        [displayWith]="displayApprover"
+        (optionSelected)="onApproverSelected($event.option.value)"
+      >
+        <mat-option *ngFor="let u of filteredApprovers | async" [value]="u">
+          {{ u.username }}
         </mat-option>
-      </mat-select>
+      </mat-autocomplete>
     </mat-form-field>
   </div>
 

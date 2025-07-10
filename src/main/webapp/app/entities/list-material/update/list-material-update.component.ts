@@ -585,9 +585,12 @@ export class ListMaterialUpdateComponent
                 duration: 3000,
               });
               const updatedIds = result.updatedItems.map(
-                (item: { inventoryId: string }) => item.inventoryId,
+                (item) => item.inventoryId,
               );
-              this.materialService.uncheckItemsAfterUpdate(updatedIds);
+              this.dataSource.data = this.dataSource.data.filter(
+                (row) => !updatedIds.includes(row.inventoryId),
+              );
+              this.materialService.removeItemsAfterUpdate(updatedIds);
               this.selection.clear();
               this.cdr.detectChanges();
             },

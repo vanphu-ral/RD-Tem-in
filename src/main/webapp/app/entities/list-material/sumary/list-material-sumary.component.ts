@@ -546,17 +546,23 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       userData4: element.userData4,
       lotNumber: element.lotNumber,
     };
-
+    element.isLoadingDetails = true;
     this.materialService
       .getDetailSumary(initialPageIndex, initialPageSize, filters)
-      .pipe(takeUntil(this.ngUnsubscribe))
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        finalize(() => (element.isLoadingDetails = false)),
+      )
       .subscribe((response) => {
         element.detailTotalItems = response.totalItems;
         element.detailPageIndex = initialPageIndex;
         element.detailPageSize = initialPageSize;
         element.detailDataSource = new MatTableDataSource(response.inventories);
+        const ds = new MatTableDataSource(response.inventories);
+        ds.filterPredicate = this.detailFilterPredicate;
+        ds.filter = JSON.stringify({ textFilters: this.searchTermsDetail });
+        element.detailDataSource = ds;
 
-        element.isLoadingDetails = false;
         this.cdr.markForCheck();
       });
   }
@@ -592,24 +598,30 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   ): void {
     const filterValue = (value || "").trim().toLowerCase();
     const mode = this.filterModesDetail[col] || "equals";
-    this.searchTermsDetail[col] = {
-      mode,
-      value: filterValue,
-    };
+
+    this.searchTermsDetail[col] = { mode, value: filterValue };
+
+    if (row.detailDataSource) {
+      row.detailDataSource.filter = JSON.stringify({
+        textFilters: this.searchTermsDetail,
+      });
+    }
   }
+
   applyDetailFilter(
     row: AggregatedDetailData,
     colDetail: string,
     event: Event,
   ): void {
-    const filterValue = (event.target as HTMLInputElement).value
-      .trim()
-      .toLowerCase();
-    const selectedMode = this.filterModesDetail[colDetail] || "contains";
-    this.searchTermsDetail[colDetail] = {
-      mode: selectedMode,
-      value: filterValue,
-    };
+    const value = (event.target as HTMLInputElement).value.trim().toLowerCase();
+    const mode = this.filterModesDetail[colDetail] || "contains";
+    this.searchTermsDetail[colDetail] = { mode, value };
+
+    if (row.detailDataSource) {
+      row.detailDataSource.filter = JSON.stringify({
+        textFilters: this.searchTermsDetail,
+      });
+    }
   }
   public handleFatherPaging(event: PageEvent): void {
     this.router.navigate([], {
@@ -773,7 +785,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         return;
     }
 
-    this.isLoading = false;
+    this.isLoading = true;
     this.materialService
       .fetchDataSumary(apiUrl, body)
       .pipe(

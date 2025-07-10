@@ -1,12 +1,16 @@
 package com.mycompany.myapp.web.rest;
 
+import com.mycompany.myapp.security.oauth2.OAuthIdpTokenResponseDTO;
 import com.mycompany.myapp.service.UserService;
 import com.mycompany.myapp.service.dto.AdminUserDTO;
 import java.security.Principal;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,7 +50,9 @@ public class AccountResource {
     @SuppressWarnings("unchecked")
     public AdminUserDTO getAccount(Principal principal) {
         if (principal instanceof AbstractAuthenticationToken) {
-            return userService.getUserFromAuthentication((AbstractAuthenticationToken) principal);
+            return userService.getUserFromAuthentication(
+                (AbstractAuthenticationToken) principal
+            );
         } else {
             throw new AccountResourceException("User could not be found");
         }
@@ -62,5 +68,23 @@ public class AccountResource {
     public String isAuthenticated(HttpServletRequest request) {
         log.debug("REST request to check if the current user is authenticated");
         return request.getRemoteUser();
+    }
+
+    @GetMapping("/token")
+    public ResponseEntity<OAuthIdpTokenResponseDTO> getToken(
+        @RegisteredOAuth2AuthorizedClient(
+            "oidc"
+        ) OAuth2AuthorizedClient authorizedClient
+    ) {
+        if (
+            authorizedClient == null ||
+            authorizedClient.getAccessToken() == null
+        ) {
+            throw new AccountResourceException("Không lấy được access token");
+        }
+
+        OAuthIdpTokenResponseDTO dto = new OAuthIdpTokenResponseDTO();
+        dto.setAccessToken(authorizedClient.getAccessToken().getTokenValue());
+        return ResponseEntity.ok(dto);
     }
 }

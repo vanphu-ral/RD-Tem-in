@@ -11,7 +11,13 @@ import {
 import { Router } from "@angular/router";
 import { MatTableDataSource } from "@angular/material/table";
 import { ChangeDetectionStrategy, signal, WritableSignal } from "@angular/core";
-import { FormBuilder, FormGroup, FormControl, FormArray } from "@angular/forms";
+import {
+  FormBuilder,
+  FormGroup,
+  FormControl,
+  FormArray,
+  Validators,
+} from "@angular/forms";
 import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
@@ -94,6 +100,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   headerQuantityChange: number | null = null;
   filteredOptions!: string[];
   approvers: UserSummary[] = [];
+  approverCtrl = new FormControl<UserSummary | string>("", Validators.required);
+  filteredApprovers!: Observable<UserSummary[]>;
   selectedApprover?: UserSummary;
 
   // approvers: WritableSignal<UserDto[]> = signal<UserDto[]>([]);
@@ -156,6 +164,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   public filterModes: { [columnDef: string]: string } = {};
   private isSelectHeader: boolean = false;
   private ngUnsubscribe = new Subject<void>();
+  private allApprovers: UserSummary[] = [];
 
   // #endregion
 
@@ -234,13 +243,15 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         .get("selectedWarehouseControl")
         ?.updateValueAndValidity({ emitEvent: true });
     });
-    this.materialService
-      .getApprovers()
-      .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((list) => {
-        this.approvers = list;
-        this.cdr.markForCheck();
-      });
+    this.materialService.getApprovers().subscribe((list) => {
+      this.allApprovers = list;
+    });
+    this.filteredApprovers = this.approverCtrl.valueChanges.pipe(
+      startWith(""),
+      map((val) => val ?? ""),
+      map((val) => (typeof val === "string" ? val : val.username)),
+      map((name) => this.filterByName(name)),
+    );
 
     this.itemsDataSource.data.forEach((item) => {
       item.quantityChange = item.quantity;
@@ -479,6 +490,14 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   //   });
   //   this.itemsDataSource._updateChangeSubscription();
   // }
+  displayApprover(user: UserSummary): string {
+    return user ? user.username : "";
+  }
+  onApproverSelected(user: UserSummary): void {
+    this.selectedApprover = user;
+    console.log("Chọn người duyệt:", user);
+  }
+
   applyHeaderQuantityChange(): void {
     if (
       this.headerQuantityChange !== null &&
@@ -674,7 +693,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     const selectedWarehouseValue = this.dialogForm.get(
       "selectedWarehouseControl",
     )?.value;
-    const approver = this.dialogForm.get("selectedApproverControl")!.value;
+    const approver = this.approverCtrl.value as UserSummary | null;
     if (!approver) {
       this.snackBar.open("Yêu cầu chọn người duyệt!", "Đóng", {
         duration: 3000,
@@ -739,13 +758,13 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
           this.dialogRef.close({
             updatedItems: this.itemsDataSource.data,
             selectedWarehouse: selectedWarehouseValue,
-            approvers: approver,
+            approvers: [approver.username],
           });
         } else {
           this.dialogRef.close({
             updatedItems: this.itemsDataSource.data,
             selectedWarehouse: null,
-            approvers: approver,
+            approvers: [approver.username],
           });
         }
       }
@@ -839,6 +858,13 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       warehouse.name.toLowerCase().includes(filterValue),
     );
   }
+  private filterByName(name: string): UserSummary[] {
+    const filter = name.toLowerCase();
+    return this.allApprovers.filter((u) =>
+      u.username.toLowerCase().includes(filter),
+    );
+  }
+
   private applyCombinedFilters(): void {
     const combinedFilterData = {
       textFilters: this.searchTerms,

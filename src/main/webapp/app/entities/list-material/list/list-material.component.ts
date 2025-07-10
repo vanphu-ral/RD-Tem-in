@@ -324,61 +324,15 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onLoad(): void {
-    const selectedMode: string = this.form.get("sumary_modeControl")?.value[0];
-    let body: any;
-    let apiUrl: string;
-    console.log(selectedMode);
-    switch (selectedMode) {
-      case "partNumber":
-        apiUrl = this.materialService.apiSumaryByPart;
-        body = {
-          partNumber: "",
-          pageNumber: 1,
-          itemPerPage: 50,
-        };
-        break;
-      case "lotNumber":
-        apiUrl = this.materialService.apiSumaryByLot;
-        body = {
-          partNumber: "",
-          lotNumber: "",
-          pageNumber: 1,
-          itemPerPage: 50,
-        };
-        break;
-      case "userData4":
-        apiUrl = this.materialService.apiSumaryByUserData4;
-        body = {
-          partNumber: "",
-          userData4: "",
-          pageNumber: 1,
-          itemPerPage: 50,
-        };
-        break;
-      case "locationName":
-        apiUrl = this.materialService.apiSumaryByLocation;
-        body = {
-          partNumber: "",
-          locationName: "",
-          pageNumber: 1,
-          itemPerPage: 50,
-        };
-        break;
-      default:
-        console.warn("Chưa chọn chế độ tổng hợp.");
-        return;
+    const modes: string[] = this.form.get("sumary_modeControl")?.value;
+    if (!modes || modes.length === 0) {
+      console.warn("Chưa chọn chế độ tổng hợp.");
+      return;
     }
-    this.materialService.fetchDataSumary(apiUrl, body).subscribe({
-      next: (response: APISumaryResponse) => {
-        console.log("Dữ liệu nhận được từ API:", response);
-        this.router.navigate(["/list-material/sumary"], {
-          queryParams: { mode: selectedMode },
-          state: { data: response.inventories },
-        });
-      },
-      error: (err) => {
-        console.error("Lỗi khi gọi API, không điều hướng", err);
-      },
+
+    const selectedMode = modes[0];
+    this.router.navigate(["/list-material/sumary"], {
+      queryParams: { mode: selectedMode },
     });
   }
 

@@ -6,6 +6,7 @@ import {
   catchError,
   map,
   of,
+  switchMap,
   takeUntil,
   tap,
 } from "rxjs";
@@ -16,6 +17,7 @@ import * as FileSaver from "file-saver";
 import { MaterialItem } from "../dialog/list-material-update-dialog";
 import { AccountService } from "app/core/auth/account.service";
 import { ApplicationConfigService } from "app/core/config/application-config.service";
+import { AuthServerProvider } from "app/core/auth/auth-session.service";
 
 // #region Interfaces
 export interface RawGraphQLLocation {
@@ -23,9 +25,7 @@ export interface RawGraphQLLocation {
   locationName: string;
 }
 export interface UserSummary {
-  id: string;
   username: string;
-  email: string;
 }
 
 export interface RawGraphQLMaterial {
@@ -238,6 +238,9 @@ export class ListMaterialService {
   public apiSumaryByPart = this.applicationConfigService.getEndpointFor(
     "/api/inventory/group-by-part-number",
   );
+  public apiGetApprovers =
+    "http://192.168.68.90:8080/auth/admin/realms/QLSX/users";
+
   public apiSumaryByLot = this.applicationConfigService.getEndpointFor(
     "/api/inventory/group-by-lot-number",
   );
@@ -321,6 +324,7 @@ export class ListMaterialService {
   constructor(
     private http: HttpClient,
     private accountService: AccountService,
+    private authServer: AuthServerProvider,
     private applicationConfigService: ApplicationConfigService,
   ) {
     this.selectedItems$ = this._selectedItems.asObservable();
@@ -576,6 +580,11 @@ export class ListMaterialService {
     sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
     this.refreshSelectedItems();
   }
+  public clearAllSelected(): void {
+    this._selectedIds.next([]);
+    sessionStorage.removeItem("selectedMaterialIds");
+    this.refreshSelectedItems();
+  }
 
   getRequestHistoryDetailsById(
     id: number | null,
@@ -716,14 +725,19 @@ export class ListMaterialService {
       ),
     );
   }
-  public uncheckItemsAfterUpdate(ids: string[]): void {
-    const updatedData = this._materialsData.value.map((item) =>
+  public removeItemsAfterUpdate(ids: string[]): void {
+    const resetChecked = this._materialsData.value.map((item) =>
       ids.includes(item.inventoryId)
         ? { ...item, checked: false, select_update: false }
         : item,
     );
-    this._materialsData.next(updatedData);
-    // Cập nhật selectedIds luôn nếu cần
+
+    const filtered = resetChecked.filter(
+      (item) => !ids.includes(item.inventoryId),
+    );
+
+    this._materialsData.next(filtered);
+
     const newSelectedIds = this._selectedIds.value.filter(
       (id) => !ids.includes(id),
     );
@@ -966,14 +980,23 @@ export class ListMaterialService {
     );
   }
   public getApprovers(): Observable<UserSummary[]> {
-    return this.http.get<UserSummary[]>("/api/approvers").pipe(
-      tap((users) => console.log("Approvers fetched:", users)),
+    return this.authServer.getToken().pipe(
+      switchMap((token) => {
+        const headers = new HttpHeaders().set(
+          "Authorization",
+          `Bearer ${token}`,
+        );
+        return this.http.get<UserSummary[]>(this.apiGetApprovers, { headers });
+      }),
+      map((raw) => raw.map((u) => ({ username: u.username }))),
+      tap((list) => console.log("Approvers mapped:", list)),
       catchError((err) => {
         console.error("Fetch approvers error:", err);
         return of([] as UserSummary[]);
       }),
     );
   }
+
   // history
   getMaterialHistoryByRange(body: {
     startTime: string;
