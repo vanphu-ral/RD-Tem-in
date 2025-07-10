@@ -277,8 +277,10 @@ export class ListMaterialService {
 
   private apiSumaryDetail = this.applicationConfigService.getEndpointFor(
     "/api/inventory/detail",
+    // );
+    // private apiSumaryDetail = this.applicationConfigService.getEndpointFor(
+    //   "/api/inventory",
   );
-
   private apiRequestDetail = this.applicationConfigService.getEndpointFor(
     "/api/request/detail",
   ); // + /requestCode : lấy chi tiết
@@ -541,7 +543,7 @@ export class ListMaterialService {
       pageNumber: pageIndex + 1,
       itemPerPage: limit,
     };
-
+    console.log("body api sumary chi tiet: ", body);
     return this.http.post<APIDetailResponse>(url, body).pipe(
       tap((response) => console.log("API chi tiết trả về:", response)),
       catchError((err): Observable<APIDetailResponse> => {
