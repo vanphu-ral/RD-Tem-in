@@ -178,6 +178,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     this.dialogForm = this.fb.group({
       selectedWarehouseControl: [null],
     });
+    this.materialService.fetchLocations();
 
     this.locations$ = this.materialService.locationsData$;
 

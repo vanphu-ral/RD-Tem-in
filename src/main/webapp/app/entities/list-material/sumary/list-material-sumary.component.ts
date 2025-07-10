@@ -538,7 +538,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
     element.isLoadingDetails = true;
     const initialPageIndex = 0;
-    const initialPageSize = 10; // Hoặc bất kỳ giá trị mặc định nào bạn muốn
+    const initialPageSize = 20;
 
     const filters = {
       partNumber: element.partNumber,
@@ -551,16 +551,13 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       .getDetailSumary(initialPageIndex, initialPageSize, filters)
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((response) => {
-        // Cập nhật trạng thái cho dòng này
         element.detailTotalItems = response.totalItems;
         element.detailPageIndex = initialPageIndex;
         element.detailPageSize = initialPageSize;
-
-        // Tạo DataSource mới cho bảng chi tiết
         element.detailDataSource = new MatTableDataSource(response.inventories);
 
         element.isLoadingDetails = false;
-        this.cdr.markForCheck(); // Báo cho Angular cập nhật giao diện
+        this.cdr.markForCheck();
       });
   }
 
@@ -574,16 +571,13 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       lotNumber: element.lotNumber,
     };
 
-    // Gọi lại service với thông tin trang mới từ PageEvent
     this.materialService
       .getDetailSumary(event.pageIndex, event.pageSize, filters)
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((response) => {
-        // Cập nhật lại các thuộc tính phân trang
         element.detailTotalItems = response.totalItems;
         element.detailPageIndex = event.pageIndex;
         element.detailPageSize = event.pageSize;
-
         // Cập nhật dữ liệu cho DataSource đã có
         element.detailDataSource!.data = response.inventories;
 
@@ -804,57 +798,57 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       });
   }
 
-  private fetchDataAndUpdateUISumaryDetail(params: {
-    [key: string]: any;
-  }): void {
-    const allowedFilterKeys = [
-      "partNumber",
-      "locationName",
-      "userDate4",
-      "lotNumber",
-    ];
-    const filters: { [key: string]: any } = {};
-    for (const key of allowedFilterKeys) {
-      if (params[key] !== undefined) {
-        filters[key] = params[key];
-      }
-    }
-    const page = params["page"] ? +params["page"] : 1;
-    const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
+  // private fetchDataAndUpdateUISumaryDetail(params: {
+  //   [key: string]: any;
+  // }): void {
+  //   const allowedFilterKeys = [
+  //     "partNumber",
+  //     "locationName",
+  //     "userDate4",
+  //     "lotNumber",
+  //   ];
+  //   const filters: { [key: string]: any } = {};
+  //   for (const key of allowedFilterKeys) {
+  //     if (params[key] !== undefined) {
+  //       filters[key] = params[key];
+  //     }
+  //   }
+  //   const page = params["page"] ? +params["page"] : 1;
+  //   const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
 
-    this.materialService
-      .fetchMaterialsData(page, pageSize, filters)
-      .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((response) => {
-        const totalItems = response.totalItems;
-        this.length = totalItems;
-        this.dataSource.data = response.inventories || [];
-        console.log("trang hiện tại: ", page);
-        console.log("số lượng bản ghi đọc từ api: ", totalItems);
-        if (this.paginator) {
-          this.paginator.length = totalItems;
-          this.paginator.pageIndex = page - 1;
-          this.paginator.pageSize = pageSize;
-          if (totalItems > 0 && this.pageIndex > 0) {
-            const maxPageIndex = Math.ceil(totalItems / this.pageSize) - 1;
-            if (page - 1 > maxPageIndex) {
-              console.log("trang hiện tại: ", page);
-              console.log("số lượng bản ghi đọc từ api: ", totalItems);
-              // this.pageIndex = maxPageIndex;
-              this.router.navigate([], {
-                relativeTo: this.route,
-                queryParams: { page: maxPageIndex + 1 },
-                queryParamsHandling: "merge",
-                replaceUrl: true,
-              });
-              return;
-            }
-          }
-        }
-        this.checkedCount.set(
-          response.inventories.filter((i) => i.checked).length,
-        );
-        this.cdr.markForCheck();
-      });
-  }
+  //   this.materialService
+  //     .fetchMaterialsData(page, pageSize, filters)
+  //     .pipe(takeUntil(this.ngUnsubscribe))
+  //     .subscribe((response) => {
+  //       const totalItems = response.totalItems;
+  //       this.length = totalItems;
+  //       this.dataSource.data = response.inventories || [];
+  //       console.log("trang hiện tại: ", page);
+  //       console.log("số lượng bản ghi đọc từ api: ", totalItems);
+  //       if (this.paginator) {
+  //         this.paginator.length = totalItems;
+  //         this.paginator.pageIndex = page - 1;
+  //         this.paginator.pageSize = pageSize;
+  //         if (totalItems > 0 && this.pageIndex > 0) {
+  //           const maxPageIndex = Math.ceil(totalItems / this.pageSize) - 1;
+  //           if (page - 1 > maxPageIndex) {
+  //             console.log("trang hiện tại: ", page);
+  //             console.log("số lượng bản ghi đọc từ api: ", totalItems);
+  //             // this.pageIndex = maxPageIndex;
+  //             this.router.navigate([], {
+  //               relativeTo: this.route,
+  //               queryParams: { page: maxPageIndex + 1 },
+  //               queryParamsHandling: "merge",
+  //               replaceUrl: true,
+  //             });
+  //             return;
+  //           }
+  //         }
+  //       }
+  //       this.checkedCount.set(
+  //         response.inventories.filter((i) => i.checked).length,
+  //       );
+  //       this.cdr.markForCheck();
+  //     });
+  // }
 }
