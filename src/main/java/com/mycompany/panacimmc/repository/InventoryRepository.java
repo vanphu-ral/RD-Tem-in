@@ -246,7 +246,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?3 " +
         "AND b.Location_Name like ?4 " +
-        "GROUP BY a.[Inventory_PartNumber] " +
         "ORDER BY a.Inventory_PartNumber desc " +
         "OFFSET ?5 ROWS FETCH NEXT ?6 ROWS ONLY ;\n",
         nativeQuery = true
@@ -275,8 +274,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND a.Inventory_PartNumber like ?1 " +
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?3 " +
-        "AND b.Location_Name like ?4 " +
-        "GROUP BY a.[Inventory_PartNumber] ;\n",
+        "AND b.Location_Name like ?4 ;\n",
         nativeQuery = true
     )
     public Integer getTotalDataDetail(
