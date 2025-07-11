@@ -117,7 +117,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Query(
         value = "SELECT  \n" +
         "    a.Inventory_PartNumber AS partNumber\n" +
-        "    ,b.Location_Name AS locationName\n" +
+        "    ,b.Location_FullName AS locationName\n" +
         "    ,sum(a.[Inventory_Quantity]) AS quantity\n" +
         "    ,sum(a.[Inventory_AvailableQuantity]) AS availableQuantity \n" +
         "    ,count(a.[Inventory_MaterialIdentifier]) AS recordCount \n" +
@@ -132,8 +132,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_PartNumber like ?1 " +
-        "AND b.Location_Name like ?2 " +
-        "GROUP BY a.Inventory_PartNumber,b.Location_Name " +
+        "AND b.Location_FullName like ?2 " +
+        "GROUP BY a.Inventory_PartNumber,b.Location_FullName " +
         "ORDER BY a.Inventory_PartNumber desc " +
         "OFFSET ?3 ROWS FETCH NEXT ?4 ROWS ONLY ;\n",
         nativeQuery = true
@@ -146,7 +146,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     );
 
     @Query(
-        value = "SELECT count(*) from ( select a.Inventory_PartNumber,b.Location_Name \n" +
+        value = "SELECT count(*) from ( select a.Inventory_PartNumber,b.Location_FullName \n" +
         "FROM Inventory a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
@@ -158,8 +158,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'  where Inventory_Status in(3,6,19) and Inventory_AvailableQuantity >0 " +
         "AND a.Inventory_PartNumber like ?1 " +
-        "AND b.Location_Name like ?2 " +
-        "GROUP BY a.Inventory_PartNumber,b.Location_Name) as result ;\n",
+        "AND b.Location_FullName like ?2 " +
+        "GROUP BY a.Inventory_PartNumber,b.Location_FullName) as result ;\n",
         nativeQuery = true
     )
     public Integer getTotalDataGroupByLocationName(
@@ -231,7 +231,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
         "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
         "    ,a.[Inventory_Status] AS status\n" +
-        "    ,b.Location_Name AS locationName\n" +
+        "    ,b.Location_FullName AS locationName\n" +
         "FROM Inventory a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
@@ -245,7 +245,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND a.Inventory_PartNumber like ?1 " +
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?3 " +
-        "AND b.Location_Name like ?4 " +
+        "AND b.Location_FullName like ?4 " +
         "ORDER BY a.Inventory_PartNumber desc " +
         "OFFSET ?5 ROWS FETCH NEXT ?6 ROWS ONLY ;\n",
         nativeQuery = true
@@ -274,7 +274,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND a.Inventory_PartNumber like ?1 " +
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?3 " +
-        "AND b.Location_Name like ?4 ;\n",
+        "AND b.Location_FullName like ?4 ;\n",
         nativeQuery = true
     )
     public Integer getTotalDataDetail(
@@ -334,7 +334,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,a.[Inventory_MainReelId] AS mainReelId\n" +
         "    ,a.[Inventory_ReasonCode] AS reasonCode\n" +
         "    ,a.[Inventory_LastCarrierNumber] AS lastCarrierNumber\n" +
-        "    ,b.Location_Name AS locationName\n" +
+        "    ,b.Location_FullName AS locationName\n" +
         "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
         "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
         "FROM Inventory a\n" +
@@ -438,7 +438,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,a.[Inventory_MainReelId] AS mainReelId\n" +
         "    ,a.[Inventory_ReasonCode] AS reasonCode\n" +
         "    ,a.[Inventory_LastCarrierNumber] AS lastCarrierNumber\n" +
-        "    ,b.Location_Name AS locationName\n" +
+        "    ,b.Location_FullName AS locationName\n" +
         "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
         "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
         "FROM Inventory a\n" +
@@ -459,7 +459,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND ( ?5 IS NULL OR a.Inventory_AvailableQuantity = ?5 ) " +
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?6 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
-        "AND b.Location_Name like ?8 " +
+        "AND b.Location_FullName like ?8 " +
         "AND ( ?9 IS NULL OR a.Inventory_ExpirationDate like ?9) " +
         "ORDER BY a.Inventory_UpdatedDate desc " +
         "OFFSET ?10 ROWS FETCH NEXT ?11 ROWS ONLY ;\n",
@@ -499,7 +499,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND ( ?5 IS NULL OR a.Inventory_AvailableQuantity = ?5 ) " +
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?6 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
-        "AND b.Location_Name like ?8 " +
+        "AND b.Location_FullName like ?8 " +
         "AND ( ?9 IS NULL OR a.Inventory_ExpirationDate like ?9) ;",
         nativeQuery = true
     )

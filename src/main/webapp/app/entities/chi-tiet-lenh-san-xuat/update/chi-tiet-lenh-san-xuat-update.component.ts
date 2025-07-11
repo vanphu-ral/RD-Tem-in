@@ -563,9 +563,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         // alert('đã tìm thấy tem trong danh sách');
         await this.playAlertSoundSuccess();
         break;
-      }
-      // có trong danh sách nhưng ở trạng thái deactive
-      if (
+      } else if (
+        // có trong danh sách nhưng ở trạng thái deactive
         this.scanValue.reelID === this.chiTietLenhSanXuats[i].reelID &&
         this.chiTietLenhSanXuats[i].trangThai === "Inactive"
       ) {
@@ -576,8 +575,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         await this.playAlertSound();
         // play sound
         break;
-      }
-      if (
+      } else if (
         this.scanValue.reelID === this.chiTietLenhSanXuats[i].reelID &&
         this.chiTietLenhSanXuats[i].trangThai === "not list"
       ) {
