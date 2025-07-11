@@ -2,6 +2,7 @@ package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.service.LocationService;
 import com.mycompany.panacimmc.domain.Location;
+import com.mycompany.panacimmc.domain.LocationResponse;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +17,7 @@ public class LocationController {
     LocationService locationService;
 
     @GetMapping
-    public List<Location> getAll() {
+    public List<LocationResponse> getAll() {
         return this.locationService.getAll();
     }
 }
