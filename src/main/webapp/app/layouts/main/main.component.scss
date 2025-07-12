@@ -7,21 +7,20 @@
 
 @media (max-width: 599px) {
   #main {
-    margin-top: 60px;
     margin-left: 0 !important;
     width: 100%;
   }
 }
 @media (min-width: 600px) and (max-width: 959px) {
   #main {
-    margin-top: 60px;
+    // margin-top: 60px;
     margin-left: 0 !important;
     width: 100%;
   }
 }
 @media (min-width: 960px) {
   #main {
-    margin-top: 70px;
+    // margin-top: 70px;
     margin-left: 60px;
     width: 100%;
   }

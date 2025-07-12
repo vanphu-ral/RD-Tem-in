@@ -189,12 +189,15 @@ th {
   max-height: 200px;
   overflow: auto;
 }
+
 ::ng-deep .mat-mdc-select-value {
   font-size: 13px;
 }
+
 ::ng-deep .mat-form-field-appearance-fill .mat-mdc-select-arrow-wrapper {
   transform: none !important;
 }
+
 .mat-column-name {
   height: 50;
 }
@@ -317,11 +320,13 @@ th {
   height: 900px;
   width: 1860px;
 }
+
 .cdk-global-overlay-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
 }
+
 .dialog-center-pane .cdk-overlay-pane {
   position: static !important;
   display: flex;
@@ -339,6 +344,7 @@ th {
 @media (max-width: 599px) {
   .main-page {
     width: 550px;
+
     .function-list {
       flex-direction: column;
       align-items: stretch;
@@ -351,6 +357,7 @@ th {
 
       .group-buttons-main {
         flex-direction: column;
+
         .group-buttons {
           justify-content: flex-start;
           width: 100%;
@@ -359,6 +366,7 @@ th {
             width: 100%;
             margin-bottom: 5px;
             margin-top: 5px;
+
             button {
               min-width: 110px;
               min-height: 40px;
@@ -370,6 +378,7 @@ th {
             width: 100%;
             margin-bottom: 5px;
             margin-top: 5px;
+
             button {
               min-width: 110px;
               min-height: 40px;
@@ -384,6 +393,7 @@ th {
           }
         }
       }
+
       .mat-mdc-button > .mat-icon,
       .mat-mdc-raised-button > .mat-icon {
         margin-right: 0 !important;
@@ -429,6 +439,10 @@ th {
         mat-icon {
           font-size: 16px !important;
         }
+
+        .mat-mdc-select {
+          font-size: 9px !important;
+        }
       }
 
       td.mat-mdc-cell {
@@ -447,6 +461,7 @@ th {
 @media (min-width: 600px) and (max-width: 959px) {
   .main-page {
     width: 812px;
+
     .function-list {
       flex-direction: column;
       align-items: flex-start;

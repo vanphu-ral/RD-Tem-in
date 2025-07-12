@@ -556,10 +556,10 @@ td.mat-mdc-cell.status-reject {
     max-width: 180px;
   }
 }
+/* MOBILE (< 600px) */
 @media (max-width: 599px) {
   .main-page {
-    max-width: 400px;
-    margin: 0px !important;
+    width: 550px;
 
     .function-list {
       flex-direction: column;
@@ -609,19 +609,271 @@ td.mat-mdc-cell.status-reject {
           }
         }
       }
+
+      .scan-error {
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .mat-mdc-button > .mat-icon,
+      .mat-mdc-raised-button > .mat-icon {
+        margin-right: 0 !important;
+      }
+    }
+
+    ::ng-deep .full-scroll-table-container {
+      max-width: 100%;
+
+      th.mat-mdc-header-cell {
+        padding: 2px 4px !important;
+        font-size: 10px !important;
+
+        .search-container {
+          padding: 0;
+          margin: 0;
+
+          .small-form-field {
+            width: 150px !important;
+            height: 50px !important;
+            line-height: 12px;
+            font-size: 13px !important;
+
+            .mat-form-field-infix {
+              padding: 0 2px !important;
+            }
+
+            mat-label {
+              font-size: 8px !important;
+              line-height: 10px !important;
+            }
+
+            input,
+            .mat-select-trigger,
+            mat-datepicker-toggle {
+              font-size: 8px !important;
+              height: 15px !important;
+              padding: 0 2px !important;
+            }
+            .mat-mdc-select {
+              font-size: 9px !important;
+            }
+          }
+        }
+
+        mat-icon {
+          font-size: 16px !important;
+        }
+      }
+
+      td.mat-mdc-cell {
+        padding: 4px 6px !important;
+        font-size: 11px !important;
+      }
+
+      .mat-column-locationId {
+        min-width: 100px;
+      }
+    }
+  }
+}
+
+/* TABLET (600–959px) */
+@media (min-width: 600px) and (max-width: 959px) {
+  .main-page {
+    max-width: 812px;
+
+    .function-list {
+      flex-direction: column;
+      align-items: flex-start;
+      max-width: 812px;
+      gap: 8px;
+      padding: 0 18px 0 0;
+
+      .group-title {
+        margin-bottom: 4px;
+        font-weight: bold;
+      }
+
+      .group-buttons-main {
+        display: flex;
+        width: 100%;
+        padding: 0;
+      }
+
+      .group-buttons.primary {
+        width: 70%;
+        justify-content: flex-start;
+        gap: 5px;
+
+        button.btn-scan,
+        button.btn-refresh {
+          .btn-text {
+            display: none;
+          }
+
+          justify-content: center !important;
+          align-items: center !important;
+          padding: 0px 0px 0 6px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
+        }
+      }
+
+      .group-buttons.secondary {
+        width: 30%;
+        justify-content: flex-end;
+        gap: 8px;
+
+        .btn-text,
+        .icon-down {
+          display: none;
+        }
+
+        button {
+          padding: 0 !important;
+          min-width: 40px !important;
+          padding: 0px 0px 0 8px !important;
+          min-height: 40px !important;
+        }
+      }
     }
 
     .full-scroll-table-container {
-      max-width: 400px;
+      max-width: 813px;
     }
 
-    .paginator {
-      .mat-mdc-paginator-outer-container {
-        max-width: 400px;
+    ::ng-deep table {
+      th.mat-mdc-header-cell {
+        padding: 4px 8px !important;
+        font-size: 12px !important;
 
-        .mat-mdc-paginator-container {
-          max-width: 400px;
+        .search-container {
+          .small-form-field {
+            // width: 100px !important;
+
+            .mat-form-field-infix {
+              padding: 0 2px !important;
+            }
+
+            mat-label {
+              font-size: 9px !important;
+              line-height: 11px !important;
+            }
+
+            input,
+            .mat-select-trigger,
+            mat-datepicker-toggle {
+              font-size: 11px !important;
+              height: 20px !important;
+              padding: 0 2px !important;
+            }
+          }
         }
+
+        mat-icon {
+          font-size: 16px !important;
+        }
+      }
+
+      tr.mat-mdc-row {
+        height: 20px !important;
+      }
+
+      td.mat-mdc-cell {
+        padding: 0 4px !important;
+        font-size: 10px !important;
+      }
+    }
+  }
+}
+
+/* DESKTOP (>= 960px) */
+@media (min-width: 959px) and (max-width: 1439px) {
+  .main-page {
+    .overlay-spinner {
+      width: 100%;
+      height: 100%;
+    }
+
+    .function-list {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 0 18px 0 0;
+
+      .group-title {
+        margin-bottom: 4px;
+      }
+
+      .group-buttons-main {
+        display: flex;
+        width: 100%;
+        padding: 0;
+      }
+
+      .group-buttons.primary {
+        width: 70%;
+        justify-content: flex-start;
+        gap: 5px;
+
+        button.btn-scan,
+        button.btn-refresh {
+          .btn-text {
+            display: none;
+          }
+
+          justify-content: center !important;
+          align-items: center !important;
+          padding: 0px 0px 0 6px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
+        }
+      }
+
+      .group-buttons.secondary {
+        width: 30%;
+        justify-content: flex-end;
+        gap: 8px;
+
+        .btn-text,
+        .icon-down {
+          display: none;
+        }
+
+        button {
+          padding: 0 !important;
+          min-width: 40px !important;
+          padding: 0px 0px 0 5px !important;
+          min-height: 40px !important;
+        }
+      }
+    }
+  }
+}
+
+/* DESKTOP (>= 1440px) */
+@media (min-width: 1440px) {
+  .function-list {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0px;
+
+    .group-buttons {
+      gap: 10px;
+
+      button {
+        padding: 4px 8px;
+        font-size: 14px;
+      }
+
+      button.btn-export {
+        font-size: 11px;
+      }
+
+      .btn-text {
+        display: inline;
       }
     }
   }

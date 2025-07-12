@@ -304,6 +304,9 @@ export class ListMaterialService {
   private apiUrl_post_update =
     this.applicationConfigService.getEndpointFor("api/request");
 
+  private apiUrl_post_update_approve =
+    this.applicationConfigService.getEndpointFor("api/update");
+
   private apiSumaryDetail = this.applicationConfigService.getEndpointFor(
     "/api/inventory/detail",
     // );

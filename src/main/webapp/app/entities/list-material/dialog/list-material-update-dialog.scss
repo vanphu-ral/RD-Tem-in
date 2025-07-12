@@ -131,10 +131,12 @@ th {
 
   .mat-column-locationId {
     min-width: 140px;
+
     .search-container {
       padding-top: 9px;
     }
   }
+
   .mat-column-quantityChange {
     .search-container {
       padding-top: 9px;
@@ -261,6 +263,7 @@ th {
       font-size: 20px;
       margin: 10px 5px;
     }
+
     .dialog-footer {
       flex-direction: column;
     }
@@ -293,6 +296,10 @@ th {
             font-size: 11px !important;
             height: 20px !important;
             padding: 0 2px !important;
+          }
+
+          .mat-mdc-select {
+            font-size: 9px !important;
           }
         }
       }

@@ -765,15 +765,15 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
   }
 
   private loadData(): void {
-    this.displayedColumns = this.canApprove
-      ? [...this.displayedColumns]
-      : this.displayedColumns.filter((c) => c !== "action");
-
-    this.displayedColumnsDetails = this.canApprove
-      ? [...this.displayedColumnsDetails]
-      : this.displayedColumnsDetails.filter((a) => a !== "select");
     this.MaterialService.getDataUpdateRequest().subscribe((items) => {
-      const pendingOnly = items.filter((item) => item.status === "PENDING");
+      const pendingOnly = items
+        .filter((item) => item.status === "PENDING")
+        .sort(
+          (a, b) =>
+            new Date(b.createdTime).getTime() -
+            new Date(a.createdTime).getTime(),
+        );
+
       this.dataSource_update_manage.data = pendingOnly;
     });
   }

@@ -89,7 +89,7 @@
 }
 
 .overlay-spinner {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 105%;
@@ -98,7 +98,7 @@
   justify-content: center;
   align-items: center;
   background: rgba(255, 255, 255, 0.8);
-  z-index: 10;
+  z-index: 1000;
 }
 
 .bordered-table {
@@ -481,6 +481,9 @@ th {
               font-size: 8px !important;
               height: 15px !important;
               padding: 0 2px !important;
+            }
+            .mat-mdc-select {
+              font-size: 9px !important;
             }
           }
         }

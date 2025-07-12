@@ -351,40 +351,45 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     )
     public List<InventoryResponse> getDataNew();
 
+    @Modifying
+    @Transactional
     @Query(
         value = "UPDATE Inventory SET " +
         "Inventory_Quantity= ?1 ," +
         "Inventory_Status=3, " +
         "Inventory_UpdatedBy= ?2 ," +
         "Inventory_ExpirationDate= ?3 , " +
-        "Inventory_UpdatedDate= ?4 " +
-        "where Inventory_MaterialIdentifier= ?5 ;\n",
+        "Inventory_UpdatedDate= ?4 ," +
+        "Inventory_LocationId = ?5 " +
+        "where Inventory_MaterialIdentifier= ?6 ;\n",
         nativeQuery = true
     )
-    @Modifying
     public void extendIventory(
         Integer quantity,
         String updateBy,
         String expirationDate,
         String date,
+        Long locationId,
         String materialIdentifier
     );
 
+    @Modifying
+    @Transactional
     @Query(
         value = "UPDATE Inventory SET " +
         "Inventory_Quantity= ?1 ," +
         "Inventory_Status=3, " +
         "Inventory_UpdatedBy= ?2 ," +
-        "Inventory_UpdatedDate= ?3 " +
-        "where Inventory_MaterialIdentifier= ?4 ;\n",
+        "Inventory_UpdatedDate= ?3 ," +
+        "Inventory_LocationId = ?4 " +
+        "where Inventory_MaterialIdentifier = ?5 ;",
         nativeQuery = true
     )
-    @Modifying
-    @Transactional
     public void updateIventory(
         Integer quantity,
         String updateBy,
         String date,
+        Long locationId,
         String materialIdentifier
     );
 

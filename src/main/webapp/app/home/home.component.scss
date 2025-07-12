@@ -6,7 +6,8 @@ Main page styles
   display: inline-block;
   width: 347px;
   height: 497px;
-  background: url('../../content/images/jhipster_family_member_3.svg') no-repeat center top;
+  background: url("../../content/images/jhipster_family_member_3.svg") no-repeat
+    center top;
   background-size: contain;
 }
 
@@ -17,7 +18,8 @@ Main page styles
   only screen and (min-resolution: 192dpi),
   only screen and (min-resolution: 2dppx) {
   .hipster {
-    background: url('../../content/images/jhipster_family_member_3.svg') no-repeat center top;
+    background: url("../../content/images/jhipster_family_member_3.svg")
+      no-repeat center top;
     background-size: contain;
   }
 }
@@ -40,7 +42,6 @@ Main page styles
   h2 {
     font-size: 5vh;
     text-transform: uppercase;
-    color: red;
     margin-bottom: 10px;
   }
 
@@ -49,7 +50,7 @@ Main page styles
     margin-bottom: 20px;
   }
 
-  button[data-cy='login'] {
+  button[data-cy="login"] {
     background-color: #007bff;
     color: #fff;
     padding: 10px 20px;
@@ -59,7 +60,7 @@ Main page styles
     transition: background-color 0.3s ease;
   }
 
-  button[data-cy='login']:hover {
+  button[data-cy="login"]:hover {
     background-color: #0056b3;
   }
 }
