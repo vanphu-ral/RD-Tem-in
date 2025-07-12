@@ -472,16 +472,18 @@
               [formGroup]="getFormGroupForItem(element)"
               style="width: 100%"
             >
-              <!-- Ở dòng, sử dụng formControl riêng: selectedWarehouseItem -->
               <input
                 class="editable-cell"
                 type="text"
-                [placeholder]="element.locationName"
+                placeholder="Chọn kho mới"
                 aria-label="Kho"
                 matInput
                 formControlName="selectedWarehouseItem"
                 [matAutocomplete]="autoWarehouseRow"
+                #rowTrigger="matAutocompleteTrigger"
+                (focus)="openRowPanel(rowTrigger)"
               />
+
               <mat-autocomplete
                 #autoWarehouseRow="matAutocomplete"
                 [displayWith]="displayWarehouseFn"
@@ -495,6 +497,7 @@
                 </mat-option>
               </mat-autocomplete>
             </form>
+
             <mat-spinner
               *ngIf="scanLoadingRow[element.materialIdentifier]"
               diameter="20"

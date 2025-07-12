@@ -27,7 +27,7 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA,
 } from "@angular/material/dialog";
-import { Subscription, Observable, Subject } from "rxjs";
+import { Subscription, Observable, Subject, of } from "rxjs";
 import { SelectionModel } from "@angular/cdk/collections";
 import {
   RawGraphQLMaterial,
@@ -44,6 +44,7 @@ import {
   ConfirmDialogData,
 } from "../confirm-dialog/confirm-dialog.component";
 import { MatRadioButton } from "@angular/material/radio";
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 
 interface Warehouse {
   value: string;
@@ -61,6 +62,7 @@ export interface MaterialItem {
   quantity: number;
   quantityChange: number;
   locationId: string | null;
+  locationFullName?: string;
   locationName?: string;
   expirationDate?: string;
   receivedDate?: string;
@@ -142,7 +144,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     { value: "consumed", view: "Consumed" },
     { value: "expired", view: "Expired" },
   ];
-  editableFields: string[] = ["quantity", "locationName"];
+  editableFields: string[] = ["quantity", "locationFullName"];
   headerEnableInputRenewal: boolean = false;
   headerInputRenewal: string = "";
   itemFormGroups: Map<any, FormGroup> = new Map();
@@ -212,7 +214,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
           quantity: Number(rawItem.quantity),
           quantityChange: 0,
           locationId: rawItem.locationId || null,
-          locationName: rawItem.locationName,
+          locationFullName: rawItem.locationFullName,
           extendExpiration: false,
         };
       },
@@ -225,23 +227,27 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   ngOnInit(): void {
     this.locations$.subscribe((locations) => {
       this.warehouseSelection = locations.map((loc) => ({
-        value: loc.locationId,
-        name: loc.locationName,
+        value: loc.id.toString(),
+        name: loc.locationFullName,
       }));
+      console.log("warehouseSelection:", this.warehouseSelection);
+
+      const headerCtl = this.dialogForm.get("selectedWarehouseControl")!;
+      const headerInit =
+        this.warehouseSelection.find((w) => w.value === headerCtl.value) ??
+        null;
+      headerCtl.setValue(headerInit, { emitEvent: false });
+      headerCtl.updateValueAndValidity({ emitEvent: true });
 
       this.itemsDataSource.data.forEach((item) => {
-        const formGroup = this.getFormGroupForItem(item);
-        const initialWarehouseObject = this.warehouseSelection.find(
-          (w) => w.value === item.locationId,
-        );
-        formGroup
-          .get("selectedWarehouseControl")
-          ?.setValue(initialWarehouseObject ?? null, { emitEvent: false });
+        const fg = this.getFormGroupForItem(item);
+        const rowCtl = fg.get("selectedWarehouseItem")!;
+        const initial =
+          this.warehouseSelection.find((w) => w.value === item.locationId) ??
+          null;
+        rowCtl.setValue(initial, { emitEvent: false });
+        rowCtl.updateValueAndValidity({ emitEvent: true });
       });
-
-      this.dialogForm
-        .get("selectedWarehouseControl")
-        ?.updateValueAndValidity({ emitEvent: true });
     });
     this.materialService.getApprovers().subscribe((list) => {
       this.allApprovers = list;
@@ -276,20 +282,11 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       .get("selectedWarehouseControl")!
       .valueChanges.pipe(
         startWith(this.dialogForm.get("selectedWarehouseControl")?.value || ""),
-        map((value: unknown) =>
-          typeof value === "string"
-            ? value
-            : (value as { name: string })?.name || "",
+        map((value: string | Warehouse) =>
+          typeof value === "string" ? value : value?.name || "",
         ),
-        map((name: string) => {
-          // Lọc theo tên
-          const filtered = name
-            ? this._filterWarehouses(name)
-            : this.warehouseSelection.slice();
-
-          // Sắp xếp ưu tiên tên ngắn lên trước
-          return filtered.sort((a, b) => a.name.length - b.name.length);
-        }),
+        map((name: string) => this._filterWarehouses(name)),
+        map((list) => list.sort((a, b) => a.name.length - b.name.length)),
       );
 
     // Định nghĩa interface cho filter được parse từ JSON
@@ -379,69 +376,35 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
 
   // #region Public methods
   getFormGroupForItem(item: MaterialItem): FormGroup {
-    const itemIdentifier = item.materialIdentifier;
-    if (!this.itemFormGroups.has(itemIdentifier)) {
-      const control = new FormControl();
-      control.valueChanges.subscribe((selectedWarehouseObj) => {
-        if (
-          selectedWarehouseObj &&
-          typeof selectedWarehouseObj === "object" &&
-          selectedWarehouseObj.value !== undefined
-        ) {
-          if (item.locationId !== selectedWarehouseObj.value) {
-            item.locationId = selectedWarehouseObj.value;
-            console.log(
-              `Row: Item ${item.materialIdentifier} locationId updated to: ${item.locationId}`,
-            );
-          }
-        } else if (
-          selectedWarehouseObj === null ||
-          selectedWarehouseObj === ""
-        ) {
-          if (item.locationId !== "" && item.locationId !== null) {
-            item.locationId = "";
-            console.log(
-              `Row: Item ${item.materialIdentifier} locationId cleared.`,
-            );
-          }
-        }
-      });
+    const key = item.materialIdentifier;
+    if (!this.itemFormGroups.has(key)) {
+      const control = new FormControl<Warehouse | null>(null);
+
       const group = this.fb.group({ selectedWarehouseItem: control });
-      this.itemFormGroups.set(itemIdentifier, group);
+      this.itemFormGroups.set(key, group);
+
       this.rowFilteredWarehouses.set(
-        itemIdentifier,
+        key,
         control.valueChanges.pipe(
-          startWith(""),
-          map((value: string | { name: string } | null): string =>
-            typeof value === "string" ? value : value ? value.name : "",
-          ),
-          map((filterValue: string) => {
-            const unsorted = filterValue
-              ? this._filterWarehouses(filterValue)
-              : this.warehouseSelection.slice();
-            const sorted = unsorted
-              .concat()
-              .sort((a, b) => a.name.length - b.name.length);
-            return sorted;
-          }),
+          map((v) => (typeof v === "string" ? v : (v?.name ?? ""))),
+          map((name) => this._filterWarehouses(name)),
         ),
       );
     }
-    return this.itemFormGroups.get(itemIdentifier)!;
+    return this.itemFormGroups.get(key)!;
   }
   // onSelectApprover(user: UserDto): void {
   //   this.selectedApprover.set(user);
   // }
-  rowWarehouseChanged(selectedWarehouse: Warehouse, item: MaterialItem): void {
-    const formGroup = this.getFormGroupForItem(item);
-    formGroup
-      .get("selectedWarehouseItem")
-      ?.setValue(selectedWarehouse, { emitEvent: true });
-    item.selectedWarehouse = selectedWarehouse;
+  rowWarehouseChanged(selected: Warehouse, item: MaterialItem): void {
+    item.selectedWarehouse = selected;
     item.extendExpiration = false;
+
     console.log(
-      `Row change: Item ${item.materialIdentifier} locationId updated to: ${item.locationId}`,
+      `Row change: Item ${item.materialIdentifier} new locationId =`,
+      selected.value,
     );
+
     this.isSelectHeader = false;
   }
 
@@ -590,7 +553,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         this.rowWarehouseChanged(matchedWarehouse, this.currentScanRow);
       } else {
         this.currentScanRow.locationId = "";
-        this.currentScanRow.locationName = processed;
+        this.currentScanRow.locationFullName = processed;
         const formGroup = this.getFormGroupForItem(this.currentScanRow);
         formGroup
           .get("selectedWarehouseItem")
@@ -618,6 +581,10 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     const q = this.itemsDataSource?.data.map((d) => d.quantity) || [];
     return q.length ? Math.min(...q) : 0;
   }
+  openRowPanel(trigger: MatAutocompleteTrigger): void {
+    Promise.resolve().then(() => trigger.openPanel());
+  }
+
   clampHeaderQuantity(input: HTMLInputElement): void {
     const val = Number(input.value);
     const max = this.minQuantityAcrossRows;
@@ -690,9 +657,9 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   }
 
   onSave(): void {
-    const selectedWarehouseValue = this.dialogForm.get(
-      "selectedWarehouseControl",
-    )?.value;
+    const selectedWarehouseObj = this.dialogForm.get("selectedWarehouseControl")
+      ?.value as Warehouse | null;
+    const headerWarehouseValue = selectedWarehouseObj?.value ?? null;
     const approver = this.approverCtrl.value as UserSummary | null;
     if (!approver) {
       this.snackBar.open("Yêu cầu chọn người duyệt!", "Đóng", {
@@ -701,8 +668,6 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       });
       return;
     }
-    const headerWarehouseValue = this.dialogForm.get("selectedWarehouseControl")
-      ?.value?.value;
     const headerWarehouseSet = !!headerWarehouseValue;
     const allQtyProvided = this.itemsDataSource.data.every(
       (item) =>
@@ -754,19 +719,11 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
 
     confirmDialogRef.afterClosed().subscribe((result) => {
       if (result === true) {
-        if (this.isSelectHeader) {
-          this.dialogRef.close({
-            updatedItems: this.itemsDataSource.data,
-            selectedWarehouse: selectedWarehouseValue,
-            approvers: [approver.username],
-          });
-        } else {
-          this.dialogRef.close({
-            updatedItems: this.itemsDataSource.data,
-            selectedWarehouse: null,
-            approvers: [approver.username],
-          });
-        }
+        this.dialogRef.close({
+          updatedItems: this.itemsDataSource.data,
+          selectedWarehouse: headerWarehouseValue,
+          approvers: [approver.username],
+        });
       }
     });
   }
@@ -839,13 +796,13 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   // #region Private methods
   private processScanInput(scanValue: string): string {
     let result = scanValue;
-    if (result.startsWith("LO")) {
-      result = result.slice(2);
-    }
-    const slIndex = result.search(/-SL/i);
-    if (slIndex > -1) {
-      result = result.substring(0, slIndex);
-    }
+    result = result.replace(/^LO/i, "");
+
+    // "-SLSLOT" → "-SLOT",  "-SLRACK" → "-RACK"
+    result = result.replace(/-SL/gi, "-");
+
+    result = result.replace(/--+/g, "-");
+
     result = result.replace(/[^A-Za-z0-9-]+$/g, "");
 
     return result.trim();
@@ -854,9 +811,9 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     name: string,
   ): Array<{ value: string; name: string }> {
     const filterValue = name.toLowerCase();
-    return this.warehouseSelection.filter((warehouse) =>
-      warehouse.name.toLowerCase().includes(filterValue),
-    );
+    return this.warehouseSelection
+      .filter((w) => w.name.toLowerCase().includes(filterValue))
+      .slice(0, 50);
   }
   private filterByName(name: string): UserSummary[] {
     const filter = name.toLowerCase();

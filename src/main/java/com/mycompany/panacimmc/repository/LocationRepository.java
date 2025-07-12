@@ -11,8 +11,8 @@ import org.springframework.stereotype.Repository;
 public interface LocationRepository extends JpaRepository<Location, Long> {
     @Query(
         value = "select " +
-        "id as id" +
-        ",Location_name as locationName " +
+        "Location_Id as id" +
+        ",Location_Name as locationName " +
         ",Location_FullName as locationFullName" +
         " from Location ;",
         nativeQuery = true

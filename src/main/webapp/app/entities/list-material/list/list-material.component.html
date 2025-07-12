@@ -231,9 +231,7 @@
             <div class="search-container">
               <div class="custom-search-wrapper">
                 <!-- DATE PICKER -->
-                <ng-container
-                  *ngIf="isDateField(colDef); else textInputTemplate"
-                >
+                <ng-container *ngIf="isDateField(colDef); else nonDateField">
                   <mat-form-field
                     class="small-form-field"
                     appearance="fill"
@@ -267,19 +265,19 @@
                 </ng-container>
 
                 <!-- TEXT OR STATUS SELECT -->
-                <ng-template #textInputTemplate>
-                  <!-- 1) Nếu đây là cột status, hiển thị select -->
-                  <ng-container *ngIf="colDef === 'status'; else normalInput">
-                    <mat-form-field class="small-form-field" appearance="fill">
+                <ng-template #nonDateField>
+                  <ng-container [ngSwitch]="colDef">
+                    <!-- Cột status -->
+                    <mat-form-field
+                      *ngSwitchCase="'status'"
+                      class="small-form-field"
+                      appearance="fill"
+                    >
                       <mat-label>Search Status</mat-label>
                       <mat-select
-                        #filterInput
                         [value]="searchTerms['status']?.value || ''"
                         (selectionChange)="
                           applySelectFilter('status', $event.value)
-                        "
-                        [placeholder]="
-                          'Search (' + (filterModes['status'] || 'equals') + ')'
                         "
                       >
                         <mat-option
@@ -290,11 +288,35 @@
                         </mat-option>
                       </mat-select>
                     </mat-form-field>
-                  </ng-container>
 
-                  <!-- 2) Các cột text/scan bình thường -->
-                  <ng-template #normalInput>
+                    <!-- Cột locationName (scan) -->
                     <mat-form-field
+                      *ngSwitchCase="'locationName'"
+                      class="small-form-field"
+                      appearance="fill"
+                      floatLabel="always"
+                    >
+                      <mat-label>Scan / Search Kho</mat-label>
+                      <input
+                        matInput
+                        #locationInput
+                        [value]="searchTerms['locationName']?.value || ''"
+                        (input)="applyFilter('locationName', $event)"
+                        (keydown.enter)="
+                          onScanLocationEnter(
+                            locationInput.value,
+                            locationInput
+                          )
+                        "
+                        [placeholder]="
+                          'Search (' + (filterModes[colDef] || 'contains') + ')'
+                        "
+                      />
+                    </mat-form-field>
+
+                    <!-- Các cột text bình thường -->
+                    <mat-form-field
+                      *ngSwitchDefault
                       class="small-form-field"
                       appearance="fill"
                       floatLabel="always"
@@ -302,7 +324,6 @@
                       <mat-label>Search</mat-label>
                       <input
                         matInput
-                        #filterInput
                         [value]="searchTerms[colDef]?.value || ''"
                         (input)="applyFilter(colDef, $event)"
                         [placeholder]="
@@ -310,7 +331,7 @@
                         "
                       />
                     </mat-form-field>
-                  </ng-template>
+                  </ng-container>
                 </ng-template>
               </div>
             </div>

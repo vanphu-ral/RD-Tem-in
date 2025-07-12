@@ -21,9 +21,11 @@ import { AuthServerProvider } from "app/core/auth/auth-session.service";
 
 // #region Interfaces
 export interface RawGraphQLLocation {
-  locationId: string;
+  id: number;
   locationName: string;
+  locationFullName: string;
 }
+
 export interface UserSummary {
   username: string;
 }
@@ -43,6 +45,7 @@ export interface RawGraphQLMaterial {
   calculatedStatus: string;
   locationId: string;
   locationName: string;
+  locationFullName: string;
   parentLocationId: string;
   lastLocationId: string;
   expirationDate: string;
@@ -250,7 +253,16 @@ export class ListMaterialService {
   public apiSumaryByLocation = this.applicationConfigService.getEndpointFor(
     "/api/inventory/group-by-location-name",
   );
-  public selectedItems$!: Observable<RawGraphQLMaterial[]>;
+  public _selectedIds = new BehaviorSubject<string[]>([]);
+  public selectedItems$: Observable<RawGraphQLMaterial[]> = this._selectedIds
+    .asObservable()
+    .pipe(
+      map((ids) =>
+        ids
+          .map((id) => this._materialsCache.get(id))
+          .filter((i): i is RawGraphQLMaterial => !!i),
+      ),
+    );
 
   private _summaryDataSource = new BehaviorSubject<DataSumary[]>([]);
   private _SumaryData = new BehaviorSubject<DataSumary[]>([]);
@@ -270,7 +282,6 @@ export class ListMaterialService {
   private _updateHistoryData = new BehaviorSubject<updateHistoryData[]>([]);
   private _totalCount = new BehaviorSubject<number>(0);
   private _materialsData = new BehaviorSubject<RawGraphQLMaterial[]>([]);
-  private _selectedIds = new BehaviorSubject<string[]>([]);
   private _materialsCache = new Map<string, RawGraphQLMaterial>();
   private _locationsData = new BehaviorSubject<RawGraphQLLocation[]>([]);
   private _selectedItems = new BehaviorSubject<RawGraphQLMaterial[]>([]);
@@ -327,13 +338,15 @@ export class ListMaterialService {
     private authServer: AuthServerProvider,
     private applicationConfigService: ApplicationConfigService,
   ) {
-    this.selectedItems$ = this._selectedItems.asObservable();
-    const saved = sessionStorage.getItem("selectedMaterialIds");
-    if (saved) {
+    const savedItems = sessionStorage.getItem("selectedMaterials");
+    if (savedItems) {
       try {
-        this._selectedIds.next(JSON.parse(saved));
+        const items: RawGraphQLMaterial[] = JSON.parse(savedItems);
+        this._selectedItems.next(items);
+        this._selectedIds.next(items.map((i) => i.inventoryId));
+        items.forEach((i) => this._materialsCache.set(i.inventoryId, i));
       } catch {
-        /* empty */
+        //err
       }
     }
     this.refreshSelectedItems();
@@ -435,6 +448,7 @@ export class ListMaterialService {
     return this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).pipe(
       tap((response) => {
         this.cachePage(response.inventories);
+        this.updatePageData(response.inventories);
         console.log("API Response invent:", response);
         if (response?.inventories) {
           this._totalCount.next(response.totalItems);
@@ -482,45 +496,62 @@ export class ListMaterialService {
   }
 
   public clearSelection(): void {
+    this._selectedItems.next([]);
     this._selectedIds.next([]);
+    sessionStorage.removeItem("selectedMaterials");
     sessionStorage.removeItem("selectedMaterialIds");
-    const cleared = this._materialsData.value.map((item) => ({
-      ...item,
-      checked: false,
-      select_update: false,
-    }));
-    this._materialsData.next(cleared);
-    console.log("[Service] clearSelection → newIds:", this._selectedIds.value);
-    this.refreshSelectedItems();
   }
 
   public toggleItemSelection(materialId: string): void {
-    const ids = this._selectedIds.value;
-    const newIds = ids.includes(materialId)
-      ? ids.filter((x) => x !== materialId)
-      : [...ids, materialId];
-    this._selectedIds.next(newIds);
-    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
-    console.log(
-      "[Service] toggleItemSelection → newIds:",
-      this._selectedIds.value,
+    const cacheItem = this._materialsCache.get(materialId);
+    if (!cacheItem) {
+      return;
+    }
+
+    const items = [...this._selectedItems.value];
+    const idx = items.findIndex((i) => i.inventoryId === materialId);
+
+    if (idx >= 0) {
+      items.splice(idx, 1);
+    } else {
+      items.push(cacheItem);
+    }
+
+    this._selectedItems.next(items);
+    this._selectedIds.next(items.map((i) => i.inventoryId));
+    this.persistSelection();
+  }
+
+  persistSelection(): void {
+    const items = this._selectedItems.value;
+    sessionStorage.setItem("selectedMaterials", JSON.stringify(items));
+    sessionStorage.setItem(
+      "selectedMaterialIds",
+      JSON.stringify(items.map((i) => i.inventoryId)),
     );
-    this.refreshSelectedItems();
   }
-  selectItems(ids: string[]): void {
-    const set = new Set([...this._selectedIds.value, ...ids]);
-    const newIds = Array.from(set);
-    this._selectedIds.next(newIds);
-    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
-    console.log("[Service] selectItems → newIds:", this._selectedIds.value);
-    this.refreshSelectedItems();
+
+  public selectItems(ids: string[]): void {
+    const items = [...this._selectedItems.value];
+    ids.forEach((id) => {
+      if (!items.find((i) => i.inventoryId === id)) {
+        const cacheItem = this._materialsCache.get(id);
+        if (cacheItem) {
+          items.push(cacheItem);
+        }
+      }
+    });
+    this._selectedItems.next(items);
+    this._selectedIds.next(items.map((i) => i.inventoryId));
+    this.persistSelection();
   }
-  deselectItems(ids: string[]): void {
-    const newIds = this._selectedIds.value.filter((x) => !ids.includes(x));
-    this._selectedIds.next(newIds);
-    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
-    console.log("[Service] deselectItems → newIds:", this._selectedIds.value);
-    this.refreshSelectedItems();
+
+  public deselectItems(ids: string[]): void {
+    let items = [...this._selectedItems.value];
+    items = items.filter((i) => !ids.includes(i.inventoryId));
+    this._selectedItems.next(items);
+    this._selectedIds.next(items.map((i) => i.inventoryId));
+    this.persistSelection();
   }
   mergeChecked(page: RawGraphQLMaterial[]): RawGraphQLMaterial[] {
     const ids = this._selectedIds.value;
@@ -530,11 +561,10 @@ export class ListMaterialService {
     }));
   }
   updatePageData(pageItems: RawGraphQLMaterial[]): void {
-    console.log("[Service] caching page items:", pageItems.length);
-    pageItems.forEach((item) =>
-      this._materialsCache.set(item.inventoryId, item),
-    );
+    pageItems.forEach((i) => this._materialsCache.set(i.inventoryId, i));
+    this._materialsData.next(pageItems);
   }
+
   getPageWithSelection(pageItems: RawGraphQLMaterial[]): RawGraphQLMaterial[] {
     const ids = this._selectedIds.value;
     return pageItems.map((item) => ({
@@ -800,23 +830,32 @@ export class ListMaterialService {
       status: "PENDING",
     };
     const requestDetails: inventory_update_requests_detail[] =
-      dialogData.updatedItems.map((item) => ({
-        id: null,
-        materialId: item.materialIdentifier,
-        updatedBy: currentUser,
-        createdTime: currentTime,
-        updatedTime: currentTime,
-        productCode: item.partNumber,
-        productName: item.partNumber,
-        quantity: String(item.quantity),
-        quantityChange: String(item.quantityChange),
-        type: item.extendExpiration ? "EXTEND" : "MOVE",
-        locationId: item.locationId ?? "",
-        locationName: this.getLocationNameById(item.locationId) ?? "",
-        status: item.calculatedStatus,
-        requestId: null,
-        expiredTime: item.expirationDate ? String(item.expirationDate) : "",
-      }));
+      dialogData.updatedItems.map((item) => {
+        const finalLocationId =
+          dialogData.selectedWarehouse ??
+          item.selectedWarehouse?.value ??
+          item.locationId ??
+          "";
+
+        return {
+          id: null,
+          materialId: item.materialIdentifier,
+          updatedBy: currentUser,
+          createdTime: currentTime,
+          updatedTime: currentTime,
+          productCode: item.partNumber,
+          productName: item.partNumber,
+          quantity: String(item.quantity),
+          quantityChange: String(item.quantityChange),
+          type: item.extendExpiration ? "EXTEND" : "MOVE",
+          locationId: finalLocationId,
+          locationName: this.getLocationNameById(finalLocationId) ?? "",
+          status: item.calculatedStatus,
+          requestId: null,
+          expiredTime: item.expirationDate ? String(item.expirationDate) : "",
+        };
+      });
+
     const payload: UpdateRequestInfo = {
       request: requestHeader,
       detail: requestDetails,
@@ -857,48 +896,53 @@ export class ListMaterialService {
     const currentTime = new Date().toISOString();
     const requestHeader: inventory_update_requests = {
       id: parentRequestId,
-      requestCode: requestCode,
+      requestCode,
       createdTime: currentTime,
       updatedTime: currentTime,
       requestedBy: currentUser,
-      approvedBy: dialogData.approvers ? dialogData.approvers.join(", ") : "",
+      approvedBy: dialogData.approvers.join(", "),
       status: "APPROVE",
     };
+
     const requestDetails: inventory_update_requests_detail[] =
-      dialogData.updatedItems.map((item) => ({
-        id: item.id,
-        materialId: String(item.materialId ?? ""),
-        updatedBy: currentUser,
-        createdTime: currentTime,
-        updatedTime: currentTime,
-        productCode: item.productCode,
-        productName: item.productName,
-        quantity: String(item.quantity),
-        type: item.type,
-        locationId: item.locationId ?? "",
-        locationName: this.getLocationNameById(item.locationId) ?? "",
-        status: item.status,
-        requestId: null,
-        quantityChange: String(item.quantityChange),
-        expiredTime: item.expiredTime || "",
-      }));
+      dialogData.updatedItems.map((item) => {
+        // Ưu tiên tên kho từ item.locationName
+        const finalLocationName =
+          item.locationName ?? this.getLocationNameById(item.locationId) ?? "";
+
+        return {
+          id: item.id,
+          materialId: String(item.materialId ?? ""),
+          updatedBy: currentUser,
+          createdTime: currentTime,
+          updatedTime: currentTime,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: String(item.quantity),
+          type: item.type,
+          locationId: item.locationId ?? "",
+          locationName: finalLocationName,
+          status: item.status,
+          requestId: null,
+          quantityChange: String(item.quantityChange),
+          expiredTime: item.expiredTime || "",
+        };
+      });
+
     const payload: UpdateInfo = {
       request: requestHeader,
       detail: requestDetails,
     };
-    const headers = new HttpHeaders({
-      "Content-Type": "application/json",
-    });
+
+    console.log("Payload approve gửi lên:", payload);
+
+    const headers = new HttpHeaders({ "Content-Type": "application/json" });
     return this.http.post(this.apiUrl_post_update, payload, { headers }).pipe(
       tap(() => {
         console.log(
           "MaterialService: Approve inventory update successful. Refreshing materials data.",
         );
-        this.fetchMaterialsData(
-          1,
-          this.defaultPageSize,
-          // true,
-        );
+        this.fetchMaterialsData(1, this.defaultPageSize);
         this.fetchAllInventoryUpdateRequests();
       }),
     );
@@ -1040,27 +1084,22 @@ export class ListMaterialService {
     raw: RawGraphQLMaterial,
     selectedIds: string[],
   ): RawGraphQLMaterial {
-    const locations: RawGraphQLLocation[] = this._locationsData.getValue();
+    const locations = this._locationsData.getValue();
     const locationMap = new Map<string, string>();
+
     locations.forEach((loc) => {
-      let id = loc.locationId;
-      if (typeof id !== "string") {
-        id = String(id);
-      }
-      id = id.trim().toLowerCase();
-      locationMap.set(id, loc.locationName);
+      locationMap.set(loc.id.toString(), loc.locationName);
     });
-    let rawLocationId = raw.locationId;
-    if (typeof rawLocationId !== "string") {
-      rawLocationId = String(rawLocationId);
-    }
-    rawLocationId = rawLocationId.trim().toLowerCase();
+
+    const rawLocId = String(raw.locationId ?? "").trim();
+
+    const locationName = locationMap.get(rawLocId) ?? "Unknown";
+
     return {
       ...raw,
-      inventoryId: raw.inventoryId,
       checked: selectedIds.includes(raw.inventoryId),
       select_update: false,
-      locationName: locationMap.get(rawLocationId) ?? "Unknown",
+      locationName,
     };
   }
 
@@ -1069,7 +1108,7 @@ export class ListMaterialService {
       return null;
     }
     const location = this._locationsData.value.find(
-      (loc) => loc.locationId === locationId,
+      (loc) => locationId === loc.id.toString(),
     );
     return location ? location.locationName : null;
   }

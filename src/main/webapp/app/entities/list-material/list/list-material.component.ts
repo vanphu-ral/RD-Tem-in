@@ -256,6 +256,19 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isLoading = true;
 
     this.updateDisplayedColumns();
+    const navEntries = performance.getEntriesByType("navigation") as any[];
+    const isReload = navEntries.length && navEntries[0].type === "reload";
+    if (isReload) {
+      this.searchTerms = {};
+      this.filterModes = {};
+      this.dateInputs = {};
+
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { page: 1, pageSize: this.pageSize },
+        replaceUrl: true,
+      });
+    }
 
     const canUpdate = this.accountService.hasAnyAuthority([
       "ROLE_PANACIM_UPDATE",
@@ -383,7 +396,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       materialType: "Material Type",
       checkinDate: "Checkin Date",
       locationName: "Location Name",
-      locationFullName: "Location FullName",
       locationTypeId: "Location TypeId",
       locationTypeName: "Location TypeName",
       locationDescription: "Location Description",
@@ -472,14 +484,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       delete this.searchTerms[col];
       delete this.filterModes[col];
     }
-
-    // const params: any = { page: "1", pageSize: this.pageSize.toString() };
-    // Object.entries(this.searchTerms).forEach(([field, term]) => {
-    //   params[field] = term.value;
-    //   // nếu ẩy mode lên URL:
-    //   // params[field+'Mode'] = term.mode;
-    // });
-
     this.filterChange$.next();
   }
 
@@ -588,6 +592,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dataSource.data = this.materialService.mergeChecked(
       this.dataSource.data,
     );
+  }
+  onScanLocationEnter(rawValue: string, inputEl: HTMLInputElement): void {
+    const processed = this.processScanInput(rawValue);
+
+    inputEl.value = processed;
+
+    this.applyFilter("locationName", { target: { value: processed } } as any);
   }
 
   startScan(): void {
@@ -792,6 +803,19 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   //   // #region Private methods
+  private processScanInput(scanValue: string): string {
+    let result = scanValue;
+    result = result.replace(/^LO/i, "");
+
+    // "-SLSLOT" → "-SLOT",  "-SLRACK" → "-RACK"
+    result = result.replace(/-SL/gi, "-");
+
+    result = result.replace(/--+/g, "-");
+
+    result = result.replace(/[^A-Za-z0-9-]+$/g, "");
+
+    return result.trim();
+  }
   private setDateFilter(col: string, date: Date | null): void {
     if (date) {
       // UTC-midnight → epoch seconds
@@ -812,19 +836,31 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   private fetchPage(params: any): void {
     const page = +params.page || 1;
     const pageSize = +params.pageSize || this.pageSize;
-    const { page: _, pageSize: __, ...filters } = params;
+    const filtersObj = { ...params };
+    delete filtersObj.page;
+    delete filtersObj.pageSize;
 
-    console.log("API filters:", filters);
     this.isLoading = true;
+
     this.materialService
-      .fetchMaterialsData(page, pageSize, filters)
-      .pipe(finalize(() => (this.isLoading = false)))
-      .subscribe((resp) => {
-        this.length = resp.totalItems;
-        this.dataSource.data = this.materialService.mergeChecked(
-          resp.inventories,
-        );
-      });
+      .fetchMaterialsData(page, pageSize, filtersObj)
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+        }),
+      )
+      .subscribe(
+        (resp) => {
+          this.length = resp.totalItems;
+          this.dataSource.data = this.materialService.mergeChecked(
+            resp.inventories,
+          );
+        },
+        () => {
+          this.dataSource.data = [];
+          this.length = 0;
+        },
+      );
   }
 
   private updateRouteWithFilters(): void {

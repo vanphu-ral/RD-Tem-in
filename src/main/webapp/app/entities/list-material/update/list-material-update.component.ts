@@ -177,21 +177,14 @@ export class ListMaterialUpdateComponent
   ngOnInit(): void {
     this.materialService.selectedItems$
       .pipe(takeUntil(this.ngUnsubscribe))
-      .subscribe((items: RawGraphQLMaterial[]) => {
-        console.log("[Component-update] selectedItems$ emitted:", items);
+      .subscribe((items) => {
         const rows = items.map((item) => ({
           ...item,
           select_update: true,
         }));
-        console.log("[Component-update] rows after mapping:", rows);
         this.dataSource.data = rows;
-        console.log(
-          "[Component-update] dataSource.data set to:",
-          this.dataSource.data,
-        );
         this.selection.clear();
         rows.forEach((r) => this.selection.select(r));
-
         this.initializeColumnSelection(rows);
         this.updateDisplayedColumns();
       });
@@ -328,7 +321,7 @@ export class ListMaterialUpdateComponent
       materialType: "Material Type",
       checkinDate: "Checkin Date",
       locationName: "Location Name",
-      locationFullName: "Location FullName",
+      // locationFullName: "Location FullName",
       locationTypeId: "Location TypeId",
       locationTypeName: "Location TypeName",
       locationDescription: "Location Description",
