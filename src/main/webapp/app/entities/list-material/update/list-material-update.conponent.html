@@ -13,6 +13,14 @@
         >
           <mat-icon>arrow_back</mat-icon>
         </button>
+        <button class="btn-scan" mat-button (click)="startScan()">
+          <mat-icon>center_focus_weak</mat-icon>
+          <span class="btn-text">Scan</span>
+        </button>
+        <!-- <div *ngIf="scanError" class="scan-error">{{ scanError }}</div> -->
+        <div *ngIf="isScanMode && !scanResult">
+          <mat-spinner diameter="20"></mat-spinner>
+        </div>
       </div>
       <div class="group-buttons secondary">
         <div *ngIf="checkedCount() > 0">
@@ -81,11 +89,29 @@
       </div>
     </div>
   </div>
+  <input
+    #scanInput
+    [(ngModel)]="scanResult"
+    type="text"
+    style="
+      opacity: 0;
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      border: 0;
+    "
+    (keyup.enter)="onScanEnter(scanInput.value)"
+  />
   <div
     class="table-container full-scroll-table-container"
     [style.max-width]="tableMaxWidth"
     style="overflow-x: auto"
   >
+    <div class="overlay-spinner" *ngIf="isLoading">
+      <!-- <mat-spinner diameter="50"></mat-spinner> -->
+      <div class="loader"></div>
+    </div>
     <table
       mat-table
       [dataSource]="dataSource"

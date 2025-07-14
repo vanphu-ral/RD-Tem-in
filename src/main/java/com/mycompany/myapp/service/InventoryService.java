@@ -263,4 +263,10 @@ public class InventoryService {
         }
         return updated;
     }
+
+    public InventoryResponse findByInventoryId(String materialIdentifier) {
+        return inventoryRepository.findResponseByMaterialIdentifier(
+            materialIdentifier
+        );
+    }
 }

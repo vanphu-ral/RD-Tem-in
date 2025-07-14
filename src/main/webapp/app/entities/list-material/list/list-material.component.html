@@ -176,7 +176,7 @@
     [style.max-width]="tableMaxWidth"
     style="overflow-x: auto"
   >
-    <div class="overlay-spinner" *ngIf="isLoading">
+    <div class="overlay-spinner" *ngIf="isLoading || scanPending">
       <!-- <mat-spinner diameter="50"></mat-spinner> -->
       <div class="loader"></div>
     </div>

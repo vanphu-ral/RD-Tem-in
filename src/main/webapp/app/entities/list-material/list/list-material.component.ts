@@ -9,7 +9,7 @@ import {
   QueryList,
   ViewChildren,
 } from "@angular/core";
-import { Router } from "@angular/router";
+import { Params, Router } from "@angular/router";
 import { MatTableDataSource } from "@angular/material/table";
 import { ChangeDetectionStrategy, signal } from "@angular/core";
 import { FormBuilder, FormGroup, FormControl } from "@angular/forms";
@@ -230,6 +230,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   private filterChange$ = new Subject<void>();
   private dateFilters: Record<string, string> = {};
   private readonly FULL_DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
+  private scanTimeoutId: any;
+  private canUpdate = false;
 
   // #endregion
 
@@ -253,73 +255,38 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // #region Lifecycle hooks
   ngOnInit(): void {
-    this.isLoading = true;
-
-    this.updateDisplayedColumns();
-    const navEntries = performance.getEntriesByType("navigation") as any[];
-    const isReload = navEntries.length && navEntries[0].type === "reload";
-    if (isReload) {
-      this.searchTerms = {};
-      this.filterModes = {};
-      this.dateInputs = {};
-
-      this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { page: 1, pageSize: this.pageSize },
-        replaceUrl: true,
-      });
-    }
-
-    const canUpdate = this.accountService.hasAnyAuthority([
+    this.canUpdate = this.accountService.hasAnyAuthority([
       "ROLE_PANACIM_UPDATE",
       "ROLE_PANACIM_ADMIN",
     ]);
+    this.updateDisplayedColumns();
+
     this.materialService.selectedIds$
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((ids) => this.checkedCount.set(ids.length));
 
-    //debounceTime
     this.filterChange$
       .pipe(debounceTime(300), takeUntil(this.ngUnsubscribe))
-      .subscribe(() => {
-        this.updateRouteWithFilters();
-      });
+      .subscribe(() => this.updateRouteWithFilters());
 
-    this.route.queryParams.pipe(first()).subscribe((params) => {
-      const allowed = this.displayedColumns.filter((c) => c !== "select");
-      for (const col of allowed) {
-        const v = params[col];
-        if (v != null && v !== "") {
-          const m = params[col + "Mode"] || this.filterModes[col] || "contains";
-          this.searchTerms[col] = { mode: m, value: v };
-          this.filterModes[col] = m;
-          if (this.isDateField(col)) {
-            const ms = parseInt(v, 10) * 1000;
-            this.dateInputs[col] = formatDate(
-              new Date(ms),
-              "dd/MM/yyyy",
-              this.locale,
-            );
-          }
-        }
-      }
+    const initialParams = this.route.snapshot.queryParams;
+    this.mapParamsToFilters(initialParams);
+    this.pageIndex = (initialParams.page ?? 1) - 1;
+    this.pageSize = initialParams.pageSize ?? this.pageSize;
+    this.fetchPage({
+      ...initialParams,
+      page: this.pageIndex + 1,
+      pageSize: this.pageSize,
     });
 
     this.route.queryParams
-      .pipe(takeUntil(this.ngUnsubscribe))
+      .pipe(skip(1), takeUntil(this.ngUnsubscribe))
       .subscribe((params) => {
-        console.log("[DBG] queryParams fired:", params);
-        this.pageIndex = params.page ? +params.page - 1 : 0;
-        this.pageSize = params.pageSize ? +params.pageSize : this.pageSize;
-        this.isLoading = true;
+        this.mapParamsToFilters(params);
+        this.pageIndex = (params.page ?? 1) - 1;
+        this.pageSize = params.pageSize ?? this.pageSize;
         this.fetchPage(params);
       });
-
-    this.displayedColumns = canUpdate
-      ? [...this.displayedColumns]
-      : this.displayedColumns.filter((c) => c !== "select");
-
-    const allowedCols = this.displayedColumns.filter((c) => c !== "select");
   }
   onPageChange(event: PageEvent): void {
     this.router.navigate([], {
@@ -616,32 +583,41 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onScanEnter(rawValue: string): void {
-    const scanString = this.scanResult.trim();
-    if (!scanString) {
-      this.openError("Không nhận diện được mã vật tư, vui lòng thử lại!");
-      this.isScanMode = false;
-      return;
+    const code = rawValue.trim().split("#")[0].trim().toLowerCase();
+    if (!code) {
+      this.openError("Không nhận diện được mã vật tư!");
+      return this.exitScanMode();
     }
-
-    const inventoryTerm = scanString.split("#")[0].trim().toLowerCase();
-    if (!inventoryTerm) {
-      this.openError("Không nhận diện được mã vật tư, vui lòng thử lại!");
-      this.isScanMode = false;
-      return;
-    }
-    this.filterModes["materialIdentifier"] = "equals";
-    this.scanPending = true;
-    this.searchTerms["materialIdentifier"] = {
-      mode: "equals",
-      value: inventoryTerm,
-    };
-
-    this.updateRouteWithFilters();
 
     this.isScanMode = false;
+    this.scanPending = true;
+
+    this.materialService
+      .getInventoryScanById(code)
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        finalize(() => {
+          this.scanPending = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (raw) => {
+          if (raw) {
+            this.dataSource.data = this.materialService.mergeChecked([raw]);
+            this.length = 1;
+          } else {
+            this.openError(`Không tìm thấy vật tư: ${code}`);
+          }
+        },
+        error: () => {
+          this.openError(`Lỗi khi tìm vật tư: ${code}`);
+        },
+      });
   }
 
   openError(message: string): void {
+    clearTimeout(this.scanTimeoutId);
     this.snackBar.open(message, "Đóng", {
       duration: 3000,
       panelClass: ["snackbar-error"],
@@ -654,23 +630,29 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.scanResult = "";
     this.searchTerms = {};
     this.filterModes = {};
-
     this.materialService.clearSelection();
-
     this.checkedCount.set(0);
-
-    this.dataSource.data = this.materialService.mergeChecked(
-      this.dataSource.data,
-    );
-
-    this.updateRouteWithFilters();
     this.isScanMode = false;
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { page: 1, pageSize: this.pageSize },
+      replaceUrl: true,
+    });
   }
 
   updateDisplayedColumns(): void {
-    this.displayedColumns = this.columnSelectionGroup()
+    const baseCols = this.columnSelectionGroup()
       .subtasks!.filter((col) => col.completed)
       .map((col) => col.matColumnDef);
+
+    if (this.canUpdate) {
+      this.displayedColumns = baseCols.includes("select")
+        ? baseCols
+        : ["select", ...baseCols];
+    } else {
+      this.displayedColumns = baseCols.filter((col) => col !== "select");
+    }
   }
 
   public applyFilter(colDef: string, event: Event): void {
@@ -803,6 +785,30 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   //   // #region Private methods
+  private mapParamsToFilters(params: Params): void {
+    this.searchTerms = {};
+    this.filterModes = {};
+    this.dateInputs = {};
+
+    const cols = this.displayedColumns.filter((c) => c !== "select");
+    cols.forEach((col) => {
+      const val = params[col];
+      if (val != null && val !== "") {
+        if (this.isDateField(col)) {
+          const ms = parseInt(val, 10) * 1000;
+          this.dateInputs[col] = formatDate(
+            new Date(ms),
+            "dd/MM/yyyy",
+            this.locale,
+          );
+        } else {
+          const mode = params[col + "Mode"] || "contains";
+          this.searchTerms[col] = { value: val, mode };
+          this.filterModes[col] = mode;
+        }
+      }
+    });
+  }
   private processScanInput(scanValue: string): string {
     let result = scanValue;
     result = result.replace(/^LO/i, "");
@@ -846,6 +852,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       .fetchMaterialsData(page, pageSize, filtersObj)
       .pipe(
         finalize(() => {
+          clearTimeout(this.scanTimeoutId);
           this.isLoading = false;
         }),
       )
@@ -864,6 +871,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private updateRouteWithFilters(): void {
+    this.scanPending = false;
     const params: any = { page: 1, pageSize: this.pageSize };
 
     Object.entries(this.searchTerms).forEach(([col, term]) => {

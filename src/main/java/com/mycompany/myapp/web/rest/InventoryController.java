@@ -86,4 +86,17 @@ public class InventoryController {
             );
         }
     }
+
+    @GetMapping("/{materialIdentifier}")
+    public ResponseEntity<InventoryResponse> getInventoryByMaterialIdentifier(
+        @PathVariable String materialIdentifier
+    ) {
+        InventoryResponse response = inventoryService.findByInventoryId(
+            materialIdentifier
+        );
+        if (response != null) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.notFound().build();
+    }
 }

@@ -9,6 +9,7 @@ import {
   switchMap,
   takeUntil,
   tap,
+  throwError,
 } from "rxjs";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { environment } from "app/environments/environment";
@@ -603,6 +604,55 @@ export class ListMaterialService {
       catchError((err): Observable<APIDetailResponse> => {
         console.error("Lỗi khi lấy chi tiết summary:", err);
         return of({ inventories: [], totalItems: 0 });
+      }),
+    );
+  }
+
+  public getCachedMaterial(id: string): RawGraphQLMaterial | undefined {
+    return this._materialsCache.get(id);
+  }
+  public cacheMaterial(raw: RawGraphQLMaterial): void {
+    this._materialsCache.set(raw.inventoryId, raw);
+  }
+  public fetchMaterialById(
+    id: string,
+  ): Observable<RawGraphQLMaterial | undefined> {
+    const url = this.applicationConfigService.getEndpointFor(
+      `/api/inventory/${id}`,
+    );
+    return this.http.get<RawGraphQLMaterial>(url).pipe(
+      tap((raw) => {
+        if (raw) {
+          this._materialsCache.set(raw.inventoryId, raw);
+        }
+      }),
+      catchError((err) => {
+        if (err.status === 404) {
+          return of(undefined);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return throwError(() => err);
+      }),
+    );
+  }
+  public getInventoryScanById(
+    materialId: string,
+  ): Observable<RawGraphQLMaterial | undefined> {
+    const url = this.applicationConfigService.getEndpointFor(
+      `/api/inventory/${materialId}`,
+    );
+    return this.http.get<RawGraphQLMaterial>(url).pipe(
+      tap((raw) => {
+        if (raw) {
+          this.cacheMaterial(raw);
+        }
+      }),
+      catchError((err) => {
+        if (err.status === 404) {
+          return of(undefined);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return throwError(() => err);
       }),
     );
   }

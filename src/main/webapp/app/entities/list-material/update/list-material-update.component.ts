@@ -15,7 +15,7 @@ import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
-import { filter, Subject, Subscription, takeUntil } from "rxjs";
+import { filter, finalize, Subject, Subscription, takeUntil } from "rxjs";
 import { SelectionModel } from "@angular/cdk/collections";
 import {
   RawGraphQLMaterial,
@@ -69,6 +69,7 @@ export class ListMaterialUpdateComponent
   hidePageSize = false;
   showPageSizeOptions = true;
   showFirstLastButtons = true;
+  isLoading = false;
   disabled = false;
   statusOptions = [
     { value: "", view: "-- All --" },
@@ -376,7 +377,66 @@ export class ListMaterialUpdateComponent
     this.pageSize = e.pageSize;
     this.pageIndex = e.pageIndex;
   }
+  startScan(): void {
+    this.scanResult = "";
+    this.isScanMode = true;
+    setTimeout(() => {
+      this.scanInput.nativeElement.value = "";
+      this.scanInput.nativeElement.focus();
+    }, 0);
+  }
 
+  exitScanMode(): void {
+    this.isScanMode = false;
+  }
+
+  onScanEnter(rawValue: string): void {
+    const code = rawValue.trim().split("#")[0];
+    this.isScanMode = false;
+    this.isLoading = true;
+
+    this.materialService
+      .fetchMaterialById(code)
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (raw) => {
+          if (raw) {
+            this.materialService.selectItems([raw.inventoryId]);
+          } else {
+            this.openError(`Không tìm thấy vật tư: ${code}`);
+          }
+        },
+        error: () => {
+          this.openError(`Lỗi khi tìm vật tư: ${code}`);
+        },
+      });
+  }
+
+  openError(message: string): void {
+    this.snackBar.open(message, "Đóng", {
+      duration: 3000,
+      panelClass: ["snackbar-error"],
+      horizontalPosition: "center",
+      verticalPosition: "bottom",
+    });
+  }
+
+  refreshScan(): void {
+    this.scanResult = "";
+    this.searchTerms = {};
+    this.filterModes = {};
+    this.materialService.clearSelection();
+    this.dataSource.data = this.materialService.mergeChecked(
+      this.dataSource.data,
+    );
+    this.isScanMode = false;
+  }
   setPageSizeOptions(setPageSizeOptionsInput: string): void {
     if (setPageSizeOptionsInput) {
       this.pageSizeOptions = setPageSizeOptionsInput
@@ -438,10 +498,6 @@ export class ListMaterialUpdateComponent
     setTimeout(() => this.scanInput?.nativeElement.focus(), 0);
   }
 
-  exitScanMode(): void {
-    this.isScanMode = false;
-  }
-
   handleScanInput(scanString: string, event?: KeyboardEvent): void {
     const parts = scanString.split("#");
     const inventoryTerm = parts[0] || "";
@@ -490,26 +546,6 @@ export class ListMaterialUpdateComponent
   }
   isRowSelectedForUpdate(row: RawGraphQLMaterial): boolean {
     return !!row.select_update;
-  }
-  refreshScan(): void {
-    this.scanResult = "";
-    if (
-      Object.prototype.hasOwnProperty.call(
-        this.searchTerms,
-        "materialIdentifier",
-      )
-    ) {
-      delete this.searchTerms["materialIdentifier"];
-    }
-    const filterObject = {
-      textFilters: this.searchTerms,
-      dialogFilters: {},
-    };
-    this.dataSource.filter = JSON.stringify(filterObject);
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
-    this.exitScanMode();
   }
   update(completed: boolean, index?: number): void {
     const currentGroup = this.columnSelectionGroup();
@@ -699,6 +735,32 @@ export class ListMaterialUpdateComponent
     }
   }
   // #endregion
+  private onScannedCode(code: string): void {
+    const cached = this.materialService.getCachedMaterial(code);
+    if (cached) {
+      this.materialService.toggleItemSelection(code);
+      return;
+    }
+
+    this.materialService.fetchMaterialById(code).subscribe(
+      (raw) => {
+        if (!raw) {
+          this.snackBar.open("Không tìm thấy vật tư: " + code, "Đóng", {
+            duration: 2000,
+          });
+          return;
+        }
+        this.materialService.cacheMaterial(raw);
+        this.materialService.toggleItemSelection(raw.inventoryId);
+      },
+      () => {
+        this.snackBar.open("Lỗi khi fetch vật tư: " + code, "Đóng", {
+          duration: 2000,
+        });
+      },
+    );
+  }
+
   private applyCombinedFilters(): void {
     const combinedFilterData = {
       textFilters: this.searchTerms,
