@@ -50,30 +50,49 @@ class LogoutResourceIT {
     @BeforeEach
     public void before() throws Exception {
         claims = new HashMap<>();
-        claims.put("groups", Collections.singletonList(AuthoritiesConstants.USER));
+        claims.put(
+            "groups",
+            Collections.singletonList(AuthoritiesConstants.USER)
+        );
         claims.put("sub", 123);
 
-        SecurityContextHolder
-            .getContext()
-            .setAuthentication(registerAuthenticationToken(authorizedClientService, clientRegistration, authenticationToken(claims)));
-        SecurityContextHolderAwareRequestFilter authInjector = new SecurityContextHolderAwareRequestFilter();
+        SecurityContextHolder.getContext().setAuthentication(
+            registerAuthenticationToken(
+                authorizedClientService,
+                clientRegistration,
+                authenticationToken(claims)
+            )
+        );
+        SecurityContextHolderAwareRequestFilter authInjector =
+            new SecurityContextHolderAwareRequestFilter();
         authInjector.afterPropertiesSet();
 
-        this.restLogoutMockMvc = MockMvcBuilders.webAppContextSetup(this.context).build();
+        this.restLogoutMockMvc = MockMvcBuilders.webAppContextSetup(
+            this.context
+        ).build();
     }
 
     @Test
     void getLogoutInformation() throws Exception {
-        final String ORIGIN_URL = "http://localhost:8085";
-        String logoutUrl =
-            this.registrations.findByRegistrationId("oidc")
-                .getProviderDetails()
-                .getConfigurationMetadata()
-                .get("end_session_endpoint")
-                .toString();
-        logoutUrl = logoutUrl + "?id_token_hint=" + ID_TOKEN + "&post_logout_redirect_uri=" + ORIGIN_URL;
+        final String ORIGIN_URL = "http://localhost:8089";
+        String logoutUrl = this.registrations.findByRegistrationId("oidc")
+            .getProviderDetails()
+            .getConfigurationMetadata()
+            .get("end_session_endpoint")
+            .toString();
+        logoutUrl =
+            logoutUrl +
+            "?id_token_hint=" +
+            ID_TOKEN +
+            "&post_logout_redirect_uri=" +
+            ORIGIN_URL;
         restLogoutMockMvc
-            .perform(post("http://localhost:8085/api/logout").header(HttpHeaders.ORIGIN, ORIGIN_URL))
+            .perform(
+                post("http://localhost:8089/api/logout").header(
+                    HttpHeaders.ORIGIN,
+                    ORIGIN_URL
+                )
+            )
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.logoutUrl").value(logoutUrl));

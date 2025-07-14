@@ -1,12 +1,12 @@
-import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { of } from 'rxjs';
+import { ComponentFixture, TestBed, waitForAsync } from "@angular/core/testing";
+import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { of } from "rxjs";
 
-import { ConfigurationComponent } from './configuration.component';
-import { ConfigurationService } from './configuration.service';
-import { Bean, PropertySource } from './configuration.model';
+import { ConfigurationComponent } from "./configuration.component";
+import { ConfigurationService } from "./configuration.service";
+import { Bean, PropertySource } from "./configuration.model";
 
-describe('ConfigurationComponent', () => {
+describe("ConfigurationComponent", () => {
   let comp: ConfigurationComponent;
   let fixture: ComponentFixture<ConfigurationComponent>;
   let service: ConfigurationService;
@@ -17,7 +17,7 @@ describe('ConfigurationComponent', () => {
       declarations: [ConfigurationComponent],
       providers: [ConfigurationService],
     })
-      .overrideTemplate(ConfigurationComponent, '')
+      .overrideTemplate(ConfigurationComponent, "")
       .compileComponents();
   }));
 
@@ -27,31 +27,33 @@ describe('ConfigurationComponent', () => {
     service = TestBed.inject(ConfigurationService);
   });
 
-  describe('OnInit', () => {
-    it('Should call load all on init', () => {
+  describe("OnInit", () => {
+    it("Should call load all on init", () => {
       // GIVEN
       const beans: Bean[] = [
         {
-          prefix: 'jhipster',
+          prefix: "jhipster",
           properties: {
             clientApp: {
-              name: 'jhipsterApp',
+              name: "jhipsterApp",
             },
           },
         },
       ];
       const propertySources: PropertySource[] = [
         {
-          name: 'server.ports',
+          name: "server.ports",
           properties: {
-            'local.server.port': {
-              value: '8085',
+            "local.server.port": {
+              value: "8089",
             },
           },
         },
       ];
-      jest.spyOn(service, 'getBeans').mockReturnValue(of(beans));
-      jest.spyOn(service, 'getPropertySources').mockReturnValue(of(propertySources));
+      jest.spyOn(service, "getBeans").mockReturnValue(of(beans));
+      jest
+        .spyOn(service, "getPropertySources")
+        .mockReturnValue(of(propertySources));
 
       // WHEN
       comp.ngOnInit();

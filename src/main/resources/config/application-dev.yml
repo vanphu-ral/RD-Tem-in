@@ -96,7 +96,7 @@ partner2:
         enabled: true
 
 server:
-  port: 8085
+  port: 8089
 
 # ===================================================================
 # JHipster specific properties

@@ -152,7 +152,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         completed: true,
       },
       { name: "Received Date", matColumnDef: "receivedDate", completed: false },
-      { name: "Updated Date", matColumnDef: "updatedDate", completed: false },
+      { name: "Updated Date", matColumnDef: "updatedDate", completed: true },
       { name: "Updated By", matColumnDef: "updatedBy", completed: false },
       {
         name: "Manufacturing Date",

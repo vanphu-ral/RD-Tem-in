@@ -1,7 +1,7 @@
 export const environment = {
   restApiBaseUrl: "http://localhost:9000",
-  graphqlApiUrl: "http://localhost:8085",
-  graphqlWsUrl: "http://localhost:8085",
+  graphqlApiUrl: "http://localhost:8089",
+  graphqlWsUrl: "http://localhost:8089",
   resApiUpdateUrl: "http://localhost:9000",
   keycloak: {
     serverUrl: "http://192.168.68.90:8080/auth",

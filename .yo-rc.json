@@ -46,7 +46,7 @@
     "prodDatabaseType": "mssql",
     "reactive": false,
     "searchEngine": false,
-    "serverPort": "8085",
+    "serverPort": "8089",
     "serverSideOptions": ["enableSwaggerCodegen:true"],
     "serviceDiscoveryType": "no",
     "skipCheckLengthOfIdentifier": false,

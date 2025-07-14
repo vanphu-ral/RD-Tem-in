@@ -1,25 +1,26 @@
-const webpack = require('webpack');
-const { merge } = require('webpack-merge');
-const path = require('path');
-const BrowserSyncPlugin = require('browser-sync-webpack-plugin');
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-const WebpackNotifierPlugin = require('webpack-notifier');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
-const ESLintPlugin = require('eslint-webpack-plugin');
+const webpack = require("webpack");
+const { merge } = require("webpack-merge");
+const path = require("path");
+const BrowserSyncPlugin = require("browser-sync-webpack-plugin");
+const BundleAnalyzerPlugin =
+  require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
+const WebpackNotifierPlugin = require("webpack-notifier");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+const ESLintPlugin = require("eslint-webpack-plugin");
 
-const environment = require('./environment');
-const proxyConfig = require('./proxy.conf');
+const environment = require("./environment");
+const proxyConfig = require("./proxy.conf");
 
 module.exports = async (config, options, targetOptions) => {
   // PLUGINS
-  if (config.mode === 'development') {
+  if (config.mode === "development") {
     config.plugins.push(
       new ESLintPlugin({
-        extensions: ['js', 'ts'],
+        extensions: ["js", "ts"],
       }),
       new WebpackNotifierPlugin({
-        title: 'JHipster',
-        contentImage: path.join(__dirname, 'logo-jhipster.png'),
+        title: "JHipster",
+        contentImage: path.join(__dirname, "logo-jhipster.png"),
       }),
     );
   }
@@ -30,15 +31,15 @@ module.exports = async (config, options, targetOptions) => {
     config.devServer.proxy = proxyConfig({ tls });
   }
 
-  if (targetOptions.target === 'serve' || config.watch) {
+  if (targetOptions.target === "serve" || config.watch) {
     config.plugins.push(
       new BrowserSyncPlugin(
         {
-          host: 'localhost',
+          host: "localhost",
           port: 9000,
           https: tls,
           proxy: {
-            target: `http${tls ? 's' : ''}://localhost:${targetOptions.target === 'serve' ? '4200' : '8085'}`,
+            target: `http${tls ? "s" : ""}://localhost:${targetOptions.target === "serve" ? "4200" : "8089"}`,
             ws: true,
             proxyOptions: {
               changeOrigin: false, //pass the Host header to the backend unchanged  https://github.com/Browsersync/browser-sync/issues/430
@@ -59,19 +60,19 @@ module.exports = async (config, options, targetOptions) => {
           */
         },
         {
-          reload: targetOptions.target === 'build', // enabled for build --watch
+          reload: targetOptions.target === "build", // enabled for build --watch
         },
       ),
     );
   }
 
-  if (config.mode === 'production') {
+  if (config.mode === "production") {
     config.plugins.push(
       new BundleAnalyzerPlugin({
-        analyzerMode: 'static',
+        analyzerMode: "static",
         openAnalyzer: false,
         // Webpack statistics in target folder
-        reportFilename: '../stats.html',
+        reportFilename: "../stats.html",
       }),
     );
   }
@@ -79,16 +80,16 @@ module.exports = async (config, options, targetOptions) => {
   const patterns = [
     {
       // https://github.com/swagger-api/swagger-ui/blob/v4.6.1/swagger-ui-dist-package/README.md
-      context: require('swagger-ui-dist').getAbsoluteFSPath(),
-      from: '*.{js,css,html,png}',
-      to: 'swagger-ui/',
-      globOptions: { ignore: ['**/index.html'] },
+      context: require("swagger-ui-dist").getAbsoluteFSPath(),
+      from: "*.{js,css,html,png}",
+      to: "swagger-ui/",
+      globOptions: { ignore: ["**/index.html"] },
     },
     {
-      from: require.resolve('axios/dist/axios.min.js'),
-      to: 'swagger-ui/',
+      from: require.resolve("axios/dist/axios.min.js"),
+      to: "swagger-ui/",
     },
-    { from: './src/main/webapp/swagger-ui/', to: 'swagger-ui/' },
+    { from: "./src/main/webapp/swagger-ui/", to: "swagger-ui/" },
     // jhipster-needle-add-assets-to-webpack - JHipster will add/remove third-party resources in this array
   ];
 
@@ -100,7 +101,8 @@ module.exports = async (config, options, targetOptions) => {
     new webpack.DefinePlugin({
       // APP_VERSION is passed as an environment variable from the Gradle / Maven build tasks.
       __VERSION__: JSON.stringify(environment.__VERSION__),
-      __DEBUG_INFO_ENABLED__: environment.__DEBUG_INFO_ENABLED__ || config.mode === 'development',
+      __DEBUG_INFO_ENABLED__:
+        environment.__DEBUG_INFO_ENABLED__ || config.mode === "development",
       // The root URL for API calls, ending with a '/' - for example: `"https://www.jhipster.tech:8081/myservice/"`.
       // If this URL is left empty (""), then it will be relative to the current context.
       // If you use an API server, in `prod` mode, you will need to enable CORS
@@ -111,7 +113,7 @@ module.exports = async (config, options, targetOptions) => {
 
   config = merge(
     config,
-    targetOptions.configuration === 'instrumenter'
+    targetOptions.configuration === "instrumenter"
       ? {
           module: {
             rules: [
@@ -119,15 +121,19 @@ module.exports = async (config, options, targetOptions) => {
                 test: /\.(js|ts)$/,
                 use: [
                   {
-                    loader: 'babel-loader',
+                    loader: "babel-loader",
                     options: {
-                      plugins: ['istanbul'],
+                      plugins: ["istanbul"],
                     },
                   },
                 ],
-                enforce: 'post',
-                include: path.resolve(__dirname, '../src/main/webapp/'),
-                exclude: [/\.(e2e|spec)\.ts$/, /node_modules/, /(ngfactory|ngstyle)\.js/],
+                enforce: "post",
+                include: path.resolve(__dirname, "../src/main/webapp/"),
+                exclude: [
+                  /\.(e2e|spec)\.ts$/,
+                  /node_modules/,
+                  /(ngfactory|ngstyle)\.js/,
+                ],
               },
             ],
           },
