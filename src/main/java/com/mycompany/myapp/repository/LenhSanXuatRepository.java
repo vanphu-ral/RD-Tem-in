@@ -2,6 +2,7 @@ package com.mycompany.myapp.repository;
 
 import com.mycompany.myapp.domain.LenhSanXuat;
 import java.util.List;
+import javax.transaction.Transactional;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,8 @@ import org.springframework.stereotype.Repository;
  */
 @SuppressWarnings("unused")
 @Repository
-public interface LenhSanXuatRepository extends JpaRepository<LenhSanXuat, Long> {
+public interface LenhSanXuatRepository
+    extends JpaRepository<LenhSanXuat, Long> {
     @Query(
         "select lenh_san_xuat from LenhSanXuat lenh_san_xuat where " +
         "lenh_san_xuat.maLenhSanXuat like %:b% and lenh_san_xuat.sapCode like %:c% " +
@@ -156,22 +158,41 @@ public interface LenhSanXuatRepository extends JpaRepository<LenhSanXuat, Long> 
         String trangThai
     );
 
-    @Query(value = "select DISTINCT ma_lenh_san_xuat from lenh_san_xuat LenhSanXuat ", nativeQuery = true)
+    @Query(
+        value = "select DISTINCT ma_lenh_san_xuat from lenh_san_xuat LenhSanXuat ",
+        nativeQuery = true
+    )
     public List<String> getListMaLenhSanXuat();
 
-    @Query(value = "select DISTINCT sap_code from lenh_san_xuat LenhSanXuat ", nativeQuery = true)
+    @Query(
+        value = "select DISTINCT sap_code from lenh_san_xuat LenhSanXuat ",
+        nativeQuery = true
+    )
     public List<String> getListSapCode();
 
-    @Query(value = "select DISTINCT sap_name from lenh_san_xuat LenhSanXuat ", nativeQuery = true)
+    @Query(
+        value = "select DISTINCT sap_name from lenh_san_xuat LenhSanXuat ",
+        nativeQuery = true
+    )
     public List<String> getListSapName();
 
-    @Query(value = "select DISTINCT work_order_code from lenh_san_xuat LenhSanXuat ", nativeQuery = true)
+    @Query(
+        value = "select DISTINCT work_order_code from lenh_san_xuat LenhSanXuat ",
+        nativeQuery = true
+    )
     public List<String> getListWorkOrderCode();
 
-    @Query(value = "select DISTINCT version from lenh_san_xuat LenhSanXuat ", nativeQuery = true)
+    @Query(
+        value = "select DISTINCT version from lenh_san_xuat LenhSanXuat ",
+        nativeQuery = true
+    )
     public List<String> getListVersion();
 
     @Modifying
-    @Query(value = "update lenh_san_xuat set trang_thai = ?1 where id = ?2 ;", nativeQuery = true)
+    @Transactional
+    @Query(
+        value = "update lenh_san_xuat set trang_thai = ?1 where id = ?2 ;",
+        nativeQuery = true
+    )
     public void exportCsvStatus(String trangThai, Long id);
 }

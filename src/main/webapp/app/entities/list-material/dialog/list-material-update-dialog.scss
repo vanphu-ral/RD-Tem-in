@@ -1,3 +1,5 @@
+@use "@angular/material" as mat;
+
 .item-form-group {
   margin-bottom: 24px;
   padding-bottom: 16px;
@@ -111,6 +113,12 @@ mat-dialog-actions .dialog-accept-btn {
 table {
   border-collapse: collapse;
   border: 1px solid #000000;
+}
+
+mat-dialog-content {
+  min-width: 100%;
+  max-height: 80vh;
+  overflow: auto;
 }
 
 th,
@@ -263,14 +271,71 @@ th {
 @media (max-width: 599px) {
   .dialog-header {
     display: block;
+    margin: 0;
 
     .dialog-title {
       font-size: 20px;
       margin: 10px 5px;
     }
+  }
 
-    .dialog-footer {
-      flex-direction: column;
+  .mat-typography {
+    min-height: 200px;
+
+    th.mat-mdc-header-cell {
+      padding: 2px 4px !important;
+      font-size: 10px !important;
+
+      .search-container {
+        // padding: 0;
+        // margin: 0;
+
+        .small-form-field {
+          width: 150px !important;
+          height: 50px !important;
+          line-height: 12px;
+          font-size: 13px !important;
+
+          .mat-form-field-infix {
+            padding: 0 2px !important;
+          }
+
+          mat-label {
+            font-size: 8px !important;
+            line-height: 10px !important;
+          }
+
+          input,
+          .mat-select-trigger,
+          mat-datepicker-toggle {
+            font-size: 8px !important;
+            height: 15px !important;
+            padding: 0 2px !important;
+          }
+
+          .mat-mdc-select {
+            font-size: 9px !important;
+          }
+        }
+      }
+
+      mat-icon {
+        font-size: 16px !important;
+      }
+    }
+
+    td.mat-mdc-cell {
+      padding: 4px 6px !important;
+      font-size: 11px !important;
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column !important;
+
+    .dialog-notice {
+      font-size: 10px;
+      padding: 4px 0;
     }
   }
 }

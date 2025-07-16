@@ -170,8 +170,8 @@ spring:
         #            issuer-uri: http://localhost:8180/auth/realms/jhipster
         registration:
           oidc:
-            client-id: tem_in_test
-            client-secret: tem_in_test
+            client-id: tem_in_8089
+            client-secret: tem_in_8089
             scope: openid, profile, email,jhipster,roles # last one for refresh tokens
 
 server:

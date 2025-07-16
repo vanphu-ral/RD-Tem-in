@@ -7,6 +7,7 @@ import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import javax.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 // * Ngăn cách
 // ☺ đã Test với front-end
 @Service
+@Transactional
 public class UserServices {
 
     private final Logger log = LoggerFactory.getLogger(UserServices.class);

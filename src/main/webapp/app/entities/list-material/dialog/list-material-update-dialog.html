@@ -32,7 +32,7 @@
         </mat-radio-group>
       </div>
     </mat-menu> -->
-    <mat-form-field appearance="fill">
+    <mat-form-field appearance="fill" class="small-approve-field">
       <mat-label>Chọn người duyệt</mat-label>
 
       <input
@@ -72,8 +72,8 @@
   </div> -->
 </div>
 
-<mat-dialog-content class="mat-typography">
-  <div>
+<mat-dialog-content class="mat-typography dialog-content">
+  <div class="responsive-table-wrapper">
     <table
       mat-table
       [dataSource]="itemsDataSource"
@@ -121,13 +121,19 @@
             </mat-menu>
             <div class="search-container">
               <div class="custom-search-wrapper">
-                <input
-                  type="text"
-                  class="custom-search-input"
-                  [placeholder]="'Search (' + (filterModes['materialIdentifier'] || 'contains') + ')'"
-                  style="width: 100%"
-                  (keyup)="applyFilter('materialIdentifier',$event)"
-                />
+                <mat-form-field
+                  class="small-form-field"
+                  appearance="fill"
+                  floatLabel="always"
+                >
+                  <input
+                    matInput
+                    type="text"
+                    [placeholder]="'Search (' + (filterModes['materialIdentifier'] || 'contains') + ')'"
+                    style="width: 100%"
+                    (keyup)="applyFilter('materialIdentifier',$event)"
+                  />
+                </mat-form-field>
               </div>
             </div>
           </div>
@@ -174,12 +180,19 @@
               </mat-menu>
               <div class="search-container">
                 <div class="custom-search-wrapper">
-                  <input
-                    type="text"
-                    class="custom-search-input"
-                    [placeholder]="'Search (' + (filterModes['partNumber'] || 'contains') + ')'"
-                    (keyup)="applyFilter('partNumber',$event)"
-                  />
+                  <mat-form-field
+                    class="small-form-field"
+                    appearance="fill"
+                    floatLabel="always"
+                  >
+                    <input
+                      matInput
+                      type="text"
+                      [placeholder]="'Search (' + (filterModes['partNumber'] || 'contains') + ')'"
+                      style="width: 100%"
+                      (keyup)="applyFilter('partNumber',$event)"
+                    />
+                  </mat-form-field>
                 </div>
               </div>
             </div>
@@ -225,12 +238,19 @@
               </mat-menu>
               <div class="search-container">
                 <div class="custom-search-wrapper">
-                  <input
-                    type="text"
-                    class="custom-search-input"
-                    [placeholder]="'Search (' + (filterModes['expirationDate'] || 'contains') + ')'"
-                    (keyup)="applyFilter('expirationDate',$event)"
-                  />
+                  <mat-form-field
+                    class="small-form-field"
+                    appearance="fill"
+                    floatLabel="always"
+                  >
+                    <input
+                      matInput
+                      type="text"
+                      [placeholder]="'Search (' + (filterModes['expirationDate'] || 'contains') + ')'"
+                      style="width: 100%"
+                      (keyup)="applyFilter('expirationDate',$event)"
+                    />
+                  </mat-form-field>
                 </div>
               </div>
             </div>
@@ -346,50 +366,6 @@
           </mat-checkbox>
         </td>
       </ng-container>
-      <!-- <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef style="background-color:#548CE8">
-          <div class="th-container">
-            <div class="header-content">
-              <div style="display: flex; align-items: center; justify-content: space-between; color: white;">
-                <div class="column-title">
-                  Status
-                </div>
-                <div>
-                  <mat-icon [matMenuTriggerFor]="filterquantity" style="color: white;">filter_list</mat-icon>
-                </div>
-              </div>
-              <mat-menu #filterquantity="matMenu">
-                <button mat-menu-item (click)="setFilterMode('status' , 'contains')">Contains</button>
-                <button mat-menu-item (click)="setFilterMode('status' , 'not_contains')">Does
-                  not
-                  contain</button>
-                <button mat-menu-item (click)="setFilterMode('status' , 'equals')">Equals</button>
-                <button mat-menu-item (click)="setFilterMode('status' , 'not_equals')">Does not
-                  equal</button>
-              </mat-menu>
-              <div class="search-container">
-                <div class="custom-search-wrapper">
-                  <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
-                    <mat-label>Search Status</mat-label>
-                    <mat-select placeholder="Search" (selectionChange)="applySelectFilter('status', $event.value)">
-                      <mat-option *ngFor="let opt of statusOptions" [value]="opt.value">
-                        {{ opt.view }}
-                      </mat-option>
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-              </div>
-            </div>
-          </div>
-        </th> -->
-      <!-- <td mat-cell *matCellDef="let element">
-          {{ element['status'] | statusLabel }}
-        </td> -->
-      <!-- <td mat-cell *matCellDef="let element">
-          {{ element | json }}
-        </td> -->
-
-      <!-- </ng-container> -->
 
       <!-- Phần header -->
       <ng-container matColumnDef="locationId">
@@ -409,15 +385,20 @@
                 <div class="custom-search-wrapper" style="width: 100%">
                   <form style="width: 100%" [formGroup]="dialogForm">
                     <!-- Header dùng binding riêng -->
-                    <input
-                      class="editable-cell"
-                      type="text"
-                      placeholder="Chọn kho cho tất cả"
-                      aria-label="Kho"
-                      matInput
-                      formControlName="selectedWarehouseControl"
-                      [matAutocomplete]="autoWarehouse"
-                    />
+                    <mat-form-field
+                      class="small-form-field"
+                      appearance="fill"
+                      floatLabel="always"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Chọn kho cho tất cả"
+                        aria-label="Kho"
+                        matInput
+                        formControlName="selectedWarehouseControl"
+                        [matAutocomplete]="autoWarehouse"
+                      />
+                    </mat-form-field>
 
                     <mat-autocomplete
                       #autoWarehouse="matAutocomplete"
@@ -463,7 +444,6 @@
                 (focus)="openRowPanel(rowTrigger)"
                 [disabled]="!isWarehouseReady || scanLoadingRow[element.materialIdentifier]"
               />
-
               <mat-autocomplete
                 #autoWarehouseRow="matAutocomplete"
                 [displayWith]="displayWarehouseFn"
@@ -523,12 +503,18 @@
               </mat-menu>
               <div class="search-container">
                 <div class="custom-search-wrapper">
-                  <input
-                    type="text"
-                    class="custom-search-input"
-                    placeholder="Search"
-                    (keyup)="applyFilter('quantity',$event)"
-                  />
+                  <mat-form-field
+                    class="small-form-field"
+                    appearance="fill"
+                    floatLabel="always"
+                  >
+                    <input
+                      matInput
+                      type="text"
+                      placeholder="Search"
+                      (keyup)="applyFilter('quantity',$event)"
+                    />
+                  </mat-form-field>
                 </div>
               </div>
             </div>
@@ -565,14 +551,20 @@
                     (keyup.enter)="applyHeaderQuantityChange()"
                     (blur)="applyHeaderQuantityChange()"
                   /> -->
-                  <input
-                    #hdrInput
-                    type="number"
-                    class="custom-search-input"
-                    placeholder="Nhập số cho tất cả"
-                    [(ngModel)]="headerQuantityChange"
-                    (keyup.enter)="applyHeaderQuantityChange()"
-                  />
+                  <mat-form-field
+                    class="small-form-field"
+                    appearance="fill"
+                    floatLabel="always"
+                  >
+                    <input
+                      matInput
+                      #hdrInput
+                      type="number"
+                      placeholder="Nhập số cho tất cả"
+                      [(ngModel)]="headerQuantityChange"
+                      (keyup.enter)="applyHeaderQuantityChange()"
+                    />
+                  </mat-form-field>
                 </div>
               </div>
             </div>
