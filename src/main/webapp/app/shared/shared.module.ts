@@ -24,6 +24,7 @@ import { TimestampToDatePipe } from "./pipes/timestamp-to-date";
 import { StatusLabelPipe } from "./pipes/status-label.pipe";
 import { LayoutModule } from "@angular/cdk/layout";
 import { ResponsiveService } from "./responsive/responsive.service";
+import { MatSortModule } from "@angular/material/sort";
 
 // import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
@@ -43,6 +44,7 @@ import { ResponsiveService } from "./responsive/responsive.service";
     MatPaginatorModule,
     TimestampToDatePipe,
     StatusLabelPipe,
+    MatSortModule,
     // BrowserAnimationsModule,
   ],
   declarations: [
@@ -83,6 +85,7 @@ import { ResponsiveService } from "./responsive/responsive.service";
     ReactiveFormsModule,
     MatFormFieldModule,
     MatPaginatorModule,
+    MatSortModule,
     // BrowserAnimationsModule,
   ],
 })

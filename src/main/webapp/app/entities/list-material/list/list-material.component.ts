@@ -44,6 +44,7 @@ import { MatSnackBar } from "@angular/material/snack-bar";
 import { ActivatedRoute } from "@angular/router";
 import { HttpParams } from "@angular/common/http";
 import { HttpClient } from "@angular/common/http";
+import saveAs from "file-saver";
 
 interface sumary_mode {
   value: string;
@@ -199,6 +200,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   // đối tượng chứa cột  thông tin tìm kiếm
   public scanPending = false;
   public activeFilters: { [columnDef: string]: any[] } = {};
+  public emptyMessage: string | null = null;
   searchTerms: Record<string, any> = {};
   filterModes: Record<string, string> = {};
   isLoading = false;
@@ -217,8 +219,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   // #endregion
 
   // #region ViewChild
-  @ViewChild(MatPaginator, { static: false }) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator, { static: false }) paginator!: MatPaginator;
   @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
   @ViewChild("scanInput") scanInput!: ElementRef<HTMLInputElement>;
   @ViewChildren("filterInput", { read: ElementRef })
@@ -232,6 +234,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly FULL_DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
   private scanTimeoutId: any;
   private canUpdate = false;
+  private scanBuffer = "";
+  private readonly scanTimeoutDelay = 300;
 
   // #endregion
 
@@ -301,6 +305,14 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, prop) => {
+      if (prop === "availableQuantity") {
+        return Number(item.availableQuantity) || 0;
+      }
+      const value = (item as any)[prop];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return typeof value === "string" ? value.toLowerCase() : value;
+    };
   }
 
   onLoad(): void {
@@ -569,20 +581,41 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   startScan(): void {
-    this.scanError = "";
-    this.scanResult = "";
-    this.isScanMode = true;
-    setTimeout(() => {
-      this.scanInput.nativeElement.value = "";
-      this.scanInput.nativeElement.focus();
-    }, 0);
+    this.isScanMode = !this.isScanMode;
+    if (this.isScanMode) {
+      this.scanError = "";
+      this.scanResult = "";
+      setTimeout(() => {
+        this.scanInput.nativeElement.value = "";
+        this.scanInput.nativeElement.focus();
+      }, 0);
+    } else {
+      this.scanInput.nativeElement.blur();
+    }
   }
 
   exitScanMode(): void {
     this.isScanMode = false;
   }
+  onScanInput(raw: string): void {
+    this.scanBuffer = raw;
+
+    if (this.scanTimeoutId) {
+      clearTimeout(this.scanTimeoutId);
+    }
+
+    this.scanTimeoutId = setTimeout(() => {
+      this.onScanEnter(this.scanBuffer);
+      this.scanBuffer = "";
+      this.scanTimeoutId = null;
+    }, this.scanTimeoutDelay);
+  }
 
   onScanEnter(rawValue: string): void {
+    if (this.scanTimeoutId) {
+      clearTimeout(this.scanTimeoutId);
+      this.scanTimeoutId = null;
+    }
     const code = rawValue.trim().split("#")[0].trim().toLowerCase();
     if (!code) {
       this.openError("Không nhận diện được mã vật tư!");
@@ -628,16 +661,24 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
   refreshScan(): void {
     this.scanResult = "";
+    this.scanBuffer = "";
+    this.scanTimeoutId = null;
     this.searchTerms = {};
     this.filterModes = {};
     this.materialService.clearSelection();
     this.checkedCount.set(0);
     this.isScanMode = false;
+    this.dataSource.data = [];
+    this.length = 0;
 
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { page: 1, pageSize: this.pageSize },
       replaceUrl: true,
+    });
+    this.fetchPage({
+      page: 1,
+      pageSize: this.pageSize,
     });
   }
 
@@ -679,56 +720,112 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     return dateFields.includes(colDef);
   }
 
-  export(): void {
-    const exportColumns = this.displayedColumns.filter(
-      (col) => col !== "select" && col !== "checked",
-    );
+  exportAllMaterialData(): void {
+    this.isLoading = true;
 
-    const formattedData = this.dataSource.filteredData.map((row) => {
-      const result: { [key: string]: string | number | null } = {};
-      for (const col of exportColumns) {
-        let value = (row as any)[col];
-        if (
-          [
-            "expirationDate",
-            "receivedDate",
-            "updatedDate",
-            "checkinDate",
-          ].includes(col)
-        ) {
-          if (value) {
-            let dt: Date;
-            if (typeof value === "number") {
-              dt = new Date(value * 1000);
-            } else if (typeof value === "string" && /^\d+$/.test(value)) {
-              dt = new Date(Number(value) * 1000);
-            } else {
-              dt = new Date(value);
-            }
-            value = isNaN(dt.getTime())
-              ? ""
-              : dt.toLocaleDateString("vi-VN", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                });
-          } else {
-            value = "";
-          }
-        }
-        // Format status
-        else if (col === "status") {
-          value = this.getStatusLabel(value);
-        }
-        result[col] = value;
+    const headers = [
+      "STT",
+      "User Data 4",
+      "Lot Number",
+      "Material Trace ID",
+      "Inventory ID",
+      "Part ID",
+      "Part Number",
+      "Calculated Status",
+      "Tracking Type",
+      "Quantity",
+      "Available Quantity",
+      "Location Name",
+      "Parent Location ID",
+      "Last Location ID",
+      "Expiration Date",
+      "Received Date",
+      "Updated Date",
+      "Status",
+      "Updated By",
+      "Manufacturing Date",
+      "Material Type",
+      "Checkin Date",
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    const formatDate = (epoch: any): string => {
+      if (!epoch || isNaN(+epoch)) {
+        return "";
       }
-      return result;
-    });
+      const date = new Date(Number(epoch) * 1000);
+      return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+    };
 
-    const fileName =
-      "Danh_sach_vat_tu_" + new Date().toISOString().slice(0, 10);
-    this.materialService.exportExcel(formattedData, fileName);
+    const statusMap: Record<string, string> = {
+      "3": "Available",
+      "6": "Consume",
+      "19": "Expired",
+    };
+
+    const queryParams = this.route.snapshot.queryParams;
+    const pageSize = this.length || 5000;
+
+    const filtersObj = { ...queryParams };
+    delete filtersObj.page;
+    delete filtersObj.pageSize;
+
+    this.materialService
+      .fetchMaterialsData(1, pageSize, filtersObj)
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe((resp) => {
+        const data = resp.inventories || [];
+
+        const sorted = [...data].sort(
+          (a, b) => Number(b.availableQuantity) - Number(a.availableQuantity),
+        );
+
+        const sheetData = sorted.map((row, i) => ({
+          STT: i + 1,
+          "User Data 4": row.userData4,
+          "Lot Number": row.lotNumber,
+          "Material Trace ID": row.materialTraceId,
+          "Inventory ID": row.inventoryId,
+          "Part ID": row.partId,
+          "Part Number": row.partNumber,
+          "Calculated Status": row.calculatedStatus,
+          "Tracking Type": row.trackingType,
+          Quantity: row.quantity,
+          "Available Quantity": row.availableQuantity,
+          "Location Name": row.locationName,
+          "Parent Location ID": row.parentLocationId,
+          "Last Location ID": row.lastLocationId,
+          "Expiration Date": formatDate(row.expirationDate),
+          "Received Date": formatDate(row.receivedDate),
+          "Updated Date": formatDate(row.updatedDate),
+          Status: statusMap[String(row.status)] || row.status,
+          "Updated By": row.updatedBy,
+          "Manufacturing Date": formatDate(row.manufacturingDate),
+          "Material Type": row.materialType,
+          "Checkin Date": formatDate(row.checkinDate),
+        }));
+
+        const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(sheetData, {
+          header: headers,
+        });
+
+        ws["!cols"] = headers.map(() => ({ width: 25 }));
+        ws["!freeze"] = { ySplit: 1 };
+
+        const wb: XLSX.WorkBook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Danh sách vật tư");
+
+        const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+        saveAs(
+          new Blob([wbout], { type: "application/octet-stream" }),
+          "Danh_sach_vat_tu.xlsx",
+        );
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      });
   }
+
   // #endregion
 
   // #region Public methods for column selection group
@@ -854,6 +951,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         finalize(() => {
           clearTimeout(this.scanTimeoutId);
           this.isLoading = false;
+          this.cdr.detectChanges();
         }),
       )
       .subscribe(
@@ -862,10 +960,27 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           this.dataSource.data = this.materialService.mergeChecked(
             resp.inventories,
           );
+          this.dataSource.sort = this.sort;
+          this.sort.active = "availableQuantity";
+          this.sort.direction = "desc";
+
+          this.dataSource.data = this.dataSource.sortData(
+            this.dataSource.data,
+            this.sort,
+          );
+          console.log("[FETCH] dataSource.data:", this.dataSource.data);
+
+          const isEmpty = !resp.inventories || resp.inventories.length === 0;
+          this.emptyMessage = isEmpty ? "Không có dữ liệu để hiển thị." : null;
+          console.log("[EMPTY] Message:", this.emptyMessage);
+
+          this.cdr.detectChanges();
         },
         () => {
           this.dataSource.data = [];
           this.length = 0;
+          this.emptyMessage = "Đã xảy ra lỗi khi tải dữ liệu vật tư.";
+          this.cdr.detectChanges();
         },
       );
   }

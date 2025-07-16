@@ -88,8 +88,25 @@
   }
 }
 
+.empty-message-container {
+  text-align: center;
+  padding: 32px 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.empty-message-container mat-icon {
+  font-size: 26px !important;
+  color: #c2185b;
+}
+
+.empty-state {
+  font-style: italic;
+}
+
 .overlay-spinner {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 105%;
@@ -98,7 +115,7 @@
   justify-content: center;
   align-items: center;
   background: rgba(255, 255, 255, 0.8);
-  z-index: 1000;
+  z-index: 998;
 }
 
 .bordered-table {
@@ -364,6 +381,21 @@ th {
   background: #548ce8;
 }
 
+.small-form-field {
+  width: 100%;
+  font-size: 13px;
+}
+
+::ng-deep .mat-sort-header-content {
+  width: 100%;
+  display: block !important;
+
+  .search-container {
+    margin-top: 17px;
+    margin-bottom: -16px;
+  }
+}
+
 .main-page {
   display: flex;
   flex-direction: column;
@@ -482,6 +514,7 @@ th {
               height: 15px !important;
               padding: 0 2px !important;
             }
+
             .mat-mdc-select {
               font-size: 9px !important;
             }

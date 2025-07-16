@@ -17,6 +17,7 @@ import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
 import { filter, finalize, Subject, Subscription, takeUntil } from "rxjs";
 import { SelectionModel } from "@angular/cdk/collections";
+import * as XLSX from "xlsx";
 import {
   RawGraphQLMaterial,
   ListMaterialService,
@@ -25,6 +26,7 @@ import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { MaterialUpdateService } from "../services/material-update.service";
 import { AccountService } from "app/core/auth/account.service";
+import saveAs from "file-saver";
 
 interface sumary_mode {
   value: string;
@@ -159,6 +161,9 @@ export class ListMaterialUpdateComponent
   private dataSubscription: Subscription | undefined;
   private sidebarSubscription!: Subscription;
   private ngUnsubscribe = new Subject<void>();
+  private scanBuffer = "";
+  private scanTimeoutId: any;
+  private readonly scanTimeoutDelay = 300;
 
   // #endregion
 
@@ -378,21 +383,40 @@ export class ListMaterialUpdateComponent
     this.pageIndex = e.pageIndex;
   }
   startScan(): void {
-    this.scanResult = "";
-    this.isScanMode = true;
-    setTimeout(() => {
-      this.scanInput.nativeElement.value = "";
-      this.scanInput.nativeElement.focus();
-    }, 0);
+    this.isScanMode = !this.isScanMode;
+    if (this.isScanMode) {
+      this.scanResult = "";
+      setTimeout(() => {
+        this.scanInput.nativeElement.value = "";
+        this.scanInput.nativeElement.focus();
+      }, 0);
+    } else {
+      this.scanInput.nativeElement.blur();
+    }
   }
 
   exitScanMode(): void {
     this.isScanMode = false;
   }
+  onScanInput(raw: string): void {
+    this.scanBuffer = raw;
 
+    if (this.scanTimeoutId) {
+      clearTimeout(this.scanTimeoutId);
+    }
+
+    this.scanTimeoutId = setTimeout(() => {
+      this.onScanEnter(this.scanBuffer);
+      this.scanBuffer = "";
+      this.scanTimeoutId = null;
+    }, this.scanTimeoutDelay);
+  }
   onScanEnter(rawValue: string): void {
+    if (this.scanTimeoutId) {
+      clearTimeout(this.scanTimeoutId);
+      this.scanTimeoutId = null;
+    }
     const code = rawValue.trim().split("#")[0];
-    this.isScanMode = false;
     this.isLoading = true;
 
     this.materialService
@@ -402,6 +426,10 @@ export class ListMaterialUpdateComponent
         finalize(() => {
           this.isLoading = false;
           this.cdr.detectChanges();
+          setTimeout(() => {
+            this.scanInput.nativeElement.value = "";
+            this.scanInput.nativeElement.focus();
+          }, 0);
         }),
       )
       .subscribe({
@@ -670,55 +698,70 @@ export class ListMaterialUpdateComponent
     this.cdr.detectChanges();
   }
 
-  export(): void {
-    const exportColumns = this.displayedColumns.filter(
-      (col) => col !== "select" && col !== "checked",
-    );
+  exportUpdatedMaterials(): void {
+    this.isLoading = true;
 
-    const formattedData = this.dataSource.filteredData.map((row) => {
-      const result: { [key: string]: string | number | null } = {};
-      for (const col of exportColumns) {
-        let value = (row as any)[col];
-        if (
-          [
-            "expirationDate",
-            "receivedDate",
-            "updatedDate",
-            "checkinDate",
-          ].includes(col)
-        ) {
-          if (value) {
-            let dt: Date;
-            if (typeof value === "number") {
-              dt = new Date(value * 1000);
-            } else if (typeof value === "string" && /^\d+$/.test(value)) {
-              dt = new Date(Number(value) * 1000);
-            } else {
-              dt = new Date(value);
-            }
-            value = isNaN(dt.getTime())
-              ? ""
-              : dt.toLocaleDateString("vi-VN", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                });
-          } else {
-            value = "";
-          }
-        }
-        // Format status
-        else if (col === "status") {
-          value = this.getStatusLabel(value);
-        }
-        result[col] = value;
+    const headers = [
+      "STT",
+      "Material Identifier",
+      "Part Number",
+      "Lot Number",
+      "Location Name",
+      "User Data 4",
+      "Received Date",
+      "Available Quantity",
+      "Expiration Date",
+      "Status",
+      "Updated By",
+    ];
+
+    const statusMap: Record<string, string> = {
+      "3": "Available",
+      "6": "Consume",
+      "19": "Expired",
+    };
+
+    const formatDate = (epoch: any): string => {
+      if (!epoch || isNaN(+epoch)) {
+        return "";
       }
-      return result;
-    });
+      const date = new Date(Number(epoch) * 1000);
+      return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+    };
 
-    const fileName =
-      "Danh_sach_vat_tu_cap_nhat_" + new Date().toISOString().slice(0, 10);
-    this.materialService.exportExcel(formattedData, fileName);
+    const rows = [...this.dataSource.data]
+      .sort((a, b) => Number(b.availableQuantity) - Number(a.availableQuantity))
+      .map((row, i) => ({
+        STT: i + 1,
+        "Material Identifier": row.materialIdentifier,
+        "Part Number": row.partNumber,
+        "Lot Number": row.lotNumber,
+        "Location Name": row.locationName,
+        "User Data 4": row.userData4,
+        "Received Date": formatDate(row.receivedDate),
+        "Available Quantity": row.availableQuantity,
+        "Expiration Date": formatDate(row.expirationDate),
+        Status: statusMap[String(row.status)] || row.status,
+        "Updated By": row.updatedBy,
+      }));
+
+    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(rows, {
+      header: headers,
+    });
+    ws["!cols"] = headers.map(() => ({ width: 25 }));
+    ws["!freeze"] = { ySplit: 1 };
+
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Vật Tư Đã Cập Nhật");
+
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+    saveAs(
+      new Blob([wbout], { type: "application/octet-stream" }),
+      "VatTu_CapNhat.xlsx",
+    );
+    this.isLoading = false;
+    this.cdr.markForCheck();
   }
 
   initializeColumnSelection(dataItems: RawGraphQLMaterial[]): void {

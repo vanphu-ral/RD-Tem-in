@@ -28,14 +28,14 @@
           <span class="btn-text">Scan</span>
         </button>
         <!-- <div *ngIf="scanError" class="scan-error">{{ scanError }}</div> -->
-        <div *ngIf="isScanMode && !scanResult">
-          <mat-spinner diameter="20"></mat-spinner>
-        </div>
         <!-- Refresh -->
         <button class="btn-refresh" mat-button (click)="refreshScan()">
           <mat-icon>refresh</mat-icon>
           <span class="btn-text">Refresh</span>
         </button>
+        <div *ngIf="isScanMode && !scanResult">
+          <mat-spinner diameter="20"></mat-spinner>
+        </div>
       </div>
       <!-- NHÓM 3: Nút phụ (view‐mode / columns / export) -->
       <div class="group-buttons secondary">
@@ -93,7 +93,7 @@
             </div>
           </form>
         </mat-menu>
-        <button class="btn-export" mat-button (click)="export()">
+        <button class="btn-export" mat-button (click)="exportAllMaterialData()">
           <mat-icon>file_download</mat-icon>
           <span class="btn-text">Xuất Excel</span>
         </button>
@@ -161,14 +161,8 @@
     #scanInput
     [(ngModel)]="scanResult"
     type="text"
-    style="
-      opacity: 0;
-      position: absolute;
-      left: -9999px;
-      width: 1px;
-      height: 1px;
-      border: 0;
-    "
+    style="opacity: 0; position: absolute; width: 1px; height: 1px; border: 0"
+    (input)="onScanInput(scanInput.value)"
     (keyup.enter)="onScanEnter(scanInput.value)"
   />
   <div
@@ -181,57 +175,119 @@
       <div class="loader"></div>
     </div>
     <table
-      *jhiHasAnyAuthority="'ROLE_PANACIM_VIEW'"
       mat-table
       [dataSource]="dataSource"
+      matSort
       class="mat-elevation-z8 bordered-table"
     >
-      <ng-container
-        *ngFor="let colDef of displayedColumns"
-        [matColumnDef]="colDef"
-      >
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef style="background: #548ce8">
+          <mat-checkbox
+            color="primary"
+            (click)="$event.stopPropagation()"
+            (change)="toggleAllRows()"
+            [checked]="isAllSelected()"
+            [indeterminate]="isSomeSelected()"
+          >
+          </mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox
+            color="primary"
+            (click)="$event.stopPropagation()"
+            (change)="onRowToggle(row)"
+            [checked]="row.checked"
+          >
+          </mat-checkbox>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="availableQuantity">
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="background-color: #548ce8"
-          [ngClass]="'col-' + colDef"
+          mat-sort-header="availableQuantity"
+          style="background: #548ce8"
         >
-          <!-- Cột Select -->
-          <ng-container *ngIf="colDef === 'select'; else headerContent">
-            <mat-checkbox
-              color="primary"
-              (click)="$event.stopPropagation()"
-              (change)="toggleAllRows()"
-              [checked]="isAllSelected()"
-              [indeterminate]="isSomeSelected()"
-            >
-            </mat-checkbox>
-          </ng-container>
-
-          <!-- Header cho các cột khác -->
-          <ng-template #headerContent>
+          <span class="mat-sort-header-content-title">
             <div
               style="
                 display: flex;
-                color: white;
                 justify-content: space-between;
+                color: white;
               "
             >
-              <div>{{ getColumnDisplayName(colDef) }}</div>
-              <div>
-                <mat-icon
-                  [matMenuTriggerFor]="filterMenuCol"
-                  style="color: white"
-                  >filter_list</mat-icon
-                >
-              </div>
+              <span>{{ getColumnDisplayName("availableQuantity") }}</span>
+              <mat-icon [matMenuTriggerFor]="filterMenu" style="color: white"
+                >filter_list</mat-icon
+              >
+            </div>
+          </span>
+
+          <div class="search-container">
+            <mat-form-field
+              class="small-form-field"
+              appearance="fill"
+              floatLabel="always"
+            >
+              <mat-label>Search</mat-label>
+              <input
+                matInput
+                [value]="searchTerms['availableQuantity']?.value || ''"
+                (input)="applyFilter('availableQuantity', $event)"
+                [placeholder]="
+                  'Search (' +
+                  (filterModes['availableQuantity'] || 'contains') +
+                  ')'
+                "
+              />
+            </mat-form-field>
+          </div>
+
+          <mat-menu #filterMenu="matMenu">
+            <button
+              mat-menu-item
+              (click)="setFilterMode('availableQuantity', 'contains')"
+            >
+              Có chứa
+            </button>
+            <button
+              mat-menu-item
+              (click)="setFilterMode('availableQuantity', 'equals')"
+            >
+              Bằng
+            </button>
+          </mat-menu>
+        </th>
+
+        <td mat-cell *matCellDef="let row">
+          {{ row.availableQuantity }}
+        </td>
+      </ng-container>
+
+      <ng-container *ngFor="let col of displayedColumns">
+        <ng-container
+          *ngIf="col !== 'select' && col !== 'availableQuantity'"
+          [matColumnDef]="col"
+        >
+          <th mat-header-cell *matHeaderCellDef style="background: #548ce8">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                color: white;
+              "
+            >
+              <span>{{ getColumnDisplayName(col) }}</span>
+              <mat-icon [matMenuTriggerFor]="filterMenu" style="color: white"
+                >filter_list</mat-icon
+              >
             </div>
 
-            <!-- Container cho thanh search/filter -->
             <div class="search-container">
               <div class="custom-search-wrapper">
-                <!-- DATE PICKER -->
-                <ng-container *ngIf="isDateField(colDef); else nonDateField">
+                <ng-container *ngIf="isDateField(col); else nonDate">
+                  <!-- DATE -->
                   <mat-form-field
                     class="small-form-field"
                     appearance="fill"
@@ -239,23 +295,15 @@
                   >
                     <mat-label>Search Date</mat-label>
                     <input
-                      type="text"
                       matInput
-                      #filterInput
                       [matDatepicker]="picker"
-                      [ngModel]="dateInputs[colDef] || ''"
-                      (dateChange)="
-                        applyDatePickerByPicker(colDef, $event.value)
-                      "
+                      [ngModel]="dateInputs[col] || ''"
+                      (dateChange)="applyDatePickerByPicker(col, $event.value)"
                       (input)="
-                        applyDatePickerByTyping(
-                          colDef,
-                          $any($event.target).value
-                        )
+                        applyDatePickerByTyping(col, $any($event.target).value)
                       "
                       placeholder="dd/MM/yyyy"
                     />
-
                     <mat-datepicker-toggle
                       matSuffix
                       [for]="picker"
@@ -264,10 +312,9 @@
                   </mat-form-field>
                 </ng-container>
 
-                <!-- TEXT OR STATUS SELECT -->
-                <ng-template #nonDateField>
-                  <ng-container [ngSwitch]="colDef">
-                    <!-- Cột status -->
+                <ng-template #nonDate>
+                  <ng-container [ngSwitch]="col">
+                    <!-- STATUS -->
                     <mat-form-field
                       *ngSwitchCase="'status'"
                       class="small-form-field"
@@ -289,7 +336,7 @@
                       </mat-select>
                     </mat-form-field>
 
-                    <!-- Cột locationName (scan) -->
+                    <!-- LOCATION SCAN -->
                     <mat-form-field
                       *ngSwitchCase="'locationName'"
                       class="small-form-field"
@@ -299,7 +346,6 @@
                       <mat-label>Scan / Search Kho</mat-label>
                       <input
                         matInput
-                        #locationInput
                         [value]="searchTerms['locationName']?.value || ''"
                         (input)="applyFilter('locationName', $event)"
                         (keydown.enter)="
@@ -308,13 +354,14 @@
                             locationInput
                           )
                         "
-                        [placeholder]="
-                          'Search (' + (filterModes[colDef] || 'contains') + ')'
-                        "
+                        placeholder="Search ({{
+                          filterModes['locationName'] || 'contains'
+                        }})"
+                        #locationInput
                       />
                     </mat-form-field>
 
-                    <!-- Các cột text bình thường -->
+                    <!-- TEXT -->
                     <mat-form-field
                       *ngSwitchDefault
                       class="small-form-field"
@@ -324,11 +371,11 @@
                       <mat-label>Search</mat-label>
                       <input
                         matInput
-                        [value]="searchTerms[colDef]?.value || ''"
-                        (input)="applyFilter(colDef, $event)"
-                        [placeholder]="
-                          'Search (' + (filterModes[colDef] || 'contains') + ')'
-                        "
+                        [value]="searchTerms[col]?.value || ''"
+                        (input)="applyFilter(col, $event)"
+                        placeholder="Search ({{
+                          filterModes[col] || 'contains'
+                        }})"
                       />
                     </mat-form-field>
                   </ng-container>
@@ -336,61 +383,45 @@
               </div>
             </div>
 
-            <!-- Menu Filter của cột (mỗi cột dùng menu riêng) -->
-            <mat-menu #filterMenuCol="matMenu">
-              <button mat-menu-item (click)="setFilterMode(colDef, 'contains')">
+            <mat-menu #filterMenu="matMenu">
+              <button mat-menu-item (click)="setFilterMode(col, 'contains')">
                 Có chứa
               </button>
-              <button mat-menu-item (click)="setFilterMode(colDef, 'equals')">
+              <button mat-menu-item (click)="setFilterMode(col, 'equals')">
                 Bằng
               </button>
             </mat-menu>
-          </ng-template>
-        </th>
+          </th>
 
-        <td mat-cell *matCellDef="let row" [ngClass]="'col-' + colDef">
-          <ng-container [ngSwitch]="colDef">
-            <!-- select -->
-            <ng-container *ngSwitchCase="'select'">
-              <div
-                style="
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  width: 100%;
-                "
-              >
-                <mat-checkbox
-                  color="primary"
-                  (click)="$event.stopPropagation()"
-                  (change)="onRowToggle(row)"
-                  [checked]="row.checked"
-                >
-                </mat-checkbox>
-              </div>
-            </ng-container>
-
-            <!-- status -->
-            <ng-container *ngSwitchCase="'status'">
-              {{ row.status | statusLabel }}
-            </ng-container>
-
-            <!-- date -->
-            <ng-container *ngSwitchDefault>
-              <ng-container *ngIf="isDateField(colDef); else plainCell">
-                {{ row[colDef] | timestampToDate }}
+          <td mat-cell *matCellDef="let row">
+            <ng-container [ngSwitch]="col">
+              <ng-container *ngSwitchCase="'status'">
+                {{ row.status | statusLabel }}
               </ng-container>
-              <ng-template #plainCell>
-                {{ row[colDef] }}
-              </ng-template>
+              <ng-container *ngSwitchDefault>
+                <ng-container *ngIf="isDateField(col); else plainCell">
+                  {{ row[col] | timestampToDate }}
+                </ng-container>
+                <ng-template #plainCell>{{ row[col] }}</ng-template>
+              </ng-container>
             </ng-container>
-          </ng-container>
-        </td>
+          </td>
+        </ng-container>
       </ng-container>
 
+      <!-- ROW DEF -->
       <tr mat-header-row *matHeaderRowDef="displayedColumns" sticky></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
+
+    <ng-container *ngIf="dataSource.data.length === 0 && emptyMessage">
+      <div class="empty-message-container">
+        <mat-icon color="warn" style="font-size: 40px; margin-bottom: 8px"
+          >error</mat-icon
+        >
+        <div class="empty-state">{{ emptyMessage }}</div>
+      </div>
+    </ng-container>
   </div>
 
   <div>

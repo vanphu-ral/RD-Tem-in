@@ -153,6 +153,11 @@ public class InventoryService {
                 "%",
                 "%" +
                 Optional.ofNullable(request.getLocationName()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getMaterialIdentifier()).orElse(
+                    ""
+                ) +
                 "%"
             )
         );
@@ -169,6 +174,11 @@ public class InventoryService {
                 "%",
                 "%" +
                 Optional.ofNullable(request.getLocationName()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getMaterialIdentifier()).orElse(
+                    ""
+                ) +
                 "%",
                 (request.getPageNumber() - 1) * request.getItemPerPage(),
                 request.getItemPerPage()

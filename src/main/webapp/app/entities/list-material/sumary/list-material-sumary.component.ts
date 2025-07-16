@@ -18,6 +18,9 @@ import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
 import { Subscription, Subject } from "rxjs";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import { forkJoin } from "rxjs";
 import {
   filter,
   takeUntil,
@@ -27,6 +30,7 @@ import {
   first,
   debounceTime,
   finalize,
+  switchMap,
 } from "rxjs/operators";
 import {
   animate,
@@ -316,7 +320,111 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     });
   }
 
-  export(): void {}
+  export(): void {
+    this.isLoading = true;
+    const groupColKey = this.selectedGroupingField;
+    const groupColLabel = this.selectedGroupingField;
+
+    const headers = [
+      "Loại",
+      "Part Number",
+      groupColLabel,
+      "Total Quantity",
+      "Total Available Quantity",
+      "Record Count",
+      "Material Identifier",
+      "Lot Number",
+      "Location Name",
+      "Received Date",
+      "Status",
+    ];
+
+    const summaryRows = this.dataSource.data;
+    const sheetData: any[] = [];
+
+    const detailRequests = summaryRows.map((row) => {
+      const filters = {
+        partNumber: row.partNumber,
+        locationName: row.locationName,
+        userData4: row.userData4,
+        lotNumber: row.lotNumber,
+        materialIdentifier: "",
+      };
+
+      return this.materialService
+        .getDetailSumary(0, Number(row.recordCount) || 50, filters)
+        .pipe(
+          map((response) => ({
+            row,
+            details: response.inventories || [],
+          })),
+        );
+    });
+
+    forkJoin(detailRequests).subscribe(
+      (results) => {
+        results.forEach(({ row, details }) => {
+          sheetData.push({
+            Loại: "Tổng hợp",
+            "Part Number": row.partNumber,
+            [groupColLabel]: (row as any)[groupColKey],
+            "Total Quantity": row.quantity,
+            "Total Available Quantity": row.availableQuantity,
+            "Record Count": row.recordCount,
+          });
+
+          details.forEach((d) => {
+            sheetData.push({
+              Loại: "Chi tiết",
+              "Part Number": row.partNumber,
+              [groupColLabel]: (row as any)[groupColKey],
+              "Total Quantity": row.quantity,
+              "Total Available Quantity": row.availableQuantity,
+              "Record Count": row.recordCount,
+              "Material Identifier": d.materialIdentifier,
+              "Lot Number": d.lotNumber,
+              "Location Name": d.locationName,
+              "Received Date": d.receivedDate,
+              Status: d.status,
+            });
+          });
+        });
+
+        const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(sheetData, {
+          header: headers,
+        });
+
+        ws["!cols"] = headers.map((h) => ({ width: 25 }));
+        ws["!freeze"] = { ySplit: 1 };
+
+        const wb: XLSX.WorkBook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Summary & Detail");
+
+        const wbout: ArrayBuffer = XLSX.write(wb, {
+          bookType: "xlsx",
+          type: "array",
+        });
+
+        Promise.resolve().then(() => {
+          saveAs(
+            new Blob([wbout], { type: "application/octet-stream" }),
+            "VậtTư_TổngHợp.xlsx",
+          );
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        });
+        saveAs(
+          new Blob([wbout], { type: "application/octet-stream" }),
+          "VậtTư_TổngHợp.xlsx",
+        );
+        this.isLoading = false;
+      },
+      (err) => {
+        console.error("Lỗi khi export:", err);
+        this.isLoading = false;
+      },
+    );
+  }
 
   goBackToList(): void {
     this.router.navigate(["/list-material"]);
@@ -352,48 +460,95 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.materialService.toggleItemSelection(inventoryId);
   }
 
-  exportDetailExcel(row: AggregatedDetailData): void {
-    if (!row.detailDataSource) {
-      console.warn("Không có dữ liệu bảng con để export.");
-      return;
-    }
-    const detailColumns = [
-      "partNumber",
-      "lotNumber",
-      "receivedDate",
-      "availableQuantity",
-      "expirationDate",
-      "status",
+  exportDetailExcel(element: AggregatedDetailData): void {
+    const headers = [
+      "STT",
+      "Material Identifier",
+      "Part Number",
+      "Lot Number",
+      "Location Name",
+      "User Data 4",
+      "Received Date",
+      "Available Quantity",
+      "Expiration Date",
+      "Status",
     ];
-    const dataSource = row.detailDataSource;
-    const pageIndex = dataSource.paginator?.pageIndex ?? 0;
-    const pageSize =
-      dataSource.paginator?.pageSize ?? dataSource.filteredData.length;
-    const startIndex = pageIndex * pageSize;
-    const endIndex = startIndex + pageSize;
-    const currentPageData = dataSource.filteredData.slice(startIndex, endIndex);
 
-    const formattedDetails: ExportDetailRow[] = currentPageData.map(
-      (detail: RawGraphQLMaterial) => {
-        const result: ExportDetailRow = {};
-        this.groupingFields.forEach((f) => {});
-        detailColumns.forEach((col) => {
-          if (col === "receivedDate" || col === "expirationDate") {
-            // Format ngày tháng
-            result[col] = this.convertTimestampToDate((detail as any)[col]);
-          } else if (col === "status") {
-            result[col] = this.getStatusLabel((detail as any)[col]);
-          } else {
-            result[col] = (detail as any)[col];
-          }
-        });
-        return result;
-      },
+    const statusMap: Record<string, { text: string; color: string }> = {
+      "3": { text: "Available", color: "C6EFCE" },
+      "6": { text: "Consume", color: "F8CBAD" },
+      "19": { text: "Expired", color: "FFE699" },
+    };
+
+    const formatDate = (epoch: any): string => {
+      if (!epoch) {
+        return "";
+      }
+      const d = new Date(Number(epoch) * 1000);
+      return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    };
+
+    const rows = (element.detailDataSource?.data ?? []).map((row, i) => {
+      const statusObj = statusMap[String(row.status)] ?? {
+        text: row.status,
+        color: "FFFFFF",
+      };
+      return {
+        STT: i + 1,
+        "Material Identifier": row.materialIdentifier,
+        "Part Number": row.partNumber,
+        "Lot Number": row.lotNumber,
+        "Location Name": row.locationName,
+        "User Data 4": row.userData4,
+        "Received Date": formatDate(row.receivedDate),
+        "Available Quantity": row.availableQuantity,
+        "Expiration Date": formatDate(row.expirationDate),
+        Status: statusObj.text,
+        StatusColor: statusObj.color, // phụ để styling sau
+      };
+    });
+
+    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(
+      rows.map((r) => {
+        const { StatusColor, ...rest } = r;
+        return rest;
+      }),
+      { header: headers },
     );
 
-    const groupName = this.groupingFields.join("_");
-    const fileName = `báo_cáo_tổng_hợp_chi_tiet_theo_${groupName}`;
-    this.materialService.exportExcel(formattedDetails, fileName);
+    // Thiết lập độ rộng
+    ws["!cols"] = headers.map(() => ({ width: 20 }));
+    ws["!freeze"] = { ySplit: 1 };
+
+    // Style màu cho từng dòng Status
+    rows.forEach((r, i) => {
+      const rowIndex = i + 1; // +1 vì header ở hàng 0
+      const cellAddr = XLSX.utils.encode_cell({
+        r: rowIndex,
+        c: headers.indexOf("Status"),
+      });
+
+      if (ws[cellAddr]) {
+        ws[cellAddr].s = {
+          fill: { fgColor: { rgb: r.StatusColor } },
+          font: { bold: true },
+          alignment: { horizontal: "center" },
+        };
+      }
+    });
+
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Chi Tiết Vật Tư");
+
+    const wbout: ArrayBuffer = XLSX.write(wb, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    saveAs(
+      new Blob([wbout], { type: "application/octet-stream" }),
+      "ChiTiet_VatTu.xlsx",
+    );
   }
 
   openMenuManually(): void {
@@ -545,6 +700,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       locationName: element.locationName,
       userData4: element.userData4,
       lotNumber: element.lotNumber,
+      materialIdentifier: "",
     };
     element.isLoadingDetails = true;
     this.materialService
@@ -558,6 +714,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         element.detailPageIndex = initialPageIndex;
         element.detailPageSize = initialPageSize;
         element.detailDataSource = new MatTableDataSource(response.inventories);
+        console.log("Dữ liệu bảng con:", response.inventories);
         const ds = new MatTableDataSource(response.inventories);
         ds.filterPredicate = this.detailFilterPredicate;
         ds.filter = JSON.stringify({ textFilters: this.searchTermsDetail });
@@ -584,7 +741,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         element.detailTotalItems = response.totalItems;
         element.detailPageIndex = event.pageIndex;
         element.detailPageSize = event.pageSize;
-        // Cập nhật dữ liệu cho DataSource đã có
         element.detailDataSource!.data = response.inventories;
 
         element.isLoadingDetails = false;
@@ -609,20 +765,37 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   }
 
   applyDetailFilter(
-    row: AggregatedDetailData,
+    element: AggregatedDetailData,
     colDetail: string,
     event: Event,
   ): void {
     const value = (event.target as HTMLInputElement).value.trim().toLowerCase();
     const mode = this.filterModesDetail[colDetail] || "contains";
+
     this.searchTermsDetail[colDetail] = { mode, value };
 
-    if (row.detailDataSource) {
-      row.detailDataSource.filter = JSON.stringify({
-        textFilters: this.searchTermsDetail,
+    const filters = {
+      partNumber: element.partNumber,
+      locationName: element.locationName,
+      userData4: element.userData4,
+      lotNumber: element.lotNumber,
+      materialIdentifier: value,
+    };
+
+    element.isLoadingDetails = true;
+
+    this.materialService
+      .getDetailSumary(0, element.detailPageSize ?? 20, filters)
+      .pipe(finalize(() => (element.isLoadingDetails = false)))
+      .subscribe((response) => {
+        element.detailTotalItems = response.totalItems;
+        element.detailPageIndex = 0;
+        element.detailPageSize = element.detailPageSize ?? 20;
+        element.detailDataSource = new MatTableDataSource(response.inventories);
+        this.cdr.markForCheck();
       });
-    }
   }
+
   public handleFatherPaging(event: PageEvent): void {
     this.router.navigate([], {
       relativeTo: this.route,

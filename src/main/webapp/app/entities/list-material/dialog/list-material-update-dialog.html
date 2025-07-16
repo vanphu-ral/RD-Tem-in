@@ -138,12 +138,7 @@
       </ng-container>
 
       <ng-container matColumnDef="partNumber">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          mat-sort-header
-          style="background-color: #548ce8"
-        >
+        <th mat-header-cell *matHeaderCellDef style="background-color: #548ce8">
           <div class="th-container">
             <div class="header-content">
               <div
@@ -194,12 +189,7 @@
       </ng-container>
 
       <ng-container matColumnDef="expirationDate">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          mat-sort-header
-          style="background-color: #548ce8"
-        >
+        <th mat-header-cell *matHeaderCellDef style="background-color: #548ce8">
           <div class="th-container">
             <div class="header-content">
               <div
@@ -254,7 +244,6 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          mat-sort-header
           style="background-color: #548ce8; max-width: 130px"
         >
           <div class="th-container">
@@ -321,12 +310,7 @@
       </ng-container>
 
       <ng-container matColumnDef="extendExpiration">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          mat-sort-header
-          style="background-color: #548ce8"
-        >
+        <th mat-header-cell *matHeaderCellDef style="background-color: #548ce8">
           <div class="th-container">
             <div class="header-content">
               <div
@@ -409,12 +393,7 @@
 
       <!-- Phần header -->
       <ng-container matColumnDef="locationId">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          mat-sort-header
-          style="background-color: #548ce8"
-        >
+        <th mat-header-cell *matHeaderCellDef style="background-color: #548ce8">
           <div class="th-container">
             <div class="header-content" style="color: white">
               <div
@@ -482,6 +461,7 @@
                 [matAutocomplete]="autoWarehouseRow"
                 #rowTrigger="matAutocompleteTrigger"
                 (focus)="openRowPanel(rowTrigger)"
+                [disabled]="!isWarehouseReady || scanLoadingRow[element.materialIdentifier]"
               />
 
               <mat-autocomplete
@@ -499,10 +479,10 @@
             </form>
 
             <mat-spinner
-              *ngIf="scanLoadingRow[element.materialIdentifier]"
+              *ngIf="!isWarehouseReady || scanLoadingRow[element.materialIdentifier]"
               diameter="20"
               style="margin-left: 8px"
-            ></mat-spinner>
+            />
           </div>
         </td>
       </ng-container>
@@ -608,12 +588,7 @@
         </td>
       </ng-container>
       <ng-container matColumnDef="scanLocation">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          mat-sort-header
-          style="background-color: #548ce8"
-        >
+        <th mat-header-cell *matHeaderCellDef style="background-color: #548ce8">
           <button mat-raised-button (click)="scanLocationForAll()">
             <mat-icon>center_focus_weak</mat-icon> Scan
           </button>
@@ -661,7 +636,8 @@
     <input
       #scanInput
       type="text"
-      style="position: absolute; left: -9999px"
+      style="position: absolute; opacity: 0"
+      (input)="onScanLocationInput(scanInput.value)"
       (keydown.enter)="onScanInputEnter($event)"
       autocomplete="off"
     />

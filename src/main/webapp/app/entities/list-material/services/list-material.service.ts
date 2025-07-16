@@ -19,6 +19,7 @@ import { MaterialItem } from "../dialog/list-material-update-dialog";
 import { AccountService } from "app/core/auth/account.service";
 import { ApplicationConfigService } from "app/core/config/application-config.service";
 import { AuthServerProvider } from "app/core/auth/auth-session.service";
+import { MatTableDataSource } from "@angular/material/table";
 
 // #region Interfaces
 export interface RawGraphQLLocation {
@@ -66,6 +67,7 @@ export interface DataSumary {
   recordCount: string;
   lotNumber: string;
   userData4: string;
+  detailDataSource?: any;
 }
 
 export interface ApiMaterialResponse {
@@ -585,16 +587,18 @@ export class ListMaterialService {
       locationName?: string;
       userData4?: string;
       lotNumber?: string;
+      materialIdentifier?: string;
     },
   ): Observable<APIDetailResponse> {
     console.log("Đang gọi API lấy chi tiết summary...");
     const url = this.apiSumaryDetail;
     const safeFilters = filters ?? {};
-    const body = {
-      partNumber: filters?.partNumber ?? "",
-      locationName: filters?.locationName ?? "",
-      userData4: filters?.userData4 ?? "",
-      lotNumber: filters?.lotNumber ?? "",
+    const body: any = {
+      partNumber: safeFilters.partNumber ?? "",
+      locationName: safeFilters.locationName ?? "",
+      userData4: safeFilters.userData4 ?? "",
+      lotNumber: safeFilters.lotNumber ?? "",
+      materialIdentifier: safeFilters.materialIdentifier ?? "", // ✅ gửi xuống
       pageNumber: pageIndex + 1,
       itemPerPage: limit,
     };

@@ -246,8 +246,9 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?3 " +
         "AND b.Location_FullName like ?4 " +
+        "AND a.Inventory_MaterialIdentifier like ?5 " +
         "ORDER BY a.Inventory_PartNumber desc " +
-        "OFFSET ?5 ROWS FETCH NEXT ?6 ROWS ONLY ;\n",
+        "OFFSET ?6 ROWS FETCH NEXT ?7 ROWS ONLY ;\n",
         nativeQuery = true
     )
     public List<InventoryResponse> getDataDetail(
@@ -255,6 +256,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         String lotNumber,
         String userData4,
         String locationName,
+        String material,
         Integer pageNumber,
         Integer itemPerPage
     );
@@ -274,14 +276,16 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND a.Inventory_PartNumber like ?1 " +
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?2 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?3 " +
-        "AND b.Location_FullName like ?4 ;\n",
+        "AND b.Location_FullName like ?4 " +
+        "AND a.Inventory_MaterialIdentifier like ?5 ;",
         nativeQuery = true
     )
     public Integer getTotalDataDetail(
         String partNumber,
         String lotNumber,
         String userData4,
-        String locationName
+        String locationName,
+        String material
     );
 
     @Query(

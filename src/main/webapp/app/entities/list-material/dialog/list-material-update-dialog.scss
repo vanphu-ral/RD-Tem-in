@@ -116,7 +116,7 @@ table {
 th,
 td {
   padding: 8px;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -142,6 +142,11 @@ th {
       padding-top: 9px;
     }
   }
+}
+
+.snack-info {
+  background-color: #e0f7fa !important;
+  color: #006064 !important;
 }
 
 .bordered-table th,

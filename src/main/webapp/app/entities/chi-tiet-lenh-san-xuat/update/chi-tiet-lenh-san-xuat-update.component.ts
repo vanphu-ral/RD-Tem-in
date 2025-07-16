@@ -559,7 +559,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         this.tienDoScan =
           (this.countScan / this.chiTietLenhSanXuatActive.length) * 100;
         this.resultScanPerCent = this.tienDoScan.toFixed(0);
-        this.alertTimeout("Đã tìm thấy tem trong danh sách lệnh", 5000);
+        this.alertTimeout("Đã tìm thấy tem trong danh sách lệnh", 1000);
         // alert('đã tìm thấy tem trong danh sách');
         await this.playAlertSoundSuccess();
         break;
@@ -570,7 +570,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       ) {
         this.isExisted = true;
         this.chiTietLenhSanXuats[i].checked = 1;
-        this.alertTimeout("Tem đang ở trạng thái Inactive", 5000);
+        this.alertTimeout("Tem đang ở trạng thái Inactive", 1000);
         // alert('Tem đang ở trạng thái Inactive');
         await this.playAlertSound();
         // play sound
@@ -581,82 +581,84 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       ) {
         this.isExisted = true;
         this.chiTietLenhSanXuats[i].checked = 1;
-        this.alertTimeout("Tem đang ở trạng thái not list", 5000);
+        this.alertTimeout("Tem đang ở trạng thái not list", 1000);
         // alert('Tem đang ở trạng thái not list');
         await this.playAlertSound();
         // play sound
         break;
       }
     }
-    setTimeout(() => {
-      //không nằm trong danh sách
-      if (this.isExisted === false) {
-        // this.scanValue.comments = 'not list';
-        const item: IChiTietLenhSanXuat = {
-          id: 0,
-          reelID: this.scanValue.reelID,
-          partNumber: this.scanValue.partNumber,
-          vendor: this.scanValue.vendor,
-          lot: this.scanValue.lot,
-          userData1: this.scanValue.userData1,
-          userData2: this.scanValue.userData2,
-          userData3: this.scanValue.userData3,
-          userData4: this.scanValue.userData4,
-          userData5: this.scanValue.userData5,
-          initialQuantity: this.scanValue.initialQuantity,
-          msdLevel: "",
-          msdInitialFloorTime: "",
-          msdBagSealDate: "",
-          marketUsage: "",
-          quantityOverride: this.scanValue.quantityOverride,
-          shelfTime: "",
-          spMaterialName: "",
-          warningLimit: "",
-          maximumLimit: "",
-          comments: "",
-          warmupTime: "",
-          storageUnit: this.scanValue.storageUnit,
-          subStorageUnit: "",
-          locationOverride: "",
-          expirationDate: this.scanValue.expirationDate,
-          manufacturingDate: this.scanValue.manufacturingDate,
-          partClass: "",
-          sapCode: this.scanValue.sapCode,
-          trangThai: "not list",
-          checked: 1,
-          lenhSanXuat: this.createFromForm(),
-        };
-        this.chiTietLenhSanXuats.push(item);
-        this.alertTimeout("Tem không nằm trong danh sách", 5000);
-        this.playAlertSound();
-      }
-      //cập nhật lại danh sách chi tiết lsx ở trạng thái active
-      this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-        (a) => a.trangThai === "Active",
-      );
-      // sắp xếp danh sách
-      this.chiTietLenhSanXuatActive.sort(function (a, b) {
-        if (
-          a.checked !== undefined &&
-          a.checked !== null &&
-          b.checked !== undefined &&
-          b.checked !== null
-        ) {
-          return a.checked - b.checked;
+    if (!this.isExisted) {
+      setTimeout(() => {
+        //không nằm trong danh sách
+        if (this.isExisted === false) {
+          // this.scanValue.comments = 'not list';
+          const item: IChiTietLenhSanXuat = {
+            id: 0,
+            reelID: this.scanValue.reelID,
+            partNumber: this.scanValue.partNumber,
+            vendor: this.scanValue.vendor,
+            lot: this.scanValue.lot,
+            userData1: this.scanValue.userData1,
+            userData2: this.scanValue.userData2,
+            userData3: this.scanValue.userData3,
+            userData4: this.scanValue.userData4,
+            userData5: this.scanValue.userData5,
+            initialQuantity: this.scanValue.initialQuantity,
+            msdLevel: "",
+            msdInitialFloorTime: "",
+            msdBagSealDate: "",
+            marketUsage: "",
+            quantityOverride: this.scanValue.quantityOverride,
+            shelfTime: "",
+            spMaterialName: "",
+            warningLimit: "",
+            maximumLimit: "",
+            comments: "",
+            warmupTime: "",
+            storageUnit: this.scanValue.storageUnit,
+            subStorageUnit: "",
+            locationOverride: "",
+            expirationDate: this.scanValue.expirationDate,
+            manufacturingDate: this.scanValue.manufacturingDate,
+            partClass: "",
+            sapCode: this.scanValue.sapCode,
+            trangThai: "not list",
+            checked: 1,
+            lenhSanXuat: this.createFromForm(),
+          };
+          this.chiTietLenhSanXuats.push(item);
+          this.alertTimeout("Tem không nằm trong danh sách", 1000);
+          this.playAlertSound();
         }
-        return 0;
-      });
-      //cập nhật lại danh sách chi tiết lsx không có trong danh sách
-      this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
-        (a) => a.trangThai === "not list",
-      );
-      this.scanResults = "";
-      // } else {
-      //   this.alertTimeout('Tem không nằm trong mã lệnh sản xuất', 2000);
-      //   this.scanResults = '';
-      //   // alert('Tem không nằm trong mã lệnh sản xuất');
-      // }
-    }, 1500);
+        //cập nhật lại danh sách chi tiết lsx ở trạng thái active
+        this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
+          (a) => a.trangThai === "Active",
+        );
+        // sắp xếp danh sách
+        this.chiTietLenhSanXuatActive.sort(function (a, b) {
+          if (
+            a.checked !== undefined &&
+            a.checked !== null &&
+            b.checked !== undefined &&
+            b.checked !== null
+          ) {
+            return a.checked - b.checked;
+          }
+          return 0;
+        });
+        //cập nhật lại danh sách chi tiết lsx không có trong danh sách
+        this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
+          (a) => a.trangThai === "not list",
+        );
+        this.scanResults = "";
+        // } else {
+        //   this.alertTimeout('Tem không nằm trong mã lệnh sản xuất', 2000);
+        //   this.scanResults = '';
+        //   // alert('Tem không nằm trong mã lệnh sản xuất');
+        // }
+      }, 2000);
+    }
   }
   alertTimeout(mymsg: string, mymsecs: number): void {
     const myelement = document.createElement("div");
