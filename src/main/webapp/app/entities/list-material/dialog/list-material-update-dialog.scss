@@ -51,16 +51,26 @@ mat-mdc-dialog-content {
   overflow: visible !important;
   padding: 0 1rem;
 }
+
 ::ng-deep .mat-mdc-dialog-container {
-  max-height: unset !important;
-  overflow: visible !important;
+  max-height: 100vh !important;
+  overflow: auto;
+
   .mat-mdc-dialog-surface {
     overflow: unset !important;
   }
 }
+
 .responsive-table-wrapper {
   max-height: 60vh;
   overflow-y: auto;
+}
+
+mat-dialog-actions {
+  flex-shrink: 0;
+  padding: 15px;
+  background: white;
+  z-index: 1;
 }
 
 mat-dialog-actions .dialog-notice {
@@ -129,7 +139,7 @@ table {
 
 mat-mdc-dialog-content {
   min-width: 100%;
-  max-height: unset !important;
+  // max-height: unset !important;
   overflow: visible !important;
   display: block !important;
 }
@@ -149,6 +159,8 @@ th {
 .bordered-table {
   border-collapse: collapse;
   width: 100%;
+  min-width: unset;
+  table-layout: fixed;
 
   .mat-column-locationId {
     min-width: 140px;
@@ -156,6 +168,19 @@ th {
     .search-container {
       padding-top: 9px;
     }
+  }
+
+  .mat-column-extendExpiration {
+    width: 70px;
+  }
+
+  .mat-column-scanLocation {
+    width: 210px;
+    text-align: center;
+    align-items: center;
+    align-content: center;
+    justify-items: center;
+    justify-content: center;
   }
 
   .mat-column-quantityChange {
@@ -286,7 +311,7 @@ th {
 //   flex: 0 0 150px;
 // }
 /* MOBILE (< 600px) */
-@media (max-width: 599px) {
+@media screen and (max-height: 480px), screen and (max-width: 599px) {
   .dialog-header {
     display: block;
     margin: 0;
@@ -306,6 +331,12 @@ th {
   .responsive-table-wrapper {
     max-height: 55vh;
     overflow-y: auto;
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .bordered-table {
+    table-layout: auto;
   }
 
   // mat-dialog-container {
@@ -315,7 +346,7 @@ th {
   // }
 
   .mat-typography {
-    min-height: 200px;
+    min-height: 179px;
 
     ::ng-deep table {
       margin-right: 1rem;
@@ -380,9 +411,10 @@ th {
 }
 
 /* TABLET (600–959px) */
-@media (min-width: 600px) and (max-width: 959px) {
+@media (min-width: 481px) and (max-width: 959px) {
   ::ng-deep table {
     margin-right: 1rem;
+
     th.mat-mdc-header-cell {
       padding: 6px 8px !important;
       font-size: 12px !important;

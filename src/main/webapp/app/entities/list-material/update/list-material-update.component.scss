@@ -102,7 +102,6 @@
 .bordered-table {
   border-collapse: collapse;
   width: 100%;
-  border: 1px solid #e40b0b;
 }
 
 .bordered-table th,
@@ -351,7 +350,7 @@ th {
 
 .main-page {
   height: 900px;
-  max-width: 1860px;
+  max-width: calc(100% - 50px);
 }
 
 .cdk-global-overlay-wrapper {
@@ -374,10 +373,11 @@ th {
 }
 
 /* MOBILE (< 600px) */
-@media (max-width: 599px) {
+@media (max-width: 480px) {
   .main-page {
     width: 440px;
     padding-right: 1rem;
+    margin-left: 0.5rem;
 
     .function-list {
       flex-direction: column;
@@ -492,10 +492,11 @@ th {
 }
 
 /* TABLET (600–959px) */
-@media (min-width: 600px) and (max-width: 959px) {
+@media (min-width: 481px) and (max-width: 959px) {
   .main-page {
     width: 812px;
     padding-right: 1rem;
+    margin-left: 0.5rem;
 
     .function-list {
       flex-direction: column;
@@ -598,10 +599,11 @@ th {
 }
 
 /* DESKTOP (>= 960px) */
-@media (min-width: 960px) and (max-width: 1366px) {
+@media (min-width: 960px) and (max-width: 1365px) {
   .main-page {
-    width: 1366px;
+    width: 100%;
     padding-right: 1rem;
+    padding-left: 0.5rem;
 
     .function-list {
       flex-direction: row;
@@ -686,9 +688,10 @@ th {
     }
   }
 }
-@media (min-width: 1367px) {
+@media (min-width: 1440px) {
   .main-page {
-    width: 1719px;
+    width: 100%;
     padding-right: 1rem;
+    padding-left: 0.5rem;
   }
 }

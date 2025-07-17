@@ -649,6 +649,7 @@ export class ListMaterialUpdateComponent
     if (!dialogRef) {
       return;
     }
+    this.exitScanMode();
 
     dialogRef.afterClosed().subscribe((result) => {
       if (!result || !result.updatedItems?.length) {

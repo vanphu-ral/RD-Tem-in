@@ -472,6 +472,7 @@ td.mat-mdc-cell.status-reject {
 @media (max-width: 599px) {
   .main-page {
     width: 550px;
+    padding-right: 1rem;
 
     .function-list {
       flex-direction: column;
@@ -591,6 +592,7 @@ td.mat-mdc-cell.status-reject {
 @media (min-width: 600px) and (max-width: 959px) {
   .main-page {
     max-width: 812px;
+    padding-right: 1rem;
 
     .function-list {
       flex-direction: column;
@@ -698,8 +700,10 @@ td.mat-mdc-cell.status-reject {
 }
 
 /* DESKTOP (>= 960px) */
-@media (min-width: 959px) and (max-width: 1439px) {
+@media (min-width: 959px) and (max-width: 1365px) {
   .main-page {
+    width: 1719px;
+    padding-right: 1rem;
     .overlay-spinner {
       width: 100%;
       height: 100%;
@@ -762,28 +766,31 @@ td.mat-mdc-cell.status-reject {
 }
 
 /* DESKTOP (>= 1440px) */
-@media (min-width: 1440px) {
-  .function-list {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 10px 0px;
+@media (max-width: 1440px) {
+  .main-page {
+    padding-right: 1rem;
+    .function-list {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 0px;
 
-    .group-buttons {
-      gap: 10px;
+      .group-buttons {
+        gap: 10px;
 
-      button {
-        padding: 4px 8px;
-        font-size: 14px;
-      }
+        button {
+          padding: 4px 8px;
+          font-size: 14px;
+        }
 
-      button.btn-export {
-        font-size: 11px;
-      }
+        button.btn-export {
+          font-size: 11px;
+        }
 
-      .btn-text {
-        display: inline;
+        .btn-text {
+          display: inline;
+        }
       }
     }
   }

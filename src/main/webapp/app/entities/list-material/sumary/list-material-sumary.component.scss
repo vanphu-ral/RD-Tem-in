@@ -309,10 +309,17 @@ th {
   }
 }
 
+.main-page {
+  display: flex;
+  flex-direction: column;
+  height: 900px;
+  max-width: 100%;
+}
+
 .full-scroll-table-container {
   height: 750px;
   //  width: 1660px;
-  max-width: 1700px;
+  // max-width: 1700px;
   max-width: 100%;
   overflow: auto;
 }
@@ -357,6 +364,8 @@ th {
 @media (max-width: 599px) {
   .main-page {
     width: 550px;
+    padding-right: 1rem;
+    padding-left: 0.5rem;
 
     .function-list {
       flex-direction: column;
@@ -476,6 +485,8 @@ th {
 @media (min-width: 600px) and (max-width: 959px) {
   .main-page {
     max-width: 812px;
+    padding-right: 1rem;
+    padding-left: 0.5rem;
 
     .function-list {
       flex-direction: column;
@@ -583,8 +594,11 @@ th {
 }
 
 /* DESKTOP (>= 960px) */
-@media (min-width: 959px) and (max-width: 1439px) {
+@media (min-width: 959px) and (max-width: 1366px) {
   .main-page {
+    width: 100%;
+    padding-right: 1rem;
+
     .overlay-spinner {
       width: 100%;
       height: 100%;
@@ -647,28 +661,34 @@ th {
 }
 
 /* DESKTOP (>= 1440px) */
-@media (min-width: 1440px) {
-  .function-list {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 10px 0px;
+@media (max-width: 1440px) {
+  .main-page {
+    width: 100%;
+    padding-right: 1rem;
+    padding-left: 0.5rem;
 
-    .group-buttons {
-      gap: 10px;
+    .function-list {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 0px;
 
-      button {
-        padding: 4px 8px;
-        font-size: 14px;
-      }
+      .group-buttons {
+        gap: 10px;
 
-      button.btn-export {
-        font-size: 11px;
-      }
+        button {
+          padding: 4px 8px;
+          font-size: 14px;
+        }
 
-      .btn-text {
-        display: inline;
+        button.btn-export {
+          font-size: 11px;
+        }
+
+        .btn-text {
+          display: inline;
+        }
       }
     }
   }
