@@ -478,6 +478,9 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       audio.onended = () => {
         resolve();
       };
+      setTimeout(() => {
+        this.sortList();
+      }, 1000);
     });
   }
   playAlertSoundSuccess(): any {
@@ -489,6 +492,9 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       audio.onended = () => {
         resolve();
       };
+      setTimeout(() => {
+        this.sortList();
+      }, 1000);
     });
   }
   // bắt sự kiện scan
@@ -556,7 +562,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         this.tienDoScan =
           (this.countScan / this.chiTietLenhSanXuatActive.length) * 100;
         this.resultScanPerCent = this.tienDoScan.toFixed(0);
-        this.alertTimeout("Đã tìm thấy tem trong danh sách lệnh", 5000);
+        this.alertTimeout("Đã tìm thấy tem trong danh sách lệnh", 1000);
         await this.playAlertSoundSuccess();
         return; // Dừng tiến trình nếu đã xử lý
       } else if (
@@ -565,7 +571,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       ) {
         this.isExisted = true;
         this.chiTietLenhSanXuats[i].checked = 1;
-        this.alertTimeout("Tem đang ở trạng thái Inactive", 5000);
+        this.alertTimeout("Tem đang ở trạng thái Inactive", 1000);
         await this.playAlertSound();
         return;
       } else if (
@@ -574,7 +580,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       ) {
         this.isExisted = true;
         this.chiTietLenhSanXuats[i].checked = 1;
-        this.alertTimeout("Tem đang ở trạng thái not list", 5000);
+        this.alertTimeout("Tem đang ở trạng thái not list", 1000);
         await this.playAlertSound();
         return;
       }
@@ -617,31 +623,33 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         lenhSanXuat: this.createFromForm(),
       };
       this.chiTietLenhSanXuats.push(item);
-      this.alertTimeout("Tem không nằm trong danh sách", 5000);
+      this.alertTimeout("Tem không nằm trong danh sách", 1000);
       await this.playAlertSound();
 
       // cập nhật lại danh sách chi tiết lsx ở trạng thái active
-      this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-        (a) => a.trangThai === "Active",
-      );
-      this.chiTietLenhSanXuatActive.sort(function (a, b) {
-        if (
-          a.checked !== undefined &&
-          a.checked !== null &&
-          b.checked !== undefined &&
-          b.checked !== null
-        ) {
-          return a.checked - b.checked;
-        }
-        return 0;
-      });
-      // cập nhật lại danh sách chi tiết lsx không có trong danh sách
-      this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
-        (a) => a.trangThai === "not list",
-      );
-      this.scanResults = "";
       return;
     }
+  }
+  sortList(): void {
+    this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
+      (a) => a.trangThai === "Active",
+    );
+    this.chiTietLenhSanXuatActive.sort(function (a, b) {
+      if (
+        a.checked !== undefined &&
+        a.checked !== null &&
+        b.checked !== undefined &&
+        b.checked !== null
+      ) {
+        return a.checked - b.checked;
+      }
+      return 0;
+    });
+    // cập nhật lại danh sách chi tiết lsx không có trong danh sách
+    this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
+      (a) => a.trangThai === "not list",
+    );
+    this.scanResults = "";
   }
   alertTimeout(mymsg: string, mymsecs: number): void {
     const myelement = document.createElement("div");
@@ -755,7 +763,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   //cập nhật thông tin kho sau khi scan Move
   updateInfo(): void {
     this.popupMove = false;
-    this.alertTimeout("Cập nhật vị trí kho thành công", 5000);
+    this.alertTimeout("Cập nhật vị trí kho thành công", 1000);
   }
   openPopupMove(): void {
     this.popupMove = true;

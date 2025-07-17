@@ -345,11 +345,13 @@
               </div>
               <div class="search-container">
                 <div class="custom-search-wrapper text-center">
+                  <!-- Header checkbox chỉ toggle Expired rows, đồng thời disable nếu không có Expired rows -->
                   <mat-checkbox
                     color="primary"
                     (change)="toggleAllExtendExpiration($event.checked)"
                     [checked]="isAllExtendExpirationSelected()"
                     [indeterminate]="isSomeExtendExpirationSelected()"
+                    [disabled]="!hasExpiredRows()"
                   >
                   </mat-checkbox>
                 </div>
@@ -358,10 +360,12 @@
           </div>
         </th>
         <td mat-cell *matCellDef="let element" class="text-center">
+          <!-- Row checkbox chỉ enable nếu status = Expired -->
           <mat-checkbox
             color="primary"
             [(ngModel)]="element.extendExpiration"
             (ngModelChange)="element._isChanged = true"
+            [disabled]="element.calculatedStatus !== 'Expired'"
           >
           </mat-checkbox>
         </td>
@@ -632,6 +636,7 @@
       (input)="onScanLocationInput(scanInput.value)"
       (keydown.enter)="onScanInputEnter($event)"
       autocomplete="off"
+      inputmode="none"
     />
   </div>
 </mat-dialog-content>

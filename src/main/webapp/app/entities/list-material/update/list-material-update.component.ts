@@ -411,11 +411,34 @@ export class ListMaterialUpdateComponent
       this.scanTimeoutId = null;
     }, this.scanTimeoutDelay);
   }
+  playAlertSound(): any {
+    return new Promise<void>((resolve) => {
+      const audio = new Audio();
+      audio.src = "../../../content/images/beep_warning.mp3";
+      audio.load();
+      audio.play();
+      audio.onended = () => {
+        resolve();
+      };
+    });
+  }
+  playAlertSoundSuccess(): any {
+    return new Promise<void>((resolve) => {
+      const audio = new Audio();
+      audio.src = "../../../content/images/successed-295058.mp3";
+      audio.load();
+      audio.play();
+      audio.onended = () => {
+        resolve();
+      };
+    });
+  }
   onScanEnter(rawValue: string): void {
     if (this.scanTimeoutId) {
       clearTimeout(this.scanTimeoutId);
       this.scanTimeoutId = null;
     }
+
     const code = rawValue.trim().split("#")[0];
     this.isLoading = true;
 
@@ -436,12 +459,21 @@ export class ListMaterialUpdateComponent
         next: (raw) => {
           if (raw) {
             this.materialService.selectItems([raw.inventoryId]);
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            setTimeout(() => this.playAlertSoundSuccess(), 500);
           } else {
             this.openError(`Không tìm thấy vật tư: ${code}`);
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            setTimeout(() => this.playAlertSound(), 500);
           }
         },
         error: () => {
           this.openError(`Lỗi khi tìm vật tư: ${code}`);
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          setTimeout(() => this.playAlertSound(), 500);
         },
       });
   }

@@ -1,7 +1,12 @@
 <div>
   <div class="table-responsive" id="entities">
     <form name="editForm" role="form" novalidate [formGroup]="editForm">
-      <h2 id="jhi-lenh-san-xuat-heading" data-cy="LenhSanXuatCreateUpdateHeading">Duyệt yêu cầu</h2>
+      <h2
+        id="jhi-lenh-san-xuat-heading"
+        data-cy="LenhSanXuatCreateUpdateHeading"
+      >
+        Duyệt yêu cầu
+      </h2>
       <div>
         <div class="table-scroll">
           <table class="table table-striped" aria-describedby="page-heading">
@@ -46,22 +51,50 @@
             <tbody>
               <tr data-cy="entityTable">
                 <td>
-                  <input class="form-control" id="maLenhSanXuat" list="maLenhSanXuat" formControlName="maLenhSanXuat" />
+                  <input
+                    class="form-control"
+                    id="maLenhSanXuat"
+                    list="maLenhSanXuat"
+                    formControlName="maLenhSanXuat"
+                  />
                 </td>
                 <td>
-                  <input class="form-control" id="sapCode" list="sapCode" formControlName="sapCode" />
+                  <input
+                    class="form-control"
+                    id="sapCode"
+                    list="sapCode"
+                    formControlName="sapCode"
+                  />
                 </td>
                 <td>
-                  <input class="form-control" id="sapName" list="sapName" formControlName="sapName" />
+                  <input
+                    class="form-control"
+                    id="sapName"
+                    list="sapName"
+                    formControlName="sapName"
+                  />
                 </td>
                 <td>
-                  <input class="form-control" id="workOrderCode" list="workOrderCode" formControlName="workOrderCode" />
+                  <input
+                    class="form-control"
+                    id="workOrderCode"
+                    list="workOrderCode"
+                    formControlName="workOrderCode"
+                  />
                 </td>
                 <td>
-                  <input class="form-control" id="version" list="version" formControlName="version" />
+                  <input
+                    class="form-control"
+                    id="version"
+                    list="version"
+                    formControlName="version"
+                  />
                 </td>
                 <td>
-                  <select class="form-control form-select" formControlName="storageCode">
+                  <select
+                    class="form-control form-select"
+                    formControlName="storageCode"
+                  >
                     <option value="01">01 - Kho linh kiện điện tử</option>
                     <option value="02">02 - Kho vật tư LED</option>
                     <option value="03">03 - Kho vật tư TBCS</option>
@@ -83,26 +116,56 @@
                   </select>
                 </td>
                 <td>
-                  <input class="form-control" id="totalQuantity" list="totalQuantity" formControlName="totalQuantity" />
+                  <input
+                    class="form-control"
+                    id="totalQuantity"
+                    list="totalQuantity"
+                    formControlName="totalQuantity"
+                  />
                 </td>
                 <td>
-                  <input class="form-control" id="createBy" list="createBy" formControlName="createBy" />
+                  <input
+                    class="form-control"
+                    id="createBy"
+                    list="createBy"
+                    formControlName="createBy"
+                  />
                 </td>
                 <td>
-                  <input class="form-control" id="entryTime" list="entryTime" formControlName="entryTime" />
+                  <input
+                    class="form-control"
+                    id="entryTime"
+                    list="entryTime"
+                    formControlName="entryTime"
+                  />
                 </td>
                 <td>
-                  <input class="form-control" id="trangThai" list="trangThai" formControlName="trangThai" />
+                  <input
+                    class="form-control"
+                    id="trangThai"
+                    list="trangThai"
+                    formControlName="trangThai"
+                  />
                 </td>
                 <td>
-                  <input class="form-control" id="comment" list="comment" formControlName="comment" />
+                  <input
+                    class="form-control"
+                    id="comment"
+                    list="comment"
+                    formControlName="comment"
+                  />
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <form [formGroup]="scanResult" [ngClass]="{ 'show-input-scan': showScanInput }">
-          <button class="btn-scan" role="button" (click)="setInputValue()">Scan tem</button>
+        <form
+          [formGroup]="scanResult"
+          [ngClass]="{ 'show-input-scan': showScanInput }"
+        >
+          <button class="btn-scan" role="button" (click)="setInputValue()">
+            Scan tem
+          </button>
           <input
             class="input-scan"
             type="text"
@@ -111,8 +174,15 @@
             [ngModelOptions]="{ standalone: true }"
             style="border: none"
             (keydown.enter)="catchScanEvent()"
+            inputmode="none"
           />
-          <button class="btn-scan" *ngIf="scanResults !== ''" (click)="catchScanEvent()">Kiểm tra</button>
+          <button
+            class="btn-scan"
+            *ngIf="scanResults !== ''"
+            (click)="catchScanEvent()"
+          >
+            Kiểm tra
+          </button>
         </form>
 
         <!-- <div>
@@ -125,7 +195,14 @@
           <h3 id="jhi-lenh-san-xuat-heading">
             Danh sách tem có trong lệnh
             <p>Số thùng: {{ chiTietLenhSanXuatActive.length }}</p>
-            <button type="button" class="move" id="scannnnnnnn" (click)="openPopupMove()">Move</button>
+            <button
+              type="button"
+              class="move"
+              id="scannnnnnnn"
+              (click)="openPopupMove()"
+            >
+              Move
+            </button>
           </h3>
           <input
             #searchInput
@@ -144,7 +221,9 @@
               <tr>
                 <th scope="col">STT</th>
                 <th scope="col"><span class="custom-width">Reel ID</span></th>
-                <th scope="col"><span class="custom-width">Part Number</span></th>
+                <th scope="col">
+                  <span class="custom-width">Part Number</span>
+                </th>
                 <th scope="col"><span class="custom-width">Vendor</span></th>
                 <th scope="col"><span class="custom-width">LOT</span></th>
                 <th scope="col">User Data 1</th>
@@ -174,7 +253,10 @@
                       [ngModelOptions]="{ standalone: true }"
                       (keydown.enter)="changeAllStorageUnit()"
                     />
-                    <button class="btn-replace" (keydown.enter)="changeAllStorageUnit()">
+                    <button
+                      class="btn-replace"
+                      (keydown.enter)="changeAllStorageUnit()"
+                    >
                       <fa-icon icon="eye"></fa-icon>
                     </button>
                   </div>
@@ -189,8 +271,12 @@
                 <th scope="col">
                   Checked
                   <div class="btn-flex">
-                    <button class="btn btn-success" (click)="onCheckAll()">Chọn tất cả</button>
-                    <button class="btn btn-danger" (click)="onUnCheckAll()">Bỏ chọn tất cả</button>
+                    <button class="btn btn-success" (click)="onCheckAll()">
+                      Chọn tất cả
+                    </button>
+                    <button class="btn btn-danger" (click)="onUnCheckAll()">
+                      Bỏ chọn tất cả
+                    </button>
                   </div>
                 </th>
                 <!-- <th scope="col" jhiSortBy=""></th> -->
@@ -199,7 +285,9 @@
 
             <tr
               *ngFor="
-                let data of chiTietLenhSanXuatActive | filter: reelID | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+                let data of chiTietLenhSanXuatActive
+                  | filter: reelID
+                  | paginate: { itemsPerPage: itemPerPage, currentPage: page };
                 let i = index;
                 trackBy: trackId
               "
@@ -229,7 +317,9 @@
                 <span>{{ data.userData2 }}</span>
               </td>
               <td>
-                <span style="display: block; width: 15vw">{{ data.userData3 }}</span>
+                <span style="display: block; width: 15vw">{{
+                  data.userData3
+                }}</span>
               </td>
               <td>
                 <span>{{ data.userData4 }}</span>
@@ -326,7 +416,11 @@
             </tr>
           </table>
         </div>
-        <div *ngIf="chiTietLenhSanXuatActive && chiTietLenhSanXuatActive.length > 0">
+        <div
+          *ngIf="
+            chiTietLenhSanXuatActive && chiTietLenhSanXuatActive.length > 0
+          "
+        >
           <div>
             <select
               class="form-select"
@@ -340,7 +434,10 @@
               <option value="15">15</option>
               <option value="20">20</option>
             </select>
-            <pagination-controls (pageChange)="page = $event" style="float: right"></pagination-controls>
+            <pagination-controls
+              (pageChange)="page = $event"
+              style="float: right"
+            ></pagination-controls>
           </div>
         </div>
 
@@ -356,7 +453,9 @@
               <tr>
                 <th scope="col">STT</th>
                 <th scope="col"><span class="custom-width">Reel ID</span></th>
-                <th scope="col"><span class="custom-width">Part Number</span></th>
+                <th scope="col">
+                  <span class="custom-width">Part Number</span>
+                </th>
                 <th scope="col"><span class="custom-width">Vendor</span></th>
                 <th scope="col"><span class="custom-width">LOT</span></th>
                 <th scope="col">User Data 1</th>
@@ -376,7 +475,9 @@
                 <th scope="col">Maximum Limit</th>
                 <th scope="col">Comments</th>
                 <th scope="col">Warm Up Time</th>
-                <th scope="col"><span class="custom-width">Storage Unit</span></th>
+                <th scope="col">
+                  <span class="custom-width">Storage Unit</span>
+                </th>
                 <th scope="col">Sub Storage Unit</th>
                 <th scope="col">Location Override</th>
                 <th scope="col">Expiration Date</th>
@@ -391,7 +492,9 @@
 
             <tr
               *ngFor="
-                let data of chiTietLenhSanXuatNotList | paginate: { itemsPerPage: itemPerPage2, currentPage: page2 };
+                let data of chiTietLenhSanXuatNotList
+                  | paginate
+                    : { itemsPerPage: itemPerPage2, currentPage: page2 };
                 let i = index;
                 trackBy: trackId
               "
@@ -421,7 +524,9 @@
                 <span>{{ data.userData2 }}</span>
               </td>
               <td>
-                <span style="display: block; width: 15vw">{{ data.userData3 }}</span>
+                <span style="display: block; width: 15vw">{{
+                  data.userData3
+                }}</span>
               </td>
               <td>
                 <span>{{ data.userData4 }}</span>
@@ -505,12 +610,20 @@
                 </span>
               </td>
               <td>
-                <input type="checkbox" [(ngModel)]="data.checked" [ngModelOptions]="{ standalone: true }" />
+                <input
+                  type="checkbox"
+                  [(ngModel)]="data.checked"
+                  [ngModelOptions]="{ standalone: true }"
+                />
               </td>
             </tr>
           </table>
         </div>
-        <div *ngIf="chiTietLenhSanXuatNotList && chiTietLenhSanXuatNotList.length > 0">
+        <div
+          *ngIf="
+            chiTietLenhSanXuatNotList && chiTietLenhSanXuatNotList.length > 0
+          "
+        >
           <div>
             <select
               class="form-select"
@@ -518,18 +631,28 @@
               [(ngModel)]="itemPerPage"
               [ngModelOptions]="{ standalone: true }"
             >
-              <option value="{{ chiTietLenhSanXuatNotList.length }}">All</option>
+              <option value="{{ chiTietLenhSanXuatNotList.length }}">
+                All
+              </option>
               <option value="10">10</option>
               <option value="15">15</option>
               <option value="20">20</option>
             </select>
-            <pagination-controls (pageChange)="page2 = $event" style="float: right"></pagination-controls>
+            <pagination-controls
+              (pageChange)="page2 = $event"
+              style="float: right"
+            ></pagination-controls>
           </div>
         </div>
       </div>
 
       <div>
-        <button type="submit" id="save-entity" class="btn btn-primary" (click)="pheDuyetTem()">
+        <button
+          type="submit"
+          id="save-entity"
+          class="btn btn-primary"
+          (click)="pheDuyetTem()"
+        >
           <fa-icon icon="check"></fa-icon>&nbsp;<span>Phê duyệt</span>
         </button>
 
@@ -544,15 +667,31 @@
           <fa-icon icon="save"></fa-icon>&nbsp;<span>Lưu</span>
         </button>
 
-        <button type="submit" id="save-entity" class="btn btn-primary" (click)="khoHuyStatus()">
+        <button
+          type="submit"
+          id="save-entity"
+          class="btn btn-primary"
+          (click)="khoHuyStatus()"
+        >
           <fa-icon icon="xing-square"></fa-icon>&nbsp;<span>Huỷ</span>
         </button>
 
-        <button type="submit" id="save-entity" class="btn btn-primary" (click)="khoTuChoiStatus()">
+        <button
+          type="submit"
+          id="save-entity"
+          class="btn btn-primary"
+          (click)="khoTuChoiStatus()"
+        >
           <fa-icon icon="cancel"></fa-icon>&nbsp;<span>Từ chối</span>
         </button>
 
-        <button type="button" id="cancel-save" data-cy="entityCreateCancelButton" class="btn btn-info" (click)="previousState()">
+        <button
+          type="button"
+          id="cancel-save"
+          data-cy="entityCreateCancelButton"
+          class="btn btn-info"
+          (click)="previousState()"
+        >
           <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span>Trở lại</span>
         </button>
       </div>
@@ -600,7 +739,9 @@
     <table class="table">
       <thead>
         <tr>
-          <th style="z-index: 50; position: sticky; top: -2px">Thông tin BTP</th>
+          <th style="z-index: 50; position: sticky; top: -2px">
+            Thông tin BTP
+          </th>
           <th style="z-index: 50; position: sticky; top: -2px">Kho</th>
           <th style="z-index: 50; position: sticky; top: -2px">Slot</th>
           <th style="z-index: 50; position: sticky; top: -2px"></th>
@@ -609,10 +750,32 @@
       <tbody>
         <tr *ngFor="let item of dataMove">
           <td style="width: 170px">{{ item.reelID }}</td>
-          <td style="max-width: 81px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{ item.storageUnit }}</td>
-          <td style="max-width: 60px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{ item.subStorageUnit }}</td>
+          <td
+            style="
+              max-width: 81px;
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
+            "
+          >
+            {{ item.storageUnit }}
+          </td>
+          <td
+            style="
+              max-width: 60px;
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
+            "
+          >
+            {{ item.subStorageUnit }}
+          </td>
           <td style="width: 70px">
-            <button class="btn-danger" style="width: 55px; margin-left: -3px" (click)="removeItem(item.id)">
+            <button
+              class="btn-danger"
+              style="width: 55px; margin-left: -3px"
+              (click)="removeItem(item.id)"
+            >
               <fa-icon icon="times"></fa-icon>
             </button>
           </td>
@@ -621,6 +784,8 @@
     </table>
   </div>
   <div class="btn-margin">
-    <button class="btn-primary" style="margin-top: 12px" (click)="updateInfo()">Lưu</button>
+    <button class="btn-primary" style="margin-top: 12px" (click)="updateInfo()">
+      Lưu
+    </button>
   </div>
 </div>

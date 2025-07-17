@@ -65,6 +65,7 @@
     }
   }
 }
+
 .loader {
   width: 50px;
   padding: 8px;
@@ -316,7 +317,7 @@ th {
 
 .full-scroll-table-container {
   max-height: 750px;
-  max-width: 1860px;
+  width: 100%;
   // overflow-y: auto;
   overflow-x: auto;
 }
@@ -350,7 +351,7 @@ th {
 
 .main-page {
   height: 900px;
-  width: 1860px;
+  max-width: 1860px;
 }
 
 .cdk-global-overlay-wrapper {
@@ -375,7 +376,8 @@ th {
 /* MOBILE (< 600px) */
 @media (max-width: 599px) {
   .main-page {
-    width: 550px;
+    width: 440px;
+    padding-right: 1rem;
 
     .function-list {
       flex-direction: column;
@@ -400,7 +402,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 130px;
+              min-width: 125px;
               min-height: 40px;
               padding: 0;
             }
@@ -412,7 +414,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 130px;
+              min-width: 125px;
               min-height: 40px;
               padding: 0;
             }
@@ -493,6 +495,7 @@ th {
 @media (min-width: 600px) and (max-width: 959px) {
   .main-page {
     width: 812px;
+    padding-right: 1rem;
 
     .function-list {
       flex-direction: column;
@@ -595,86 +598,97 @@ th {
 }
 
 /* DESKTOP (>= 960px) */
-@media (min-width: 960px) {
-  .function-list {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 0 18px 8px 0;
+@media (min-width: 960px) and (max-width: 1366px) {
+  .main-page {
+    width: 1366px;
+    padding-right: 1rem;
 
-    .group-buttons {
-      gap: 10px;
+    .function-list {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 0 18px 8px 0;
 
-      &.primary {
-        width: 40%;
+      .group-buttons {
+        gap: 10px;
+
+        &.primary {
+          width: 40%;
+        }
+
+        &.secondary {
+          width: 60%;
+        }
+
+        button {
+          padding: 4px 8px;
+          font-size: 14px;
+        }
+
+        button.btn-export {
+          font-size: 11px;
+        }
+
+        button.btn-column {
+          .icon-down {
+            display: none;
+          }
+        }
+
+        .btn-text {
+          display: inline;
+        }
       }
+    }
 
-      &.secondary {
-        width: 60%;
-      }
+    ::ng-deep table {
+      th.mat-mdc-header-cell {
+        padding: 6px 8px !important;
+        font-size: 14px !important;
 
-      button {
-        padding: 4px 8px;
-        font-size: 14px;
-      }
+        .search-container {
+          .small-form-field {
+            // width: 100px !important;
 
-      button.btn-export {
-        font-size: 11px;
-      }
+            .mat-form-field-infix {
+              padding: 0 2px !important;
+            }
 
-      button.btn-column {
-        .icon-down {
-          display: none;
+            mat-label {
+              font-size: 9px !important;
+              line-height: 12px !important;
+            }
+
+            input,
+            .mat-select-trigger,
+            mat-datepicker-toggle {
+              font-size: 12px !important;
+              height: 20px !important;
+              padding: 0 2px !important;
+            }
+          }
+        }
+
+        .mat-mdc-select {
+          font-size: 14px !important;
+        }
+
+        mat-icon {
+          font-size: 20px !important;
         }
       }
 
-      .btn-text {
-        display: inline;
+      td.mat-mdc-cell {
+        padding: 4px 6px !important;
+        font-size: 13px !important;
       }
     }
   }
-
-  ::ng-deep table {
-    th.mat-mdc-header-cell {
-      padding: 6px 8px !important;
-      font-size: 14px !important;
-
-      .search-container {
-        .small-form-field {
-          // width: 100px !important;
-
-          .mat-form-field-infix {
-            padding: 0 2px !important;
-          }
-
-          mat-label {
-            font-size: 9px !important;
-            line-height: 12px !important;
-          }
-
-          input,
-          .mat-select-trigger,
-          mat-datepicker-toggle {
-            font-size: 12px !important;
-            height: 20px !important;
-            padding: 0 2px !important;
-          }
-        }
-      }
-
-      .mat-mdc-select {
-        font-size: 14px !important;
-      }
-
-      mat-icon {
-        font-size: 20px !important;
-      }
-    }
-
-    td.mat-mdc-cell {
-      padding: 4px 6px !important;
-      font-size: 13px !important;
-    }
+}
+@media (min-width: 1367px) {
+  .main-page {
+    width: 1719px;
+    padding-right: 1rem;
   }
 }

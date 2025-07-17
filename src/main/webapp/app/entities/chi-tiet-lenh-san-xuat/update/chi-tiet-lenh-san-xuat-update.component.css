@@ -4,7 +4,9 @@ table {
   margin-bottom: 20px;
   font-size: 15px;
 }
-
+.table-responsive {
+  margin-left: 60px;
+}
 th {
   color: #fff;
   background-color: #006699;
@@ -30,7 +32,7 @@ td {
   border: 1px solid #ccc;
 }
 
-input[type='text'],
+input[type="text"],
 select {
   width: 100%;
   padding: 8px;
@@ -38,7 +40,7 @@ select {
   border-radius: 4px;
 }
 
-input[type='checkbox'] {
+input[type="checkbox"] {
   zoom: 2.5;
 }
 
@@ -187,7 +189,7 @@ input[type='checkbox'] {
   display: flex;
   flex-direction: row;
   flex-shrink: 0;
-  font-family: 'RM Neue', sans-serif;
+  font-family: "RM Neue", sans-serif;
   font-size: 100%;
   line-height: 1.15;
   margin: 0;
@@ -298,7 +300,7 @@ input[type='checkbox'] {
   bottom: 0;
   left: 0;
   right: 0;
-  font-family: 'RM Neue', sans-serif;
+  font-family: "RM Neue", sans-serif;
 }
 
 /* close btn */

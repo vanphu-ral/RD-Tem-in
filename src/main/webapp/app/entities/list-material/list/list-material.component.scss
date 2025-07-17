@@ -400,7 +400,7 @@ th {
   display: flex;
   flex-direction: column;
   height: 900px;
-  width: 1860px;
+  max-width: 1860px;
 }
 
 .full-scroll-table-container {
@@ -419,7 +419,8 @@ th {
 /* MOBILE (< 600px) */
 @media (max-width: 599px) {
   .main-page {
-    width: 550px;
+    width: 440px;
+    padding-right: 1rem;
 
     .function-list {
       flex-direction: column;
@@ -444,7 +445,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 160px;
+              min-width: 125px;
               min-height: 40px;
               padding: 0;
             }
@@ -456,7 +457,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 160px;
+              min-width: 125px;
               min-height: 40px;
               padding: 0;
             }
@@ -482,7 +483,8 @@ th {
     }
 
     ::ng-deep .full-scroll-table-container {
-      max-width: 100%;
+      max-width: 95%;
+      margin-right: 1rem;
 
       ::ng-deep .mat-sort-header-content {
         .search-container {
@@ -549,6 +551,7 @@ th {
 @media (min-width: 600px) and (max-width: 959px) {
   .main-page {
     max-width: 812px;
+    padding-right: 1rem;
 
     .function-list {
       flex-direction: column;
@@ -656,8 +659,11 @@ th {
 }
 
 /* DESKTOP (>= 960px) */
-@media (min-width: 959px) and (max-width: 1439px) {
+@media (min-width: 959px) and (max-width: 1366px) {
   .main-page {
+    width: 1366px;
+    padding-right: 1rem;
+
     .overlay-spinner {
       width: 100%;
       height: 100%;
@@ -719,6 +725,7 @@ th {
 
     ::ng-deep .full-scroll-table-container {
       max-width: 100%;
+      margin-right: 1rem;
 
       ::ng-deep .mat-sort-header-content {
         .search-container {
@@ -732,27 +739,32 @@ th {
 
 /* DESKTOP (>= 1440px) */
 @media (min-width: 1440px) {
-  .function-list {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 10px 0px;
+  .main-page {
+    width: 1719px;
+    padding-right: 1rem;
 
-    .group-buttons {
-      gap: 10px;
+    .function-list {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 0px;
 
-      button {
-        padding: 4px 8px;
-        font-size: 14px;
-      }
+      .group-buttons {
+        gap: 10px;
 
-      button.btn-export {
-        font-size: 11px;
-      }
+        button {
+          padding: 4px 8px;
+          font-size: 14px;
+        }
 
-      .btn-text {
-        display: inline;
+        button.btn-export {
+          font-size: 11px;
+        }
+
+        .btn-text {
+          display: inline;
+        }
       }
     }
   }

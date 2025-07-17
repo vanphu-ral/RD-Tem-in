@@ -808,6 +808,9 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   setFilterMode(column: any, mode: string): void {
     this.filterModes[column] = mode;
   }
+  hasExpiredRows(): boolean {
+    return this.expiredRows.length > 0;
+  }
 
   displayWarehouseFn(warehouse: { value: string; name: string }): string {
     return warehouse && warehouse.name ? warehouse.name : "";
@@ -818,6 +821,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       ?.value as Warehouse | null;
     const headerWarehouseValue = selectedWarehouseObj?.value ?? null;
     const approver = this.approverCtrl.value as UserSummary | null;
+
     if (!approver) {
       this.snackBar.open("Yêu cầu chọn người duyệt!", "Đóng", {
         duration: 3000,
@@ -841,12 +845,16 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       return;
     }
 
-    const allRowsValid = this.itemsDataSource.data.every(
-      (item) =>
+    const allRowsValid = this.itemsDataSource.data.every((item) => {
+      if (item.calculatedStatus !== "Expired") {
+        return headerWarehouseSet || !!item.selectedWarehouse?.value;
+      }
+      return (
         headerWarehouseSet ||
         !!item.selectedWarehouse?.value ||
-        item.extendExpiration,
-    );
+        item.extendExpiration
+      );
+    });
 
     if (!allRowsValid) {
       this.snackBar.open(
@@ -915,13 +923,12 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   // }
 
   toggleAllExtendExpiration(checked: boolean): void {
-    if (this.itemsDataSource && this.itemsDataSource.data) {
-      this.itemsDataSource.data.forEach((row) => {
-        if (row.extendExpiration !== checked) {
-          row.extendExpiration = checked;
-        }
-      });
-    }
+    this.itemsDataSource.data.forEach((row) => {
+      if (row.calculatedStatus === "Expired") {
+        row.extendExpiration = checked;
+        row._isChanged = true;
+      }
+    });
   }
 
   isAllExtendExpirationSelected(): boolean {
@@ -932,7 +939,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     ) {
       return false;
     }
-    return this.itemsDataSource.data.every((row) => row.extendExpiration);
+    const rows = this.expiredRows;
+    return rows.length > 0 && rows.every((r) => r.extendExpiration);
   }
 
   isSomeExtendExpirationSelected(): boolean {
@@ -943,14 +951,18 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     ) {
       return false;
     }
-    const numSelected = this.itemsDataSource.data.filter(
-      (row) => row.extendExpiration,
-    ).length;
-    return numSelected > 0 && numSelected < this.itemsDataSource.data.length;
+    const rows = this.expiredRows;
+    const cnt = rows.filter((r) => r.extendExpiration).length;
+    return cnt > 0 && cnt < rows.length;
   }
   // #endregion
 
   // #region Private methods
+  private get expiredRows(): MaterialItem[] {
+    return this.itemsDataSource.data.filter(
+      (r) => r.calculatedStatus === "Expired",
+    );
+  }
   private processScanInput(scanValue: string): string {
     let result = scanValue;
 

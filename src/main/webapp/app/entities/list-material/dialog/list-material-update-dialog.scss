@@ -46,8 +46,20 @@ mat-divider {
   margin-top: 20px;
 }
 
-mat-dialog-content {
-  max-height: 70vh;
+mat-mdc-dialog-content {
+  max-height: unset !important;
+  overflow: visible !important;
+  padding: 0 1rem;
+}
+::ng-deep .mat-mdc-dialog-container {
+  max-height: unset !important;
+  overflow: visible !important;
+  .mat-mdc-dialog-surface {
+    overflow: unset !important;
+  }
+}
+.responsive-table-wrapper {
+  max-height: 60vh;
   overflow-y: auto;
 }
 
@@ -115,16 +127,17 @@ table {
   border: 1px solid #000000;
 }
 
-mat-dialog-content {
+mat-mdc-dialog-content {
   min-width: 100%;
-  max-height: 80vh;
-  overflow: auto;
+  max-height: unset !important;
+  overflow: visible !important;
+  display: block !important;
 }
 
 th,
 td {
   padding: 8px;
-  text-align: center;
+  text-align: left;
   white-space: nowrap;
 }
 
@@ -264,6 +277,11 @@ th {
   border: 1px solid #ddd;
 }
 
+.dialog-center-pane {
+  margin: 0 auto !important;
+  border-radius: 8px;
+}
+
 // .mat-column-s{
 //   flex: 0 0 150px;
 // }
@@ -279,8 +297,29 @@ th {
     }
   }
 
+  .dialog-center-pane {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 0 auto !important;
+  }
+
+  .responsive-table-wrapper {
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
+  // mat-dialog-container {
+  //   display: flex;
+  //   justify-content: center;
+  //   align-items: center;
+  // }
+
   .mat-typography {
     min-height: 200px;
+
+    ::ng-deep table {
+      margin-right: 1rem;
+    }
 
     th.mat-mdc-header-cell {
       padding: 2px 4px !important;
@@ -343,6 +382,7 @@ th {
 /* TABLET (600–959px) */
 @media (min-width: 600px) and (max-width: 959px) {
   ::ng-deep table {
+    margin-right: 1rem;
     th.mat-mdc-header-cell {
       padding: 6px 8px !important;
       font-size: 12px !important;

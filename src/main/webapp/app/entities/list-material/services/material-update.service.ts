@@ -24,14 +24,6 @@ export class MaterialUpdateService {
     private http: HttpClient,
     private overlay: Overlay,
   ) {}
-  //  private apiUrl = environment.restApiBaseUrl + '/api/post/request-update';
-
-  // sendRequestUpdate(data: any): Observable<any> {
-  //     const headers = new HttpHeaders({
-  //       'Content-Type': 'application/json',
-  //     });
-  //     return this.http.post(`${this.apiUrl}`, data, { headers, responseType: 'text' });
-  //   }
 
   getCheckedCount$(): Observable<number> {
     return this.materialService.selectedIds$.pipe(map((ids) => ids.length));
@@ -57,13 +49,14 @@ export class MaterialUpdateService {
           approvers: string[];
         }
       >(ListMaterialUpdateDialogComponent, {
-        width: "80%",
-        maxWidth: "75vw",
-        maxHeight: "90vh",
+        minWidth: "450px",
+        maxWidth: "1400px",
+        width: "90vw",
+        height: "auto",
         panelClass: "dialog-center-pane",
         data: { items: itemsToUpdate },
         autoFocus: false,
-        scrollStrategy: this.overlay.scrollStrategies.block(),
+        scrollStrategy: this.overlay.scrollStrategies.noop(),
       });
     }
     return undefined;
