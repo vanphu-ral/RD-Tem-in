@@ -447,15 +447,15 @@ td.mat-mdc-cell.status-reject {
   display: flex;
   flex-direction: column;
   height: 900px;
-  width: 1950px;
-  padding-left: 5px;
+  width: calc(100% - 50px);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
   margin-top: 5px;
 }
 
 .full-scroll-table-container {
   height: 100%;
   //  width: 1660px;
-  max-width: 1950px;
   max-width: 100%;
   overflow: auto;
 }

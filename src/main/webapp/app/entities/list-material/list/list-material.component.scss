@@ -421,7 +421,7 @@ th {
 /* MOBILE (< 600px) */
 @media (max-width: 480px) {
   .main-page {
-    width: 460px;
+    width: 480px;
     padding-right: 1rem;
 
     .function-list {
@@ -447,7 +447,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 125px;
+              min-width: 95px;
               min-height: 40px;
               padding: 0;
             }
@@ -459,7 +459,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 125px;
+              min-width: 95px;
               min-height: 40px;
               padding: 0;
             }
@@ -485,8 +485,7 @@ th {
     }
 
     ::ng-deep .full-scroll-table-container {
-      max-width: 95%;
-      margin-right: 1rem;
+      max-width: 480px !important;
 
       ::ng-deep .mat-sort-header-content {
         .search-container {
@@ -746,6 +745,7 @@ th {
     width: 100%;
     padding-left: 0.5rem;
     padding-right: 1rem;
+
     .function-list {
       flex-direction: row;
       justify-content: space-between;
@@ -761,9 +761,9 @@ th {
           font-size: 14px;
         }
 
-        button.btn-export {
-          font-size: 11px;
-        }
+        // button.btn-export {
+        //   font-size: 11px;
+        // }
 
         .btn-text {
           display: inline;

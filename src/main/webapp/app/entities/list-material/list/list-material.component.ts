@@ -758,12 +758,34 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     ];
     return dateFields.includes(colDef);
   }
+  get hasFilter(): boolean {
+    const queryParams = this.route.snapshot.queryParams;
+    const filters = { ...queryParams };
+    delete filters.page;
+    delete filters.pageSize;
 
+    // Loại bỏ các filters có giá trị rỗng/null/undefined
+    const cleanedFilters = Object.values(filters).filter(
+      (v) => v != null && v !== "",
+    );
+    return cleanedFilters.length > 0;
+  }
+  handleExportClick(): void {
+    if (!this.hasFilter) {
+      this.snackBar.open("Vui lòng lọc dữ liệu trước khi export!", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    this.exportAllMaterialData();
+  }
   exportAllMaterialData(): void {
     this.isLoading = true;
 
     const headers = [
       "STT",
+      "Material Indentifier",
       "User Data 4",
       "Lot Number",
       "Material Trace ID",
@@ -821,6 +843,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
         const sheetData = sorted.map((row, i) => ({
           STT: i + 1,
+          "Material Indentifier": row.materialIdentifier,
           "User Data 4": row.userData4,
           "Lot Number": row.lotNumber,
           "Material Trace ID": row.materialTraceId,

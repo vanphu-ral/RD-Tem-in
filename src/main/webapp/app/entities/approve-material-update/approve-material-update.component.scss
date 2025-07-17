@@ -144,6 +144,7 @@ td {
 th {
   height: 50px;
   background-color: rgb(49, 110, 241);
+  font-weight: bold;
 }
 
 .mat-header-cell.search-header {
@@ -449,9 +450,10 @@ td.mat-mdc-cell.status-reject {
   display: flex;
   flex-direction: column;
   // height: 900px;
-  width: 1950px;
+  width: calc(100% - 50px);
   margin-top: 5px;
-  padding-left: 5px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 .full-scroll-table-container {

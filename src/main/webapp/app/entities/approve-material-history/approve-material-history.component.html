@@ -454,6 +454,7 @@
                     <mat-select
                       [ngModel]="searchTerms['status']?.value || ''"
                       (ngModelChange)="applyFilter('status', $event)"
+                      style="font-size: 13px"
                     >
                       <mat-option value="">Tất cả</mat-option>
                       <!-- <mat-option value="PENDING">Đang chờ duyệt</mat-option> -->

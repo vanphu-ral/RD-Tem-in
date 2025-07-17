@@ -6,6 +6,7 @@
   align-items: center;
   flex-wrap: nowrap;
   padding: 0;
+  gap: 20px;
 
   .group-title {
     flex: 0 0 auto;
@@ -375,7 +376,7 @@ th {
 /* MOBILE (< 600px) */
 @media (max-width: 480px) {
   .main-page {
-    width: 440px;
+    width: 480px;
     padding-right: 1rem;
     margin-left: 0.5rem;
 
@@ -402,7 +403,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 125px;
+              min-width: 95px;
               min-height: 40px;
               padding: 0;
             }
@@ -414,7 +415,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 125px;
+              min-width: 95px;
               min-height: 40px;
               padding: 0;
             }
