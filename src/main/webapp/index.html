@@ -146,6 +146,12 @@
       <h1>You must enable JavaScript to view this page.</h1>
     </noscript>
     <script type="text/javascript">
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const currentPath = window.location.pathname;
+
+      if (isMobile && currentPath !== "/list-material/update-list") {
+        window.location.href = "/list-material/update-list";
+      }
       function updateVh() {
         document.documentElement.style.setProperty(
           "--vh",

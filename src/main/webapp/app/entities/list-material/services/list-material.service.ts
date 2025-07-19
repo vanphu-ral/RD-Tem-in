@@ -234,7 +234,8 @@ export class ListMaterialService {
   public updateRequestData$!: Observable<inventory_update_requests[]>;
   public updateRequestDetail$!: Observable<inventory_update_requests_detail[]>;
   public updateHistoryData$!: Observable<updateHistoryData[]>;
-  public totalCount$!: Observable<number>;
+  public _totalCount = new BehaviorSubject<number>(0);
+  public totalCount$ = this._totalCount.asObservable();
   public materialsData$!: Observable<RawGraphQLMaterial[]>;
   public selectedIds$!: Observable<string[]>;
   public locationsData$!: Observable<RawGraphQLLocation[]>;
@@ -283,7 +284,7 @@ export class ListMaterialService {
     inventory_update_requests_detail[]
   >([]);
   private _updateHistoryData = new BehaviorSubject<updateHistoryData[]>([]);
-  private _totalCount = new BehaviorSubject<number>(0);
+
   private _materialsData = new BehaviorSubject<RawGraphQLMaterial[]>([]);
   private _materialsCache = new Map<string, RawGraphQLMaterial>();
   private _locationsData = new BehaviorSubject<RawGraphQLLocation[]>([]);
@@ -506,6 +507,7 @@ export class ListMaterialService {
     this._selectedIds.next([]);
     sessionStorage.removeItem("selectedMaterials");
     sessionStorage.removeItem("selectedMaterialIds");
+    this._materialsCache.clear();
   }
 
   public toggleItemSelection(materialId: string): void {
@@ -654,6 +656,23 @@ export class ListMaterialService {
       catchError((err) => {
         if (err.status === 404) {
           return of(undefined);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return throwError(() => err);
+      }),
+    );
+  }
+  public getInventoryScanByLocation(
+    locationName: string,
+  ): Observable<RawGraphQLMaterial[]> {
+    const url = this.applicationConfigService.getEndpointFor(
+      `/api/inventory/scan/${locationName}`,
+    );
+    return this.http.get<RawGraphQLMaterial[]>(url).pipe(
+      tap((list) => list.forEach((raw) => this.cacheMaterial(raw))),
+      catchError((err) => {
+        if (err.status === 404) {
+          return of([]);
         }
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return throwError(() => err);
@@ -846,6 +865,10 @@ export class ListMaterialService {
   public addItem(item: RawGraphQLMaterial): void {
     const currentData = this._materialsData.value;
     this._materialsData.next([...currentData, item]);
+  }
+  public cachePage(items: RawGraphQLMaterial[]): void {
+    items.forEach((i) => this._materialsCache.set(i.inventoryId, i));
+    console.log("[Service] cachePage → cache size:", this._materialsCache.size);
   }
 
   public removeItem(inventoryIdToRemove: string): void {
@@ -1114,10 +1137,7 @@ export class ListMaterialService {
     console.log("[Service] refreshSelectedItems →", items);
     this._selectedItems.next(items);
   }
-  private cachePage(items: RawGraphQLMaterial[]): void {
-    items.forEach((i) => this._materialsCache.set(i.inventoryId, i));
-    console.log("[Service] cachePage → cache size:", this._materialsCache.size);
-  }
+
   private applySelectionFlags(
     raws: RawGraphQLMaterial[],
     selectedIds: string[],

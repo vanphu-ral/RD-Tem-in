@@ -402,7 +402,9 @@ th {
   padding-left: 0.5rem;
   padding-right: 1rem;
   height: 900px;
-  max-width: calc(100% - 50px);
+  width: calc(100% - 50px);
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .full-scroll-table-container {

@@ -241,6 +241,7 @@
                 matInput
                 [value]="searchTerms['availableQuantity']?.value || ''"
                 (input)="applyFilter('availableQuantity', $event)"
+                (keyup.enter)="applyFilter('availableQuantity', $event)"
                 [placeholder]="
                   'Search (' +
                   (filterModes['availableQuantity'] || 'contains') +
@@ -306,6 +307,9 @@
                       [ngModel]="dateInputs[col] || ''"
                       (dateChange)="applyDatePickerByPicker(col, $event.value)"
                       (input)="
+                        applyDatePickerByTyping(col, $any($event.target).value)
+                      "
+                      (keyup.enter)="
                         applyDatePickerByTyping(col, $any($event.target).value)
                       "
                       placeholder="dd/MM/yyyy"
@@ -379,6 +383,7 @@
                         matInput
                         [value]="searchTerms[col]?.value || ''"
                         (input)="applyFilter(col, $event)"
+                        (keyup.enter)="applyFilter(col, $event)"
                         placeholder="Search ({{
                           filterModes[col] || 'contains'
                         }})"

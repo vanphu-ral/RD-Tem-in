@@ -18,6 +18,22 @@
           <span class="btn-text">Scan</span>
         </button>
         <!-- <div *ngIf="scanError" class="scan-error">{{ scanError }}</div> -->
+        <div>
+          <mat-form-field
+            appearance="fill"
+            floatLabel="always"
+            class="scan-location-input"
+          >
+            <input
+              matInput
+              inputmode="none"
+              #warehouseScanInput
+              (input)="onWarehouseScanInput($event)"
+              (keyup.enter)="onWarehouseScanInput($event)"
+              placeholder="Quét kho"
+            />
+          </mat-form-field>
+        </div>
         <div *ngIf="isScanMode">
           <mat-spinner diameter="20"></mat-spinner>
         </div>
@@ -25,7 +41,7 @@
       <div class="group-buttons secondary">
         <div *ngIf="checkedCount() > 0">
           <button (click)="openEditSelectedDialog()" mat-raised-button>
-            Cập nhật<mat-icon>update</mat-icon>
+            <span class="btn-text">Cập nhật</span><mat-icon>update</mat-icon>
           </button>
         </div>
         <button
@@ -35,7 +51,6 @@
         >
           <mat-icon>view_column</mat-icon>
           <span class="btn-text">Columns</span>
-          <mat-icon class="icon-down">keyboard_arrow_down</mat-icon>
         </button>
         <mat-menu #menucolumnselect="matMenu">
           <section class="example-section" (click)="$event.stopPropagation()">
@@ -319,20 +334,9 @@
     </table>
   </div>
 
-  <div>
-    <mat-paginator
-      #paginator
-      class="demo-paginator"
-      (page)="handlePageEvent($event)"
-      [length]="length"
-      [pageSize]="pageSize"
-      [disabled]="disabled"
-      [showFirstLastButtons]="showFirstLastButtons"
-      [pageSizeOptions]="showPageSizeOptions ? pageSizeOptions : []"
-      [hidePageSize]="hidePageSize"
-      [pageIndex]="pageIndex"
-      aria-label="Select page"
-    >
+  <!-- <div>
+    <mat-paginator #paginator (page)="handlePageEvent($event)" [length]="materialService.totalCount$ | async"
+      [pageSize]="pageSize" [pageIndex]="pageIndex" [showFirstLastButtons]="true" [pageSizeOptions]="[50]">
     </mat-paginator>
-  </div>
+  </div> -->
 </div>

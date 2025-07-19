@@ -57,6 +57,7 @@ export class MaterialUpdateService {
         data: { items: itemsToUpdate },
         autoFocus: false,
         scrollStrategy: this.overlay.scrollStrategies.noop(),
+        disableClose: true,
       });
     }
     return undefined;

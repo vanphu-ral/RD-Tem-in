@@ -99,4 +99,16 @@ public class InventoryController {
         }
         return ResponseEntity.notFound().build();
     }
+
+    @GetMapping("/scan/{locationName}")
+    public ResponseEntity<List<InventoryResponse>> scanByLocation(
+        @PathVariable String locationName
+    ) {
+        List<InventoryResponse> list =
+            inventoryService.findByInventoryLocationName(locationName);
+        if (list.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(list);
+    }
 }

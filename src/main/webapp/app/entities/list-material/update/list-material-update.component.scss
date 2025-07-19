@@ -349,9 +349,25 @@ th {
   background: #548ce8;
 }
 
+.scan-location-input {
+  width: 150px !important;
+  height: 40px !important;
+  font-size: 13px !important;
+
+  ::ng-deep .mat-mdc-form-field-bottom-align {
+    display: none !important;
+  }
+
+  ::ng-deep .mat-mdc-form-field-infix {
+    padding-top: 8px !important;
+  }
+}
+
 .main-page {
   height: 900px;
-  max-width: calc(100% - 50px);
+  width: calc(100% - 50px);
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .cdk-global-overlay-wrapper {
@@ -376,7 +392,7 @@ th {
 /* MOBILE (< 600px) */
 @media (max-width: 480px) {
   .main-page {
-    width: 480px;
+    width: 100%;
     padding-right: 1rem;
     margin-left: 0.5rem;
 
@@ -406,6 +422,9 @@ th {
               min-width: 95px;
               min-height: 40px;
               padding: 0;
+            }
+            .scan-location-input {
+              width: 95px !important;
             }
           }
 
@@ -489,13 +508,17 @@ th {
         min-width: 100px;
       }
     }
+
+    // .demo-paginator{
+    //   height: 50px;
+    // }
   }
 }
 
 /* TABLET (600–959px) */
 @media (min-width: 481px) and (max-width: 959px) {
   .main-page {
-    width: 812px;
+    width: 100%;
     padding-right: 1rem;
     margin-left: 0.5rem;
 
@@ -555,7 +578,9 @@ th {
     }
   }
 
-  ::ng-deep table {
+  ::ng-deep .full-scroll-table-container {
+    width: 100%;
+
     th.mat-mdc-header-cell {
       padding: 4px 8px !important;
       font-size: 12px !important;
@@ -645,7 +670,9 @@ th {
       }
     }
 
-    ::ng-deep table {
+    ::ng-deep .full-scroll-table-container {
+      width: 100%;
+
       th.mat-mdc-header-cell {
         padding: 6px 8px !important;
         font-size: 14px !important;
@@ -689,6 +716,7 @@ th {
     }
   }
 }
+
 @media (min-width: 1440px) {
   .main-page {
     width: 100%;

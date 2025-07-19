@@ -279,4 +279,10 @@ public class InventoryService {
             materialIdentifier
         );
     }
+
+    public List<InventoryResponse> findByInventoryLocationName(
+        String locationName
+    ) {
+        return inventoryRepository.getInventoriesByLocation(locationName);
+    }
 }

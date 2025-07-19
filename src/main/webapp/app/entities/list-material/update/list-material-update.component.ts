@@ -15,7 +15,14 @@ import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
-import { filter, finalize, Subject, Subscription, takeUntil } from "rxjs";
+import {
+  filter,
+  finalize,
+  forkJoin,
+  Subject,
+  Subscription,
+  takeUntil,
+} from "rxjs";
 import { SelectionModel } from "@angular/cdk/collections";
 import * as XLSX from "xlsx";
 import {
@@ -27,6 +34,7 @@ import { MatSnackBar } from "@angular/material/snack-bar";
 import { MaterialUpdateService } from "../services/material-update.service";
 import { AccountService } from "app/core/auth/account.service";
 import saveAs from "file-saver";
+import { MaterialItem } from "../dialog/list-material-update-dialog";
 
 interface sumary_mode {
   value: string;
@@ -65,14 +73,19 @@ export class ListMaterialUpdateComponent
   tableMaxWidth: string = "100%";
   pageEvent: PageEvent | undefined;
   length = 0;
-  pageSize = 15;
+  pageSize = 50;
   pageIndex = 0;
+  currentScanLocation!: string;
   pageSizeOptions = [10, 15, 25, 50, 100];
   hidePageSize = false;
   showPageSizeOptions = true;
   showFirstLastButtons = true;
   isLoading = false;
   disabled = false;
+  pendingWarehouseItems = new SelectionModel<RawGraphQLMaterial>(true, []);
+  warehouseScanBuffer = "";
+  warehouseScanDelay = 300;
+  warehouseScanTimeoutId: any;
   statusOptions = [
     { value: "", view: "-- All --" },
     { value: "available", view: "Available" },
@@ -155,6 +168,8 @@ export class ListMaterialUpdateComponent
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
   @ViewChild("scanInput") scanInput!: ElementRef;
+  @ViewChild("warehouseScanInput", { static: false })
+  warehouseScanInput!: ElementRef<HTMLInputElement>;
   // #endregion
 
   // #region Private properties
@@ -169,7 +184,7 @@ export class ListMaterialUpdateComponent
 
   // #region Constructor
   constructor(
-    private materialService: ListMaterialService,
+    public materialService: ListMaterialService,
     private cdr: ChangeDetectorRef,
     private router: Router,
     private dialog: MatDialog,
@@ -283,9 +298,7 @@ export class ListMaterialUpdateComponent
   }
 
   ngAfterViewInit(): void {
-    if (this.paginator) {
-      this.dataSource.paginator = this.paginator;
-    }
+    this.dataSource.paginator = this.paginator;
     if (this.sort) {
       this.dataSource.sort = this.sort;
     }
@@ -377,11 +390,26 @@ export class ListMaterialUpdateComponent
     this.applyCombinedFilters();
   }
 
-  handlePageEvent(e: PageEvent): void {
-    this.pageEvent = e;
-    this.pageSize = e.pageSize;
-    this.pageIndex = e.pageIndex;
+  handlePageEvent(evt: PageEvent): void {
+    this.pageIndex = evt.pageIndex;
+    this.pageSize = evt.pageSize;
+
+    this.materialService
+      .fetchMaterialsData(evt.pageIndex + 1, this.pageSize, {
+        locationName: this.currentScanLocation,
+      })
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        finalize(() => this.cdr.detectChanges()),
+      )
+      .subscribe((resp) => {
+        this.materialService.updatePageData(resp.inventories);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        const ids = resp.inventories.map((i) => i.inventoryId);
+        this.materialService.selectItems(ids);
+      });
   }
+
   startScan(): void {
     this.isScanMode = !this.isScanMode;
     if (this.isScanMode) {
@@ -394,6 +422,112 @@ export class ListMaterialUpdateComponent
       this.scanInput.nativeElement.blur();
     }
   }
+  onWarehouseScanInput(event: Event): void {
+    const inputEl = event.target as HTMLInputElement;
+    const raw = inputEl.value.trim();
+    const processed = this.processScanInput(raw);
+
+    console.log("[SCAN] Raw input:", raw);
+    console.log("[SCAN] Processed input:", processed);
+
+    inputEl.value = processed;
+
+    const isEnterEvent =
+      "key" in event && (event as KeyboardEvent).key === "Enter";
+
+    if (this.warehouseScanTimeoutId) {
+      clearTimeout(this.warehouseScanTimeoutId);
+    }
+
+    if (isEnterEvent) {
+      console.log("[SCAN] Trigger by Enter, call API now");
+      this.scanWarehouseCode(processed);
+      this.warehouseScanBuffer = "";
+    } else {
+      this.warehouseScanBuffer = processed;
+      console.log("[SCAN] Waiting debounce...");
+
+      this.warehouseScanTimeoutId = setTimeout(() => {
+        console.log(
+          "[SCAN] Timeout reached, calling API with:",
+          this.warehouseScanBuffer,
+        );
+        this.scanWarehouseCode(this.warehouseScanBuffer);
+        this.warehouseScanBuffer = "";
+        this.warehouseScanTimeoutId = null;
+      }, this.warehouseScanDelay);
+    }
+  }
+  scanWarehouseCode(locationName: string): void {
+    this.currentScanLocation = locationName;
+    this.isLoading = true;
+
+    this.materialService
+      .getInventoryScanByLocation(locationName)
+      .pipe(
+        takeUntil(this.ngUnsubscribe),
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe((inventories) => {
+        if (!inventories.length) {
+          this.snackBar.open("Không có vật tư nào!", "Đóng", {
+            duration: 2000,
+          });
+          return;
+        }
+
+        this.materialService.cachePage(inventories);
+        this.materialService.updatePageData(inventories);
+
+        const ids = inventories.map((i) => i.inventoryId);
+        this.materialService.selectItems(ids);
+      });
+  }
+  //   scanWarehouseCode(locationName: string): void {
+  //   this.currentScanLocation = locationName;
+  //   this.isLoading = true;
+
+  //   this.materialService
+  //     .fetchMaterialsData(1, 1, { locationName })
+  //     .pipe(
+  //       takeUntil(this.ngUnsubscribe),
+  //       finalize(() => {
+  //         this.isLoading = false;
+  //         this.cdr.detectChanges();
+  //       }),
+  //     )
+  //     .subscribe((meta) => {
+  //       const totalItems = meta.totalItems ?? 0;
+  //       if (totalItems === 0) {
+  //         this.snackBar.open("Không có vật tư nào!", "Đóng", { duration: 2000 });
+  //         return;
+  //       }
+
+  //       this.isLoading = true;
+  //       this.materialService
+  //         .fetchMaterialsData(1, totalItems, { locationName })
+  //         .pipe(
+  //           takeUntil(this.ngUnsubscribe),
+  //           finalize(() => {
+  //             this.isLoading = false;
+  //             this.cdr.detectChanges();
+  //           }),
+  //         )
+  //         .subscribe((resp) => {
+  //           const inventories = resp.inventories ?? [];
+
+  //           this.materialService.cachePage(inventories);
+  //           this.materialService.updatePageData(inventories);
+
+  //           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  //           const ids = inventories.map((i) => i.inventoryId);
+  //           this.materialService.selectItems(ids);
+  //         });
+  //     });
+  // }
 
   exitScanMode(): void {
     this.isScanMode = false;
@@ -811,6 +945,21 @@ export class ListMaterialUpdateComponent
     }
   }
   // #endregion
+  private processScanInput(scanValue: string): string {
+    let result = scanValue;
+
+    result = result.replace(/^LO/i, "");
+
+    result = result.replace(/-SL(SLOT|RACK)/gi, "-$1");
+
+    result = result.replace(/--+/g, "-");
+
+    result = result.replace(/[^A-Za-z0-9-]+$/g, "");
+
+    result = result.replace(/-(SLOT|RACK)/i, " - $1");
+
+    return result.trim();
+  }
   private onScannedCode(code: string): void {
     const cached = this.materialService.getCachedMaterial(code);
     if (cached) {
