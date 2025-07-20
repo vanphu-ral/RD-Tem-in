@@ -49,7 +49,7 @@ export class MaterialUpdateService {
           approvers: string[];
         }
       >(ListMaterialUpdateDialogComponent, {
-        minWidth: "450px",
+        minWidth: "320px",
         maxWidth: "1400px",
         width: "90vw",
         height: "auto",

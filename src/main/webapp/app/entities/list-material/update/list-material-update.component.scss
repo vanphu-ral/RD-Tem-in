@@ -364,6 +364,10 @@ th {
 }
 
 .main-page {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.5rem;
+  padding-right: 1rem;
   height: 900px;
   width: calc(100% - 50px);
   max-width: 100%;
@@ -390,9 +394,139 @@ th {
 }
 
 /* MOBILE (< 600px) */
-@media (max-width: 480px) {
+@media (max-width: 366px) {
   .main-page {
-    width: 100%;
+    width: 110%;
+    padding-right: 0.5rem;
+    margin-left: 0.5rem;
+
+    .function-list {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 8px;
+
+      .group-title {
+        text-align: left;
+
+        h2 {
+          font-size: 20px;
+        }
+      }
+
+      .group-buttons-main {
+        flex-direction: column;
+
+        .group-buttons {
+          justify-content: flex-start;
+          width: 100%;
+
+          &.primary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+
+            button {
+              min-width: 75px;
+              min-height: 40px;
+              padding: 0;
+            }
+
+            .scan-location-input {
+              width: 75px !important;
+            }
+          }
+
+          &.secondary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+
+            button {
+              min-width: 75px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          /* Chỉ hiện icon, ẩn text */
+          .btn-text,
+          .icon-down {
+            display: none;
+          }
+        }
+      }
+
+      .mat-mdc-button > .mat-icon,
+      .mat-mdc-raised-button > .mat-icon {
+        margin-right: 0 !important;
+      }
+    }
+
+    ::ng-deep .full-scroll-table-container {
+      max-width: 100%;
+
+      th.mat-mdc-header-cell {
+        padding: 2px 4px !important;
+        font-size: 10px !important;
+
+        .search-container {
+          padding: 0;
+          margin: 0;
+
+          .small-form-field {
+            width: 150px !important;
+            height: 50px !important;
+            line-height: 12px;
+            font-size: 13px !important;
+
+            .mat-form-field-infix {
+              padding: 0 2px !important;
+            }
+
+            mat-label {
+              font-size: 8px !important;
+              line-height: 10px !important;
+            }
+
+            input,
+            .mat-select-trigger,
+            mat-datepicker-toggle {
+              font-size: 8px !important;
+              height: 15px !important;
+              padding: 0 2px !important;
+            }
+          }
+        }
+
+        mat-icon {
+          font-size: 16px !important;
+        }
+
+        .mat-mdc-select {
+          font-size: 9px !important;
+        }
+      }
+
+      td.mat-mdc-cell {
+        padding: 4px 6px !important;
+        font-size: 11px !important;
+      }
+
+      .mat-column-locationId {
+        min-width: 100px;
+      }
+    }
+
+    // .demo-paginator{
+    //   height: 50px;
+    // }
+  }
+}
+
+@media (min-width: 366px) and (max-width: 480px) {
+  .main-page {
+    max-width: 812px;
     padding-right: 1rem;
     margin-left: 0.5rem;
 
@@ -423,6 +557,7 @@ th {
               min-height: 40px;
               padding: 0;
             }
+
             .scan-location-input {
               width: 95px !important;
             }
@@ -518,7 +653,7 @@ th {
 /* TABLET (600–959px) */
 @media (min-width: 481px) and (max-width: 959px) {
   .main-page {
-    width: 100%;
+    max-width: 812px;
     padding-right: 1rem;
     margin-left: 0.5rem;
 
@@ -526,7 +661,7 @@ th {
       flex-direction: column;
       align-items: flex-start;
       gap: 8px;
-      width: 812px;
+      max-width: 812px;
       padding: 0 18px 8px 0;
 
       .group-title {
@@ -556,6 +691,9 @@ th {
           min-width: 40px !important;
           min-height: 40px !important;
         }
+        .scan-location-input {
+          width: 90px !important;
+        }
       }
 
       .group-buttons.secondary {
@@ -579,7 +717,7 @@ th {
   }
 
   ::ng-deep .full-scroll-table-container {
-    width: 100%;
+    max-width: 813px;
 
     th.mat-mdc-header-cell {
       padding: 4px 8px !important;

@@ -421,7 +421,131 @@ th {
 }
 
 /* MOBILE (< 600px) */
-@media (max-width: 480px) {
+@media (max-width: 366px) {
+  .main-page {
+    width: 120%;
+    padding-right: 1rem;
+    margin-left: 0.5rem;
+
+    .function-list {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 8px;
+
+      .group-title {
+        text-align: left;
+        h2 {
+          font-size: 20px;
+        }
+      }
+
+      .group-buttons-main {
+        flex-direction: column;
+
+        .group-buttons {
+          justify-content: flex-start;
+          width: 100%;
+
+          &.primary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+
+            button {
+              min-width: 65px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          &.secondary {
+            width: 100%;
+            margin-bottom: 5px;
+            margin-top: 5px;
+
+            button {
+              min-width: 65px;
+              min-height: 40px;
+              padding: 0;
+            }
+          }
+
+          /* Chỉ hiện icon, ẩn text */
+          .btn-text,
+          .icon-down {
+            display: none;
+          }
+        }
+      }
+
+      .mat-mdc-button > .mat-icon,
+      .mat-mdc-raised-button > .mat-icon {
+        margin-right: 0 !important;
+      }
+    }
+
+    ::ng-deep .full-scroll-table-container {
+      max-width: 100%;
+
+      th.mat-mdc-header-cell {
+        padding: 2px 4px !important;
+        font-size: 10px !important;
+
+        .search-container {
+          padding: 0;
+          margin: 0;
+
+          .small-form-field {
+            width: 150px !important;
+            height: 50px !important;
+            line-height: 12px;
+            font-size: 13px !important;
+
+            .mat-form-field-infix {
+              padding: 0 2px !important;
+            }
+
+            mat-label {
+              font-size: 8px !important;
+              line-height: 10px !important;
+            }
+
+            input,
+            .mat-select-trigger,
+            mat-datepicker-toggle {
+              font-size: 8px !important;
+              height: 15px !important;
+              padding: 0 2px !important;
+            }
+          }
+        }
+
+        mat-icon {
+          font-size: 16px !important;
+        }
+
+        .mat-mdc-select {
+          font-size: 9px !important;
+        }
+      }
+
+      td.mat-mdc-cell {
+        padding: 4px 6px !important;
+        font-size: 11px !important;
+      }
+
+      .mat-column-locationId {
+        min-width: 100px;
+      }
+    }
+
+    // .demo-paginator{
+    //   height: 50px;
+    // }
+  }
+}
+@media (min-width: 366px) and (max-width: 480px) {
   .main-page {
     width: 480px;
     padding-right: 1rem;

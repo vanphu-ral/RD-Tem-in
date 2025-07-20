@@ -541,10 +541,12 @@
             mat-raised-button
             (click)="scanLocationForAll()"
           >
-            <mat-icon>center_focus_weak</mat-icon> Quét kho
+            <mat-icon class="scan-btn-icon">center_focus_weak</mat-icon>
+            <span class="scan-btn-text">Quét kho</span>
           </button>
           <button class="scan-btn" mat-raised-button (click)="refreshForAll()">
-            <mat-icon>refresh</mat-icon> Fresh
+            <mat-icon class="scan-btn-icon">refresh</mat-icon>
+            <span class="scan-btn-text">Fresh</span>
           </button>
           <!-- <mat-spinner *ngIf="scanLoadingAll" diameter="20" style="margin-left: 8px"></mat-spinner> -->
         </th>
@@ -554,14 +556,16 @@
             mat-raised-button
             (click)="scanLocationForRow(element)"
           >
-            <mat-icon>center_focus_weak</mat-icon> Quét kho
+            <mat-icon class="scan-btn-icon">center_focus_weak</mat-icon>
+            <span class="scan-btn-text">Quét kho</span>
           </button>
           <button
             class="scan-btn"
             mat-raised-button
             (click)="refreshForRow(element)"
           >
-            <mat-icon>refresh</mat-icon> Fresh
+            <mat-icon class="scan-btn-icon">refresh</mat-icon>
+            <span class="scan-btn-text">Fresh</span>
           </button>
           <!-- <mat-spinner *ngIf="scanLoadingRow[element.materialIdentifier]" diameter="20"
             style="margin-left: 8px"></mat-spinner> -->

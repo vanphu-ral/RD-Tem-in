@@ -375,7 +375,161 @@ th {
 //   flex: 0 0 150px;
 // }
 /* MOBILE (< 600px) */
-@media screen and (max-height: 480px), screen and (max-width: 599px) {
+@media (max-width: 366px) {
+  .dialog-header {
+    display: flex;
+    margin: 0;
+    gap: 5px;
+
+    .dialog-title {
+      font-size: 13px;
+      font-weight: bold;
+      margin: 5px 2px;
+    }
+  }
+
+  .dialog-center-pane {
+    width: 75vw !important;
+    max-width: 75vw !important;
+    margin: 0 auto !important;
+  }
+
+  .responsive-table-wrapper {
+    max-height: 45vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .bordered-table {
+    table-layout: auto;
+
+    .scan-btn {
+      font-size: 11px;
+      height: 30px;
+      padding: 0 5px;
+    }
+
+    .scan-btn-text {
+      display: none;
+    }
+
+    .scan-btn-icon {
+      padding: 0;
+      margin: 0;
+    }
+
+    .mat-column-materialIdentifier {
+      max-width: 122px !important;
+    }
+
+    .mat-column-calculatedStatus {
+      max-width: 110px !important;
+    }
+
+    .mat-column-expirationDate {
+      max-width: 110px !important;
+    }
+
+    .mat-column-partNumber {
+      max-width: 110px !important;
+    }
+
+    .mat-column-quantity {
+      max-width: 110px !important;
+    }
+
+    .mat-column-quantityChange {
+      max-width: 110px !important;
+
+      .search-container {
+        padding-top: 9px;
+      }
+    }
+
+    .mat-column-locationId {
+      .editable-cell {
+        font-size: 11px !important;
+      }
+
+      ::ng-deep mat-autocomplete {
+        font-size: 11px !important;
+      }
+    }
+  }
+
+  mat-dialog-centent {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .mat-typography {
+    min-height: 150px;
+
+    ::ng-deep table {
+      margin-right: 1rem;
+    }
+
+    th.mat-mdc-header-cell {
+      padding: 2px 4px !important;
+      font-size: 10px !important;
+
+      .search-container {
+        // padding: 0;
+        // margin: 0;
+
+        .small-form-field {
+          width: 150px !important;
+          height: 50px !important;
+          line-height: 12px;
+          font-size: 13px !important;
+
+          .mat-form-field-infix {
+            padding: 0 2px !important;
+          }
+
+          mat-label {
+            font-size: 8px !important;
+            line-height: 10px !important;
+          }
+
+          input,
+          .mat-select-trigger,
+          mat-datepicker-toggle {
+            font-size: 8px !important;
+            height: 15px !important;
+            padding: 0 2px !important;
+          }
+
+          .mat-mdc-select {
+            font-size: 9px !important;
+          }
+        }
+      }
+
+      mat-icon {
+        font-size: 16px !important;
+      }
+    }
+
+    td.mat-mdc-cell {
+      padding: 4px 6px !important;
+      font-size: 11px !important;
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column !important;
+
+    .dialog-notice {
+      font-size: 10px;
+      padding: 4px 0;
+    }
+  }
+}
+
+@media (min-width: 366px) and (max-width: 480px) {
   .dialog-header {
     display: flex;
     margin: 0;
@@ -407,6 +561,53 @@ th {
       height: 30px;
       padding: 0 5px;
     }
+
+    .scan-btn-text {
+      display: none;
+    }
+
+    .scan-btn-icon {
+      padding: 0;
+      margin: 0;
+    }
+
+    .mat-column-materialIdentifier {
+      max-width: 122px !important;
+    }
+
+    .mat-column-calculatedStatus {
+      max-width: 110px !important;
+    }
+
+    .mat-column-expirationDate {
+      max-width: 110px !important;
+    }
+
+    .mat-column-partNumber {
+      max-width: 110px !important;
+    }
+
+    .mat-column-quantity {
+      max-width: 110px !important;
+    }
+
+    .mat-column-quantityChange {
+      max-width: 110px !important;
+
+      .search-container {
+        padding-top: 9px;
+      }
+    }
+
+    .mat-column-locationId {
+      .editable-cell {
+        font-size: 11px !important;
+      }
+
+      ::ng-deep mat-autocomplete {
+        font-size: 11px !important;
+      }
+    }
   }
 
   // mat-dialog-container {
@@ -416,7 +617,7 @@ th {
   // }
 
   .mat-typography {
-    min-height: 179px;
+    min-height: 125px;
 
     ::ng-deep table {
       margin-right: 1rem;
