@@ -434,6 +434,11 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   // #endregion
 
   // #region Public methods
+  totalQuantityselect(): number {
+    return this.itemsDataSource.data
+      .map((row) => row.quantity ?? 0)
+      .reduce((sum, val) => sum + val, 0);
+  }
   getFormGroupForItem(item: MaterialItem): FormGroup {
     const key = item.materialIdentifier;
     if (!this.itemFormGroups.has(key)) {

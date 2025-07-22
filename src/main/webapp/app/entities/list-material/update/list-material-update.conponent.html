@@ -3,6 +3,10 @@
     <div class="group-title">
       <h2>Danh sách cập nhật vật tư</h2>
     </div>
+    <div class="infoTb">
+      <p>Số vật tư: {{(checkedCount$ | async)}}</p>
+      <p>Tổng số lượng: {{(totalQuantityselect$ | async) }}</p>
+    </div>
     <div class="group-buttons-main">
       <div class="group-buttons primary">
         <button
@@ -39,10 +43,12 @@
         </div>
       </div>
       <div class="group-buttons secondary">
-        <div *ngIf="checkedCount() > 0">
-          <button (click)="openEditSelectedDialog()" mat-raised-button>
-            <span class="btn-text">Cập nhật</span><mat-icon>update</mat-icon>
-          </button>
+        <div *ngIf="(checkedCount$ | async) as count">
+          <div *ngIf="count > 0">
+            <button (click)="openEditSelectedDialog()" mat-raised-button>
+              <span class="btn-text">Cập nhật</span><mat-icon>update</mat-icon>
+            </button>
+          </div>
         </div>
         <button
           mat-button

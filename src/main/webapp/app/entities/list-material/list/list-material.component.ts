@@ -722,17 +722,39 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   updateDisplayedColumns(): void {
-    const baseCols = this.columnSelectionGroup()
-      .subtasks!.filter((col) => col.completed)
+    const isMobile = window.innerWidth < 481;
+    const columnsToHideOnMobile = [
+      "availableQuantity",
+      "lotNumber",
+      "userData4",
+    ];
+
+    const group = this.columnSelectionGroup();
+    const updatedSubtasks = group.subtasks
+      ? group.subtasks.map((col) => {
+          if (isMobile && columnsToHideOnMobile.includes(col.matColumnDef)) {
+            return { ...col, completed: false };
+          }
+          return col;
+        })
+      : [];
+
+    this.columnSelectionGroup.set({
+      ...group,
+      subtasks: updatedSubtasks,
+    });
+
+    const baseCols = updatedSubtasks
+      .filter((col) => col.completed)
       .map((col) => col.matColumnDef);
 
-    if (this.canUpdate) {
-      this.displayedColumns = baseCols.includes("select")
+    this.displayedColumns = this.canUpdate
+      ? baseCols.includes("select")
         ? baseCols
-        : ["select", ...baseCols];
-    } else {
-      this.displayedColumns = baseCols.filter((col) => col !== "select");
-    }
+        : ["select", ...baseCols]
+      : baseCols.filter((col) => col !== "select");
+
+    this.cdr.detectChanges();
   }
 
   public applyFilter(colDef: string, event: Event): void {

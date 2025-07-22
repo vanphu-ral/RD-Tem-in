@@ -6,6 +6,7 @@ import {
   catchError,
   map,
   of,
+  retry,
   switchMap,
   takeUntil,
   tap,
@@ -290,7 +291,7 @@ export class ListMaterialService {
   private _locationsData = new BehaviorSubject<RawGraphQLLocation[]>([]);
   private _selectedItems = new BehaviorSubject<RawGraphQLMaterial[]>([]);
   private destroy$ = new Subject<void>();
-
+  private approverCache: UserSummary[] | null = null;
   // private restBaseUrl = environment.restApiBaseUrl;
 
   private apiMaterialUrl =
@@ -299,7 +300,7 @@ export class ListMaterialService {
   private apiRequest =
     this.applicationConfigService.getEndpointFor("/api/request");
 
-  // private apiRequest = "http://localhost:8089" + "/api/request";
+  // private apiRequest = "http://localhost:8085" + "/api/request";
   //  private apiUrl_post_request_update = this.restBaseUrl + "/api/request";
 
   private apiUrl_post_request_update =
@@ -852,6 +853,9 @@ export class ListMaterialService {
       "selectedMaterialIds",
       JSON.stringify(newSelectedIds),
     );
+    ids.forEach((id) => {
+      this._materialsCache.delete(id);
+    });
   }
 
   public getData(): Observable<RawGraphQLMaterial[]> {
@@ -1103,7 +1107,11 @@ export class ListMaterialService {
       }),
     );
   }
-  public getApprovers(): Observable<UserSummary[]> {
+  getApprovers(): Observable<UserSummary[]> {
+    if (this.approverCache) {
+      return of(this.approverCache);
+    }
+
     return this.authServer.getToken().pipe(
       switchMap((token) => {
         const headers = new HttpHeaders().set(
@@ -1113,10 +1121,16 @@ export class ListMaterialService {
         return this.http.get<UserSummary[]>(this.apiGetApprovers, { headers });
       }),
       map((raw) => raw.map((u) => ({ username: u.username }))),
-      tap((list) => console.log("Approvers mapped:", list)),
+      tap((list) => {
+        this.approverCache = list;
+        console.log("Approvers cached:", list);
+      }),
       catchError((err) => {
+        if (err.status === 403 || err.status === 401) {
+          console.warn("Token không đủ quyền truy cập Keycloak admin API");
+        }
         console.error("Fetch approvers error:", err);
-        return of([] as UserSummary[]);
+        return of([]);
       }),
     );
   }

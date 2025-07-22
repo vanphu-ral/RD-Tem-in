@@ -435,6 +435,7 @@ th {
 
       .group-title {
         text-align: left;
+
         h2 {
           font-size: 20px;
         }
@@ -487,6 +488,15 @@ th {
 
     ::ng-deep .full-scroll-table-container {
       max-width: 100%;
+
+      th.mat-sort-header {
+        .mat-sort-header-content {
+          .search-container {
+            margin-top: 13px !important;
+            margin-bottom: -6px !important;
+          }
+        }
+      }
 
       th.mat-mdc-header-cell {
         padding: 2px 4px !important;
@@ -545,6 +555,7 @@ th {
     // }
   }
 }
+
 @media (min-width: 366px) and (max-width: 480px) {
   .main-page {
     width: 480px;

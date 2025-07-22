@@ -7,7 +7,14 @@
   flex-wrap: nowrap;
   padding: 0;
   gap: 20px;
-
+  .infoTb {
+    display: flex;
+    gap: 35px;
+    width: 400px;
+    flex-wrap: nowrap;
+    justify-content: start;
+    padding-top: 10px;
+  }
   .group-title {
     flex: 0 0 auto;
   }
@@ -654,6 +661,7 @@ th {
 @media (min-width: 481px) and (max-width: 959px) {
   .main-page {
     max-width: 812px;
+    width: 100%;
     padding-right: 1rem;
     margin-left: 0.5rem;
 

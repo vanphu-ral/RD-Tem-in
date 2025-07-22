@@ -143,6 +143,8 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
   canApprove = false;
   canViewOnly = false;
   columnFilters: { [key: string]: string } = {};
+  approvedIds = new Set<string>();
+  rejectedIds = new Set<string>();
   public searchTerms: { [columnDef: string]: { mode: string; value: string } } =
     {};
   public activeFilters: { [columnDef: string]: any[] } = {};
@@ -340,6 +342,25 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
       },
     });
   }
+  // Add this getter to your component class
+  get totalInitialQuantity(): number {
+    const details = this.dataSoure_update_detail?.data;
+    if (!details || !Array.isArray(details)) {
+      return 0;
+    }
+    return details
+      .map((item) => Number(item?.quantity) || 0)
+      .reduce((acc: number, curr: number) => acc + curr, 0);
+  }
+  get totalInitialQuantityChange(): number {
+    const details = this.dataSoure_update_detail?.data;
+    if (!details || !Array.isArray(details)) {
+      return 0;
+    }
+    return details
+      .map((item) => Number(item?.quantityChange) || 0)
+      .reduce((acc: number, curr: number) => acc + curr, 0);
+  }
 
   public exportExpandedDetails(request: inventory_update_requests): void {
     const ds = this.dataSoure_update_detail;
@@ -368,17 +389,15 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
     row: inventory_update_requests_detail,
     isChecked: boolean,
   ): void {
-    row.status = isChecked ? "APPROVE" : "REJECT";
-
     if (isChecked) {
+      this.approvedIds.add(row.materialId);
+      this.rejectedIds.delete(row.materialId);
       this.selection.select(row);
     } else {
+      this.rejectedIds.add(row.materialId);
+      this.approvedIds.delete(row.materialId);
       this.selection.deselect(row);
     }
-
-    console.log(`Đã ${isChecked ? "chọn" : "bỏ"} item ID ${row.id}`);
-
-    this.cdr.markForCheck();
   }
 
   public isAllSelected(): boolean {
@@ -511,9 +530,10 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
     dialogRef.afterClosed().subscribe((result) => {
       if (result === true) {
         const updatedItems = this.dataSoure_update_detail.data.map((item) => ({
-          ...item,
+          ...structuredClone(item),
           status: "REJECT",
         }));
+
         this.selection.select(...this.dataSoure_update_detail.data);
 
         const approvers = this.expandedElement?.approvedBy
@@ -525,26 +545,39 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
           selectedWarehouse: null,
           approvers,
         };
+
         this.accountService.getAuthenticationState().subscribe((account) => {
           const currentUser = account?.login ?? "unknown";
-          console.log("du lieu tu choi", payload, currentUser);
+          console.log("Dữ liệu từ chối:", payload, currentUser);
+
           this.MaterialService.postRejectInventoryUpdate(
             requestId,
             payload,
             currentUser,
           ).subscribe({
-            next: (response) => {
-              this.snackBar.open(`Đã từ chối yêu cầu ${requestId}.`, "Đóng", {
-                duration: 3000,
-              });
+            next: () => {
+              setTimeout(() => {
+                this.snackBar.open(`Đã từ chối yêu cầu ${requestId}.`, "Đóng", {
+                  duration: 3000,
+                  verticalPosition: window.innerWidth < 600 ? "top" : "bottom",
+                });
+              }, 100);
+
               this.loadData();
             },
-            error: (err) => {
-              this.snackBar.open(
-                `Lỗi khi từ chối yêu cầu ${requestId}.`,
-                "Đóng",
-                { duration: 3000 },
-              );
+            error: () => {
+              setTimeout(() => {
+                this.snackBar.open(
+                  `Lỗi khi từ chối yêu cầu ${requestId}.`,
+                  "Đóng",
+                  {
+                    duration: 3000,
+                    panelClass: ["snack-error"],
+                    verticalPosition:
+                      window.innerWidth < 600 ? "top" : "bottom",
+                  },
+                );
+              }, 100);
             },
           });
         });
@@ -609,26 +642,34 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
             currentUser,
           ).subscribe({
             next: () => {
-              this.snackBar.open(
-                `Yêu cầu ${requestId} đã được chấp thuận.`,
-                "Đóng",
-                { duration: 3000 },
-              );
+              setTimeout(() => {
+                this.snackBar.open("Yêu cầu đã được phê duyệt.", "Đóng", {
+                  duration: 3000,
+                  horizontalPosition: "center",
+                  verticalPosition: this.isMobileDevice() ? "top" : "bottom",
+                  panelClass: ["snack-info"],
+                });
+              }, 100);
               this.loadData();
             },
             error: () => {
-              this.snackBar.open(
-                `Lỗi khi chấp thuận yêu cầu ${requestId}`,
-                "Đóng",
-                { duration: 3000 },
-              );
+              setTimeout(() => {
+                this.snackBar.open("Lỗi khi phê duyệt yêu cầu.", "Đóng", {
+                  duration: 3000,
+                  horizontalPosition: "center",
+                  verticalPosition: this.isMobileDevice() ? "top" : "bottom",
+                  panelClass: ["snack-info"],
+                });
+              }, 100);
             },
           });
         });
       }
     });
   }
-
+  isMobileDevice(): boolean {
+    return window.innerWidth < 600;
+  }
   // #region Filter Predicate
   ngOnInitFilterPredicate(): void {
     this.dataSource_update_manage.filterPredicate = (

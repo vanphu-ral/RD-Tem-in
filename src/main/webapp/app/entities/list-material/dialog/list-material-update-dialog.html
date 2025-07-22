@@ -613,9 +613,17 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end" class="dialog-footer">
-  <span class="dialog-notice"
-    >Nếu chọn gia hạn, hệ thống sẽ tự động gia hạn thêm 15 ngày.</span
-  >
+  <div class="dialog-small-text">
+    <span class="dialog-notice"
+      >Nếu chọn gia hạn, hệ thống sẽ tự động gia hạn thêm 15 ngày.</span
+    >
+    <span class="dialog-info">
+      Số vật tư: {{ itemsDataSource?.data?.length || 0 }}
+    </span>
+    <span class="dialog-info">
+      Tổng số lượng: {{ totalQuantityselect() }}
+    </span>
+  </div>
   <div>
     <button mat-button (click)="onCancel()">Hủy</button>
     <button mat-stroked-button class="dialog-accept-btn" (click)="onSave()">

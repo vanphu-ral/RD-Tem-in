@@ -452,7 +452,14 @@ td.mat-mdc-cell.status-reject {
   padding-right: 0.5rem;
   margin-top: 5px;
 }
-
+.detail_info {
+  color: #000;
+  display: flex;
+  gap: 20px;
+  p {
+    padding-top: 3px;
+  }
+}
 .full-scroll-table-container {
   height: 100%;
   //  width: 1660px;

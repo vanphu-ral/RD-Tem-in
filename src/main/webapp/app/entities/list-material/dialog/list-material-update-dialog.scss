@@ -371,6 +371,19 @@ th {
   border-radius: 8px;
 }
 
+.dialog-info {
+  font-size: 14px;
+  padding: 5px;
+}
+
+.dialog-fullscreen-pane {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  max-height: 100vh;
+  height: 100vh;
+}
+
 // .mat-column-s{
 //   flex: 0 0 150px;
 // }
@@ -522,9 +535,22 @@ th {
   .dialog-footer {
     flex-direction: column !important;
 
-    .dialog-notice {
-      font-size: 10px;
-      padding: 4px 0;
+    .dialog-small-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+
+      .dialog-notice {
+        font-size: 10px;
+        padding: 4px 0;
+      }
+
+      .dialog-info {
+        font-size: 10px;
+        padding: 4px;
+        font-weight: bold;
+      }
     }
   }
 }
@@ -675,8 +701,8 @@ th {
     flex-direction: column !important;
 
     .dialog-notice {
-      font-size: 10px;
-      padding: 4px 0;
+      font-size: 11px;
+      padding: 1px;
     }
   }
 }
@@ -729,6 +755,36 @@ th {
 
     .mat-column-locationId {
       min-width: 100px;
+    }
+
+    .scan-btn {
+      .scan-btn-text {
+        display: none;
+      }
+
+      .scan-btn-icon {
+        margin: 0;
+        padding: 0;
+      }
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column !important;
+
+    .dialog-small-text {
+      display: flex;
+
+      .dialog-notice {
+        font-size: 10px;
+        padding: 4px 0;
+      }
+
+      .dialog-info {
+        font-size: 10px;
+        padding: 4px;
+        font-weight: bold;
+      }
     }
   }
 }

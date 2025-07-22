@@ -19,6 +19,8 @@ import {
   filter,
   finalize,
   forkJoin,
+  map,
+  Observable,
   Subject,
   Subscription,
   takeUntil,
@@ -35,6 +37,7 @@ import { MaterialUpdateService } from "../services/material-update.service";
 import { AccountService } from "app/core/auth/account.service";
 import saveAs from "file-saver";
 import { MaterialItem } from "../dialog/list-material-update-dialog";
+import { BreakpointObserver } from "@angular/cdk/layout";
 
 interface sumary_mode {
   value: string;
@@ -86,6 +89,17 @@ export class ListMaterialUpdateComponent
   warehouseScanBuffer = "";
   warehouseScanDelay = 300;
   warehouseScanTimeoutId: any;
+  checkedCount$ = this.materialService.selectedIds$.pipe(
+    map((ids) => ids?.length ?? 0),
+  );
+  totalQuantityselect$ = this.materialService.selectedIds$.pipe(
+    map((ids) =>
+      this.dataSource.data
+        .filter((item) => ids.includes(item.inventoryId))
+        .map((item) => item.quantity ?? 0)
+        .reduce((sum, val) => sum + val, 0),
+    ),
+  );
   statusOptions = [
     { value: "", view: "-- All --" },
     { value: "available", view: "Available" },
@@ -191,6 +205,7 @@ export class ListMaterialUpdateComponent
     private snackBar: MatSnackBar,
     private materialUpdateService: MaterialUpdateService,
     private accountService: AccountService,
+    private breakpointObserver: BreakpointObserver,
   ) {}
   // #endregion
 
@@ -208,9 +223,8 @@ export class ListMaterialUpdateComponent
         rows.forEach((r) => this.selection.select(r));
         this.initializeColumnSelection(rows);
         this.updateDisplayedColumns();
+        this.setupResponsiveColumns();
       });
-
-    // Nếu có sidebarService thì lắng nghe trạng thái sidebar ở đây
 
     this.dataSource.filterPredicate = (
       data: RawGraphQLMaterial,
@@ -682,10 +696,6 @@ export class ListMaterialUpdateComponent
     this.cdr.markForCheck();
   }
 
-  checkedCount(): number {
-    return this.selection.selected.length;
-  }
-
   focusScanInput(): void {
     this.isScanMode = true;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -858,6 +868,36 @@ export class ListMaterialUpdateComponent
   goBackToList(): void {
     this.router.navigate(["/list-material"]);
   }
+  setupResponsiveColumns(): void {
+    this.breakpointObserver.observe("(max-width: 481px)").subscribe((state) => {
+      const isMobile = state.matches;
+      const group = this.columnSelectionGroup();
+
+      const updatedSubtasks = group.subtasks
+        ? group.subtasks.map((task) => {
+            const isMobileSensitive = [
+              "userData4",
+              "lotNumber",
+              "partNumber",
+              "updatedDate",
+              "expirationDate",
+            ].includes(task.matColumnDef);
+            if (isMobile && isMobileSensitive) {
+              return { ...task, completed: false };
+            }
+            return task;
+          })
+        : [];
+
+      this.columnSelectionGroup.set({
+        ...group,
+        subtasks: updatedSubtasks,
+      });
+
+      this.updateDisplayedColumns();
+    });
+  }
+
   updateDisplayedColumns(): void {
     this.displayedColumns = this.columnSelectionGroup()
       .subtasks!.filter((col) => col.completed)

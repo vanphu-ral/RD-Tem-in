@@ -1,5 +1,5 @@
 {
-  "baseUrl": "http://localhost:8089/",
+  "baseUrl": "http://localhost:8085/",
   "testFiles": "**/*.audits.ts",
   "supportFile": "src/test/javascript/cypress/support/index.ts",
   "video": false,

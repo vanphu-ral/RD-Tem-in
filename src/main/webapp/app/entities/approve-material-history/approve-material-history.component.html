@@ -506,7 +506,16 @@
                   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
                 "
               >
-                <h5>Danh sách cập nhật chi tiết</h5>
+                <div class="detail_info">
+                  <h5>Danh sách cập nhật chi tiết</h5>
+                  <p>
+                    Số vật tư: {{ dataSoure_history_detail?.data?.length || 0 }}
+                  </p>
+                  <p>Tổng số lượng ban đầu: {{ totalInitialQuantity }}</p>
+                  <p>
+                    Tổng số lượng chuyển kho: {{ totalInitialQuantityChange }}
+                  </p>
+                </div>
                 <div>
                   <button
                     class="btn-export"

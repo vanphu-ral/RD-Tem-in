@@ -250,7 +250,24 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   }
 
   public onLoad(): void {}
-
+  get totalInitialQuantity(): number {
+    const details = this.dataSoure_history_detail?.data;
+    if (!details || !Array.isArray(details)) {
+      return 0;
+    }
+    return details
+      .map((item) => Number(item?.quantity) || 0)
+      .reduce((acc: number, curr: number) => acc + curr, 0);
+  }
+  get totalInitialQuantityChange(): number {
+    const details = this.dataSoure_history_detail?.data;
+    if (!details || !Array.isArray(details)) {
+      return 0;
+    }
+    return details
+      .map((item) => Number(item?.quantityChange) || 0)
+      .reduce((acc: number, curr: number) => acc + curr, 0);
+  }
   public export(): void {
     const parents = this.dataSource_update_manage.filteredData;
     if (!parents.length) {

@@ -106,37 +106,24 @@ public class InventoryUpdateRequestsService {
             }
             if (requests.getStatus().equals("REJECT")) {
                 long timestampNow = Instant.now().getEpochSecond();
+
                 if (item.getType().equals("EXTEND")) {
-                    // *gia han
                     long timestamp = LocalDate.now()
                         .plusDays(15)
                         .atStartOfDay(ZoneId.systemDefault())
                         .toEpochSecond();
                     history.setExpiredTime(timestamp);
-                    System.out.println("tao thong tin history expired");
-                    this.inventoryUpdateRequestsHistoryRepository.save(history);
-                    this.inventoryRepository.extendIventory(
-                        item.getQuantityChange(),
-                        item.getUpdatedBy(),
-                        String.valueOf(timestamp),
-                        String.valueOf(timestampNow),
-                        item.getLocationId(),
-                        item.getMaterialId()
-                    );
-                } else if (item.getType().equals("MOVE")) {
-                    // *MOVE
-                    System.out.println(
-                        "tao thong tin history move" + item.getLocationName()
-                    );
-                    this.inventoryRepository.updateIventory(
-                        item.getQuantityChange(),
-                        item.getUpdatedBy(),
-                        String.valueOf(timestampNow),
-                        item.getLocationId(),
-                        item.getMaterialId()
-                    );
-                    this.inventoryUpdateRequestsHistoryRepository.save(history);
+                    System.out.println("Lưu lịch sử gia hạn (REJECT)");
                 }
+
+                if (item.getType().equals("MOVE")) {
+                    System.out.println(
+                        "Lưu lịch sử chuyển kho (REJECT): " +
+                        item.getLocationName()
+                    );
+                }
+
+                this.inventoryUpdateRequestsHistoryRepository.save(history);
             }
         }
     }
