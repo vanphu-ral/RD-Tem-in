@@ -156,8 +156,10 @@
                   >
                     <mat-label>Search</mat-label>
                     <input
+                      enterKeyHint="search"
                       matInput
-                      (keyup)="applyFilter(groupField, $event)"
+                      #inputRef
+                      (keyup.enter)="applyFilter(groupField, inputRef.value)"
                       [value]="filterValues[groupField] || ''"
                       [placeholder]="
                         'Search (' +
@@ -412,6 +414,7 @@
                     <mat-label>Search</mat-label>
                     <input
                       matInput
+                      enterKeyHint="search"
                       [placeholder]="
                         'Search Material Identifier (' +
                         (filterModesDetail['materialIdentifier'] ||

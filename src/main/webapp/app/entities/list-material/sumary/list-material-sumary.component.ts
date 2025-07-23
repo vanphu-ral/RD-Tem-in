@@ -577,8 +577,12 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     });
   }
 
-  applyFilter(col: string, e: KeyboardEvent): void {
-    const value = (e.target as HTMLInputElement).value.trim();
+  applyFilter(col: string, value: string): void {
+    value = value.trim();
+    if (!value) {
+      return;
+    }
+
     this.isLoading = true;
     this.filterInput$.next({ col, value });
   }

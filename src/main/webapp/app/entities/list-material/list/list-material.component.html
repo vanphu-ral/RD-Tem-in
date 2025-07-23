@@ -239,9 +239,12 @@
               <mat-label>Search</mat-label>
               <input
                 matInput
+                enterKeyHint="search"
+                #inputAvailable
                 [value]="searchTerms['availableQuantity']?.value || ''"
-                (input)="applyFilter('availableQuantity', $event)"
-                (keyup.enter)="applyFilter('availableQuantity', $event)"
+                (keyup.enter)="
+                  applyFilter('availableQuantity', inputAvailable.value)
+                "
                 [placeholder]="
                   'Search (' +
                   (filterModes['availableQuantity'] || 'contains') +
@@ -306,9 +309,6 @@
                       [matDatepicker]="picker"
                       [ngModel]="dateInputs[col] || ''"
                       (dateChange)="applyDatePickerByPicker(col, $event.value)"
-                      (input)="
-                        applyDatePickerByTyping(col, $any($event.target).value)
-                      "
                       (keyup.enter)="
                         applyDatePickerByTyping(col, $any($event.target).value)
                       "
@@ -356,18 +356,14 @@
                       <mat-label>Scan / Search Kho</mat-label>
                       <input
                         matInput
+                        type="search"
+                        enterKeyHint="search"
+                        #locationInput
                         [value]="searchTerms['locationName']?.value || ''"
-                        (input)="applyFilter('locationName', $event)"
-                        (keydown.enter)="
-                          onScanLocationEnter(
-                            locationInput.value,
-                            locationInput
-                          )
-                        "
+                        (keyup.enter)="onScanLocationEnter(locationInput.value)"
                         placeholder="Search ({{
                           filterModes['locationName'] || 'contains'
                         }})"
-                        #locationInput
                       />
                     </mat-form-field>
 
@@ -381,9 +377,10 @@
                       <mat-label>Search</mat-label>
                       <input
                         matInput
+                        #inputRef
+                        enterKeyHint="search"
                         [value]="searchTerms[col]?.value || ''"
-                        (input)="applyFilter(col, $event)"
-                        (keyup.enter)="applyFilter(col, $event)"
+                        (keyup.enter)="applyFilter(col, inputRef.value)"
                         placeholder="Search ({{
                           filterModes[col] || 'contains'
                         }})"

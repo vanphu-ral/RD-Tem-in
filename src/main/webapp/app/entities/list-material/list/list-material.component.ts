@@ -271,7 +271,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.filterChange$
       .pipe(debounceTime(300), takeUntil(this.ngUnsubscribe))
-      .subscribe(() => this.updateRouteWithFilters());
+      .subscribe(() => this.updateRouteWithFilters(true));
 
     const initialParams = this.route.snapshot.queryParams;
     this.mapParamsToFilters(initialParams);
@@ -435,7 +435,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!str) {
       delete this.searchTerms[col];
       delete this.filterModes[col];
-      this.updateRouteWithFilters();
+      this.updateRouteWithFilters(true);
       return;
     }
 
@@ -453,7 +453,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         const ts = Math.floor(date.getTime() / 1000).toString();
         this.filterModes[col] = "equals";
         this.searchTerms[col] = { mode: "equals", value: ts };
-        this.updateRouteWithFilters();
+        this.updateRouteWithFilters(true);
       }
     }
   }
@@ -575,12 +575,14 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       this.dataSource.data,
     );
   }
-  onScanLocationEnter(rawValue: string, inputEl: HTMLInputElement): void {
-    const processed = this.processScanInput(rawValue);
+  onScanLocationEnter(raw: string): void {
+    const processed = this.processScanInput(raw);
 
-    inputEl.value = processed;
+    if (!processed) {
+      return;
+    }
 
-    this.applyFilter("locationName", { target: { value: processed } } as any);
+    this.applyFilter("locationName", processed);
   }
 
   startScan(): void {
@@ -757,8 +759,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  public applyFilter(colDef: string, event: Event): void {
-    const raw = (event.target as HTMLInputElement).value.trim().toLowerCase();
+  public applyFilter(colDef: string, raw: string): void {
+    raw = raw.trim().toLowerCase();
     const mode = this.filterModes[colDef] || "contains";
 
     if (raw) {
@@ -768,7 +770,23 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       delete this.filterModes[colDef];
     }
 
-    this.filterChange$.next();
+    const params: any = {
+      page: 1,
+      pageSize: this.pageSize,
+    };
+
+    Object.entries(this.searchTerms).forEach(([col, term]) => {
+      params[col] = term.value;
+      params[col + "Mode"] = term.mode;
+    });
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      replaceUrl: true,
+    });
+
+    this.fetchPage(params);
   }
 
   isDateField(colDef: string): boolean {
@@ -1069,7 +1087,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       );
   }
 
-  private updateRouteWithFilters(): void {
+  private updateRouteWithFilters(triggerFetch = true): void {
     this.scanPending = false;
     const params: any = { page: 1, pageSize: this.pageSize };
 
@@ -1087,6 +1105,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       queryParams: params,
       replaceUrl: true,
     });
+    if (triggerFetch) {
+      this.fetchPage(params);
+    }
   }
 
   private getCurrentPageRows(): RawGraphQLMaterial[] {
