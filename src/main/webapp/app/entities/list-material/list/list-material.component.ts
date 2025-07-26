@@ -408,7 +408,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.setDateFilter(col, date);
   }
   public applyDatePickerByTyping(col: string, raw: string): void {
-    console.log("Typing raw date:", col, raw);
+    // console.log("Typing raw date:", col, raw);
     this.isLoading = true;
     if (raw === "") {
       this.setDateFilter(col, null);
@@ -492,10 +492,10 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
   handleRowToggle(row: RawGraphQLMaterial): void {
     const inventoryId = row.inventoryId;
-    console.log(
-      `[ListMaterialComponent] handleRowToggle for row. Material ID: ${inventoryId} (type: ${typeof inventoryId})`,
-      JSON.stringify(row),
-    );
+    // console.log(
+    //   `[ListMaterialComponent] handleRowToggle for row. Material ID: ${inventoryId} (type: ${typeof inventoryId})`,
+    //   JSON.stringify(row),
+    // );
     if (inventoryId === undefined || inventoryId === null) {
       console.error(
         "[ListMaterialComponent] Material ID is undefined or null for row:",
@@ -524,8 +524,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   updateChecked(element: any, isChecked: boolean): void {
     this.materialService.toggleItemSelection(element.inventoryId);
 
-    console.log("Current checked count:", this.checkedCount);
-    console.log("Updated dataSource:", this.dataSource.data);
+    // console.log("Current checked count:", this.checkedCount);
+    // console.log("Updated dataSource:", this.dataSource.data);
   }
 
   isAllChecked(): boolean {
@@ -1070,11 +1070,11 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
             this.dataSource.data,
             this.sort,
           );
-          console.log("[FETCH] dataSource.data:", this.dataSource.data);
+          // console.log("[FETCH] dataSource.data:", this.dataSource.data);
 
           const isEmpty = !resp.inventories || resp.inventories.length === 0;
           this.emptyMessage = isEmpty ? "Không có dữ liệu để hiển thị." : null;
-          console.log("[EMPTY] Message:", this.emptyMessage);
+          // console.log("[EMPTY] Message:", this.emptyMessage);
 
           this.cdr.detectChanges();
         },
@@ -1127,10 +1127,10 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       textFilters: this.searchTerms,
       dialogFilters: this.activeFilters,
     };
-    console.log(
-      "[applyCombinedFilters] - combinedFilterData:",
-      combinedFilterData,
-    );
+    // console.log(
+    //   "[applyCombinedFilters] - combinedFilterData:",
+    //   combinedFilterData,
+    // );
     this.dataSource.filter = JSON.stringify(combinedFilterData);
     this.pageIndex = 1;
     if (this.dataSource.paginator) {
@@ -1170,8 +1170,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         const totalItems = response.totalItems;
         this.length = totalItems;
         this.dataSource.data = response.inventories || [];
-        console.log("trang hiện tại: ", page);
-        console.log("số lượng bản ghi đọc từ api: ", totalItems);
+        // console.log("trang hiện tại: ", page);
+        // console.log("số lượng bản ghi đọc từ api: ", totalItems);
         //scan
         if (this.scanPending) {
           if (!response.inventories.length) {
@@ -1190,8 +1190,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           if (totalItems > 0 && this.pageIndex > 0) {
             const maxPageIndex = Math.ceil(totalItems / this.pageSize) - 1;
             if (page - 1 > maxPageIndex) {
-              console.log("trang hiện tại: ", page);
-              console.log("số lượng bản ghi đọc từ api: ", totalItems);
+              // console.log("trang hiện tại: ", page);
+              // console.log("số lượng bản ghi đọc từ api: ", totalItems);
               // this.pageIndex = maxPageIndex;
               this.router.navigate([], {
                 relativeTo: this.route,

@@ -309,7 +309,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
   onLoad(): void {
     const selectedMode: string = this.form.get("sumary_modeControl")?.value[0];
-    console.log("mode na: ", selectedMode);
+    // console.log("mode na: ", selectedMode);
     if (!selectedMode) {
       console.warn("Chưa chọn chế độ tổng hợp.");
       return;
@@ -446,10 +446,10 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
 
   handleRowToggle(row: RawGraphQLMaterial): void {
     const inventoryId = row.inventoryId;
-    console.log(
-      `[ListMaterialComponent] handleRowToggle for row. Material ID: ${inventoryId} (type: ${typeof inventoryId})`,
-      JSON.stringify(row),
-    );
+    // console.log(
+    //   `[ListMaterialComponent] handleRowToggle for row. Material ID: ${inventoryId} (type: ${typeof inventoryId})`,
+    //   JSON.stringify(row),
+    // );
     if (inventoryId === undefined || inventoryId === null) {
       console.error(
         "[ListMaterialComponent] Material ID is undefined or null for row:",
@@ -718,7 +718,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         element.detailPageIndex = initialPageIndex;
         element.detailPageSize = initialPageSize;
         element.detailDataSource = new MatTableDataSource(response.inventories);
-        console.log("Dữ liệu bảng con:", response.inventories);
+        // console.log("Dữ liệu bảng con:", response.inventories);
         const ds = new MatTableDataSource(response.inventories);
         ds.filterPredicate = this.detailFilterPredicate;
         ds.filter = JSON.stringify({ textFilters: this.searchTermsDetail });
@@ -973,8 +973,8 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         }),
       )
       .subscribe((response) => {
-        console.log("response  API:", response);
-        console.log("response.totalItems:", response.totalItems);
+        // console.log("response  API:", response);
+        // console.log("response.totalItems:", response.totalItems);
         const totalItems = response.totalItems;
         this.length = totalItems;
         this.pageIndex = page - 1;

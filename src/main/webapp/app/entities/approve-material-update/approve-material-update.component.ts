@@ -243,7 +243,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
       }
     }
 
-    console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
+    // console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
     this.applyCombinedFilters();
   }
 
@@ -417,13 +417,13 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
       this.dataSoure_update_detail.data.forEach(
         (row) => (row.status = "REJECT"),
       );
-      console.log("Đã bỏ chọn tất cả");
+      // console.log("Đã bỏ chọn tất cả");
     } else {
       this.dataSoure_update_detail.data.forEach(
         (row) => (row.status = "APPROVE"),
       );
       this.selection.select(...this.dataSoure_update_detail.data);
-      console.log("Đã chọn tất cả");
+      // console.log("Đã chọn tất cả");
     }
     this.cdr.markForCheck();
   }
@@ -479,15 +479,15 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
   }
 
   public fetchRequestDetails(requestId: number): void {
-    console.log(
-      `[MaterialUpdateRequestComponent] fetchRequestDetails called with requestId: ${requestId}`,
-    );
+    // console.log(
+    //   `[MaterialUpdateRequestComponent] fetchRequestDetails called with requestId: ${requestId}`,
+    // );
     this.MaterialService.getRequestDetailsById(requestId).subscribe({
       next: (details: inventory_update_requests_detail[]) => {
-        console.log(
-          `[MaterialUpdateRequestComponent] Details received for requestId ${requestId}:`,
-          details,
-        );
+        // console.log(
+        //   `[MaterialUpdateRequestComponent] Details received for requestId ${requestId}:`,
+        //   details,
+        // );
         if (details && details.length > 0) {
           this.dataSoure_update_detail.data = details;
         } else {
@@ -507,9 +507,9 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
         this.cdr.markForCheck();
       },
       complete: () => {
-        console.log(
-          `[MaterialUpdateRequestComponent] Fetching details completed for requestId ${requestId}.`,
-        );
+        // console.log(
+        //   `[MaterialUpdateRequestComponent] Fetching details completed for requestId ${requestId}.`,
+        // );
       },
     });
   }
@@ -548,7 +548,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
 
         this.accountService.getAuthenticationState().subscribe((account) => {
           const currentUser = account?.login ?? "unknown";
-          console.log("Dữ liệu từ chối:", payload, currentUser);
+          // console.log("Dữ liệu từ chối:", payload, currentUser);
 
           this.MaterialService.postRejectInventoryUpdate(
             requestId,
@@ -794,10 +794,10 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
       dialogFilters: this.activeFilters,
       timestamp: new Date().getTime(),
     };
-    console.log(
-      "[applyCombinedFilters] - combinedFilterData:",
-      combinedFilterData,
-    );
+    // console.log(
+    //   "[applyCombinedFilters] - combinedFilterData:",
+    //   combinedFilterData,
+    // );
     this.dataSource_update_manage.filter = JSON.stringify(combinedFilterData);
 
     if (this.dataSource_update_manage.paginator) {

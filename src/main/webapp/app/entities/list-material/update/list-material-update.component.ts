@@ -9,7 +9,7 @@ import {
 } from "@angular/core";
 import { Router } from "@angular/router";
 import { MatTable, MatTableDataSource } from "@angular/material/table";
-import { ChangeDetectionStrategy, signal } from "@angular/core";
+import { ChangeDetectionStrategy, signal, NgZone } from "@angular/core";
 import { FormBuilder, FormGroup, FormControl } from "@angular/forms";
 import { MatMenuTrigger } from "@angular/material/menu";
 import { MatSort } from "@angular/material/sort";
@@ -206,6 +206,7 @@ export class ListMaterialUpdateComponent
     private materialUpdateService: MaterialUpdateService,
     private accountService: AccountService,
     private breakpointObserver: BreakpointObserver,
+    private ngZone: NgZone,
   ) {}
   // #endregion
 
@@ -379,7 +380,7 @@ export class ListMaterialUpdateComponent
 
   setFilterMode(colDef: string, mode: string): void {
     this.filterModes[colDef] = mode;
-    console.log(`[setFilterMode] - Cột ${colDef} đã chọn mode: ${mode}`);
+    // console.log(`[setFilterMode] - Cột ${colDef} đã chọn mode: ${mode}`);
   }
 
   applyDateFilter(colDef: string, event: MatDatepickerInputEvent<Date>): void {
@@ -442,8 +443,8 @@ export class ListMaterialUpdateComponent
     const raw = inputEl.value.trim();
     const processed = this.processScanInput(raw);
 
-    console.log("[SCAN] Raw input:", raw);
-    console.log("[SCAN] Processed input:", processed);
+    // console.log("[SCAN] Raw input:", raw);
+    // console.log("[SCAN] Processed input:", processed);
 
     inputEl.value = processed;
 
@@ -455,18 +456,18 @@ export class ListMaterialUpdateComponent
     }
 
     if (isEnterEvent) {
-      console.log("[SCAN] Trigger by Enter, call API now");
+      // console.log("[SCAN] Trigger by Enter, call API now");
       this.scanWarehouseCode(processed);
       this.warehouseScanBuffer = "";
     } else {
       this.warehouseScanBuffer = processed;
-      console.log("[SCAN] Waiting debounce...");
+      // console.log("[SCAN] Waiting debounce...");
 
       this.warehouseScanTimeoutId = setTimeout(() => {
-        console.log(
-          "[SCAN] Timeout reached, calling API with:",
-          this.warehouseScanBuffer,
-        );
+        // console.log(
+        //   "[SCAN] Timeout reached, calling API with:",
+        //   this.warehouseScanBuffer,
+        // );
         this.scanWarehouseCode(this.warehouseScanBuffer);
         this.warehouseScanBuffer = "";
         this.warehouseScanTimeoutId = null;
@@ -588,43 +589,53 @@ export class ListMaterialUpdateComponent
       this.scanTimeoutId = null;
     }
 
-    const code = rawValue.trim().split("#")[0];
-    this.isLoading = true;
+    this.scanTimeoutId = setTimeout(() => {
+      const code = rawValue.trim().split("#")[0];
+      this.isLoading = true;
 
-    this.materialService
-      .fetchMaterialById(code)
-      .pipe(
-        takeUntil(this.ngUnsubscribe),
-        finalize(() => {
-          this.isLoading = false;
-          this.cdr.detectChanges();
-          setTimeout(() => {
-            this.scanInput.nativeElement.value = "";
-            this.scanInput.nativeElement.focus();
-          }, 0);
-        }),
-      )
-      .subscribe({
-        next: (raw) => {
-          if (raw) {
-            this.materialService.selectItems([raw.inventoryId]);
+      this.ngZone.runOutsideAngular(() => {
+        this.materialService
+          .fetchMaterialById(code)
+          .pipe(
+            takeUntil(this.ngUnsubscribe),
+            finalize(() => {
+              this.ngZone.run(() => {
+                this.isLoading = false;
+                this.cdr.detectChanges();
+                setTimeout(() => {
+                  this.scanInput.nativeElement.value = "";
+                  this.scanInput.nativeElement.focus();
+                }, 0);
+              });
+            }),
+          )
+          .subscribe({
+            next: (raw) => {
+              if (raw) {
+                queueMicrotask(() => {
+                  this.ngZone.run(() => {
+                    this.materialService.selectItems([raw.inventoryId]);
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            setTimeout(() => this.playAlertSoundSuccess(), 500);
-          } else {
-            this.openError(`Không tìm thấy vật tư: ${code}`);
-
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            setTimeout(() => this.playAlertSound(), 500);
-          }
-        },
-        error: () => {
-          this.openError(`Lỗi khi tìm vật tư: ${code}`);
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          setTimeout(() => this.playAlertSound(), 500);
-        },
+                    this.playAlertSoundSuccess();
+                    this.cdr.detectChanges();
+                  });
+                });
+              } else {
+                this.ngZone.run(() => {
+                  this.openError(`Không tìm thấy vật tư: ${code}`);
+                  this.playAlertSound();
+                });
+              }
+            },
+            error: () => {
+              this.ngZone.run(() => {
+                this.openError(`Lỗi khi tìm vật tư: ${code}`);
+                this.playAlertSound();
+              });
+            },
+          });
       });
+    }, 50); // dùng khoảng delay nhẹ để throttle xử lý nhanh
   }
 
   openError(message: string): void {
@@ -745,7 +756,7 @@ export class ListMaterialUpdateComponent
       mode: selectedMode,
       value: filterValue.trim().toLowerCase(),
     };
-    console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
+    // console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
 
     this.applyCombinedFilters();
   }
@@ -809,8 +820,8 @@ export class ListMaterialUpdateComponent
       );
       // .filter((id) => id !== "") ?? [];
 
-      console.log("Updated items:", result.updatedItems);
-      console.log("Mapped updatedIds:", updatedIds);
+      // console.log("Updated items:", result.updatedItems);
+      // console.log("Mapped updatedIds:", updatedIds);
 
       if (result.approved === true && result.autoApprove === true) {
         this.accountService.getAuthenticationState().subscribe((account) => {
@@ -846,12 +857,12 @@ export class ListMaterialUpdateComponent
                 this.dataSource.data = this.dataSource.data.filter(
                   (row) => !requestedIds.includes(row.inventoryId),
                 );
-                console.log("requestedIds typeof:", typeof requestedIds[0]);
-                console.log("updatedItems:", result.updatedItems);
-                console.log(
-                  "row.inventoryId typeof:",
-                  typeof this.dataSource.data[0]?.inventoryId,
-                );
+                // console.log("requestedIds typeof:", typeof requestedIds[0]);
+                // console.log("updatedItems:", result.updatedItems);
+                // console.log(
+                //   "row.inventoryId typeof:",
+                //   typeof this.dataSource.data[0]?.inventoryId,
+                // );
                 this.materialService.removeItemsAfterUpdate(requestedIds);
                 this.selection.clear();
                 this.cdr.detectChanges();
@@ -1098,10 +1109,10 @@ export class ListMaterialUpdateComponent
       textFilters: this.searchTerms,
       dialogFilters: this.activeFilters,
     };
-    console.log(
-      "[applyCombinedFilters] - combinedFilterData:",
-      combinedFilterData,
-    );
+    // console.log(
+    //   "[applyCombinedFilters] - combinedFilterData:",
+    //   combinedFilterData,
+    // );
     this.dataSource.filter = JSON.stringify(combinedFilterData);
 
     if (this.dataSource.paginator) {

@@ -248,7 +248,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         value: loc.id.toString(),
         name: loc.locationFullName,
       }));
-      console.log("warehouseSelection:", this.warehouseSelection);
+      // console.log("warehouseSelection:", this.warehouseSelection);
 
       const headerCtl = this.dialogForm.get("selectedWarehouseControl")!;
       const headerInit =
@@ -267,7 +267,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         rowCtl.updateValueAndValidity({ emitEvent: true });
       });
       this.isWarehouseReady = true;
-      console.log("[INIT] Danh sách kho đã sẵn sàng");
+      // console.log("[INIT] Danh sách kho đã sẵn sàng");
 
       if (this.bufferedScanValue) {
         const buffered = this.bufferedScanValue;
@@ -482,10 +482,10 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     item.selectedWarehouse = selected;
     // item.extendExpiration = false;
 
-    console.log(
-      `Row change: Item ${item.materialIdentifier} new locationId =`,
-      selected.value,
-    );
+    // console.log(
+    //   `Row change: Item ${item.materialIdentifier} new locationId =`,
+    //   selected.value,
+    // );
 
     this.isSelectHeader = false;
   }
@@ -495,7 +495,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       .get("selectedWarehouseControl")
       ?.setValue(selectedWarehouse, { emitEvent: false });
 
-    console.log(`Header: Warehouse selected: ${selectedWarehouse.value}`);
+    // console.log(`Header: Warehouse selected: ${selectedWarehouse.value}`);
 
     if (this.itemsDataSource && this.itemsDataSource.data) {
       this.itemsDataSource.data.forEach((item) => {
@@ -508,9 +508,9 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         item.locationId = selectedWarehouse.value;
         item.locationFullName = selectedWarehouse.name;
 
-        console.log(
-          `Header update: Item ${item.materialIdentifier} locationId updated to: ${item.locationId}`,
-        );
+        // console.log(
+        //   `Header update: Item ${item.materialIdentifier} locationId updated to: ${item.locationId}`,
+        // );
       });
     }
 
@@ -539,7 +539,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         });
 
         const allExtended = this.isAllExtendExpirationSelected();
-        console.log("Tất cả expired đã được chọn gia hạn?", allExtended);
+        // console.log("Tất cả expired đã được chọn gia hạn?", allExtended);
       }
     }
   }
@@ -586,7 +586,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   }
   onApproverSelected(user: UserSummary): void {
     this.selectedApprover = user;
-    console.log("Chọn người duyệt:", user);
+    // console.log("Chọn người duyệt:", user);
   }
 
   applyHeaderQuantityChange(): void {
@@ -802,7 +802,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       mode: selectedMode,
       value: filterValue.trim().toLowerCase(),
     };
-    console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
+    // console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
     this.applyCombinedFilters();
   }
 
@@ -1269,10 +1269,10 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       textFilters: this.searchTerms,
       dialogFilters: this.activeFilters,
     };
-    console.log(
-      "[applyCombinedFilters] - combinedFilterData:",
-      combinedFilterData,
-    );
+    // console.log(
+    //   "[applyCombinedFilters] - combinedFilterData:",
+    //   combinedFilterData,
+    // );
     this.itemsDataSource.filter = JSON.stringify(combinedFilterData);
 
     if (this.itemsDataSource.paginator) {

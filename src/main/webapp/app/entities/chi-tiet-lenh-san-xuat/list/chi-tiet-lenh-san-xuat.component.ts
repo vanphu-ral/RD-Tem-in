@@ -1,47 +1,68 @@
-import dayjs from 'dayjs/esm';
-import { ILenhSanXuat } from 'app/entities/lenh-san-xuat/lenh-san-xuat.model';
-import { UntypedFormBuilder } from '@angular/forms';
-import { ApplicationConfigService } from 'app/core/config/application-config.service';
-import { Component, OnInit, Input } from '@angular/core';
-import { HttpHeaders, HttpResponse, HttpClient } from '@angular/common/http';
-import { ActivatedRoute, Router } from '@angular/router';
-import { combineLatest } from 'rxjs';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import dayjs from "dayjs/esm";
+import { ILenhSanXuat } from "app/entities/lenh-san-xuat/lenh-san-xuat.model";
+import { UntypedFormBuilder } from "@angular/forms";
+import { ApplicationConfigService } from "app/core/config/application-config.service";
+import { Component, OnInit, Input } from "@angular/core";
+import { HttpHeaders, HttpResponse, HttpClient } from "@angular/common/http";
+import { ActivatedRoute, Router } from "@angular/router";
+import { combineLatest } from "rxjs";
+import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 
-import { IChiTietLenhSanXuat } from '../chi-tiet-lenh-san-xuat.model';
+import { IChiTietLenhSanXuat } from "../chi-tiet-lenh-san-xuat.model";
 
-import { ASC, DESC, ITEMS_PER_PAGE, SORT } from 'app/config/pagination.constants';
-import { ChiTietLenhSanXuatService } from '../service/chi-tiet-lenh-san-xuat.service';
-import { ChiTietLenhSanXuatDeleteDialogComponent } from '../delete/chi-tiet-lenh-san-xuat-delete-dialog.component';
+import {
+  ASC,
+  DESC,
+  ITEMS_PER_PAGE,
+  SORT,
+} from "app/config/pagination.constants";
+import { ChiTietLenhSanXuatService } from "../service/chi-tiet-lenh-san-xuat.service";
+import { ChiTietLenhSanXuatDeleteDialogComponent } from "../delete/chi-tiet-lenh-san-xuat-delete-dialog.component";
 // import { doc } from 'prettier';
-import { faSquare, faChevronDown } from '@fortawesome/free-solid-svg-icons';
-import { PageEvent } from '@angular/material/paginator';
+import { faSquare, faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { PageEvent } from "@angular/material/paginator";
 
 @Component({
-  selector: 'jhi-chi-tiet-lenh-san-xuat',
-  templateUrl: './chi-tiet-lenh-san-xuat.component.html',
-  styleUrls: ['./chi-tiet-lenh-san-xuat.component.css'],
+  selector: "jhi-chi-tiet-lenh-san-xuat",
+  templateUrl: "./chi-tiet-lenh-san-xuat.component.html",
+  styleUrls: ["./chi-tiet-lenh-san-xuat.component.css"],
   standalone: false,
 })
 export class ChiTietLenhSanXuatComponent implements OnInit {
-  resourceUrlApprove = this.applicationConfigService.getEndpointFor('api/quan-ly-phe-duyet');
-  totalDataUrl = this.applicationConfigService.getEndpointFor('api/quan-ly-phe-duyet/totaldata');
-  searchUrlApprove = this.applicationConfigService.getEndpointFor('api/lenh-san-xuat');
-  maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor('api/lenhsx/ma-lenh-san-xuat');
-  versionResourceUrl = this.applicationConfigService.getEndpointFor('api/lenhsx/version');
-  sapCodetResourceUrl = this.applicationConfigService.getEndpointFor('api/lenhsx/sap-code');
-  sapNameResourceUrl = this.applicationConfigService.getEndpointFor('api/lenhsx/sap-name');
-  workOrderCodeResourceUrl = this.applicationConfigService.getEndpointFor('api/lenhsx/work-order-code');
-  getLenhSanXuatTongSoLuongUrl = this.applicationConfigService.getEndpointFor('api/lenh-san-xuat/tong-so-luong');
+  resourceUrlApprove = this.applicationConfigService.getEndpointFor(
+    "api/quan-ly-phe-duyet",
+  );
+  totalDataUrl = this.applicationConfigService.getEndpointFor(
+    "api/quan-ly-phe-duyet/totaldata",
+  );
+  searchUrlApprove =
+    this.applicationConfigService.getEndpointFor("api/lenh-san-xuat");
+  maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
+    "api/lenhsx/ma-lenh-san-xuat",
+  );
+  versionResourceUrl =
+    this.applicationConfigService.getEndpointFor("api/lenhsx/version");
+  sapCodetResourceUrl = this.applicationConfigService.getEndpointFor(
+    "api/lenhsx/sap-code",
+  );
+  sapNameResourceUrl = this.applicationConfigService.getEndpointFor(
+    "api/lenhsx/sap-name",
+  );
+  workOrderCodeResourceUrl = this.applicationConfigService.getEndpointFor(
+    "api/lenhsx/work-order-code",
+  );
+  getLenhSanXuatTongSoLuongUrl = this.applicationConfigService.getEndpointFor(
+    "api/lenh-san-xuat/tong-so-luong",
+  );
   formSearch = this.formBuilder.group({
-    maLenhSanXuat: '',
-    sapCode: '',
-    sapName: '',
-    workOrderCode: '',
-    version: '',
-    storageCode: '',
-    createBy: '',
-    trangThai: '',
+    maLenhSanXuat: "",
+    sapCode: "",
+    sapName: "",
+    workOrderCode: "",
+    version: "",
+    storageCode: "",
+    createBy: "",
+    trangThai: "",
   });
   //Ẩn hiện tùy chọn
   toggleColumns = false;
@@ -71,14 +92,14 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   firstPageBtn = true;
   @Input() itemPerPage = 10;
   @Input() pageNumber = 1;
-  @Input() maLenhSanXuat = '';
-  @Input() sapCode = '';
-  @Input() sapName = '';
-  @Input() workOrderCode = '';
-  @Input() version = '';
-  @Input() storageCode = '';
-  @Input() createBy = '';
-  @Input() trangThai = '';
+  @Input() maLenhSanXuat = "";
+  @Input() sapCode = "";
+  @Input() sapName = "";
+  @Input() workOrderCode = "";
+  @Input() version = "";
+  @Input() storageCode = "";
+  @Input() createBy = "";
+  @Input() trangThai = "";
   @Input() entryTime: string | null = null;
   @Input() timeUpdate: string | null = null;
   // body tim kiem + pagination
@@ -96,14 +117,14 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     itemPerPage: number;
     pageNumber: number;
   } = {
-    maLenhSanXuat: '',
-    sapCode: '',
-    sapName: '',
-    workOrderCode: '',
-    version: '',
-    storageCode: '',
-    createBy: '',
-    trangThai: '',
+    maLenhSanXuat: "",
+    sapCode: "",
+    sapName: "",
+    workOrderCode: "",
+    version: "",
+    storageCode: "",
+    createBy: "",
+    trangThai: "",
     entryTime: null,
     timeUpdate: null,
     itemPerPage: this.itemPerPage,
@@ -144,43 +165,51 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   changeColor(): void {
     for (let i = 0; i < this.lenhSanXuats!.length; i++) {
       const item = this.lenhSanXuats![i].id!.toString();
-      if (this.lenhSanXuats![i].groupName?.includes('TC01') === true) {
-        document.getElementById(item)!.style.backgroundColor = '#FF9900';
-      } else if (this.lenhSanXuats![i].groupName?.includes('SMT01') === true) {
-        document.getElementById(item)!.style.backgroundColor = '#00CCFF';
-      } else if (this.lenhSanXuats![i].groupName?.includes('SMT02') === true) {
+      if (this.lenhSanXuats![i].groupName?.includes("TC01") === true) {
+        document.getElementById(item)!.style.backgroundColor = "#FF9900";
+      } else if (this.lenhSanXuats![i].groupName?.includes("SMT01") === true) {
+        document.getElementById(item)!.style.backgroundColor = "#00CCFF";
+      } else if (this.lenhSanXuats![i].groupName?.includes("SMT02") === true) {
         // // console.log('tesst', this.lenhSanXuats![i].groupName?.includes('SMT02'));
-        document.getElementById(item)!.style.backgroundColor = '#00CC00';
+        document.getElementById(item)!.style.backgroundColor = "#00CC00";
       }
-      if (this.lenhSanXuats![i].trangThai === 'Chờ duyệt') {
-        document.getElementById(i.toString())!.style.backgroundColor = '#FFFF33';
-      } else if (this.lenhSanXuats![i].trangThai === 'Đã phê duyệt') {
-        document.getElementById(i.toString())!.style.backgroundColor = '#00FF00';
-      } else if (this.lenhSanXuats![i].trangThai === 'Sản xuất hủy') {
-        document.getElementById(i.toString())!.style.backgroundColor = '#EE0000';
-        document.getElementById(i.toString())!.style.color = '#fff';
-      } else if (this.lenhSanXuats![i].trangThai === 'Kho hủy') {
-        document.getElementById(i.toString())!.style.backgroundColor = '#DD0000';
-        document.getElementById(i.toString())!.style.color = '#fff';
-      } else if (this.lenhSanXuats![i].trangThai === 'Bản nháp') {
-        document.getElementById(i.toString())!.style.backgroundColor = '#00FFFF';
-      } else if (this.lenhSanXuats![i].trangThai === 'Từ chối') {
-        document.getElementById(i.toString())!.style.backgroundColor = '#FFCC00';
-      } else if (this.lenhSanXuats![i].trangThai === 'Đã xuất csv') {
-        document.getElementById(i.toString())!.style.backgroundColor = '#2D99AE';
-        document.getElementById(i.toString())!.style.color = '#fff';
-      } else if (this.lenhSanXuats![i].trangThai === 'Lỗi Panacim') {
-        document.getElementById(i.toString())!.style.backgroundColor = '#001C44';
-        document.getElementById(i.toString())!.style.color = '#fff';
+      if (this.lenhSanXuats![i].trangThai === "Chờ duyệt") {
+        document.getElementById(i.toString())!.style.backgroundColor =
+          "#FFFF33";
+      } else if (this.lenhSanXuats![i].trangThai === "Đã phê duyệt") {
+        document.getElementById(i.toString())!.style.backgroundColor =
+          "#00FF00";
+      } else if (this.lenhSanXuats![i].trangThai === "Sản xuất hủy") {
+        document.getElementById(i.toString())!.style.backgroundColor =
+          "#EE0000";
+        document.getElementById(i.toString())!.style.color = "#fff";
+      } else if (this.lenhSanXuats![i].trangThai === "Kho hủy") {
+        document.getElementById(i.toString())!.style.backgroundColor =
+          "#DD0000";
+        document.getElementById(i.toString())!.style.color = "#fff";
+      } else if (this.lenhSanXuats![i].trangThai === "Bản nháp") {
+        document.getElementById(i.toString())!.style.backgroundColor =
+          "#00FFFF";
+      } else if (this.lenhSanXuats![i].trangThai === "Từ chối") {
+        document.getElementById(i.toString())!.style.backgroundColor =
+          "#FFCC00";
+      } else if (this.lenhSanXuats![i].trangThai === "Đã xuất csv") {
+        document.getElementById(i.toString())!.style.backgroundColor =
+          "#2D99AE";
+        document.getElementById(i.toString())!.style.color = "#fff";
+      } else if (this.lenhSanXuats![i].trangThai === "Lỗi Panacim") {
+        document.getElementById(i.toString())!.style.backgroundColor =
+          "#001C44";
+        document.getElementById(i.toString())!.style.color = "#fff";
       }
     }
   }
   toggleColumnsList(): void {
     this.toggleColumns = !this.toggleColumns;
     if (this.toggleColumns) {
-      document.getElementById('toggle-columns')!.style.height = '513px';
+      document.getElementById("toggle-columns")!.style.height = "513px";
     } else {
-      document.getElementById('toggle-columns')!.style.height = '0px';
+      document.getElementById("toggle-columns")!.style.height = "0px";
     }
   }
   mappingBodySearchAndPagination(): void {
@@ -273,7 +302,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
       });
   }
   getTotalData(): void {
-    this.http.post<any>(this.totalDataUrl, this.body).subscribe(res => {
+    this.http.post<any>(this.totalDataUrl, this.body).subscribe((res) => {
       this.totalData = res;
       if (this.totalData < this.itemPerPage) {
         this.nextPageBtn = true;
@@ -286,7 +315,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     });
   }
   ngOnInit(): void {
-    const result = sessionStorage.getItem('tem-in-search-body');
+    const result = sessionStorage.getItem("tem-in-search-body");
     if (result) {
       this.body = JSON.parse(result);
       this.maLenhSanXuat = this.body.maLenhSanXuat;
@@ -301,7 +330,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
       this.itemPerPage = this.body.itemPerPage;
       this.pageNumber = this.body.pageNumber;
       this.trangThai = this.body.trangThai;
-      console.log('have result!');
+      // console.log('have result!');
       this.getTotalData();
       this.getLenhSanXuatList();
       if (this.pageNumber > 1) {
@@ -309,7 +338,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
         this.firstPageBtn = false;
       }
     } else {
-      console.log('no result');
+      // console.log('no result');
       this.getTotalData();
       this.getLenhSanXuatList();
     }
@@ -323,19 +352,21 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     window.location.reload();
   }
   getLenhSanXuatList(): void {
-    this.http.post<any>(this.resourceUrlApprove, this.body).subscribe(res => {
+    this.http.post<any>(this.resourceUrlApprove, this.body).subscribe((res) => {
       this.lenhSanXuats = res;
       // // console.log('tesst 1: ', this.pageNumber, res);
       setTimeout(() => {
-        this.http.post<any>(this.getLenhSanXuatTongSoLuongUrl, this.lenhSanXuats).subscribe(res1 => {
-          console.log('tongsoluong', this.lenhSanXuats);
-          for (let i = 0; i < this.lenhSanXuats!.length; i++) {
-            this.lenhSanXuats![i].totalQuantity = res1[i].tongSoLuong;
-          }
-        });
+        this.http
+          .post<any>(this.getLenhSanXuatTongSoLuongUrl, this.lenhSanXuats)
+          .subscribe((res1) => {
+            // console.log('tongsoluong', this.lenhSanXuats);
+            for (let i = 0; i < this.lenhSanXuats!.length; i++) {
+              this.lenhSanXuats![i].totalQuantity = res1[i].tongSoLuong;
+            }
+          });
         this.changeColor();
         // Lưu lại key word tìm kiếm
-        sessionStorage.setItem('tem-in-search-body', JSON.stringify(this.body));
+        sessionStorage.setItem("tem-in-search-body", JSON.stringify(this.body));
       }, 500);
     });
   }
@@ -345,59 +376,62 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   }
 
   delete(chiTietLenhSanXuat: IChiTietLenhSanXuat): void {
-    const modalRef = this.modalService.open(ChiTietLenhSanXuatDeleteDialogComponent, { size: 'lg', backdrop: 'static' });
+    const modalRef = this.modalService.open(
+      ChiTietLenhSanXuatDeleteDialogComponent,
+      { size: "lg", backdrop: "static" },
+    );
     modalRef.componentInstance.chiTietLenhSanXuat = chiTietLenhSanXuat;
     // unsubscribe not needed because closed completes on modal close
-    modalRef.closed.subscribe(reason => {
-      if (reason === 'deleted') {
+    modalRef.closed.subscribe((reason) => {
+      if (reason === "deleted") {
         this.loadPage();
       }
     });
   }
   //============================ api lấy danh sách gợi tý từ Backend =====================
   createListOfMaLenhSanXuat(): void {
-    this.http.get<any>(this.maLenhSanXuatResourceUrl).subscribe(res => {
+    this.http.get<any>(this.maLenhSanXuatResourceUrl).subscribe((res) => {
       this.listOfMaLenhSanXuat = res;
       // // console.log(res);
     });
   }
   createListOfSapCode(): void {
-    this.http.get<any>(this.sapCodetResourceUrl).subscribe(res => {
+    this.http.get<any>(this.sapCodetResourceUrl).subscribe((res) => {
       this.listOfSapCode = res;
       // // console.log('sap code', res);
     });
   }
   createListOfSapName(): void {
-    this.http.get<any>(this.sapNameResourceUrl).subscribe(res => {
+    this.http.get<any>(this.sapNameResourceUrl).subscribe((res) => {
       this.listOfSapName = res;
       // // console.log('sap name', res);
     });
   }
   createListOfWordOrderCode(): void {
-    this.http.get<any>(this.workOrderCodeResourceUrl).subscribe(res => {
+    this.http.get<any>(this.workOrderCodeResourceUrl).subscribe((res) => {
       this.listOfWorkOrderCode = res;
       // // console.log('Work order code', res);
     });
   }
   createListOfVersion(): void {
-    this.http.get<any>(this.versionResourceUrl).subscribe(res => {
+    this.http.get<any>(this.versionResourceUrl).subscribe((res) => {
       this.listOfVersion = res;
       // // console.log('version', res);
     });
   }
   sort(): string[] {
-    const result = [this.predicate + ',' + (this.ascending ? ASC : DESC)];
-    if (this.predicate !== 'id') {
-      result.push('id');
+    const result = [this.predicate + "," + (this.ascending ? ASC : DESC)];
+    if (this.predicate !== "id") {
+      result.push("id");
     }
     return result;
   }
   // pop up thông báo
   alertTimeout(mymsg: string, mymsecs: number): void {
-    const myelement = document.createElement('div');
+    const myelement = document.createElement("div");
     myelement.setAttribute(
-      'style',
-      'background-color:white;color:Black; width: 300px;height: 70px;position: absolute;top:0;bottom:0;left:0;right:0;margin:auto;border: 1px solid black;font-family:arial;font-size:16px;display: flex; align-items: center; justify-content: center; text-align: center;border-radius:10px',
+      "style",
+      "background-color:white;color:Black; width: 300px;height: 70px;position: absolute;top:0;bottom:0;left:0;right:0;margin:auto;border: 1px solid black;font-family:arial;font-size:16px;display: flex; align-items: center; justify-content: center; text-align: center;border-radius:10px",
     );
     myelement.innerHTML = mymsg;
     setTimeout(function () {
@@ -408,13 +442,20 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     document.body.appendChild(myelement);
   }
   handleNavigation(): void {
-    combineLatest([this.activatedRoute.data, this.activatedRoute.queryParamMap]).subscribe(([data, params]) => {
-      const page = params.get('page');
+    combineLatest([
+      this.activatedRoute.data,
+      this.activatedRoute.queryParamMap,
+    ]).subscribe(([data, params]) => {
+      const page = params.get("page");
       const pageNumber = +(page ?? 1);
-      const sort = (params.get(SORT) ?? data['defaultSort']).split(',');
+      const sort = (params.get(SORT) ?? data["defaultSort"]).split(",");
       const predicate = sort[0];
       const ascending = sort[1] === ASC;
-      if (pageNumber !== this.page || predicate !== this.predicate || ascending !== this.ascending) {
+      if (
+        pageNumber !== this.page ||
+        predicate !== this.predicate ||
+        ascending !== this.ascending
+      ) {
         this.predicate = predicate;
         this.ascending = ascending;
         this.loadPage(pageNumber, true);
@@ -422,15 +463,20 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     });
   }
 
-  onSuccess(data: IChiTietLenhSanXuat[] | null, headers: HttpHeaders, page: number, navigate: boolean): void {
-    this.totalItems = Number(headers.get('X-Total-Count'));
+  onSuccess(
+    data: IChiTietLenhSanXuat[] | null,
+    headers: HttpHeaders,
+    page: number,
+    navigate: boolean,
+  ): void {
+    this.totalItems = Number(headers.get("X-Total-Count"));
     this.page = page;
     if (navigate) {
-      this.router.navigate(['/chi-tiet-lenh-san-xuat'], {
+      this.router.navigate(["/chi-tiet-lenh-san-xuat"], {
         queryParams: {
           page: this.page,
           size: this.itemsPerPage,
-          sort: this.predicate + ',' + (this.ascending ? ASC : DESC),
+          sort: this.predicate + "," + (this.ascending ? ASC : DESC),
         },
       });
     }

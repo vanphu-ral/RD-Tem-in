@@ -412,7 +412,7 @@ export class ListMaterialService {
   //   );
   // }
   fetchDataSumary(apiUrl: string, body: any): Observable<APISumaryResponse> {
-    console.log(body, apiUrl);
+    // console.log(body, apiUrl);
     return this.http.post<APISumaryResponse>(apiUrl, body).pipe(
       catchError((err) => {
         console.error("Lỗi khi lấy dữ liệu summary: ", err);
@@ -452,13 +452,13 @@ export class ListMaterialService {
       itemPerPage: limit,
     };
 
-    console.log("Request Body:", JSON.stringify(body, null, 2));
+    // console.log("Request Body:", JSON.stringify(body, null, 2));
 
     return this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).pipe(
       tap((response) => {
         this.cachePage(response.inventories);
         this.updatePageData(response.inventories);
-        console.log("API Response invent:", response);
+        // console.log("API Response invent:", response);
         if (response?.inventories) {
           this._totalCount.next(response.totalItems);
           this.refreshSelectedItems();
@@ -480,16 +480,16 @@ export class ListMaterialService {
   }
 
   public fetchAllInventoryUpdateRequests(): void {
-    console.log(`Goi API  ${this.apiRequest}`);
+    // console.log(`Goi API  ${this.apiRequest}`);
 
     this.http.get<inventory_update_requests[]>(this.apiRequest).subscribe({
       next: (data) => {
         if (Array.isArray(data)) {
           this._allInventoryUpdateRequests.next(data);
-          console.log(
-            "MaterialService (HTTP): All inventory update requests data successfully fetched:",
-            data,
-          );
+          // console.log(
+          //   "MaterialService (HTTP): All inventory update requests data successfully fetched:",
+          //   data,
+          // );
         } else {
           this._allInventoryUpdateRequests.next([]);
         }
@@ -594,7 +594,7 @@ export class ListMaterialService {
       materialIdentifier?: string;
     },
   ): Observable<APIDetailResponse> {
-    console.log("Đang gọi API lấy chi tiết summary...");
+    // console.log("Đang gọi API lấy chi tiết summary...");
     const url = this.apiSumaryDetail;
     const safeFilters = filters ?? {};
     const body: any = {
@@ -606,9 +606,12 @@ export class ListMaterialService {
       pageNumber: pageIndex + 1,
       itemPerPage: limit,
     };
-    console.log("body api sumary chi tiet: ", body);
+    // console.log("body api sumary chi tiet: ", body);
     return this.http.post<APIDetailResponse>(url, body).pipe(
-      tap((response) => console.log("API chi tiết trả về:", response)),
+      tap((response) =>
+        // console.log("API chi tiết trả về:", response)
+        console.log(response),
+      ),
       catchError((err): Observable<APIDetailResponse> => {
         console.error("Lỗi khi lấy chi tiết summary:", err);
         return of({ inventories: [], totalItems: 0 });
@@ -697,7 +700,7 @@ export class ListMaterialService {
   getRequestHistoryDetailsById(
     id: number | null,
   ): Observable<inventory_update_requests_history_detail[]> {
-    console.log("dang goi api history detail");
+    // console.log("dang goi api history detail");
     if (id === null) {
       console.error(
         "MaterialService (HTTP): Cannot fetch history details with a null ID.",
@@ -706,14 +709,14 @@ export class ListMaterialService {
     }
 
     const url = `${this.apiRequestHistoryDetail}/${id}`;
-    console.log(
-      `MaterialService (HTTP): Fetching request history details from ${url}`,
-    );
+    // console.log(
+    //   `MaterialService (HTTP): Fetching request history details from ${url}`,
+    // );
 
     return this.http.get<inventory_update_requests_history_detail[]>(url).pipe(
       tap((data) =>
         console.log(
-          `MaterialService (HTTP): History details for request ${id} successfully fetched:`,
+          // `MaterialService (HTTP): History details for request ${id} successfully fetched:`,
           data,
         ),
       ),
@@ -741,14 +744,14 @@ export class ListMaterialService {
     }
 
     const url = `${this.apiRequestHistory}/${requestCode}`;
-    console.log(
-      `MaterialService (HTTP): Fetching request history details from ${url}`,
-    );
+    // console.log(
+    //   `MaterialService (HTTP): Fetching request history details from ${url}`,
+    // );
 
     return this.http.get<inventory_update_requests_history_detail[]>(url).pipe(
       tap((data) =>
         console.log(
-          `MaterialService (HTTP): History details for request ${requestCode} successfully fetched:`,
+          // `MaterialService (HTTP): History details for request ${requestCode} successfully fetched:`,
           data,
         ),
       ),
@@ -799,7 +802,7 @@ export class ListMaterialService {
   public getRequestDetailsById(
     id: number | null,
   ): Observable<inventory_update_requests_detail[]> {
-    console.log("dang goi api");
+    // console.log("dang goi api");
     if (id === null) {
       console.error(
         "MaterialService (HTTP): Cannot fetch request details with a null ID.",
@@ -807,12 +810,12 @@ export class ListMaterialService {
       return of([]);
     }
     const url = `${this.apiRequestDetail}/${id}`;
-    console.log(`MaterialService (HTTP): Fetching request details from ${url}`);
+    // console.log(`MaterialService (HTTP): Fetching request details from ${url}`);
 
     return this.http.get<inventory_update_requests_detail[]>(url).pipe(
       tap((data) =>
         console.log(
-          `MaterialService (HTTP): Details for request ${id} successfully fetched:`,
+          // `MaterialService (HTTP): Details for request ${id} successfully fetched:`,
           data,
         ),
       ),
@@ -874,7 +877,7 @@ export class ListMaterialService {
   }
   public cachePage(items: RawGraphQLMaterial[]): void {
     items.forEach((i) => this._materialsCache.set(i.inventoryId, i));
-    console.log("[Service] cachePage → cache size:", this._materialsCache.size);
+    // console.log("[Service] cachePage → cache size:", this._materialsCache.size);
   }
 
   public removeItem(inventoryIdToRemove: string): void {
@@ -959,7 +962,7 @@ export class ListMaterialService {
       request: requestHeader,
       detail: requestDetails,
     };
-    console.log("Payload gửi lên:", payload);
+    // console.log("Payload gửi lên:", payload);
     const headers = new HttpHeaders({
       "Content-Type": "application/json",
     });
@@ -967,9 +970,9 @@ export class ListMaterialService {
       .post(this.apiUrl_post_request_update, payload, { headers })
       .pipe(
         tap(() => {
-          console.log(
-            "MaterialService: Inventory update request successful. Refreshing materials data.",
-          );
+          // console.log(
+          //   "MaterialService: Inventory update request successful. Refreshing materials data.",
+          // );
 
           this.fetchMaterialsData(
             1,
@@ -1034,14 +1037,14 @@ export class ListMaterialService {
       detail: requestDetails,
     };
 
-    console.log("Payload approve gửi lên:", payload);
+    // console.log("Payload approve gửi lên:", payload);
 
     const headers = new HttpHeaders({ "Content-Type": "application/json" });
     return this.http.post(this.apiUrl_post_update, payload, { headers }).pipe(
       tap(() => {
-        console.log(
-          "MaterialService: Approve inventory update successful. Refreshing materials data.",
-        );
+        // console.log(
+        //   "MaterialService: Approve inventory update successful. Refreshing materials data.",
+        // );
         this.fetchMaterialsData(1, this.defaultPageSize);
         this.fetchAllInventoryUpdateRequests();
       }),
@@ -1053,7 +1056,7 @@ export class ListMaterialService {
     this.http.get<RawGraphQLLocation[]>(this.apiLocations).subscribe({
       next: (data) => {
         this._locationsData.next(data);
-        console.log("Da lay du lieu locations:", data);
+        // console.log("Da lay du lieu locations:", data);
       },
       error: (err) => {
         console.error("Loi lay api locations:", err);
@@ -1116,9 +1119,9 @@ export class ListMaterialService {
     });
     return this.http.post(this.apiUrl_post_update, payload, { headers }).pipe(
       tap(() => {
-        console.log(
-          "MaterialService: Reject inventory update successful. Refreshing materials data.",
-        );
+        // console.log(
+        //   "MaterialService: Reject inventory update successful. Refreshing materials data.",
+        // );
         this.fetchMaterialsData(
           1,
           this.defaultPageSize,
@@ -1144,7 +1147,7 @@ export class ListMaterialService {
       map((raw) => raw.map((u) => ({ username: u.username }))),
       tap((list) => {
         this.approverCache = list;
-        console.log("Approvers cached:", list);
+        // console.log("Approvers cached:", list);
       }),
       catchError((err) => {
         if (err.status === 403 || err.status === 401) {
@@ -1169,7 +1172,7 @@ export class ListMaterialService {
     const items = this._selectedIds.value
       .map((id) => this._materialsCache.get(id))
       .filter((i): i is RawGraphQLMaterial => !!i);
-    console.log("[Service] refreshSelectedItems →", items);
+    // console.log("[Service] refreshSelectedItems →", items);
     this._selectedItems.next(items);
   }
 

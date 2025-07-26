@@ -246,7 +246,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       this.searchTerms[colDef].value = filterValue;
     }
 
-    console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
+    // console.log(`[applyFilter] - Cột ${colDef}:`, this.searchTerms[colDef]);
     this.applyCombinedFilters();
   }
 
@@ -280,11 +280,11 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
         parent.requestCode,
       ).pipe(
         tap((details) => {
-          console.log(
-            `[export] received ${details.length} details for`,
-            parent.requestCode,
-            details,
-          );
+          // console.log(
+          //   `[export] received ${details.length} details for`,
+          //   parent.requestCode,
+          //   details,
+          // );
         }),
         map((details) => ({ parent, details })),
       ),
@@ -293,7 +293,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
     // 2) forkJoin + subscribe
     forkJoin(detailCalls).subscribe({
       next: (results) => {
-        console.log("[export] all details fetched:", results);
+        // console.log("[export] all details fetched:", results);
         const rows: any[] = [];
 
         results.forEach(({ parent, details }) => {
@@ -390,7 +390,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   }
 
   public toggleRowExpansion(element: inventory_update_requests): void {
-    console.log("toggleRowExpansion", element);
+    // console.log("toggleRowExpansion", element);
     const isAlreadyExpanded = this.expandedElement === element;
     this.expandedElement = isAlreadyExpanded ? null : element;
 
@@ -560,9 +560,9 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       if (isChecked) {
         this.selection.select(updatedItem);
       }
-      console.log(
-        `Đã cập nhật status cho item ID ${updatedItem.id}: ${updatedItem.status}`,
-      );
+      // console.log(
+      //   `Đã cập nhật status cho item ID ${updatedItem.id}: ${updatedItem.status}`,
+      // );
     } else {
       console.warn(
         "Không tìm thấy dòng trong dataSource để cập nhật status:",
@@ -589,7 +589,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       }));
       this.dataSoure_history_detail.data = newDataSourceData;
       this.selection.clear();
-      console.log('Đã bỏ chọn tất cả và cập nhật status thành "Từ chối"');
+      // console.log('Đã bỏ chọn tất cả và cập nhật status thành "Từ chối"');
     } else {
       newDataSourceData = this.dataSoure_history_detail.data.map((dRow) => ({
         ...dRow,
@@ -597,7 +597,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       }));
       this.dataSoure_history_detail.data = newDataSourceData;
       this.selection.select(...this.dataSoure_history_detail.data);
-      console.log('Đã chọn tất cả và cập nhật status thành "Chấp thuận"');
+      // console.log('Đã chọn tất cả và cập nhật status thành "Chấp thuận"');
     }
     this.cdr.markForCheck();
   }
@@ -780,10 +780,10 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
       dialogFilters: this.activeFilters,
       timestamp: new Date().getTime(),
     };
-    console.log(
-      "[applyCombinedFilters] - combinedFilterData:",
-      combinedFilterData,
-    );
+    // console.log(
+    //   "[applyCombinedFilters] - combinedFilterData:",
+    //   combinedFilterData,
+    // );
     this.dataSource_update_manage.filter = JSON.stringify(combinedFilterData);
 
     if (this.dataSource_update_manage.paginator) {

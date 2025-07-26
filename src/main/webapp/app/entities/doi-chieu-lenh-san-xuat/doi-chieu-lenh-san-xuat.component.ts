@@ -1,26 +1,36 @@
-import { HttpClient } from '@angular/common/http';
-import { Component, Input, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { ITEMS_PER_PAGE } from 'app/config/pagination.constants';
-import { ApplicationConfigService } from 'app/core/config/application-config.service';
-import { ScanCheckComponent } from './scan-check.component';
-import { SharedDataService } from './shared-data.service';
-import { PageEvent } from '@angular/material/paginator';
+import { HttpClient } from "@angular/common/http";
+import { Component, Input, OnInit } from "@angular/core";
+import { ActivatedRoute, Router } from "@angular/router";
+import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
+import { ITEMS_PER_PAGE } from "app/config/pagination.constants";
+import { ApplicationConfigService } from "app/core/config/application-config.service";
+import { ScanCheckComponent } from "./scan-check.component";
+import { SharedDataService } from "./shared-data.service";
+import { PageEvent } from "@angular/material/paginator";
 
 @Component({
-  selector: 'jhi-doi-chieu-lenh-san-xuat',
-  templateUrl: './doi-chieu-lenh-san-xuat.component.html',
-  styleUrls: ['./doi-chieu-lenh-san-xuat.component.scss'],
+  selector: "jhi-doi-chieu-lenh-san-xuat",
+  templateUrl: "./doi-chieu-lenh-san-xuat.component.html",
+  styleUrls: ["./doi-chieu-lenh-san-xuat.component.scss"],
   standalone: false,
 })
 export class DoiChieuLenhSanXuatComponent implements OnInit {
-  doiChieuLenhSanXuatUrl = this.applicationConfigService.getEndpointFor('api/scan-work-order/groupId');
-  WorkOrderDetailUrl = this.applicationConfigService.getEndpointFor('api/scan-work-order');
-  tongHopURL = this.applicationConfigService.getEndpointFor('api/tong-hop');
-  listOfWorkOrderPanigationURL = this.applicationConfigService.getEndpointFor('api/scan-work-order/panigation');
-  totalItemURL = this.applicationConfigService.getEndpointFor('api/scan-work-order/total');
-  totalPassNgURL = this.applicationConfigService.getEndpointFor('api/scan-work-order/total-pass-ng');
+  doiChieuLenhSanXuatUrl = this.applicationConfigService.getEndpointFor(
+    "api/scan-work-order/groupId",
+  );
+  WorkOrderDetailUrl = this.applicationConfigService.getEndpointFor(
+    "api/scan-work-order",
+  );
+  tongHopURL = this.applicationConfigService.getEndpointFor("api/tong-hop");
+  listOfWorkOrderPanigationURL = this.applicationConfigService.getEndpointFor(
+    "api/scan-work-order/panigation",
+  );
+  totalItemURL = this.applicationConfigService.getEndpointFor(
+    "api/scan-work-order/total",
+  );
+  totalPassNgURL = this.applicationConfigService.getEndpointFor(
+    "api/scan-work-order/total-pass-ng",
+  );
   predicate!: string;
   ascending!: boolean;
   page?: number;
@@ -29,16 +39,16 @@ export class DoiChieuLenhSanXuatComponent implements OnInit {
   popupChiTietThongTinScan = false;
   popupConfirmSave = false;
 
-  @Input() workOrder = '';
-  @Input() lot = '';
-  @Input() machineId = '';
-  @Input() productCode = '';
-  @Input() productName = '';
-  @Input() groupName = '';
-  @Input() working = '';
+  @Input() workOrder = "";
+  @Input() lot = "";
+  @Input() machineId = "";
+  @Input() productCode = "";
+  @Input() productName = "";
+  @Input() groupName = "";
+  @Input() working = "";
   @Input() createdAt = null;
-  @Input() position = '';
-  @Input() checkValue = '';
+  @Input() position = "";
+  @Input() checkValue = "";
   @Input() itemPerPage = 10;
 
   //list lenh san xuat
@@ -69,11 +79,11 @@ export class DoiChieuLenhSanXuatComponent implements OnInit {
     itemPerPage: number;
     pageNumber: number;
   } = {
-    workOrder: '',
-    lot: '',
-    productCode: '',
-    productName: '',
-    groupName: '',
+    workOrder: "",
+    lot: "",
+    productCode: "",
+    productName: "",
+    groupName: "",
     createAt: null,
     itemPerPage: this.itemPerPage,
     pageNumber: this.pageNumber,
@@ -172,7 +182,7 @@ export class DoiChieuLenhSanXuatComponent implements OnInit {
     }, 100);
   }
   getTotalData(): void {
-    this.http.post<any>(this.totalItemURL, this.body).subscribe(res => {
+    this.http.post<any>(this.totalItemURL, this.body).subscribe((res) => {
       this.totalData = res;
       if (this.totalData < this.itemPerPage) {
         this.nextPageBtn = true;
@@ -185,34 +195,38 @@ export class DoiChieuLenhSanXuatComponent implements OnInit {
     });
   }
   getWorkOrderList(): void {
-    this.http.post<any>(this.listOfWorkOrderPanigationURL, this.body).subscribe(res => {
-      this.listOfLenhSanXuat = res;
-      console.log('tesst 1: ', this.pageNumber, res);
-      setTimeout(() => {
-        this.listOfLenhSanXuat.forEach((item: any) => {
-          item.tenTrangThai = '';
-          if (item.trangThai === 0) {
-            item.tenTrangThai = 'Waitting';
-          } else if (item.trangThai === 1) {
-            item.tenTrangThai = 'Running';
-          } else if (item.trangThai === 2) {
-            item.tenTrangThai = 'Finish';
-          } else if (item.trangThai === 3) {
-            item.tenTrangThai = 'Paused';
-          }
-          item.ng = item.ng === null ? 0 : item.ng;
-          item.pass = item.pass === null ? 0 : item.pass;
-        });
-        // for (let i = 0; i < this.listOfLenhSanXuat.length; i++) {
-        //   this.listOfLenhSanXuat[i].ng = this.listOfLenhSanXuat[i].ng === null ? 0 : this.listOfLenhSanXuat[i].ng;
-        //   this.listOfLenhSanXuat[i].pass = this.listOfLenhSanXuat[i].pass === null ? 0 : this.listOfLenhSanXuat[i].pass;
-        // }
-        this.http.post<any>(this.totalItemURL, this.body).subscribe(res1 => {
-          console.log('tongsoluong', res1);
-          this.totalData = res1;
-        });
-      }, 300);
-    });
+    this.http
+      .post<any>(this.listOfWorkOrderPanigationURL, this.body)
+      .subscribe((res) => {
+        this.listOfLenhSanXuat = res;
+        // console.log('tesst 1: ', this.pageNumber, res);
+        setTimeout(() => {
+          this.listOfLenhSanXuat.forEach((item: any) => {
+            item.tenTrangThai = "";
+            if (item.trangThai === 0) {
+              item.tenTrangThai = "Waitting";
+            } else if (item.trangThai === 1) {
+              item.tenTrangThai = "Running";
+            } else if (item.trangThai === 2) {
+              item.tenTrangThai = "Finish";
+            } else if (item.trangThai === 3) {
+              item.tenTrangThai = "Paused";
+            }
+            item.ng = item.ng === null ? 0 : item.ng;
+            item.pass = item.pass === null ? 0 : item.pass;
+          });
+          // for (let i = 0; i < this.listOfLenhSanXuat.length; i++) {
+          //   this.listOfLenhSanXuat[i].ng = this.listOfLenhSanXuat[i].ng === null ? 0 : this.listOfLenhSanXuat[i].ng;
+          //   this.listOfLenhSanXuat[i].pass = this.listOfLenhSanXuat[i].pass === null ? 0 : this.listOfLenhSanXuat[i].pass;
+          // }
+          this.http
+            .post<any>(this.totalItemURL, this.body)
+            .subscribe((res1) => {
+              // console.log('tongsoluong', res1);
+              this.totalData = res1;
+            });
+        }, 300);
+      });
   }
   ngOnInit(): void {
     this.getWorkOrderList();
@@ -261,8 +275,8 @@ export class DoiChieuLenhSanXuatComponent implements OnInit {
   }
   getWorkOrderDetail(id: any, groupId: any): any {
     // console.log({ index: id, idgroup: groupId });
-    sessionStorage.setItem('orderId', id);
-    sessionStorage.setItem('groupId', groupId);
+    sessionStorage.setItem("orderId", id);
+    sessionStorage.setItem("groupId", groupId);
   }
 
   openPopupConfirmSave(): void {
