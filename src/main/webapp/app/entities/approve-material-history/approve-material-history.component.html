@@ -218,7 +218,7 @@
                     justify-content: space-between;
                   "
                 >
-                  <div class="column-title">Thời gian update</div>
+                  <div class="column-title">Thời gian phê duyệt</div>
                   <div>
                     <mat-icon
                       [matMenuTriggerFor]="filterUpdatedTime"
@@ -340,6 +340,71 @@
             {{ element["requestedBy"] }}
           </td>
         </ng-container>
+        <ng-container matColumnDef="reqApprover">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="background-color: #548ce8"
+          >
+            <div class="th-container">
+              <div class="header-content">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                  "
+                >
+                  <div class="column-title">Người phê duyệt</div>
+                  <div>
+                    <mat-icon
+                      [matMenuTriggerFor]="filterReqApprover"
+                      style="color: white"
+                      >filter_list</mat-icon
+                    >
+                  </div>
+                </div>
+                <mat-menu #filterReqApprover="matMenu">
+                  <button
+                    mat-menu-item
+                    (click)="setFilterMode('reqApprover', 'contains')"
+                  >
+                    Có chứa
+                  </button>
+                  <button
+                    mat-menu-item
+                    (click)="setFilterMode('reqApprover', 'equals')"
+                  >
+                    Bằng
+                  </button>
+                </mat-menu>
+                <div class="search-container">
+                  <div class="custom-search-wrapper">
+                    <mat-form-field
+                      class="small-form-field"
+                      appearance="fill"
+                      floatLabel="always"
+                    >
+                      <mat-label>Search</mat-label>
+                      <input
+                        (keyup)="applyFilter('reqApprover', $event)"
+                        matInput
+                        [placeholder]="
+                          'Search (' +
+                          (filterModes['reqApprover'] || 'contains') +
+                          ')'
+                        "
+                      />
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </th>
+          <td mat-cell *matCellDef="let element">
+            {{ element["reqApprover"] }}
+          </td>
+        </ng-container>
         <ng-container matColumnDef="approvedBy">
           <th
             mat-header-cell
@@ -355,7 +420,7 @@
                     justify-content: space-between;
                   "
                 >
-                  <div class="column-title">Người duyệt</div>
+                  <div class="column-title">Được duyệt bởi</div>
                   <div>
                     <mat-icon
                       [matMenuTriggerFor]="filterApprovedBy"

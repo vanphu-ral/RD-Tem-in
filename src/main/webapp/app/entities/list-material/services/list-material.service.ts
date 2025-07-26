@@ -107,6 +107,7 @@ export interface inventory_update_requests {
   createdTime: string;
   updatedTime: string;
   requestedBy: string;
+  reqApprover: string;
   approvedBy: string;
   status: string;
 }
@@ -619,7 +620,7 @@ export class ListMaterialService {
     return this._materialsCache.get(id);
   }
   public cacheMaterial(raw: RawGraphQLMaterial): void {
-    this._materialsCache.set(raw.inventoryId, raw);
+    this._materialsCache.set(raw.inventoryId.toString(), raw);
   }
   public fetchMaterialById(
     id: string,
@@ -833,6 +834,10 @@ export class ListMaterialService {
     );
   }
   public removeItemsAfterUpdate(ids: string[]): void {
+    ids.forEach((id) => {
+      this._materialsCache.delete(id);
+    });
+
     const resetChecked = this._materialsData.value.map((item) =>
       ids.includes(item.inventoryId)
         ? { ...item, checked: false, select_update: false }
@@ -853,9 +858,6 @@ export class ListMaterialService {
       "selectedMaterialIds",
       JSON.stringify(newSelectedIds),
     );
-    ids.forEach((id) => {
-      this._materialsCache.delete(id);
-    });
   }
 
   public getData(): Observable<RawGraphQLMaterial[]> {
@@ -892,7 +894,19 @@ export class ListMaterialService {
       );
     }
   }
-
+  generateRequestCode(): string {
+    const now = new Date();
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return (
+      "REQ-" +
+      now.getFullYear() +
+      pad(now.getMonth() + 1) +
+      pad(now.getDate()) +
+      pad(now.getHours()) +
+      pad(now.getMinutes())
+    );
+  }
   //  tạo dữ liệu gửi rq update
   public postInventoryUpdateRequest(
     dialogData: {
@@ -902,7 +916,7 @@ export class ListMaterialService {
     },
     currentUser: string,
   ): Observable<any> {
-    const requestCode = `REQ-${Date.now()}`;
+    const requestCode = this.generateRequestCode();
     const currentTime = new Date().toISOString();
     const requestHeader: inventory_update_requests = {
       id: null,
@@ -910,6 +924,7 @@ export class ListMaterialService {
       createdTime: currentTime,
       updatedTime: currentTime,
       requestedBy: currentUser,
+      reqApprover: dialogData.approvers ? dialogData.approvers.join(", ") : "",
       approvedBy: dialogData.approvers ? dialogData.approvers.join(", ") : "",
       status: "PENDING",
     };
@@ -976,7 +991,7 @@ export class ListMaterialService {
     },
     currentUser: string,
   ): Observable<any> {
-    const requestCode = `REQ-${Date.now()}`;
+    const requestCode = this.generateRequestCode();
     const currentTime = new Date().toISOString();
     const requestHeader: inventory_update_requests = {
       id: parentRequestId,
@@ -984,7 +999,8 @@ export class ListMaterialService {
       createdTime: currentTime,
       updatedTime: currentTime,
       requestedBy: currentUser,
-      approvedBy: dialogData.approvers.join(", "),
+      reqApprover: dialogData.approvers.join(", "),
+      approvedBy: currentUser,
       status: "APPROVE",
     };
 
@@ -1056,7 +1072,7 @@ export class ListMaterialService {
     },
     currentUser: string,
   ): Observable<any> {
-    const requestCode = `REQ-${Date.now()}`;
+    const requestCode = this.generateRequestCode();
     const currentTime = new Date().toISOString();
     const requestHeader: inventory_update_requests = {
       id: parentRequestId,
@@ -1064,28 +1080,33 @@ export class ListMaterialService {
       createdTime: currentTime,
       updatedTime: currentTime,
       requestedBy: currentUser,
-      approvedBy: dialogData.approvers ? dialogData.approvers.join(", ") : "",
+      reqApprover: dialogData.approvers ? dialogData.approvers.join(", ") : "",
+      approvedBy: currentUser,
       status: "REJECT",
       // approve | reject
     };
     const requestDetails: inventory_update_requests_detail[] =
-      dialogData.updatedItems.map((item) => ({
-        id: item.id,
-        materialId: String(item.materialId ?? ""),
-        updatedBy: currentUser,
-        createdTime: currentTime,
-        updatedTime: currentTime,
-        productCode: item.productCode,
-        productName: item.productName,
-        quantity: String(item.quantity),
-        type: item.type,
-        locationId: item.locationId ?? "",
-        locationName: this.getLocationNameById(item.locationId) ?? "",
-        status: "REJECT",
-        requestId: null,
-        quantityChange: String(item.quantityChange),
-        expiredTime: item.expiredTime || "",
-      }));
+      dialogData.updatedItems.map((item) => {
+        const finalLocationName =
+          item.locationName ?? this.getLocationNameById(item.locationId) ?? "";
+        return {
+          id: item.id,
+          materialId: String(item.materialId ?? ""),
+          updatedBy: currentUser,
+          createdTime: currentTime,
+          updatedTime: currentTime,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: String(item.quantity),
+          type: item.type,
+          locationId: item.locationId ?? "",
+          locationName: finalLocationName,
+          status: "REJECT",
+          requestId: null,
+          quantityChange: String(item.quantityChange),
+          expiredTime: item.expiredTime || "",
+        };
+      });
     const payload: UpdateInfo = {
       request: requestHeader,
       detail: requestDetails,

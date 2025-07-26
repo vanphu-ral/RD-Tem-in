@@ -20,6 +20,21 @@
         </mat-option>
       </mat-autocomplete>
     </mat-form-field>
+    <mat-checkbox
+      color="primary"
+      [(ngModel)]="isMoveChecked"
+      (change)="onMoveCheckboxChange($event.checked)"
+    >
+      Chuyển kho
+    </mat-checkbox>
+    <mat-checkbox
+      *jhiHasAnyAuthority="'ROLE_PANACIM_APPROVE_AUTO'"
+      color="primary"
+      [(ngModel)]="autoApprove"
+      (change)="onAutoApproved($event.checked)"
+    >
+      Tự phê duyệt
+    </mat-checkbox>
   </div>
 </div>
 
@@ -370,11 +385,7 @@
                     </mat-autocomplete>
                   </form>
                 </div>
-                <mat-spinner
-                  *ngIf="scanLoadingAll"
-                  diameter="20"
-                  style="margin-left: 8px"
-                ></mat-spinner>
+                <!-- <mat-spinner *ngIf="scanLoadingAll" diameter="20" style="margin-left: 8px"></mat-spinner> -->
               </div>
             </div>
           </div>
@@ -413,11 +424,8 @@
               </mat-autocomplete>
             </form>
 
-            <mat-spinner
-              *ngIf="!isWarehouseReady || scanLoadingRow[element.materialIdentifier]"
-              diameter="20"
-              style="margin-left: 8px"
-            />
+            <!-- <mat-spinner *ngIf="!isWarehouseReady || scanLoadingRow[element.materialIdentifier]" diameter="20"
+              style="margin-left: 8px" /> -->
           </div>
         </td>
       </ng-container>
@@ -539,6 +547,7 @@
           <button
             class="scan-btn"
             mat-raised-button
+            [ngClass]="{ 'scan-active': isScanAll }"
             (click)="scanLocationForAll()"
           >
             <mat-icon class="scan-btn-icon">center_focus_weak</mat-icon>
@@ -548,12 +557,12 @@
             <mat-icon class="scan-btn-icon">refresh</mat-icon>
             <span class="scan-btn-text">Fresh</span>
           </button>
-          <!-- <mat-spinner *ngIf="scanLoadingAll" diameter="20" style="margin-left: 8px"></mat-spinner> -->
         </th>
         <td mat-cell *matCellDef="let element" class="text-center">
           <button
             class="scan-btn"
             mat-raised-button
+            [ngClass]="{ 'scan-active': currentScanRow?.inventoryId === element.inventoryId }"
             (click)="scanLocationForRow(element)"
           >
             <mat-icon class="scan-btn-icon">center_focus_weak</mat-icon>
@@ -567,8 +576,6 @@
             <mat-icon class="scan-btn-icon">refresh</mat-icon>
             <span class="scan-btn-text">Fresh</span>
           </button>
-          <!-- <mat-spinner *ngIf="scanLoadingRow[element.materialIdentifier]" diameter="20"
-            style="margin-left: 8px"></mat-spinner> -->
         </td>
       </ng-container>
       <!-- <ng-container matColumnDef="Gia hạn">
@@ -626,8 +633,11 @@
   </div>
   <div>
     <button mat-button (click)="onCancel()">Hủy</button>
-    <button mat-stroked-button class="dialog-accept-btn" (click)="onSave()">
+    <!-- <button mat-stroked-button class="dialog-accept-btn" (click)="onSave()">
       Gửi đề nghị
+    </button> -->
+    <button mat-stroked-button class="dialog-accept-btn" (click)="onSubmit()">
+      {{ buttonLabel }}
     </button>
   </div>
 </mat-dialog-actions>

@@ -1,11 +1,12 @@
 package com.mycompany.wmsral.domain;
 
-import javax.persistence.*;
 import java.time.ZonedDateTime;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "inventory_update_requests_history")
 public class InventoryUpdateRequestsHistory {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -29,7 +30,15 @@ public class InventoryUpdateRequestsHistory {
     @Column(name = "approved_by", length = 50)
     private String approvedBy;
 
-    @Column(name = "request_code", nullable = false, unique = true, length = 100)
+    @Column(name = "req_approver", length = 50)
+    private String reqApprover;
+
+    @Column(
+        name = "request_code",
+        nullable = false,
+        unique = true,
+        length = 100
+    )
     private String requestCode;
 
     @Column(name = "old_location")
@@ -53,7 +62,24 @@ public class InventoryUpdateRequestsHistory {
     @Column(name = "status", nullable = false)
     private String status;
 
-    public InventoryUpdateRequestsHistory(Long id, String materialId, String partnumber, ZonedDateTime requestedTime, ZonedDateTime approvedTime, String requestedBy, String approvedBy, String requestCode, String oldLocation, String newLocation, Long expiredTime, String requestType, Integer quantity, Integer quantityChange, String status) {
+    public InventoryUpdateRequestsHistory(
+        Long id,
+        String materialId,
+        String partnumber,
+        ZonedDateTime requestedTime,
+        ZonedDateTime approvedTime,
+        String requestedBy,
+        String approvedBy,
+        String reqApprover,
+        String requestCode,
+        String oldLocation,
+        String newLocation,
+        Long expiredTime,
+        String requestType,
+        Integer quantity,
+        Integer quantityChange,
+        String status
+    ) {
         this.id = id;
         this.materialId = materialId;
         this.partnumber = partnumber;
@@ -61,6 +87,7 @@ public class InventoryUpdateRequestsHistory {
         this.approvedTime = approvedTime;
         this.requestedBy = requestedBy;
         this.approvedBy = approvedBy;
+        this.reqApprover = reqApprover;
         this.requestCode = requestCode;
         this.oldLocation = oldLocation;
         this.newLocation = newLocation;
@@ -71,8 +98,7 @@ public class InventoryUpdateRequestsHistory {
         this.status = status;
     }
 
-    public InventoryUpdateRequestsHistory() {
-    }
+    public InventoryUpdateRequestsHistory() {}
 
     public Long getId() {
         return id;
@@ -97,8 +123,6 @@ public class InventoryUpdateRequestsHistory {
     public void setPartnumber(String partnumber) {
         this.partnumber = partnumber;
     }
-
-
 
     public ZonedDateTime getApprovedTime() {
         return approvedTime;
@@ -130,6 +154,14 @@ public class InventoryUpdateRequestsHistory {
 
     public void setApprovedBy(String approvedBy) {
         this.approvedBy = approvedBy;
+    }
+
+    public String getReqApprover() {
+        return reqApprover;
+    }
+
+    public void setReqApprover(String reqApprover) {
+        this.reqApprover = reqApprover;
     }
 
     public String getRequestCode() {

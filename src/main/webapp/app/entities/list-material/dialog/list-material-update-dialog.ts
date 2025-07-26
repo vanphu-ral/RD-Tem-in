@@ -7,6 +7,7 @@ import {
   OnDestroy,
   ChangeDetectorRef,
   Inject,
+  Input,
 } from "@angular/core";
 import { Router } from "@angular/router";
 import { MatTableDataSource } from "@angular/material/table";
@@ -34,17 +35,19 @@ import {
   ListMaterialService,
   RawGraphQLLocation,
   UserSummary,
+  inventory_update_requests_detail,
 } from "../services/list-material.service";
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { MaterialUpdateService } from "../services/material-update.service";
-import { startWith, map, takeUntil } from "rxjs/operators";
+import { startWith, map, takeUntil, take } from "rxjs/operators";
 import {
   DialogContentExampleDialogComponent,
   ConfirmDialogData,
 } from "../confirm-dialog/confirm-dialog.component";
 import { MatRadioButton } from "@angular/material/radio";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
+import { AccountService } from "app/core/auth/account.service";
 
 interface Warehouse {
   value: string;
@@ -99,6 +102,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   @ViewChild("input") input!: ElementRef<HTMLInputElement>;
   @ViewChild("scanInput") scanInput!: ElementRef<HTMLInputElement>;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @Input() selectedWarehouse: RawGraphQLLocation | string | null = null;
+  @Input() requestId!: number;
   myControl = new FormControl("");
   headerQuantityChange: number | null = null;
   filteredOptions!: string[];
@@ -162,6 +167,10 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   isScanAll = false;
   pageSize = 50;
   pageIndex = 0;
+  isMoveChecked = false;
+  autoApprove = false;
+  buttonLabel = "Gửi đề nghị";
+  isAutoApprove = false;
   selectedSubApproverIndex: number = -1;
   public searchTerms: { [columnDef: string]: { mode: string; value: string } } =
     {};
@@ -192,6 +201,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     private materialService: ListMaterialService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
+    private accountService: AccountService,
     // private kcApi: KeycloakApiService,
   ) {
     this.dialogForm = this.fb.group({
@@ -507,6 +517,45 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     this.isSelectHeader = true;
   }
 
+  onMoveCheckboxChange(checked: boolean): void {
+    if (!checked) {
+      return;
+    }
+
+    const expiredItems = this.itemsDataSource.data.filter(
+      (item: MaterialItem) => item.calculatedStatus === "Expired",
+    );
+
+    const expiredCount = expiredItems.length;
+
+    if (expiredCount > 0) {
+      const confirm = window.confirm(
+        `Có ${expiredCount} vật tư đã hết hạn. Bạn có muốn chọn "Gia hạn" cho chúng không?`,
+      );
+
+      if (confirm) {
+        expiredItems.forEach((item) => {
+          item.extendExpiration = true;
+        });
+
+        const allExtended = this.isAllExtendExpirationSelected();
+        console.log("Tất cả expired đã được chọn gia hạn?", allExtended);
+      }
+    }
+  }
+
+  onAutoApproved(checked: boolean): void {
+    this.isAutoApprove = checked;
+    this.buttonLabel = checked ? "Cập nhật" : "Gửi đề nghị";
+  }
+  onSubmit(): void {
+    if (this.autoApprove) {
+      this.instantApprove();
+    } else {
+      this.onSave();
+    }
+  }
+
   getCalculatedStatus(status: number | string): string {
     const s = typeof status === "string" ? parseInt(status, 10) : status;
     switch (s) {
@@ -571,43 +620,54 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       });
     }
   }
-  scanLocationForRow(item: MaterialItem): void {
-    const inputEl = this.scanInput?.nativeElement;
+  clearScanState(): void {
+    this.scanLoadingAll = false;
+    this.currentScanRow = null;
 
-    if (
-      document.activeElement === inputEl &&
-      this.currentScanRow?.inventoryId === item.inventoryId
-    ) {
-      inputEl.blur();
-      this.scanLoadingRow[item.materialIdentifier] = false;
-      this.currentScanRow = null;
-    } else {
-      Object.keys(this.scanLoadingRow).forEach(
-        (key) => (this.scanLoadingRow[key] = false),
-      );
-      this.scanLoadingRow[item.materialIdentifier] = true;
-      this.currentScanRow = item;
-      setTimeout(() => inputEl.focus(), 0);
+    Object.keys(this.scanLoadingRow).forEach((key) => {
+      this.scanLoadingRow[key] = false;
+    });
+
+    this.isScanAll = false;
+    this.scanInput?.nativeElement?.blur();
+  }
+
+  scanLocationForRow(item: MaterialItem): void {
+    const isSameRow = this.currentScanRow?.inventoryId === item.inventoryId;
+
+    if (isSameRow) {
+      this.clearScanState();
+      return;
     }
+
+    this.clearScanState();
+
+    this.currentScanRow = item;
+    this.scanLoadingRow[item.materialIdentifier] = true;
+
+    setTimeout(() => this.scanInput?.nativeElement?.focus(), 0);
   }
 
   scanLocationForAll(): void {
+    this.clearScanState();
     const inputEl = this.scanInput?.nativeElement;
 
-    if (document.activeElement === inputEl && this.isScanAll) {
-      inputEl.blur();
-      this.scanLoadingAll = false;
-      this.isScanAll = false;
+    this.isScanAll = !this.isScanAll; // Toggle
+
+    Object.keys(this.scanLoadingRow).forEach(
+      (key) => (this.scanLoadingRow[key] = false),
+    );
+
+    this.scanLoadingAll = this.isScanAll;
+    this.currentScanRow = null;
+
+    if (this.isScanAll) {
+      setTimeout(() => inputEl?.focus(), 0);
     } else {
-      Object.keys(this.scanLoadingRow).forEach(
-        (key) => (this.scanLoadingRow[key] = false),
-      );
-      this.scanLoadingAll = true;
-      this.isScanAll = true;
-      this.currentScanRow = null;
-      setTimeout(() => inputEl.focus(), 0);
+      inputEl?.blur();
     }
   }
+
   refreshForRow(item: MaterialItem): void {
     this.scanLoadingRow[item.materialIdentifier] = true;
     setTimeout(() => {
@@ -756,7 +816,13 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   displayWarehouseFn(warehouse: { value: string; name: string }): string {
     return warehouse && warehouse.name ? warehouse.name : "";
   }
-
+  getLocationNameById(locationId: string | null | undefined): string | null {
+    if (!locationId) {
+      return null;
+    }
+    const found = this.warehouseSelection.find((w) => w.value === locationId);
+    return found ? found.name : null;
+  }
   onSave(): void {
     const selectedWarehouseObj = this.dialogForm.get("selectedWarehouseControl")
       ?.value as Warehouse | null;
@@ -928,6 +994,157 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   // #endregion
 
   // #region Private methods
+  private instantApprove(): void {
+    const selectedWarehouseObj = this.dialogForm.get("selectedWarehouseControl")
+      ?.value as Warehouse | null;
+    const headerWarehouseValue = selectedWarehouseObj?.value ?? null;
+    const approver = this.approverCtrl.value as UserSummary | null;
+
+    if (!approver) {
+      this.snackBar.open("Yêu cầu chọn người duyệt!", "Đóng", {
+        duration: 3000,
+        panelClass: ["snackbar-error"],
+      });
+      return;
+    }
+
+    const headerWarehouseSet = !!headerWarehouseValue;
+    const allQtyProvided = this.itemsDataSource.data.every(
+      (item) =>
+        item.quantityChange !== null &&
+        item.quantityChange !== undefined &&
+        item.quantityChange !== 0,
+    );
+
+    if (!allQtyProvided) {
+      this.snackBar.open(
+        "Số lượng không được để trống và phải lớn hơn 0!",
+        "Đóng",
+        {
+          duration: 3000,
+          panelClass: ["snackbar-error"],
+        },
+      );
+      return;
+    }
+
+    const invalidRows: MaterialItem[] = this.itemsDataSource.data.filter(
+      (item) => {
+        const hasWarehouse =
+          headerWarehouseSet || !!item.selectedWarehouse?.value;
+        const hasQuantity =
+          item.quantityChange !== null &&
+          item.quantityChange !== undefined &&
+          item.quantityChange > 0;
+        const hasExtension = item.extendExpiration;
+        const isQuantityChanged =
+          item.quantityChange !== null &&
+          item.quantityChange !== undefined &&
+          item.quantityChange !== item.quantity;
+
+        if (item.calculatedStatus === "Expired") {
+          return !(hasQuantity && (hasWarehouse || hasExtension));
+        }
+
+        if (item.calculatedStatus === "Available") {
+          return !hasWarehouse && !(isQuantityChanged && hasQuantity);
+        }
+
+        return !(hasQuantity || hasWarehouse || hasExtension);
+      },
+    );
+
+    if (invalidRows.length > 0) {
+      invalidRows.forEach((item) => {
+        const id = item.materialIdentifier;
+        const status = item.calculatedStatus;
+
+        let reason = "";
+        if (status === "Expired") {
+          reason = "Hết hạn cần chọn Chuyển kho hoặc Gia hạn + nhập số lượng";
+        } else if (status === "Available") {
+          reason = "Cần chọn kho hoặc nhập số lượng thay đổi";
+        } else {
+          reason = "Thiếu thông tin chuyển hoặc số lượng";
+        }
+
+        this.snackBar.open(`Hàng ${id}: ${reason}`, "Đóng", {
+          duration: 3000,
+          panelClass: ["snackbar-error"],
+        });
+      });
+      return;
+    }
+
+    const dialogData: ConfirmDialogData = {
+      message: "Bạn có muốn cập nhật tự động các vật tư này không?",
+      confirmText: "Cập nhật",
+      cancelText: "Hủy",
+    };
+
+    const confirmDialogRef = this.dialog.open(
+      DialogContentExampleDialogComponent,
+      {
+        width: "450px",
+        data: dialogData,
+        panelClass: "dialog-center-pane",
+        disableClose: true,
+        autoFocus: false,
+      },
+    );
+
+    confirmDialogRef.afterClosed().subscribe((result) => {
+      if (result === true) {
+        const now = new Date().toISOString();
+        const currentUser = approver.username;
+
+        const rawItems = this.itemsDataSource?.data ?? [];
+        const detail: inventory_update_requests_detail[] = rawItems
+          .filter((item) => item?.inventoryId != null)
+          .map((item) => {
+            const finalLocationName =
+              item.locationName ??
+              item.locationFullName ??
+              this.getLocationNameById(item.locationId) ??
+              "";
+
+            const type = item.extendExpiration ? "EXTEND" : "MOVE";
+
+            return {
+              id: item.inventoryId != null ? Number(item.inventoryId) : null,
+              inventoryId: String(item.inventoryId ?? ""),
+              materialId: String(item.materialIdentifier ?? ""),
+              updatedBy: currentUser,
+              createdTime: now,
+              updatedTime: now,
+              productCode: item.partNumber ?? "",
+              productName: item.partNumber ?? "",
+              quantity: String(item.quantity ?? ""),
+              type,
+              locationId: item.locationId ?? "",
+              locationName: finalLocationName,
+              status: "APPROVE",
+              requestId: null,
+              quantityChange: String(item.quantityChange ?? ""),
+              expiredTime:
+                type === "EXTEND"
+                  ? (item.expirationDate ?? "")
+                  : (item.expirationDate ?? ""),
+            };
+          });
+
+        this.dialogRef.close({
+          updatedItems: detail,
+          updatedInventoryIds: detail.map((i) => i.id),
+          selectedWarehouse: headerWarehouseValue,
+          approvers: [approver.username],
+          approved: true,
+          autoApprove: true,
+        });
+      }
+    });
+  }
+
   private handleScan(raw: string): void {
     // xoá timer
     if (this.scanTimeoutId) {

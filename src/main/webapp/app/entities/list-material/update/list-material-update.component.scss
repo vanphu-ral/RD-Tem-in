@@ -178,7 +178,10 @@ th {
   padding: 0;
   overflow: visible;
 }
-
+.scan-active {
+  background-color: #4caf50 !important;
+  color: #fff !important;
+}
 .header-content {
   display: flex;
   flex-direction: column;

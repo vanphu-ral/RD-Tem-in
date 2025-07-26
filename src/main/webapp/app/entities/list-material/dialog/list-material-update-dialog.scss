@@ -60,10 +60,12 @@ mat-divider {
   margin-top: 20px;
 }
 
-mat-mdc-dialog-content {
-  max-height: unset !important;
+::ng-deep mat-mdc-dialog-content {
+  max-height: 100vh !important;
   overflow: visible !important;
   padding: 0 1rem;
+  min-width: 100%;
+  display: block !important;
 }
 
 ::ng-deep .mat-mdc-dialog-container {
@@ -76,8 +78,8 @@ mat-mdc-dialog-content {
 }
 
 .responsive-table-wrapper {
-  max-height: 60vh;
-  overflow-y: auto;
+  max-height: 90vh;
+  // overflow-y: auto;
 }
 
 mat-dialog-actions {
@@ -110,6 +112,7 @@ mat-dialog-actions .dialog-accept-btn {
 .mat-typography {
   padding-top: 0px;
   padding-bottom: 0px;
+  max-height: 100vh;
 }
 
 .custom-search-input {
@@ -151,11 +154,9 @@ table {
   border: 1px solid #000000;
 }
 
-mat-mdc-dialog-content {
-  min-width: 100%;
-  // max-height: unset !important;
-  overflow: visible !important;
-  display: block !important;
+.scan-active {
+  background-color: #4caf50 !important;
+  color: #fff !important;
 }
 
 th,

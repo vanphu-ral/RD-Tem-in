@@ -172,7 +172,10 @@ th {
   min-width: 30px;
   text-align: center;
 }
-
+.scan-active {
+  background-color: #4caf50 !important;
+  color: #fff !important;
+}
 .example-section {
   margin: 12px 0;
 }

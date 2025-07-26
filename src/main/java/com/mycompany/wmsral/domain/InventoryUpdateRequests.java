@@ -1,10 +1,12 @@
 package com.mycompany.wmsral.domain;
 
-import javax.persistence.*;
 import java.time.ZonedDateTime;
+import javax.persistence.*;
+
 @Entity
 @Table(name = "inventory_update_requests")
 public class InventoryUpdateRequests {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,19 +26,32 @@ public class InventoryUpdateRequests {
     @Column(name = "approved_by")
     private String approvedBy;
 
+    @Column(name = "req_approver")
+    private String reqApprover;
+
     @Column(name = "status")
     private String status;
 
     // Constructors
     public InventoryUpdateRequests() {}
 
-    public InventoryUpdateRequests(Long id, String requestCode, ZonedDateTime createdTime, ZonedDateTime updatedTime, String requestedBy, String approvedBy, String status) {
+    public InventoryUpdateRequests(
+        Long id,
+        String requestCode,
+        ZonedDateTime createdTime,
+        ZonedDateTime updatedTime,
+        String requestedBy,
+        String approvedBy,
+        String reqApprover,
+        String status
+    ) {
         this.id = id;
         this.requestCode = requestCode;
         this.createdTime = createdTime;
         this.updatedTime = updatedTime;
         this.requestedBy = requestedBy;
         this.approvedBy = approvedBy;
+        this.reqApprover = reqApprover;
         this.status = status;
     }
 
@@ -89,6 +104,14 @@ public class InventoryUpdateRequests {
         this.approvedBy = approvedBy;
     }
 
+    public String getReqApprover() {
+        return reqApprover;
+    }
+
+    public void setReqApprover(String reqApprover) {
+        this.reqApprover = reqApprover;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -100,14 +123,28 @@ public class InventoryUpdateRequests {
     // Override toString method
     @Override
     public String toString() {
-        return "InventoryUpdateRequests{" +
-            "id=" + id +
-            ", requestCode='" + requestCode + '\'' +
-            ", createdTime=" + createdTime +
-            ", updatedTime=" + updatedTime +
-            ", updatedBy='" + requestedBy + '\'' +
-            ", approvedBy='" + approvedBy + '\'' +
-            ", status='" + status + '\'' +
-            '}';
+        return (
+            "InventoryUpdateRequests{" +
+            "id=" +
+            id +
+            ", requestCode='" +
+            requestCode +
+            '\'' +
+            ", createdTime=" +
+            createdTime +
+            ", updatedTime=" +
+            updatedTime +
+            ", updatedBy='" +
+            requestedBy +
+            '\'' +
+            //            ", reqApprover='" + reqApprover + '\'' +
+            ", approvedBy='" +
+            approvedBy +
+            '\'' +
+            ", status='" +
+            status +
+            '\'' +
+            '}'
+        );
     }
 }

@@ -109,6 +109,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
     "createdTime",
     "updatedTime",
     "requestedBy",
+    "reqApprover",
     "approvedBy",
     "status",
   ];

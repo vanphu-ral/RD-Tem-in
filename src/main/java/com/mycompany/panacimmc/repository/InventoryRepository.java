@@ -586,8 +586,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "LEFT JOIN InventoryMaterialTraceDetail d2 ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id\n" +
         "    AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'\n" +
         "WHERE a.Inventory_MaterialIdentifier = ?1\n" +
-        "AND a.Inventory_Status IN (3, 6, 19)\n" +
-        "AND a.Inventory_AvailableQuantity > 0\n",
+        "AND a.Inventory_Status IN (3, 6, 19)\n",
         nativeQuery = true
     )
     InventoryResponse findResponseByMaterialIdentifier(

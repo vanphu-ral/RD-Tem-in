@@ -41,6 +41,7 @@ export class MaterialUpdateService {
           updatedItems: MaterialItem[];
           selectedWarehouse: any;
           approvers: string[];
+          approved?: boolean;
         }
       >
     | undefined {
@@ -54,12 +55,13 @@ export class MaterialUpdateService {
           updatedItems: MaterialItem[];
           selectedWarehouse: any;
           approvers: string[];
+          approved?: boolean;
         }
       >(ListMaterialUpdateDialogComponent, {
         minWidth: isMobile ? "100vw" : "320px",
-        maxWidth: isMobile ? "100vw" : "1400px",
-        width: isMobile ? "100vw" : "90vw",
-        height: isMobile ? "100vh" : "auto",
+        maxWidth: isMobile ? "100vw" : "100vw",
+        width: isMobile ? "100vw" : "100vw",
+        height: isMobile ? "100vh" : "100vh",
         panelClass: isMobile ? "dialog-fullscreen-pane" : "dialog-center-pane",
         data: { items: itemsToUpdate },
         autoFocus: false,

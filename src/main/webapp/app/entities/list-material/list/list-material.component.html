@@ -23,7 +23,12 @@
         </ng-container>
 
         <!-- Scan -->
-        <button class="btn-scan" mat-button (click)="startScan()">
+        <button
+          class="btn-scan"
+          mat-button
+          (click)="startScan()"
+          [ngClass]="{ 'scan-active': isScanMode }"
+        >
           <mat-icon>center_focus_weak</mat-icon>
           <span class="btn-text">Scan</span>
         </button>
@@ -33,9 +38,9 @@
           <mat-icon>refresh</mat-icon>
           <span class="btn-text">Refresh</span>
         </button>
-        <div *ngIf="isScanMode && !scanResult">
+        <!-- <div *ngIf="isScanMode && !scanResult">
           <mat-spinner diameter="20"></mat-spinner>
-        </div>
+        </div> -->
       </div>
       <!-- NHÓM 3: Nút phụ (view‐mode / columns / export) -->
       <div class="group-buttons secondary">

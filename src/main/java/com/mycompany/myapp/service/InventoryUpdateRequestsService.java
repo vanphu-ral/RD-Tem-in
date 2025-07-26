@@ -61,6 +61,7 @@ public class InventoryUpdateRequestsService {
             history.setApprovedTime(item.getUpdatedTime());
             history.setRequestedBy(requests.getRequestedBy());
             history.setApprovedBy(requests.getApprovedBy());
+            history.setReqApprover(requests.getReqApprover());
             history.setRequestCode(requests.getRequestCode());
             history.setOldLocation(location.getLocationName());
             history.setNewLocation(item.getLocationName());

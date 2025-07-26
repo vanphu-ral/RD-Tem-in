@@ -8,7 +8,7 @@ import {
   ChangeDetectorRef,
 } from "@angular/core";
 import { Router } from "@angular/router";
-import { MatTableDataSource } from "@angular/material/table";
+import { MatTable, MatTableDataSource } from "@angular/material/table";
 import { ChangeDetectionStrategy, signal } from "@angular/core";
 import { FormBuilder, FormGroup, FormControl } from "@angular/forms";
 import { MatMenuTrigger } from "@angular/material/menu";
@@ -332,6 +332,7 @@ export class ListMaterialUpdateComponent
   getColumnDisplayName(colDef: string): string {
     const columnNames: { [key: string]: string } = {
       select_update: "Chọn",
+      materialIdentifier: "Material Identifier",
       materialTraceId: "Material TraceId",
       inventoryId: "InventoryId",
       partId: "PartId",
@@ -790,59 +791,125 @@ export class ListMaterialUpdateComponent
 
     const dialogRef =
       this.materialUpdateService.openEditSelectedDialog(itemsToUpdate);
+
     if (!dialogRef) {
       return;
     }
+
     this.exitScanMode();
 
-    dialogRef.afterClosed().subscribe((result) => {
-      if (!result || !result.updatedItems?.length) {
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (!result) {
+        return;
+      }
+
+      const updatedIds: string[] = result.updatedItems?.map(
+        (item: { id?: string | number }) =>
+          item.id != null ? item.id.toString() : "",
+      );
+      // .filter((id) => id !== "") ?? [];
+
+      console.log("Updated items:", result.updatedItems);
+      console.log("Mapped updatedIds:", updatedIds);
+
+      if (result.approved === true && result.autoApprove === true) {
+        this.accountService.getAuthenticationState().subscribe((account) => {
+          const currentUser = account?.login ?? "unknown";
+
+          this.materialService
+            .postApproveInventoryUpdate(
+              null,
+              {
+                updatedItems: result.updatedItems,
+                selectedWarehouse: result.selectedWarehouse,
+                approvers: result.approvers ?? [],
+              },
+              currentUser,
+            )
+            .subscribe({
+              next: () => {
+                this.snackBar.open(
+                  "Đã tự phê duyệt và cập nhật danh sách",
+                  "Đóng",
+                  {
+                    duration: 3000,
+                  },
+                );
+
+                const requestedIds = result.updatedItems
+                  .map((item: any) => {
+                    const id = item.inventoryId ?? item.id;
+                    return id != null ? Number(id) : null;
+                  })
+                  .filter((id: number | null) => typeof id === "number");
+
+                this.dataSource.data = this.dataSource.data.filter(
+                  (row) => !requestedIds.includes(row.inventoryId),
+                );
+                console.log("requestedIds typeof:", typeof requestedIds[0]);
+                console.log("updatedItems:", result.updatedItems);
+                console.log(
+                  "row.inventoryId typeof:",
+                  typeof this.dataSource.data[0]?.inventoryId,
+                );
+                this.materialService.removeItemsAfterUpdate(requestedIds);
+                this.selection.clear();
+                this.cdr.detectChanges();
+              },
+              error: (err) => {
+                console.error("Lỗi khi cập nhật vật tư:", err);
+                this.snackBar.open("Cập nhật thất bại", "Đóng", {
+                  duration: 3000,
+                  panelClass: ["snack-error"],
+                });
+              },
+            });
+        });
+
+        return;
+      }
+
+      // ✅ Nếu không autoApprove thì gửi đề nghị
+      if (!result.updatedItems?.length) {
         return;
       }
 
       this.accountService.getAuthenticationState().subscribe((account) => {
         const currentUser = account?.login ?? "unknown";
+
         this.materialService
           .postInventoryUpdateRequest(result, currentUser)
           .subscribe({
-            next: (response) => {
-              console.log(
-                "UpdateSelectedDialog closed with data:",
-                result,
-                currentUser,
-              );
-              console.log(
-                "Yêu cầu cập nhật thành công từ UpdateListComponent:",
-                response,
-              );
+            next: () => {
               this.snackBar.open("Gửi yêu cầu thành công", "Đóng", {
                 duration: 3000,
               });
-              const updatedIds = result.updatedItems.map(
-                (item) => item.inventoryId,
-              );
+
+              const requestedIds = result.updatedItems
+                .map(
+                  (item: { inventoryId: string | number }) => item.inventoryId,
+                )
+                .filter((id: string) => id !== "");
+
               this.dataSource.data = this.dataSource.data.filter(
-                (row) => !updatedIds.includes(row.inventoryId),
+                (row) => !requestedIds.includes(row.inventoryId),
               );
-              this.materialService.removeItemsAfterUpdate(updatedIds);
+
+              this.materialService.removeItemsAfterUpdate(requestedIds);
               this.selection.clear();
               this.cdr.detectChanges();
             },
             error: (err) => {
-              console.error(
-                "Lỗi khi gửi yêu cầu cập nhật từ UpdateListComponent:",
-                err,
-              );
+              console.error("Lỗi khi gửi yêu cầu:", err);
               this.snackBar.open("Gửi yêu cầu thất bại", "Đóng", {
                 duration: 3000,
               });
             },
           });
       });
-
-      // Gọi API cập nhật
     });
   }
+
   toggleRowSelectedForUpdate(
     row: RawGraphQLMaterial,
     isChecked: boolean,
