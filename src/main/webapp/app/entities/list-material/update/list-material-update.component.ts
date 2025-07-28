@@ -38,6 +38,7 @@ import { AccountService } from "app/core/auth/account.service";
 import saveAs from "file-saver";
 import { MaterialItem } from "../dialog/list-material-update-dialog";
 import { BreakpointObserver } from "@angular/cdk/layout";
+import { PendingMaterialService } from "../services/pending-material.service";
 
 interface sumary_mode {
   value: string;
@@ -207,6 +208,7 @@ export class ListMaterialUpdateComponent
     private accountService: AccountService,
     private breakpointObserver: BreakpointObserver,
     private ngZone: NgZone,
+    private pendingMaterialService: PendingMaterialService,
   ) {}
   // #endregion
 
@@ -226,6 +228,9 @@ export class ListMaterialUpdateComponent
         this.updateDisplayedColumns();
         this.setupResponsiveColumns();
       });
+    const restoredItems = this.pendingMaterialService.load();
+    this.materialService.updateCurrentItems(restoredItems);
+    this.pendingMaterialService.clear();
 
     this.dataSource.filterPredicate = (
       data: RawGraphQLMaterial,
@@ -596,46 +601,39 @@ export class ListMaterialUpdateComponent
       this.ngZone.runOutsideAngular(() => {
         this.materialService
           .fetchMaterialById(code)
-          .pipe(
-            takeUntil(this.ngUnsubscribe),
-            finalize(() => {
-              this.ngZone.run(() => {
-                this.isLoading = false;
-                this.cdr.detectChanges();
-                setTimeout(() => {
-                  this.scanInput.nativeElement.value = "";
-                  this.scanInput.nativeElement.focus();
-                }, 0);
-              });
-            }),
-          )
+          .pipe(takeUntil(this.ngUnsubscribe))
           .subscribe({
             next: (raw) => {
-              if (raw) {
-                queueMicrotask(() => {
-                  this.ngZone.run(() => {
-                    this.materialService.selectItems([raw.inventoryId]);
+              this.ngZone.run(() => {
+                this.isLoading = false;
+                this.scanInput.nativeElement.value = "";
+                this.scanInput.nativeElement.focus();
 
-                    this.playAlertSoundSuccess();
-                    this.cdr.detectChanges();
-                  });
-                });
-              } else {
-                this.ngZone.run(() => {
+                if (raw) {
+                  this.materialService.selectItems([raw.inventoryId]);
+                  this.playAlertSoundSuccess();
+                } else {
                   this.openError(`Không tìm thấy vật tư: ${code}`);
                   this.playAlertSound();
-                });
-              }
+                }
+
+                this.cdr.detectChanges();
+              });
             },
             error: () => {
               this.ngZone.run(() => {
+                this.isLoading = false;
+                this.scanInput.nativeElement.value = "";
+                this.scanInput.nativeElement.focus();
+
                 this.openError(`Lỗi khi tìm vật tư: ${code}`);
                 this.playAlertSound();
+                this.cdr.detectChanges();
               });
             },
           });
       });
-    }, 50); // dùng khoảng delay nhẹ để throttle xử lý nhanh
+    }, 50);
   }
 
   openError(message: string): void {

@@ -556,7 +556,7 @@ th {
   }
 }
 
-@media (min-width: 366px) and (max-width: 480px) {
+@media (min-width: 366px) and (max-width: 500px) {
   .dialog-header {
     display: flex;
     margin: 0;
@@ -564,6 +564,22 @@ th {
     .dialog-title {
       font-size: 20px;
       margin: 10px 5px;
+    }
+
+    .right-header {
+      flex-direction: column;
+      .small-approve-field {
+        height: 30px !important;
+        font-size: 11px !important;
+      }
+      .checkbox-auto-approve {
+        .mat-mdc-checkbox {
+          padding: 4px;
+        }
+        .checked_label {
+          font-size: 11px !important;
+        }
+      }
     }
   }
 
@@ -709,32 +725,142 @@ th {
 }
 
 /* TABLET (600–959px) */
-@media (min-width: 481px) and (max-width: 959px) {
-  ::ng-deep table {
-    margin-right: 1rem;
+@media (min-width: 501px) and (max-width: 959px) {
+  .dialog-header {
+    display: flex;
+    margin: 0;
+    gap: 4px !important;
 
-    th.mat-mdc-header-cell {
-      padding: 6px 8px !important;
-      font-size: 12px !important;
+    .dialog-title {
+      font-size: 14px;
+      margin: 10px 5px;
+    }
+
+    .right-header {
+      display: flex;
+      .small-approve-field {
+        height: 30px !important;
+        font-size: 11px !important;
+      }
+      .checkbox-auto-approve {
+        .checked_label {
+          font-size: 11px !important;
+        }
+      }
+    }
+  }
+
+  .dialog-center-pane {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 0 auto !important;
+  }
+
+  .responsive-table-wrapper {
+    max-height: 55vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .bordered-table {
+    table-layout: auto;
+
+    .scan-btn {
+      font-size: 11px;
+      height: 30px;
+      padding: 0 5px;
+    }
+
+    .scan-btn-text {
+      display: none;
+    }
+
+    .scan-btn-icon {
+      padding: 0;
+      margin: 0;
+    }
+
+    .mat-column-materialIdentifier {
+      max-width: 122px !important;
+    }
+
+    .mat-column-calculatedStatus {
+      max-width: 110px !important;
+    }
+
+    .mat-column-expirationDate {
+      max-width: 110px !important;
+    }
+
+    .mat-column-partNumber {
+      max-width: 110px !important;
+    }
+
+    .mat-column-quantity {
+      max-width: 110px !important;
+    }
+
+    .mat-column-quantityChange {
+      max-width: 110px !important;
 
       .search-container {
+        padding-top: 9px;
+      }
+    }
+
+    .mat-column-locationId {
+      .editable-cell {
+        font-size: 11px !important;
+      }
+
+      ::ng-deep mat-autocomplete {
+        font-size: 11px !important;
+      }
+    }
+  }
+
+  // mat-dialog-container {
+  //   display: flex;
+  //   justify-content: center;
+  //   align-items: center;
+  // }
+
+  .mat-typography {
+    min-height: 125px;
+
+    ::ng-deep table {
+      margin-right: 1rem;
+    }
+
+    th.mat-mdc-header-cell {
+      padding: 2px 4px !important;
+      font-size: 10px !important;
+
+      .search-container {
+        // padding: 0;
+        // margin: 0;
+
         .small-form-field {
-          // width: 100px !important;
+          width: 150px !important;
+          height: 50px !important;
+          line-height: 12px;
+          font-size: 13px !important;
 
           .mat-form-field-infix {
             padding: 0 2px !important;
           }
 
           mat-label {
-            font-size: 9px !important;
-            line-height: 11px !important;
+            font-size: 8px !important;
+            line-height: 10px !important;
           }
 
           input,
           .mat-select-trigger,
           mat-datepicker-toggle {
-            font-size: 11px !important;
-            height: 20px !important;
+            font-size: 8px !important;
+            height: 15px !important;
             padding: 0 2px !important;
           }
 
@@ -753,39 +879,14 @@ th {
       padding: 4px 6px !important;
       font-size: 11px !important;
     }
-
-    .mat-column-locationId {
-      min-width: 100px;
-    }
-
-    .scan-btn {
-      .scan-btn-text {
-        display: none;
-      }
-
-      .scan-btn-icon {
-        margin: 0;
-        padding: 0;
-      }
-    }
   }
 
   .dialog-footer {
     flex-direction: column !important;
 
-    .dialog-small-text {
-      display: flex;
-
-      .dialog-notice {
-        font-size: 10px;
-        padding: 4px 0;
-      }
-
-      .dialog-info {
-        font-size: 10px;
-        padding: 4px;
-        font-weight: bold;
-      }
+    .dialog-notice {
+      font-size: 11px;
+      padding: 1px;
     }
   }
 }

@@ -272,6 +272,7 @@ export class ListMaterialService {
 
   private _summaryDataSource = new BehaviorSubject<DataSumary[]>([]);
   private _SumaryData = new BehaviorSubject<DataSumary[]>([]);
+  private currentItems: any[] = [];
   // public get summaryData$(): Observable<DataSumary[]> {
   //   return this.summaryDataSource.asObservable();
   // }
@@ -347,7 +348,7 @@ export class ListMaterialService {
     private authServer: AuthServerProvider,
     private applicationConfigService: ApplicationConfigService,
   ) {
-    const savedItems = sessionStorage.getItem("selectedMaterials");
+    const savedItems = localStorage.getItem("selectedMaterials");
     if (savedItems) {
       try {
         const items: RawGraphQLMaterial[] = JSON.parse(savedItems);
@@ -507,8 +508,8 @@ export class ListMaterialService {
   public clearSelection(): void {
     this._selectedItems.next([]);
     this._selectedIds.next([]);
-    sessionStorage.removeItem("selectedMaterials");
-    sessionStorage.removeItem("selectedMaterialIds");
+    localStorage.removeItem("selectedMaterials");
+    localStorage.removeItem("selectedMaterialIds");
     this._materialsCache.clear();
   }
 
@@ -534,8 +535,8 @@ export class ListMaterialService {
 
   persistSelection(): void {
     const items = this._selectedItems.value;
-    sessionStorage.setItem("selectedMaterials", JSON.stringify(items));
-    sessionStorage.setItem(
+    localStorage.setItem("selectedMaterials", JSON.stringify(items));
+    localStorage.setItem(
       "selectedMaterialIds",
       JSON.stringify(items.map((i) => i.inventoryId)),
     );
@@ -688,12 +689,12 @@ export class ListMaterialService {
   public removeItemFromUpdate(materialId: string): void {
     const newIds = this._selectedIds.value.filter((id) => id !== materialId);
     this._selectedIds.next(newIds);
-    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
+    localStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
     this.refreshSelectedItems();
   }
   public clearAllSelected(): void {
     this._selectedIds.next([]);
-    sessionStorage.removeItem("selectedMaterialIds");
+    localStorage.removeItem("selectedMaterialIds");
     this.refreshSelectedItems();
   }
 
@@ -769,7 +770,7 @@ export class ListMaterialService {
   }
   public clearAllSelections(): void {
     this._selectedIds.next([]);
-    sessionStorage.removeItem("selectedMaterialIds");
+    localStorage.removeItem("selectedMaterialIds");
     const cleared = this._materialsData.value.map((item) => ({
       ...item,
       checked: false,
@@ -836,6 +837,13 @@ export class ListMaterialService {
       ),
     );
   }
+  updateCurrentItems(items: any[]): void {
+    this.currentItems = items;
+  }
+
+  getCurrentItems(): any[] {
+    return this.currentItems;
+  }
   public removeItemsAfterUpdate(ids: string[]): void {
     ids.forEach((id) => {
       this._materialsCache.delete(id);
@@ -857,10 +865,7 @@ export class ListMaterialService {
       (id) => !ids.includes(id),
     );
     this._selectedIds.next(newSelectedIds);
-    sessionStorage.setItem(
-      "selectedMaterialIds",
-      JSON.stringify(newSelectedIds),
-    );
+    localStorage.setItem("selectedMaterialIds", JSON.stringify(newSelectedIds));
   }
 
   public getData(): Observable<RawGraphQLMaterial[]> {
@@ -891,7 +896,7 @@ export class ListMaterialService {
         (selectedId) => selectedId !== inventoryIdToRemove,
       );
       this._selectedIds.next(newSelectedIds);
-      sessionStorage.setItem(
+      localStorage.setItem(
         "selectedMaterialIds",
         JSON.stringify(newSelectedIds),
       );
@@ -1189,7 +1194,7 @@ export class ListMaterialService {
   }
 
   private loadSelectedIds(): void {
-    const savedIds = sessionStorage.getItem("selectedMaterialIds");
+    const savedIds = localStorage.getItem("selectedMaterialIds");
     if (savedIds) {
       this._selectedIds.next(JSON.parse(savedIds));
     }

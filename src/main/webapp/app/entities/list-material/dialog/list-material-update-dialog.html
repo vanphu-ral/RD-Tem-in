@@ -1,6 +1,6 @@
 <div class="dialog-header">
   <h2 mat-dialog-title class="dialog-title">Cập nhật vật tư</h2>
-  <div style="align-items: center; margin-top: 5px">
+  <div style="align-items: center; margin-top: 5px" class="right-header">
     <mat-form-field appearance="fill" class="small-approve-field">
       <input
         type="text"
@@ -24,16 +24,18 @@
       color="primary"
       [(ngModel)]="isMoveChecked"
       (change)="onMoveCheckboxChange($event.checked)"
+      class="checkbox-auto-approve"
     >
-      Chuyển kho
+      <span class="checked_label">Chuyển kho</span>
     </mat-checkbox>
     <mat-checkbox
       *jhiHasAnyAuthority="'ROLE_PANACIM_APPROVE_AUTO'"
       color="primary"
       [(ngModel)]="autoApprove"
       (change)="onAutoApproved($event.checked)"
+      class="checkbox-auto-approve"
     >
-      Tự phê duyệt
+      <span class="checked_label">Tự phê duyệt</span>
     </mat-checkbox>
   </div>
 </div>

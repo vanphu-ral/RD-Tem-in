@@ -18,6 +18,7 @@ import {
 } from "@angular/animations";
 import { Observable, of } from "rxjs";
 import { ResponsiveService } from "app/shared/responsive/responsive.service";
+import { AuthEventService } from "app/core/auth/auth_event.service";
 
 @Component({
   selector: "jhi-navbar",
@@ -62,6 +63,7 @@ export class NavbarComponent implements OnInit {
     private mainComponent: MainComponent,
     public navbarservice: NavbarService,
     public responsive: ResponsiveService,
+    private authEvents: AuthEventService,
   ) {
     if (VERSION) {
       this.version = VERSION.toLowerCase().startsWith("v")

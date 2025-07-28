@@ -311,7 +311,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
               duration: 3000,
               panelClass: ["snack-info"],
               horizontalPosition: "center",
-              verticalPosition: "bottom",
+              verticalPosition: "top",
             },
           );
         }
@@ -833,6 +833,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       this.snackBar.open("Yêu cầu chọn người duyệt!", "Đóng", {
         duration: 3000,
         panelClass: ["snackbar-error"],
+        horizontalPosition: "center",
+        verticalPosition: "top",
       });
       return;
     }
@@ -847,7 +849,12 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       this.snackBar.open(
         "Số lượng không được để trống và phải lớn hơn 0!",
         "Đóng",
-        { duration: 3000, panelClass: ["snackbar-error"] },
+        {
+          duration: 3000,
+          panelClass: ["snackbar-error"],
+          horizontalPosition: "center",
+          verticalPosition: "top",
+        },
       );
       return;
     }
@@ -896,6 +903,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         this.snackBar.open(`Hàng ${id}: ${reason}`, "Đóng", {
           duration: 3000,
           panelClass: ["snackbar-error"],
+          horizontalPosition: "center",
+          verticalPosition: "top",
         });
       });
       return;
@@ -1004,6 +1013,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       this.snackBar.open("Yêu cầu chọn người duyệt!", "Đóng", {
         duration: 3000,
         panelClass: ["snackbar-error"],
+        horizontalPosition: "center",
+        verticalPosition: "top",
       });
       return;
     }
@@ -1023,6 +1034,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         {
           duration: 3000,
           panelClass: ["snackbar-error"],
+          horizontalPosition: "center",
+          verticalPosition: "top",
         },
       );
       return;
@@ -1071,6 +1084,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         this.snackBar.open(`Hàng ${id}: ${reason}`, "Đóng", {
           duration: 3000,
           panelClass: ["snackbar-error"],
+          horizontalPosition: "center",
+          verticalPosition: "top",
         });
       });
       return;
@@ -1168,6 +1183,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
           duration: 3000,
           panelClass: ["snack-info"],
           horizontalPosition: "center",
+          verticalPosition: "top",
         },
       );
       return;
