@@ -90,16 +90,12 @@ export class ListMaterialUpdateComponent
   warehouseScanBuffer = "";
   warehouseScanDelay = 300;
   warehouseScanTimeoutId: any;
-  checkedCount$ = this.materialService.selectedIds$.pipe(
-    map((ids) => ids?.length ?? 0),
+  checkedCount$ = this.materialService.selectedItems$.pipe(
+    map((items) => items?.length ?? 0),
   );
-  totalQuantityselect$ = this.materialService.selectedIds$.pipe(
-    map((ids) =>
-      this.dataSource.data
-        .filter((item) => ids.includes(item.inventoryId))
-        .map((item) => item.quantity ?? 0)
-        .reduce((sum, val) => sum + val, 0),
-    ),
+
+  totalQuantityselect$ = this.materialService.selectedItems$.pipe(
+    map((items) => items.reduce((sum, item) => sum + (item.quantity ?? 0), 0)),
   );
   statusOptions = [
     { value: "", view: "-- All --" },

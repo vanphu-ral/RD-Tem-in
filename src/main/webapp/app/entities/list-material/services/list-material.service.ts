@@ -861,10 +861,16 @@ export class ListMaterialService {
 
     this._materialsData.next(filtered);
 
-    const newSelectedIds = this._selectedIds.value.filter(
-      (id) => !ids.includes(id),
+    const newSelectedItems = this._selectedItems.value.filter(
+      (item) => !ids.includes(item.inventoryId),
     );
+
+    const newSelectedIds = newSelectedItems.map((i) => i.inventoryId);
+
+    this._selectedItems.next(newSelectedItems);
     this._selectedIds.next(newSelectedIds);
+
+    localStorage.setItem("selectedMaterials", JSON.stringify(newSelectedItems));
     localStorage.setItem("selectedMaterialIds", JSON.stringify(newSelectedIds));
   }
 
