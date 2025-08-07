@@ -9,7 +9,11 @@
             <span>Tùy chọn</span><fa-icon [icon]="faChevronDown"></fa-icon>
           </button>
         </div>
-        <div class="toggle-columns" id="toggle-columns" *ngIf="toggleColumns === true">
+        <div
+          class="toggle-columns"
+          id="toggle-columns"
+          *ngIf="toggleColumns === true"
+        >
           <div class="toggle-columns-container">
             <input
               type="checkbox"
@@ -124,7 +128,11 @@
           </div>
         </div>
       </div>
-      <button class="btn btn-info me-2" (click)="reloadPage()" [disabled]="isLoading">
+      <button
+        class="btn btn-info me-2"
+        (click)="reloadPage()"
+        [disabled]="isLoading"
+      >
         <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
         <span>Refresh List</span>
       </button>
@@ -141,13 +149,26 @@
   <div class="table-scroll">
     <table class="table" aria-describedby="page-heading">
       <thead>
-        <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending" (sortChange)="loadPage()">
+        <tr
+          jhiSort
+          [(predicate)]="predicate"
+          [(ascending)]="ascending"
+          (sortChange)="loadPage()"
+        >
           <th scope="col" jhiSortBy="id" style="position: sticky; top: 0">
             <span>STT</span>
-            <input type="text" style="width: 10px; border: none; background-color: #006699" />
+            <input
+              type="text"
+              style="width: 10px; border: none; background-color: #006699"
+            />
           </th>
 
-          <th scope="col" jhiSortBy="reelID" style="position: sticky; top: 0" *ngIf="disableMaLenhSanXuat === true">
+          <th
+            scope="col"
+            jhiSortBy="reelID"
+            style="position: sticky; top: 0"
+            *ngIf="disableMaLenhSanXuat === true"
+          >
             <span>Lệnh sản xuất</span>
             <input
               #searchInput
@@ -161,7 +182,12 @@
             />
           </th>
 
-          <th scope="col" jhiSortBy="partNumber" style="position: sticky; top: 0" *ngIf="disableSapCode === true">
+          <th
+            scope="col"
+            jhiSortBy="partNumber"
+            style="position: sticky; top: 0"
+            *ngIf="disableSapCode === true"
+          >
             <span>Mã SAP</span>
             <input
               #searchInput
@@ -175,7 +201,12 @@
             />
           </th>
 
-          <th scope="col" jhiSortBy="sapName" style="position: sticky; top: 0" *ngIf="disableSapName === true">
+          <th
+            scope="col"
+            jhiSortBy="sapName"
+            style="position: sticky; top: 0"
+            *ngIf="disableSapName === true"
+          >
             <span>Tên hàng hoá</span>
             <input
               #searchInput
@@ -187,11 +218,24 @@
               (change)="findFucntion()"
             />
           </th>
-          <th scope="col" jhiSortBy="totalQuantity" style="position: sticky; top: 0" *ngIf="disableGroup === true">
+          <th
+            scope="col"
+            jhiSortBy="totalQuantity"
+            style="position: sticky; top: 0"
+            *ngIf="disableGroup === true"
+          >
             <span>Tổ sản xuất</span>
-            <input style="border: none; width: 3rem; background-color: #006699" disabled />
+            <input
+              style="border: none; width: 3rem; background-color: #006699"
+              disabled
+            />
           </th>
-          <th scope="col" jhiSortBy="workOrderCode" style="position: sticky; top: 0" *ngIf="disableWorkOrderCode === true">
+          <th
+            scope="col"
+            jhiSortBy="workOrderCode"
+            style="position: sticky; top: 0"
+            *ngIf="disableWorkOrderCode === true"
+          >
             <span>Mã WO</span>
             <input
               #searchInput
@@ -205,7 +249,12 @@
             />
           </th>
 
-          <th scope="col" jhiSortBy="version" style="position: sticky; top: 0" *ngIf="disableVersion === true">
+          <th
+            scope="col"
+            jhiSortBy="version"
+            style="position: sticky; top: 0"
+            *ngIf="disableVersion === true"
+          >
             <span>Version</span>
             <input
               #searchInput
@@ -219,7 +268,12 @@
             />
           </th>
 
-          <th scope="col" jhiSortBy="storageCode" style="position: sticky; top: 0" *ngIf="disableStorageCode === true">
+          <th
+            scope="col"
+            jhiSortBy="storageCode"
+            style="position: sticky; top: 0"
+            *ngIf="disableStorageCode === true"
+          >
             <span>Mã kho nhập</span>
             <input
               #searchInput
@@ -253,15 +307,36 @@
             </datalist>
           </th>
 
-          <th scope="col" jhiSortBy="totalQuantity" style="position: sticky; top: 0" *ngIf="disableTotalQuantity === true">
+          <th
+            scope="col"
+            jhiSortBy="totalQuantity"
+            style="position: sticky; top: 0"
+            *ngIf="disableTotalQuantity === true"
+          >
             <span>Tổng nhập</span>
-            <input style="border: none; width: 5rem; background-color: #006699" disabled />
+            <input
+              style="border: none; width: 5rem; background-color: #006699"
+              disabled
+            />
           </th>
-          <th scope="col" jhiSortBy="totalQuantity" style="position: sticky; top: 0" *ngIf="disableDetailQuantity === true">
+          <th
+            scope="col"
+            jhiSortBy="totalQuantity"
+            style="position: sticky; top: 0"
+            *ngIf="disableDetailQuantity === true"
+          >
             <span>Chi tiết</span>
-            <input style="border: none; width: 10rem; background-color: #006699" disabled />
+            <input
+              style="border: none; width: 10rem; background-color: #006699"
+              disabled
+            />
           </th>
-          <th scope="col" jhiSortBy="createBy" style="position: sticky; top: 0" *ngIf="disableCreateBy === true">
+          <th
+            scope="col"
+            jhiSortBy="createBy"
+            style="position: sticky; top: 0"
+            *ngIf="disableCreateBy === true"
+          >
             <span>Nhân viên</span>
             <input
               #searchInput
@@ -275,17 +350,42 @@
             />
           </th>
 
-          <th scope="col" jhiSortBy="entryTime" style="position: sticky; top: 0" *ngIf="disableEntryTime === true">
+          <th
+            scope="col"
+            jhiSortBy="entryTime"
+            style="position: sticky; top: 0"
+            *ngIf="disableEntryTime === true"
+          >
             <span>Ngày tạo tem</span>
-            <input type="date" [(ngModel)]="entryTime" [ngModelOptions]="{ standalone: true }" (change)="findFucntion()" />
+            <input
+              type="date"
+              [(ngModel)]="entryTime"
+              [ngModelOptions]="{ standalone: true }"
+              (change)="findFucntion()"
+            />
           </th>
 
-          <th scope="col" jhiSortBy="timeUpdate" style="position: sticky; top: 0" *ngIf="disableUpdateTime === true">
+          <th
+            scope="col"
+            jhiSortBy="timeUpdate"
+            style="position: sticky; top: 0"
+            *ngIf="disableUpdateTime === true"
+          >
             <span>Ngày cập nhật</span>
-            <input type="date" [(ngModel)]="timeUpdate" [ngModelOptions]="{ standalone: true }" (change)="findFucntion()" />
+            <input
+              type="date"
+              [(ngModel)]="timeUpdate"
+              [ngModelOptions]="{ standalone: true }"
+              (change)="findFucntion()"
+            />
           </th>
 
-          <th scope="col" jhiSortBy="trangThai" style="position: sticky; top: 0" *ngIf="disableTrangThai === true">
+          <th
+            scope="col"
+            jhiSortBy="trangThai"
+            style="position: sticky; top: 0"
+            *ngIf="disableTrangThai === true"
+          >
             <span>Trạng thái</span>
             <select
               class="form-control form-select"
@@ -303,21 +403,38 @@
             </select>
           </th>
 
-          <th scope="col" jhiSortBy="comment" style="position: sticky; top: 0" *ngIf="disableComment === true">
+          <th
+            scope="col"
+            jhiSortBy="comment"
+            style="position: sticky; top: 0"
+            *ngIf="disableComment === true"
+          >
             <span>Lưu ý</span>
-            <input style="border: none; width: 10rem; background-color: #006699" disabled />
+            <input
+              style="border: none; width: 10rem; background-color: #006699"
+              disabled
+            />
           </th>
 
-          <th scope="col" jhiSortBy="msdInitialFloorTime" style="position: sticky; top: 0; z-index: 5">
+          <th
+            scope="col"
+            jhiSortBy="msdInitialFloorTime"
+            style="position: sticky; top: 0; z-index: 5"
+          >
             <span>Tùy chọn</span>
-            <input style="border: none; width: 70%; background-color: #006699" disabled />
+            <input
+              style="border: none; width: 70%; background-color: #006699"
+              disabled
+            />
           </th>
         </tr>
       </thead>
       <tbody>
         <tr
           *ngFor="
-            let lenhSanXuat of lenhSanXuats ?? [] | filter: trangThai | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+            let lenhSanXuat of lenhSanXuats ?? []
+              | filter: trangThai
+              | paginate: { itemsPerPage: itemPerPage, currentPage: page };
             let i = index;
             trackBy: trackId
           "
@@ -327,31 +444,54 @@
           <td>
             <a>{{ i + 1 }}</a>
           </td>
-          <td *ngIf="disableMaLenhSanXuat === true">{{ lenhSanXuat.maLenhSanXuat }}</td>
+          <td *ngIf="disableMaLenhSanXuat === true">
+            {{ lenhSanXuat.maLenhSanXuat }}
+          </td>
           <td *ngIf="disableSapCode === true">{{ lenhSanXuat.sapCode }}</td>
           <td *ngIf="disableSapName === true">{{ lenhSanXuat.sapName }}</td>
           <td *ngIf="disableGroup === true">
-            <div [id]="lenhSanXuat.id" class="trang-thai">{{ lenhSanXuat.groupName }}</div>
+            <div [id]="lenhSanXuat.id" class="trang-thai">
+              {{ lenhSanXuat.groupName }}
+            </div>
           </td>
-          <td *ngIf="disableWorkOrderCode === true">{{ lenhSanXuat.workOrderCode }}</td>
+          <td *ngIf="disableWorkOrderCode === true">
+            {{ lenhSanXuat.workOrderCode }}
+          </td>
           <td *ngIf="disableVersion === true">{{ lenhSanXuat.version }}</td>
-          <td *ngIf="disableStorageCode === true">{{ lenhSanXuat.storageCode }}</td>
-          <td *ngIf="disableTotalQuantity === true">{{ lenhSanXuat.totalQuantity }}</td>
-          <td *ngIf="disableDetailQuantity === true">{{ lenhSanXuat.comment2 }}</td>
+          <td *ngIf="disableStorageCode === true">
+            {{ lenhSanXuat.storageCode }}
+          </td>
+          <td *ngIf="disableTotalQuantity === true">
+            {{ lenhSanXuat.totalQuantity }}
+          </td>
+          <td *ngIf="disableDetailQuantity === true">
+            {{ lenhSanXuat.comment2 }}
+          </td>
           <td *ngIf="disableCreateBy === true">{{ lenhSanXuat.createBy }}</td>
-          <td *ngIf="disableEntryTime === true">{{ lenhSanXuat.entryTime | formatMediumDatetime }}</td>
-          <td *ngIf="disableUpdateTime === true">{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</td>
+          <td *ngIf="disableEntryTime === true">
+            {{ lenhSanXuat.entryTime | formatMediumDatetime }}
+          </td>
+          <td *ngIf="disableUpdateTime === true">
+            {{ lenhSanXuat.timeUpdate | formatMediumDatetime }}
+          </td>
           <td *ngIf="disableTrangThai === true">
             <div [id]="i" class="trang-thai">{{ lenhSanXuat.trangThai }}</div>
           </td>
           <td *ngIf="disableComment === true">{{ lenhSanXuat.comment }}</td>
 
           <td class="text-end">
-            <div class="btn-group" *jhiHasAnyAuthority="'ROLE_ADMIN_QUAN_LY_PHE_DUYET'">
+            <div
+              class="btn-group"
+              *jhiHasAnyAuthority="'ROLE_ADMIN_QUAN_LY_PHE_DUYET'"
+            >
               <button
                 *jhiHasAnyAuthority="'ROLE_USER_QUAN_LY_PHE_DUYET'"
                 type="submit"
-                [routerLink]="['/chi-tiet-lenh-san-xuat', lenhSanXuat.id, 'view']"
+                [routerLink]="[
+                  '/chi-tiet-lenh-san-xuat',
+                  lenhSanXuat.id,
+                  'view',
+                ]"
                 class="btn btn-info btn-sm"
                 data-cy="entityDetailsButton"
               >
@@ -359,9 +499,16 @@
               </button>
 
               <button
-                *ngIf="lenhSanXuat.trangThai === 'Chờ duyệt' || lenhSanXuat.trangThai === 'Đã phê duyệt'"
+                *ngIf="
+                  lenhSanXuat.trangThai === 'Chờ duyệt' ||
+                  lenhSanXuat.trangThai === 'Đã phê duyệt'
+                "
                 type="submit"
-                [routerLink]="['/chi-tiet-lenh-san-xuat', lenhSanXuat.id, 'edit']"
+                [routerLink]="[
+                  '/chi-tiet-lenh-san-xuat',
+                  lenhSanXuat.id,
+                  'edit',
+                ]"
                 class="btn btn-primary btn-sm"
                 data-cy="entityEditButton"
               >
@@ -375,20 +522,37 @@
   </div>
   <div style="display: flex; justify-content: space-between">
     <div>
-      <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage" (change)="findFucntion()">
+      <select
+        class="form-select"
+        aria-label="Default select example"
+        [(ngModel)]="itemPerPage"
+        (change)="findFucntion()"
+      >
         <option value="10">10</option>
         <option value="15">15</option>
         <option value="20">20</option>
-        <option value="{{ lenhSanXuats!.length }}">All</option>
+        <option value="{{ lenhSanXuats?.length }}">All</option>
       </select>
     </div>
 
     <div style="display: flex">
-      <button class="pagination" (click)="firstPage()" [disabled]="firstPageBtn">Trang đầu</button>
-      <button class="pagination" (click)="backPage()" [disabled]="backPageBtn">Trang trước</button>
+      <button
+        class="pagination"
+        (click)="firstPage()"
+        [disabled]="firstPageBtn"
+      >
+        Trang đầu
+      </button>
+      <button class="pagination" (click)="backPage()" [disabled]="backPageBtn">
+        Trang trước
+      </button>
       <button class="pagenumber">{{ pageNumber }}</button>
-      <button class="pagination" (click)="nextPage()" [disabled]="nextPageBtn">Trang sau</button>
-      <button class="pagination" (click)="lastPage()" [disabled]="lastPageBtn">Trang cuối</button>
+      <button class="pagination" (click)="nextPage()" [disabled]="nextPageBtn">
+        Trang sau
+      </button>
+      <button class="pagination" (click)="lastPage()" [disabled]="lastPageBtn">
+        Trang cuối
+      </button>
     </div>
   </div>
 

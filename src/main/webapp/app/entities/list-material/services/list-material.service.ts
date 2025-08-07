@@ -437,6 +437,7 @@ export class ListMaterialService {
       userData4?: string;
       locationName?: string;
       expirationDate?: string;
+      updatedDate?: string;
     },
   ): Observable<ApiMaterialResponse> {
     const body = {
@@ -449,6 +450,7 @@ export class ListMaterialService {
       userData4: filters?.userData4 ?? "",
       locationName: filters?.locationName ?? "",
       expirationDate: filters?.expirationDate ?? "",
+      updatedDate: filters?.updatedDate ?? "",
       pageNumber: pageIndex, //  pageIndex + 1
       itemPerPage: limit,
     };

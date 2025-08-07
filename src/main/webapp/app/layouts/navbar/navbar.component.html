@@ -17,9 +17,10 @@
         class="login-button"
         style="color: white"
       >
-        <mat-icon style="width: 40px; height: 30px; font-size: 30px"
-          >account_box</mat-icon
-        >
+        <fa-icon
+          [icon]="faUserCircle"
+          style="width: 30px; font-size: 30px"
+        ></fa-icon>
         <span *ngIf="!isCollapsed">{{ account.login }}</span>
       </button>
       <mat-menu class="menu-lg-button" #accountMenu="matMenu">
@@ -28,11 +29,11 @@
           routerLink="/account/settings"
           (click)="closeAccountDropdown()"
         >
-          <mat-icon>settings_applications</mat-icon>
+          <fa-icon [icon]="faGear"></fa-icon>
           <span>Cài đặt</span>
         </button>
         <button mat-menu-item (click)="logout()">
-          <mat-icon>exit_to_app</mat-icon>
+          <fa-icon [icon]="faRightFromBracket"></fa-icon>
           <span>Đăng xuất</span>
         </button>
       </mat-menu>
@@ -40,9 +41,7 @@
 
     <ng-template #loginBtn>
       <button mat-button (click)="login()" style="color: white">
-        <mat-icon style="height: 30px; font-size: 30px; width: 30px"
-          >login</mat-icon
-        >
+        <fa-icon [icon]="faRightToBracket" style="font-size: 30px"></fa-icon>
         <span>Đăng nhập</span>
       </button>
     </ng-template>
@@ -107,7 +106,10 @@
                     style="display: flex; align-items: center"
                     *ngIf="menu.type === 'home'"
                   >
-                    <mat-icon class="sidebar-menu-icon">home</mat-icon>
+                    <fa-icon
+                      [icon]="faHome"
+                      class="sidebar-menu-icon"
+                    ></fa-icon>
                     <a>
                       <span class="sidebar-menu-title">{{ menu.title }}</span>
                     </a>
@@ -116,9 +118,10 @@
                     style="display: flex; align-items: center"
                     *ngIf="menu.type !== 'home'"
                   >
-                    <mat-icon class="sidebar-menu-icon">{{
-                      menu.icon
-                    }}</mat-icon>
+                    <fa-icon
+                      [icon]="menu.icon"
+                      class="sidebar-menu-icon"
+                    ></fa-icon>
                     <a>
                       <span class="sidebar-menu-title">{{ menu.title }}</span>
                     </a>

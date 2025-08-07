@@ -8,7 +8,7 @@
       <div class="group-buttons primary"></div>
       <div class="group-buttons secondary">
         <button class="btn-export" mat-button (click)="export()">
-          <mat-icon>file_download</mat-icon>
+          <fa-icon [icon]="faDownload"></fa-icon>
           <span class="btn-text">Xuất Excel</span>
         </button>
       </div>
@@ -56,11 +56,11 @@
                 (click)="toggleRowExpansion(element)"
                 [attr.aria-label]="'Toggle details for ' + element.requestCode"
               >
-                <mat-icon>{{
-                  expandedElement === element
-                    ? "keyboard_arrow_down"
-                    : "keyboard_arrow_right"
-                }}</mat-icon>
+                <fa-icon
+                  [icon]="
+                    expandedElement === element ? faChevronDown : faChevronRight
+                  "
+                ></fa-icon>
               </button>
             </div>
           </td>
@@ -83,11 +83,11 @@
                 >
                   <div class="column-title">Yêu cầu</div>
                   <div>
-                    <mat-icon
+                    <fa-icon
                       [matMenuTriggerFor]="filterRequestCode"
+                      [icon]="faFilter"
                       style="color: white"
-                      >filter_list</mat-icon
-                    >
+                    ></fa-icon>
                   </div>
                 </div>
                 <mat-menu #filterRequestCode="matMenu">
@@ -149,11 +149,11 @@
                 >
                   <div class="column-title">Ngày gửi đề nghị</div>
                   <div>
-                    <mat-icon
+                    <fa-icon
                       [matMenuTriggerFor]="filterCreatedTime"
+                      [icon]="faFilter"
                       style="color: white"
-                      >filter_list</mat-icon
-                    >
+                    ></fa-icon>
                   </div>
                 </div>
                 <mat-menu #filterCreatedTime="matMenu">
@@ -221,11 +221,11 @@
                 >
                   <div class="column-title">Người gửi đề nghị</div>
                   <div>
-                    <mat-icon
+                    <fa-icon
                       [matMenuTriggerFor]="filterRequestedBy"
+                      [icon]="faFilter"
                       style="color: white"
-                      >filter_list</mat-icon
-                    >
+                    ></fa-icon>
                   </div>
                 </div>
                 <mat-menu #filterRequestedBy="matMenu">
@@ -286,11 +286,11 @@
                 >
                   <div class="column-title">Người phê duyệt</div>
                   <div>
-                    <mat-icon
+                    <fa-icon
                       [matMenuTriggerFor]="filterApprovedBy"
+                      [icon]="faFilter"
                       style="color: white"
-                      >filter_list</mat-icon
-                    >
+                    ></fa-icon>
                   </div>
                 </div>
                 <mat-menu #filterApprovedBy="matMenu">
@@ -352,11 +352,11 @@
               >
                 <div class="column-title">Trạng thái</div>
                 <div>
-                  <mat-icon
+                  <fa-icon
                     [matMenuTriggerFor]="filterStatus"
+                    [icon]="faFilter"
                     style="color: white"
-                    >filter_list</mat-icon
-                  >
+                  ></fa-icon>
                 </div>
               </div>
               <mat-menu #filterStatus="matMenu">
@@ -497,7 +497,7 @@
                         font-family: &quot;roboto&quot;, sans-serif;
                       "
                     >
-                      <mat-icon>file_download</mat-icon>
+                      <fa-icon [icon]="faDownload"></fa-icon>
                       Xuất Excel
                     </button>
                   </div>

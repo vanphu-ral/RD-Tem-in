@@ -1,7 +1,11 @@
-import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { ListMaterialUpdateDialogComponent } from '../dialog/list-material-update-dialog';
+import { ChangeDetectionStrategy, Component, Inject } from "@angular/core";
+import { MatButtonModule } from "@angular/material/button";
+import {
+  MatDialogModule,
+  MatDialogRef,
+  MAT_DIALOG_DATA,
+} from "@angular/material/dialog";
+import { ListMaterialUpdateDialogComponent } from "../dialog/list-material-update-dialog";
 
 export interface ConfirmDialogData {
   title?: string;
@@ -11,8 +15,8 @@ export interface ConfirmDialogData {
 }
 
 @Component({
-  selector: 'jhi-dialog-content-example-dialog',
-  templateUrl: './confirm-dialog.component.html',
+  selector: "jhi-dialog-content-example-dialog",
+  templateUrl: "./confirm-dialog.component.html",
   standalone: true,
   imports: [MatDialogModule, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,6 +28,13 @@ export class DialogContentExampleDialogComponent {
   ) {}
 
   onNoClick(): void {
+    this.dialogRef.close(false);
+  }
+  confirm(): void {
+    this.dialogRef.close(true);
+  }
+
+  cancel(): void {
     this.dialogRef.close(false);
   }
 }

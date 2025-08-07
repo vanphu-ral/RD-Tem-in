@@ -20,14 +20,14 @@
         </mat-option>
       </mat-autocomplete>
     </mat-form-field>
-    <mat-checkbox
+    <!-- <mat-checkbox
       color="primary"
       [(ngModel)]="isMoveChecked"
       (change)="onMoveCheckboxChange($event.checked)"
       class="checkbox-auto-approve"
     >
       <span class="checked_label">Chuyển kho</span>
-    </mat-checkbox>
+    </mat-checkbox> -->
     <mat-checkbox
       *jhiHasAnyAuthority="'ROLE_PANACIM_APPROVE_AUTO'"
       color="primary"
@@ -66,11 +66,11 @@
                 Material Identifier
               </div>
               <div>
-                <mat-icon
+                <fa-icon
                   [matMenuTriggerFor]="filterMenuIndentify"
+                  [icon]="faFilter"
                   style="color: white"
-                  >filter_list</mat-icon
-                >
+                ></fa-icon>
               </div>
             </div>
             <mat-menu #filterMenuIndentify="matMenu">
@@ -125,11 +125,11 @@
               >
                 <div class="column-title">Part Number</div>
                 <div>
-                  <mat-icon
+                  <fa-icon
                     [matMenuTriggerFor]="filterPartNumber"
+                    [icon]="faFilter"
                     style="color: white"
-                    >filter_list</mat-icon
-                  >
+                  ></fa-icon>
                 </div>
               </div>
               <mat-menu #filterPartNumber="matMenu">
@@ -183,11 +183,11 @@
               >
                 <div class="column-title">Ngày hết hạn</div>
                 <div>
-                  <mat-icon
+                  <fa-icon
                     [matMenuTriggerFor]="filterExpirationDate"
+                    [icon]="faFilter"
                     style="color: white"
-                    >filter_list</mat-icon
-                  >
+                  ></fa-icon>
                 </div>
               </div>
               <mat-menu #filterExpirationDate="matMenu">
@@ -246,11 +246,11 @@
               >
                 <div class="column-title">Status</div>
                 <div>
-                  <mat-icon
+                  <fa-icon
                     [matMenuTriggerFor]="filterMenuCalculatedStatus"
+                    [icon]="faFilter"
                     style="color: white"
-                    >filter_list</mat-icon
-                  >
+                  ></fa-icon>
                 </div>
               </div>
               <mat-menu #filterMenuCalculatedStatus="matMenu">
@@ -445,11 +445,11 @@
               >
                 <div class="column-title">Số lượng</div>
                 <div>
-                  <mat-icon
-                    style="color: white"
+                  <fa-icon
                     [matMenuTriggerFor]="filterMenuQuantity"
-                    >filter_list</mat-icon
-                  >
+                    [icon]="faFilter"
+                    style="color: white"
+                  ></fa-icon>
                 </div>
               </div>
               <mat-menu #filterMenuQuantity="matMenu">
@@ -552,11 +552,11 @@
             [ngClass]="{ 'scan-active': isScanAll }"
             (click)="scanLocationForAll()"
           >
-            <mat-icon class="scan-btn-icon">center_focus_weak</mat-icon>
+            <fa-icon [icon]="faCrosshairs" class="scan-btn-icon"></fa-icon>
             <span class="scan-btn-text">Quét kho</span>
           </button>
           <button class="scan-btn" mat-raised-button (click)="refreshForAll()">
-            <mat-icon class="scan-btn-icon">refresh</mat-icon>
+            <fa-icon [icon]="faRotateRight" class="scan-btn-icon"></fa-icon>
             <span class="scan-btn-text">Fresh</span>
           </button>
         </th>
@@ -567,7 +567,7 @@
             [ngClass]="{ 'scan-active': currentScanRow?.inventoryId === element.inventoryId }"
             (click)="scanLocationForRow(element)"
           >
-            <mat-icon class="scan-btn-icon">center_focus_weak</mat-icon>
+            <fa-icon [icon]="faCrosshairs" class="scan-btn-icon"></fa-icon>
             <span class="scan-btn-text">Quét kho</span>
           </button>
           <button
@@ -575,7 +575,7 @@
             mat-raised-button
             (click)="refreshForRow(element)"
           >
-            <mat-icon class="scan-btn-icon">refresh</mat-icon>
+            <fa-icon [icon]="faRotateRight" class="scan-btn-icon"></fa-icon>
             <span class="scan-btn-text">Fresh</span>
           </button>
         </td>

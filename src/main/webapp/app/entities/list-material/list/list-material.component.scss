@@ -1,5 +1,5 @@
 @use "@angular/material" as mat;
-@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+// @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 
 .function-list {
   display: flex;
@@ -96,7 +96,7 @@
   color: #000000;
 }
 
-.empty-message-container mat-icon {
+.empty-message-container fa-icon {
   font-size: 26px !important;
   color: #c2185b;
 }
@@ -483,8 +483,8 @@ th {
         }
       }
 
-      .mat-mdc-button > .mat-icon,
-      .mat-mdc-raised-button > .mat-icon {
+      .mat-mdc-button > .fa-icon,
+      .mat-mdc-raised-button > .fa-icon {
         margin-right: 0 !important;
       }
     }
@@ -534,7 +534,7 @@ th {
           }
         }
 
-        mat-icon {
+        fa-icon {
           font-size: 16px !important;
         }
 
@@ -618,8 +618,8 @@ th {
         text-align: center;
       }
 
-      .mat-mdc-button > .mat-icon,
-      .mat-mdc-raised-button > .mat-icon {
+      .mat-mdc-button > .fa-icon,
+      .mat-mdc-raised-button > .fa-icon {
         margin-right: 0 !important;
       }
     }
@@ -671,7 +671,7 @@ th {
           }
         }
 
-        mat-icon {
+        fa-icon {
           font-size: 16px !important;
         }
       }
@@ -754,7 +754,8 @@ th {
       max-width: 813px;
     }
 
-    ::ng-deep table {
+    ::ng-deep .full-scroll-table-container {
+      max-width: 813px;
       th.mat-mdc-header-cell {
         padding: 4px 8px !important;
         font-size: 12px !important;
@@ -782,7 +783,7 @@ th {
           }
         }
 
-        mat-icon {
+        fa-icon {
           font-size: 16px !important;
         }
       }

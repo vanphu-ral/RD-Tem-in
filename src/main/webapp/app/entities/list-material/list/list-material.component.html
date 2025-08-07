@@ -15,7 +15,7 @@
               mat-raised-button
               routerLink="update-list"
             >
-              <mat-icon>list_alt</mat-icon>
+              <fa-icon [icon]="faListCheck"></fa-icon>
               <span class="btn-text">Cập nhật</span>
             </button>
             <div class="cart-badge">{{ checkedCount() }}</div>
@@ -29,13 +29,13 @@
           (click)="startScan()"
           [ngClass]="{ 'scan-active': isScanMode }"
         >
-          <mat-icon>center_focus_weak</mat-icon>
+          <fa-icon [icon]="faCrosshairs" class="scan-btn-icon"></fa-icon>
           <span class="btn-text">Scan</span>
         </button>
         <!-- <div *ngIf="scanError" class="scan-error">{{ scanError }}</div> -->
         <!-- Refresh -->
         <button class="btn-refresh" mat-button (click)="refreshScan()">
-          <mat-icon>refresh</mat-icon>
+          <fa-icon [icon]="faRotateRight" class="scan-btn-icon"></fa-icon>
           <span class="btn-text">Refresh</span>
         </button>
         <!-- <div *ngIf="isScanMode && !scanResult">
@@ -46,7 +46,7 @@
       <div class="group-buttons secondary">
         <!-- View mode -->
         <button mat-button [matMenuTriggerFor]="menu" class="btn-view">
-          <mat-icon>visibility</mat-icon>
+          <fa-icon [icon]="faEye"></fa-icon>
           <span class="btn-text">View</span>
           <!-- <mat-icon class="icon-down">keyboard_arrow_down</mat-icon> -->
         </button>
@@ -63,7 +63,7 @@
           [matMenuTriggerFor]="menucolumnselect"
           class="btn-column"
         >
-          <mat-icon>view_column</mat-icon>
+          <fa-icon [icon]="faTableColumns"></fa-icon>
           <span class="btn-text">Columns</span>
           <!-- <mat-icon class="icon-down">keyboard_arrow_down</mat-icon> -->
         </button>
@@ -104,7 +104,7 @@
           mat-button
           (click)="handleExportClick()"
         >
-          <mat-icon>file_download</mat-icon>
+          <fa-icon [icon]="faDownload"></fa-icon>
           <span class="btn-text">Xuất Excel</span>
         </button>
       </div>
@@ -229,9 +229,11 @@
               "
             >
               <span>{{ getColumnDisplayName("availableQuantity") }}</span>
-              <mat-icon [matMenuTriggerFor]="filterMenu" style="color: white"
-                >filter_list</mat-icon
-              >
+              <fa-icon
+                [matMenuTriggerFor]="filterMenu"
+                [icon]="faFilter"
+                style="color: white"
+              ></fa-icon>
             </div>
           </span>
 
@@ -294,9 +296,11 @@
               "
             >
               <span>{{ getColumnDisplayName(col) }}</span>
-              <mat-icon [matMenuTriggerFor]="filterMenu" style="color: white"
-                >filter_list</mat-icon
-              >
+              <fa-icon
+                [matMenuTriggerFor]="filterMenu"
+                [icon]="faFilter"
+                style="color: white"
+              ></fa-icon>
             </div>
 
             <div class="search-container">
@@ -312,13 +316,14 @@
                     <input
                       matInput
                       [matDatepicker]="picker"
-                      [ngModel]="dateInputs[col] || ''"
+                      [ngModel]="dateModels[col]"
                       (dateChange)="applyDatePickerByPicker(col, $event.value)"
                       (keyup.enter)="
                         applyDatePickerByTyping(col, $any($event.target).value)
                       "
                       placeholder="dd/MM/yyyy"
                     />
+
                     <mat-datepicker-toggle
                       matSuffix
                       [for]="picker"
@@ -365,7 +370,9 @@
                         enterKeyHint="search"
                         #locationInput
                         [value]="searchTerms['locationName']?.value || ''"
-                        (keyup.enter)="onScanLocationEnter(locationInput.value)"
+                        (keydown.enter)="
+                          onScanLocationEnter(locationInput.value)
+                        "
                         placeholder="Search ({{
                           filterModes['locationName'] || 'contains'
                         }})"
@@ -385,7 +392,7 @@
                         #inputRef
                         enterKeyHint="search"
                         [value]="searchTerms[col]?.value || ''"
-                        (keyup.enter)="applyFilter(col, inputRef.value)"
+                        (keydown.enter)="applyFilter(col, inputRef.value)"
                         placeholder="Search ({{
                           filterModes[col] || 'contains'
                         }})"
@@ -429,9 +436,10 @@
 
     <ng-container *ngIf="dataSource.data.length === 0 && emptyMessage">
       <div class="empty-message-container">
-        <mat-icon color="warn" style="font-size: 40px; margin-bottom: 8px"
-          >error</mat-icon
-        >
+        <fa-icon
+          [icon]="faCircleExclamation"
+          style="color: #f44336; font-size: 40px; margin-bottom: 8px"
+        ></fa-icon>
         <div class="empty-state">{{ emptyMessage }}</div>
       </div>
     </ng-container>

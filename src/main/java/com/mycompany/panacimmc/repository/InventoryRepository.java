@@ -471,8 +471,13 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
         "AND b.Location_FullName like ?8 " +
         "AND ( ?9 IS NULL OR a.Inventory_ExpirationDate like ?9) " +
+        "AND (\n" +
+        "  ?10 IS NULL OR \n" +
+        "  a.Inventory_UpdatedDate >= CAST(?10 AS BIGINT) AND \n" +
+        "  a.Inventory_UpdatedDate < CAST(?10 AS BIGINT) + 86400\n" +
+        ")" +
         "ORDER BY a.Inventory_UpdatedDate desc " +
-        "OFFSET ?10 ROWS FETCH NEXT ?11 ROWS ONLY ;\n",
+        "OFFSET ?11 ROWS FETCH NEXT ?12 ROWS ONLY ;\n",
         nativeQuery = true
     )
     public List<InventoryResponse> getInventories(
@@ -485,6 +490,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         String userData4,
         String locationName,
         String expirationDate,
+        String updatedDate,
         Integer pageNumber,
         Integer itemPerPage
     );
@@ -510,7 +516,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?6 " +
         "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
         "AND b.Location_FullName like ?8 " +
-        "AND ( ?9 IS NULL OR a.Inventory_ExpirationDate like ?9) ;",
+        "AND ( ?9 IS NULL OR a.Inventory_ExpirationDate like ?9 ) " +
+        "AND ( ?10 IS NULL OR a.Inventory_UpdatedDate >= CAST(?10 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?10 AS BIGINT) + 86400 )",
         nativeQuery = true
     )
     public Integer getTotalInventories(
@@ -522,7 +529,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         String lotNumber,
         String userData4,
         String locationName,
-        String expirationDate
+        String expirationDate,
+        String updatedDate
     );
 
     @Query(

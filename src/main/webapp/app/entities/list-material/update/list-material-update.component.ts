@@ -16,6 +16,20 @@ import { MatSort } from "@angular/material/sort";
 import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { MatDialog } from "@angular/material/dialog";
 import {
+  faDownload,
+  faChevronDown,
+  faChevronRight,
+  faFilter,
+  faCrosshairs,
+  faRotateRight,
+  faListCheck,
+  faEye,
+  faTableColumns,
+  faArrowLeft,
+  faTrashCan,
+  faPenToSquare,
+} from "@fortawesome/free-solid-svg-icons";
+import {
   filter,
   finalize,
   forkJoin,
@@ -39,6 +53,7 @@ import saveAs from "file-saver";
 import { MaterialItem } from "../dialog/list-material-update-dialog";
 import { BreakpointObserver } from "@angular/cdk/layout";
 import { PendingMaterialService } from "../services/pending-material.service";
+import { DialogContentExampleDialogComponent } from "../confirm-dialog/confirm-dialog.component";
 
 interface sumary_mode {
   value: string;
@@ -71,6 +86,18 @@ export class ListMaterialUpdateComponent
   implements OnInit, AfterViewInit, OnDestroy
 {
   // #region Public properties
+  faDownload = faDownload;
+  faFilter = faFilter;
+  faCrosshairs = faCrosshairs;
+  faRotateRight = faRotateRight;
+  faListCheck = faListCheck;
+  faEye = faEye;
+  faTableColumns = faTableColumns;
+  faChevronRight = faChevronRight;
+  faChevronDown = faChevronDown;
+  faArrowLeft = faArrowLeft;
+  faTrashCan = faTrashCan;
+  faPenToSquare = faPenToSquare;
   dataSource = new MatTableDataSource<RawGraphQLMaterial>([]);
   selection = new SelectionModel<RawGraphQLMaterial>(true, []);
   displayedColumns: string[] = [];
@@ -786,6 +813,29 @@ export class ListMaterialUpdateComponent
     this.selection.deselect(row);
     this.materialService.removeItemFromUpdate(row.inventoryId);
   }
+  removeAllFromUpdate(): void {
+    const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
+      width: "320px",
+      data: {
+        title: "Xác nhận",
+        message: "Bạn có chắc muốn xóa tất cả vật tư khỏi danh sách cập nhật?",
+        confirmText: "Xóa",
+        cancelText: "Hủy",
+      },
+      disableClose: true,
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        const idsToRemove = this.selection.selected.map(
+          (item) => item.inventoryId,
+        );
+        this.selection.clear();
+        this.materialService.removeItemsAfterUpdate(idsToRemove);
+      }
+    });
+  }
+
   openEditSelectedDialog(): void {
     const itemsToUpdate = this.selection.selected;
 

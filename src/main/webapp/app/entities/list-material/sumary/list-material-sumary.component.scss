@@ -421,8 +421,8 @@ th {
         text-align: center;
       }
 
-      .mat-mdc-button > .mat-icon,
-      .mat-mdc-raised-button > .mat-icon {
+      .mat-mdc-button > .fa-icon,
+      .mat-mdc-raised-button > .fa-icon {
         margin-right: 0 !important;
       }
     }
@@ -464,7 +464,7 @@ th {
           }
         }
 
-        mat-icon {
+        fa-icon {
           font-size: 16px !important;
         }
       }
@@ -576,7 +576,7 @@ th {
           }
         }
 
-        mat-icon {
+        fa-icon {
           font-size: 16px !important;
         }
       }

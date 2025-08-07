@@ -1,20 +1,23 @@
 @use "@angular/material" as mat;
-
+// * {
+//   outline: 1px solid red !important;
+// }
 .function-list {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   flex-wrap: nowrap;
   padding: 0;
-  gap: 20px;
+
   .infoTb {
     display: flex;
     gap: 35px;
-    width: 400px;
     flex-wrap: nowrap;
     justify-content: start;
     padding-top: 10px;
   }
+
   .group-title {
     flex: 0 0 auto;
   }
@@ -108,6 +111,7 @@
 }
 
 .bordered-table {
+  table-layout: auto;
   border-collapse: collapse;
   width: 100%;
 }
@@ -147,9 +151,9 @@ th {
   margin: 12px 0;
 }
 
-.example-margin {
-  margin: 0 12px;
-}
+// .example-margin {
+//   margin: 0 12px;
+// }
 
 ul {
   list-style-type: none;
@@ -157,8 +161,8 @@ ul {
 }
 
 table {
-  width: 100%;
-  table-layout: auto;
+  // width: 100%;
+  // table-layout: auto;
   border-collapse: collapse;
 }
 
@@ -178,10 +182,12 @@ th {
   padding: 0;
   overflow: visible;
 }
+
 .scan-active {
   background-color: #4caf50 !important;
   color: #fff !important;
 }
+
 .header-content {
   display: flex;
   flex-direction: column;
@@ -230,7 +236,7 @@ th {
 .mat-mdc-table {
   width: 100%;
   max-height: 200px;
-  overflow: auto;
+  // overflow: auto;
 }
 
 ::ng-deep .mat-mdc-select-value {
@@ -326,10 +332,10 @@ th {
 // }
 
 .full-scroll-table-container {
-  max-height: 750px;
-  width: 100%;
+  height: 900px;
+  max-width: 100%;
   // overflow-y: auto;
-  overflow-x: auto;
+  overflow: auto;
 }
 
 ::ng-deep .small-form-field {
@@ -378,7 +384,8 @@ th {
   flex-direction: column;
   padding-left: 0.5rem;
   padding-right: 1rem;
-  height: 900px;
+  min-height: 100vh;
+  height: auto;
   width: calc(100% - 50px);
   max-width: 100%;
   margin: 0 auto;
@@ -406,8 +413,8 @@ th {
 /* MOBILE (< 600px) */
 @media (max-width: 366px) {
   .main-page {
-    width: 110%;
-    padding-right: 0.5rem;
+    width: 120%;
+    padding-right: 1rem;
     margin-left: 0.5rem;
 
     .function-list {
@@ -437,13 +444,13 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 75px;
+              min-width: 65px;
               min-height: 40px;
               padding: 0;
             }
 
             .scan-location-input {
-              width: 75px !important;
+              width: 65px !important;
             }
           }
 
@@ -453,7 +460,7 @@ th {
             margin-top: 5px;
 
             button {
-              min-width: 75px;
+              min-width: 65px;
               min-height: 40px;
               padding: 0;
             }
@@ -467,8 +474,8 @@ th {
         }
       }
 
-      .mat-mdc-button > .mat-icon,
-      .mat-mdc-raised-button > .mat-icon {
+      .mat-mdc-button > .fa-icon,
+      .mat-mdc-raised-button > .fa-icon {
         margin-right: 0 !important;
       }
     }
@@ -509,8 +516,8 @@ th {
           }
         }
 
-        mat-icon {
-          font-size: 16px !important;
+        fa-icon {
+          font-size: 20px !important;
         }
 
         .mat-mdc-select {
@@ -536,9 +543,8 @@ th {
 
 @media (min-width: 366px) and (max-width: 480px) {
   .main-page {
-    max-width: 812px;
+    width: 480px;
     padding-right: 1rem;
-    margin-left: 0.5rem;
 
     .function-list {
       flex-direction: column;
@@ -593,14 +599,14 @@ th {
         }
       }
 
-      .mat-mdc-button > .mat-icon,
-      .mat-mdc-raised-button > .mat-icon {
+      .mat-mdc-button > .fa-icon,
+      .mat-mdc-raised-button > .fa-icon {
         margin-right: 0 !important;
       }
     }
 
     ::ng-deep .full-scroll-table-container {
-      max-width: 100%;
+      max-width: 480px !important;
 
       th.mat-mdc-header-cell {
         padding: 2px 4px !important;
@@ -635,8 +641,8 @@ th {
           }
         }
 
-        mat-icon {
-          font-size: 16px !important;
+        fa-icon {
+          font-size: 22px !important;
         }
 
         .mat-mdc-select {
@@ -664,7 +670,6 @@ th {
 @media (min-width: 481px) and (max-width: 959px) {
   .main-page {
     max-width: 812px;
-    width: 100%;
     padding-right: 1rem;
     margin-left: 0.5rem;
 
@@ -702,6 +707,7 @@ th {
           min-width: 40px !important;
           min-height: 40px !important;
         }
+
         .scan-location-input {
           width: 90px !important;
         }
@@ -757,7 +763,7 @@ th {
         }
       }
 
-      mat-icon {
+      fa-icon {
         font-size: 16px !important;
       }
     }
@@ -853,7 +859,7 @@ th {
           font-size: 14px !important;
         }
 
-        mat-icon {
+        fa-icon {
           font-size: 20px !important;
         }
       }

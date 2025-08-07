@@ -11,6 +11,12 @@ import { Router, RouterModule } from "@angular/router";
 import { MatTableDataSource } from "@angular/material/table";
 import { ChangeDetectionStrategy, signal } from "@angular/core";
 import {
+  faDownload,
+  faChevronDown,
+  faChevronRight,
+  faFilter,
+} from "@fortawesome/free-solid-svg-icons";
+import {
   FormBuilder,
   FormsModule,
   ReactiveFormsModule,
@@ -95,7 +101,10 @@ export interface FilterDialogData {
 })
 export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   // #region Public properties
-
+  faDownload = faDownload;
+  faChevronDown = faChevronDown;
+  faChevronRight = faChevronRight;
+  faFilter = faFilter;
   expandedElement: inventory_update_requests | null = null;
   selection = new SelectionModel<inventory_update_requests_history_detail>(
     true,
