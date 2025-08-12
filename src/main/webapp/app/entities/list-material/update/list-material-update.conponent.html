@@ -1,4 +1,4 @@
-<div class="main-page">
+<div class="main-page" style="display: flex; flex-direction: column">
   <div class="function-list">
     <div class="group-title">
       <h2>Danh sách cập nhật vật tư</h2>
@@ -10,12 +10,11 @@
     <div class="group-buttons-main">
       <div class="group-buttons primary">
         <button
-          style="padding-right: 4px"
           routerLink="list-material"
           (click)="goBackToList()"
           mat-raised-button
         >
-          <mat-icon>arrow_back</mat-icon>
+          <fa-icon [icon]="faArrowLeft"></fa-icon>
         </button>
         <button
           class="btn-scan"
@@ -23,7 +22,7 @@
           (click)="startScan()"
           [ngClass]="{ 'scan-active': isScanMode }"
         >
-          <mat-icon>center_focus_weak</mat-icon>
+          <fa-icon [icon]="faCrosshairs" class="scan-btn-icon"></fa-icon>
           <span class="btn-text">Scan</span>
         </button>
         <!-- <div *ngIf="scanError" class="scan-error">{{ scanError }}</div> -->
@@ -51,7 +50,8 @@
         <div *ngIf="(checkedCount$ | async) as count">
           <div *ngIf="count > 0">
             <button (click)="openEditSelectedDialog()" mat-raised-button>
-              <span class="btn-text">Cập nhật</span><mat-icon>update</mat-icon>
+              <fa-icon [icon]="faPenToSquare"></fa-icon>
+              <span class="btn-text"> Cập nhật</span>
             </button>
           </div>
         </div>
@@ -60,7 +60,7 @@
           [matMenuTriggerFor]="menucolumnselect"
           class="btn-column"
         >
-          <mat-icon>view_column</mat-icon>
+          <fa-icon [icon]="faTableColumns"></fa-icon>
           <span class="btn-text">Columns</span>
         </button>
         <mat-menu #menucolumnselect="matMenu">
@@ -113,7 +113,7 @@
           mat-button
           (click)="exportUpdatedMaterials()"
         >
-          <mat-icon>file_download</mat-icon>
+          <fa-icon [icon]="faDownload"></fa-icon>
           <span class="btn-text">Xuất Excel</span>
         </button>
       </div>
@@ -161,15 +161,37 @@
           <ng-container *ngIf="colDef === 'select_update'">
             <div style="text-align: center; color: white">
               <div>{{ getColumnDisplayName(colDef) }}</div>
-              <mat-checkbox
-                color="primary"
-                class="example-margin"
-                (change)="$event ? toggleAllRows($event.checked) : null"
-                [checked]="isAllSelected()"
-                [indeterminate]="someItemsSelected()"
-                aria-label="Select all rows"
+              <div
+                style="
+                  display: flex;
+                  gap: 3px;
+                  padding: 0;
+                  margin: 0;
+                  align-items: center;
+                  justify-content: center;
+                "
               >
-              </mat-checkbox>
+                <div>
+                  <mat-checkbox
+                    color="primary"
+                    class="example-margin"
+                    (change)="$event ? toggleAllRows($event.checked) : null"
+                    [checked]="isAllSelected()"
+                    [indeterminate]="someItemsSelected()"
+                    aria-label="Select all rows"
+                  >
+                  </mat-checkbox>
+                </div>
+                <div>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    (click)="removeAllFromUpdate()"
+                  >
+                    <fa-icon [icon]="faTrashCan"></fa-icon>
+                  </button>
+                </div>
+              </div>
             </div>
           </ng-container>
 
@@ -183,11 +205,11 @@
             >
               <div>{{ getColumnDisplayName(colDef) }}</div>
               <div>
-                <mat-icon
+                <fa-icon
                   [matMenuTriggerFor]="filterMenuCol"
+                  [icon]="faFilter"
                   style="color: white"
-                  >filter_list</mat-icon
-                >
+                ></fa-icon>
               </div>
             </div>
 
@@ -318,7 +340,7 @@
                     (click)="removeRowFromUpdate(row)"
                     aria-label="Xóa khỏi danh sách cập nhật"
                   >
-                    <mat-icon>delete_outline</mat-icon>
+                    <fa-icon [icon]="faTrashCan"></fa-icon>
                   </button>
                 </div>
               </div>

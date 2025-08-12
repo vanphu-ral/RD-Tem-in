@@ -542,7 +542,7 @@ td.mat-mdc-cell.status-reject {
         }
       }
 
-      mat-icon {
+      fa-icon {
         font-size: 16px !important;
       }
     }
@@ -621,8 +621,7 @@ td.mat-mdc-cell.status-reject {
         text-align: center;
       }
 
-      .mat-mdc-button > .mat-icon,
-      .mat-mdc-raised-button > .mat-icon {
+      .mat-mdc-button > .fa-icon .mat-mdc-raised-button > .fa-icon {
         margin-right: 0 !important;
       }
     }
@@ -666,7 +665,7 @@ td.mat-mdc-cell.status-reject {
           }
         }
 
-        mat-icon {
+        fa-icon {
           font-size: 16px !important;
         }
       }
@@ -777,7 +776,7 @@ td.mat-mdc-cell.status-reject {
           }
         }
 
-        mat-icon {
+        fa-icon {
           font-size: 16px !important;
         }
       }

@@ -10,6 +10,14 @@ import { EntityNavbarItems } from "app/entities/entity-navbar-items";
 import { MainComponent } from "../main/main.component";
 import { NavbarService } from "./navbar.service";
 import {
+  faUserCircle,
+  faGear,
+  faRightFromBracket,
+  faRightToBracket,
+  faBars,
+  faHome,
+} from "@fortawesome/free-solid-svg-icons";
+import {
   trigger,
   state,
   style,
@@ -34,6 +42,12 @@ import { AuthEventService } from "app/core/auth/auth_event.service";
   ],
 })
 export class NavbarComponent implements OnInit {
+  faUserCircle = faUserCircle;
+  faGear = faGear;
+  faRightFromBracket = faRightFromBracket;
+  faRightToBracket = faRightToBracket;
+  faHome = faHome;
+  faBars = faBars;
   isHandset$ = this.responsive.isHandset$;
   inProduction?: boolean;
   public isCollapsed = true;

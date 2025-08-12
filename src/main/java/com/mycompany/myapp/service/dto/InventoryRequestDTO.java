@@ -13,6 +13,7 @@ public class InventoryRequestDTO {
     private String userData4;
     private String locationName;
     private String expirationDate;
+    private String updatedDate;
     private Integer itemPerPage;
     private Integer pageNumber;
 
@@ -26,6 +27,7 @@ public class InventoryRequestDTO {
         String userData4,
         String locationName,
         String expirationDate,
+        String updatedDate,
         Integer itemPerPage,
         Integer pageNumber
     ) {
@@ -38,6 +40,7 @@ public class InventoryRequestDTO {
         this.userData4 = userData4;
         this.locationName = locationName;
         this.expirationDate = expirationDate;
+        this.updatedDate = updatedDate;
         this.itemPerPage = itemPerPage;
         this.pageNumber = pageNumber;
     }
@@ -130,5 +133,13 @@ public class InventoryRequestDTO {
 
     public void setExpirationDate(String expirationDate) {
         this.expirationDate = expirationDate;
+    }
+
+    public String getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(String updatedDate) {
+        this.updatedDate = updatedDate;
     }
 }

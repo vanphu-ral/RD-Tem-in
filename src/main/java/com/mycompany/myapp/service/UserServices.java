@@ -927,11 +927,7 @@ public class UserServices {
     //☺ Tìm kiếm lệnh sản xuất đi kèm với phân trang
     public List<LenhSanXuat> timKiemQuanLyPheDuyet(TemInDTO temInDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(
-            LocalDate.now().getYear(),
-            LocalDate.now().getMonth(),
-            1
-        );
+        LocalDate firstDay = LocalDate.now().minusDays(10);
         String entryTime1 = firstDay.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         String timeUpdate1 = firstDay.toString() + " 00:00:00.000";
@@ -967,11 +963,8 @@ public class UserServices {
     //☺ Lấy thông tin tổng dữ liệu
     public Integer totalData(TemInDTO temInDTO) {
         LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(
-            LocalDate.now().getYear(),
-            LocalDate.now().getMonth(),
-            1
-        );
+        LocalDate firstDay = LocalDate.now().minusDays(10);
+
         String entryTime1 = firstDay.toString() + " 00:00:00.000";
         String entryTime2 = date.toString() + " 23:59:59.000";
         String timeUpdate1 = firstDay.toString() + " 00:00:00.000";

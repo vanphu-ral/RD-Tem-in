@@ -48,6 +48,11 @@ import {
 import { MatRadioButton } from "@angular/material/radio";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { AccountService } from "app/core/auth/account.service";
+import {
+  faFilter,
+  faCrosshairs,
+  faRotateRight,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface Warehouse {
   value: string;
@@ -105,6 +110,9 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   @Input() selectedWarehouse: RawGraphQLLocation | string | null = null;
   @Input() requestId!: number;
   myControl = new FormControl("");
+  faFilter = faFilter;
+  faCrosshairs = faCrosshairs;
+  faRotateRight = faRotateRight;
   headerQuantityChange: number | null = null;
   filteredOptions!: string[];
   approvers: UserSummary[] = [];
@@ -824,6 +832,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     return found ? found.name : null;
   }
   onSave(): void {
+    this.confirmAndMarkExpired();
     const selectedWarehouseObj = this.dialogForm.get("selectedWarehouseControl")
       ?.value as Warehouse | null;
     const headerWarehouseValue = selectedWarehouseObj?.value ?? null;
@@ -1004,6 +1013,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
 
   // #region Private methods
   private instantApprove(): void {
+    this.confirmAndMarkExpired();
     const selectedWarehouseObj = this.dialogForm.get("selectedWarehouseControl")
       ?.value as Warehouse | null;
     const headerWarehouseValue = selectedWarehouseObj?.value ?? null;
@@ -1158,6 +1168,22 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         });
       }
     });
+  }
+  private confirmAndMarkExpired(): void {
+    const toExtend = this.itemsDataSource.data.filter(
+      (item) => item.calculatedStatus === "Expired" && !item.extendExpiration,
+    );
+
+    if (toExtend.length === 0) {
+      return;
+    }
+
+    const msg = `Có ${toExtend.length} vật tư đã hết hạn. Bạn có muốn gia hạn cho chúng không?`;
+    const answer = window.confirm(msg);
+
+    if (answer) {
+      toExtend.forEach((item) => (item.extendExpiration = true));
+    }
   }
 
   private handleScan(raw: string): void {

@@ -44,6 +44,12 @@ import {
 } from "../list-material/confirm-dialog/confirm-dialog.component";
 import { TimestampToDatePipe } from "app/shared/pipes/timestamp-to-date";
 import { AccountService } from "app/core/auth/account.service";
+import {
+  faDownload,
+  faChevronDown,
+  faChevronRight,
+  faFilter,
+} from "@fortawesome/free-solid-svg-icons";
 
 export interface ColumnConfig {
   name: string;
@@ -95,6 +101,10 @@ export interface FilterDialogData {
 })
 export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
   // #region Public properties
+  faDownload = faDownload;
+  faChevronDown = faChevronDown;
+  faChevronRight = faChevronRight;
+  faFilter = faFilter;
   expandedElement: inventory_update_requests | null = null;
   selection = new SelectionModel<inventory_update_requests_detail>(true, []);
   STATUS_LABELS = STATUS_LABELS;

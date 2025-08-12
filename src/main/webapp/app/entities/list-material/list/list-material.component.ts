@@ -8,6 +8,7 @@ import {
   ChangeDetectorRef,
   QueryList,
   ViewChildren,
+  HostListener,
 } from "@angular/core";
 import { Params, Router } from "@angular/router";
 import { MatTableDataSource } from "@angular/material/table";
@@ -45,6 +46,18 @@ import { ActivatedRoute } from "@angular/router";
 import { HttpParams } from "@angular/common/http";
 import { HttpClient } from "@angular/common/http";
 import saveAs from "file-saver";
+import {
+  faDownload,
+  faChevronDown,
+  faChevronRight,
+  faFilter,
+  faCrosshairs,
+  faRotateRight,
+  faListCheck,
+  faEye,
+  faTableColumns,
+  faCircleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface sumary_mode {
   value: string;
@@ -76,7 +89,14 @@ export interface FilterDialogData {
 })
 export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   // #region Public properties
-
+  faDownload = faDownload;
+  faFilter = faFilter;
+  faCrosshairs = faCrosshairs;
+  faRotateRight = faRotateRight;
+  faListCheck = faListCheck;
+  faEye = faEye;
+  faTableColumns = faTableColumns;
+  faCircleExclamation = faCircleExclamation;
   value = "";
   tableMaxWidth: string = "100%";
   displayedColumns: string[] = [
@@ -183,6 +203,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   selection = new SelectionModel<RawGraphQLMaterial>(true, []);
   checkedCount = signal(0);
   form!: FormGroup;
+  dateModels: { [key: string]: Date | null } = {};
   locale = "en-GB";
   sumary_modes: sumary_mode[] = [
     { value: "partNumber", name: "Part Number", link: "/list-material/sumary" },
@@ -215,6 +236,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   filterApplied: boolean = false;
   filterInputs!: QueryList<ElementRef<HTMLInputElement | HTMLSelectElement>>;
   dateInputs: Record<string, string> = {};
+  public inputValues: Record<string, string> = {};
 
   // #endregion
 
@@ -236,6 +258,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   private canUpdate = false;
   private scanBuffer = "";
   private readonly scanTimeoutDelay = 300;
+  private readonly FILTER_CACHE_KEY = "listMaterialFilters";
+  private skipNextFilterChange = false;
 
   // #endregion
 
@@ -271,14 +295,22 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.filterChange$
       .pipe(debounceTime(300), takeUntil(this.ngUnsubscribe))
-      .subscribe(() => this.updateRouteWithFilters(true));
+      .subscribe(() => {
+        this.updateRouteWithFilters(true);
+      });
 
     const initialParams = this.route.snapshot.queryParams;
-    this.mapParamsToFilters(initialParams);
-    this.pageIndex = (initialParams.page ?? 1) - 1;
-    this.pageSize = initialParams.pageSize ?? this.pageSize;
+    const cachedParams = this.getCachedFilters();
+    const effectiveParams =
+      Object.keys(initialParams).length > 0
+        ? initialParams
+        : (cachedParams ?? {});
+
+    this.mapParamsToFilters(effectiveParams);
+    this.pageIndex = (effectiveParams.page ?? 1) - 1;
+    this.pageSize = effectiveParams.pageSize ?? this.pageSize;
     this.fetchPage({
-      ...initialParams,
+      ...effectiveParams,
       page: this.pageIndex + 1,
       pageSize: this.pageSize,
     });
@@ -292,6 +324,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         this.fetchPage(params);
       });
   }
+
   onPageChange(event: PageEvent): void {
     this.router.navigate([], {
       relativeTo: this.route,
@@ -408,13 +441,15 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.setDateFilter(col, date);
   }
   public applyDatePickerByTyping(col: string, raw: string): void {
-    // console.log("Typing raw date:", col, raw);
     this.isLoading = true;
+    raw = raw.trim();
+
     if (raw === "") {
       this.setDateFilter(col, null);
+      this.dateModels[col] = null;
       return;
     }
-    raw = raw.trim();
+
     if (this.FULL_DATE_REGEX.test(raw)) {
       const [dd, mm, yyyy] = raw.split("/").map((n) => +n);
       if (
@@ -423,10 +458,15 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         dd >= 1 &&
         dd <= new Date(yyyy, mm, 0).getDate()
       ) {
-        this.setDateFilter(col, new Date(yyyy, mm - 1, dd));
+        const date = new Date(yyyy, mm - 1, dd);
+        this.setDateFilter(col, date);
+        this.dateModels[col] = date;
         return;
       }
     }
+
+    // Nếu không hợp lệ
+    this.dateModels[col] = null;
   }
 
   onDateInputChange(col: string, str: string): void {
@@ -452,7 +492,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       ) {
         const ts = Math.floor(date.getTime() / 1000).toString();
         this.filterModes[col] = "equals";
-        this.searchTerms[col] = { mode: "equals", value: ts };
+        this.searchTerms[col] = { value: ts };
         this.updateRouteWithFilters(true);
       }
     }
@@ -576,12 +616,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
   onScanLocationEnter(raw: string): void {
-    const processed = this.processScanInput(raw);
-
-    if (!processed) {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      this.applyFilter("locationName", "");
       return;
     }
 
+    const processed = this.processScanInput(trimmed);
     this.applyFilter("locationName", processed);
   }
 
@@ -711,6 +752,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isScanMode = false;
     this.dataSource.data = [];
     this.length = 0;
+    localStorage.removeItem(this.FILTER_CACHE_KEY);
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -770,11 +812,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       delete this.filterModes[colDef];
     }
 
-    const params: any = {
-      page: 1,
-      pageSize: this.pageSize,
-    };
-
+    const params: any = { page: 1, pageSize: this.pageSize };
     Object.entries(this.searchTerms).forEach(([col, term]) => {
       params[col] = term.value;
       params[col + "Mode"] = term.mode;
@@ -786,7 +824,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       replaceUrl: true,
     });
 
-    this.fetchPage(params);
+    this.filterChange$.next();
   }
 
   isDateField(colDef: string): boolean {
@@ -990,6 +1028,11 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dateInputs = {};
 
     const cols = this.displayedColumns.filter((c) => c !== "select");
+    this.displayedColumns
+      .filter((c) => c !== "select")
+      .forEach((col) => {
+        this.inputValues[col] = this.searchTerms[col]?.value || "";
+      });
     cols.forEach((col) => {
       const val = params[col];
       if (val != null && val !== "") {
@@ -1005,9 +1048,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           this.searchTerms[col] = { value: val, mode };
           this.filterModes[col] = mode;
         }
+      } else {
+        delete this.searchTerms[col];
+        delete this.filterModes[col];
       }
     });
   }
+
   private processScanInput(scanValue: string): string {
     let result = scanValue;
     result = result.replace(/^LO/i, "");
@@ -1028,14 +1075,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0),
       );
       const ts = Math.floor(d0.getTime() / 1000).toString();
+      this.dateModels[col] = date ?? null;
+      this.dateInputs[col] = date
+        ? formatDate(d0, "dd/MM/yyyy", this.locale)
+        : "";
+      this.searchTerms[col] = { value: ts };
 
-      this.searchTerms[col] = ts;
+      // console.log("Set filter for", col, "→", ts);
       this.dateInputs[col] = formatDate(d0, "dd/MM/yyyy", this.locale);
     } else {
       delete this.searchTerms[col];
       delete this.dateInputs[col];
     }
-
     this.filterChange$.next();
   }
   private fetchPage(params: any): void {
@@ -1092,10 +1143,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     const params: any = { page: 1, pageSize: this.pageSize };
 
     Object.entries(this.searchTerms).forEach(([col, term]) => {
-      if (this.isDateField(col)) {
-        params[col] = term;
-      } else {
-        params[col] = term.value;
+      params[col] = term.value;
+      if (!this.isDateField(col)) {
         params[col + "Mode"] = term.mode;
       }
     });
@@ -1108,6 +1157,17 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     if (triggerFetch) {
       this.fetchPage(params);
     }
+    // console.log("Query params:", params);
+    this.cacheFilters(params);
+  }
+
+  private cacheFilters(params: Params): void {
+    localStorage.setItem(this.FILTER_CACHE_KEY, JSON.stringify(params));
+  }
+
+  private getCachedFilters(): Params | null {
+    const raw = localStorage.getItem(this.FILTER_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Params) : null;
   }
 
   private getCurrentPageRows(): RawGraphQLMaterial[] {

@@ -399,6 +399,7 @@ th {
       font-size: 13px;
       font-weight: bold;
       margin: 5px 2px;
+      width: 80%;
     }
   }
 
@@ -522,7 +523,7 @@ th {
         }
       }
 
-      mat-icon {
+      fa-icon {
         font-size: 16px !important;
       }
     }
@@ -703,7 +704,7 @@ th {
         }
       }
 
-      mat-icon {
+      fa-icon {
         font-size: 16px !important;
       }
     }
@@ -739,6 +740,7 @@ th {
     .right-header {
       display: flex;
       .small-approve-field {
+        width: 125px !important;
         height: 30px !important;
         font-size: 11px !important;
       }
@@ -870,7 +872,7 @@ th {
         }
       }
 
-      mat-icon {
+      fa-icon {
         font-size: 16px !important;
       }
     }
@@ -885,6 +887,10 @@ th {
     flex-direction: column !important;
 
     .dialog-notice {
+      font-size: 11px;
+      padding: 1px;
+    }
+    .dialog-info {
       font-size: 11px;
       padding: 1px;
     }
@@ -921,7 +927,7 @@ th {
         }
       }
 
-      mat-icon {
+      fa-icon {
         font-size: 20px !important;
       }
     }

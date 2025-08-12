@@ -49,7 +49,17 @@ import { Observable } from "rxjs";
 import { APISumaryResponse } from "../services/list-material.service";
 import { HttpParams } from "@angular/common/http";
 import { HttpClient } from "@angular/common/http";
-
+import {
+  faDownload,
+  faChevronDown,
+  faChevronRight,
+  faFilter,
+  faCrosshairs,
+  faRotateRight,
+  faListCheck,
+  faEye,
+  faTableColumns,
+} from "@fortawesome/free-solid-svg-icons";
 interface sumary_mode {
   value: string;
   name: string;
@@ -124,7 +134,15 @@ export interface AggregatedDetailData {
 export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
   // #region Public properties
   // public summaryData?: APISumaryResponse;
-
+  faDownload = faDownload;
+  faFilter = faFilter;
+  faCrosshairs = faCrosshairs;
+  faRotateRight = faRotateRight;
+  faListCheck = faListCheck;
+  faEye = faEye;
+  faChevronDown = faChevronDown;
+  faChevronRight = faChevronRight;
+  faTableColumns = faTableColumns;
   tableWidth: string = "100%";
   value = "";
   groupingFields: string[] = [

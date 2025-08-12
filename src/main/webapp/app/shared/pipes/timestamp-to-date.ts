@@ -58,7 +58,11 @@ export class TimestampToDatePipe implements PipeTransform {
       hour12: false,
     };
 
-    const datePart = date.toLocaleDateString(locale, optionsDate);
+    const datePart = date.toLocaleDateString(locale, {
+      ...optionsDate,
+      timeZone: "UTC",
+    });
+
     const timePart = date.toLocaleTimeString(locale, optionsTime);
 
     return `${datePart}`;
