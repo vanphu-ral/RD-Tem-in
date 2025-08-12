@@ -15,9 +15,9 @@
 
 logging:
   level:
-    ROOT: DEBUG
-    tech.jhipster: DEBUG
-    com.mycompany.myapp: DEBUG
+    ROOT: ERROR
+    tech.jhipster: ERROR
+    com.mycompany.myapp: ERROR
 
 management:
   metrics:

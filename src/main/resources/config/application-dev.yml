@@ -15,10 +15,10 @@
 
 logging:
   level:
-    ROOT: DEBUG
-    tech.jhipster: DEBUG
+    ROOT: ERROR
+    tech.jhipster: ERROR
     org.hibernate.SQL: ERROR
-    com.mycompany.myapp: DEBUG
+    com.mycompany.myapp: ERROR
 
 spring:
   devtools:
