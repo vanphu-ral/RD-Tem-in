@@ -6,12 +6,12 @@
     <!--
         Added the constraints for entity ChiTietKichBan.
     -->
-    <changeSet id="20231017035304-2" author="jhipster">
+<!--    <changeSet id="20231017035304-2" author="jhipster">-->
 
-        <addForeignKeyConstraint baseColumnNames="kich_ban_id"
-                                 baseTableName="chi_tiet_kich_ban"
-                                 constraintName="fk_chi_tiet_kich_ban__kich_ban_id"
-                                 referencedColumnNames="id"
-                                 referencedTableName="kich_ban"/>
-    </changeSet>
+<!--        <addForeignKeyConstraint baseColumnNames="kich_ban_id"-->
+<!--                                 baseTableName="chi_tiet_kich_ban"-->
+<!--                                 constraintName="fk_chi_tiet_kich_ban__kich_ban_id"-->
+<!--                                 referencedColumnNames="id"-->
+<!--                                 referencedTableName="kich_ban"/>-->
+<!--    </changeSet>-->
 </databaseChangeLog>

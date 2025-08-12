@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 // ☺ đã Test với front-end
 @RestController
 @RequestMapping("/api")
-@Transactional
 public class UserController {
 
     private final KeycloakUserService userService;

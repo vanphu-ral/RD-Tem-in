@@ -192,6 +192,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   private scanBuffer = "";
   private scanTimeoutId: any;
   private scanDelay = 250;
+  private focusCheckId: number | null = null;
 
   // #endregion
 
@@ -631,6 +632,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   clearScanState(): void {
     this.scanLoadingAll = false;
     this.currentScanRow = null;
+    this.stopScanFocusLoop();
 
     Object.keys(this.scanLoadingRow).forEach((key) => {
       this.scanLoadingRow[key] = false;
@@ -653,7 +655,10 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     this.currentScanRow = item;
     this.scanLoadingRow[item.materialIdentifier] = true;
 
-    setTimeout(() => this.scanInput?.nativeElement?.focus(), 0);
+    setTimeout(() => {
+      this.scanInput?.nativeElement?.focus();
+      this.checkScanFocusLoop();
+    }, 0);
   }
 
   scanLocationForAll(): void {
@@ -670,7 +675,10 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     this.currentScanRow = null;
 
     if (this.isScanAll) {
-      setTimeout(() => inputEl?.focus(), 0);
+      setTimeout(() => {
+        inputEl?.focus();
+        this.checkScanFocusLoop();
+      }, 0);
     } else {
       inputEl?.blur();
     }
@@ -687,6 +695,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
         ?.setValue(null, { emitEvent: true });
       this.scanLoadingRow[item.materialIdentifier] = false;
       this.cdr.markForCheck();
+      this.stopScanFocusLoop();
     }, 300);
   }
   refreshForAll(): void {
@@ -713,6 +722,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
 
       this.scanLoadingAll = false;
       this.cdr.markForCheck();
+      this.stopScanFocusLoop();
     }, 300);
   }
   onScanLocationInput(event: Event): void {
@@ -1012,6 +1022,27 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   // #endregion
 
   // #region Private methods
+  private checkScanFocusLoop(): void {
+    const inputEl = this.scanInput?.nativeElement;
+    if (
+      (this.isScanAll || this.currentScanRow) &&
+      document.activeElement !== inputEl
+    ) {
+      inputEl?.focus();
+    }
+
+    if (this.isScanAll || this.currentScanRow) {
+      this.focusCheckId = requestAnimationFrame(() =>
+        this.checkScanFocusLoop(),
+      );
+    }
+  }
+  private stopScanFocusLoop(): void {
+    if (this.focusCheckId !== null) {
+      cancelAnimationFrame(this.focusCheckId);
+      this.focusCheckId = null;
+    }
+  }
   private instantApprove(): void {
     this.confirmAndMarkExpired();
     const selectedWarehouseObj = this.dialogForm.get("selectedWarehouseControl")

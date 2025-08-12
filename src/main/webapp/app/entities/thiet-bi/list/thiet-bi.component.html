@@ -1,9 +1,13 @@
 <div>
-  <h2 id="page-heading" data-cy="ThietBiHeading">
+  <h2 id="page-heading" class="page-heading" data-cy="ThietBiHeading">
     <span>Quản lý thiết bị</span>
 
     <div class="d-flex justify-content-end">
-      <button class="btn btn-info me-2" (click)="loadPage()" [disabled]="isLoading">
+      <button
+        class="btn btn-info me-2"
+        (click)="loadPage()"
+        [disabled]="isLoading"
+      >
         <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
         <span>Refresh List</span>
       </button>
@@ -27,19 +31,37 @@
     </div>
   </div>
 
-  <div class="table-responsive" id="entities" *ngIf="thietBis && thietBis.length > 0">
+  <div
+    class="table-responsive"
+    id="entities"
+    *ngIf="thietBis && thietBis.length > 0"
+  >
     <form [formGroup]="formSearch">
       <table class="table table-striped" aria-describedby="page-heading">
         <thead>
-          <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending" (sortChange)="loadPage()">
+          <tr
+            jhiSort
+            [(predicate)]="predicate"
+            [(ascending)]="ascending"
+            (sortChange)="loadPage()"
+          >
             <th scope="col" jhiSortBy="id">
               <span>STT</span>
-              <input type="text" style="width: 10px; border: none; background-color: #6c7ae0" />
+              <input
+                type="text"
+                style="width: 10px; border: none; background-color: #6c7ae0"
+              />
             </th>
             <th scope="col" jhiSortBy="loaiThietBi">
               <!-- ----------------------------- Tìm kiếm theo Nhóm thiết bị ----------------------------->
               <span>Nhóm thiết bị</span>
-              <input #searchInput type="text" formControlName="loaiThietBi" placeholder="search" list="loaiThietBi" />
+              <input
+                #searchInput
+                type="text"
+                formControlName="loaiThietBi"
+                placeholder="search"
+                list="loaiThietBi"
+              />
               <!--------------------------- chọn mã thông số ----------------------->
               <datalist id="loaiThietBi">
                 <option *ngFor="let data of thietBis">
@@ -51,37 +73,67 @@
             <th scope="col" jhiSortBy="maThietBi">
               <!-- ----------------------------- Tìm kiếm theo mã thiết bị ----------------------------->
               <span>Mã thiết bị</span>
-              <input #searchInput type="text" formControlName="maThietBi" placeholder="search" list="maThietBi" />
+              <input
+                #searchInput
+                type="text"
+                formControlName="maThietBi"
+                placeholder="search"
+                list="maThietBi"
+              />
               <datalist id="maThietBi">
-                <option *ngFor="let data of thietBis" value="{{ data.maThietBi }}"></option>
+                <option
+                  *ngFor="let data of thietBis"
+                  value="{{ data.maThietBi }}"
+                ></option>
               </datalist>
             </th>
 
             <th scope="col" jhiSortBy="dayChuyen">
               <!-- ----------------------------- Tìm kiếm theo dây chuyền ----------------------------->
               <span>Dây chuyền</span>
-              <input #searchInput type="text" formControlName="dayChuyen" placeholder="search" list="dayChuyen" />
+              <input
+                #searchInput
+                type="text"
+                formControlName="dayChuyen"
+                placeholder="search"
+                list="dayChuyen"
+              />
               <datalist id="dayChuyen">
-                <option *ngFor="let data of thietBis" value="{{ data.dayChuyen }}"></option>
+                <option
+                  *ngFor="let data of thietBis"
+                  value="{{ data.dayChuyen }}"
+                ></option>
               </datalist>
             </th>
 
             <th scope="col" jhiSortBy="ngayTao">
               <!-- ----------------------------- Tìm kiếm theo ngày tạo ----------------------------->
               <span>Ngày tạo</span>
-              <input type="date" formControlName="ngayTao" placeholder="search" />
+              <input
+                type="date"
+                formControlName="ngayTao"
+                placeholder="search"
+              />
             </th>
 
             <th scope="col" jhiSortBy="timeUpdate" style="width: 160px">
               <!-- ----------------------------- Tìm kiếm theo ngày cập nhật ----------------------------->
               <span>Thời gian cập nhật</span>
-              <input type="date" formControlName="timeUpdate" placeholder="search" />
+              <input
+                type="date"
+                formControlName="timeUpdate"
+                placeholder="search"
+              />
             </th>
 
             <th scope="col" jhiSortBy="updateBy">
               <!-- ----------------------------- Tìm kiếm theo người tạo----------------------------->
               <span>Update By</span>
-              <select class="form-control form-select" formControlName="updateBy" style="width: 6em">
+              <select
+                class="form-control form-select"
+                formControlName="updateBy"
+                style="width: 6em"
+              >
                 <option value="admin">admin</option>
                 <option value="user">user</option>
               </select>
@@ -97,13 +149,21 @@
             </th>
 
             <th scope="col">
-              <span>Options<input style="border: none; width: 70%; background-color: #6c7ae0" /></span>
+              <span
+                >Options<input
+                  style="border: none; width: 70%; background-color: #6c7ae0"
+              /></span>
             </th>
           </tr>
         </thead>
         <tbody>
           <tr
-            *ngFor="let thietBi of thietBis | paginate: { itemsPerPage: itemPerPage, currentPage: page }; let i = index; trackBy: trackId"
+            *ngFor="
+              let thietBi of thietBis
+                | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+              let i = index;
+              trackBy: trackId
+            "
             data-cy="entityTable"
           >
             <td>{{ i + 1 }}</td>
@@ -152,15 +212,22 @@
     </form>
   </div>
   <div *ngIf="thietBis && thietBis.length > 0">
-    <div>
-      <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage">
+    <div class="pagiantorr">
+      <select
+        class="form-select"
+        aria-label="Default select example"
+        [(ngModel)]="itemPerPage"
+      >
         <option value="10">10</option>
         <option value="15">15</option>
         <option value="20">20</option>
         <option value="all">All</option>
       </select>
 
-      <pagination-controls (pageChange)="page = $event" style="float: right"></pagination-controls>
+      <pagination-controls
+        (pageChange)="page = $event"
+        style="float: right"
+      ></pagination-controls>
     </div>
   </div>
 </div>

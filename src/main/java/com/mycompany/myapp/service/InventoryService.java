@@ -13,6 +13,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import javax.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -289,6 +290,7 @@ public class InventoryService {
         );
     }
 
+    @Transactional
     public boolean updateInventory(List<InventoryDTO> request) {
         boolean updated = false;
         try {

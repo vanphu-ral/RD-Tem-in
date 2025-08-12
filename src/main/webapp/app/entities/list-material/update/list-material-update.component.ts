@@ -217,6 +217,7 @@ export class ListMaterialUpdateComponent
   private scanBuffer = "";
   private scanTimeoutId: any;
   private readonly scanTimeoutDelay = 300;
+  private focusCheckId: number | null = null;
 
   // #endregion
 
@@ -456,16 +457,20 @@ export class ListMaterialUpdateComponent
 
   startScan(): void {
     this.isScanMode = !this.isScanMode;
+
     if (this.isScanMode) {
       this.scanResult = "";
       setTimeout(() => {
         this.scanInput.nativeElement.value = "";
         this.scanInput.nativeElement.focus();
+        this.checkFocusLoop(); // 🔁 Bắt đầu kiểm tra focus
       }, 0);
     } else {
       this.scanInput.nativeElement.blur();
+      this.stopFocusLoop(); // 🛑 Dừng kiểm tra focus
     }
   }
+
   onWarehouseScanInput(event: Event): void {
     const inputEl = event.target as HTMLInputElement;
     const raw = inputEl.value.trim();
@@ -575,6 +580,7 @@ export class ListMaterialUpdateComponent
 
   exitScanMode(): void {
     this.isScanMode = false;
+    this.stopFocusLoop();
   }
   onScanInput(raw: string): void {
     this.scanBuffer = raw;
@@ -1122,6 +1128,25 @@ export class ListMaterialUpdateComponent
 
     return result.trim();
   }
+  private checkFocusLoop(): void {
+    if (
+      this.isScanMode &&
+      document.activeElement !== this.scanInput.nativeElement
+    ) {
+      this.scanInput.nativeElement.focus();
+    }
+
+    if (this.isScanMode) {
+      this.focusCheckId = requestAnimationFrame(() => this.checkFocusLoop());
+    }
+  }
+  private stopFocusLoop(): void {
+    if (this.focusCheckId !== null) {
+      cancelAnimationFrame(this.focusCheckId);
+      this.focusCheckId = null;
+    }
+  }
+
   private onScannedCode(code: string): void {
     const cached = this.materialService.getCachedMaterial(code);
     if (cached) {

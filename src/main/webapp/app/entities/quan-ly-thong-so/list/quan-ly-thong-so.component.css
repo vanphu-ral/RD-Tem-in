@@ -1,11 +1,14 @@
 * {
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
 }
 table {
-  width: 100%;
+  width: 98%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
+}
+.page-heading {
+  width: 98%;
 }
 
 th {
@@ -60,7 +63,7 @@ td {
   border-bottom-right-radius: 5px !important;
 }
 
-th[scope='col'] {
+th[scope="col"] {
   position: relative;
 }
 
@@ -143,7 +146,7 @@ ul.search-result {
 .jimu-primary-loading:after {
   position: absolute;
   top: 0;
-  content: '';
+  content: "";
 }
 
 .jimu-primary-loading:before {
@@ -239,6 +242,6 @@ ul.search-result {
   padding: 5px;
 }
 
-.dropdown input[type='checkbox'] {
+.dropdown input[type="checkbox"] {
   margin-right: 5px;
 }
