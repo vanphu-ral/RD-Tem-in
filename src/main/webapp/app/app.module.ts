@@ -49,9 +49,7 @@ import { GraphQLModule } from "./graphql.module";
 // import { HttpLinkModule } from 'apollo-angular/http';
 import { ListMaterialModule } from "./entities/list-material/list-material.module";
 import { IdleService } from "./entities/list-material/services/idle.service";
-export function initIdle(idle: IdleService) {
-  return () => {};
-}
+
 export const MY_DATE_FORMATS = {
   parse: { dateInput: "DD/MM/YYYY" },
   display: {
@@ -106,13 +104,6 @@ export const MY_DATE_FORMATS = {
     { provide: LOCALE_ID, useValue: "vi" },
     { provide: NgbDateAdapter, useClass: NgbDateDayjsAdapter },
     httpInterceptorProviders,
-    IdleService,
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initIdle,
-      deps: [IdleService],
-      multi: true,
-    },
     { provide: MAT_DATE_LOCALE, useValue: "en-GB" },
     { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
   ],
