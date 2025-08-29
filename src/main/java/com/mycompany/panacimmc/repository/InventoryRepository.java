@@ -451,6 +451,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,b.Location_FullName AS locationName\n" +
         "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
         "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
+        "    ,d3.InventoryMaterialTraceDetail_MaterialTraceDataValue  as userData5 " +
         "FROM Inventory a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
@@ -461,6 +462,9 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
+        "LEFT JOIN InventoryMaterialTraceDetail d3 \n" +
+        "  ON d3.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d3.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 5' \n" +
         "WHERE a.Inventory_MaterialIdentifier like ?1 " +
         "AND a.Inventory_Status in(3,6,19) and Inventory_Quantity >0 " +
         "AND a.Inventory_Status like ?2 " +
@@ -507,6 +511,10 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
         "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
+        "  LEFT JOIN InventoryMaterialTraceDetail d3 \n" +
+        "  ON d3.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+        " AND d3.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 5'\n" +
+        "\n" +
         "WHERE a.Inventory_MaterialIdentifier like ?1 " +
         "AND a.Inventory_Status in(3,6,19) and Inventory_Quantity >0 " +
         "AND a.Inventory_Status like ?2 " +

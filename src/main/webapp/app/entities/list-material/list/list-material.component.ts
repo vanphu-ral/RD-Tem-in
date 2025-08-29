@@ -102,6 +102,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   displayedColumns: string[] = [
     "select",
     "userData4",
+    "userData5",
     "lotNumber",
     "materialTraceId",
     "inventoryId",
@@ -156,6 +157,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       { name: "Lot Number", matColumnDef: "lotNumber", completed: true },
       { name: "User Data 4", matColumnDef: "userData4", completed: true },
+      { name: "User Data 5", matColumnDef: "userData5", completed: true },
       { name: "Location Name", matColumnDef: "locationName", completed: true },
       {
         name: "Parent LocationId",
@@ -299,29 +301,42 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         this.updateRouteWithFilters(true);
       });
 
-    const initialParams = this.route.snapshot.queryParams;
-    const cachedParams = this.getCachedFilters();
-    const effectiveParams =
-      Object.keys(initialParams).length > 0
-        ? initialParams
-        : (cachedParams ?? {});
-
-    this.mapParamsToFilters(effectiveParams);
-    this.pageIndex = (effectiveParams.page ?? 1) - 1;
-    this.pageSize = effectiveParams.pageSize ?? this.pageSize;
-    this.fetchPage({
-      ...effectiveParams,
-      page: this.pageIndex + 1,
-      pageSize: this.pageSize,
-    });
-
     this.route.queryParams
-      .pipe(skip(1), takeUntil(this.ngUnsubscribe))
+      .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((params) => {
-        this.mapParamsToFilters(params);
-        this.pageIndex = (params.page ?? 1) - 1;
-        this.pageSize = params.pageSize ?? this.pageSize;
-        this.fetchPage(params);
+        const initialParams = this.route.snapshot.queryParams;
+        //Lấy param từ cache
+        // const cachedParams = this.getCachedFilters();
+        // const effectiveParams =
+        //   Object.keys(params).length > 0 ? params : (cachedParams ?? {});
+
+        if (Object.keys(params).length === 0) {
+          this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { page: 1, pageSize: this.pageSize },
+            replaceUrl: true,
+          });
+          return;
+        }
+
+        //lấy param từ
+        // this.mapParamsToFilters(effectiveParams);
+        // this.pageIndex = (effectiveParams.page ?? 1) - 1;
+        // this.pageSize = effectiveParams.pageSize ?? this.pageSize;
+        // this.fetchPage({
+        //   ...effectiveParams,
+        //   page: this.pageIndex + 1,
+        //   pageSize: this.pageSize,
+        // });
+
+        this.mapParamsToFilters(initialParams);
+        this.pageIndex = (initialParams.page ?? 1) - 1;
+        this.pageSize = initialParams.pageSize ?? this.pageSize;
+        this.fetchPage({
+          ...initialParams,
+          page: this.pageIndex + 1,
+          pageSize: this.pageSize,
+        });
       });
   }
 
@@ -390,6 +405,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       partId: "PartId",
       lotNumber: "Lot Number",
       userData4: "User Data 4",
+      userData5: "User Data 5",
       calculatedStatus: "Calculated Status",
       partNumber: "Part Number",
       trackingType: "Tracking Type",
@@ -865,6 +881,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       "STT",
       "Material Indentifier",
       "User Data 4",
+      "User Data 5",
       "Lot Number",
       "Material Trace ID",
       "Inventory ID",
@@ -923,6 +940,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           STT: i + 1,
           "Material Indentifier": row.materialIdentifier,
           "User Data 4": row.userData4,
+          "User Data 5": row.userData5,
           "Lot Number": row.lotNumber,
           "Material Trace ID": row.materialTraceId,
           "Inventory ID": row.inventoryId,
@@ -1158,7 +1176,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       this.fetchPage(params);
     }
     // console.log("Query params:", params);
-    this.cacheFilters(params);
+    // this.cacheFilters(params);
   }
 
   private cacheFilters(params: Params): void {

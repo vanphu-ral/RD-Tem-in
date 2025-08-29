@@ -53,6 +53,7 @@ public interface InventoryResponse {
     // Các field từ bảng liên kết
     String getLocationName();
     String getUserData4();
+    String getUserData5();
     String getLotNumber();
     String getRecordCount();
 }

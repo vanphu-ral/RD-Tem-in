@@ -11,6 +11,7 @@ public class InventoryRequestDTO {
     private Integer availableQuantity;
     private String lotNumber;
     private String userData4;
+    private String userData5;
     private String locationName;
     private String expirationDate;
     private String updatedDate;
@@ -25,6 +26,7 @@ public class InventoryRequestDTO {
         Integer availableQuantity,
         String lotNumber,
         String userData4,
+        String userData5,
         String locationName,
         String expirationDate,
         String updatedDate,
@@ -38,11 +40,20 @@ public class InventoryRequestDTO {
         this.availableQuantity = availableQuantity;
         this.lotNumber = lotNumber;
         this.userData4 = userData4;
+        this.userData5 = userData5;
         this.locationName = locationName;
         this.expirationDate = expirationDate;
         this.updatedDate = updatedDate;
         this.itemPerPage = itemPerPage;
         this.pageNumber = pageNumber;
+    }
+
+    public String getUserData5() {
+        return userData5;
+    }
+
+    public void setUserData5(String userData5) {
+        this.userData5 = userData5;
     }
 
     public Integer getItemPerPage() {
