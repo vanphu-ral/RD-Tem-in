@@ -16,11 +16,13 @@ public class InventoryUpdateRequestsController {
 
     @PostMapping("")
     public void updateInSert(@RequestBody RequestDTO requestDTO) {
+        System.out.println("Cong doan: 11");
         this.inventoryUpdateRequestsService.updateInfo(requestDTO);
     }
 
     @GetMapping("")
     public List<InventoryUpdateRequests> getAll() {
+        System.out.println("Cong doan: 12");
         return this.inventoryUpdateRequestsService.getAll();
     }
 }

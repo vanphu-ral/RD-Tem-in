@@ -18,17 +18,19 @@ public class InventoryUpdateRequestsHistoryController {
     public List<InventoryUpdateRequestsHistory> getAllByDateRange(
         @RequestBody TimeRangeDTO timeRangeDTO
     ) {
+        System.out.println("Cong doan: 14");
         return this.inventoryUpdateRequestsHistoryService.getAllByRange(
-                timeRangeDTO
-            );
+            timeRangeDTO
+        );
     }
 
     @GetMapping("/{requestCode}")
     public List<InventoryUpdateRequestsHistory> findAllByRequestCode(
         @PathVariable String requestCode
     ) {
+        System.out.println("Cong doan: 15");
         return this.inventoryUpdateRequestsHistoryService.findAllByRequestCode(
-                requestCode
-            );
+            requestCode
+        );
     }
 }

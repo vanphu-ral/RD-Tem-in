@@ -20,6 +20,7 @@ public class InventoryUpdateRequestsDetailController {
     public List<InventoryUpdateRequestsDetail> getDetail(
         @PathVariable Long id
     ) {
+        System.out.println("Cong doan: 13");
         return this.inventoryUpdateRequestsDetailService.getByRequestId(id);
     }
 }

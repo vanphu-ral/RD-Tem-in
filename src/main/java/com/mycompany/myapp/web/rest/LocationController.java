@@ -18,6 +18,7 @@ public class LocationController {
 
     @GetMapping
     public List<LocationResponse> getAll() {
+        System.out.println("Cong doan: 16");
         return this.locationService.getAll();
     }
 }

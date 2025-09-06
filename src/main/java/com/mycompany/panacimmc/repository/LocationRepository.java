@@ -10,12 +10,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LocationRepository extends JpaRepository<Location, Long> {
     @Query(
-        value = "select " +
-        "Location_Id as id" +
-        ",Location_Name as locationName " +
-        ",Location_FullName as locationFullName" +
-        " from Location ;",
+        value = "SELECT l.Location_Id AS id, l.Location_Name AS locationName, l.Location_FullName AS locationFullName " +
+        "FROM Location l " +
+        "INNER JOIN ( " +
+        "   SELECT MIN(Location_Id) AS minId " +
+        "   FROM Location " +
+        "   GROUP BY Location_Name " +
+        ") sub ON l.Location_Id = sub.minId",
         nativeQuery = true
     )
-    public List<LocationResponse> getFullLocation();
+    List<LocationResponse> getFullLocation();
 }

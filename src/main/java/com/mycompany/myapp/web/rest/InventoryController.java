@@ -23,6 +23,7 @@ public class InventoryController {
     public InventoriesResponse getInventoriesResponse(
         @RequestBody InventoryRequestDTO request
     ) {
+        System.out.println("Cong doan: 1");
         return this.inventoryService.getInventoriesResponse(request);
     }
 
@@ -30,6 +31,7 @@ public class InventoryController {
     public InventoriesResponse getDataGroupByPartNumber(
         @RequestBody InventoryRequestDTO request
     ) {
+        System.out.println("Cong doan: 2");
         return this.inventoryService.getDataGroupByPartNumber(request);
     }
 
@@ -37,6 +39,7 @@ public class InventoryController {
     public InventoriesResponse getDataGroupByLotNumber(
         @RequestBody InventoryRequestDTO request
     ) {
+        System.out.println("Cong doan: 3");
         return this.inventoryService.getDataGroupByLotNumber(request);
     }
 
@@ -44,6 +47,7 @@ public class InventoryController {
     public InventoriesResponse getDataGroupByUserData4(
         @RequestBody InventoryRequestDTO request
     ) {
+        System.out.println("Cong doan: 4");
         return this.inventoryService.getDataGroupByUserData4(request);
     }
 
@@ -51,6 +55,7 @@ public class InventoryController {
     public InventoriesResponse getDataGroupByLocationName(
         @RequestBody InventoryRequestDTO request
     ) {
+        System.out.println("Cong doan: 5");
         return this.inventoryService.getDataGroupByLocationName(request);
     }
 
@@ -58,11 +63,13 @@ public class InventoryController {
     public InventoriesResponse getDataDetail(
         @RequestBody InventoryRequestDTO request
     ) {
+        System.out.println("Cong doan: 6");
         return this.inventoryService.getDataDetail(request);
     }
 
     @GetMapping("")
     public List<InventoryResponse> getDataNew() {
+        System.out.println("Cong doan: 7");
         return this.inventoryService.serachNew();
     }
 
@@ -70,6 +77,7 @@ public class InventoryController {
     public ResponseEntity<?> updateInventory(
         @RequestBody List<InventoryDTO> request
     ) {
+        System.out.println("Cong doan: 8");
         try {
             boolean isUpdated = inventoryService.updateInventory(request);
 
@@ -91,6 +99,7 @@ public class InventoryController {
     public ResponseEntity<InventoryResponse> getInventoryByMaterialIdentifier(
         @PathVariable String materialIdentifier
     ) {
+        System.out.println("Cong doan: 9");
         InventoryResponse response = inventoryService.findByInventoryId(
             materialIdentifier
         );
@@ -104,6 +113,7 @@ public class InventoryController {
     public ResponseEntity<List<InventoryResponse>> scanByLocation(
         @PathVariable String locationName
     ) {
+        System.out.println("Cong doan: 10");
         List<InventoryResponse> list =
             inventoryService.findByInventoryLocationName(locationName);
         if (list.isEmpty()) {
