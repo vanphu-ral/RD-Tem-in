@@ -1434,8 +1434,6 @@ public class UserServices {
             this.scanProductRepository.getListProduct(
                 "%" + scanProductDTO.getProductCode() + "%",
                 "%" + scanProductDTO.getProductName() + "%",
-                entryTime1,
-                entryTime2,
                 "%" + scanProductDTO.getUsername() + "%",
                 (scanProductDTO.getPageNumber() - 1) *
                 scanProductDTO.getItemPerPage(),
@@ -1461,8 +1459,6 @@ public class UserServices {
         Integer scanProducts = this.scanProductRepository.getTotalItem(
             "%" + scanProductDTO.getProductCode() + "%",
             "%" + scanProductDTO.getProductName() + "%",
-            entryTime1,
-            entryTime2,
             "%" + scanProductDTO.getUsername() + "%"
         );
         return scanProducts;
