@@ -569,18 +569,25 @@ th {
 
     .right-header {
       flex-direction: column;
+
       .small-approve-field {
         height: 30px !important;
         font-size: 11px !important;
       }
+
       .checkbox-auto-approve {
         .mat-mdc-checkbox {
           padding: 4px;
         }
+
         .checked_label {
           font-size: 11px !important;
         }
       }
+    }
+
+    .btn-text {
+      display: none;
     }
   }
 
@@ -739,16 +746,22 @@ th {
 
     .right-header {
       display: flex;
+
       .small-approve-field {
         width: 125px !important;
         height: 30px !important;
         font-size: 11px !important;
       }
+
       .checkbox-auto-approve {
         .checked_label {
           font-size: 11px !important;
         }
       }
+    }
+
+    .btn-text {
+      display: none;
     }
   }
 
@@ -890,6 +903,7 @@ th {
       font-size: 11px;
       padding: 1px;
     }
+
     .dialog-info {
       font-size: 11px;
       padding: 1px;

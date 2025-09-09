@@ -38,6 +38,10 @@
       <span class="checked_label">Tự phê duyệt</span>
     </mat-checkbox>
   </div>
+  <!-- <button mat-stroked-button (click)="refreshWarehouses()" class="dialog-accept-btn" style="margin-left:auto">
+    <fa-icon [icon]="faRotateRight" class="scan-btn-icon"></fa-icon>
+    <span class="btn-text">Làm mới kho</span>
+  </button> -->
 </div>
 
 <mat-dialog-content class="mat-typography dialog-content">
@@ -369,6 +373,8 @@
                         matInput
                         formControlName="selectedWarehouseControl"
                         [matAutocomplete]="autoWarehouse"
+                        (focus)="openHeaderPanel(headerTrigger)"
+                        #headerTrigger="matAutocompleteTrigger"
                       />
                     </mat-form-field>
 

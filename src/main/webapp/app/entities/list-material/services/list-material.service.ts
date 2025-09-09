@@ -4,6 +4,7 @@ import {
   Observable,
   Subject,
   catchError,
+  firstValueFrom,
   map,
   of,
   retry,
@@ -21,6 +22,7 @@ import { AccountService } from "app/core/auth/account.service";
 import { ApplicationConfigService } from "app/core/config/application-config.service";
 import { AuthServerProvider } from "app/core/auth/auth-session.service";
 import { MatTableDataSource } from "@angular/material/table";
+import { WarehouseCacheService } from "./warehouse-cache.service";
 
 // #region Interfaces
 export interface RawGraphQLLocation {
@@ -273,6 +275,8 @@ export class ListMaterialService {
   private _summaryDataSource = new BehaviorSubject<DataSumary[]>([]);
   private _SumaryData = new BehaviorSubject<DataSumary[]>([]);
   private currentItems: any[] = [];
+  private isLocationLoaded = false;
+  private isFetchingLocations = false;
   // public get summaryData$(): Observable<DataSumary[]> {
   //   return this.summaryDataSource.asObservable();
   // }
@@ -347,6 +351,7 @@ export class ListMaterialService {
     private accountService: AccountService,
     private authServer: AuthServerProvider,
     private applicationConfigService: ApplicationConfigService,
+    private warehouseCache: WarehouseCacheService,
   ) {
     const savedItems = localStorage.getItem("selectedMaterials");
     if (savedItems) {
@@ -360,9 +365,6 @@ export class ListMaterialService {
       }
     }
     this.refreshSelectedItems();
-    // this.fetchLocations();
-
-    // this.fetchLocations();
     this.loadSelectedIds();
     this.fetchMaterialsData(1, this.defaultPageSize)
       .pipe(takeUntil(this.destroy$))
@@ -435,6 +437,7 @@ export class ListMaterialService {
       availableQuantity?: number | null;
       lotNumber?: string;
       userData4?: string;
+      userData5?: string;
       locationName?: string;
       expirationDate?: string;
       updatedDate?: string;
@@ -448,6 +451,7 @@ export class ListMaterialService {
       availableQuantity: filters?.availableQuantity ?? null,
       lotNumber: filters?.lotNumber ?? "",
       userData4: filters?.userData4 ?? "",
+      userData5: filters?.userData5 ?? "",
       locationName: filters?.locationName ?? "",
       expirationDate: filters?.expirationDate ?? "",
       updatedDate: filters?.updatedDate ?? "",
@@ -1065,17 +1069,75 @@ export class ListMaterialService {
   }
 
   //  lấy data location hỗ trợ gửi request
-  public fetchLocations(): void {
-    this.http.get<RawGraphQLLocation[]>(this.apiLocations).subscribe({
-      next: (data) => {
-        this._locationsData.next(data);
-        // console.log("Da lay du lieu locations:", data);
-      },
-      error: (err) => {
-        console.error("Loi lay api locations:", err);
-        this._locationsData.next([]);
-      },
-    });
+
+  // Lưu dữ liệu vào Dexie
+  async cacheLocations(data: RawGraphQLLocation[]): Promise<void> {
+    try {
+      // console.log(`💾 Đang lưu ${data.length} bản ghi vào IndexedDB...`);
+      await this.warehouseCache.saveAll(
+        data.map((loc) => ({
+          locationId: loc.id,
+          locationName: loc.locationName,
+          locationFullName: loc.locationFullName,
+        })),
+      );
+      // console.log("✅ Đã lưu dữ liệu kho vào IndexedDB");
+    } catch (err) {
+      // console.error("Lỗi khi lưu cache kho:", err);
+      console.error(err);
+    }
+  }
+
+  // Ưu tiên lấy từ cache
+  public async initLocations(): Promise<void> {
+    if (this.isLocationLoaded || this.isFetchingLocations) {
+      // console.log("🔁 Dữ liệu kho đã được load trước đó, không gọi lại");
+      return;
+    }
+
+    const cached = await this.warehouseCache.getAll();
+    // console.log(`📦 Kiểm tra cache: có ${cached.length} bản ghi`);
+
+    if (cached.length > 0) {
+      // console.log("✅ Dùng dữ liệu từ cache IndexedDB");
+      this._locationsData.next(
+        cached.map((loc) => ({
+          id: loc.locationId,
+          locationName: loc.locationName,
+          locationFullName: loc.locationFullName,
+        })),
+      );
+      this.isLocationLoaded = true;
+    } else {
+      this.isFetchingLocations = true;
+      // console.log("🚨 Cache trống → gọi API để lấy dữ liệu");
+      await this.fetchLocations();
+      this.isLocationLoaded = true;
+      this.isFetchingLocations = false;
+    }
+  }
+  public async fetchLocations(): Promise<void> {
+    // console.log("🌐 Đang gọi API để lấy danh sách kho...");
+    try {
+      const data = await firstValueFrom(
+        this.http.get<RawGraphQLLocation[]>(this.apiLocations),
+      );
+      // console.log(`✅ API trả về ${data.length} bản ghi kho`);
+      this._locationsData.next(data);
+
+      const cached = await this.warehouseCache.getAll();
+      if (cached.length === 0) {
+        // console.log(`💾 Đang lưu ${data.length} bản ghi vào IndexedDB...`);
+        await this.cacheLocations(data);
+        // console.log("✅ Đã lưu dữ liệu kho vào IndexedDB");
+      } else {
+        // console.log("⚠️ Đã có dữ liệu trong IndexedDB, không ghi đè");
+      }
+    } catch (err) {
+      // console.error("❌ Lỗi khi gọi API locations:", err);
+      console.error(err);
+      this._locationsData.next([]);
+    }
   }
 
   // Từ chối cập nhật vào db

@@ -167,7 +167,7 @@ spring:
         provider:
           oidc:
             issuer-uri: http://192.168.68.90:8080/auth/realms/QLSX
-        #            issuer-uri: http://localhost:8180/auth/realms/jhipster
+        #            issuer-uri: http://localhost:8080/auth/realms/jhipster
         registration:
           oidc:
             client-id: tem_in

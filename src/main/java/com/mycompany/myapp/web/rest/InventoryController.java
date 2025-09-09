@@ -68,9 +68,13 @@ public class InventoryController {
     }
 
     @GetMapping("")
-    public List<InventoryResponse> getDataNew() {
+    public List<InventoryResponse> getDataNew(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "1000") int size
+    ) {
         System.out.println("Cong doan: 7");
-        return this.inventoryService.serachNew();
+        int offset = page * size;
+        return this.inventoryService.serachNew(offset, size);
     }
 
     @PostMapping("/update")

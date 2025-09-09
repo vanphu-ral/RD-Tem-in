@@ -28,7 +28,7 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA,
 } from "@angular/material/dialog";
-import { Subscription, Observable, Subject, of } from "rxjs";
+import { Subscription, Observable, Subject, of, from } from "rxjs";
 import { SelectionModel } from "@angular/cdk/collections";
 import {
   RawGraphQLMaterial,
@@ -40,7 +40,15 @@ import {
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { MaterialUpdateService } from "../services/material-update.service";
-import { startWith, map, takeUntil, take } from "rxjs/operators";
+import {
+  startWith,
+  map,
+  takeUntil,
+  take,
+  distinctUntilChanged,
+  debounceTime,
+  switchMap,
+} from "rxjs/operators";
 import {
   DialogContentExampleDialogComponent,
   ConfirmDialogData,
@@ -53,6 +61,8 @@ import {
   faCrosshairs,
   faRotateRight,
 } from "@fortawesome/free-solid-svg-icons";
+import { WarehouseCacheService } from "../services/warehouse-cache.service";
+import { CachedWarehouse } from "../services/warehouse-db";
 
 interface Warehouse {
   value: string;
@@ -211,12 +221,13 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
     private accountService: AccountService,
+    private warehouseCache: WarehouseCacheService,
     // private kcApi: KeycloakApiService,
   ) {
     this.dialogForm = this.fb.group({
       selectedWarehouseControl: [null],
     });
-    this.materialService.fetchLocations();
+    // this.materialService.fetchLocations();
 
     this.locations$ = this.materialService.locationsData$;
 
@@ -252,207 +263,224 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
 
   // #region Lifecycle hooks
   ngOnInit(): void {
-    this.locations$.subscribe((locations) => {
-      this.warehouseSelection = locations.map((loc) => ({
-        value: loc.id.toString(),
-        name: loc.locationFullName,
-      }));
-      // console.log("warehouseSelection:", this.warehouseSelection);
+    this.materialService.initLocations().then(() => {
+      from(this.warehouseCache.getAll()).subscribe((locations) => {
+        this.warehouseSelection = locations.map((loc) => ({
+          value: loc.locationId.toString(),
+          name: loc.locationFullName,
+        }));
+        // console.log("warehouseSelection:", this.warehouseSelection);
 
-      const headerCtl = this.dialogForm.get("selectedWarehouseControl")!;
-      const headerInit =
-        this.warehouseSelection.find((w) => w.value === headerCtl.value) ??
-        null;
-      headerCtl.setValue(headerInit, { emitEvent: false });
-      headerCtl.updateValueAndValidity({ emitEvent: true });
-
-      this.itemsDataSource.data.forEach((item) => {
-        const fg = this.getFormGroupForItem(item);
-        const rowCtl = fg.get("selectedWarehouseItem")!;
-        const initial =
-          this.warehouseSelection.find((w) => w.value === item.locationId) ??
+        const headerCtl = this.dialogForm.get("selectedWarehouseControl")!;
+        const headerInit =
+          this.warehouseSelection.find((w) => w.value === headerCtl.value) ??
           null;
-        rowCtl.setValue(initial, { emitEvent: false });
-        rowCtl.updateValueAndValidity({ emitEvent: true });
-      });
-      this.isWarehouseReady = true;
-      // console.log("[INIT] Danh sách kho đã sẵn sàng");
+        headerCtl.setValue(headerInit, { emitEvent: false });
+        headerCtl.updateValueAndValidity({ emitEvent: true });
 
-      if (this.bufferedScanValue) {
-        const buffered = this.bufferedScanValue;
-        const matched = this.warehouseSelection.find(
-          (w) => w.name.trim().toLowerCase() === buffered.toLowerCase(),
-        );
+        this.itemsDataSource.data.forEach((item) => {
+          const fg = this.getFormGroupForItem(item);
+          const rowCtl = fg.get("selectedWarehouseItem")!;
+          const initial =
+            this.warehouseSelection.find((w) => w.value === item.locationId) ??
+            null;
+          rowCtl.setValue(initial, { emitEvent: false });
+          rowCtl.updateValueAndValidity({ emitEvent: true });
+        });
+        this.isWarehouseReady = true;
+        // console.log("[INIT] Danh sách kho đã sẵn sàng");
 
-        if (matched) {
-          if (this.isScanAll) {
-            this.globalWarehouseChanged(matched);
+        if (this.bufferedScanValue) {
+          const buffered = this.bufferedScanValue;
+          const matched = this.warehouseSelection.find(
+            (w) => w.name.trim().toLowerCase() === buffered.toLowerCase(),
+          );
+
+          if (matched) {
+            if (this.isScanAll) {
+              this.globalWarehouseChanged(matched);
+              this.scanLoadingAll = false;
+              this.isScanAll = false;
+            } else if (this.currentScanRow) {
+              this.rowWarehouseChanged(matched, this.currentScanRow);
+              this.scanLoadingRow[this.currentScanRow.materialIdentifier] =
+                false;
+              this.currentScanRow = null;
+            }
+          } else {
+            console.warn("[SCAN] fallback header scan → gán chuỗi vào input");
+            if (headerCtl) {
+              headerCtl.setValue(buffered, { emitEvent: true });
+            }
+
+            this.itemsDataSource.data.forEach((item) => {
+              item.locationId = "";
+              item.locationFullName = buffered;
+
+              const formGroup = this.getFormGroupForItem(item);
+              formGroup
+                .get("selectedWarehouseItem")
+                ?.setValue(null, { emitEvent: true });
+            });
+
             this.scanLoadingAll = false;
             this.isScanAll = false;
-          } else if (this.currentScanRow) {
-            this.rowWarehouseChanged(matched, this.currentScanRow);
-            this.scanLoadingRow[this.currentScanRow.materialIdentifier] = false;
-            this.currentScanRow = null;
+
+            this.snackBar.open(
+              "Giá trị scan đã lưu không khớp với danh sách.",
+              "Đóng",
+              {
+                duration: 3000,
+                panelClass: ["snack-info"],
+                horizontalPosition: "center",
+                verticalPosition: "top",
+              },
+            );
           }
-        } else {
-          console.warn("[SCAN] fallback header scan → gán chuỗi vào input");
-          if (headerCtl) {
-            headerCtl.setValue(buffered, { emitEvent: true });
-          }
-
-          this.itemsDataSource.data.forEach((item) => {
-            item.locationId = "";
-            item.locationFullName = buffered;
-
-            const formGroup = this.getFormGroupForItem(item);
-            formGroup
-              .get("selectedWarehouseItem")
-              ?.setValue(null, { emitEvent: true });
-          });
-
-          this.scanLoadingAll = false;
-          this.isScanAll = false;
-
-          this.snackBar.open(
-            "Giá trị scan đã lưu không khớp với danh sách.",
-            "Đóng",
-            {
-              duration: 3000,
-              panelClass: ["snack-info"],
-              horizontalPosition: "center",
-              verticalPosition: "top",
-            },
-          );
+          this.bufferedScanValue = null;
         }
-        this.bufferedScanValue = null;
-      }
-    });
-    this.materialService.getApprovers().subscribe((list) => {
-      this.allApprovers = list;
-    });
-    this.filteredApprovers = this.approverCtrl.valueChanges.pipe(
-      startWith(""),
-      map((val) => val ?? ""),
-      map((val) => (typeof val === "string" ? val : val.username)),
-      map((name) => this.filterByName(name)),
-    );
-
-    this.itemsDataSource.data.forEach((item) => {
-      item.quantityChange = item.quantity;
-    });
-    // this.kcApi.getUsersByRole('ROLE_PANACIM_ADMIN', 0, 100).subscribe({
-    //   next: (list) => {
-    //     console.log('[ApproverSelect] Fetched users:', list);
-    //     if (Array.isArray(list) && list.length > 0) {
-    //       this.approvers.set(list);
-    //     } else {
-    //       console.warn('[ApproverSelect] API trả về mảng rỗng hoặc không phải mảng:', list);
-    //       this.approvers.set([]);
-    //     }
-    //   },
-    //   error: (err) => {
-    //     console.error('[ApproverSelect] Lỗi fetch users Keycloak:', err);
-    //     this.approvers.set([]);
-    //   }
-    // });
-
-    this.filteredWarehouses = this.dialogForm
-      .get("selectedWarehouseControl")!
-      .valueChanges.pipe(
-        startWith(this.dialogForm.get("selectedWarehouseControl")?.value || ""),
-        map((value: string | Warehouse) =>
-          typeof value === "string" ? value : value?.name || "",
-        ),
-        map((name: string) => this._filterWarehouses(name)),
-        map((list) => list.sort((a, b) => a.name.length - b.name.length)),
+      });
+      this.materialService.getApprovers().subscribe((list) => {
+        this.allApprovers = list;
+      });
+      this.filteredApprovers = this.approverCtrl.valueChanges.pipe(
+        startWith(""),
+        map((val) => val ?? ""),
+        map((val) => (typeof val === "string" ? val : val.username)),
+        map((name) => this.filterByName(name)),
       );
 
-    // Định nghĩa interface cho filter được parse từ JSON
-    interface FilterData {
-      textFilters: { [col: string]: { mode: string; value: string } };
-      dialogFilters: { [col: string]: any[] };
-    }
+      this.itemsDataSource.data.forEach((item) => {
+        item.quantityChange = item.quantity;
+      });
+      // this.kcApi.getUsersByRole('ROLE_PANACIM_ADMIN', 0, 100).subscribe({
+      //   next: (list) => {
+      //     console.log('[ApproverSelect] Fetched users:', list);
+      //     if (Array.isArray(list) && list.length > 0) {
+      //       this.approvers.set(list);
+      //     } else {
+      //       console.warn('[ApproverSelect] API trả về mảng rỗng hoặc không phải mảng:', list);
+      //       this.approvers.set([]);
+      //     }
+      //   },
+      //   error: (err) => {
+      //     console.error('[ApproverSelect] Lỗi fetch users Keycloak:', err);
+      //     this.approvers.set([]);
+      //   }
+      // });
 
-    this.itemsDataSource.filterPredicate = (
-      data: MaterialItem,
-      filter: string,
-    ): boolean => {
-      // Ép kiểu dữ liệu filter theo interface đã định nghĩa
-      const { textFilters, dialogFilters } = JSON.parse(filter) as FilterData;
-
-      for (const colDef in textFilters) {
-        if (!Object.prototype.hasOwnProperty.call(textFilters, colDef)) {
-          continue;
-        }
-
-        const { mode: searchMode, value } = textFilters[colDef];
-        const searchTerm = value.trim().toLowerCase();
-        if (!searchTerm) {
-          continue;
-        }
-
-        const cellValueRaw = (data as any)[colDef];
-        let cellValue: string;
-
-        if (colDef === "calculatedStatus") {
-          const n =
-            typeof cellValueRaw === "string"
-              ? parseInt(cellValueRaw, 10)
-              : cellValueRaw;
-          cellValue = this.getCalculatedStatus(n).toLowerCase();
-        } else if (
-          [
-            "expirationDate",
-            "receivedDate",
-            "updatedDate",
-            "checkinDate",
-          ].includes(colDef)
-        ) {
-          let dt: Date;
-          if (typeof cellValueRaw === "number") {
-            dt = new Date(cellValueRaw * 1000);
-          } else if (
-            typeof cellValueRaw === "string" &&
-            /^\d+$/.test(cellValueRaw)
-          ) {
-            dt = new Date(Number(cellValueRaw) * 1000);
-          } else {
-            dt = new Date(cellValueRaw);
-          }
-          if (isNaN(dt.getTime())) {
-            return false;
-          }
-          cellValue = dt
-            .toLocaleDateString("vi-VN", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })
-            .toLowerCase();
-        } else {
-          cellValue = String(cellValueRaw).trim().toLowerCase();
-        }
-
-        switch (searchMode) {
-          case "equals":
-            if (cellValue !== searchTerm) {
-              return false;
-            }
-            break;
-          case "contains":
-            if (!cellValue.includes(searchTerm)) {
-              return false;
-            }
-            break;
-        }
+      this.filteredWarehouses = this.dialogForm
+        .get("selectedWarehouseControl")!
+        .valueChanges.pipe(
+          debounceTime(300),
+          distinctUntilChanged(),
+          switchMap((value: string | { value: string; name: string }) => {
+            const keyword =
+              typeof value === "string" ? value : value?.name || "";
+            return from(this.warehouseCache.searchByName(keyword));
+          }),
+          map((list: CachedWarehouse[]) =>
+            list.map((w) => ({
+              value: w.locationId.toString(),
+              name: w.locationFullName,
+            })),
+          ),
+        );
+      // Định nghĩa interface cho filter được parse từ JSON
+      interface FilterData {
+        textFilters: { [col: string]: { mode: string; value: string } };
+        dialogFilters: { [col: string]: any[] };
       }
 
-      return true;
-    };
+      this.itemsDataSource.filterPredicate = (
+        data: MaterialItem,
+        filter: string,
+      ): boolean => {
+        // Ép kiểu dữ liệu filter theo interface đã định nghĩa
+        const { textFilters, dialogFilters } = JSON.parse(filter) as FilterData;
+
+        for (const colDef in textFilters) {
+          if (!Object.prototype.hasOwnProperty.call(textFilters, colDef)) {
+            continue;
+          }
+
+          const { mode: searchMode, value } = textFilters[colDef];
+          const searchTerm = value.trim().toLowerCase();
+          if (!searchTerm) {
+            continue;
+          }
+
+          const cellValueRaw = (data as any)[colDef];
+          let cellValue: string;
+
+          if (colDef === "calculatedStatus") {
+            const n =
+              typeof cellValueRaw === "string"
+                ? parseInt(cellValueRaw, 10)
+                : cellValueRaw;
+            cellValue = this.getCalculatedStatus(n).toLowerCase();
+          } else if (
+            [
+              "expirationDate",
+              "receivedDate",
+              "updatedDate",
+              "checkinDate",
+            ].includes(colDef)
+          ) {
+            let dt: Date;
+            if (typeof cellValueRaw === "number") {
+              dt = new Date(cellValueRaw * 1000);
+            } else if (
+              typeof cellValueRaw === "string" &&
+              /^\d+$/.test(cellValueRaw)
+            ) {
+              dt = new Date(Number(cellValueRaw) * 1000);
+            } else {
+              dt = new Date(cellValueRaw);
+            }
+            if (isNaN(dt.getTime())) {
+              return false;
+            }
+            cellValue = dt
+              .toLocaleDateString("vi-VN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })
+              .toLowerCase();
+          } else {
+            cellValue = String(cellValueRaw).trim().toLowerCase();
+          }
+
+          switch (searchMode) {
+            case "equals":
+              if (cellValue !== searchTerm) {
+                return false;
+              }
+              break;
+            case "contains":
+              if (!cellValue.includes(searchTerm)) {
+                return false;
+              }
+              break;
+          }
+        }
+
+        return true;
+      };
+    });
   }
   // #endregion
 
   // #region Public methods
+  openHeaderPanel(trigger: MatAutocompleteTrigger): void {
+    trigger.openPanel();
+  }
+
+  refreshWarehouses(): void {
+    this.materialService.fetchLocations();
+  }
+
   totalQuantityselect(): number {
     return this.itemsDataSource.data
       .map((row) => row.quantity ?? 0)
@@ -662,26 +690,27 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   }
 
   scanLocationForAll(): void {
-    this.clearScanState();
     const inputEl = this.scanInput?.nativeElement;
 
-    this.isScanAll = !this.isScanAll; // Toggle
+    const nextState = !this.isScanAll;
+    this.isScanAll = nextState;
+
+    if (!nextState) {
+      this.clearScanState();
+      inputEl?.blur();
+      return;
+    }
 
     Object.keys(this.scanLoadingRow).forEach(
       (key) => (this.scanLoadingRow[key] = false),
     );
-
-    this.scanLoadingAll = this.isScanAll;
+    this.scanLoadingAll = true;
     this.currentScanRow = null;
 
-    if (this.isScanAll) {
-      setTimeout(() => {
-        inputEl?.focus();
-        this.checkScanFocusLoop();
-      }, 0);
-    } else {
-      inputEl?.blur();
-    }
+    setTimeout(() => {
+      inputEl?.focus();
+      this.checkScanFocusLoop();
+    }, 0);
   }
 
   refreshForRow(item: MaterialItem): void {

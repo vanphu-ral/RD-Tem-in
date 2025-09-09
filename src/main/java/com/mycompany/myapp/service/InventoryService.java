@@ -27,8 +27,8 @@ public class InventoryService {
         return this.inventoryRepository.findAll();
     }
 
-    public List<InventoryResponse> serachNew() {
-        return this.inventoryRepository.getDataNew();
+    public List<InventoryResponse> serachNew(int offset, int limit) {
+        return this.inventoryRepository.getDataNew(offset, limit);
     }
 
     public InventoriesResponse getDataGroupByPartNumber(
@@ -236,6 +236,7 @@ public class InventoryService {
             request.getAvailableQuantity(),
             "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
             "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",
+            "%" + Optional.ofNullable(request.getUserData5()).orElse("") + "%",
             "%" +
             Optional.ofNullable(request.getLocationName()).orElse("") +
             "%",
@@ -280,6 +281,7 @@ public class InventoryService {
             request.getAvailableQuantity(),
             "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
             "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",
+            "%" + Optional.ofNullable(request.getUserData5()).orElse("") + "%",
             "%" +
             Optional.ofNullable(request.getLocationName()).orElse("") +
             "%",

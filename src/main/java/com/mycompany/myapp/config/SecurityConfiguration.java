@@ -48,73 +48,93 @@ public class SecurityConfiguration {
 
     private final SecurityProblemSupport problemSupport;
 
-    public SecurityConfiguration(CorsFilter corsFilter, JHipsterProperties jHipsterProperties, SecurityProblemSupport problemSupport) {
+    public SecurityConfiguration(
+        CorsFilter corsFilter,
+        JHipsterProperties jHipsterProperties,
+        SecurityProblemSupport problemSupport
+    ) {
         this.corsFilter = corsFilter;
         this.problemSupport = problemSupport;
         this.jHipsterProperties = jHipsterProperties;
     }
 
     @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return web ->
-            web
-                .ignoring()
-                .antMatchers(HttpMethod.OPTIONS, "/**")
-                .antMatchers("/app/**/*.{js,html}")
-                .antMatchers("/i18n/**")
-                .antMatchers("/content/**")
-                .antMatchers("/swagger-ui/**")
-                .antMatchers("/test/**");
-    }
-
-    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // @formatter:off
         http
             .csrf()
             .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-        .and()
+            .and()
             .addFilterBefore(corsFilter, CsrfFilter.class)
             .exceptionHandling()
-                .authenticationEntryPoint(problemSupport)
-                .accessDeniedHandler(problemSupport)
-        .and()
+            .authenticationEntryPoint(problemSupport)
+            .accessDeniedHandler(problemSupport)
+            .and()
             .headers()
-            .contentSecurityPolicy(jHipsterProperties.getSecurity().getContentSecurityPolicy())
-        .and()
-            .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
-        .and()
-            .permissionsPolicy().policy("camera=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), sync-xhr=()")
-        .and()
+            .contentSecurityPolicy(
+                jHipsterProperties.getSecurity().getContentSecurityPolicy()
+            )
+            .and()
+            .referrerPolicy(
+                ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN
+            )
+            .and()
+            .permissionsPolicy()
+            .policy(
+                "camera=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), sync-xhr=()"
+            )
+            .and()
             .frameOptions()
             .deny()
-        .and()
-            .authorizeRequests()
-            .antMatchers("/api/authenticate").permitAll()
-            .antMatchers("/api/auth-info").permitAll()
-            .antMatchers("/api/admin/**").hasAuthority(AuthoritiesConstants.ADMIN)
-            .antMatchers("/api/**").authenticated()
-            .antMatchers("/management/health").permitAll()
-            .antMatchers("/management/health/**").permitAll()
-            .antMatchers("/management/info").permitAll()
-            .antMatchers("/management/prometheus").permitAll()
-            .antMatchers("/management/**").hasAuthority(AuthoritiesConstants.ADMIN)
-        .and()
-            .oauth2Login()
-        .and()
-            .oauth2ResourceServer()
-                .jwt()
-                .jwtAuthenticationConverter(authenticationConverter())
-                .and()
             .and()
-                .oauth2Client();
+            .authorizeRequests()
+            .antMatchers(HttpMethod.OPTIONS, "/**")
+            .permitAll()
+            .antMatchers("/app/**/*.{js,html}")
+            .permitAll()
+            .antMatchers("/i18n/**")
+            .permitAll()
+            .antMatchers("/content/**")
+            .permitAll()
+            .antMatchers("/swagger-ui/**")
+            .permitAll()
+            .antMatchers("/test/**")
+            .permitAll()
+            .antMatchers("/api/authenticate")
+            .permitAll()
+            .antMatchers("/api/auth-info")
+            .permitAll()
+            .antMatchers("/api/admin/**")
+            .hasAuthority(AuthoritiesConstants.ADMIN)
+            .antMatchers("/api/**")
+            .authenticated()
+            .antMatchers("/management/health")
+            .permitAll()
+            .antMatchers("/management/health/**")
+            .permitAll()
+            .antMatchers("/management/info")
+            .permitAll()
+            .antMatchers("/management/prometheus")
+            .permitAll()
+            .antMatchers("/management/**")
+            .hasAuthority(AuthoritiesConstants.ADMIN)
+            .and()
+            .oauth2Login()
+            .and()
+            .oauth2ResourceServer()
+            .jwt()
+            .jwtAuthenticationConverter(authenticationConverter())
+            .and()
+            .and()
+            .oauth2Client();
         return http.build();
-        // @formatter:on
     }
 
     Converter<Jwt, AbstractAuthenticationToken> authenticationConverter() {
-        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(new JwtGrantedAuthorityConverter());
+        JwtAuthenticationConverter jwtAuthenticationConverter =
+            new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(
+            new JwtGrantedAuthorityConverter()
+        );
         return jwtAuthenticationConverter;
     }
 
@@ -133,8 +153,13 @@ public class SecurityConfiguration {
                 // Check for OidcUserAuthority because Spring Security 5.2 returns
                 // each scope as a GrantedAuthority, which we don't care about.
                 if (authority instanceof OidcUserAuthority) {
-                    OidcUserAuthority oidcUserAuthority = (OidcUserAuthority) authority;
-                    mappedAuthorities.addAll(SecurityUtils.extractAuthorityFromClaims(oidcUserAuthority.getUserInfo().getClaims()));
+                    OidcUserAuthority oidcUserAuthority =
+                        (OidcUserAuthority) authority;
+                    mappedAuthorities.addAll(
+                        SecurityUtils.extractAuthorityFromClaims(
+                            oidcUserAuthority.getUserInfo().getClaims()
+                        )
+                    );
                 }
             });
             return mappedAuthorities;
@@ -142,16 +167,28 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(ClientRegistrationRepository clientRegistrationRepository, RestTemplateBuilder restTemplateBuilder) {
-        NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(issuerUri);
+    JwtDecoder jwtDecoder(
+        ClientRegistrationRepository clientRegistrationRepository,
+        RestTemplateBuilder restTemplateBuilder
+    ) {
+        NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(
+            issuerUri
+        );
 
-        OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(jHipsterProperties.getSecurity().getOauth2().getAudience());
-        OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuerUri);
-        OAuth2TokenValidator<Jwt> withAudience = new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
+        OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(
+            jHipsterProperties.getSecurity().getOauth2().getAudience()
+        );
+        OAuth2TokenValidator<Jwt> withIssuer =
+            JwtValidators.createDefaultWithIssuer(issuerUri);
+        OAuth2TokenValidator<Jwt> withAudience =
+            new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
 
         jwtDecoder.setJwtValidator(withAudience);
         jwtDecoder.setClaimSetConverter(
-            new CustomClaimConverter(clientRegistrationRepository.findByRegistrationId("oidc"), restTemplateBuilder.build())
+            new CustomClaimConverter(
+                clientRegistrationRepository.findByRegistrationId("oidc"),
+                restTemplateBuilder.build()
+            )
         );
 
         return jwtDecoder;
