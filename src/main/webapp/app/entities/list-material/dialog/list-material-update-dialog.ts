@@ -151,16 +151,16 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   itemsDataSource: MatTableDataSource<MaterialItem> =
     new MatTableDataSource<MaterialItem>();
   displayedColumns: string[] = [
-    "materialIdentifier",
-    "partNumber",
-    "calculatedStatus",
-    "expirationDate",
-    "quantity",
-    "quantityChange",
-    // 'status',
+    "scanLocation",
     "locationId",
     "extendExpiration",
-    "scanLocation",
+    "quantity",
+    "quantityChange",
+    "calculatedStatus",
+    "partNumber",
+    "expirationDate",
+    "materialIdentifier",
+    // 'status',
   ];
   statusOptions = [
     { value: "", view: "-- All --" },

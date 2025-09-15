@@ -70,6 +70,7 @@ export interface DataSumary {
   recordCount: string;
   lotNumber: string;
   userData4: string;
+  userData5: string;
   detailDataSource?: any;
 }
 
@@ -258,6 +259,9 @@ export class ListMaterialService {
   public apiSumaryByUserData4 = this.applicationConfigService.getEndpointFor(
     "/api/inventory/group-by-user-data-4",
   );
+  public apiSumaryByUserData5 = this.applicationConfigService.getEndpointFor(
+    "/api/inventory/group-by-user-data-5",
+  );
   public apiSumaryByLocation = this.applicationConfigService.getEndpointFor(
     "/api/inventory/group-by-location-name",
   );
@@ -353,7 +357,7 @@ export class ListMaterialService {
     private applicationConfigService: ApplicationConfigService,
     private warehouseCache: WarehouseCacheService,
   ) {
-    const savedItems = localStorage.getItem("selectedMaterials");
+    const savedItems = sessionStorage.getItem("selectedMaterials");
     if (savedItems) {
       try {
         const items: RawGraphQLMaterial[] = JSON.parse(savedItems);
@@ -514,8 +518,8 @@ export class ListMaterialService {
   public clearSelection(): void {
     this._selectedItems.next([]);
     this._selectedIds.next([]);
-    localStorage.removeItem("selectedMaterials");
-    localStorage.removeItem("selectedMaterialIds");
+    sessionStorage.removeItem("selectedMaterials");
+    sessionStorage.removeItem("selectedMaterialIds");
     this._materialsCache.clear();
   }
 
@@ -541,8 +545,8 @@ export class ListMaterialService {
 
   persistSelection(): void {
     const items = this._selectedItems.value;
-    localStorage.setItem("selectedMaterials", JSON.stringify(items));
-    localStorage.setItem(
+    sessionStorage.setItem("selectedMaterials", JSON.stringify(items));
+    sessionStorage.setItem(
       "selectedMaterialIds",
       JSON.stringify(items.map((i) => i.inventoryId)),
     );
@@ -554,7 +558,7 @@ export class ListMaterialService {
       if (!items.find((i) => i.inventoryId === id)) {
         const cacheItem = this._materialsCache.get(id);
         if (cacheItem) {
-          items.push(cacheItem);
+          items.unshift(cacheItem);
         }
       }
     });
@@ -597,6 +601,7 @@ export class ListMaterialService {
       partNumber?: string;
       locationName?: string;
       userData4?: string;
+      userData5?: string;
       lotNumber?: string;
       materialIdentifier?: string;
     },
@@ -608,8 +613,9 @@ export class ListMaterialService {
       partNumber: safeFilters.partNumber ?? "",
       locationName: safeFilters.locationName ?? "",
       userData4: safeFilters.userData4 ?? "",
+      userData5: safeFilters.userData5 ?? "",
       lotNumber: safeFilters.lotNumber ?? "",
-      materialIdentifier: safeFilters.materialIdentifier ?? "", // ✅ gửi xuống
+      materialIdentifier: safeFilters.materialIdentifier ?? "",
       pageNumber: pageIndex + 1,
       itemPerPage: limit,
     };
@@ -695,12 +701,12 @@ export class ListMaterialService {
   public removeItemFromUpdate(materialId: string): void {
     const newIds = this._selectedIds.value.filter((id) => id !== materialId);
     this._selectedIds.next(newIds);
-    localStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
+    sessionStorage.setItem("selectedMaterialIds", JSON.stringify(newIds));
     this.refreshSelectedItems();
   }
   public clearAllSelected(): void {
     this._selectedIds.next([]);
-    localStorage.removeItem("selectedMaterialIds");
+    sessionStorage.removeItem("selectedMaterialIds");
     this.refreshSelectedItems();
   }
 
@@ -776,7 +782,7 @@ export class ListMaterialService {
   }
   public clearAllSelections(): void {
     this._selectedIds.next([]);
-    localStorage.removeItem("selectedMaterialIds");
+    sessionStorage.removeItem("selectedMaterialIds");
     const cleared = this._materialsData.value.map((item) => ({
       ...item,
       checked: false,
@@ -876,8 +882,14 @@ export class ListMaterialService {
     this._selectedItems.next(newSelectedItems);
     this._selectedIds.next(newSelectedIds);
 
-    localStorage.setItem("selectedMaterials", JSON.stringify(newSelectedItems));
-    localStorage.setItem("selectedMaterialIds", JSON.stringify(newSelectedIds));
+    sessionStorage.setItem(
+      "selectedMaterials",
+      JSON.stringify(newSelectedItems),
+    );
+    sessionStorage.setItem(
+      "selectedMaterialIds",
+      JSON.stringify(newSelectedIds),
+    );
   }
 
   public getData(): Observable<RawGraphQLMaterial[]> {
@@ -908,7 +920,7 @@ export class ListMaterialService {
         (selectedId) => selectedId !== inventoryIdToRemove,
       );
       this._selectedIds.next(newSelectedIds);
-      localStorage.setItem(
+      sessionStorage.setItem(
         "selectedMaterialIds",
         JSON.stringify(newSelectedIds),
       );
@@ -1264,7 +1276,7 @@ export class ListMaterialService {
   }
 
   private loadSelectedIds(): void {
-    const savedIds = localStorage.getItem("selectedMaterialIds");
+    const savedIds = sessionStorage.getItem("selectedMaterialIds");
     if (savedIds) {
       this._selectedIds.next(JSON.parse(savedIds));
     }

@@ -260,60 +260,7 @@
                 "
               >
                 <div class="column-title">Total Available Quantity</div>
-                <!-- <div>
-                  <mat-icon
-                    [matMenuTriggerFor]="filterTotalQuantity"
-                    style="color: white"
-                    >filter_list</mat-icon
-                  >
-                </div> -->
               </div>
-              <!-- <mat-menu #filterTotalQuantity="matMenu">
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('totalAvailableQuantity', 'contains')"
-                >
-                  Có chứa
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('availableQuantity', 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('availableQuantity', 'equals')"
-                >
-                  Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('availableQuantity', 'not_equals')"
-                >
-                  Không bằng
-                </button>
-              </mat-menu> -->
-              <!-- <div class="search-container">
-                <div class="custom-search-wrapper">
-                  <mat-form-field
-                    class="small-form-field"
-                    appearance="fill"
-                    floatLabel="always"
-                  >
-                    <mat-label>Search</mat-label>
-                    <input
-                      (keyup)="applyFilter('availableQuantity', $event)"
-                      matInput
-                      [placeholder]="
-                        'Search (' +
-                        (filterModes['availableQuantity'] || 'contains') +
-                        ')'
-                      "
-                    />
-                  </mat-form-field>
-                </div>
-              </div> -->
             </div>
           </div>
         </th>
@@ -334,60 +281,7 @@
                 "
               >
                 <div class="column-title">Record Count</div>
-                <!-- <div>
-                  <mat-icon
-                    [matMenuTriggerFor]="filtercount"
-                    style="color: white"
-                    >filter_list</mat-icon
-                  >
-                </div> -->
               </div>
-              <!-- <mat-menu #filtercount="matMenu">
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('recordCount', 'contains')"
-                >
-                  Có chứa
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('recordCount', 'not_contains')"
-                >
-                  Không chứa
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('recordCount', 'equals')"
-                >
-                  Bằng
-                </button>
-                <button
-                  mat-menu-item
-                  (click)="setFilterMode('recordCount', 'not_equals')"
-                >
-                  Không bằng
-                </button>
-              </mat-menu> -->
-              <!-- <div class="search-container">
-                <div class="custom-search-wrapper">
-                  <mat-form-field
-                    class="small-form-field"
-                    appearance="fill"
-                    floatLabel="always"
-                  >
-                    <mat-label>Search</mat-label>
-                    <input
-                      (keyup)="applyFilter('recordCount', $event)"
-                      matInput
-                      [placeholder]="
-                        'Search (' +
-                        (filterModes['recordCount'] || 'contains') +
-                        ')'
-                      "
-                    />
-                  </mat-form-field>
-                </div>
-              </div> -->
             </div>
           </div>
         </th>
@@ -463,22 +357,7 @@
                         "
                       >
                         <div class="column-title">Material Identifier</div>
-                        <!-- <div>
-                          <mat-icon [matMenuTriggerFor]="filterIdentifier" style="color: white">filter_list</mat-icon>
-                        </div> -->
                       </div>
-                      <!-- <mat-menu #filterIdentifier="matMenu">
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'materialIdentifier', 'contains')
-                          ">
-                          Contains
-                        </button>
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'materialIdentifier', 'equals')
-                          ">
-                          Equals
-                        </button>
-                      </mat-menu> -->
                     </div>
                   </div>
                 </th>
@@ -503,37 +382,7 @@
                         "
                       >
                         <div class="column-title">Part Number</div>
-                        <!-- <div>
-                          <mat-icon [matMenuTriggerFor]="filterInventoryId" style="color: white">filter_list</mat-icon>
-                        </div> -->
                       </div>
-                      <!-- <mat-menu #filterInventoryId="matMenu">
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'partNumber', 'contains')
-                          ">
-                          Contains
-                        </button>
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'partNumber', 'equals')
-                          ">
-                          Equals
-                        </button>
-                      </mat-menu> -->
-                      <!-- <div class="search-container">
-                        <div class="custom-search-wrapper">
-                          <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
-                            <mat-label>Search</mat-label>
-                            <input (keyup)="
-                                applyDetailFilter(row, 'partNumber', $event)
-                              " matInput [placeholder]="
-                                'Search (' +
-                                (filterModesDetail['partNumber'] ||
-                                  'contains') +
-                                ')'
-                              " />
-                          </mat-form-field>
-                        </div>
-                      </div> -->
                     </div>
                   </div>
                 </th>
@@ -558,50 +407,7 @@
                         "
                       >
                         <div class="column-title">Available Quantity</div>
-                        <!-- <div>
-                          <mat-icon [matMenuTriggerFor]="filterAvailableQuantity"
-                            style="color: white">filter_list</mat-icon>
-                        </div> -->
                       </div>
-                      <!-- <mat-menu #filterAvailableQuantity="matMenu">
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(
-                              row,
-                              'availableQuantity',
-                              'contains'
-                            )
-                          ">
-                          Có chứa
-                        </button>
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(
-                              row,
-                              'availableQuantity',
-                              'equals'
-                            )
-                          ">
-                          Bằng
-                        </button>
-                      </mat-menu>
-                      <div class="search-container">
-                        <div class="custom-search-wrapper">
-                          <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
-                            <mat-label>Search</mat-label>
-                            <input (keyup)="
-                                applyDetailFilter(
-                                  row,
-                                  'availableQuantity',
-                                  $event
-                                )
-                              " matInput [placeholder]="
-                                'Search (' +
-                                (filterModesDetail['availableQuantity'] ||
-                                  'contains') +
-                                ')'
-                              " />
-                          </mat-form-field>
-                        </div>
-                      </div> -->
                     </div>
                   </div>
                 </th>
@@ -626,41 +432,37 @@
                         "
                       >
                         <div class="column-title">Lot Number</div>
-                        <!-- <div>
-                          <mat-icon [matMenuTriggerFor]="filterLotNumber" style="color: white">filter_list</mat-icon>
-                        </div> -->
                       </div>
-                      <!-- <mat-menu #filterLotNumber="matMenu">
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'lotNumber', 'contains')
-                          ">
-                          Có chứa
-                        </button>
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'lotNumber', 'equals')
-                          ">
-                          Bằng
-                        </button>
-                      </mat-menu>
-                      <div class="search-container">
-                        <div class="custom-search-wrapper">
-                          <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
-                            <mat-label>Search</mat-label>
-                            <input (keyup)="
-                                applyDetailFilter(row, 'lotNumber', $event)
-                              " matInput [placeholder]="
-                                'Search (' +
-                                (filterModesDetail['lotNumber'] || 'contains') +
-                                ')'
-                              " />
-                          </mat-form-field>
-                        </div>
-                      </div> -->
                     </div>
                   </div>
                 </th>
                 <td mat-cell *matCellDef="let detail">
                   {{ detail.lotNumber }}
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="locationName">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="background-color: #548ce8"
+                >
+                  <div class="th-container">
+                    <div class="header-content">
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          color: white;
+                        "
+                      >
+                        <div class="column-title">Location Name</div>
+                      </div>
+                    </div>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let detail">
+                  {{ detail.locationName }}
                 </td>
               </ng-container>
               <ng-container matColumnDef="receivedDate">
@@ -680,37 +482,7 @@
                         "
                       >
                         <div class="column-title">Received Date</div>
-                        <!-- <div>
-                          <mat-icon [matMenuTriggerFor]="filterReceivedDate" style="color: white">filter_list</mat-icon>
-                        </div> -->
                       </div>
-                      <!-- <mat-menu #filterReceivedDate="matMenu">
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'receivedDate', 'contains')
-                          ">
-                          Có chứa
-                        </button>
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'receivedDate', 'equals')
-                          ">
-                          Bằng
-                        </button>
-                      </mat-menu>
-                      <div class="search-container">
-                        <div class="custom-search-wrapper">
-                          <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
-                            <mat-label>Search</mat-label>
-                            <input (keyup)="
-                                applyDetailFilter(row, 'receivedDate', $event)
-                              " matInput [placeholder]="
-                                'Search (' +
-                                (filterModesDetail['receivedDate'] ||
-                                  'contains') +
-                                ')'
-                              " />
-                          </mat-form-field>
-                        </div>
-                      </div> -->
                     </div>
                   </div>
                 </th>
@@ -735,42 +507,7 @@
                         "
                       >
                         <div class="column-title">Status</div>
-                        <!-- <div>
-                          <mat-icon [matMenuTriggerFor]="filterStatus" style="color: white">filter_list</mat-icon>
-                        </div> -->
                       </div>
-                      <!-- <mat-menu #filterStatus="matMenu">
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'status', 'contains')
-                          ">
-                          Contains
-                        </button>
-                        <button mat-menu-item (click)="setFilterModeDetail(row, 'status', 'equals')">
-                          Equals
-                        </button>
-                      </mat-menu>
-                      <div class="search-container">
-                        <div class="custom-search-wrapper">
-                          <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
-                            <mat-label>Search Status</mat-label>
-                            <mat-select [placeholder]="
-                                'Search (' +
-                                (filterModesDetail['status'] || 'equals') +
-                                ')'
-                              " [value]="searchTermsDetail['status']?.value || ''" (selectionChange)="
-                                applySelectFilterDetail(
-                                  row,
-                                  'status',
-                                  $event.value
-                                )
-                              ">
-                              <mat-option *ngFor="let opt of statusOptions" [value]="opt.value">
-                                {{ opt.view }}
-                              </mat-option>
-                            </mat-select>
-                          </mat-form-field>
-                        </div>
-                      </div> -->
                     </div>
                   </div>
                 </th>
@@ -795,42 +532,7 @@
                         "
                       >
                         <div class="column-title">Expiration Date</div>
-                        <!-- <div>
-                          <mat-icon [matMenuTriggerFor]="filterexpirationDate"
-                            style="color: white">filter_list</mat-icon>
-                        </div> -->
                       </div>
-                      <!-- <mat-menu #filterexpirationDate="matMenu">
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(
-                              row,
-                              'expirationDate',
-                              'contains'
-                            )
-                          ">
-                          Có chứa
-                        </button>
-                        <button mat-menu-item (click)="
-                            setFilterModeDetail(row, 'expirationDate', 'equals')
-                          ">
-                          Bằng
-                        </button>
-                      </mat-menu>
-                      <div class="search-container">
-                        <div class="custom-search-wrapper">
-                          <mat-form-field class="small-form-field" appearance="fill" floatLabel="always">
-                            <mat-label>Search</mat-label>
-                            <input (keyup)="
-                                applyDetailFilter(row, 'expirationDate', $event)
-                              " matInput [placeholder]="
-                                'Search (' +
-                                (filterModesDetail['expirationDate'] ||
-                                  'contains') +
-                                ')'
-                              " />
-                          </mat-form-field>
-                        </div>
-                      </div> -->
                     </div>
                   </div>
                 </th>
@@ -844,6 +546,7 @@
                   'materialIdentifier',
                   'partNumber',
                   'lotNumber',
+                  'locationName',
                   'receivedDate',
                   'availableQuantity',
                   'expirationDate',
@@ -858,6 +561,7 @@
                     'materialIdentifier',
                     'partNumber',
                     'lotNumber',
+                    'locationName',
                     'receivedDate',
                     'availableQuantity',
                     'expirationDate',

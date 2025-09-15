@@ -98,6 +98,7 @@ export interface AggregatedDetailData {
   locationName: string;
   userData4: string;
   lotNumber: string;
+  userData5: string;
 
   detailDataSource?: MatTableDataSource<RawGraphQLMaterial>;
   detailTotalItems?: number;
@@ -150,6 +151,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     "locationName",
     "userData4",
     "lotNumber",
+    "userData5",
   ];
   selectedGroupingField = this.groupingFields[0];
   checkedCount = signal(0);
@@ -179,6 +181,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     },
     { value: "userData4", name: "User Data 4", link: "/list-material/sumary" },
     { value: "lotNumber", name: "Lot Number", link: "/list-material/sumary" },
+    { value: "userData5", name: "User Data 5", link: "/list-material/sumary" },
   ];
   sumary_modeControl = new FormControl();
   selectedAggregated: string = "";
@@ -194,6 +197,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     locationName: "Location Name",
     userData4: "User Data 4",
     lotNumber: "Lot Number",
+    userData5: "User Data 5",
   };
   public activeFiltersDetail: { [colDetail: string]: any[] } = {};
   public filterModesDetail: { [colDetail: string]: string } = {};
@@ -366,6 +370,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         locationName: row.locationName,
         userData4: row.userData4,
         lotNumber: row.lotNumber,
+        userData5: row.userData5,
         materialIdentifier: "",
       };
 
@@ -721,6 +726,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       partNumber: element.partNumber,
       locationName: element.locationName,
       userData4: element.userData4,
+      userData5: (element as any).userData5,
       lotNumber: element.lotNumber,
       materialIdentifier: "",
     };
@@ -753,6 +759,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       partNumber: element.partNumber,
       locationName: element.locationName,
       userData4: element.userData4,
+      userData5: element.userData5,
       lotNumber: element.lotNumber,
     };
 
@@ -800,6 +807,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
       partNumber: element.partNumber,
       locationName: element.locationName,
       userData4: element.userData4,
+      userData5: element.userData5,
       lotNumber: element.lotNumber,
       materialIdentifier: value,
     };
@@ -974,6 +982,11 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         body.partNumber = params.partNumber ?? "";
         body.locationName = params.locationName ?? "";
         break;
+      case "userData5":
+        apiUrl = this.materialService.apiSumaryByUserData5;
+        body.partNumber = params.partNumber ?? "";
+        body.userData5 = params.userData5 ?? "";
+        break;
       default:
         console.warn("Unknown summary mode:", mode);
         this.clearSummary();
@@ -1004,58 +1017,4 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         this.cdr.markForCheck();
       });
   }
-
-  // private fetchDataAndUpdateUISumaryDetail(params: {
-  //   [key: string]: any;
-  // }): void {
-  //   const allowedFilterKeys = [
-  //     "partNumber",
-  //     "locationName",
-  //     "userDate4",
-  //     "lotNumber",
-  //   ];
-  //   const filters: { [key: string]: any } = {};
-  //   for (const key of allowedFilterKeys) {
-  //     if (params[key] !== undefined) {
-  //       filters[key] = params[key];
-  //     }
-  //   }
-  //   const page = params["page"] ? +params["page"] : 1;
-  //   const pageSize = params["pageSize"] ? +params["pageSize"] : 50;
-
-  //   this.materialService
-  //     .fetchMaterialsData(page, pageSize, filters)
-  //     .pipe(takeUntil(this.ngUnsubscribe))
-  //     .subscribe((response) => {
-  //       const totalItems = response.totalItems;
-  //       this.length = totalItems;
-  //       this.dataSource.data = response.inventories || [];
-  //       console.log("trang hiện tại: ", page);
-  //       console.log("số lượng bản ghi đọc từ api: ", totalItems);
-  //       if (this.paginator) {
-  //         this.paginator.length = totalItems;
-  //         this.paginator.pageIndex = page - 1;
-  //         this.paginator.pageSize = pageSize;
-  //         if (totalItems > 0 && this.pageIndex > 0) {
-  //           const maxPageIndex = Math.ceil(totalItems / this.pageSize) - 1;
-  //           if (page - 1 > maxPageIndex) {
-  //             console.log("trang hiện tại: ", page);
-  //             console.log("số lượng bản ghi đọc từ api: ", totalItems);
-  //             // this.pageIndex = maxPageIndex;
-  //             this.router.navigate([], {
-  //               relativeTo: this.route,
-  //               queryParams: { page: maxPageIndex + 1 },
-  //               queryParamsHandling: "merge",
-  //               replaceUrl: true,
-  //             });
-  //             return;
-  //           }
-  //         }
-  //       }
-  //       this.checkedCount.set(
-  //         response.inventories.filter((i) => i.checked).length,
-  //       );
-  //       this.cdr.markForCheck();
-  //     });
-  // }
 }

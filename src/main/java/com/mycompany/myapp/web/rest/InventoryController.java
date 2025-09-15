@@ -51,6 +51,14 @@ public class InventoryController {
         return this.inventoryService.getDataGroupByUserData4(request);
     }
 
+    @PostMapping("/group-by-user-data-5")
+    public InventoriesResponse getDataGroupByUserData5(
+        @RequestBody InventoryRequestDTO request
+    ) {
+        System.out.println("Cong doan: 4.5");
+        return this.inventoryService.getDataGroupByUserData5(request);
+    }
+
     @PostMapping("/group-by-location-name")
     public InventoriesResponse getDataGroupByLocationName(
         @RequestBody InventoryRequestDTO request

@@ -112,6 +112,35 @@ public class InventoryService {
         return inventoriesResponse;
     }
 
+    public InventoriesResponse getDataGroupByUserData5(
+        InventoryRequestDTO request
+    ) {
+        InventoriesResponse inventoriesResponse = new InventoriesResponse();
+        inventoriesResponse.setTotalItems(
+            this.inventoryRepository.getTotalDataGroupByUserData5(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData5()).orElse("") +
+                "%"
+            )
+        );
+        inventoriesResponse.setInventories(
+            this.inventoryRepository.getDataGroupByUserData5(
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData5()).orElse("") +
+                "%",
+                (request.getPageNumber() - 1) * request.getItemPerPage(),
+                request.getItemPerPage()
+            )
+        );
+        return inventoriesResponse;
+    }
+
     public InventoriesResponse getDataGroupByLocationName(
         InventoryRequestDTO request
     ) {
@@ -155,6 +184,9 @@ public class InventoryService {
                 Optional.ofNullable(request.getUserData4()).orElse("") +
                 "%",
                 "%" +
+                Optional.ofNullable(request.getUserData5()).orElse("") +
+                "%",
+                "%" +
                 Optional.ofNullable(request.getLocationName()).orElse("") +
                 "%",
                 "%" +
@@ -174,6 +206,9 @@ public class InventoryService {
                 "%",
                 "%" +
                 Optional.ofNullable(request.getUserData4()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData5()).orElse("") +
                 "%",
                 "%" +
                 Optional.ofNullable(request.getLocationName()).orElse("") +

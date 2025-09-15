@@ -216,6 +216,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     },
     { value: "userData4", name: "User Data 4", link: "/list-material/sumary" },
     { value: "lotNumber", name: "Lot Number", link: "/list-material/sumary" },
+    { value: "userData5", name: "User Data 5", link: "/list-material/sumary" },
   ];
   sumary_modeControl = new FormControl();
   selectedAggregated: string = "";
@@ -768,7 +769,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isScanMode = false;
     this.dataSource.data = [];
     this.length = 0;
-    localStorage.removeItem(this.FILTER_CACHE_KEY);
+    sessionStorage.removeItem(this.FILTER_CACHE_KEY);
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -1180,11 +1181,11 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private cacheFilters(params: Params): void {
-    localStorage.setItem(this.FILTER_CACHE_KEY, JSON.stringify(params));
+    sessionStorage.setItem(this.FILTER_CACHE_KEY, JSON.stringify(params));
   }
 
   private getCachedFilters(): Params | null {
-    const raw = localStorage.getItem(this.FILTER_CACHE_KEY);
+    const raw = sessionStorage.getItem(this.FILTER_CACHE_KEY);
     return raw ? (JSON.parse(raw) as Params) : null;
   }
 

@@ -12,12 +12,13 @@ export class WarehouseCacheService {
     return db.warehouses.toArray();
   }
 
-  async searchByName(prefix: string): Promise<CachedWarehouse[]> {
-    return db.warehouses
-      .where("locationFullName")
-      .startsWithIgnoreCase(prefix)
-      .limit(50)
-      .toArray();
+  async searchByName(keyword: string): Promise<CachedWarehouse[]> {
+    const lowerKeyword = keyword.toLowerCase();
+    const allWarehouses = await db.warehouses.toArray();
+
+    return allWarehouses
+      .filter((w) => w.locationFullName.toLowerCase().includes(lowerKeyword))
+      .slice(0, 50);
   }
 
   updateOne(
