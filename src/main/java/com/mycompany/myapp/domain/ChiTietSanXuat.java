@@ -40,6 +40,7 @@ public class ChiTietSanXuat implements Serializable {
     private String trangThai;
 
     @ManyToOne
+    @JoinColumn(name = "san_xuat_hang_ngay_id")
     @JsonIgnoreProperties(value = { "chiTietSanXuats" }, allowSetters = true)
     private SanXuatHangNgay sanXuatHangNgay;
 

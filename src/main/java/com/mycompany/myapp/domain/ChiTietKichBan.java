@@ -43,6 +43,7 @@ public class ChiTietKichBan implements Serializable {
     private String trangThai;
 
     @ManyToOne
+    @JoinColumn(name = "kich_ban_id")
     @JsonIgnoreProperties(value = { "chiTietKichBans" }, allowSetters = true)
     private KichBan kichBan;
 
