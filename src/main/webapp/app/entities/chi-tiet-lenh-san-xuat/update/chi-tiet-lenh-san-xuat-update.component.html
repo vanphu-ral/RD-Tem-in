@@ -162,6 +162,7 @@
         <form
           [formGroup]="scanResult"
           [ngClass]="{ 'show-input-scan': showScanInput }"
+          style="margin: 10px; margin: 10px"
         >
           <button class="btn-scan" role="button" (click)="setInputValue()">
             Scan tem
@@ -172,7 +173,7 @@
             id="scan"
             [(ngModel)]="scanResults"
             [ngModelOptions]="{ standalone: true }"
-            style="border: none"
+            style="border: none; width: 98%"
             (keydown.enter)="catchScanEvent()"
             inputmode="none"
           />
@@ -192,9 +193,8 @@
 
         <div class="search-all">
           <!-- danh sách tems có trong lệnh sản xuất -->
-          <h3 id="jhi-lenh-san-xuat-heading">
-            Danh sách tem có trong lệnh
-            <p>Số thùng: {{ chiTietLenhSanXuatActive.length }}</p>
+          <div style="display: flex; gap: 24px">
+            <h3 id="jhi-lenh-san-xuat-heading">Danh sách tem có trong lệnh</h3>
             <button
               type="button"
               class="move"
@@ -203,7 +203,9 @@
             >
               Move
             </button>
-          </h3>
+            <h4>Số thùng: {{ chiTietLenhSanXuatActive.length }}</h4>
+          </div>
+
           <input
             #searchInput
             type="text"
@@ -227,8 +229,12 @@
                 <th scope="col"><span class="custom-width">Vendor</span></th>
                 <th scope="col"><span class="custom-width">LOT</span></th>
                 <th scope="col">User Data 1</th>
-                <th scope="col">User Data 2</th>
-                <th scope="col">User Data 3</th>
+                <th scope="col">
+                  <span class="custom-width">User Data 2</span>
+                </th>
+                <th scope="col">
+                  <span class="custom-width">User Data 3</span>
+                </th>
                 <th scope="col">User Data 4</th>
                 <th scope="col">User Data 5</th>
                 <th scope="col">Initial Quantity</th>
@@ -294,38 +300,36 @@
               class="editable-row"
             >
               <td>
-                <span>{{ i + 1 }}</span>
+                {{ i + 1 }}
               </td>
 
               <td>
-                <span>{{ data.reelID }}</span>
+                {{ data.reelID }}
               </td>
 
               <td>
-                <span>{{ data.partNumber }}</span>
+                {{ data.partNumber }}
               </td>
               <td>
-                <span>{{ data.vendor }}</span>
+                {{ data.vendor }}
               </td>
               <td>
-                <span>{{ data.lot }}</span>
+                {{ data.lot }}
               </td>
               <td>
-                <span>{{ data.userData1 }}</span>
+                {{ data.userData1 }}
               </td>
               <td>
-                <span>{{ data.userData2 }}</span>
+                {{ data.userData2 }}
               </td>
               <td>
-                <span style="display: block; width: 15vw">{{
-                  data.userData3
-                }}</span>
+                {{ data.userData3 }}
               </td>
               <td>
-                <span>{{ data.userData4 }}</span>
+                {{ data.userData4 }}
               </td>
               <td>
-                <span>{{ data.userData5 }}</span>
+                {{ data.userData5 }}
               </td>
               <td>
                 <input
@@ -338,58 +342,58 @@
                 />
               </td>
               <td>
-                <span>{{ data.msdLevel }}</span>
+                {{ data.msdLevel }}
               </td>
               <td>
-                <span>{{ data.msdInitialFloorTime }}</span>
+                {{ data.msdInitialFloorTime }}
               </td>
               <td>
-                <span>{{ data.msdBagSealDate }}</span>
+                {{ data.msdBagSealDate }}
               </td>
               <td>
-                <span>{{ data.marketUsage }}</span>
+                {{ data.marketUsage }}
               </td>
               <td>
-                <span>{{ data.quantityOverride }}</span>
+                {{ data.quantityOverride }}
               </td>
               <td>
-                <span>{{ data.shelfTime }}</span>
+                {{ data.shelfTime }}
               </td>
               <td>
-                <span>{{ data.spMaterialName }}</span>
+                {{ data.spMaterialName }}
               </td>
               <td>
-                <span>{{ data.warningLimit }}</span>
+                {{ data.warningLimit }}
               </td>
               <td>
-                <span>{{ data.maximumLimit }}</span>
+                {{ data.maximumLimit }}
               </td>
               <td>
-                <span>{{ data.comments }}</span>
+                {{ data.comments }}
               </td>
               <td>
-                <span>{{ data.warmupTime }}</span>
+                {{ data.warmupTime }}
               </td>
               <td>
-                <span>{{ data.storageUnit }}</span>
+                {{ data.storageUnit }}
               </td>
               <td>
-                <span>{{ data.subStorageUnit }}</span>
+                {{ data.subStorageUnit }}
               </td>
               <td>
-                <span>{{ data.locationOverride }}</span>
+                {{ data.locationOverride }}
               </td>
               <td>
-                <span>{{ data.expirationDate }}</span>
+                {{ data.expirationDate }}
               </td>
               <td>
-                <span>{{ data.manufacturingDate }}</span>
+                {{ data.manufacturingDate }}
               </td>
               <td>
-                <span>{{ data.partClass }}</span>
+                {{ data.partClass }}
               </td>
               <td>
-                <span>{{ data.sapCode }}</span>
+                {{ data.sapCode }}
               </td>
               <td>
                 <select
@@ -436,7 +440,7 @@
             </select>
             <pagination-controls
               (pageChange)="page = $event"
-              style="float: right"
+              style="float: right; margin-right: 2rem"
             ></pagination-controls>
           </div>
         </div>
@@ -447,7 +451,7 @@
         <!-- danh sách tem không nằm trong lệnh sản xuất -->
         <h3>Danh sách tem không có trong lệnh</h3>
 
-        <div style="overflow-x: auto">
+        <div style="overflow-x: auto; width: 98%">
           <table class="table table-striped" aria-describedby="page-heading">
             <thead>
               <tr>
@@ -459,8 +463,12 @@
                 <th scope="col"><span class="custom-width">Vendor</span></th>
                 <th scope="col"><span class="custom-width">LOT</span></th>
                 <th scope="col">User Data 1</th>
-                <th scope="col">User Data 2</th>
-                <th scope="col">User Data 3</th>
+                <th scope="col">
+                  <span class="custom-width">User Data 2</span>
+                </th>
+                <th scope="col">
+                  <span class="custom-width">User Data 3</span>
+                </th>
                 <th scope="col">User Data 4</th>
                 <th scope="col">User Data 5</th>
                 <th scope="col">Initial Quantity</th>
@@ -501,38 +509,36 @@
               class="editable-row"
             >
               <td>
-                <span>{{ i + 1 }}</span>
+                {{ i + 1 }}
               </td>
 
               <td>
-                <span>{{ data.reelID }}</span>
+                {{ data.reelID }}
               </td>
 
               <td>
-                <span>{{ data.partNumber }}</span>
+                {{ data.partNumber }}
               </td>
               <td>
-                <span>{{ data.vendor }}</span>
+                {{ data.vendor }}
               </td>
               <td>
-                <span>{{ data.lot }}</span>
+                {{ data.lot }}
               </td>
               <td>
-                <span>{{ data.userData1 }}</span>
+                {{ data.userData1 }}
               </td>
               <td>
-                <span>{{ data.userData2 }}</span>
+                {{ data.userData2 }}
               </td>
               <td>
-                <span style="display: block; width: 15vw">{{
-                  data.userData3
-                }}</span>
+                {{ data.userData3 }}
               </td>
               <td>
-                <span>{{ data.userData4 }}</span>
+                {{ data.userData4 }}
               </td>
               <td>
-                <span>{{ data.userData5 }}</span>
+                {{ data.userData5 }}
               </td>
               <td>
                 <input
@@ -545,37 +551,37 @@
                 />
               </td>
               <td>
-                <span>{{ data.msdLevel }}</span>
+                {{ data.msdLevel }}
               </td>
               <td>
-                <span>{{ data.msdInitialFloorTime }}</span>
+                {{ data.msdInitialFloorTime }}
               </td>
               <td>
-                <span>{{ data.msdBagSealDate }}</span>
+                {{ data.msdBagSealDate }}
               </td>
               <td>
-                <span>{{ data.marketUsage }}</span>
+                {{ data.marketUsage }}
               </td>
               <td>
-                <span>{{ data.quantityOverride }}</span>
+                {{ data.quantityOverride }}
               </td>
               <td>
-                <span>{{ data.shelfTime }}</span>
+                {{ data.shelfTime }}
               </td>
               <td>
-                <span>{{ data.spMaterialName }}</span>
+                {{ data.spMaterialName }}
               </td>
               <td>
-                <span>{{ data.warningLimit }}</span>
+                {{ data.warningLimit }}
               </td>
               <td>
-                <span>{{ data.maximumLimit }}</span>
+                {{ data.maximumLimit }}
               </td>
               <td>
-                <span>{{ data.comments }}</span>
+                {{ data.comments }}
               </td>
               <td>
-                <span>{{ data.warmupTime }}</span>
+                {{ data.warmupTime }}
               </td>
               <td>
                 <input
@@ -587,27 +593,25 @@
                 />
               </td>
               <td>
-                <span>{{ data.subStorageUnit }}</span>
+                {{ data.subStorageUnit }}
               </td>
               <td>
-                <span>{{ data.locationOverride }}</span>
+                {{ data.locationOverride }}
               </td>
               <td>
-                <span>{{ data.expirationDate }}</span>
+                {{ data.expirationDate }}
               </td>
               <td>
-                <span>{{ data.manufacturingDate }}</span>
+                {{ data.manufacturingDate }}
               </td>
               <td>
-                <span>{{ data.partClass }}</span>
+                {{ data.partClass }}
               </td>
               <td>
-                <span>{{ data.sapCode }}</span>
+                {{ data.sapCode }}
               </td>
               <td>
-                <span>
-                  {{ data.trangThai }}
-                </span>
+                {{ data.trangThai }}
               </td>
               <td>
                 <input
@@ -624,7 +628,9 @@
             chiTietLenhSanXuatNotList && chiTietLenhSanXuatNotList.length > 0
           "
         >
-          <div>
+          <div
+            style="display: flex; justify-content: space-between; width: 98%"
+          >
             <select
               class="form-select"
               aria-label="Default select example"
@@ -640,7 +646,7 @@
             </select>
             <pagination-controls
               (pageChange)="page2 = $event"
-              style="float: right"
+              style="float: right; margin-right: 2rem"
             ></pagination-controls>
           </div>
         </div>

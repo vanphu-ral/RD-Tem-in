@@ -66,7 +66,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     timeUpdate: dayjs().startOf("second"),
     trangThai: "",
   };
-
+  isAllChecked: boolean = false;
   chiTietLenhSanXuats: IChiTietLenhSanXuat[] = [];
   //tạo danh sách lệnh sản xuất ở trạng thái active
   chiTietLenhSanXuatActive: IChiTietLenhSanXuat[] = [];

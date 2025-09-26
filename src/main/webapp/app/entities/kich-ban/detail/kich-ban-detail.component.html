@@ -2,26 +2,36 @@
   <div>
     <div *ngIf="kichBan">
       <div class="export-file">
+        <h2 data-cy="kichBanDetailsHeading">
+          <span>Thông tin chi tiết kịch bản</span>
+        </h2>
         <button (click)="exportToExcel()">
           <fa-icon class="icon-navbar" icon="file-export"></fa-icon>
           Export
         </button>
       </div>
-      <h2 data-cy="kichBanDetailsHeading"><span>Thông tin chi tiết kịch bản</span></h2>
       <hr />
 
       <table class="table table-striped" aria-describedby="page-heading">
         <thead>
           <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
             <th scope="col" jhiSortBy="maKichBan"><span>Mã kịch bản</span></th>
-            <th scope="col" jhiSortBy="loaiThietBi"><span>Nhóm thiết bị</span></th>
+            <th scope="col" jhiSortBy="loaiThietBi">
+              <span>Nhóm thiết bị</span>
+            </th>
             <th scope="col" jhiSortBy="maThietBi"><span>Mã thiết bị</span></th>
             <th scope="col" jhiSortBy="dayChuyen"><span>Dây chuyền</span></th>
-            <th scope="col" jhiSortBy="nhomSanPham"><span>Nhóm sản phẩm</span></th>
+            <th scope="col" jhiSortBy="nhomSanPham">
+              <span>Nhóm sản phẩm</span>
+            </th>
             <th scope="col" jhiSortBy="maSanPham"><span>Mã sản phẩm</span></th>
-            <th scope="col" jhiSortBy="versionSanPham"><span>Version sản phẩm</span></th>
+            <th scope="col" jhiSortBy="versionSanPham">
+              <span>Version sản phẩm</span>
+            </th>
             <th scope="col" jhiSortBy="ngayTao"><span>Ngày tạo</span></th>
-            <th scope="col" jhiSortBy="timeUpdate"><span>Ngày cập nhật</span></th>
+            <th scope="col" jhiSortBy="timeUpdate">
+              <span>Ngày cập nhật</span>
+            </th>
             <th scope="col" jhiSortBy="updateBy"><span>Update By</span></th>
             <th scope="col" jhiSortBy="status"><span>Trạng thái</span></th>
           </tr>
@@ -122,7 +132,12 @@
         </tbody>
       </table>
 
-      <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+      <button
+        type="submit"
+        (click)="previousState()"
+        class="btn btn-info"
+        data-cy="entityDetailsBackButton"
+      >
         <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span>Back</span>
       </button>
 

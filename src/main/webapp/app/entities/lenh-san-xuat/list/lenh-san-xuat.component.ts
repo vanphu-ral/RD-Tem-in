@@ -209,37 +209,56 @@ export class LenhSanXuatComponent implements OnInit {
   changeColor(): void {
     for (let i = 0; i < this.lenhSanXuats!.length; i++) {
       const item = this.lenhSanXuats![i].id!.toString();
+
+      // Màu theo groupName
       if (this.lenhSanXuats![i].groupName?.includes("TC01") === true) {
-        document.getElementById(item)!.style.backgroundColor = "#FF9900";
+        document.getElementById(item)!.style.backgroundColor = "#FFD8A8";
+        document.getElementById(item)!.style.border = "1px solid #E6B98C";
       } else if (this.lenhSanXuats![i].groupName?.includes("SMT01") === true) {
-        document.getElementById(item)!.style.backgroundColor = "#00CCFF";
+        document.getElementById(item)!.style.backgroundColor = "#A5D8FF";
+        document.getElementById(item)!.style.border = "1px solid #7FBCE6";
       } else if (this.lenhSanXuats![i].groupName?.includes("SMT02") === true) {
-        // console.log('tesst', this.lenhSanXuats![i].groupName?.includes('SMT02'));
-        document.getElementById(item)!.style.backgroundColor = "#00CC00";
+        document.getElementById(item)!.style.backgroundColor = "#B2F2BB";
+        document.getElementById(item)!.style.border = "1px solid #8BD9A0";
       }
-      if (this.lenhSanXuats![i].trangThai === "Chờ duyệt") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#FFFF33";
-      } else if (this.lenhSanXuats![i].trangThai === "Đã phê duyệt") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#00FF00";
-      } else if (this.lenhSanXuats![i].trangThai === "Sản xuất hủy") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#EE0000";
-        document.getElementById(i.toString())!.style.color = "#fff";
-      } else if (this.lenhSanXuats![i].trangThai === "Kho hủy") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#DD0000";
-        document.getElementById(i.toString())!.style.color = "#fff";
-      } else if (this.lenhSanXuats![i].trangThai === "Bản nháp") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#00FFFF";
-      } else if (this.lenhSanXuats![i].trangThai === "Từ chối") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#FFCC00";
+
+      // Màu theo trạng thái
+      const element = document.getElementById(i.toString())!;
+      switch (this.lenhSanXuats![i].trangThai) {
+        case "Chờ duyệt":
+          element.style.backgroundColor = "#FFF3BF";
+          element.style.color = "#8A6D3B";
+          element.style.border = "1px solid #E6DCA5";
+          break;
+        case "Đã phê duyệt":
+          element.style.backgroundColor = "#C6F6D5";
+          element.style.color = "#3F6D52";
+          element.style.border = "1px solid #A3D9B8";
+          break;
+        case "Sản xuất hủy":
+          element.style.backgroundColor = "#FF6B6B";
+          element.style.color = "#FFFFFF";
+          element.style.border = "1px solid #E65C5C";
+          break;
+        case "Kho hủy":
+          element.style.backgroundColor = "#FA5252";
+          element.style.color = "#FFFFFF";
+          element.style.border = "1px solid #E04444";
+          break;
+        case "Bản nháp":
+          element.style.backgroundColor = "#D0EBFF";
+          element.style.color = "#1C7ED6";
+          element.style.border = "1px solid #A5D4F2";
+          break;
+        case "Từ chối":
+          element.style.backgroundColor = "#FFE066";
+          element.style.color = "#7F5F00";
+          element.style.border = "1px solid #E6C957";
+          break;
       }
     }
   }
+
   getTotalData(): void {
     this.http.post<any>(this.totalDataUrl, this.body).subscribe((res) => {
       this.totalData = res;

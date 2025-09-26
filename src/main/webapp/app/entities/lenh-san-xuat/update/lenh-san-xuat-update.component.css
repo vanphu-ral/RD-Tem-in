@@ -1,36 +1,39 @@
 table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
 }
 
 th {
   color: #fff;
-  background-color: #006699;
+  background-color: #6c7ae0;
   text-align: left;
   padding: 8px;
   font-weight: bold;
 }
 
-tr:nth-child(even) {
+/* tr:nth-child(even) {
   background-color: #d2e7f1;
 }
 
 tr:nth-child(odd) {
   background-color: #ffffff;
-}
+} */
 
-tr {
-  background-color: #f8f8f8;
+tr:hover {
+  background-color: #cddff4;
 }
 
 td {
   padding: 8px;
   border: 1px solid #ccc;
+  background-color: #fff;
 }
 
-input[type='text'],
+input[type="text"],
 select {
   width: 100%;
   padding: 8px;
@@ -140,7 +143,7 @@ select {
 
 .custom-width {
   display: inline-block;
-  width: 10rem;
+  width: 7rem;
 }
 
 .custom-search {

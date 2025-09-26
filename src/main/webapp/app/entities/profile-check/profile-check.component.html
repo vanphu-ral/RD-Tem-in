@@ -2,8 +2,12 @@
   <h2 id="page-heading" data-cy="ProfileCheckHeading">
     <span>Quản lý trạm thông tin kiểm tra</span>
   </h2>
-  <div class="d-flex justify-content-end">
-    <button class="btn btn-info me-2" style="padding: 10px 20px" (click)="openPopupAddNewProduct()">
+  <div class="d-flex justify-content-end" style="width: 97%">
+    <button
+      class="btn btn-info me-2"
+      style="padding: 10px 20px"
+      (click)="openPopupAddNewProduct()"
+    >
       <fa-icon icon="add"></fa-icon>
       <span>Thêm mới</span>
     </button>
@@ -12,10 +16,18 @@
   <div class="table-responsive">
     <table class="table" aria-describedby="page-heading">
       <thead>
-        <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending" (sortChange)="loadPage()">
+        <tr
+          jhiSort
+          [(predicate)]="predicate"
+          [(ascending)]="ascending"
+          (sortChange)="loadPage()"
+        >
           <th scope="col" jhiSortBy="STT">
             <span>STT</span>
-            <input type="text" style="width: 1px; border: none; background-color: #006699" />
+            <input
+              type="text"
+              style="width: 1px; border: none; background-color: #6c7ae0"
+            />
           </th>
           <th scope="col" jhiSortBy="productCode">
             <span>Mã sản phẩm</span>
@@ -85,27 +97,47 @@
           </th>
           <th scope="col" jhiSortBy="">
             <span>Options</span>
-            <input type="text" style="width: 1px; border: none; background-color: #006699" />
+            <input
+              type="text"
+              style="width: 1px; border: none; background-color: #6c7ae0"
+            />
           </th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of listOfProduct | paginate: { itemsPerPage: itemPerPage, currentPage: page }; let i = index">
+        <tr
+          *ngFor="
+            let item of listOfProduct
+              | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+            let i = index
+          "
+        >
           <!-- <tr *ngFor="let item of listOfProduct; let i = index"> -->
           <td>{{ i + 1 }}</td>
           <td>{{ item.productCode }}</td>
           <td>{{ item.productName }}</td>
-          <td>{{ item.createAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
-          <td>{{ item.updateAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+          <td>{{ item.createAt | date: "dd/MM/yyyy HH:mm:ss" }}</td>
+          <td>{{ item.updateAt | date: "dd/MM/yyyy HH:mm:ss" }}</td>
           <td>{{ item.username }}</td>
           <td>{{ item.nameStatus }}</td>
           <td>
             <div class="btn-group">
-              <button type="submit" class="btn btn-info btn-sm" (click)="openPopupKhaiBaoProfile(i, item.productId)">
+              <button
+                type="submit"
+                class="btn btn-info btn-sm"
+                (click)="openPopupKhaiBaoProfile(i, item.productId)"
+                data-bs-toggle="tooltip"
+                title="Khai báo profile"
+              >
                 <fa-icon icon="eye"></fa-icon>
               </button>
 
-              <button type="submit" class="btn btn-danger btn-sm">
+              <button
+                type="submit"
+                class="btn btn-danger btn-sm"
+                data-bs-toggle="tooltip"
+                title="Xoá"
+              >
                 <fa-icon icon="times"></fa-icon>
               </button>
             </div>
@@ -115,9 +147,14 @@
     </table>
   </div>
   <div class="paginate">
-    <div style="display: flex; justify-content: space-between">
+    <div style="display: flex; justify-content: space-between; width: 97%">
       <div>
-        <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage" (change)="findFucntion()">
+        <select
+          class="form-select"
+          aria-label="Default select example"
+          [(ngModel)]="itemPerPage"
+          (change)="findFucntion()"
+        >
           <option value="10">10</option>
           <option value="15">15</option>
           <option value="20">20</option>
@@ -125,29 +162,71 @@
       </div>
 
       <div style="display: flex">
-        <button class="pagination" (click)="firstPage()" [disabled]="firstPageBtn">Trang đầu</button>
-        <button class="pagination" (click)="backPage()" [disabled]="backPageBtn">Trang trước</button>
+        <button
+          class="pagination"
+          (click)="firstPage()"
+          [disabled]="firstPageBtn"
+        >
+          Trang đầu
+        </button>
+        <button
+          class="pagination"
+          (click)="backPage()"
+          [disabled]="backPageBtn"
+        >
+          Trang trước
+        </button>
         <button class="pagenumber">{{ pageNumber }}</button>
-        <button class="pagination" (click)="nextPage()" [disabled]="nextPageBtn">Trang sau</button>
-        <button class="pagination" (click)="lastPage()" [disabled]="lastPageBtn">Trang cuối</button>
+        <button
+          class="pagination"
+          (click)="nextPage()"
+          [disabled]="nextPageBtn"
+        >
+          Trang sau
+        </button>
+        <button
+          class="pagination"
+          (click)="lastPage()"
+          [disabled]="lastPageBtn"
+        >
+          Trang cuối
+        </button>
       </div>
     </div>
   </div>
 
   <!-- popup khai báo profile -->
-  <div class="table-responsive popup-background" role="dialog" *ngIf="popupKhaiBaoProfile === true">
+  <div
+    class="table-responsive popup-background"
+    role="dialog"
+    *ngIf="popupKhaiBaoProfile === true"
+  >
     <div>
-      <span class="close-btn" (click)="closePopupKhaiBaoProfile()">&times;</span>
+      <span class="close-btn" (click)="closePopupKhaiBaoProfile()"
+        >&times;</span
+      >
       <div>
         <div class="popup-khai-bao-profile">
           <h2>Khai báo Profile</h2>
           <div class="table-container">
             <div class="table-header">
-              <table class="table table-striped" aria-describedby="page-heading">
+              <table
+                class="table table-striped"
+                aria-describedby="page-heading"
+                style="width: 97%"
+              >
                 <thead>
-                  <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
-                    <th scope="col">Mã sản phẩm <b style="color: red">(*)</b></th>
-                    <th scope="col">Tên sản phẩm <b style="color: red">(*)</b></th>
+                  <tr
+                    jhiSort
+                    [(predicate)]="predicate"
+                    [(ascending)]="ascending"
+                  >
+                    <th scope="col">
+                      Mã sản phẩm <b style="color: red">(*)</b>
+                    </th>
+                    <th scope="col">
+                      Tên sản phẩm <b style="color: red">(*)</b>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -180,17 +259,32 @@
                 <div class="table-body-container-first">
                   <h2>Thông tin nhóm máy theo version</h2>
                   <div class="d-flex justify-content-end">
-                    <button class="btn btn-info me-2" style="padding: 10px 20px" (click)="addRowListVersion()">
+                    <button
+                      class="btn btn-info me-2"
+                      style="padding: 10px 20px"
+                      (click)="addRowListVersion()"
+                    >
                       <fa-icon icon="add"></fa-icon>
                       <span>Thêm mới</span>
                     </button>
                   </div>
                   <hr />
-                  <table class="table table-striped" aria-describedby="page-heading">
+                  <table
+                    class="table table-striped"
+                    aria-describedby="page-heading"
+                  >
                     <thead>
-                      <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
-                        <th scope="col">Version <b style="color: red">(*)</b></th>
-                        <th scope="col">Nhóm máy <b style="color: red">(*)</b></th>
+                      <tr
+                        jhiSort
+                        [(predicate)]="predicate"
+                        [(ascending)]="ascending"
+                      >
+                        <th scope="col">
+                          Version <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Nhóm máy <b style="color: red">(*)</b>
+                        </th>
                         <th scope="col">Options</th>
                       </tr>
                     </thead>
@@ -198,7 +292,16 @@
                       <tr *ngFor="let item of listOfVersion; let i = index">
                         <!-- <tr *ngFor="let item of listOfProduct | paginate: { itemsPerPage: itemPerPage, currentPage: page }; let i = index"> -->
 
-                        <td (click)="getProfileInfo(item.versionId, item.productId, item.version, item.groupId)">
+                        <td
+                          (click)="
+                            getProfileInfo(
+                              item.versionId,
+                              item.productId,
+                              item.version,
+                              item.groupId
+                            )
+                          "
+                        >
                           <input
                             type="text"
                             list="productVersion"
@@ -218,7 +321,10 @@
                             (change)="getGroupId(item.groupName, i)"
                           />
                           <datalist id="groupMachine">
-                            <option *ngFor="let item of listOfGroupMachine" value="{{ item.groupName }}"></option>
+                            <option
+                              *ngFor="let item of listOfGroupMachine"
+                              value="{{ item.groupName }}"
+                            ></option>
                           </datalist>
                         </td>
                         <td>
@@ -240,26 +346,51 @@
                       </tr>
                     </tbody>
                   </table>
-                  <pagination-controls id="panigation1" (pageChange)="page3 = $event" style="float: right"></pagination-controls>
+                  <pagination-controls
+                    id="panigation1"
+                    (pageChange)="page3 = $event"
+                    style="float: right"
+                  ></pagination-controls>
                 </div>
                 <div class="table-body-container-second">
                   <h2>Thông tin chi tiết các máy</h2>
                   <div class="d-flex justify-content-end">
-                    <button class="btn btn-info me-2" style="padding: 10px 20px" (click)="addRowProfileCheck()">
+                    <button
+                      class="btn btn-info me-2"
+                      style="padding: 10px 20px"
+                      (click)="addRowProfileCheck()"
+                    >
                       <fa-icon icon="add"></fa-icon>
                       <span>Thêm mới</span>
                     </button>
                   </div>
                   <hr />
-                  <table class="table table-striped" aria-describedby="page-heading">
+                  <table
+                    class="table table-striped"
+                    aria-describedby="page-heading"
+                  >
                     <thead>
-                      <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+                      <tr
+                        jhiSort
+                        [(predicate)]="predicate"
+                        [(ascending)]="ascending"
+                      >
                         <th scope="col">STT</th>
-                        <th scope="col">Tên trạm <b style="color: red">(*)</b></th>
-                        <th scope="col">Vị trí <b style="color: red">(*)</b></th>
-                        <th scope="col">Tiêu chí kiểm tra <b style="color: red">(*)</b></th>
-                        <th scope="col">Giá trị <b style="color: red">(*)</b></th>
-                        <th scope="col">Version <b style="color: red">(*)</b></th>
+                        <th scope="col">
+                          Tên trạm <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Vị trí <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Tiêu chí kiểm tra <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Giá trị <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Version <b style="color: red">(*)</b>
+                        </th>
                         <th scope="col">Trạng thái</th>
                         <th scope="col">Options</th>
                       </tr>
@@ -268,7 +399,13 @@
                       <!-- <tr *ngFor="let data of listOfMaMay; let i = index"> -->
                       <tr
                         *ngFor="
-                          let data of listOfMaMay | paginate: { id: 'panigation2', itemsPerPage: itemsPerPage, currentPage: page1 };
+                          let data of listOfMaMay
+                            | paginate
+                              : {
+                                  id: 'panigation2',
+                                  itemsPerPage: itemsPerPage,
+                                  currentPage: page1,
+                                };
                           let i = index
                         "
                       >
@@ -280,10 +417,18 @@
                             [(ngModel)]="data.machineName"
                             [ngModelOptions]="{ standalone: true }"
                             required
-                            (change)="catchEventSetMachineName(data.machineName, data.profileId)"
+                            (change)="
+                              catchEventSetMachineName(
+                                data.machineName,
+                                data.profileId
+                              )
+                            "
                           />
                           <datalist id="machines">
-                            <option *ngFor="let item1 of listOfMachine" value="{{ item1.maThietBi }}"></option>
+                            <option
+                              *ngFor="let item1 of listOfMachine"
+                              value="{{ item1.maThietBi }}"
+                            ></option>
                           </datalist>
                         </td>
                         <td>
@@ -310,9 +455,19 @@
                             (change)="machineOutPutAlert(data.machineId)"
                           />
                         </td>
-                        <td><input type="text" [(ngModel)]="data.version" [ngModelOptions]="{ standalone: true }" /></td>
                         <td>
-                          <input type="text" [(ngModel)]="data.checkStatus" [ngModelOptions]="{ standalone: true }" />
+                          <input
+                            type="text"
+                            [(ngModel)]="data.version"
+                            [ngModelOptions]="{ standalone: true }"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            [(ngModel)]="data.checkStatus"
+                            [ngModelOptions]="{ standalone: true }"
+                          />
                         </td>
                         <td>
                           <div class="btn-group">
@@ -328,7 +483,11 @@
                       </tr>
                     </tbody>
                   </table>
-                  <pagination-controls id="panigation2" (pageChange)="page1 = $event" style="float: right"></pagination-controls>
+                  <pagination-controls
+                    id="panigation2"
+                    (pageChange)="page1 = $event"
+                    style="float: right"
+                  ></pagination-controls>
                 </div>
               </div>
             </div>
@@ -342,25 +501,49 @@
           >
             <fa-icon icon="ban"></fa-icon>&nbsp;<span>Cancel</span>
           </button>
-          <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" class="btn btn-primary" (click)="openPopupConfirmSave()">
+          <button
+            type="submit"
+            id="save-entity"
+            data-cy="entityCreateSaveButton"
+            class="btn btn-primary"
+            (click)="openPopupConfirmSave()"
+          >
             <fa-icon icon="save"></fa-icon>&nbsp;<span>Lưu</span>
           </button>
         </div>
       </div>
       <!-- popup phần chỉnh sửa profile check-->
-      <div class="table-responsive popup-background popup-save-info" role="dialog" *ngIf="popupConfirmSave === true">
+      <div
+        class="table-responsive popup-background popup-save-info"
+        role="dialog"
+        *ngIf="popupConfirmSave === true"
+      >
         <div>
           <p>Bạn có chắc chắn muốn lưu thông tin này không?</p>
           <div class="btn-group-save">
-            <button class="confirm-btn" (click)="closePopupConfirmSave('update')">Xác nhận</button>
-            <button class="cancel-btn" (click)="closePopupConfirmSave('cancel')">Hủy</button>
+            <button
+              class="confirm-btn"
+              (click)="closePopupConfirmSave('update')"
+            >
+              Xác nhận
+            </button>
+            <button
+              class="cancel-btn"
+              (click)="closePopupConfirmSave('cancel')"
+            >
+              Hủy
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
   <!-- popup thêm mới sản phẩm + profile -->
-  <div class="table-responsive popup-background" role="dialog" *ngIf="popupAddNewProduct === true">
+  <div
+    class="table-responsive popup-background"
+    role="dialog"
+    *ngIf="popupAddNewProduct === true"
+  >
     <div>
       <span class="close-btn" (click)="closePopupAddNewProduct()">&times;</span>
 
@@ -369,18 +552,41 @@
           <h2>Thêm mới sản phẩm</h2>
           <div class="table-container">
             <div class="table-header">
-              <table class="table table-striped" aria-describedby="page-heading">
+              <table
+                class="table table-striped"
+                aria-describedby="page-heading"
+                style="width: 97%"
+              >
                 <thead>
-                  <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
-                    <th scope="col">Mã sản phẩm <b style="color: red">(*)</b></th>
-                    <th scope="col">Tên sản phẩm <b style="color: red">(*)</b></th>
+                  <tr
+                    jhiSort
+                    [(predicate)]="predicate"
+                    [(ascending)]="ascending"
+                  >
+                    <th scope="col">
+                      Mã sản phẩm <b style="color: red">(*)</b>
+                    </th>
+                    <th scope="col">
+                      Tên sản phẩm <b style="color: red">(*)</b>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td><input type="text" [(ngModel)]="productCode" [ngModelOptions]="{ standalone: true }" /></td>
                     <td>
-                      <input type="text" [(ngModel)]="productName" [ngModelOptions]="{ standalone: true }" (change)="addNewProduct()" />
+                      <input
+                        type="text"
+                        [(ngModel)]="productCode"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        [(ngModel)]="productName"
+                        [ngModelOptions]="{ standalone: true }"
+                        (change)="addNewProduct()"
+                      />
                     </td>
                   </tr>
                 </tbody>
@@ -394,17 +600,32 @@
                 <div class="table-body-container-first">
                   <h2>Thông tin nhóm máy theo version</h2>
                   <div class="d-flex justify-content-end">
-                    <button class="btn btn-info me-2" style="padding: 10px 20px" (click)="addRowListVersion()">
+                    <button
+                      class="btn btn-info me-2"
+                      style="padding: 10px 20px"
+                      (click)="addRowListVersion()"
+                    >
                       <fa-icon icon="add"></fa-icon>
                       <span>Thêm mới</span>
                     </button>
                   </div>
                   <hr />
-                  <table class="table table-striped" aria-describedby="page-heading">
+                  <table
+                    class="table table-striped"
+                    aria-describedby="page-heading"
+                  >
                     <thead>
-                      <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
-                        <th scope="col">Version <b style="color: red">(*)</b></th>
-                        <th scope="col">Nhóm máy <b style="color: red">(*)</b></th>
+                      <tr
+                        jhiSort
+                        [(predicate)]="predicate"
+                        [(ascending)]="ascending"
+                      >
+                        <th scope="col">
+                          Version <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Nhóm máy <b style="color: red">(*)</b>
+                        </th>
                         <th scope="col">Options</th>
                       </tr>
                     </thead>
@@ -412,7 +633,13 @@
                       <!-- <tr *ngFor="let item of listOfVersion; let i = index"> -->
                       <tr
                         *ngFor="
-                          let item of listOfVersion | paginate: { id: 'panigation3', itemsPerPage: itemsPerPage3, currentPage: page2 };
+                          let item of listOfVersion
+                            | paginate
+                              : {
+                                  id: 'panigation3',
+                                  itemsPerPage: itemsPerPage3,
+                                  currentPage: page2,
+                                };
                           let i = index
                         "
                       >
@@ -435,12 +662,19 @@
                             (change)="getGroupId(item.groupName, i)"
                           />
                           <datalist id="groupMachine">
-                            <option *ngFor="let item of listOfGroupMachine" value="{{ item.groupName }}"></option>
+                            <option
+                              *ngFor="let item of listOfGroupMachine"
+                              value="{{ item.groupName }}"
+                            ></option>
                           </datalist>
                         </td>
                         <td>
                           <div class="btn-group">
-                            <button type="submit" class="btn btn-info btn-sm" (click)="getListProfile(i)">
+                            <button
+                              type="submit"
+                              class="btn btn-info btn-sm"
+                              (click)="getListProfile(i)"
+                            >
                               <fa-icon icon="pencil"></fa-icon>
                             </button>
 
@@ -452,28 +686,53 @@
                       </tr>
                     </tbody>
                   </table>
-                  <pagination-controls id="panigation3" (pageChange)="page2 = $event" style="float: right"></pagination-controls>
+                  <pagination-controls
+                    id="panigation3"
+                    (pageChange)="page2 = $event"
+                    style="float: right"
+                  ></pagination-controls>
                 </div>
                 <br /><br /><br />
 
                 <div class="table-body-container-second">
                   <h2>Thông tin chi tiết các máy</h2>
                   <div class="d-flex justify-content-end">
-                    <button class="btn btn-info me-2" style="padding: 10px 20px" (click)="addRowProfileCheck()">
+                    <button
+                      class="btn btn-info me-2"
+                      style="padding: 10px 20px"
+                      (click)="addRowProfileCheck()"
+                    >
                       <fa-icon icon="add"></fa-icon>
                       <span>Thêm mới</span>
                     </button>
                   </div>
                   <hr />
-                  <table class="table table-striped" aria-describedby="page-heading">
+                  <table
+                    class="table table-striped"
+                    aria-describedby="page-heading"
+                  >
                     <thead>
-                      <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+                      <tr
+                        jhiSort
+                        [(predicate)]="predicate"
+                        [(ascending)]="ascending"
+                      >
                         <th scope="col">STT</th>
-                        <th scope="col">Tên trạm <b style="color: red">(*)</b></th>
-                        <th scope="col">Vị trí <b style="color: red">(*)</b></th>
-                        <th scope="col">Tiêu chí kiểm tra <b style="color: red">(*)</b></th>
-                        <th scope="col">Giá trị <b style="color: red">(*)</b></th>
-                        <th scope="col">Version <b style="color: red">(*)</b></th>
+                        <th scope="col">
+                          Tên trạm <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Vị trí <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Tiêu chí kiểm tra <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Giá trị <b style="color: red">(*)</b>
+                        </th>
+                        <th scope="col">
+                          Version <b style="color: red">(*)</b>
+                        </th>
                         <th scope="col">Trạng thái</th>
                         <th scope="col">Options</th>
                       </tr>
@@ -482,7 +741,13 @@
                       <!-- <tr *ngFor="let data of listOfMaMay; let i = index"> -->
                       <tr
                         *ngFor="
-                          let data of listOfMaMay | paginate: { id: 'panigation4', itemsPerPage: itemsPerPage, currentPage: page };
+                          let data of listOfMaMay
+                            | paginate
+                              : {
+                                  id: 'panigation4',
+                                  itemsPerPage: itemsPerPage,
+                                  currentPage: page,
+                                };
                           let i = index
                         "
                       >
@@ -493,18 +758,54 @@
                             list="machines2"
                             [(ngModel)]="data.maThietBi"
                             [ngModelOptions]="{ standalone: true }"
-                            (change)="catchEventSetMachineName(data.maThietBi, data.profileId)"
+                            (change)="
+                              catchEventSetMachineName(
+                                data.maThietBi,
+                                data.profileId
+                              )
+                            "
                           />
                           <datalist id="machines2">
-                            <option *ngFor="let item1 of listOfMachine" value="{{ item1.maThietBi }}"></option>
+                            <option
+                              *ngFor="let item1 of listOfMachine"
+                              value="{{ item1.maThietBi }}"
+                            ></option>
                           </datalist>
                         </td>
-                        <td><input type="text" [(ngModel)]="data.position" [ngModelOptions]="{ standalone: true }" /></td>
-                        <td><input type="text" [(ngModel)]="data.checkName" [ngModelOptions]="{ standalone: true }" /></td>
-                        <td><input type="text" [(ngModel)]="data.checkValue" [ngModelOptions]="{ standalone: true }" /></td>
-                        <td><input type="text" [(ngModel)]="data.version" [ngModelOptions]="{ standalone: true }" /></td>
                         <td>
-                          <input type="text" [(ngModel)]="data.checkStatus" [ngModelOptions]="{ standalone: true }" />
+                          <input
+                            type="text"
+                            [(ngModel)]="data.position"
+                            [ngModelOptions]="{ standalone: true }"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            [(ngModel)]="data.checkName"
+                            [ngModelOptions]="{ standalone: true }"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            [(ngModel)]="data.checkValue"
+                            [ngModelOptions]="{ standalone: true }"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            [(ngModel)]="data.version"
+                            [ngModelOptions]="{ standalone: true }"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            [(ngModel)]="data.checkStatus"
+                            [ngModelOptions]="{ standalone: true }"
+                          />
                         </td>
                         <td>
                           <div class="btn-group">
@@ -512,7 +813,11 @@
                               <fa-icon icon="pencil"></fa-icon>
                             </button>
 
-                            <button type="submit" class="btn btn-danger btn-sm" (click)="deleteProfileInfo(data.profileId)">
+                            <button
+                              type="submit"
+                              class="btn btn-danger btn-sm"
+                              (click)="deleteProfileInfo(data.profileId)"
+                            >
                               <fa-icon icon="times"></fa-icon>
                             </button>
                           </div>
@@ -520,7 +825,11 @@
                       </tr>
                     </tbody>
                   </table>
-                  <pagination-controls id="panigation4" (pageChange)="page = $event" style="float: right"></pagination-controls>
+                  <pagination-controls
+                    id="panigation4"
+                    (pageChange)="page = $event"
+                    style="float: right"
+                  ></pagination-controls>
                 </div>
               </div>
             </div>
@@ -534,18 +843,38 @@
           >
             <fa-icon icon="ban"></fa-icon>&nbsp;<span>Cancel</span>
           </button>
-          <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" class="btn btn-primary" (click)="openPopupConfirmSave()">
+          <button
+            type="submit"
+            id="save-entity"
+            data-cy="entityCreateSaveButton"
+            class="btn btn-primary"
+            (click)="openPopupConfirmSave()"
+          >
             <fa-icon icon="save"></fa-icon>&nbsp;<span>Lưu</span>
           </button>
         </div>
       </div>
       <!-- popup phần thêm mới -->
-      <div class="table-responsive popup-background popup-save-info" role="dialog" *ngIf="popupConfirmSave === true">
+      <div
+        class="table-responsive popup-background popup-save-info"
+        role="dialog"
+        *ngIf="popupConfirmSave === true"
+      >
         <div>
           <p>Bạn có chắc chắn muốn lưu thông tin này không?</p>
           <div class="btn-group-save">
-            <button class="confirm-btn" (click)="closePopupConfirmSave('confirm')">Xác nhận</button>
-            <button class="cancel-btn" (click)="closePopupConfirmSave('cancel')">Hủy</button>
+            <button
+              class="confirm-btn"
+              (click)="closePopupConfirmSave('confirm')"
+            >
+              Xác nhận
+            </button>
+            <button
+              class="cancel-btn"
+              (click)="closePopupConfirmSave('cancel')"
+            >
+              Hủy
+            </button>
           </div>
         </div>
       </div>
@@ -553,17 +882,29 @@
   </div>
 </div>
 <!-- popup phần chỉnh sửa profile check-->
-<div class="table-responsive popup-background popup-save-info" role="dialog" *ngIf="popupSaveThemMoiSanPham === true">
+<div
+  class="table-responsive popup-background popup-save-info"
+  role="dialog"
+  *ngIf="popupSaveThemMoiSanPham === true"
+>
   <div>
     <p>Bạn có chắc chắn muốn lưu thông tin này không?</p>
     <div class="btn-group-save">
-      <button class="confirm-btn" (click)="closePopupConfirmSave('confirm')">Xác nhận</button>
-      <button class="cancel-btn" (click)="closePopupConfirmSave('cancel')">Hủy</button>
+      <button class="confirm-btn" (click)="closePopupConfirmSave('confirm')">
+        Xác nhận
+      </button>
+      <button class="cancel-btn" (click)="closePopupConfirmSave('cancel')">
+        Hủy
+      </button>
     </div>
   </div>
 </div>
 <!-- popup phần thêm mới -->
-<div class="table-responsive popup-background popup-save-info" role="dialog" *ngIf="popupSaveThemMoiThongTinSanPham === true">
+<div
+  class="table-responsive popup-background popup-save-info"
+  role="dialog"
+  *ngIf="popupSaveThemMoiThongTinSanPham === true"
+>
   <div>
     <p>Bạn có chắc chắn muốn lưu thông tin này không?</p>
     <div class="btn-group-save">

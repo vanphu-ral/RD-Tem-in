@@ -1,14 +1,17 @@
 * {
   font-family: "Nunito", sans-serif;
 }
+.page-heading {
+  width: 97%;
+}
 table {
-  width: 98%;
+  width: 97%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
-}
-.page-heading {
-  width: 98%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 th {
@@ -19,7 +22,7 @@ th {
   font-weight: bold;
 }
 
-tr:nth-child(even) {
+/* tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 
@@ -29,11 +32,12 @@ tr:nth-child(odd) {
 
 tr {
   background-color: #f8f8f8;
-}
+} */
 
 td {
   padding: 8px;
   border: 1px solid #ccc;
+  background-color: #ffffff;
 }
 
 .create-thiet-bi {
@@ -213,7 +217,7 @@ ul.search-result {
 
 .form-select {
   width: 5vw;
-  margin-top: 2vh;
+  /* margin-top: 2vh; */
 }
 
 /* Dropdown */

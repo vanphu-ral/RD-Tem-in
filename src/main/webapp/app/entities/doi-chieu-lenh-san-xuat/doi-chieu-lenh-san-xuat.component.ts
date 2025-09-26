@@ -124,6 +124,19 @@ export class DoiChieuLenhSanXuatComponent implements OnInit {
     //     },
     //   });
   }
+  getStatusClass(status: string): string {
+    switch (status) {
+      case "Waitting":
+        return "badge-waiting";
+      case "Finish":
+        return "badge-finish";
+      case "Running":
+        return "badge-running";
+      default:
+        return "badge-default";
+    }
+  }
+
   mappingBodySearchAndPagination(): void {
     this.body.workOrder = this.workOrder;
     this.body.lot = this.lot;

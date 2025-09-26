@@ -1,12 +1,17 @@
 * {
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
 }
-
+.page-heading {
+  width: 97%;
+}
 table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 th {
@@ -18,9 +23,20 @@ th {
 }
 
 .maKichBan-col {
-  width: 25rem;
+  width: 10rem;
 }
-
+.nhomSanPham-col {
+  width: 5rem;
+}
+.maSanPham-col {
+  width: 7rem;
+}
+.dayChuyen-col {
+  width: 7rem;
+}
+.maThietBi-col {
+  width: 7rem;
+}
 .loaiThietBi-col {
   width: 6rem;
 }
@@ -29,21 +45,22 @@ th {
   width: 8rem;
 }
 
-tr:nth-child(even) {
+/* tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 
 tr:nth-child(odd) {
   background-color: #ffffff;
-}
+} */
 
-tr {
-  background-color: #f8f8f8;
+tr:hover {
+  background-color: #e3e3ff;
 }
 
 td {
   padding: 8px;
   border: 1px solid #ccc;
+  background-color: #fff;
 }
 
 .create-thiet-bi {
@@ -92,7 +109,7 @@ td {
   border-radius: 4px;
 }
 
-th[scope='col'] {
+th[scope="col"] {
   position: relative;
 }
 
@@ -126,7 +143,13 @@ ul.search-result {
   max-height: 150px;
   overflow-y: auto;
 }
-
+.detail-btn {
+  color: #2d3748 !important;
+  background-color: #cbd5e0 !important;
+}
+.detail-btn:hover {
+  background-color: #8f949d !important;
+}
 .btn-group button {
   margin-right: 10px;
   padding: 5px 10px;
@@ -155,7 +178,7 @@ ul.search-result {
 .jimu-primary-loading:after {
   position: absolute;
   top: 0;
-  content: '';
+  content: "";
 }
 
 .jimu-primary-loading:before {
@@ -219,8 +242,10 @@ ul.search-result {
     height: 40px;
   }
 }
-
+.text-end {
+  width: 7rem;
+}
 .form-select {
   width: 4vw;
-  margin-top: 2vh;
+  /* margin-top: 2vh; */
 }

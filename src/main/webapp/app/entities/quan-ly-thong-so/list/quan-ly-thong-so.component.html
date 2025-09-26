@@ -36,7 +36,7 @@
     *ngIf="quanLyThongSos && quanLyThongSos.length > 0"
   >
     <form [formGroup]="formSearch">
-      <table class="table table-striped" aria-describedby="page-heading">
+      <table class="table" aria-describedby="page-heading">
         <thead>
           <tr
             jhiSort
@@ -136,7 +136,7 @@
 
             <th scope="col">
               Options<input
-                style="border: none; width: 70%; background-color: #6c7ae0"
+                style="border: none; max-width: 5rem; background-color: #6c7ae0"
               />
             </th>
           </tr>
@@ -168,6 +168,8 @@
                   [routerLink]="['/quan-ly-thong-so', quanLyThongSo.id, 'view']"
                   class="btn btn-info btn-sm"
                   data-cy="entityDetailsButton"
+                  data-bs-toggle="tooltip"
+                  title="Xem chi tiết"
                 >
                   <fa-icon icon="eye"></fa-icon>
                   <!-- <span class="d-none d-md-inline">View</span> -->
@@ -179,6 +181,8 @@
                   [routerLink]="['/quan-ly-thong-so', quanLyThongSo.id, 'edit']"
                   class="btn btn-primary btn-sm"
                   data-cy="entityEditButton"
+                  data-bs-toggle="tooltip"
+                  title="Chỉnh sửa"
                 >
                   <fa-icon icon="pencil-alt"></fa-icon>
                 </button>
@@ -189,6 +193,8 @@
                   (click)="delete(quanLyThongSo)"
                   class="btn btn-danger btn-sm"
                   data-cy="entityDeleteButton"
+                  data-bs-toggle="tooltip"
+                  title="Xoá"
                 >
                   <fa-icon icon="times"></fa-icon>
                 </button>
@@ -215,7 +221,7 @@
 
       <pagination-controls
         (pageChange)="page = $event"
-        style="float: right"
+        style="float: right; margin-right: 3rem"
       ></pagination-controls>
     </div>
   </div>

@@ -37,7 +37,7 @@
     *ngIf="thietBis && thietBis.length > 0"
   >
     <form [formGroup]="formSearch">
-      <table class="table table-striped" aria-describedby="page-heading">
+      <table class="table" aria-describedby="page-heading">
         <thead>
           <tr
             jhiSort
@@ -179,8 +179,10 @@
                 <button
                   type="submit"
                   [routerLink]="['/thiet-bi', thietBi.id, 'view']"
-                  class="btn-info btn-sm"
+                  class="btn-info btn-sm detail-btn"
                   data-cy="entityDetailsButton"
+                  data-bs-toggle="tooltip"
+                  title="Xem chi tiết"
                 >
                   <fa-icon icon="eye"></fa-icon>
                 </button>
@@ -191,6 +193,8 @@
                   [routerLink]="['/thiet-bi', thietBi.id, 'edit']"
                   class="btn btn-primary btn-sm"
                   data-cy="entityEditButton"
+                  data-bs-toggle="tooltip"
+                  title="Chỉnh sửa"
                 >
                   <fa-icon icon="pencil-alt"></fa-icon>
                 </button>
@@ -201,6 +205,8 @@
                   (click)="delete(thietBi)"
                   class="btn btn-danger btn-sm"
                   data-cy="entityDeleteButton"
+                  data-bs-toggle="tooltip"
+                  title="Xoá"
                 >
                   <fa-icon icon="times" class="delete-icon"></fa-icon>
                 </button>

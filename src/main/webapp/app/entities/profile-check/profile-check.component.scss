@@ -38,11 +38,13 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
 }
 
 .table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin: 20px 0;
   font-size: 16px;
   text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
 
   thead {
     tr {
@@ -54,12 +56,12 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
       padding: 12px 15px;
       cursor: pointer;
       position: relative;
-      background-color: #006699;
+      background-color: #6c7ae0;
       color: #ffffff;
-      border: 0.5px solid #fff;
+      border: 0.5px solid #ccc;
 
       &:hover {
-        background-color: #006699;
+        background-color: #6c7ae0;
       }
 
       span {
@@ -97,7 +99,8 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
     td {
       padding: 12px 15px;
       border-bottom: 1px solid #ddd;
-      border: 0.5px solid #fff;
+      border: 0.5px solid #ccc;
+      background-color: #fff;
       font-size: 16px;
       font-weight: 400;
 
@@ -112,11 +115,11 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
   }
 }
 
-th[scope='col'] {
+th[scope="col"] {
   position: relative;
 
   &:after {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     right: 10px;
@@ -126,24 +129,24 @@ th[scope='col'] {
     display: none;
   }
 
-  &[aria-sort='ascending']::after {
+  &[aria-sort="ascending"]::after {
     border-bottom-color: #333;
     border-top-color: transparent;
     display: inline-block;
   }
 
-  &[aria-sort='descending']::after {
+  &[aria-sort="descending"]::after {
     display: inline-block;
   }
 }
 
-th[scope='col'].sorted-asc::after {
+th[scope="col"].sorted-asc::after {
   border-bottom-color: #333;
   border-top-color: transparent;
   display: inline-block;
 }
 
-th[scope='col'].sorted-desc::after {
+th[scope="col"].sorted-desc::after {
   display: inline-block;
 }
 
@@ -382,7 +385,7 @@ th[scope='col'].sorted-desc::after {
         }
       }
 
-      input[type='text'] {
+      input[type="text"] {
         width: 100%;
         padding: 8px;
         border: 1px solid #ddd;
@@ -478,14 +481,15 @@ th[scope='col'].sorted-desc::after {
   height: var(--checkbox-diameter);
   border-radius: var(--checkbox-border-radius);
   background: var(--secondary-color);
-  border: var(--checkbox-border-width) var(--checkbox-border-style) var(--checkbox-border-color);
+  border: var(--checkbox-border-width) var(--checkbox-border-style)
+    var(--checkbox-border-color);
   transition: all 0.3s;
   cursor: pointer;
   position: relative;
 }
 
 .ui-checkbox::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -500,7 +504,7 @@ th[scope='col'].sorted-desc::after {
 .ui-checkbox::before {
   top: 40%;
   left: 50%;
-  content: '';
+  content: "";
   position: absolute;
   width: 4px;
   height: 7px;

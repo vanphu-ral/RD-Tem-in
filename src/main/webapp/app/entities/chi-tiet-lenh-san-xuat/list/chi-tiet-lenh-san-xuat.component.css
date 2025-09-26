@@ -1,41 +1,42 @@
 * {
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
 }
 
 table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
-
-  th {
-    border: black solid 1px;
-  }
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
 }
-
+.text-end {
+  width: 5rem;
+}
 th {
   color: #fff;
-  background-color: #006699;
+  background-color: #6c7ae0;
   text-align: left;
   padding: 8px;
   font-weight: bold;
 }
 
-tr:nth-child(even) {
+/* tr:nth-child(even) {
   background-color: #d2e7f1;
 }
 
 tr:nth-child(odd) {
   background-color: #ffffff;
-}
+} */
 
-tr {
-  background-color: #f8f8f8;
+tr:hover {
+  background-color: #edf0fa;
 }
 
 td {
   padding: 8px;
-  border: 1px solid black;
+  border: 1px solid #ccc;
+  background-color: #fff;
 }
 
 .create-thiet-bi {
@@ -65,7 +66,7 @@ td {
   border-bottom-right-radius: 5px !important;
 }
 
-th[scope='col'] {
+th[scope="col"] {
   position: relative;
 }
 
@@ -166,7 +167,7 @@ ul.search-result {
 .jimu-primary-loading:after {
   position: absolute;
   top: 0;
-  content: '';
+  content: "";
 }
 
 .jimu-primary-loading:before {

@@ -1,12 +1,17 @@
 * {
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
 }
-
+.page-heading {
+  width: 97%;
+}
 table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 th {
@@ -15,22 +20,23 @@ th {
   padding: 8px;
   font-weight: bold;
 }
-
+/* 
 tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 
 tr:nth-child(odd) {
   background-color: #ffffff;
-}
+} */
 
-tr {
-  background-color: #f8f8f8;
+tr:hover {
+  background-color: #e3ecff;
 }
 
 td {
   padding: 8px;
   border: 1px solid #ccc;
+  background-color: #fff;
 }
 
 .create-thiet-bi {
@@ -60,7 +66,7 @@ td {
   border-bottom-right-radius: 5px !important;
 }
 
-th[scope='col'] {
+th[scope="col"] {
   position: relative;
 }
 
@@ -73,20 +79,28 @@ select {
   padding: 5px;
   border: 1px solid #ccc;
   border-radius: 5px;
-  margin-right: 10px;
+  /* margin-right: 10px; */
 }
 
 .maKichBan-col {
-  width: 25rem;
+  min-width: 9rem;
+}
+.maThietBi-col {
+  width: 5rem;
+}
+.date-col {
+  width: 7rem;
 }
 
 .loaiThietBi-col {
   width: 6rem;
 }
 
-.version-col,
-.maSanPham-col {
+.version-col {
   width: 8rem;
+}
+.maSanPham-col {
+  width: 6rem;
 }
 
 ul {
@@ -141,13 +155,19 @@ ul.search-result {
 }
 
 .table.table-striped {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin-top: 10px;
   margin-right: 15px;
 }
-
-.table.table-striped th {
+.detail-btn {
+  color: #2d3748 !important;
+  background-color: #cbd5e0 !important;
+}
+.detail-btn:hover {
+  background-color: #8f949d !important;
+}
+.table th {
   color: #fff;
   background-color: #6c7ae0;
   font-weight: bold;
@@ -172,7 +192,7 @@ ul.search-result {
 .jimu-primary-loading:after {
   position: absolute;
   top: 0;
-  content: '';
+  content: "";
 }
 
 .jimu-primary-loading:before {
@@ -236,10 +256,12 @@ ul.search-result {
     height: 40px;
   }
 }
-
+.text-end {
+  width: 7rem;
+}
 .form-select {
   width: 4vw;
-  margin-top: 2vh;
+  /* margin-top: 2vh; */
 }
 
 .btn-sync {

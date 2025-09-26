@@ -1,5 +1,5 @@
 table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   border-spacing: 0;
 }
@@ -13,6 +13,10 @@ tr:nth-child(odd) {
   background-color: #fff;
 }
 
+th {
+  background-color: #6c7ae0;
+  color: #fff;
+}
 /* dinh dang cac o */
 td {
   padding: 8px;

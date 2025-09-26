@@ -1,17 +1,28 @@
 * {
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
 }
 
 table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
 }
-
+.headling-detail {
+  display: flex;
+  width: 97%;
+  justify-content: space-between;
+  margin: 1px 5px;
+}
+.headling-btn {
+  display: flex;
+  gap: 10px;
+}
 th {
   color: #fff;
-  background-color: #006699;
+  background-color: #6c7ae0;
   text-align: left;
   padding: 8px;
   font-weight: bold;

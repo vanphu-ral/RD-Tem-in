@@ -27,12 +27,56 @@ $checkmark-size: 1.2;
   box-sizing: border-box;
 }
 
+/* Base style for badge */
+.badge-waiting,
+.badge-finish,
+.badge-running,
+.badge-default {
+  display: inline-block;
+  width: 5rem;
+  border-radius: 15px;
+  padding: 4px 3px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge-waiting {
+  background-color: #fff9b0;
+  color: #7a6a00;
+  border-color: #f0e68c;
+}
+
+.badge-finish {
+  background-color: #c6f6d5;
+  color: #3f6d52;
+  border-color: #a3d9b8;
+}
+
+.badge-running {
+  background-color: #b3ecff;
+  color: #005b7f;
+  border-color: #90caf9;
+}
+
+.badge-default {
+  background-color: #e0e0e0;
+  color: #555;
+  border-color: #ccc;
+}
+.status-col {
+  width: 5rem !important;
+}
 .table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin: 20px 0;
   font-size: 16px;
   text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
 
   thead {
     tr {
@@ -44,12 +88,12 @@ $checkmark-size: 1.2;
       padding: 12px 15px;
       cursor: pointer;
       position: relative;
-      background-color: #006699;
+      background-color: #6c7ae0;
       color: #ffffff;
-      border: 0.5px solid #fff;
+      border: 0.5px solid #ccc;
 
       &:hover {
-        background-color: #006699;
+        background-color: #6c7ae0;
       }
 
       span {
@@ -87,7 +131,8 @@ $checkmark-size: 1.2;
     td {
       padding: 12px 15px;
       border-bottom: 1px solid #ddd;
-      border: 0.8px solid #fff;
+      border: 0.8px solid #ccc;
+      background-color: #fff;
       font-size: 16px;
       font-weight: 400;
 
@@ -98,11 +143,11 @@ $checkmark-size: 1.2;
   }
 }
 
-th[scope='col'] {
+th[scope="col"] {
   position: relative;
 
   &:after {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     right: 10px;
@@ -112,24 +157,24 @@ th[scope='col'] {
     display: none;
   }
 
-  &[aria-sort='ascending']::after {
+  &[aria-sort="ascending"]::after {
     border-bottom-color: #333;
     border-top-color: transparent;
     display: inline-block;
   }
 
-  &[aria-sort='descending']::after {
+  &[aria-sort="descending"]::after {
     display: inline-block;
   }
 }
 
-th[scope='col'].sorted-asc::after {
+th[scope="col"].sorted-asc::after {
   border-bottom-color: #333;
   border-top-color: transparent;
   display: inline-block;
 }
 
-th[scope='col'].sorted-desc::after {
+th[scope="col"].sorted-desc::after {
   display: inline-block;
 }
 
@@ -359,7 +404,7 @@ th[scope='col'].sorted-desc::after {
         }
       }
 
-      input[type='text'] {
+      input[type="text"] {
         width: 100%;
         padding: 8px;
         border: 1px solid #ddd;
@@ -447,14 +492,15 @@ th[scope='col'].sorted-desc::after {
   height: var(--checkbox-diameter);
   border-radius: var(--checkbox-border-radius);
   background: var(--secondary-color);
-  border: var(--checkbox-border-width) var(--checkbox-border-style) var(--checkbox-border-color);
+  border: var(--checkbox-border-width) var(--checkbox-border-style)
+    var(--checkbox-border-color);
   transition: all 0.3s;
   cursor: pointer;
   position: relative;
 }
 
 .ui-checkbox::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -469,7 +515,7 @@ th[scope='col'].sorted-desc::after {
 .ui-checkbox::before {
   top: 40%;
   left: 50%;
-  content: '';
+  content: "";
   position: absolute;
   width: 4px;
   height: 7px;

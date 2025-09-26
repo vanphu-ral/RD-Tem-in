@@ -1,15 +1,18 @@
 table {
-  width: 100%;
+  width: 97%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
 }
 
 th {
-  background-color: #f2f2f2;
+  background-color: #6c7ae0;
   text-align: left;
   padding: 8px;
   font-weight: bold;
+  color: #fff;
 }
 
 tr:nth-child(even) {
@@ -29,12 +32,13 @@ td {
   border: 1px solid #ccc;
 }
 
-input[type='text'],
+input[type="text"],
 select {
   width: 100%;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  background-color: #fff;
 }
 
 .input-table {

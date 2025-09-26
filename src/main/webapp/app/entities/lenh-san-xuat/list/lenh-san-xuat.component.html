@@ -1,6 +1,6 @@
 <div>
   <div>
-    <h2 id="page-heading" data-cy="LenhSanXuatHeading">
+    <h2 id="page-heading" class="page-heading" data-cy="LenhSanXuatHeading">
       <span>Danh sách thông tin tem theo lệnh sản xuất</span>
 
       <div class="d-flex justify-content-end">
@@ -18,7 +18,7 @@
     <jhi-alert-error></jhi-alert-error>
 
     <!-- <div class="table-responsive" id="entities" *ngIf="lenhSanXuats && lenhSanXuats.length > 0"> -->
-    <div style="overflow: auto; height: 700px">
+    <div style="overflow: auto; height: 700px; width: 97%">
       <table class="table" aria-describedby="page-heading">
         <thead>
           <tr
@@ -31,7 +31,7 @@
               <span>STT</span>
               <input
                 type="text"
-                style="width: 10px; border: none; background-color: #006699"
+                style="width: 10px; border: none; background-color: #6c7ae0"
               />
             </th>
 
@@ -48,7 +48,7 @@
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="search"
                 list="maLenhSanXuat"
-                style="width: 6rem"
+                style="width: 4rem"
                 (change)="findFucntion()"
               />
               <datalist id="maLenhSanXuat">
@@ -93,6 +93,7 @@
                 placeholder="search"
                 list="sapName"
                 (change)="findFucntion()"
+                class="tenHangHoa-col"
               />
               <datalist id="sapName">
                 <option *ngFor="let data of listOfSapName">{{ data }}</option>
@@ -105,7 +106,7 @@
             >
               <span>Tổ sản xuất</span>
               <input
-                style="border: none; width: 3rem; background-color: #006699"
+                style="border: none; width: 3rem; background-color: #6c7ae0"
                 disabled
               />
             </th>
@@ -166,7 +167,7 @@
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="search"
                 list="storageCode"
-                style="width: 6rem"
+                style="width: 4rem"
                 (change)="findFucntion()"
               />
               <datalist id="storageCode">
@@ -198,7 +199,7 @@
             >
               <span>Tổng nhập</span>
               <input
-                style="border: none; width: 5rem; background-color: #006699"
+                style="border: none; width: 5rem; background-color: #6c7ae0"
                 disabled
               />
             </th>
@@ -209,7 +210,7 @@
             >
               <span>Chi tiết</span>
               <input
-                style="border: none; width: 10rem; background-color: #006699"
+                style="border: none; width: 4rem; background-color: #6c7ae0"
                 disabled
               />
             </th>
@@ -242,6 +243,7 @@
                 [(ngModel)]="entryTime"
                 [ngModelOptions]="{ standalone: true }"
                 (change)="findFucntion()"
+                class="date-col"
               />
             </th>
 
@@ -256,6 +258,7 @@
                 [(ngModel)]="timeUpdate"
                 [ngModelOptions]="{ standalone: true }"
                 (change)="findFucntion()"
+                class="date-col"
                 disabled
               />
             </th>
@@ -289,7 +292,7 @@
             >
               <span>Lưu ý</span>
               <input
-                style="border: none; width: 10rem; background-color: #006699"
+                style="border: none; width: 5rem; background-color: #6c7ae0"
                 disabled
               />
             </th>
@@ -297,7 +300,7 @@
             <th scope="col" style="position: sticky; top: 0; z-index: 5">
               <span>Options</span>
               <input
-                style="border: none; width: 70%; background-color: #006699"
+                style="border: none; width: 70%; background-color: #6c7ae0"
                 disabled
               />
             </th>
@@ -320,7 +323,7 @@
             <td>{{ lenhSanXuat.maLenhSanXuat }}</td>
             <td>{{ lenhSanXuat.sapCode }}</td>
             <td>{{ lenhSanXuat.sapName }}</td>
-            <td>
+            <td style="align-content: center">
               <div [id]="lenhSanXuat.id" class="trang-thai">
                 {{ lenhSanXuat.groupName }}
               </div>
@@ -333,7 +336,7 @@
             <td>{{ lenhSanXuat.createBy }}</td>
             <td>{{ lenhSanXuat.entryTime | formatMediumDatetime }}</td>
             <td>{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</td>
-            <td>
+            <td style="align-content: center">
               <div [id]="i" class="trang-thai">{{ lenhSanXuat.trangThai }}</div>
             </td>
             <td>{{ lenhSanXuat.comment }}</td>
@@ -343,8 +346,10 @@
                   *jhiHasAnyAuthority="'ROLE_USER_TEM'"
                   type="submit"
                   [routerLink]="['/lenh-san-xuat', lenhSanXuat.id, 'view']"
-                  class="btn btn-info btn-sm"
+                  class="btn btn-info btn-sm detail-btn"
                   data-cy="entityDetailsButton"
+                  data-bs-toggle="tooltip"
+                  title="Xem chi tiết"
                 >
                   <fa-icon icon="eye"></fa-icon>
                   <!-- <span class="d-none d-md-inline">View</span> -->
@@ -356,6 +361,8 @@
                   [routerLink]="['/lenh-san-xuat', lenhSanXuat.id, 'edit']"
                   class="btn btn-primary btn-sm"
                   data-cy="entityEditButton"
+                  data-bs-toggle="tooltip"
+                  title="Chỉnh sửa"
                 >
                   <fa-icon icon="pencil-alt"></fa-icon>
                   <!-- <span class="d-none d-md-inline">Edit</span> -->
@@ -367,6 +374,8 @@
                   (click)="delete(lenhSanXuat)"
                   class="btn btn-danger btn-sm"
                   data-cy="entityDeleteButton"
+                  data-bs-toggle="tooltip"
+                  title="Xoá"
                 >
                   <fa-icon icon="times"></fa-icon>
                   <!-- <span class="d-none d-md-inline">Delete</span> -->
@@ -379,7 +388,7 @@
     </div>
   </div>
 
-  <div style="display: flex; justify-content: space-between">
+  <div style="display: flex; justify-content: space-between; width: 97%">
     <div>
       <select
         class="form-select"

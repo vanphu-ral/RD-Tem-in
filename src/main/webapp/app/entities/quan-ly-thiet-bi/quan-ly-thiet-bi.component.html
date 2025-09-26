@@ -2,7 +2,7 @@
   <h2 id="page-heading" class="page-heading" data-cy="QuanLyThietBiHeading">
     <span>Quản lý nhóm thiết bị</span>
   </h2>
-  <div class="d-flex justify-content-end">
+  <div class="d-flex justify-content-end" style="width: 97%">
     <button
       class="btn btn-info me-2"
       (click)="openPopupThemMoiNhomThietBi()"
@@ -21,7 +21,7 @@
             <span>STT</span>
             <input
               type="text"
-              style="width: 1px; border: none; background-color: #006699"
+              style="width: 1px; border: none; background-color: #6c7ae0"
             />
           </th>
 
@@ -103,7 +103,7 @@
             <span>Options</span>
             <input
               type="text"
-              style="width: 1px; border: none; background-color: #006699"
+              style="width: 1px; border: none; background-color: #6c7ae0"
               disabled
             />
           </th>
@@ -134,6 +134,8 @@
                 type="submit"
                 class="btn btn-info btn-sm"
                 (click)="openPopupNhomThietBi(item.groupId)"
+                data-bs-toggle="tooltip"
+                title="Nhóm thiết bị"
               >
                 <fa-icon icon="pencil"></fa-icon>
               </button>
@@ -142,6 +144,8 @@
                 type="submit"
                 class="btn btn-danger btn-sm"
                 (click)="openPopupConfirmDelete()"
+                data-bs-toggle="tooltip"
+                title="Xoá"
               >
                 <fa-icon icon="times"></fa-icon>
               </button>
@@ -188,7 +192,10 @@
       <div class="popup-chi-tiet-nhom-thiet-bi">
         <h2>Thêm mới nhóm thiết bị</h2>
 
-        <table class="table table-striped" aria-describedby="page-heading">
+        <table
+          class="table table-striped them-moi-thiet-bi-table"
+          aria-describedby="page-heading"
+        >
           <thead>
             <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
               <th scope="col">
@@ -208,9 +215,9 @@
               </th>
             </tr>
           </thead>
-          <tbody style="background-color: #d3eefc">
+          <tbody style="background-color: #d3eefc; border: 1px solid #ccc">
             <td>
-              <span
+              <span class="span-cell"
                 ><input
                   type="text"
                   [(ngModel)]="this.groupName"
@@ -219,6 +226,7 @@
             </td>
             <td>
               <span
+                class="span-cell"
                 [(ngModel)]="createAt"
                 [ngModelOptions]="{ standalone: true }"
               >
@@ -227,6 +235,7 @@
             </td>
             <td>
               <span
+                class="span-cell"
                 [(ngModel)]="updatedAt"
                 [ngModelOptions]="{ standalone: true }"
               >
@@ -235,6 +244,7 @@
             </td>
             <td>
               <span
+                class="span-cell"
                 [(ngModel)]="userName"
                 [ngModelOptions]="{ standalone: true }"
                 >{{ userName }}</span
@@ -266,8 +276,8 @@
         </button>
 
         <br /><br /><br /><br />
-        <h2>Thiết bị</h2>
-        <div class="d-flex justify-content-end">
+        <div style="display: flex; justify-content: space-between; width: 100%">
+          <h2>Thiết bị</h2>
           <button
             class="btn btn-info me-2"
             style="padding: 10px 20px"
@@ -349,7 +359,10 @@
       <div class="popup-chi-tiet-nhom-thiet-bi">
         <h2>Chi tiết nhóm thiết bị</h2>
 
-        <table class="table table-striped" aria-describedby="page-heading">
+        <table
+          class="table table-striped them-moi-thiet-bi-table"
+          aria-describedby="page-heading"
+        >
           <thead>
             <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
               <th scope="col"><span>Nhóm thiết bị</span></th>
@@ -362,7 +375,7 @@
           <tbody style="background-color: #d3eefc">
             <td>
               <!-- <span>{{ groupMachine.groupName }}</span> -->
-              <span
+              <span class="span-cell"
                 ><input
                   type="text"
                   [(ngModel)]="groupMachine.groupName"
@@ -372,20 +385,20 @@
               <!-- đặt hàm cập nhật nhóm thiết bị ở đây -> giảm bớt tiến trình ấn lưu thông tin nhóm thiết bị  -->
             </td>
             <td>
-              <span>{{
+              <span class="span-cell">{{
                 groupMachine.createAt | date: "dd/MM/yyyy HH:mm:ss"
               }}</span>
             </td>
             <td>
-              <span>{{
+              <span class="span-cell">{{
                 groupMachine.updateAt | date: "dd/MM/yyyy HH:mm:ss"
               }}</span>
             </td>
             <td>
-              <span>{{ groupMachine.username }}</span>
+              <span class="span-cell">{{ groupMachine.username }}</span>
             </td>
             <td>
-              <span>{{ groupMachine.statusName }}</span>
+              <span class="span-cell">{{ groupMachine.statusName }}</span>
             </td>
           </tbody>
         </table>
@@ -395,21 +408,23 @@
         </button> -->
 
         <br /><br /><br /><br />
-        <h2>Thiết bị</h2>
-        <button
-          class="btn btn-info me-2"
-          style="padding: 10px 20px"
-          (click)="openPopupKhaiBaoThietBi()"
-        >
-          <fa-icon icon="add"></fa-icon>
-          <span>Khai báo</span>
-        </button>
-        <div class="d-flex justify-content-end">
-          <!-- <button class="btn btn-info me-2" style="padding: 10px 20px" (click)="openPopupThemMoiThietBi()">
+        <div style="display: flex; justify-content: space-between; width: 100%">
+          <h2>Thiết bị</h2>
+          <button
+            class="btn btn-info me-2"
+            style="padding: 10px 20px"
+            (click)="openPopupKhaiBaoThietBi()"
+          >
+            <fa-icon icon="add"></fa-icon>
+            <span>Khai báo</span>
+          </button>
+        </div>
+        <!-- <div class="d-flex justify-content-end"> -->
+        <!-- <button class="btn btn-info me-2" style="padding: 10px 20px" (click)="openPopupThemMoiThietBi()">
             <fa-icon icon="add"></fa-icon>
             <span>Thêm mới</span>
           </button> -->
-        </div>
+        <!-- </div> -->
         <hr />
         <table class="table table-striped" aria-describedby="page-heading">
           <thead>

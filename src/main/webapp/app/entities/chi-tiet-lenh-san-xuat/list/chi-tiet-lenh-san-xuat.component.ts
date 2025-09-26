@@ -165,45 +165,68 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   changeColor(): void {
     for (let i = 0; i < this.lenhSanXuats!.length; i++) {
       const item = this.lenhSanXuats![i].id!.toString();
-      if (this.lenhSanXuats![i].groupName?.includes("TC01") === true) {
-        document.getElementById(item)!.style.backgroundColor = "#FF9900";
-      } else if (this.lenhSanXuats![i].groupName?.includes("SMT01") === true) {
-        document.getElementById(item)!.style.backgroundColor = "#00CCFF";
-      } else if (this.lenhSanXuats![i].groupName?.includes("SMT02") === true) {
-        // // console.log('tesst', this.lenhSanXuats![i].groupName?.includes('SMT02'));
-        document.getElementById(item)!.style.backgroundColor = "#00CC00";
+      const groupElement = document.getElementById(item)!;
+      const statusElement = document.getElementById(i.toString())!;
+      const trangThai = this.lenhSanXuats![i].trangThai;
+
+      // Màu theo groupName (giữ tone gốc, làm dịu)
+      if (this.lenhSanXuats![i].groupName?.includes("TC01")) {
+        groupElement.style.backgroundColor = "#FFE5B4"; // cam dịu từ #FF9900
+        groupElement.style.border = "1px solid #E6C199";
+      } else if (this.lenhSanXuats![i].groupName?.includes("SMT01")) {
+        groupElement.style.backgroundColor = "#B3ECFF"; // xanh dương dịu từ #00CCFF
+        groupElement.style.border = "1px solid #99D6F2";
+      } else if (this.lenhSanXuats![i].groupName?.includes("SMT02")) {
+        groupElement.style.backgroundColor = "#B2F2B2"; // xanh lá dịu từ #00CC00
+        groupElement.style.border = "1px solid #99D699";
       }
-      if (this.lenhSanXuats![i].trangThai === "Chờ duyệt") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#FFFF33";
-      } else if (this.lenhSanXuats![i].trangThai === "Đã phê duyệt") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#00FF00";
-      } else if (this.lenhSanXuats![i].trangThai === "Sản xuất hủy") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#EE0000";
-        document.getElementById(i.toString())!.style.color = "#fff";
-      } else if (this.lenhSanXuats![i].trangThai === "Kho hủy") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#DD0000";
-        document.getElementById(i.toString())!.style.color = "#fff";
-      } else if (this.lenhSanXuats![i].trangThai === "Bản nháp") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#00FFFF";
-      } else if (this.lenhSanXuats![i].trangThai === "Từ chối") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#FFCC00";
-      } else if (this.lenhSanXuats![i].trangThai === "Đã xuất csv") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#2D99AE";
-        document.getElementById(i.toString())!.style.color = "#fff";
-      } else if (this.lenhSanXuats![i].trangThai === "Lỗi Panacim") {
-        document.getElementById(i.toString())!.style.backgroundColor =
-          "#001C44";
-        document.getElementById(i.toString())!.style.color = "#fff";
+
+      // Màu theo trạng thái (giữ tone gốc, làm dịu + border)
+      switch (trangThai) {
+        case "Chờ duyệt":
+          statusElement.style.backgroundColor = "#FFF9B0"; // vàng dịu từ #FFFF33
+          statusElement.style.color = "#7A6A00";
+          statusElement.style.border = "1px solid #F0E68C";
+          break;
+        case "Đã phê duyệt":
+          statusElement.style.backgroundColor = "#C6F6D5"; // xanh lá pastel từ #00FF00
+          statusElement.style.color = "#3F6D52";
+          statusElement.style.border = "1px solid #A3D9B8";
+          break;
+        case "Sản xuất hủy":
+          statusElement.style.backgroundColor = "#FFB3B3"; // đỏ dịu từ #EE0000
+          statusElement.style.color = "#FFFFFF";
+          statusElement.style.border = "1px solid #E68A8A";
+          break;
+        case "Kho hủy":
+          statusElement.style.backgroundColor = "#FF9999"; // đỏ nhạt từ #DD0000
+          statusElement.style.color = "#FFFFFF";
+          statusElement.style.border = "1px solid #E67373";
+          break;
+        case "Bản nháp":
+          statusElement.style.backgroundColor = "#B2FFFF"; // cyan dịu từ #00FFFF
+          statusElement.style.color = "#007A7A";
+          statusElement.style.border = "1px solid #99E6E6";
+          break;
+        case "Từ chối":
+          statusElement.style.backgroundColor = "#FFE099"; // vàng cam dịu từ #FFCC00
+          statusElement.style.color = "#7F5F00";
+          statusElement.style.border = "1px solid #E6C080";
+          break;
+        case "Đã xuất csv":
+          statusElement.style.backgroundColor = "#A0D9E6"; // xanh biển dịu từ #2D99AE
+          statusElement.style.color = "#003F4F";
+          statusElement.style.border = "1px solid #7FBCCC";
+          break;
+        case "Lỗi Panacim":
+          statusElement.style.backgroundColor = "#4D5D75"; // xanh đen dịu từ #001C44
+          statusElement.style.color = "#FFFFFF";
+          statusElement.style.border = "1px solid #3A4A60";
+          break;
       }
     }
   }
+
   toggleColumnsList(): void {
     this.toggleColumns = !this.toggleColumns;
     if (this.toggleColumns) {

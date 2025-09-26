@@ -6,10 +6,18 @@
     <form>
       <table class="table" aria-describedby="page-heading">
         <thead>
-          <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending" (sortChange)="loadPage()">
+          <tr
+            jhiSort
+            [(predicate)]="predicate"
+            [(ascending)]="ascending"
+            (sortChange)="loadPage()"
+          >
             <th scope="col" jhiSortBy="STT">
               <span>STT</span>
-              <input type="text" style="width: 1px; border: none; background-color: #006699" />
+              <input
+                type="text"
+                style="width: 1px; border: none; background-color: #6c7ae0"
+              />
             </th>
 
             <th scope="col" jhiSortBy="workOrder">
@@ -80,6 +88,7 @@
                 [(ngModel)]="working"
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="Tìm kiếm"
+                class="status-col"
                 disabled
               />
             </th>
@@ -98,17 +107,26 @@
 
             <th scope="col" jhiSortBy="numberOfPlan">
               <span>Sản lượng kế hoạch</span>
-              <input type="text" style="width: 1px; border: none; background-color: #006699" />
+              <input
+                type="text"
+                style="width: 1px; border: none; background-color: #6c7ae0"
+              />
             </th>
 
             <th scope="col" jhiSortBy="sumPass">
               <span>Tổng Pass</span>
-              <input type="text" style="width: 1px; border: none; background-color: #006699" />
+              <input
+                type="text"
+                style="width: 1px; border: none; background-color: #6c7ae0"
+              />
             </th>
 
             <th scope="col" jhiSortBy="sumNG">
               <span>Tổng NG</span>
-              <input type="text" style="width: 1px; border: none; background-color: #006699" />
+              <input
+                type="text"
+                style="width: 1px; border: none; background-color: #6c7ae0"
+              />
             </th>
           </tr>
         </thead>
@@ -124,7 +142,11 @@
             <td>{{ item.groupName }}</td>
             <td>{{ item.productCode }}</td>
             <td>{{ item.productName }}</td>
-            <td>{{ item.tenTrangThai }}</td>
+            <td style="align-content: center">
+              <span [ngClass]="getStatusClass(item.tenTrangThai)">
+                {{ item.tenTrangThai }}
+              </span>
+            </td>
             <td>{{ item.createAt }}</td>
             <td>{{ item.sanLuong }}</td>
             <td>{{ item.pass }}</td>
@@ -135,9 +157,14 @@
     </form>
   </div>
   <div class="paginate">
-    <div style="display: flex; justify-content: space-between">
+    <div style="display: flex; justify-content: space-between; width: 97%">
       <div>
-        <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage" (change)="findFucntion()">
+        <select
+          class="form-select"
+          aria-label="Default select example"
+          [(ngModel)]="itemPerPage"
+          (change)="findFucntion()"
+        >
           <option value="10">10</option>
           <option value="15">15</option>
           <option value="20">20</option>
@@ -145,20 +172,50 @@
       </div>
 
       <div style="display: flex">
-        <button class="pagination" (click)="firstPage()" [disabled]="firstPageBtn">Trang đầu</button>
-        <button class="pagination" (click)="backPage()" [disabled]="backPageBtn">Trang trước</button>
+        <button
+          class="pagination"
+          (click)="firstPage()"
+          [disabled]="firstPageBtn"
+        >
+          Trang đầu
+        </button>
+        <button
+          class="pagination"
+          (click)="backPage()"
+          [disabled]="backPageBtn"
+        >
+          Trang trước
+        </button>
         <button class="pagenumber">{{ pageNumber }}</button>
-        <button class="pagination" (click)="nextPage()" [disabled]="nextPageBtn">Trang sau</button>
-        <button class="pagination" (click)="lastPage()" [disabled]="lastPageBtn">Trang cuối</button>
+        <button
+          class="pagination"
+          (click)="nextPage()"
+          [disabled]="nextPageBtn"
+        >
+          Trang sau
+        </button>
+        <button
+          class="pagination"
+          (click)="lastPage()"
+          [disabled]="lastPageBtn"
+        >
+          Trang cuối
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Popup chi tiết thông tin scan -->
-<div class="table-responsive popup-background" role="dialog" *ngIf="popupChiTietThongTinScan === true">
+<div
+  class="table-responsive popup-background"
+  role="dialog"
+  *ngIf="popupChiTietThongTinScan === true"
+>
   <div>
-    <span class="close-btn" (click)="closePopupChiTietThongTinScan()">&times;</span>
+    <span class="close-btn" (click)="closePopupChiTietThongTinScan()"
+      >&times;</span
+    >
     <div>
       <div class="popup-chi-tiet-thong-tin-scan">
         <h2>Chi tiết thông tin scan</h2>
@@ -195,14 +252,48 @@
             <table class="table table-striped" aria-describedby="page-heading">
               <thead>
                 <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
-                  <th scope="col"><span>Mã máy</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col">
+                    <span>Mã máy</span
+                    ><input
+                      type="text"
+                      style="
+                        width: 1px;
+                        border: none;
+                        background-color: #6c7ae0;
+                      "
+                    />
+                  </th>
                   <th scope="col">
                     <span>Vị trí</span>
-                    <input #searchInput type="text" [(ngModel)]="position" [ngModelOptions]="{ standalone: true }" placeholder="Tìm kiếm" />
+                    <input
+                      #searchInput
+                      type="text"
+                      [(ngModel)]="position"
+                      [ngModelOptions]="{ standalone: true }"
+                      placeholder="Tìm kiếm"
+                    />
                   </th>
-                  <th scope="col"><span>Giá trị</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
                   <th scope="col">
-                    <span>Thông tin check</span><input type="text" style="width: 1px; border: none; background-color: #006699" />
+                    <span>Giá trị</span
+                    ><input
+                      type="text"
+                      style="
+                        width: 1px;
+                        border: none;
+                        background-color: #6c7ae0;
+                      "
+                    />
+                  </th>
+                  <th scope="col">
+                    <span>Thông tin check</span
+                    ><input
+                      type="text"
+                      style="
+                        width: 1px;
+                        border: none;
+                        background-color: #6c7ae0;
+                      "
+                    />
                   </th>
                 </tr>
               </thead>
@@ -220,7 +311,17 @@
             <table class="table table-striped" aria-describedby="page-heading">
               <thead>
                 <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
-                  <th scope="col"><span>STT</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col">
+                    <span>STT</span
+                    ><input
+                      type="text"
+                      style="
+                        width: 1px;
+                        border: none;
+                        background-color: #6c7ae0;
+                      "
+                    />
+                  </th>
                   <th scope="col">
                     <span>Mã máy</span>
                     <input
@@ -231,7 +332,17 @@
                       placeholder="Tìm kiếm"
                     />
                   </th>
-                  <th scope="col"><span>Serial</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col">
+                    <span>Serial</span
+                    ><input
+                      type="text"
+                      style="
+                        width: 1px;
+                        border: none;
+                        background-color: #6c7ae0;
+                      "
+                    />
+                  </th>
                   <th scope="col">
                     <span>Thông tin check</span>
                     <input
@@ -242,21 +353,57 @@
                       placeholder="Tìm kiếm"
                     />
                   </th>
-                  <th scope="col"><span>Giá trị</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
-                  <th scope="col"><span>Vị trí</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
-                  <th scope="col"><span>Result</span><input type="text" style="width: 1px; border: none; background-color: #006699" /></th>
+                  <th scope="col">
+                    <span>Giá trị</span
+                    ><input
+                      type="text"
+                      style="
+                        width: 1px;
+                        border: none;
+                        background-color: #6c7ae0;
+                      "
+                    />
+                  </th>
+                  <th scope="col">
+                    <span>Vị trí</span
+                    ><input
+                      type="text"
+                      style="
+                        width: 1px;
+                        border: none;
+                        background-color: #6c7ae0;
+                      "
+                    />
+                  </th>
+                  <th scope="col">
+                    <span>Result</span
+                    ><input
+                      type="text"
+                      style="
+                        width: 1px;
+                        border: none;
+                        background-color: #6c7ae0;
+                      "
+                    />
+                  </th>
                 </tr>
               </thead>
             </table>
             <div class="paginate">
               <div class="paginate-container">
-                <select class="form-select" aria-label="Default select example" [(ngModel)]="itemPerPage">
+                <select
+                  class="form-select"
+                  aria-label="Default select example"
+                  [(ngModel)]="itemPerPage"
+                >
                   <option value="20">20</option>
                   <option value="30">30</option>
                   <option value="50">50</option>
                 </select>
 
-                <pagination-controls (pageChange)="page = $event"></pagination-controls>
+                <pagination-controls
+                  (pageChange)="page = $event"
+                ></pagination-controls>
               </div>
             </div>
           </div>
@@ -270,7 +417,13 @@
         >
           <fa-icon icon="ban"></fa-icon>&nbsp;<span>Cancel</span>
         </button>
-        <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" class="btn btn-primary" (click)="openPopupConfirmSave()">
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          class="btn btn-primary"
+          (click)="openPopupConfirmSave()"
+        >
           <fa-icon icon="save"></fa-icon>&nbsp;<span>Lưu</span>
         </button>
       </div>
@@ -278,11 +431,17 @@
   </div>
 </div>
 
-<div class="table-responsive popup-background popup-save-info" role="dialog" *ngIf="popupConfirmSave === true">
+<div
+  class="table-responsive popup-background popup-save-info"
+  role="dialog"
+  *ngIf="popupConfirmSave === true"
+>
   <div>
     <p>Bạn có chắc chắn muốn lưu thông tin này không?</p>
     <div class="btn-group-save">
-      <button class="confirm-btn" (click)="closePopupConfirmSave()">Xác nhận</button>
+      <button class="confirm-btn" (click)="closePopupConfirmSave()">
+        Xác nhận
+      </button>
       <button class="cancel-btn" (click)="closePopupConfirmSave()">Hủy</button>
     </div>
   </div>

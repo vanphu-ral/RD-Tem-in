@@ -1,27 +1,51 @@
 <div>
-  <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+  <button
+    type="submit"
+    (click)="previousState()"
+    class="btn btn-info"
+    data-cy="entityDetailsBackButton"
+  >
     <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span>Trở lại</span>
   </button>
   <div class="table-responsive" id="entities">
-    <button class="export-btn export-excel" (click)="exportToExcel()">Export to excel</button>
-    <button class="export-btn exportCSV" (click)="exportCSV()">Export to csv</button>
+    <div class="headling-detail">
+      <h2 data-cy="lenhSanXuatDetailsHeading">
+        <span>Gửi yêu cầu phê duyệt</span>
+      </h2>
+      <div class="headling-btn">
+        <button class="export-btn export-excel" (click)="exportToExcel()">
+          Export to excel
+        </button>
+        <button class="export-btn exportCSV" (click)="exportCSV()">
+          Export to csv
+        </button>
+      </div>
+    </div>
+    <hr />
     <div *ngIf="lenhSanXuat" id="dvData">
-      <h2 data-cy="lenhSanXuatDetailsHeading"><span>Gửi yêu cầu phê duyệt</span></h2>
-      <hr />
-
       <table class="table table-striped" aria-describedby="page-heading">
         <thead>
           <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
-            <th scope="col" jhiSortBy="maLenhSanXuat"><span>Mã lệnh sản xuất</span></th>
+            <th scope="col" jhiSortBy="maLenhSanXuat">
+              <span>Mã lệnh sản xuất</span>
+            </th>
             <th scope="col" jhiSortBy="SAPcode"><span>Mã SAP</span></th>
             <th scope="col" jhiSortBy="SAPname"><span>Tên hàng hoá</span></th>
             <th scope="col" jhiSortBy="WOcode"><span>Mã WO</span></th>
             <th scope="col" jhiSortBy="version"><span>Version</span></th>
-            <th scope="col" jhiSortBy="InventoryCode"><span>Mã kho nhập</span></th>
-            <th scope="col" jhiSortBy="totalQuantity"><span>Tổng số lượng nhập</span></th>
+            <th scope="col" jhiSortBy="InventoryCode">
+              <span>Mã kho nhập</span>
+            </th>
+            <th scope="col" jhiSortBy="totalQuantity">
+              <span>Tổng số lượng nhập</span>
+            </th>
             <th scope="col" jhiSortBy="UpdateBy"><span>Cập nhật bởi</span></th>
-            <th scope="col" jhiSortBy="entryTime"><span>Thời gian tạo tem</span></th>
-            <th scope="col" jhiSortBy="timeUpdate"><span>Thời gian cập nhật</span></th>
+            <th scope="col" jhiSortBy="entryTime">
+              <span>Thời gian tạo tem</span>
+            </th>
+            <th scope="col" jhiSortBy="timeUpdate">
+              <span>Thời gian cập nhật</span>
+            </th>
             <th scope="col" jhiSortBy="status"><span>Trạng thái</span></th>
             <th scope="col" jhiSortBy="comment"><span>Lưu ý</span></th>
           </tr>
@@ -84,8 +108,8 @@
       <h2>Thông tin tem</h2>
       <hr />
 
-      <div style="overflow-x: auto">
-        <table class="table table-striped" id="table-data">
+      <div style="overflow-x: auto; width: 97%">
+        <table class="table info-table" id="table-data">
           <thead>
             <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
               <th scope="col" jhiSortBy="STT">STT</th>
@@ -94,16 +118,24 @@
               <th scope="col" jhiSortBy="vendor">Vendor</th>
               <th scope="col" jhiSortBy="lot">IOT</th>
               <th scope="col" jhiSortBy="userData1">User Data 1</th>
-              <th scope="col" jhiSortBy="userData2" class="custom-width-table">User Data 2</th>
-              <th scope="col" jhiSortBy="userData3" class="col-width">User Data 3</th>
+              <th scope="col" jhiSortBy="userData2">
+                <span class="custom-width">User Data 2</span>
+              </th>
+              <th scope="col" jhiSortBy="userData3">
+                <span class="custom-width">User Data 3</span>
+              </th>
               <th scope="col" jhiSortBy="userData4">User Data 4</th>
               <th scope="col" jhiSortBy="userData5">User Data 5</th>
               <th scope="col" jhiSortBy="initialQuantity">Initial Quantity</th>
               <th scope="col" jhiSortBy="msdLevel">MSD Level</th>
-              <th scope="col" jhiSortBy="msdInitialFloorTime">MSD Initial Floor Time</th>
+              <th scope="col" jhiSortBy="msdInitialFloorTime">
+                MSD Initial Floor Time
+              </th>
               <th scope="col" jhiSortBy="msdBagSealDate">MSD Bag Seal Date</th>
               <th scope="col" jhiSortBy="marketUsage">Market Usage</th>
-              <th scope="col" jhiSortBy="quantityOverride">Quantity Override</th>
+              <th scope="col" jhiSortBy="quantityOverride">
+                Quantity Override
+              </th>
               <th scope="col" jhiSortBy="shelfTime">Shelf Time</th>
               <th scope="col" jhiSortBy="spMaterialName">SP Material Name</th>
               <th scope="col" jhiSortBy="warningLimit">Warning Limit</th>
@@ -112,9 +144,13 @@
               <th scope="col" jhiSortBy="warmupTime">Warm Up Time</th>
               <th scope="col" jhiSortBy="storageUnit">Storage Unit</th>
               <th scope="col" jhiSortBy="subStorageUnit">Sub Storage Unit</th>
-              <th scope="col" jhiSortBy="locationOverride">Location Override</th>
+              <th scope="col" jhiSortBy="locationOverride">
+                Location Override
+              </th>
               <th scope="col" jhiSortBy="expirationDate">Expiration Date</th>
-              <th scope="col" jhiSortBy="manufacturingDate">ManuFacturing Date</th>
+              <th scope="col" jhiSortBy="manufacturingDate">
+                ManuFacturing Date
+              </th>
               <th scope="col" jhiSortBy="partClass">Part Class</th>
               <th scope="col" jhiSortBy="sapCode">Sap Code</th>
               <th scope="col" jhiSortBy="trangThai">Status</th>
@@ -122,7 +158,13 @@
           </thead>
 
           <tbody>
-            <tr *ngFor="let data of chiTietLenhSanXuats | paginate: { itemsPerPage: itemPerPage, currentPage: page }; let i = index">
+            <tr
+              *ngFor="
+                let data of chiTietLenhSanXuats
+                  | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+                let i = index
+              "
+            >
               <td>
                 <span>
                   {{ i + 1 }}
@@ -148,7 +190,7 @@
               <td>
                 {{ data.userData2 }}
               </td>
-              <td style="display: block; width: 15vw">
+              <td>
                 {{ data.userData3 }}
               </td>
               <td>
@@ -194,7 +236,7 @@
                 {{ data.warmupTime }}
               </td>
               <td>
-                <span class="custom-width">
+                <span>
                   {{ data.storageUnit }}
                 </span>
               </td>
@@ -223,7 +265,10 @@
           </tbody>
         </table>
       </div>
-      <pagination-controls (pageChange)="page = $event" style="float: right"></pagination-controls>
+      <pagination-controls
+        (pageChange)="page = $event"
+        style="float: right; margin-right: 3rem"
+      ></pagination-controls>
     </div>
   </div>
 </div>

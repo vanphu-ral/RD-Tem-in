@@ -1,35 +1,38 @@
 table {
-  width: 100%;
+  width: 98%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
 }
 .table-responsive {
   margin-left: 60px;
 }
 th {
   color: #fff;
-  background-color: #006699;
+  background-color: #6c7ae0;
   text-align: left;
   padding: 8px;
   font-weight: bold;
 }
 
-tr:nth-child(even) {
+/* tr:nth-child(even) {
   background-color: #d2e7f1;
 }
 
 tr:nth-child(odd) {
   background-color: #ffffff;
-}
+} */
 
-tr {
-  background-color: #f8f8f8;
+tr:hover {
+  background-color: #e7ecfa;
 }
 
 td {
   padding: 8px;
   border: 1px solid #ccc;
+  background-color: #fff;
 }
 
 input[type="text"],
@@ -38,6 +41,7 @@ select {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  background-color: #fff;
 }
 
 input[type="checkbox"] {
@@ -252,11 +256,10 @@ input[type="checkbox"] {
 }
 
 .search-all {
-  padding-top: 3rem;
-  padding-right: 1rem;
-  padding-bottom: 1rem;
   display: flex;
   justify-content: space-between;
+  width: 98%;
+  margin: 10px 0;
 }
 
 .form-control {
@@ -265,7 +268,7 @@ input[type="checkbox"] {
 
 .table-scroll {
   overflow-x: auto;
-  overflow-y: auto;
+  width: 98%;
 }
 
 .height-table {
@@ -335,12 +338,6 @@ input[type="checkbox"] {
   thead {
     background-color: #006699;
     color: #fff;
-
-    th {
-      border: black solid 1px;
-      font-size: 20px;
-      text-align: center;
-    }
   }
 
   tbody {

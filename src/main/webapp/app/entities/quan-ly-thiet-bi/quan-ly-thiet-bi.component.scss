@@ -53,6 +53,9 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
   margin: 20px 0;
   font-size: 16px;
   text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  overflow: hidden;
 
   thead {
     tr {
@@ -64,12 +67,12 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
       padding: 12px 15px;
       cursor: pointer;
       position: relative;
-      background-color: #006699;
+      background-color: #6c7ae0;
       color: #ffffff;
       border: 0.5px solid #fff;
 
       &:hover {
-        background-color: #006699;
+        background-color: #6c7ae0;
       }
 
       span {
@@ -95,21 +98,22 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
 
   tbody {
     tr {
-      &:nth-child(even) {
-        background-color: #d3eefc;
-      }
+      // &:nth-child(even) {
+      //   background-color: #d3eefc;
+      // }
 
       &:hover {
-        background-color: #f1f1f1;
+        background-color: #d8dfff;
       }
     }
 
     td {
       padding: 12px 15px;
       border-bottom: 1px solid #ddd;
-      border: 0.5px solid #fff;
+      border: 0.5px solid #ccc;
       font-size: 16px;
       font-weight: 400;
+      background-color: #ffffff;
 
       &:last-child {
         text-align: center;
@@ -156,7 +160,11 @@ th[scope="col"].sorted-asc::after {
 th[scope="col"].sorted-desc::after {
   display: inline-block;
 }
-
+.them-moi-thiet-bi-table {
+  .span-cell {
+    background-color: #fff;
+  }
+}
 .btn {
   padding: 8px 12px;
   font-size: 14px;
@@ -222,8 +230,10 @@ th[scope="col"].sorted-desc::after {
   font-size: 16px;
 
   .paginate-container {
-    gap: 10px;
+    display: flex;
+    justify-content: space-between;
     width: 97%;
+    gap: 10px;
   }
 
   .form-select {
@@ -325,6 +335,8 @@ th[scope="col"].sorted-desc::after {
         margin: 20px 0;
         font-size: 16px;
         text-align: left;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
 
         thead {
           tr {
@@ -336,13 +348,9 @@ th[scope="col"].sorted-desc::after {
             padding: 12px 15px;
             cursor: pointer;
             position: relative;
-            background-color: #006699;
+            background-color: #6c7ae0;
             color: #ffffff;
             border: 0.5px solid #fff;
-
-            &:hover {
-              background-color: #006699;
-            }
 
             span {
               font-weight: bold;
@@ -385,7 +393,7 @@ th[scope="col"].sorted-desc::after {
           td {
             padding: 12px 15px;
             border-bottom: 1px solid #ddd;
-            border: 0.5px solid #fff;
+            border: 0.5px solid #ccc;
             font-size: 16px;
             font-weight: 400;
 
@@ -494,7 +502,9 @@ th[scope="col"].sorted-desc::after {
     }
   }
 }
-
+.text-end {
+  width: 5rem;
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -510,14 +520,15 @@ th[scope="col"].sorted-desc::after {
     box-shadow 0.3s;
   margin-right: 5px;
 
-  fa-icon {
-    margin-right: 8px;
-  }
+  // fa-icon {
+  //   margin-right: 8px;
+  // }
 
   &.btn-secondary {
     background-color: #6c757d;
     color: #fff;
     padding: 10px 20px;
+    margin: 10px 0;
 
     &:hover {
       background-color: #5a6268;
@@ -533,6 +544,7 @@ th[scope="col"].sorted-desc::after {
     background-color: #007bff;
     color: #fff;
     padding: 10px 20px;
+    margin: 10px 0;
 
     &:hover {
       background-color: #0056b3;
