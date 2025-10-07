@@ -117,6 +117,7 @@
     "@types/file-saver": "^2.0.7",
     "angular-slickgrid": "^7.7.0",
     "angular-tree-table": "^0.7.8",
+    "angularx-qrcode": "^20.0.0",
     "apexcharts": "^5.3.4",
     "apollo-angular": "^10.0.3",
     "axios": "^0.27.2",

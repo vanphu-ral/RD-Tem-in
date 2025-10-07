@@ -1,0 +1,134 @@
+<div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Import thông tin vật tư</h2>
+  </div>
+  <div class="row align-items-center import-layout">
+    <!-- Khung Drop File -->
+    <div class="col-md-8">
+      <div
+        class="drop-zone"
+        (drop)="onFileDrop($event)"
+        (dragover)="onDragOver($event)"
+      >
+        <div class="text-muted mb-2">Kéo thả file vào đây</div>
+        <div class="text-muted">
+          hoặc <a (click)="selectFile()">chọn file import</a>
+        </div>
+        <div class="mt-2 text-secondary small">
+          Cho phép định dạng file <b>.xls .xlsx</b> <a href="#">Tải file mẫu</a>
+        </div>
+        <div *ngIf="selectedFile" class="selected-file">
+          📄 {{ selectedFile.name }}
+        </div>
+      </div>
+      <input type="file" #fileInput hidden (change)="onFileSelected($event)" />
+    </div>
+
+    <!-- Nút Import -->
+    <div class="col-md-4 text-center">
+      <button
+        class="btn btn-success btn-lg btn-import"
+        [disabled]="!selectedFile"
+        (click)="onImport()"
+      >
+        <fa-icon [icon]="faArrowUp"></fa-icon>
+        <span class="ms-2">Import</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="mb-3 mt-4" style="width: 97%">
+    <div
+      class="d-flex flex-wrap align-items-center justify-content-between gap-3"
+    >
+      <h5 class="mb-0">
+        <strong>Danh sách kết quả Import</strong> – PO:
+        <span class="text-primary fw-bold">12345</span>
+      </h5>
+
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <!-- Input chọn kho chứa -->
+        <div class="form-group mb-0">
+          <label for="storageUnit" class="form-label me-2 mb-0"
+            >Chọn kho chứa:</label
+          >
+          <select
+            id="storageUnit"
+            class="form-select form-select-sm"
+            [(ngModel)]="selectedStorageUnit"
+          >
+            <option value="" disabled selected>Kho chứa</option>
+            <option *ngFor="let unit of storageUnits" [value]="unit">
+              {{ unit }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Nút Lưu -->
+        <button
+          class="btn btn-outline-primary btn-sm"
+          (click)="onSaveStorageUnit()"
+        >
+          <fa-icon [icon]="faSave"></fa-icon>
+          <span class="ms-1">Lưu</span>
+        </button>
+
+        <!-- Nút Tạo thông tin chi tiết -->
+        <button class="btn btn-success btn-sm" (click)="onCreateDetail()">
+          <fa-icon [icon]="faPlusCircle"></fa-icon>
+          <span class="ms-1">Tạo thông tin chi tiết</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-striped align-middle">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>STT</th>
+          <th>Thao tác</th>
+          <th>SAPCode</th>
+          <th>Tên SP</th>
+          <th>PartNumber</th>
+          <th>LOT</th>
+          <th>StorageUnit</th>
+          <th>Số TEM</th>
+          <th>InitialQuantity</th>
+          <th>Vendor</th>
+          <th>UserCreate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of importData; let i = index">
+          <td class="text-center">{{ i + 1 }}</td>
+          <td class="text-center">
+            <button
+              class="btn btn-sm"
+              style="background-color: #ffc107; color: black"
+              title="Sửa"
+            >
+              <fa-icon [icon]="faEdit"></fa-icon>
+            </button>
+            <button
+              class="btn btn-sm"
+              style="background-color: #dc3545; color: white"
+              title="Xoá"
+            >
+              <fa-icon [icon]="faTrash"></fa-icon>
+            </button>
+          </td>
+          <td>{{ item.sapCode }}</td>
+          <td>{{ item.productName }}</td>
+          <td>{{ item.partNumber }}</td>
+          <td>{{ item.lot }}</td>
+          <td>{{ item.storageUnit }}</td>
+          <td>{{ item.temNumber }}</td>
+          <td>{{ item.initialQuantity }}</td>
+          <td>{{ item.vendor }}</td>
+          <td>{{ item.userCreate }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

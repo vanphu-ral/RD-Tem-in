@@ -39,6 +39,7 @@ export class NavbarService {
       submenus: [
         { title: "Thông tin tem sản xuất", link: "/lenh-san-xuat" },
         { title: "Quản lý phê duyệt", link: "/chi-tiet-lenh-san-xuat" },
+        { title: "Quản lý TEM vật tư", link: "/generate-tem-in" },
       ],
     },
     {

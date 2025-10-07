@@ -146,6 +146,14 @@ import { RouterModule } from "@angular/router";
             (m) => m.ListMaterialSumaryModule,
           ),
       },
+      {
+        path: "generate-tem-in",
+        data: { pageTitle: "Generate tem in" },
+        loadChildren: () =>
+          import("./generate-tem-in/generate-tem-in.module").then(
+            (m) => m.GenerateTemInModule,
+          ),
+      },
       // {
       //   path: 'scan-check',
       //   data: { pageTitle: 'Scan check' },

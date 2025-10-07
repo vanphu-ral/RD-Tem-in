@@ -1,0 +1,93 @@
+.table th,
+.table td {
+  vertical-align: middle;
+  padding: 0.6rem;
+}
+
+.table {
+  width: 97%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+}
+.table th {
+  color: #fff;
+  background-color: #6c7ae0;
+  text-align: left;
+  padding: 8px;
+  font-weight: bold;
+  border: none;
+}
+.table td {
+  padding: 8px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+}
+
+button.btn-sm {
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+}
+
+button.btn-sm:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+h2 {
+  font-weight: 600;
+}
+
+.border {
+  border-style: dashed !important;
+}
+
+a {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Khung upload */
+.drop-zone {
+  position: relative;
+  background-color: #fff;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  min-height: 180px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Text trong khung */
+.drop-zone .text-muted {
+  font-size: 1rem;
+  color: #6c757d;
+}
+
+.drop-zone a {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.drop-zone .text-secondary {
+  font-size: 0.85rem;
+}
+
+/* File đã chọn */
+.selected-file {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 1rem;
+  margin-top: 1rem;
+}
+
+/* Nút import */
+.btn-import {
+  font-size: 1.1rem;
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+}

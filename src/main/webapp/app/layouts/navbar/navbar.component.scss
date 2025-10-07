@@ -517,3 +517,15 @@ li::marker {
     height: 50px;
   }
 }
+@media print {
+  :host {
+    display: none !important;
+  }
+
+  .app-header,
+  .sidebar,
+  .sidebar-overlay {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}

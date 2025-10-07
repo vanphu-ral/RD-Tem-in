@@ -1,0 +1,283 @@
+.header-in-tem {
+  width: 97%;
+}
+
+.table th,
+.table td {
+  vertical-align: middle;
+}
+
+.btn-import {
+  color: #fff;
+}
+
+.table {
+  width: 97%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+}
+.table th {
+  color: #fff;
+  background-color: #6c7ae0;
+  text-align: left;
+  padding: 8px;
+  font-weight: bold;
+  border: none;
+}
+.table td {
+  padding: 8px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+}
+
+.btn i {
+  font-size: 1rem;
+}
+
+.paginator-tem {
+  width: 97%;
+}
+
+.container {
+  padding: 20px;
+  background: #f5f5f5;
+}
+
+.print-btn {
+  margin-bottom: 10px;
+  padding: 8px 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.label {
+  width: 650px;
+  height: 230px;
+  background: white;
+  border: 3px solid black;
+  border-radius: 10px;
+  padding: 8px;
+  position: relative;
+  font-family: Arial, sans-serif;
+}
+
+.row-top {
+  display: flex;
+  gap: 8px;
+  height: 130px;
+}
+
+.qr-box {
+  width: 110px;
+  height: 110px;
+  border: 2px solid black;
+  border-radius: 4px;
+  padding: 5px;
+  flex-shrink: 0;
+}
+
+.center-content {
+  flex: 1;
+
+  .logo-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    margin-bottom: 2px;
+
+    img {
+      height: 18px;
+    }
+
+    .logo-txt {
+      color: #dc2626;
+      font-weight: 700;
+      font-size: 11px;
+    }
+  }
+
+  .big-code {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 0.8;
+    letter-spacing: -1.5px;
+    margin-bottom: 10px;
+  }
+
+  .product-name {
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 0.85;
+    letter-spacing: -1px;
+    margin-bottom: 10px;
+  }
+
+  .order-code {
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+}
+
+.rank-box {
+  width: 140px;
+  text-align: right;
+  font-size: 10px;
+  flex-shrink: 0;
+
+  .rank-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1px;
+    font-weight: 700;
+
+    .rank-sm {
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .rank-lg {
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 0.9;
+    }
+  }
+
+  .lo-txt {
+    font-size: 9px;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+}
+
+.row-bottom {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+}
+
+.info-left {
+  display: flex;
+  gap: 2px;
+
+  .msd-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .qty-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-left: 55px;
+    margin-top: -15px;
+
+    .qty-big {
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1;
+    }
+  }
+
+  .lot-small {
+    font-size: 9px;
+  }
+}
+
+.info-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: -50px;
+
+  .rd-badge {
+    border: 2px solid black;
+    border-radius: 3px;
+    padding: 2px 20px;
+    font-weight: 900;
+    font-size: 14px;
+    margin-bottom: 4px;
+    display: inline-block;
+  }
+
+  .bc-item {
+    .bc-num {
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 1.1;
+    }
+
+    .bc-line {
+      display: flex;
+      justify-content: flex-end;
+      gap: 3px;
+      font-size: 9px;
+      font-weight: 700;
+
+      .bars {
+        font-family: monospace;
+        font-size: 13px;
+        letter-spacing: 1px;
+      }
+    }
+  }
+}
+
+.note-bottom {
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+@media print {
+  @page {
+    size: 102.5mm 35mm;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 102.5mm !important;
+    height: 35mm !important;
+    overflow: hidden !important;
+  }
+
+  .container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 102.5mm !important;
+    height: 35mm !important;
+    background: white !important;
+
+    // Center bằng flexbox
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .print-btn {
+    display: none !important;
+  }
+
+  .label {
+    width: 650px !important;
+    height: 230px !important;
+    transform: scale(0.596, 0.575) !important;
+    transform-origin: center top !important;
+    margin: 0 !important;
+  }
+}
