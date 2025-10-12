@@ -49,6 +49,9 @@ import { GraphQLModule } from "./graphql.module";
 // import { HttpLinkModule } from 'apollo-angular/http';
 import { ListMaterialModule } from "./entities/list-material/list-material.module";
 import { IdleService } from "./entities/list-material/services/idle.service";
+import { APOLLO_OPTIONS } from "apollo-angular";
+import { HttpLink } from "apollo-angular/http";
+import { InMemoryCache } from "@apollo/client/cache";
 
 export const MY_DATE_FORMATS = {
   parse: { dateInput: "DD/MM/YYYY" },
@@ -106,6 +109,16 @@ export const MY_DATE_FORMATS = {
     httpInterceptorProviders,
     { provide: MAT_DATE_LOCALE, useValue: "en-GB" },
     { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
+    {
+      provide: APOLLO_OPTIONS,
+      useFactory: (httpLink: HttpLink) => ({
+        cache: new InMemoryCache(),
+        link: httpLink.create({
+          uri: "http://localhost:8085/graphql",
+        }),
+      }),
+      deps: [HttpLink],
+    },
   ],
 })
 export class AppModule {

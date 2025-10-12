@@ -25,6 +25,9 @@ import { GenerateTemInComponent } from "./list/generate-tem-in.component";
 import { GenerateTemInRoutingModule } from "./route/generate-tem-in-routing.module";
 import { QRCodeComponent } from "angularx-qrcode";
 import { GenerateTemInImportComponent } from "./import/generate-tem-in-import.component";
+import { GenerateTemInDetailComponent } from "./detail/generate-tem-in-detail.component";
+import { HttpLink } from "apollo-angular/http";
+import { InMemoryCache } from "@apollo/client/cache";
 // import { ApolloModule } from 'apollo-angular';
 // import { HttpClientModule } from '@angular/common/http';
 
@@ -59,8 +62,16 @@ import { GenerateTemInImportComponent } from "./import/generate-tem-in-import.co
     QRCodeComponent,
   ],
 
-  declarations: [GenerateTemInComponent, GenerateTemInImportComponent],
+  declarations: [
+    GenerateTemInComponent,
+    GenerateTemInImportComponent,
+    GenerateTemInDetailComponent,
+  ],
 
-  exports: [GenerateTemInComponent, GenerateTemInImportComponent],
+  exports: [
+    GenerateTemInComponent,
+    GenerateTemInImportComponent,
+    GenerateTemInDetailComponent,
+  ],
 })
 export class GenerateTemInModule {}

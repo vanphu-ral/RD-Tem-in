@@ -62,6 +62,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf()
+            .ignoringAntMatchers("/graphql")
             .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
             .and()
             .addFilterBefore(corsFilter, CsrfFilter.class)
@@ -87,6 +88,10 @@ public class SecurityConfiguration {
             .deny()
             .and()
             .authorizeRequests()
+            .antMatchers("/graphql")
+            .permitAll() // GraphQL endpoint
+            .antMatchers("/graphiql")
+            .permitAll() // GraphiQL UI
             .antMatchers(HttpMethod.OPTIONS, "/**")
             .permitAll()
             .antMatchers("/app/**/*.{js,html}")
@@ -105,8 +110,6 @@ public class SecurityConfiguration {
             .permitAll()
             .antMatchers("/api/admin/**")
             .hasAuthority(AuthoritiesConstants.ADMIN)
-            .antMatchers("/api/**")
-            .authenticated()
             .antMatchers("/management/health")
             .permitAll()
             .antMatchers("/management/health/**")
@@ -117,6 +120,9 @@ public class SecurityConfiguration {
             .permitAll()
             .antMatchers("/management/**")
             .hasAuthority(AuthoritiesConstants.ADMIN)
+            .antMatchers("/api/**")
+            .authenticated()
+            // XÓA dòng .antMatchers("/**").permitAll()
             .and()
             .oauth2Login()
             .and()

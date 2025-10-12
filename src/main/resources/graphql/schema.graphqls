@@ -1,7 +1,71 @@
-type Inventory {
-  id: ID
-  maLenhSanXuat: String
-}
 type Query {
-  lenhSanXuatList: [LenhSanXuat]
+    listRequestCreateTems: [ListRequestCreateTem]
+    listProductOfRequests: [ListProductOfRequest]
+    infoTemDetails: [InfoTemDetail]
+    infoTemDetailsByProductId(productId: Int!): [InfoTemDetail]
+}
+
+type Mutation {
+    generateTem(storageUnit: String!): GenerateTemResponse!
+}
+
+# THÊM TYPE MỚI
+type GenerateTemResponse {
+    success: Boolean!
+    message: String!
+    totalTems: Int!
+}
+
+type ListRequestCreateTem {
+    id: ID
+    vendor: String
+    userData5: String
+    createdBy: String
+    numberProduction: Int
+    totalQuantity: Int
+    status: String
+}
+
+type ListProductOfRequest {
+    id: ID
+    requestCreateTemId: Int
+    sapCode: String
+    temQuantity: Int
+    partNumber: String
+    lot: String
+    initialQuantity: Int
+    vendor: String
+    userData1: String
+    userData2: String
+    userData3: String
+    userData4: String
+    userData5: String
+    storageUnit: String
+    expirationDate: String
+    manufacturingDate: String
+    arrivalDate: String
+    numberOfPrints: Int
+}
+
+type InfoTemDetail {
+    id: ID
+    productOfRequestId: Int
+    reelId: String
+    sapCode: String
+    productName: String
+    partNumber: String
+    lot: String
+    initialQuantity: Int
+    vendor: String
+    userData1: String
+    userData2: String
+    userData3: String
+    userData4: String
+    userData5: String
+    storageUnit: String
+    expirationDate: String
+    manufacturingDate: String
+    arrivalDate: String
+    qrCode: String
+    slTemQuantity: Int
 }

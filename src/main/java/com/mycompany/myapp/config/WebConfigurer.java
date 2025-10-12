@@ -26,7 +26,10 @@ import tech.jhipster.config.JHipsterProperties;
  * Configuration of web application with Servlet 3.0 APIs.
  */
 @Configuration
-public class WebConfigurer implements ServletContextInitializer, WebServerFactoryCustomizer<WebServerFactory> {
+public class WebConfigurer
+    implements
+        ServletContextInitializer,
+        WebServerFactoryCustomizer<WebServerFactory> {
 
     private final Logger log = LoggerFactory.getLogger(WebConfigurer.class);
 
@@ -34,15 +37,22 @@ public class WebConfigurer implements ServletContextInitializer, WebServerFactor
 
     private final JHipsterProperties jHipsterProperties;
 
-    public WebConfigurer(Environment env, JHipsterProperties jHipsterProperties) {
+    public WebConfigurer(
+        Environment env,
+        JHipsterProperties jHipsterProperties
+    ) {
         this.env = env;
         this.jHipsterProperties = jHipsterProperties;
     }
 
     @Override
-    public void onStartup(ServletContext servletContext) throws ServletException {
+    public void onStartup(ServletContext servletContext)
+        throws ServletException {
         if (env.getActiveProfiles().length != 0) {
-            log.info("Web application configuration, using profiles: {}", (Object[]) env.getActiveProfiles());
+            log.info(
+                "Web application configuration, using profiles: {}",
+                (Object[]) env.getActiveProfiles()
+            );
         }
 
         log.info("Web application fully configured");
@@ -59,7 +69,8 @@ public class WebConfigurer implements ServletContextInitializer, WebServerFactor
 
     private void setLocationForStaticAssets(WebServerFactory server) {
         if (server instanceof ConfigurableServletWebServerFactory) {
-            ConfigurableServletWebServerFactory servletWebServer = (ConfigurableServletWebServerFactory) server;
+            ConfigurableServletWebServerFactory servletWebServer =
+                (ConfigurableServletWebServerFactory) server;
             File root;
             String prefixPath = resolvePathPrefix();
             root = new File(prefixPath + "target/classes/static/");
@@ -73,7 +84,10 @@ public class WebConfigurer implements ServletContextInitializer, WebServerFactor
      * Resolve path prefix to static resources.
      */
     private String resolvePathPrefix() {
-        String fullExecutablePath = decode(this.getClass().getResource("").getPath(), StandardCharsets.UTF_8);
+        String fullExecutablePath = decode(
+            this.getClass().getResource("").getPath(),
+            StandardCharsets.UTF_8
+        );
         String rootPath = Paths.get(".").toUri().normalize().getPath();
         String extractedPath = fullExecutablePath.replace(rootPath, "");
         int extractionEndIndex = extractedPath.indexOf("target/");
@@ -85,14 +99,19 @@ public class WebConfigurer implements ServletContextInitializer, WebServerFactor
 
     @Bean
     public CorsFilter corsFilter() {
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+            new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = jHipsterProperties.getCors();
-        if (!CollectionUtils.isEmpty(config.getAllowedOrigins()) || !CollectionUtils.isEmpty(config.getAllowedOriginPatterns())) {
+        if (
+            !CollectionUtils.isEmpty(config.getAllowedOrigins()) ||
+            !CollectionUtils.isEmpty(config.getAllowedOriginPatterns())
+        ) {
             log.debug("Registering CORS filter");
             source.registerCorsConfiguration("/api/**", config);
             source.registerCorsConfiguration("/management/**", config);
             source.registerCorsConfiguration("/v3/api-docs", config);
             source.registerCorsConfiguration("/swagger-ui/**", config);
+            source.registerCorsConfiguration("/graphql", config);
         }
         return new CorsFilter(source);
     }

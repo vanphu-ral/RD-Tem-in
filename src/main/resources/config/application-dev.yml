@@ -19,6 +19,10 @@ logging:
     tech.jhipster: ERROR
     org.hibernate.SQL: ERROR
     com.mycompany.myapp: DEBUG
+    org.springframework.graphql: DEBUG
+    org.springframework.boot.autoconfigure.graphql: DEBUG
+    com.mycompany.myapp.graphql: DEBUG
+    com.mycompany.myapp.service: DEBUG
 
 spring:
   devtools:
@@ -71,6 +75,20 @@ partner2:
       prepStmtCacheSize: 250
       prepStmtCacheSqlLimit: 2048
       useServerPrepStmts: true
+renderqr:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=RenderTemQR;encrypt=true;trustServerCertificate=true;
+    username: renderqr_user
+    password: StrongPassword123!
+    hikari:
+      poolName: Hikari
+      auto-commit: false
+      data-source-properties:
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
   jpa:
   liquibase:
     # Remove 'faker' if you do not want the sample data to be loaded automatically

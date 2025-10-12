@@ -1,0 +1,718 @@
+.gap-3 {
+  gap: 1rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.btn fa-icon {
+  font-size: 16px;
+  color: #fff;
+}
+
+/* Hover */
+.btn:hover {
+  filter: brightness(1.2);
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-wrapper[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 0.9;
+}
+
+// Custom table header styling to match the blue header in the image
+.table-primary {
+  th {
+    background-color: #6699cc !important;
+    color: #ffffff !important;
+    font-weight: 500;
+    border-color: #5588bb !important;
+  }
+}
+
+.th-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+td {
+  background-color: #fff;
+  border-color: #ccc !important;
+}
+
+.main-table {
+  width: 97%;
+}
+
+.toolbar {
+  width: 97%;
+}
+
+.white-icon {
+  color: white;
+}
+
+.footer {
+  margin-right: 3rem;
+
+  .footer-btn {
+    margin-top: 1rem;
+  }
+}
+
+.paginator-tem {
+  margin-right: 3rem;
+}
+
+// Filter row styling
+thead tr:nth-child(2) {
+  background-color: #e6f0ff !important;
+
+  th {
+    background-color: #e6f0ff !important;
+    border-color: #d0d0d0 !important;
+  }
+}
+
+// Modal styling
+.modal {
+  &.show {
+    display: block !important;
+  }
+}
+
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+
+  &.show {
+    opacity: 1;
+  }
+}
+
+// CSV Preview Modal
+#csvPreviewModal {
+  .modal-dialog {
+    max-width: 100%;
+  }
+
+  .dropdown-toggle::after {
+    display: none;
+  }
+
+  .dropdown-toggle {
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+}
+
+// Print Preview Modal
+#printPreviewModal {
+  .modal-dialog {
+    max-width: 100%;
+  }
+
+  .modal-body {
+    padding: 20px;
+    align-self: center;
+  }
+}
+
+// Print Label Styling (36mm x 109mm)
+.print-preview-container {
+  padding: 20px;
+
+  .label {
+    width: 650px;
+    height: 230px;
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+    background: white;
+    position: relative;
+
+    // Preview styling
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.label-preview {
+  width: 109mm;
+  height: 36mm;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  page-break-after: always;
+}
+
+.label-content {
+  display: flex;
+  height: 100%;
+  padding: 4mm;
+  gap: 2mm;
+}
+
+// Left section (QR Code + Dates)
+.label-left {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1mm;
+}
+
+.qr-code-placeholder {
+  width: 20mm;
+  height: 20mm;
+  border: 2px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .qr-placeholder {
+    font-size: 10px;
+    font-weight: bold;
+  }
+}
+
+.label-dates {
+  font-size: 7px;
+  text-align: center;
+  line-height: 1.2;
+
+  small {
+    font-size: 6px;
+  }
+}
+
+// Center section (Main Info)
+.label-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+  padding: 0 2mm;
+}
+
+.label-logo {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  margin-bottom: 1mm;
+
+  img {
+    height: 4mm;
+  }
+
+  span {
+    font-size: 9px;
+    font-weight: bold;
+  }
+}
+
+.label-code {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.label-part-number {
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.label-detail {
+  font-size: 7px;
+  color: #666;
+  line-height: 1;
+}
+
+.label-info-row {
+  font-size: 8px;
+  line-height: 1.3;
+
+  strong {
+    font-weight: 600;
+  }
+
+  small {
+    font-size: 7px;
+  }
+}
+
+// Right section (Ranks + Storage)
+.label-right {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  width: 25mm;
+}
+
+.rank-info {
+  font-size: 7px;
+  line-height: 1.4;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+.storage-box {
+  border: 1px solid #000;
+  border-radius: 3px;
+  padding: 2mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+}
+
+.storage-label {
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  background: #f0f0f0;
+  padding: 1mm;
+  border-radius: 2px;
+}
+
+.barcode-area {
+  display: flex;
+  gap: 1px;
+  justify-content: space-between;
+  height: 8mm;
+  padding: 1mm 0;
+}
+
+.barcode-line {
+  width: 2px;
+  background: #000;
+  height: 100%;
+}
+
+.storage-details {
+  font-size: 6px;
+  line-height: 1.3;
+
+  div {
+    display: flex;
+    align-items: center;
+    gap: 1mm;
+  }
+
+  small {
+    font-size: 5px;
+  }
+}
+
+.barcode-small {
+  font-family: "Courier New", monospace;
+  font-size: 6px;
+  letter-spacing: -0.5px;
+  display: inline-flex;
+  align-items: center;
+
+  &::before,
+  &::after {
+    content: "|||";
+    font-size: 8px;
+    margin: 0 1px;
+  }
+}
+
+.label {
+  width: 650px;
+  height: 230px;
+  background: white;
+  border: 3px solid black;
+  border-radius: 10px;
+  padding: 8px;
+  position: relative;
+  font-family: Arial, sans-serif;
+}
+
+.row-top {
+  display: flex;
+  gap: 8px;
+  height: 130px;
+}
+
+.qr-box {
+  width: 110px;
+  height: 110px;
+  border: 2px solid black;
+  border-radius: 4px;
+  padding: 5px;
+  flex-shrink: 0;
+}
+
+.center-content {
+  flex: 1;
+
+  .logo-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    margin-bottom: 2px;
+
+    img {
+      height: 18px;
+    }
+
+    .logo-txt {
+      color: #dc2626;
+      font-weight: 700;
+      font-size: 11px;
+    }
+  }
+
+  .big-code {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 0.8;
+    letter-spacing: -1.5px;
+    margin-bottom: 10px;
+  }
+
+  .product-name {
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 0.85;
+    letter-spacing: -1px;
+    margin-bottom: 10px;
+  }
+
+  .order-code {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+}
+
+.rank-box {
+  width: 140px;
+  text-align: right;
+  font-size: 10px;
+  flex-shrink: 0;
+
+  .rank-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1px;
+    font-weight: 700;
+
+    .rank-sm {
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .rank-lg {
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 0.9;
+    }
+  }
+
+  .lo-txt {
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 12px;
+  }
+}
+
+.row-bottom {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+}
+
+.info-left {
+  display: flex;
+  gap: 2px;
+
+  .msd-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 14px;
+  }
+
+  .qty-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-left: 55px;
+    font-size: 14px;
+    margin-top: -15px;
+
+    .qty-big {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+    }
+  }
+
+  .lot-small {
+    font-size: 9px;
+  }
+}
+
+.info-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: -50px;
+
+  .rd-badge {
+    border: 2px solid black;
+    border-radius: 3px;
+    padding: 2px 20px;
+    font-weight: 900;
+    font-size: 14px;
+    margin-bottom: 4px;
+    display: inline-block;
+  }
+
+  .bc-item {
+    .bc-num {
+      font-weight: 900;
+      font-size: 12px;
+      line-height: 0.9;
+      margin-right: 10px;
+    }
+
+    .bc-line {
+      display: flex;
+      justify-content: flex-end;
+      gap: 3px;
+      font-size: 9px;
+      font-weight: 700;
+
+      .bars {
+        width: 11rem;
+        height: 28px;
+        overflow: hidden;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .bars svg {
+        display: inline-block;
+        margin-left: auto;
+      }
+    }
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.3);
+  /* màu đen nhạt */
+  z-index: 1040;
+  /* thấp hơn modal */
+}
+
+.note-bottom {
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+@media print {
+  @page {
+    size: 102.5mm 35mm;
+    margin: 0;
+  }
+
+  // Ẩn tất cả mọi thứ
+  * {
+    visibility: hidden !important;
+  }
+
+  html,
+  body {
+    width: 102.5mm !important;
+    height: 35mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: white !important;
+  }
+
+  // Chỉ hiển thị label và children của nó
+  .label,
+  .label * {
+    visibility: visible !important;
+  }
+
+  // Ẩn hoàn toàn các wrapper elements
+  .modal,
+  .modal-dialog,
+  .modal-content,
+  .modal-header,
+  .modal-body,
+  .print-preview-container {
+    all: unset !important;
+    display: contents !important;
+  }
+
+  .modal-backdrop,
+  .modal-header,
+  .btn-close,
+  .print-btn,
+  .btn,
+  .table,
+  nav,
+  header,
+  .toolbar,
+  .footer {
+    display: none !important;
+  }
+
+  // Styling cho label
+  .label {
+    // Kích thước gốc của label
+    width: 650px !important;
+    height: 230px !important;
+
+    // Scale chính xác
+    transform: scale(0.684, 0.653) !important;
+    top: 1px !important;
+    left: 1px !important;
+    transform-origin: top left !important;
+    position: fixed !important;
+
+    margin: 0 !important;
+    padding: 8px !important;
+    border: 3px solid black !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+
+    background: white !important;
+
+    // Mỗi label một trang
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  // Label cuối cùng
+  .label:last-child {
+    page-break-after: auto !important;
+  }
+
+  // Đảm bảo màu sắc in đúng
+  .label * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  // CRITICAL FIX: Force QR code to render on each page
+  // Đảm bảo QR code hiển thị trên MỌI label
+  qrcode,
+  qrcode *,
+  qrcode canvas,
+  qrcode img,
+  canvas,
+  img {
+    visibility: visible !important;
+    display: block !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 9999 !important;
+  }
+
+  // Đảm bảo qr-box container cũng visible và có z-index cao
+  .qr-box,
+  .qr-box * {
+    visibility: visible !important;
+    display: block !important;
+    position: relative !important;
+    z-index: 9999 !important;
+  }
+
+  // Force browser to render each label independently
+  // Trick: Make each label's QR code unique by ensuring stacking context
+  .label:nth-child(1) .qr-box {
+    z-index: 10000 !important;
+  }
+
+  .label:nth-child(2) .qr-box {
+    z-index: 10001 !important;
+  }
+
+  .label:nth-child(3) .qr-box {
+    z-index: 10002 !important;
+  }
+
+  .label:nth-child(4) .qr-box {
+    z-index: 10003 !important;
+  }
+
+  .label:nth-child(5) .qr-box {
+    z-index: 10004 !important;
+  }
+
+  .label:nth-child(6) .qr-box {
+    z-index: 10005 !important;
+  }
+
+  .label:nth-child(7) .qr-box {
+    z-index: 10006 !important;
+  }
+
+  .label:nth-child(8) .qr-box {
+    z-index: 10007 !important;
+  }
+
+  .label:nth-child(9) .qr-box {
+    z-index: 10008 !important;
+  }
+
+  .label:nth-child(10) .qr-box {
+    z-index: 10009 !important;
+  }
+}
