@@ -1,83 +1,262 @@
-import { Component } from "@angular/core";
-import {
-  faFileImport,
-  faEye,
-  faEdit,
-  faTrash,
-  faPrint,
-} from "@fortawesome/free-solid-svg-icons";
-interface LabelData {
-  code: string;
-  productName: string;
-  orderCode: string;
-  qty: string;
+import { Component, OnInit, AfterViewInit, ViewChild } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+
+// Angular Material
+import { MatTableModule, MatTableDataSource } from "@angular/material/table";
+import { MatPaginator, MatPaginatorModule } from "@angular/material/paginator";
+import { MatSort, MatSortModule } from "@angular/material/sort";
+import { MatButtonModule } from "@angular/material/button";
+import { MatTooltipModule } from "@angular/material/tooltip";
+import { MatChipsModule } from "@angular/material/chips";
+import { MatDividerModule } from "@angular/material/divider";
+import { MatIconModule } from "@angular/material/icon";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatInputModule } from "@angular/material/input";
+import { MatDatepickerModule } from "@angular/material/datepicker";
+import { MatNativeDateModule } from "@angular/material/core";
+
+// Models and Services
+import { ListRequestCreateTem } from "../models/list-request-create-tem.model";
+import { GenerateTemInService } from "../service/generate-tem-in.service";
+
+// Interfaces
+interface TemMaterialItem {
+  id: number;
+  status: string;
   vendor: string;
-  lot: string;
-  msd: string;
-  exp: string;
-  rankM: string;
-  rankA: string;
-  rankQ: string;
-  lo: string;
-  rd: string;
-  nv: string;
-  po: string;
-  note: string;
+  userData5: string;
+  createdDate: string; // LocalDate from backend as string
+  createdBy: string;
+  numberProduction: number;
+  totalQuantity: number;
 }
+
+interface FilterOptions {
+  status: string;
+  vendor: string;
+  userData5: string;
+  createdDate: Date | null; // dùng Date để lọc ngày dễ hơn
+  createdBy: string;
+  numberProduction: string;
+  totalQuantity: string;
+}
+
 @Component({
   selector: "jhi-generate-tem-in",
   standalone: false,
   templateUrl: "./generate-tem-in.component.html",
-  styleUrl: "./generate-tem-in.component.scss",
+  styleUrls: ["./generate-tem-in.component.scss"],
 })
-export class GenerateTemInComponent {
-  faFileImport = faFileImport;
-  faEye = faEye;
-  faEdit = faEdit;
-  faTrash = faTrash;
-  faPrint = faPrint;
-  data = [
-    {
-      status: "Đã TEM",
-      supplierCode: "NNC001",
-      poCode: "PO123456",
-      createdDate: "25/06/2025",
-      createdBy: "Nguyễn Văn A",
-      goodsNumber: "GH001",
-      totalQuantity: 1000,
-      temNumber: "TEM001",
-    },
-    // thêm dữ liệu mẫu khác nếu cần
+export class GenerateTemInComponent implements OnInit, AfterViewInit {
+  // Columns hiển thị
+  displayedColumns: string[] = [
+    "status",
+    "vendor",
+    "userData5",
+    "createdDate",
+    "createdBy",
+    "numberProduction",
+    "totalQuantity",
+    "actions",
   ];
 
-  currentPage = 2;
-  totalPages = 67;
-  pages = [1, 2, 3];
+  dataSource = new MatTableDataSource<TemMaterialItem>([]);
+  totalItems = 0;
+  isLoading = false;
 
-  labelData: LabelData = {
-    code: "00060812",
-    productName: "NFSW757GT-V3-65K",
-    orderCode: "000202507210951Z1",
-    qty: "5.000",
-    vendor: "V900000008",
-    lot: "P79D1M-sm6550bP11R9050",
-    msd: "20250709",
-    exp: "20260709",
-    rankM: "sm6550b",
-    rankA: "NO",
-    rankQ: "P11",
-    lo: "250717110031",
-    rd: "RD",
-    nv: "160725",
-    po: "36244",
-    note: "Trở dẫn-1.2 MΩm-0.25W-5%-1206 (Yankon)",
+  filters: FilterOptions = {
+    status: "",
+    vendor: "",
+    userData5: "",
+    createdDate: null,
+    createdBy: "",
+    numberProduction: "",
+    totalQuantity: "",
   };
-  goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
+
+  // ViewChild
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  constructor(private generateTemInService: GenerateTemInService) {}
+
+  // ================== LIFECYCLE ==================
+  ngOnInit(): void {
+    this.loadRequests();
+  }
+
+  ngAfterViewInit(): void {
+    // Filter đa trường
+    this.dataSource.filterPredicate = (
+      item: TemMaterialItem,
+      filterJson: string,
+    ): boolean => {
+      const f: FilterOptions = JSON.parse(filterJson);
+
+      // status
+      const okStatus =
+        !f.status || item.status.toLowerCase().includes(f.status.toLowerCase());
+
+      // vendor
+      const okVendor =
+        !f.vendor || item.vendor.toLowerCase().includes(f.vendor.toLowerCase());
+
+      // userData5
+      const okUserData5 =
+        !f.userData5 ||
+        item.userData5.toLowerCase().includes(f.userData5.toLowerCase());
+
+      // createdBy
+      const okCreatedBy =
+        !f.createdBy ||
+        item.createdBy.toLowerCase().includes(f.createdBy.toLowerCase());
+
+      // numberProduction
+      const okNumberProduction =
+        !f.numberProduction ||
+        String(item.numberProduction).includes(f.numberProduction);
+
+      // totalQuantity
+      const okTotal =
+        !f.totalQuantity ||
+        String(item.totalQuantity).includes(f.totalQuantity);
+
+      // createdDate (so sánh theo ngày, bỏ time)
+      const okDate =
+        !f.createdDate || this.sameDate(item.createdDate, f.createdDate);
+
+      return (
+        okStatus &&
+        okVendor &&
+        okUserData5 &&
+        okCreatedBy &&
+        okNumberProduction &&
+        okTotal &&
+        okDate
+      );
+    };
+
+    // Sort + Paginator cho client-side
+    this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
+  }
+
+  applyFilters(): void {
+    this.dataSource.filter = JSON.stringify(this.filters);
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
     }
   }
-  handlePrint(): void {
-    window.print();
+
+  clearFilters(): void {
+    this.filters = {
+      status: "",
+      vendor: "",
+      userData5: "",
+      createdDate: null,
+      createdBy: "",
+      numberProduction: "",
+      totalQuantity: "",
+    };
+    this.applyFilters();
+  }
+
+  // ================== STATUS CHIP ==================
+  statusColor(status: string): "primary" | "accent" | "warn" {
+    switch ((status || "").toLowerCase()) {
+      case "bản nháp":
+      case "mới":
+      case "new":
+        return "primary";
+      case "đang xử lý":
+      case "processing":
+        return "accent";
+      case "đã nhập":
+      case "hoàn tất":
+      case "done":
+        return "primary";
+      case "lỗi":
+      case "error":
+        return "warn";
+      default:
+        return "accent";
+    }
+  }
+
+  // ================== ACTIONS ==================
+  onImport(): void {
+    console.log("Import functionality");
+  }
+
+  onEdit(item: TemMaterialItem): void {
+    console.log("Edit item:", item);
+  }
+
+  onDelete(item: TemMaterialItem): void {
+    console.log("Delete item:", item);
+  }
+
+  onView(item: TemMaterialItem): void {
+    console.log("View item:", item);
+  }
+
+  onPrint(item: TemMaterialItem): void {
+    console.log("Print item:", item);
+  }
+
+  // ================== DATA LOADING (private) ==================
+  private loadRequests(): void {
+    this.isLoading = true;
+    console.log("Loading requests from API...");
+
+    this.generateTemInService.getAllRequests().subscribe({
+      next: (response: ListRequestCreateTem[]) => {
+        console.log("API Response received:", response);
+        const data: TemMaterialItem[] = response.map(
+          (item: ListRequestCreateTem) => ({
+            id: item.id ?? 0,
+            status: item.status ?? "",
+            vendor: item.vendor ?? "",
+            userData5: item.userData5 ?? "",
+            createdDate: item.createdDate ?? "",
+            createdBy: item.createdBy ?? "",
+            numberProduction: item.numberProduction ?? 0,
+            totalQuantity: item.totalQuantity ?? 0,
+          }),
+        );
+        console.log("Mapped data:", data);
+        this.dataSource.data = data;
+        this.totalItems = response.length;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error("Error loading requests:", error);
+        console.error("Error details:", {
+          message: error.message,
+          status: error.status,
+          statusText: error.statusText,
+          url: error.url,
+        });
+        // Handle database errors properly - show empty state with error message
+        this.dataSource.data = [];
+        this.totalItems = 0;
+        this.isLoading = false;
+        // TODO: Show user-friendly error message in UI
+        console.warn(
+          "Failed to load data from database. Please check your connection and try again.",
+        );
+      },
+    });
+  }
+
+  // ================== HELPERS (private sau public) ==================
+  private sameDate(a: Date | string, b: Date): boolean {
+    const d1 = new Date(a);
+    return (
+      d1.getFullYear() === b.getFullYear() &&
+      d1.getMonth() === b.getMonth() &&
+      d1.getDate() === b.getDate()
+    );
   }
 }

@@ -1,21 +1,188 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
+import { Apollo, gql, QueryRef } from "apollo-angular";
 import { Observable, map } from "rxjs";
 import {
-  GenerateTemResponse,
   ListRequestCreateTem,
+  ListRequestCreateTemRequest,
+} from "../models/list-request-create-tem.model";
+import {
+  ListProductOfRequest,
+  ListProductOfRequestRequest,
+  ExcelImportData,
+} from "../models/list-product-of-request.model";
+import {
+  GenerateTemResponse,
   MaterialItem,
   TemDetail,
 } from "../detail/generate-tem-in-detail.component";
-import { Apollo, gql } from "apollo-angular";
 
-@Injectable({
-  providedIn: "root",
-})
+const GET_REQUESTS_QUERY = gql`
+  query GetRequests($page: Int, $size: Int) {
+    requestList(page: $page, size: $size) {
+      id
+      Vendor
+      UserData5
+      Created_by
+      Number_production
+      Create_date
+      Total_quantity
+      Status
+    }
+  }
+`;
+
+// NOTE: This query as written does not actually use $requestId on the server side.
+// Keep it if your schema exposes products through requestList; otherwise switch to a requestById query.
+const GET_PRODUCTS_BY_REQUEST_QUERY = gql`
+  query GetProductsByRequest($requestId: ID!) {
+    requestList(page: 0, size: 1) {
+      id
+      products(page: 0, size: 100) {
+        id
+        Request_create_tem_id
+        SAPCode
+        Tem_quantity
+        PartNumber
+        LOT
+        InitialQuantity
+        Vendor
+        UserData1
+        UserData2
+        UserData3
+        UserData4
+        UserData5
+        StorageUnit
+        ExpirationDate
+        ManufacturingDate
+        Arrival_date
+        Number_of_prints
+      }
+    }
+  }
+`;
+
+const CREATE_PRODUCT_MUTATION = gql`
+  mutation CreateProduct($input: CreateProductInput!) {
+    createProduct(input: $input) {
+      id
+      Request_create_tem_id
+      SAPCode
+      Tem_quantity
+      PartNumber
+      LOT
+      InitialQuantity
+      Vendor
+      UserData1
+      UserData2
+      UserData3
+      UserData4
+      UserData5
+      StorageUnit
+      ExpirationDate
+      ManufacturingDate
+      Arrival_date
+      Number_of_prints
+    }
+  }
+`;
+
+/* ================= GraphQL result typings ================= */
+
+type GetRequestsResult = {
+  requestList: ListRequestCreateTem[];
+};
+
+type GetProductsByRequestResult = {
+  requestList: Array<{
+    id: string | number;
+    products: ListProductOfRequest[];
+  }>;
+};
+
+type CreateProductResult = {
+  createProduct: ListProductOfRequest;
+};
+
+@Injectable({ providedIn: "root" })
 export class GenerateTemInService {
-  constructor(private apollo: Apollo) {}
+  private readonly baseUrl = "/api/generate-tem-in";
 
-  //lấy tất cả bản ghi trong bảng list_product_of_request
+  constructor(
+    private http: HttpClient,
+    private apollo: Apollo,
+  ) {
+    console.log("GenerateTemInService initialized");
+  }
+
+  getRequestList(): Observable<ListRequestCreateTem[]> {
+    const GET_REQUESTS = gql`
+      query {
+        listRequestCreateTems {
+          id
+          vendor
+          userData5
+          status
+        }
+      }
+    `;
+
+    return this.apollo
+      .watchQuery<{ listRequestCreateTems: ListRequestCreateTem[] }>({
+        query: GET_REQUESTS,
+      })
+      .valueChanges.pipe(map((result) => result.data.listRequestCreateTems));
+  }
+
+  getAllRequests(params?: {
+    status?: string;
+    vendor?: string;
+    createdBy?: string;
+    page?: number;
+    size?: number;
+    sort?: string;
+  }): Observable<ListRequestCreateTem[]> {
+    const page = params?.page ?? 0;
+    const size = params?.size ?? 20;
+
+    return this.apollo
+      .query<GetRequestsResult>({
+        query: GET_REQUESTS_QUERY,
+        variables: { page, size },
+        fetchPolicy: "network-only",
+      })
+      .pipe(map((result) => result.data.requestList as ListRequestCreateTem[]));
+  }
+
+  getRequestById(id: number): Observable<ListRequestCreateTem> {
+    return this.http.get<ListRequestCreateTem>(
+      `${this.baseUrl}/requests/${id}`,
+    );
+  }
+
+  createRequest(
+    request: ListRequestCreateTemRequest,
+  ): Observable<ListRequestCreateTem> {
+    return this.http.post<ListRequestCreateTem>(
+      `${this.baseUrl}/requests`,
+      request,
+    );
+  }
+
+  updateRequest(
+    id: number,
+    request: ListRequestCreateTemRequest,
+  ): Observable<ListRequestCreateTem> {
+    return this.http.put<ListRequestCreateTem>(
+      `${this.baseUrl}/requests/${id}`,
+      request,
+    );
+  }
+
+  deleteRequest(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/requests/${id}`);
+  }
+
   getMaterialItems(): Observable<MaterialItem[]> {
     const GET_PRODUCTS = gql`
       query {
@@ -75,7 +242,81 @@ export class GenerateTemInService {
       );
   }
 
-  //thông báo sau khi render tem
+  getProductsByRequestId(
+    requestId: number,
+  ): Observable<ListProductOfRequest[]> {
+    return this.apollo
+      .query<GetProductsByRequestResult>({
+        query: GET_PRODUCTS_BY_REQUEST_QUERY,
+        variables: { requestId: String(requestId) },
+        fetchPolicy: "network-only",
+      })
+      .pipe(
+        map((result) => {
+          const requests = result.data.requestList;
+          if (Array.isArray(requests) && requests.length > 0) {
+            return (requests[0].products ?? []) as ListProductOfRequest[];
+          }
+          return [] as ListProductOfRequest[];
+        }),
+      );
+  }
+
+  createProducts(
+    requestId: number,
+    products: ListProductOfRequestRequest[],
+  ): Observable<ListProductOfRequest[]> {
+    return this.http.post<ListProductOfRequest[]>(
+      `${this.baseUrl}/requests/${requestId}/products`,
+      products,
+    );
+  }
+
+  importProductsFromExcel(
+    requestId: number,
+    excelData: ExcelImportData[],
+  ): Observable<ListProductOfRequest[]> {
+    return this.http.post<ListProductOfRequest[]>(
+      `${this.baseUrl}/requests/${requestId}/import-excel`,
+      excelData,
+    );
+  }
+
+  updateProduct(
+    id: number,
+    product: ListProductOfRequestRequest,
+  ): Observable<ListProductOfRequest> {
+    return this.http.put<ListProductOfRequest>(
+      `${this.baseUrl}/products/${id}`,
+      product,
+    );
+  }
+
+  /**
+   * Delete a specific product (REST)
+   */
+  deleteProduct(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/products/${id}`);
+  }
+
+  getRequestStats(): Observable<{
+    totalRequests: number;
+    totalProducts: number;
+    statusCounts: { [status: string]: number };
+  }> {
+    return this.http.get<{
+      totalRequests: number;
+      totalProducts: number;
+      statusCounts: { [status: string]: number };
+    }>(`${this.baseUrl}/stats`);
+  }
+
+  exportRequestToExcel(requestId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/requests/${requestId}/export`, {
+      responseType: "blob",
+    });
+  }
+
   generateTem(storageUnit: string): Observable<GenerateTemResponse> {
     const GENERATE_TEM = gql`
       mutation ($storageUnit: String!) {
@@ -103,25 +344,6 @@ export class GenerateTemInService {
         ),
       );
   }
-  getRequestList(): Observable<ListRequestCreateTem[]> {
-    const GET_REQUESTS = gql`
-      query {
-        listRequestCreateTems {
-          id
-          vendor
-          userData5
-          status
-        }
-      }
-    `;
-
-    return this.apollo
-      .watchQuery<{ listRequestCreateTems: ListRequestCreateTem[] }>({
-        query: GET_REQUESTS,
-      })
-      .valueChanges.pipe(map((result) => result.data.listRequestCreateTems));
-  }
-  //Lấy chi tiết tem detai theo Request_create_tem_id của list_product_of_request
   getTemDetailsByProductId(productId: number): Observable<TemDetail[]> {
     const GET_TEM_DETAILS = gql`
       query GetTemDetailsByProductId($productId: Int!) {
@@ -160,9 +382,6 @@ export class GenerateTemInService {
         map((result) => result.data.infoTemDetailsByProductId),
       );
   }
-  /**
-   * Query: Lấy TẤT CẢ tem details (toàn bộ bảng info_tem_detail)
-   */
   getAllTemDetails(): Observable<TemDetail[]> {
     const GET_ALL_TEM_DETAILS = gql`
       query GetAllTemDetails {
