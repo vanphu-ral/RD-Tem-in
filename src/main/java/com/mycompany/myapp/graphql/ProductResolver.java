@@ -1,6 +1,8 @@
 package com.mycompany.myapp.graphql;
 
 import com.mycompany.myapp.graphql.dto.CreateProductInput;
+import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput;
+import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse;
 import com.mycompany.myapp.service.ListProductOfRequestService;
 import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
@@ -36,5 +38,12 @@ public class ProductResolver {
         @Argument List<CreateProductInput> products
     ) {
         return service.createProductsBatch(requestId, products);
+    }
+
+    @MutationMapping
+    public CreateRequestWithProductsResponse createRequestAndProducts(
+        @Argument CreateRequestWithProductsInput input
+    ) {
+        return service.createRequestAndProducts(input);
     }
 }

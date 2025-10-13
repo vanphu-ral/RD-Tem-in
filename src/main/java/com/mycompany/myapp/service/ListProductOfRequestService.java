@@ -1,8 +1,11 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.graphql.dto.CreateProductInput;
+import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput;
+import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse;
 import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
+import com.mycompany.renderQr.domain.ListRequestCreateTem;
 import com.mycompany.renderQr.domain.ListRequestCreateTemResponse;
 import com.mycompany.renderQr.repository.ListProductOfRequestRepository;
 import com.mycompany.renderQr.repository.ListRequestCreateTemRepository;
@@ -21,6 +24,9 @@ public class ListProductOfRequestService {
     @Autowired
     private ListProductOfRequestRepository repository;
 
+    @Autowired
+    private ListRequestCreateTemService requestService;
+
     public List<ListProductOfRequestResponse> getAll() {
         return repository.findAllProjectedBy();
     }
@@ -37,32 +43,95 @@ public class ListProductOfRequestService {
         Integer requestId,
         List<CreateProductInput> inputs
     ) {
-        List<ListProductOfRequest> products = new ArrayList<>();
-
-        for (CreateProductInput input : inputs) {
-            ListProductOfRequest product = new ListProductOfRequest();
-            // Override requestCreateTemId with the provided requestId
-            input.setRequestCreateTemId(requestId);
-            mapInputToEntity(input, product);
-            products.add(product);
+        if (inputs == null || inputs.isEmpty()) {
+            return new ArrayList<>();
         }
 
-        return repository.saveAll(products);
+        List<ListProductOfRequest> products = new ArrayList<>();
+
+        try {
+            for (CreateProductInput input : inputs) {
+                if (input == null) {
+                    continue;
+                }
+                ListProductOfRequest product = new ListProductOfRequest();
+                // Override requestCreateTemId with the provided requestId
+                input.setRequestCreateTemId(requestId);
+                mapInputToEntity(input, product);
+                products.add(product);
+            }
+
+            List<ListProductOfRequest> savedProducts = repository.saveAll(
+                products
+            );
+            return savedProducts != null ? savedProducts : new ArrayList<>();
+        } catch (Exception e) {
+            System.err.println(
+                "Error creating products batch: " + e.getMessage()
+            );
+            e.printStackTrace();
+            throw new RuntimeException(
+                "Failed to create products: " + e.getMessage(),
+                e
+            );
+        }
     }
 
     private void mapInputToEntity(
         CreateProductInput input,
         ListProductOfRequest product
     ) {
-        product.setRequestCreateTemId(
-            input.getRequestCreateTemId().longValue()
-        );
+        // Handle requestCreateTemId with null check
+        if (input.getRequestCreateTemId() != null) {
+            product.setRequestCreateTemId(
+                input.getRequestCreateTemId().longValue()
+            );
+        } else {
+            throw new IllegalArgumentException(
+                "requestCreateTemId cannot be null"
+            );
+        }
+
+        // Handle required fields with null checks
+        if (input.getSapCode() == null || input.getSapCode().isEmpty()) {
+            throw new IllegalArgumentException(
+                "sapCode cannot be null or empty"
+            );
+        }
         product.setSapCode(input.getSapCode());
+
+        if (input.getTemQuantity() == null) {
+            throw new IllegalArgumentException("temQuantity cannot be null");
+        }
         product.setTemQuantity(input.getTemQuantity());
+
+        if (input.getPartNumber() == null || input.getPartNumber().isEmpty()) {
+            throw new IllegalArgumentException(
+                "partNumber cannot be null or empty"
+            );
+        }
         product.setPartNumber(input.getPartNumber());
+
+        if (input.getLot() == null || input.getLot().isEmpty()) {
+            throw new IllegalArgumentException("lot cannot be null or empty");
+        }
         product.setLot(input.getLot());
+
+        if (input.getInitialQuantity() == null) {
+            throw new IllegalArgumentException(
+                "initialQuantity cannot be null"
+            );
+        }
         product.setInitialQuantity(input.getInitialQuantity().longValue());
+
+        if (input.getVendor() == null || input.getVendor().isEmpty()) {
+            throw new IllegalArgumentException(
+                "vendor cannot be null or empty"
+            );
+        }
         product.setVendor(input.getVendor());
+
+        // Handle optional fields
         product.setUserData1(
             input.getUserData1() != null ? input.getUserData1() : ""
         );
@@ -78,17 +147,44 @@ public class ListProductOfRequestService {
         product.setUserData5(
             input.getUserData5() != null ? input.getUserData5() : ""
         );
-        product.setStorageUnit(input.getStorageUnit());
+        product.setStorageUnit(
+            input.getStorageUnit() != null ? input.getStorageUnit() : ""
+        );
         product.setNumberOfPrints(0);
 
-        // Parse date strings to LocalDateTime
+        // Parse date strings to LocalDateTime with validation
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+        if (
+            input.getExpirationDate() == null ||
+            input.getExpirationDate().isEmpty()
+        ) {
+            throw new IllegalArgumentException(
+                "expirationDate cannot be null or empty"
+            );
+        }
         product.setExpirationDate(
             parseDate(input.getExpirationDate(), formatter)
         );
+
+        if (
+            input.getManufacturingDate() == null ||
+            input.getManufacturingDate().isEmpty()
+        ) {
+            throw new IllegalArgumentException(
+                "manufacturingDate cannot be null or empty"
+            );
+        }
         product.setManufacturingDate(
             parseDate(input.getManufacturingDate(), formatter)
         );
+
+        if (
+            input.getArrivalDate() == null || input.getArrivalDate().isEmpty()
+        ) {
+            throw new IllegalArgumentException(
+                "arrivalDate cannot be null or empty"
+            );
+        }
         product.setArrivalDate(parseDate(input.getArrivalDate(), formatter));
     }
 
@@ -106,5 +202,42 @@ public class ListProductOfRequestService {
             );
         }
         return LocalDateTime.now();
+    }
+
+    @Transactional
+    public CreateRequestWithProductsResponse createRequestAndProducts(
+        CreateRequestWithProductsInput input
+    ) {
+        // Calculate total quantity and number of products
+        int numberProduction = input.getProducts().size();
+        long totalQuantity = input
+            .getProducts()
+            .stream()
+            .mapToLong(p -> p.getInitialQuantity().longValue())
+            .sum();
+
+        // Step 1: Create the request first
+        ListRequestCreateTem request = requestService.createRequest(
+            input.getVendor(),
+            input.getUserData5(),
+            input.getCreatedBy(),
+            numberProduction,
+            totalQuantity
+        );
+
+        // Step 2: Create products with the returned request ID
+        List<ListProductOfRequest> savedProducts = createProductsBatch(
+            request.getId().intValue(),
+            input.getProducts()
+        );
+
+        // Step 3: Return response with request ID and products
+        return new CreateRequestWithProductsResponse(
+            request.getId().intValue(),
+            savedProducts,
+            "Successfully created request and " +
+            savedProducts.size() +
+            " products"
+        );
     }
 }

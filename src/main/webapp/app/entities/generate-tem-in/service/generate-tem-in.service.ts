@@ -113,6 +113,35 @@ const CREATE_PRODUCTS_BATCH_MUTATION = gql`
   }
 `;
 
+const CREATE_REQUEST_AND_PRODUCTS_MUTATION = gql`
+  mutation CreateRequestAndProducts($input: CreateRequestWithProductsInput!) {
+    createRequestAndProducts(input: $input) {
+      requestId
+      products {
+        id
+        requestCreateTemId
+        sapCode
+        temQuantity
+        partNumber
+        lot
+        initialQuantity
+        vendor
+        userData1
+        userData2
+        userData3
+        userData4
+        userData5
+        storageUnit
+        expirationDate
+        manufacturingDate
+        arrivalDate
+        numberOfPrints
+      }
+      message
+    }
+  }
+`;
+
 type GetRequestsResult = {
   listRequestCreateTems: ListRequestCreateTem[];
 };
@@ -297,29 +326,161 @@ export class GenerateTemInService {
     );
   }
 
+  createRequestAndProducts(
+    vendor: string,
+    userData5: string,
+    createdBy: string,
+    products: ExcelImportData[],
+  ): Observable<{
+    requestId: number;
+    products: ListProductOfRequest[];
+    message: string;
+  }> {
+    // Convert ExcelImportData to CreateProductInput format with validation
+    const productInputs = products.map((item, index) => {
+      // Validate required fields
+      if (!item.sapCode || item.sapCode.trim() === "") {
+        throw new Error(`Row ${index + 1}: SAP Code is required`);
+      }
+      if (!item.partNumber || item.partNumber.trim() === "") {
+        throw new Error(`Row ${index + 1}: Part Number is required`);
+      }
+      if (!item.lot || item.lot.trim() === "") {
+        throw new Error(`Row ${index + 1}: LOT is required`);
+      }
+      if (!item.vendor || item.vendor.trim() === "") {
+        throw new Error(`Row ${index + 1}: Vendor is required`);
+      }
+      if (!item.temQuantity || item.temQuantity <= 0) {
+        throw new Error(
+          `Row ${index + 1}: Tem Quantity must be greater than 0`,
+        );
+      }
+      if (!item.initialQuantity || item.initialQuantity <= 0) {
+        throw new Error(
+          `Row ${index + 1}: Initial Quantity must be greater than 0`,
+        );
+      }
+      if (!item.expirationDate || item.expirationDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Expiration Date is required`);
+      }
+      if (!item.manufacturingDate || item.manufacturingDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Manufacturing Date is required`);
+      }
+      if (!item.arrivalDate || item.arrivalDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Arrival Date is required`);
+      }
+
+      return {
+        sapCode: item.sapCode.trim(),
+        temQuantity: item.temQuantity,
+        partNumber: item.partNumber.trim(),
+        lot: item.lot.trim(),
+        initialQuantity: item.initialQuantity,
+        vendor: item.vendor.trim(),
+        userData1: item.userData1 ?? "",
+        userData2: item.userData2 ?? "",
+        userData3: item.userData3 ?? "",
+        userData4: item.userData4 ?? "",
+        userData5: item.userData5 ?? "",
+        storageUnit: item.storageUnit ?? "",
+        expirationDate: item.expirationDate.trim(),
+        manufacturingDate: item.manufacturingDate.trim(),
+        arrivalDate: item.arrivalDate.trim(),
+      };
+    });
+
+    const input = {
+      vendor,
+      userData5,
+      createdBy,
+      products: productInputs,
+    };
+
+    return this.apollo
+      .mutate<{
+        createRequestAndProducts: {
+          requestId: number;
+          products: ListProductOfRequest[];
+          message: string;
+        };
+      }>({
+        mutation: CREATE_REQUEST_AND_PRODUCTS_MUTATION,
+        variables: { input },
+      })
+      .pipe(
+        map((result) => {
+          if (!result.data || !result.data.createRequestAndProducts) {
+            throw new Error("No data returned from server");
+          }
+          return result.data.createRequestAndProducts;
+        }),
+      );
+  }
+
   importProductsFromExcel(
     requestId: number,
     excelData: ExcelImportData[],
   ): Observable<ListProductOfRequest[]> {
-    // Convert ExcelImportData to CreateProductInput format
-    const products = excelData.map((item) => ({
-      requestCreateTemId: requestId,
-      sapCode: item.sapCode,
-      temQuantity: item.temQuantity,
-      partNumber: item.partNumber,
-      lot: item.lot,
-      initialQuantity: item.initialQuantity,
-      vendor: item.vendor,
-      userData1: item.userData1 ?? "",
-      userData2: item.userData2 ?? "",
-      userData3: item.userData3 ?? "",
-      userData4: item.userData4 ?? "",
-      userData5: item.userData5 ?? "",
-      storageUnit: item.storageUnit ?? "",
-      expirationDate: item.expirationDate,
-      manufacturingDate: item.manufacturingDate,
-      arrivalDate: item.arrivalDate,
-    }));
+    // Validate input data
+    if (!excelData || excelData.length === 0) {
+      throw new Error("No data to import");
+    }
+
+    // Convert ExcelImportData to CreateProductInput format with validation
+    const products = excelData.map((item, index) => {
+      // Validate required fields
+      if (!item.sapCode || item.sapCode.trim() === "") {
+        throw new Error(`Row ${index + 1}: SAP Code is required`);
+      }
+      if (!item.partNumber || item.partNumber.trim() === "") {
+        throw new Error(`Row ${index + 1}: Part Number is required`);
+      }
+      if (!item.lot || item.lot.trim() === "") {
+        throw new Error(`Row ${index + 1}: LOT is required`);
+      }
+      if (!item.vendor || item.vendor.trim() === "") {
+        throw new Error(`Row ${index + 1}: Vendor is required`);
+      }
+      if (!item.temQuantity || item.temQuantity <= 0) {
+        throw new Error(
+          `Row ${index + 1}: Tem Quantity must be greater than 0`,
+        );
+      }
+      if (!item.initialQuantity || item.initialQuantity <= 0) {
+        throw new Error(
+          `Row ${index + 1}: Initial Quantity must be greater than 0`,
+        );
+      }
+      if (!item.expirationDate || item.expirationDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Expiration Date is required`);
+      }
+      if (!item.manufacturingDate || item.manufacturingDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Manufacturing Date is required`);
+      }
+      if (!item.arrivalDate || item.arrivalDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Arrival Date is required`);
+      }
+
+      return {
+        requestCreateTemId: requestId,
+        sapCode: item.sapCode.trim(),
+        temQuantity: item.temQuantity,
+        partNumber: item.partNumber.trim(),
+        lot: item.lot.trim(),
+        initialQuantity: item.initialQuantity,
+        vendor: item.vendor.trim(),
+        userData1: item.userData1 ?? "",
+        userData2: item.userData2 ?? "",
+        userData3: item.userData3 ?? "",
+        userData4: item.userData4 ?? "",
+        userData5: item.userData5 ?? "",
+        storageUnit: item.storageUnit ?? "",
+        expirationDate: item.expirationDate.trim(),
+        manufacturingDate: item.manufacturingDate.trim(),
+        arrivalDate: item.arrivalDate.trim(),
+      };
+    });
 
     return this.apollo
       .mutate<{ createProductsBatch: ListProductOfRequest[] }>({
@@ -329,7 +490,14 @@ export class GenerateTemInService {
           products: products,
         },
       })
-      .pipe(map((result) => result.data?.createProductsBatch ?? []));
+      .pipe(
+        map((result) => {
+          if (!result.data || !result.data.createProductsBatch) {
+            throw new Error("No data returned from server");
+          }
+          return result.data.createProductsBatch;
+        }),
+      );
   }
 
   updateProduct(
@@ -342,9 +510,6 @@ export class GenerateTemInService {
     );
   }
 
-  /**
-   * Delete a specific product (REST)
-   */
   deleteProduct(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/products/${id}`);
   }

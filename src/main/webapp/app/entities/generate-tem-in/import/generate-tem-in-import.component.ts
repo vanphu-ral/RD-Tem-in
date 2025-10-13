@@ -1,5 +1,7 @@
 // generate-tem-in-import.component.ts
 import { Component, OnInit, ViewChild, AfterViewInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { FormControl } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatPaginator } from "@angular/material/paginator";
@@ -13,7 +15,11 @@ import {
   ExcelImportData,
 } from "../models/list-product-of-request.model";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
-import { ExcelParserService } from "../service/excel-parser.service";
+import {
+  ExcelParserService,
+  GroupedExcelData,
+} from "../service/excel-parser.service";
+import { AlertService } from "app/core/util/alert.service";
 
 export interface VatTuRow {
   stt: number;
@@ -34,8 +40,9 @@ export interface VatTuRow {
   manufacturingDate: string;
   arrivalDate: string;
 }
-// , 'userData1',  'UserData2', 'UserData3', 'UserData4', 'UserData5', 'ExpirationDate', 'ManufacturingDate', 'ngayVe'
+
 type VatTuKeys = keyof VatTuRow;
+type DisplayColumnKeys = VatTuKeys | "ngayVe";
 
 @Component({
   selector: "jhi-generate-tem-in-import",
@@ -67,7 +74,13 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     "ngayVe",
   ];
 
+  // Grouped data support
+  groupedData: GroupedExcelData[] = [];
+  selectedTabIndex = 0;
+  tabLabels: string[] = [];
+
   dataSource = new MatTableDataSource<VatTuRow>([]);
+  groupDataSources: Map<number, MatTableDataSource<VatTuRow>> = new Map();
   isLoading = false;
   importProgress = 0;
   selectedFile: File | null = null;
@@ -84,16 +97,20 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     private generateTemInService: GenerateTemInService,
     private excelParserService: ExcelParserService,
     private dialog: MatDialog,
+    private alertService: AlertService,
   ) {}
 
-  fc(k: VatTuKeys): FormControl<string | null> {
-    if (!this.filters[k]) {
-      this.filters[k] = new FormControl<string | null>("");
-      this.filters[k]!.valueChanges.subscribe(() => {
+  fc(k: DisplayColumnKeys): FormControl<string | null> {
+    // Map 'ngayVe' display column to 'arrivalDate' data property
+    const actualKey = (k === "ngayVe" ? "arrivalDate" : k) as VatTuKeys;
+
+    if (!this.filters[actualKey]) {
+      this.filters[actualKey] = new FormControl<string | null>("");
+      this.filters[actualKey]!.valueChanges.subscribe(() => {
         this.applyFilter();
       });
     }
-    return this.filters[k]!;
+    return this.filters[actualKey]!;
   }
 
   ngOnInit(): void {
@@ -156,7 +173,12 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     }
 
     if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-      alert("Please select a valid Excel file (.xlsx or .xls)");
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Please select a valid Excel file (.xlsx or .xls)",
+        timeout: 5000,
+        toast: true,
+      });
       this.selectedFile = null;
       return;
     }
@@ -168,109 +190,16 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     return;
   }
 
-  import(): void {
-    if (!this.selectedFile) {
-      alert("Vui lòng import file excel.");
-      return;
-    }
-
-    this.parseExcelFile(this.selectedFile);
+  onTabChange(event: any): void {
+    this.selectedTabIndex = event;
+    this.updateDataSourceForSelectedTab();
   }
 
-  save(): void {
-    if (this.dataSource.data.length === 0) {
-      alert("Không có dữ liệu");
-      return;
-    }
-
-    const requestId = 1;
-    this.isLoading = true;
-    this.importProgress = 0;
-
-    // Convert VatTuRow data back to ExcelImportData format
-    const importData: ExcelImportData[] = this.dataSource.data.map((row) => ({
-      sapCode: row.sapCode,
-      tenSP: row.tenSp,
-      partNumber: row.partNumber,
-      lot: String(row.lot),
-      temQuantity: row.soTem,
-      initialQuantity: row.initialQuantity,
-      vendor: row.vendor,
-      userData1: row.userData1,
-      userData2: row.userData2,
-      userData3: row.userData3,
-      userData4: row.userData4,
-      userData5: row.userData5,
-      storageUnit: row.storageUnit,
-      expirationDate: new Date().toISOString().split("T")[0],
-      manufacturingDate: new Date().toISOString().split("T")[0],
-      arrivalDate: new Date().toISOString().split("T")[0],
-    }));
-
-    this.generateTemInService
-      .importProductsFromExcel(requestId, importData)
-      .subscribe({
-        next: (result) => {
-          console.log("Save successful:", result);
-          alert(`Lưu thành công thông tin tem của ${result.length} sản phẩm.`);
-          this.isLoading = false;
-          this.importProgress = 100;
-        },
-        error: (error) => {
-          console.error("Save error:", error);
-          alert("Error saving data: " + error.message);
-          this.isLoading = false;
-          this.importProgress = 0;
-        },
-      });
-  }
-
-  genQR(): void {
-    console.log("Sang trang tạo mã chi tiết.");
-  }
-
-  editRow(row: VatTuRow): void {
-    const dialogRef = this.dialog.open(GenerateTemInImportEditDialogComponent, {
-      width: "600px",
-      data: { ...row },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        const index = this.dataSource.data.findIndex((r) => r.stt === row.stt);
-        if (index > -1) {
-          this.dataSource.data[index] = {
-            ...this.dataSource.data[index],
-            ...result,
-          };
-          this.dataSource._updateChangeSubscription();
-        }
-      }
-    });
-  }
-  deleteRow(row: VatTuRow): void {
-    const index = this.dataSource.data.findIndex((r) => r.stt === row.stt);
-    if (index > -1) {
-      this.dataSource.data.splice(index, 1);
-      // Update STT for remaining rows
-      this.dataSource.data.forEach((r, i) => (r.stt = i + 1));
-      this.dataSource._updateChangeSubscription();
-    }
-  }
-
-  private parseExcelFile(file: File): void {
-    this.isLoading = true;
-
-    this.excelParserService
-      .parseExcelFile(file)
-      .then((parsedData: ExcelImportData[]) => {
-        if (parsedData.length === 0) {
-          alert("Định dạng file không chính xác.");
-          this.isLoading = false;
-          return;
-        }
-        // , 'userData1',  'UserData2', 'UserData3', 'UserData4', 'UserData5', 'ExpirationDate', 'ManufacturingDate', 'ngayVe'
-        const rows: VatTuRow[] = parsedData.map(
+  getDataSourceForGroup(groupIndex: number): MatTableDataSource<VatTuRow> {
+    if (!this.groupDataSources.has(groupIndex)) {
+      if (this.groupedData.length > groupIndex) {
+        const group = this.groupedData[groupIndex];
+        const rows: VatTuRow[] = group.products.map(
           (item: ExcelImportData, index: number) => ({
             stt: index + 1,
             sapCode: item.sapCode,
@@ -291,17 +220,338 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
             arrivalDate: item.arrivalDate,
           }),
         );
+        this.groupDataSources.set(
+          groupIndex,
+          new MatTableDataSource<VatTuRow>(rows),
+        );
+      }
+    }
+    return this.groupDataSources.get(groupIndex)!;
+  }
 
-        this.dataSource.data = rows;
+  import(): void {
+    if (!this.selectedFile) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Vui lòng import file excel.",
+        timeout: 5000,
+        toast: true,
+      });
+      return;
+    }
+
+    this.parseExcelFile(this.selectedFile);
+  }
+
+  save(): void {
+    if (this.groupedData.length === 0) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Không có dữ liệu để lưu",
+        timeout: 5000,
+        toast: true,
+      });
+      return;
+    }
+
+    this.isLoading = true;
+    this.importProgress = 0;
+
+    // Save each group as a separate request
+    const savePromises = this.groupedData.map((group, index) => {
+      const currentIndex = index; // Capture index for progress tracking
+      return this.generateTemInService
+        .createRequestAndProducts(
+          group.vendor,
+          group.poCode,
+          "system", // You might want to get this from user context
+          group.products,
+        )
+        .toPromise()
+        .then((result) => {
+          // Update progress
+          this.importProgress = Math.round(
+            ((currentIndex + 1) / this.groupedData.length) * 100,
+          );
+          return result;
+        })
+        .catch((error) => {
+          console.error(`Error saving group ${currentIndex + 1}:`, error);
+          throw error;
+        });
+    });
+
+    // Execute all save operations
+    Promise.all(savePromises)
+      .then((results) => {
+        console.log("All groups saved successfully:", results);
+        const totalProducts = results.reduce(
+          (sum, result) => sum + (result?.products?.length ?? 0),
+          0,
+        );
+        this.alertService.addAlert({
+          type: "success",
+          message: `Lưu thành công ${this.groupedData.length} yêu cầu với tổng cộng ${totalProducts} sản phẩm.`,
+          timeout: 5000,
+          toast: true,
+        });
+        this.isLoading = false;
+        this.importProgress = 100;
+      })
+      .catch((error) => {
+        console.error("Save error:", error);
+        this.alertService.addAlert({
+          type: "danger",
+          message: `Lỗi khi lưu dữ liệu: ${error.message}`,
+          timeout: 5000,
+          toast: true,
+        });
+        this.isLoading = false;
+        this.importProgress = 0;
+      });
+  }
+
+  saveGroup(groupIndex: number): void {
+    if (this.groupedData.length === 0 || !this.groupedData[groupIndex]) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Không có dữ liệu để lưu",
+        timeout: 5000,
+        toast: true,
+      });
+      return;
+    }
+
+    const group = this.groupedData[groupIndex];
+    this.isLoading = true;
+
+    this.generateTemInService
+      .createRequestAndProducts(
+        group.vendor,
+        group.poCode,
+        "system",
+        group.products,
+      )
+      .toPromise()
+      .then((result) => {
+        console.log(`Group ${groupIndex + 1} saved successfully:`, result);
+        const totalProducts = result?.products?.length ?? 0;
+        this.alertService.addAlert({
+          type: "success",
+          message: `Lưu thành công nhóm ${groupIndex + 1} (${group.poCode} - ${group.vendor}) với ${totalProducts} sản phẩm.`,
+          timeout: 5000,
+          toast: true,
+        });
+        this.isLoading = false;
+      })
+      .catch((error) => {
+        console.error(`Error saving group ${groupIndex + 1}:`, error);
+        this.alertService.addAlert({
+          type: "danger",
+          message: `Lỗi khi lưu nhóm ${groupIndex + 1}: ${error.message}`,
+          timeout: 5000,
+          toast: true,
+        });
+        this.isLoading = false;
+      });
+  }
+
+  genQR(): void {
+    console.log("Sang trang tạo mã chi tiết.");
+  }
+
+  genQRForGroup(groupIndex: number): void {
+    if (this.groupedData.length === 0 || !this.groupedData[groupIndex]) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Không có dữ liệu để tạo mã QR",
+        timeout: 5000,
+        toast: true,
+      });
+      return;
+    }
+
+    const group = this.groupedData[groupIndex];
+    console.log(
+      `Tạo mã QR cho nhóm ${groupIndex + 1}: PO ${group.poCode} - Vendor ${group.vendor}, Products: ${group.products.length}`,
+    );
+    // TODO: Implement QR generation for specific group
+    this.alertService.addAlert({
+      type: "info",
+      message: `Tạo mã QR cho nhóm ${groupIndex + 1} (${group.poCode} - ${group.vendor}) - Chức năng đang được phát triển.`,
+      timeout: 5000,
+      toast: true,
+    });
+  }
+
+  // Debug method to check data loading
+  checkDataLoading(): void {
+    console.log("=== DATA LOADING DEBUG ===");
+    console.log(`Grouped data length: ${this.groupedData.length}`);
+    console.log(`Group data sources size: ${this.groupDataSources.size}`);
+
+    this.groupedData.forEach((group, index) => {
+      console.log(
+        `Group ${index}: PO ${group.poCode}, Vendor: ${group.vendor}, Products: ${group.products.length}`,
+      );
+      const dataSource = this.getDataSourceForGroup(index);
+      console.log(
+        `Data source for group ${index}: ${dataSource?.data?.length || 0} rows`,
+      );
+    });
+  }
+
+  editRow(row: VatTuRow, groupIndex?: number): void {
+    const dialogRef = this.dialog.open(GenerateTemInImportEditDialogComponent, {
+      width: "600px",
+      data: { ...row },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        if (groupIndex !== undefined) {
+          // Edit row in specific group
+          const dataSource = this.getDataSourceForGroup(groupIndex);
+          const index = dataSource.data.findIndex((r) => r.stt === row.stt);
+          if (index > -1) {
+            dataSource.data[index] = {
+              ...dataSource.data[index],
+              ...result,
+            };
+            dataSource._updateChangeSubscription();
+          }
+        } else {
+          // Fallback to old method for backward compatibility
+          const index = this.dataSource.data.findIndex(
+            (r) => r.stt === row.stt,
+          );
+          if (index > -1) {
+            this.dataSource.data[index] = {
+              ...this.dataSource.data[index],
+              ...result,
+            };
+            this.dataSource._updateChangeSubscription();
+          }
+        }
+      }
+    });
+  }
+
+  deleteRow(row: VatTuRow, groupIndex?: number): void {
+    if (groupIndex !== undefined) {
+      // Delete row from specific group
+      const dataSource = this.getDataSourceForGroup(groupIndex);
+      const index = dataSource.data.findIndex((r) => r.stt === row.stt);
+      if (index > -1) {
+        dataSource.data.splice(index, 1);
+        // Update STT for remaining rows
+        dataSource.data.forEach((r, i) => (r.stt = i + 1));
+        dataSource._updateChangeSubscription();
+      }
+    } else {
+      // Fallback to old method for backward compatibility
+      const index = this.dataSource.data.findIndex((r) => r.stt === row.stt);
+      if (index > -1) {
+        this.dataSource.data.splice(index, 1);
+        // Update STT for remaining rows
+        this.dataSource.data.forEach((r, i) => (r.stt = i + 1));
+        this.dataSource._updateChangeSubscription();
+      }
+    }
+  }
+
+  private updateDataSourceForSelectedTab(): void {
+    if (this.selectedTabIndex < this.groupedData.length) {
+      const selectedGroup = this.groupedData[this.selectedTabIndex];
+      const rows: VatTuRow[] = selectedGroup.products.map(
+        (item: ExcelImportData, index: number) => ({
+          stt: index + 1,
+          sapCode: item.sapCode,
+          tenSp: item.partNumber,
+          partNumber: item.partNumber,
+          lot: item.lot,
+          storageUnit: item.storageUnit ?? "",
+          soTem: item.temQuantity,
+          initialQuantity: item.initialQuantity,
+          vendor: item.vendor,
+          userData1: item.userData1,
+          userData2: item.userData2,
+          userData3: item.userData3,
+          userData4: item.userData4,
+          userData5: item.userData5,
+          expirationDate: item.expirationDate,
+          manufacturingDate: item.manufacturingDate,
+          arrivalDate: item.arrivalDate,
+        }),
+      );
+      this.dataSource.data = rows;
+    }
+  }
+
+  private parseExcelFile(file: File): void {
+    this.isLoading = true;
+
+    this.excelParserService
+      .parseExcelFile(file)
+      .then((parsedData: ExcelImportData[]) => {
+        if (parsedData.length === 0) {
+          this.alertService.addAlert({
+            type: "danger",
+            message: "Định dạng file không chính xác.",
+            timeout: 5000,
+            toast: true,
+          });
+          this.isLoading = false;
+          return;
+        }
+
+        // Group data by PO Code and Vendor
+        this.groupedData =
+          this.excelParserService.groupDataByPOAndVendor(parsedData);
+
+        if (this.groupedData.length === 0) {
+          this.alertService.addAlert({
+            type: "warning",
+            message: "Không có dữ liệu hợp lệ để nhóm.",
+            timeout: 5000,
+            toast: true,
+          });
+          this.isLoading = false;
+          return;
+        }
+
+        // Create tab labels for each group
+        this.tabLabels = this.groupedData.map(
+          (group) =>
+            `${group.poCode} - ${group.vendor} (${group.products.length} sản phẩm)`,
+        );
+
+        // Create data sources for all groups
+        this.groupDataSources.clear();
+        this.groupedData.forEach((_, index) => {
+          this.getDataSourceForGroup(index);
+        });
+
+        // Update data source with first group for backward compatibility
+        this.updateDataSourceForSelectedTab();
         this.isLoading = false;
 
         console.log(
-          `Successfully parsed ${parsedData.length} rows from Excel file`,
+          `Successfully parsed ${parsedData.length} rows into ${this.groupedData.length} groups`,
+        );
+
+        console.log(
+          `Successfully parsed and grouped ${parsedData.length} rows into ${this.groupedData.length} groups`,
         );
       })
       .catch((error: Error) => {
         console.error("Lỗi:", error);
-        alert("Lỗi:" + error.message);
+        this.alertService.addAlert({
+          type: "danger",
+          message: `Lỗi: ${error.message}`,
+          timeout: 5000,
+          toast: true,
+        });
         this.isLoading = false;
       });
   }

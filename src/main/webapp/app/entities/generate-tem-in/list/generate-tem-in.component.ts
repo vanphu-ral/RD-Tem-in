@@ -15,10 +15,14 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
+import { MatDialog } from "@angular/material/dialog";
 
 // Models and Services
 import { ListRequestCreateTem } from "../models/list-request-create-tem.model";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
+import { DialogContentExampleDialogComponent } from "./confirm-dialog/confirm-dialog.component";
+import { PreviewOrderDialogComponent } from "./preview-order-dialog/preview-order-dialog.component";
+import { AlertService } from "app/core/util/alert.service";
 
 // Interfaces
 interface TemMaterialItem {
@@ -79,7 +83,11 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private generateTemInService: GenerateTemInService) {}
+  constructor(
+    private generateTemInService: GenerateTemInService,
+    private dialog: MatDialog,
+    private alertService: AlertService,
+  ) {}
 
   // ================== LIFECYCLE ==================
   ngOnInit(): void {
@@ -177,15 +185,61 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   }
 
   onDelete(item: TemMaterialItem): void {
-    console.log("Delete item:", item);
+    const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
+      width: "400px",
+      data: {
+        title: "Xác nhận xóa",
+        message: `Bạn có chắc chắn muốn xóa yêu cầu tạo tem này?\n\nPO Code: ${item.userData5}\nVendor: ${item.vendor}\nSố sản phẩm: ${item.numberProduction}`,
+        confirmText: "Xóa",
+        cancelText: "Hủy",
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result === true) {
+        this.performDelete(item);
+      }
+    });
   }
 
   onView(item: TemMaterialItem): void {
-    console.log("View item:", item);
+    const dialogRef = this.dialog.open(PreviewOrderDialogComponent, {
+      width: "1000px",
+      maxWidth: "90vw",
+      data: {
+        request: item,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      // Handle any actions after dialog closes if needed
+      console.log("Preview dialog closed");
+    });
   }
 
   onPrint(item: TemMaterialItem): void {
     console.log("Print item:", item);
+  }
+
+  private performDelete(item: TemMaterialItem): void {
+    this.isLoading = true;
+    this.generateTemInService.deleteRequest(item.id).subscribe({
+      next: () => {
+        console.log(`Successfully deleted request ${item.id}`);
+        // Reload the data after successful deletion
+        this.loadRequests();
+      },
+      error: (error) => {
+        console.error("Error deleting request:", error);
+        this.isLoading = false;
+        this.alertService.addAlert({
+          type: "danger",
+          message: `Lỗi khi xóa yêu cầu: ${error.message || "Không thể xóa yêu cầu này"}`,
+          timeout: 5000,
+          toast: true,
+        });
+      },
+    });
   }
 
   private loadRequests(): void {

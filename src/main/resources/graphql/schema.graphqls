@@ -9,6 +9,7 @@ type Mutation {
     generateTem(storageUnit: String!): GenerateTemResponse!
     createProduct(input: CreateProductInput!): ListProductOfRequest!
     createProductsBatch(requestId: Int!, products: [CreateProductInput!]!): [ListProductOfRequest!]!
+    createRequestAndProducts(input: CreateRequestWithProductsInput!): CreateRequestWithProductsResponse!
 }
 
 input CreateProductInput {
@@ -28,6 +29,19 @@ input CreateProductInput {
     expirationDate: String!
     manufacturingDate: String!
     arrivalDate: String!
+}
+
+input CreateRequestWithProductsInput {
+    vendor: String!
+    userData5: String!
+    createdBy: String
+    products: [CreateProductInput!]!
+}
+
+type CreateRequestWithProductsResponse {
+    requestId: Int!
+    products: [ListProductOfRequest!]!
+    message: String
 }
 
 # THÊM TYPE MỚI
@@ -53,6 +67,7 @@ type ListProductOfRequest {
     requestCreateTemId: Int
     sapCode: String
     temQuantity: Int
+    productName: String
     partNumber: String
     lot: String
     initialQuantity: Int

@@ -80,6 +80,12 @@
   border: 1px dashed var(--border);
   background: #fff;
   color: #374151;
+  transition: all 0.2s ease;
+}
+
+.file-label:hover {
+  border-color: var(--brand);
+  background: rgba(79, 70, 229, 0.02);
 }
 
 .file-label mat-icon {
@@ -87,11 +93,51 @@
   line-height: 18px;
 }
 
+/* ========= Selected file name display ========= */
+.selected-file-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  border-radius: 6px;
+  color: var(--brand);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.selected-file-name .file-icon {
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.selected-file-name .file-name-text {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ========= Tiêu đề danh sách ========= */
 h2 {
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 12px;
+}
+
+/* ========= All tables container ========= */
+.all-tables-container {
+  margin-top: 20px;
+}
+
+.table-section {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
 }
 
 /* ========= Phần PO ========= */
@@ -158,11 +204,35 @@ h2 {
 .table-container .mat-mdc-header-row {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
   background: var(--table-header-bg);
   color: var(--table-header-fg);
   font-weight: 600;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.table-container .mat-mdc-footer-row {
+  bottom: 0;
+  z-index: 2;
+  background: #f8f9fa;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Filter input styling */
+.table-filter {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 12px;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.table-filter:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 }
 
 .table-container .mat-mdc-header-cell:first-child {
@@ -211,7 +281,6 @@ h2 {
   .mat-mdc-table
   .mat-mdc-header-row
   .mat-mdc-header-cell:first-child {
-  position: sticky;
   left: 0;
   z-index: 3;
   background: #fff;
@@ -263,8 +332,66 @@ h2 {
   vertical-align: middle !important;
 }
 
-@media (max-width: 576px) {
+/* ========= Responsive design ========= */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px 10px;
+  }
+
   .header h1 {
     font-size: 20px;
+  }
+
+  .po-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .po-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .kho-select {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .table-section {
+    padding: 15px;
+  }
+
+  .selected-file-name .file-name-text {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 576px) {
+  .header h1 {
+    font-size: 18px;
+  }
+
+  .import-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .file-label {
+    justify-content: center;
+  }
+
+  .selected-file-name {
+    justify-content: center;
+  }
+
+  .po-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .table-container {
+    height: 400px;
   }
 }

@@ -25,6 +25,7 @@ import {
 import JsBarcode from "jsbarcode";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
 import { ListRequestCreateTem } from "../models/list-request-create-tem.model";
+import { AlertService } from "app/core/util/alert.service";
 export interface MaterialItem {
   stt: number; // Số thứ tự hiển thị
   id: number;
@@ -180,6 +181,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   constructor(
     private http: HttpClient,
     private generateTemInService: GenerateTemInService,
+    private alertService: AlertService,
   ) {}
   ngAfterViewChecked(): void {
     if (this.printLabels?.length > 0) {
@@ -227,7 +229,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
   onGenerateTemForRequest(): void {
     if (!this.selectedStorageUnit) {
-      alert("Vui lòng chọn kho!");
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Vui lòng chọn kho!",
+        timeout: 5000,
+        toast: true,
+      });
       return;
     }
 
@@ -245,16 +252,31 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
             console.log("Response:", response);
 
             if (response.success) {
-              alert(`${response.message}`);
+              this.alertService.addAlert({
+                type: "success",
+                message: response.message,
+                timeout: 5000,
+                toast: true,
+              });
             } else {
-              alert(` ${response.message}`);
+              this.alertService.addAlert({
+                type: "warning",
+                message: response.message,
+                timeout: 5000,
+                toast: true,
+              });
             }
 
             this.isGenerating = false;
           },
           error: (err) => {
             console.error("Lỗi:", err);
-            alert("Có lỗi xảy ra khi tạo tem!");
+            this.alertService.addAlert({
+              type: "danger",
+              message: "Có lỗi xảy ra khi tạo tem!",
+              timeout: 5000,
+              toast: true,
+            });
             this.isGenerating = false;
           },
         });
@@ -362,7 +384,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       },
       error: (err) => {
         console.error("Error loading tem details:", err);
-        alert("Không thể tải danh sách tem!");
+        this.alertService.addAlert({
+          type: "danger",
+          message: "Không thể tải danh sách tem!",
+          timeout: 5000,
+          toast: true,
+        });
         this.isLoadingTemDetails = false;
       },
     });
@@ -472,7 +499,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     console.log("🖨️ In tem cho product:", this.selectedProductItem?.partNumber);
 
     if (!this.temDetailList || this.temDetailList.length === 0) {
-      alert("Chưa có tem nào cho sản phẩm này!");
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Chưa có tem nào cho sản phẩm này!",
+        timeout: 5000,
+        toast: true,
+      });
       return;
     }
     const matchedTem = this.temDetailList.find(
@@ -480,7 +512,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     );
 
     if (!matchedTem) {
-      alert("Không tìm thấy tem phù hợp để in!");
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Không tìm thấy tem phù hợp để in!",
+        timeout: 5000,
+        toast: true,
+      });
       return;
     }
 
@@ -502,7 +539,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         console.log("Tổng số tem để in:", this.printLabels.length);
 
         if (this.printLabels.length === 0) {
-          alert("Chưa có tem nào được tạo!");
+          this.alertService.addAlert({
+            type: "warning",
+            message: "Chưa có tem nào được tạo!",
+            timeout: 5000,
+            toast: true,
+          });
           return;
         }
 
@@ -511,7 +553,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       },
       error: (err) => {
         console.error("Lỗi khi load tem:", err);
-        alert("Không thể tải danh sách tem!");
+        this.alertService.addAlert({
+          type: "danger",
+          message: "Không thể tải danh sách tem!",
+          timeout: 5000,
+          toast: true,
+        });
       },
     });
   }
