@@ -1,134 +1,363 @@
-<div>
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Import thông tin vật tư</h2>
-  </div>
-  <div class="row align-items-center import-layout">
-    <!-- Khung Drop File -->
-    <div class="col-md-8">
-      <div
-        class="drop-zone"
-        (drop)="onFileDrop($event)"
-        (dragover)="onDragOver($event)"
-      >
-        <div class="text-muted mb-2">Kéo thả file vào đây</div>
-        <div class="text-muted">
-          hoặc <a (click)="selectFile()">chọn file import</a>
-        </div>
-        <div class="mt-2 text-secondary small">
-          Cho phép định dạng file <b>.xls .xlsx</b> <a href="#">Tải file mẫu</a>
-        </div>
-        <div *ngIf="selectedFile" class="selected-file">
-          📄 {{ selectedFile.name }}
-        </div>
-      </div>
-      <input type="file" #fileInput hidden (change)="onFileSelected($event)" />
-    </div>
+<div class="container">
+  <!-- Header -->
+  <div class="header" style="gap: 20px">
+    <h1>Import thông tin vật tư</h1>
 
-    <!-- Nút Import -->
-    <div class="col-md-4 text-center">
-      <button
-        class="btn btn-success btn-lg btn-import"
-        [disabled]="!selectedFile"
-        (click)="onImport()"
-      >
-        <fa-icon [icon]="faArrowUp"></fa-icon>
-        <span class="ms-2">Import</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="mb-3 mt-4" style="width: 97%">
-    <div
-      class="d-flex flex-wrap align-items-center justify-content-between gap-3"
+    <!-- Quay lại trang danh sách -->
+    <button
+      mat-raised-button
+      [routerLink]="['../']"
+      aria-label="Quay lại trang danh sách"
+      class="back-button"
+      style="
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+      "
     >
-      <h5 class="mb-0">
-        <strong>Danh sách kết quả Import</strong> – PO:
-        <span class="text-primary fw-bold">12345</span>
-      </h5>
+      <mat-icon aria-hidden="true" class="back-icon"
+        >keyboard_backspace</mat-icon
+      >
+    </button>
+  </div>
 
-      <div class="d-flex align-items-center gap-3 flex-wrap">
-        <!-- Input chọn kho chứa -->
-        <div class="form-group mb-0">
-          <label for="storageUnit" class="form-label me-2 mb-0"
-            >Chọn kho chứa:</label
-          >
-          <select
-            id="storageUnit"
-            class="form-select form-select-sm"
-            [(ngModel)]="selectedStorageUnit"
-          >
-            <option value="" disabled selected>Kho chứa</option>
-            <option *ngFor="let unit of storageUnits" [value]="unit">
-              {{ unit }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Nút Lưu -->
+  <!-- Phần chọn file -->
+  <div class="import-section">
+    <div class="import-actions" style="padding-bottom: 10px">
+      <label
+        class="file-input-wrapper"
+        for="fileImport"
+        title="Chọn tệp import"
+      >
+        <input id="fileImport" type="file" (change)="onFileChange($event)" />
+        <span class="file-label">
+          <mat-icon aria-hidden="true">file_upload</mat-icon>
+          Chọn tệp
+        </span>
+      </label>
+    </div>
+    <div style="display: flex; justify-content: space-between">
+      <div style="display: flex; gap: 20px">
+        <p class="import-instructions">
+          Chọn file import. Hỗ trợ file .xlsx | .xlsm |
+        </p>
+        <p class="import-instructions">Tải template</p>
+      </div>
+      <div style="display: flex; justify-content: center; align-items: center">
         <button
-          class="btn btn-outline-primary btn-sm"
-          (click)="onSaveStorageUnit()"
+          mat-raised-button
+          color="primary"
+          (click)="import()"
+          [disabled]="!selectedFile"
+          aria-label="Thực hiện import"
         >
-          <fa-icon [icon]="faSave"></fa-icon>
-          <span class="ms-1">Lưu</span>
-        </button>
-
-        <!-- Nút Tạo thông tin chi tiết -->
-        <button class="btn btn-success btn-sm" (click)="onCreateDetail()">
-          <fa-icon [icon]="faPlusCircle"></fa-icon>
-          <span class="ms-1">Tạo thông tin chi tiết</span>
+          <mat-icon
+            style="display: flex; justify-content: center; align-items: center"
+            aria-hidden="true"
+            >playlist_add</mat-icon
+          >
+          Import
         </button>
       </div>
     </div>
   </div>
 
-  <div class="table-responsive">
-    <table class="table table-bordered table-hover table-striped align-middle">
-      <thead class="table-dark text-center">
-        <tr>
-          <th>STT</th>
-          <th>Thao tác</th>
-          <th>SAPCode</th>
-          <th>Tên SP</th>
-          <th>PartNumber</th>
-          <th>LOT</th>
-          <th>StorageUnit</th>
-          <th>Số TEM</th>
-          <th>InitialQuantity</th>
-          <th>Vendor</th>
-          <th>UserCreate</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let item of importData; let i = index">
-          <td class="text-center">{{ i + 1 }}</td>
-          <td class="text-center">
-            <button
-              class="btn btn-sm"
-              style="background-color: #ffc107; color: black"
-              title="Sửa"
-            >
-              <fa-icon [icon]="faEdit"></fa-icon>
-            </button>
-            <button
-              class="btn btn-sm"
-              style="background-color: #dc3545; color: white"
-              title="Xoá"
-            >
-              <fa-icon [icon]="faTrash"></fa-icon>
-            </button>
+  <div class="content-after-import">
+    <!-- Title of list -->
+    <h2>Danh sách kết quả Import</h2>
+
+    <div class="po-header">
+      <h3>
+        Danh sách vật tư của PO:
+        <span class="text-primary fw-bold">{{ poCode }}</span>
+      </h3>
+      <div class="po-actions" style="gap: 20px">
+        <mat-form-field appearance="outline" class="kho-select">
+          <mat-label>Chọn Kho chứa</mat-label>
+          <mat-select [formControl]="khoControl">
+            <mat-option value="option1">Kho 1</mat-option>
+            <mat-option value="option2">Kho 2</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="save()"
+          aria-label="Lưu"
+        >
+          <mat-icon aria-hidden="true">save</mat-icon>
+          Lưu
+        </button>
+        <button mat-stroked-button (click)="genQR()" aria-label="Tạo mã QR">
+          <mat-icon aria-hidden="true">qr_code_2</mat-icon>
+          Tạo mã QR
+        </button>
+      </div>
+    </div>
+
+    <!-- Bảng -->
+    <div class="table-container mat-elevation-z2">
+      <table mat-table [dataSource]="dataSource" matSort multiTemplateDataRows>
+        <!-- STT -->
+        <ng-container matColumnDef="stt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>STT</th>
+          <td mat-cell *matCellDef="let row">{{ row.stt }}</td>
+          <td mat-footer-cell *matFooterCellDef></td>
+        </ng-container>
+
+        <!-- Actions -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="text-center">
+            Thao tác
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-center">
+            <div class="action-buttons">
+              <button
+                mat-icon-button
+                color="primary"
+                (click)="editRow(row)"
+                aria-label="Sửa dòng"
+                class="action-btn edit-btn"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="deleteRow(row)"
+                aria-label="Xoá dòng"
+                class="action-btn delete-btn"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
           </td>
-          <td>{{ item.sapCode }}</td>
-          <td>{{ item.productName }}</td>
-          <td>{{ item.partNumber }}</td>
-          <td>{{ item.lot }}</td>
-          <td>{{ item.storageUnit }}</td>
-          <td>{{ item.temNumber }}</td>
-          <td>{{ item.initialQuantity }}</td>
-          <td>{{ item.vendor }}</td>
-          <td>{{ item.userCreate }}</td>
-        </tr>
-      </tbody>
-    </table>
+          <td mat-footer-cell *matFooterCellDef></td>
+        </ng-container>
+
+        <!-- SAPCode -->
+        <ng-container matColumnDef="sapCode">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>SAPCode</th>
+          <td mat-cell *matCellDef="let row">{{ row.sapCode }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('sapCode')"
+              placeholder="Lọc SAPCode"
+            />
+          </td>
+        </ng-container>
+
+        <!-- Tên SP -->
+        <ng-container matColumnDef="tenSp">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Tên SP</th>
+          <td mat-cell *matCellDef="let row">{{ row.tenSp }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('tenSp')"
+              placeholder="Lọc Tên SP"
+            />
+          </td>
+        </ng-container>
+
+        <!-- PartNumber -->
+        <ng-container matColumnDef="partNumber">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>PartNumber</th>
+          <td mat-cell *matCellDef="let row">{{ row.partNumber }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('partNumber')"
+              placeholder="Lọc PartNumber"
+            />
+          </td>
+        </ng-container>
+
+        <!-- LOT -->
+        <ng-container matColumnDef="lot">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>LOT</th>
+          <td mat-cell *matCellDef="let row">{{ row.lot }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('lot')"
+              placeholder="Lọc LOT"
+            />
+          </td>
+        </ng-container>
+
+        <!-- StorageUnit -->
+        <ng-container matColumnDef="storageUnit">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>StorageUnit</th>
+          <td mat-cell *matCellDef="let row">{{ row.storageUnit }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('storageUnit')"
+              placeholder="Lọc StorageUnit"
+            />
+          </td>
+        </ng-container>
+
+        <!-- Số TEM -->
+        <ng-container matColumnDef="soTem">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            class="text-end"
+          >
+            Số TEM
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-end numeric">
+            {{ row.soTem }}
+          </td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter text-end"
+              [formControl]="fc('soTem')"
+              placeholder="Lọc Số TEM"
+            />
+          </td>
+        </ng-container>
+
+        <!-- InitialQuantity -->
+        <ng-container matColumnDef="initialQuantity">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            class="text-end"
+          >
+            InitialQuantity
+          </th>
+          <td mat-cell *matCellDef="let row" class="text-end numeric">
+            {{ row.initialQuantity }}
+          </td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter text-end"
+              [formControl]="fc('initialQuantity')"
+              placeholder="Lọc InitialQuantity"
+            />
+          </td>
+        </ng-container>
+
+        <!-- Vendor -->
+        <ng-container matColumnDef="vendor">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Vendor</th>
+          <td mat-cell *matCellDef="let row">{{ row.vendor }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('vendor')"
+              placeholder="Lọc Vendor"
+            />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="userData1">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>UserData1</th>
+          <td mat-cell *matCellDef="let row">{{ row.userData1 }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('userData1')"
+              placeholder="Lọc UserData1"
+            />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="userData2">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>UserData2</th>
+          <td mat-cell *matCellDef="let row">{{ row.userData1 }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('userData1')"
+              placeholder="Lọc UserData1"
+            />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="userData3">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>UserData3</th>
+          <td mat-cell *matCellDef="let row">{{ row.userData1 }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('userData1')"
+              placeholder="Lọc UserData1"
+            />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="userData4">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>UserData4</th>
+          <td mat-cell *matCellDef="let row">{{ row.userData1 }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('userData1')"
+              placeholder="Lọc UserData1"
+            />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="userData5">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>UserData5</th>
+          <td mat-cell *matCellDef="let row">{{ row.userData1 }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('userData1')"
+              placeholder="Lọc UserData1"
+            />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="expirationDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            expirationDate
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.userData1 }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('userData1')"
+              placeholder="Lọc UserData1"
+            />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="manufacturingDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            manufacturingDate
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.userData1 }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('userData1')"
+              placeholder="Lọc UserData1"
+            />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="ngayVe">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>ngayVe</th>
+          <td mat-cell *matCellDef="let row">{{ row.userData1 }}</td>
+          <td mat-footer-cell *matFooterCellDef>
+            <input
+              class="table-filter"
+              [formControl]="fc('userData1')"
+              placeholder="Lọc UserData1"
+            />
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      <mat-paginator
+        [pageSizeOptions]="[5, 10, 20]"
+        [pageSize]="10"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
   </div>
 </div>

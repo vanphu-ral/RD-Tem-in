@@ -1,93 +1,270 @@
-.table th,
-.table td {
-  vertical-align: middle;
-  padding: 0.6rem;
+/* generate-tem-in-import.component.scss */
+/* ========= Theme tokens ========= */
+:root {
+  --bg-surface: #f8f9fa;
+  --text-primary: #1f2937;
+  --brand: #4f46e5;
+  --brand-hover: #4338ca;
+
+  --border: #e5e7eb;
+  --table-header-bg: rgb(49, 110, 241);
+  --table-header-fg: #fff;
+  --table-row-hover: rgba(49, 110, 241, 0.06);
 }
 
-.table {
-  width: 97%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
+/* ========= Layout chung ========= */
+.container {
+  padding: 20px 16px;
+  background-color: var(--bg-surface);
+  min-height: 100vh;
+  max-width: 95vw;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.header h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.back-btn {
+  margin-right: 8px;
+}
+
+/* ========= Phần import ========= */
+.import-section {
+  margin-bottom: 24px;
+}
+
+.import-instructions {
   font-size: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border-radius: 6px;
-}
-.table th {
-  color: #fff;
-  background-color: #6c7ae0;
-  text-align: left;
-  padding: 8px;
-  font-weight: bold;
-  border: none;
-}
-.table td {
-  padding: 8px;
-  background-color: #fff;
-  border: 1px solid #ccc;
+  color: #6b7280;
+  margin-bottom: 8px;
 }
 
-button.btn-sm {
-  border-radius: 6px;
-  transition: all 0.2s ease-in-out;
+.import-actions {
+  display: flex;
+  gap: 8px;
 }
 
-button.btn-sm:hover {
-  transform: scale(1.05);
-  opacity: 0.9;
-}
-
-h2 {
-  font-weight: 600;
-}
-
-.border {
-  border-style: dashed !important;
-}
-
-a {
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-/* Khung upload */
-.drop-zone {
+/* ========= File input đẹp hơn ========= */
+.file-input-wrapper {
   position: relative;
-  background-color: #fff;
-  border: 2px dashed #ccc;
-  border-radius: 8px;
-  padding: 2rem;
-  text-align: center;
-  min-height: 180px;
-  font-family: "Segoe UI", sans-serif;
-}
-
-/* Text trong khung */
-.drop-zone .text-muted {
-  font-size: 1rem;
-  color: #6c757d;
-}
-
-.drop-zone a {
-  color: #007bff;
-  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
 }
 
-.drop-zone .text-secondary {
-  font-size: 0.85rem;
+.file-input-wrapper input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
-/* File đã chọn */
-.selected-file {
-  font-weight: 600;
-  color: #28a745;
-  font-size: 1rem;
-  margin-top: 1rem;
-}
-
-/* Nút import */
-.btn-import {
-  font-size: 1.1rem;
-  padding: 0.75rem 2rem;
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
   border-radius: 6px;
+  border: 1px dashed var(--border);
+  background: #fff;
+  color: #374151;
+}
+
+.file-label mat-icon {
+  font-size: 18px;
+  line-height: 18px;
+}
+
+/* ========= Tiêu đề danh sách ========= */
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* ========= Phần PO ========= */
+.po-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.po-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.po-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.kho-select {
+  width: 200px;
+  margin-right: 8px;
+}
+
+/* ========= Bảng ========= */
+.mat-mdc-header-row {
+  background: rgb(49, 110, 241);
+  color: #fff;
+  font-weight: 600;
+}
+
+.table-container {
+  max-width: 100%;
+  height: 600px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  position: relative;
+}
+
+/* Kích thước & bố cục bảng */
+.table-container table[mat-table] {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Ô header & cell */
+.table-container .mat-mdc-header-cell,
+.table-container .mat-mdc-cell,
+.table-container .mat-mdc-footer-cell {
+  padding: 6px 10px;
+  white-space: nowrap;
+  border: 1px solid #eee;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+/* Header sticky + bóng nhẹ */
+.table-container .mat-mdc-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--table-header-bg);
+  color: var(--table-header-fg);
+  font-weight: 600;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.table-container .mat-mdc-header-cell:first-child {
+  border-top-left-radius: 6px;
+}
+
+.table-container .mat-mdc-header-cell:last-child {
+  border-top-right-radius: 6px;
+}
+
+.table-container .mat-sort-header-content {
+  color: inherit;
+}
+
+/* Hover row */
+.table-container .mat-mdc-row:hover {
+  background: var(--table-row-hover);
+}
+
+/* Ellipsis cho cell dài */
+.table-container .mat-mdc-cell {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Căn theo cột */
+.table-container .mat-column-actions {
+  width: 112px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-end {
+  text-align: right;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.table-container
+  .mat-mdc-table
+  .mat-mdc-header-row
+  .mat-mdc-header-cell:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #fff;
+}
+
+/* Paginator dense */
+.mat-mdc-paginator {
+  padding: 4px 8px;
+  min-height: 44px;
+  border-top: 1px solid var(--border);
+}
+
+/* Scrollbar tinh gọn */
+.table-container {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.example-button-row {
+  max-width: 600px;
+}
+
+.back-icon {
+  width: 30px;
+  height: 30px;
+  // line-height: 20px;
+  display: flex !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+}
+
+.back-button {
+  display: flex !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+}
+
+@media (max-width: 576px) {
+  .header h1 {
+    font-size: 20px;
+  }
 }

@@ -16,23 +16,32 @@ import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
 import { MatSlideToggleModule } from "@angular/material/slide-toggle";
 import { MatPaginatorModule } from "@angular/material/paginator";
-import { MatDialogContent } from "@angular/material/dialog";
 import { MatAutocompleteModule } from "@angular/material/autocomplete";
-import { MatDialogActions } from "@angular/material/dialog";
-import { MatSpinner } from "@angular/material/progress-spinner";
 import { MatRadioModule } from "@angular/material/radio";
 import { GenerateTemInComponent } from "./list/generate-tem-in.component";
 import { GenerateTemInRoutingModule } from "./route/generate-tem-in-routing.module";
 import { QRCodeComponent } from "angularx-qrcode";
 import { GenerateTemInImportComponent } from "./import/generate-tem-in-import.component";
 import { GenerateTemInDetailComponent } from "./detail/generate-tem-in-detail.component";
+import { GenerateTemInImportEditDialogComponent } from "./import/generate-tem-in-import-edit-dialog.component";
 import { HttpLink } from "apollo-angular/http";
 import { InMemoryCache } from "@apollo/client/cache";
 // import { ApolloModule } from 'apollo-angular';
 // import { HttpClientModule } from '@angular/common/http';
-
+import { MatDialogModule } from "@angular/material/dialog";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { MatChipsModule } from "@angular/material/chips";
+import { MatSortModule } from "@angular/material/sort";
+import { MatTooltipModule } from "@angular/material/tooltip";
+import { MatDividerModule } from "@angular/material/divider";
 @NgModule({
   imports: [
+    MatDialogModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatSortModule,
+    MatTooltipModule,
+    MatDividerModule,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -49,16 +58,13 @@ import { InMemoryCache } from "@apollo/client/cache";
     // ApolloModule,
     // HttpClientModule,
     MatListModule,
-    MatSpinner,
     MatDatepickerModule,
     MatNativeDateModule,
     MatSlideToggleModule,
     MatPaginatorModule,
     GenerateTemInRoutingModule,
     SharedModule,
-    MatDialogContent,
     MatAutocompleteModule,
-    MatDialogActions,
     QRCodeComponent,
   ],
 
@@ -66,6 +72,7 @@ import { InMemoryCache } from "@apollo/client/cache";
     GenerateTemInComponent,
     GenerateTemInImportComponent,
     GenerateTemInDetailComponent,
+    GenerateTemInImportEditDialogComponent,
   ],
 
   exports: [

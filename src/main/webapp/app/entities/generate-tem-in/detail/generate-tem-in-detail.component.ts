@@ -24,6 +24,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import JsBarcode from "jsbarcode";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
+import { ListRequestCreateTem } from "../models/list-request-create-tem.model";
 export interface MaterialItem {
   stt: number; // Số thứ tự hiển thị
   id: number;
@@ -109,15 +110,6 @@ export interface TemDetail {
   arrivalDate: string;
   qrCode: string;
   slTemQuantity: number;
-}
-export interface ListRequestCreateTem {
-  id: number;
-  vendor: string;
-  userData5: string;
-  createdBy: string;
-  numberProduction: number;
-  totalQuantity: number;
-  status: string;
 }
 @Component({
   selector: "jhi-generate-tem-in-import",

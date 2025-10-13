@@ -18,22 +18,20 @@ import {
 } from "../detail/generate-tem-in-detail.component";
 
 const GET_REQUESTS_QUERY = gql`
-  query GetRequests($page: Int, $size: Int) {
-    requestList(page: $page, size: $size) {
+  query GetRequests {
+    listRequestCreateTems {
       id
-      Vendor
-      UserData5
-      Created_by
-      Number_production
-      Create_date
-      Total_quantity
-      Status
+      vendor
+      userData5
+      createdBy
+      numberProduction
+      createdDate
+      totalQuantity
+      status
     }
   }
 `;
 
-// NOTE: This query as written does not actually use $requestId on the server side.
-// Keep it if your schema exposes products through requestList; otherwise switch to a requestById query.
 const GET_PRODUCTS_BY_REQUEST_QUERY = gql`
   query GetProductsByRequest($requestId: ID!) {
     requestList(page: 0, size: 1) {
@@ -87,10 +85,8 @@ const CREATE_PRODUCT_MUTATION = gql`
   }
 `;
 
-/* ================= GraphQL result typings ================= */
-
 type GetRequestsResult = {
-  requestList: ListRequestCreateTem[];
+  listRequestCreateTems: ListRequestCreateTem[];
 };
 
 type GetProductsByRequestResult = {
@@ -142,16 +138,17 @@ export class GenerateTemInService {
     size?: number;
     sort?: string;
   }): Observable<ListRequestCreateTem[]> {
-    const page = params?.page ?? 0;
-    const size = params?.size ?? 20;
-
     return this.apollo
       .query<GetRequestsResult>({
         query: GET_REQUESTS_QUERY,
-        variables: { page, size },
         fetchPolicy: "network-only",
       })
-      .pipe(map((result) => result.data.requestList as ListRequestCreateTem[]));
+      .pipe(
+        map(
+          (result) =>
+            result.data.listRequestCreateTems as ListRequestCreateTem[],
+        ),
+      );
   }
 
   getRequestById(id: number): Observable<ListRequestCreateTem> {

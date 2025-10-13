@@ -3,6 +3,7 @@
   padding-top: 25px;
   margin-left: 60px;
   height: calc(var(--vh) * 100);
+  width: calc(100% - 60px);
 }
 
 @media (max-width: 599px) {
@@ -11,6 +12,7 @@
     width: 100%;
   }
 }
+
 @media (min-width: 600px) and (max-width: 959px) {
   #main {
     // margin-top: 60px;
@@ -18,6 +20,7 @@
     width: 100%;
   }
 }
+
 @media (min-width: 960px) {
   #main {
     margin-top: 50px;
@@ -25,6 +28,7 @@
     max-width: 100%;
   }
 }
+
 @media (max-width: 1200px) {
   #main {
     padding-top: 0px;
