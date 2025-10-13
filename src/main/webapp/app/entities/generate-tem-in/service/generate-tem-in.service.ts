@@ -64,23 +64,51 @@ const CREATE_PRODUCT_MUTATION = gql`
   mutation CreateProduct($input: CreateProductInput!) {
     createProduct(input: $input) {
       id
-      Request_create_tem_id
-      SAPCode
-      Tem_quantity
-      PartNumber
-      LOT
-      InitialQuantity
-      Vendor
-      UserData1
-      UserData2
-      UserData3
-      UserData4
-      UserData5
-      StorageUnit
-      ExpirationDate
-      ManufacturingDate
-      Arrival_date
-      Number_of_prints
+      requestCreateTemId
+      sapCode
+      temQuantity
+      partNumber
+      lot
+      initialQuantity
+      vendor
+      userData1
+      userData2
+      userData3
+      userData4
+      userData5
+      storageUnit
+      expirationDate
+      manufacturingDate
+      arrivalDate
+      numberOfPrints
+    }
+  }
+`;
+
+const CREATE_PRODUCTS_BATCH_MUTATION = gql`
+  mutation CreateProductsBatch(
+    $requestId: Int!
+    $products: [CreateProductInput!]!
+  ) {
+    createProductsBatch(requestId: $requestId, products: $products) {
+      id
+      requestCreateTemId
+      sapCode
+      temQuantity
+      partNumber
+      lot
+      initialQuantity
+      vendor
+      userData1
+      userData2
+      userData3
+      userData4
+      userData5
+      storageUnit
+      expirationDate
+      manufacturingDate
+      arrivalDate
+      numberOfPrints
     }
   }
 `;
@@ -252,7 +280,7 @@ export class GenerateTemInService {
         map((result) => {
           const requests = result.data.requestList;
           if (Array.isArray(requests) && requests.length > 0) {
-            return (requests[0].products ?? []) as ListProductOfRequest[];
+            return (requests[0].products || []) as ListProductOfRequest[];
           }
           return [] as ListProductOfRequest[];
         }),
@@ -273,10 +301,35 @@ export class GenerateTemInService {
     requestId: number,
     excelData: ExcelImportData[],
   ): Observable<ListProductOfRequest[]> {
-    return this.http.post<ListProductOfRequest[]>(
-      `${this.baseUrl}/requests/${requestId}/import-excel`,
-      excelData,
-    );
+    // Convert ExcelImportData to CreateProductInput format
+    const products = excelData.map((item) => ({
+      requestCreateTemId: requestId,
+      sapCode: item.sapCode,
+      temQuantity: item.temQuantity,
+      partNumber: item.partNumber,
+      lot: item.lot,
+      initialQuantity: item.initialQuantity,
+      vendor: item.vendor,
+      userData1: item.userData1 ?? "",
+      userData2: item.userData2 ?? "",
+      userData3: item.userData3 ?? "",
+      userData4: item.userData4 ?? "",
+      userData5: item.userData5 ?? "",
+      storageUnit: item.storageUnit ?? "",
+      expirationDate: item.expirationDate,
+      manufacturingDate: item.manufacturingDate,
+      arrivalDate: item.arrivalDate,
+    }));
+
+    return this.apollo
+      .mutate<{ createProductsBatch: ListProductOfRequest[] }>({
+        mutation: CREATE_PRODUCTS_BATCH_MUTATION,
+        variables: {
+          requestId: requestId,
+          products: products,
+        },
+      })
+      .pipe(map((result) => result.data?.createProductsBatch ?? []));
   }
 
   updateProduct(

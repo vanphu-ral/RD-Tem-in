@@ -86,7 +86,6 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     private dialog: MatDialog,
   ) {}
 
-  //  Helper: luôn trả về FormControl tồn tại, nếu thiếu thì tạo và subscribe
   fc(k: VatTuKeys): FormControl<string | null> {
     if (!this.filters[k]) {
       this.filters[k] = new FormControl<string | null>("");
@@ -225,6 +224,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         },
       });
   }
+
   genQR(): void {
     console.log("Sang trang tạo mã chi tiết.");
   }

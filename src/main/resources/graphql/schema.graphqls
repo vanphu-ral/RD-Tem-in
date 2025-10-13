@@ -7,6 +7,27 @@ type Query {
 
 type Mutation {
     generateTem(storageUnit: String!): GenerateTemResponse!
+    createProduct(input: CreateProductInput!): ListProductOfRequest!
+    createProductsBatch(requestId: Int!, products: [CreateProductInput!]!): [ListProductOfRequest!]!
+}
+
+input CreateProductInput {
+    requestCreateTemId: Int!
+    sapCode: String!
+    temQuantity: Int!
+    partNumber: String!
+    lot: String!
+    initialQuantity: Int!
+    vendor: String!
+    userData1: String
+    userData2: String
+    userData3: String
+    userData4: String
+    userData5: String
+    storageUnit: String
+    expirationDate: String!
+    manufacturingDate: String!
+    arrivalDate: String!
 }
 
 # THÊM TYPE MỚI

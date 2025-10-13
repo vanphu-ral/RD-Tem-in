@@ -87,42 +87,33 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    // Filter đa trường
     this.dataSource.filterPredicate = (
       item: TemMaterialItem,
       filterJson: string,
     ): boolean => {
       const f: FilterOptions = JSON.parse(filterJson);
 
-      // status
       const okStatus =
         !f.status || item.status.toLowerCase().includes(f.status.toLowerCase());
 
-      // vendor
       const okVendor =
         !f.vendor || item.vendor.toLowerCase().includes(f.vendor.toLowerCase());
 
-      // userData5
       const okUserData5 =
         !f.userData5 ||
         item.userData5.toLowerCase().includes(f.userData5.toLowerCase());
 
-      // createdBy
       const okCreatedBy =
         !f.createdBy ||
         item.createdBy.toLowerCase().includes(f.createdBy.toLowerCase());
 
-      // numberProduction
       const okNumberProduction =
         !f.numberProduction ||
         String(item.numberProduction).includes(f.numberProduction);
 
-      // totalQuantity
       const okTotal =
         !f.totalQuantity ||
         String(item.totalQuantity).includes(f.totalQuantity);
-
-      // createdDate (so sánh theo ngày, bỏ time)
       const okDate =
         !f.createdDate || this.sameDate(item.createdDate, f.createdDate);
 
@@ -137,7 +128,6 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
       );
     };
 
-    // Sort + Paginator cho client-side
     this.dataSource.sort = this.sort;
     this.dataSource.paginator = this.paginator;
   }
@@ -162,16 +152,10 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     this.applyFilters();
   }
 
-  // ================== STATUS CHIP ==================
   statusColor(status: string): "primary" | "accent" | "warn" {
     switch ((status || "").toLowerCase()) {
       case "bản nháp":
-      case "mới":
-      case "new":
         return "primary";
-      case "đang xử lý":
-      case "processing":
-        return "accent";
       case "đã nhập":
       case "hoàn tất":
       case "done":
@@ -184,7 +168,6 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // ================== ACTIONS ==================
   onImport(): void {
     console.log("Import functionality");
   }
@@ -205,14 +188,11 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     console.log("Print item:", item);
   }
 
-  // ================== DATA LOADING (private) ==================
   private loadRequests(): void {
     this.isLoading = true;
-    console.log("Loading requests from API...");
-
     this.generateTemInService.getAllRequests().subscribe({
       next: (response: ListRequestCreateTem[]) => {
-        console.log("API Response received:", response);
+        console.log("Dữ liệu nhận từ gql: ", response);
         const data: TemMaterialItem[] = response.map(
           (item: ListRequestCreateTem) => ({
             id: item.id ?? 0,
@@ -238,19 +218,14 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
           statusText: error.statusText,
           url: error.url,
         });
-        // Handle database errors properly - show empty state with error message
         this.dataSource.data = [];
         this.totalItems = 0;
         this.isLoading = false;
-        // TODO: Show user-friendly error message in UI
-        console.warn(
-          "Failed to load data from database. Please check your connection and try again.",
-        );
+        console.warn("Failed to load data from database.");
       },
     });
   }
 
-  // ================== HELPERS (private sau public) ==================
   private sameDate(a: Date | string, b: Date): boolean {
     const d1 = new Date(a);
     return (
