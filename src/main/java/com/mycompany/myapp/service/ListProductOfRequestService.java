@@ -81,16 +81,13 @@ public class ListProductOfRequestService {
         CreateProductInput input,
         ListProductOfRequest product
     ) {
-        // Handle requestCreateTemId with null check
+        // Handle requestCreateTemId - allow null for new request creation
         if (input.getRequestCreateTemId() != null) {
             product.setRequestCreateTemId(
                 input.getRequestCreateTemId().longValue()
             );
-        } else {
-            throw new IllegalArgumentException(
-                "requestCreateTemId cannot be null"
-            );
         }
+        // If null, it will be set later by the calling service method
 
         // Handle required fields with null checks
         if (input.getSapCode() == null || input.getSapCode().isEmpty()) {

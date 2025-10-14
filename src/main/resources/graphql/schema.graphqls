@@ -13,8 +13,8 @@ type Mutation {
 }
 
 input CreateProductInput {
-    requestCreateTemId: Int!
-    sapCode: String!
+     requestCreateTemId: Int
+     sapCode: String!
     temQuantity: Int!
     partNumber: String!
     lot: String!
