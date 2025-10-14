@@ -2,7 +2,7 @@
 #main {
   padding-top: 25px;
   margin-left: 60px;
-  height: calc(var(--vh) * 100);
+  height: calc((var(--vh) * 100) - 80px);
   width: calc(100% - 60px);
 }
 

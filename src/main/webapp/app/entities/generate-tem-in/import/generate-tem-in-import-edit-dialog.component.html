@@ -1,0 +1,103 @@
+<h2 mat-dialog-title>Chỉnh sửa thông tin TEM</h2>
+<div style="margin-top: 4px">
+  <mat-dialog-content>
+    <form [formGroup]="editForm" class="edit-form">
+      <mat-form-field appearance="outline">
+        <mat-label>SAP Code</mat-label>
+        <input matInput formControlName="sapCode" required />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Tên SP</mat-label>
+        <input matInput formControlName="tenSp" required />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Part Number</mat-label>
+        <input matInput formControlName="partNumber" required />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>LOT</mat-label>
+        <input matInput formControlName="lot" required />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Storage Unit</mat-label>
+        <input matInput formControlName="storageUnit" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Số TEM</mat-label>
+        <input matInput type="number" formControlName="soTem" required />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Initial Quantity</mat-label>
+        <input
+          matInput
+          type="number"
+          formControlName="initialQuantity"
+          required
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Vendor</mat-label>
+        <input matInput formControlName="vendor" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>User Data 1</mat-label>
+        <input matInput formControlName="userData1" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>User Data 2</mat-label>
+        <input matInput formControlName="userData2" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>User Data 3</mat-label>
+        <input matInput formControlName="userData3" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>User Data 4</mat-label>
+        <input matInput formControlName="userData4" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>User Data 5</mat-label>
+        <input matInput formControlName="userData5" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Expiration Date</mat-label>
+        <input matInput type="date" formControlName="expirationDate" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Manufacturing Date</mat-label>
+        <input matInput type="date" formControlName="manufacturingDate" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Arrival Date</mat-label>
+        <input matInput type="date" formControlName="arrivalDate" />
+      </mat-form-field>
+    </form>
+  </mat-dialog-content>
+</div>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Hủy</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onSave()"
+    [disabled]="!editForm.valid"
+  >
+    Lưu
+  </button>
+</mat-dialog-actions>

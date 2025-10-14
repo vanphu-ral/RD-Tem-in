@@ -1,0 +1,134 @@
+.preview-dialog {
+  min-width: 800px;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  .request-info-card {
+    margin-bottom: 16px;
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+
+      .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        label {
+          font-weight: 500;
+          color: rgba(0, 0, 0, 0.6);
+          font-size: 12px;
+          text-transform: uppercase;
+        }
+
+        span {
+          font-size: 14px;
+          color: rgba(0, 0, 0, 0.87);
+        }
+      }
+    }
+  }
+
+  .products-card {
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 40px;
+
+      p {
+        color: rgba(0, 0, 0, 0.6);
+      }
+    }
+
+    .error-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 40px;
+      color: #f44336;
+
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+      }
+    }
+
+    .products-table {
+      width: 100%;
+
+      th {
+        background-color: #f5f5f5;
+        font-weight: 600;
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.87);
+        padding: 12px 8px;
+      }
+
+      td {
+        padding: 12px 8px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      tr:hover {
+        background-color: #f9f9f9;
+      }
+    }
+
+    .no-data {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 40px;
+      color: rgba(0, 0, 0, 0.6);
+
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        color: #2196f3;
+      }
+    }
+  }
+
+  mat-dialog-actions {
+    padding-top: 16px;
+    margin-bottom: 0;
+  }
+}
+
+// Responsive design
+@media (max-width: 900px) {
+  .preview-dialog {
+    min-width: 90vw;
+    max-width: 95vw;
+
+    .request-info-card .info-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .preview-dialog {
+    min-width: 95vw;
+    margin: 8px;
+
+    .products-table {
+      font-size: 12px;
+
+      th,
+      td {
+        padding: 8px 4px;
+      }
+    }
+  }
+}

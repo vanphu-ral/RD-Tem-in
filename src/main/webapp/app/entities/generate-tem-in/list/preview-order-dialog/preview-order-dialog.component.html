@@ -1,0 +1,150 @@
+<div class="preview-dialog">
+  <h2 mat-dialog-title>Chi tiết yêu cầu tạo tem</h2>
+
+  <!-- Request Information Card -->
+  <mat-card class="request-info-card">
+    <mat-card-header>
+      <mat-card-title>Thông tin yêu cầu</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="info-grid">
+        <div class="info-item">
+          <label>Mã yêu cầu:</label>
+          <span>{{ data.request.id || "N/A" }}</span>
+        </div>
+        <div class="info-item">
+          <label>Trạng thái:</label>
+          <mat-chip
+            [color]="getStatusColor(data.request.status || '')"
+            selected
+          >
+            {{ data.request.status || "N/A" }}
+          </mat-chip>
+        </div>
+        <div class="info-item">
+          <label>Nhà cung cấp:</label>
+          <span>{{ data.request.vendor || "N/A" }}</span>
+        </div>
+        <div class="info-item">
+          <label>PO Code:</label>
+          <span>{{ data.request.userData5 || "N/A" }}</span>
+        </div>
+        <div class="info-item">
+          <label>Người tạo:</label>
+          <span>{{ data.request.createdBy || "N/A" }}</span>
+        </div>
+        <div class="info-item">
+          <label>Ngày tạo:</label>
+          <span>{{ formatDate(data.request.createdDate) }}</span>
+        </div>
+        <div class="info-item">
+          <label>Số sản phẩm:</label>
+          <span>{{ data.request.numberProduction || 0 }}</span>
+        </div>
+        <div class="info-item">
+          <label>Tổng số lượng:</label>
+          <span>{{ data.request.totalQuantity || 0 }}</span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-divider></mat-divider>
+
+  <!-- Products Table Card -->
+  <mat-card class="products-card">
+    <mat-card-header>
+      <mat-card-title>Danh sách sản phẩm</mat-card-title>
+      <mat-card-subtitle>
+        Tổng cộng: {{ getTotalProducts() }} sản phẩm,
+        {{ getTotalQuantity() }} tem
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="isLoading" class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Đang tải danh sách sản phẩm...</p>
+      </div>
+
+      <div *ngIf="error" class="error-container">
+        <mat-icon color="warn">error</mat-icon>
+        <p>{{ error }}</p>
+      </div>
+
+      <div *ngIf="!isLoading && !error">
+        <table
+          mat-table
+          [dataSource]="productsDataSource"
+          class="products-table"
+          matSort
+        >
+          <ng-container matColumnDef="sapCode">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Mã SAP</th>
+            <td mat-cell *matCellDef="let product">{{ product.sapCode }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="partNumber">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Số hiệu</th>
+            <td mat-cell *matCellDef="let product">{{ product.partNumber }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="lot">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>LOT</th>
+            <td mat-cell *matCellDef="let product">{{ product.lot }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="initialQuantity">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Số lượng</th>
+            <td mat-cell *matCellDef="let product">
+              {{ product.initialQuantity }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="temQuantity">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Số tem</th>
+            <td mat-cell *matCellDef="let product">
+              {{ product.temQuantity }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="vendor">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              Nhà cung cấp
+            </th>
+            <td mat-cell *matCellDef="let product">{{ product.vendor }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="expirationDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              Hạn sử dụng
+            </th>
+            <td mat-cell *matCellDef="let product">
+              {{ formatDate(product.expirationDate) }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="manufacturingDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              Ngày sản xuất
+            </th>
+            <td mat-cell *matCellDef="let product">
+              {{ formatDate(product.manufacturingDate) }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+
+        <div *ngIf="productsDataSource.data.length === 0" class="no-data">
+          <mat-icon>info</mat-icon>
+          <p>Không có sản phẩm nào trong yêu cầu này</p>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onClose()">Đóng</button>
+  </mat-dialog-actions>
+</div>
