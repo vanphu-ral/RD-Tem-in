@@ -5,8 +5,10 @@ import {
   OnInit,
   ViewChild,
   AfterViewChecked,
+  Input,
 } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
+import { MatSnackBar } from "@angular/material/snack-bar";
 import {
   faFileImport,
   faEye,
@@ -21,11 +23,17 @@ import {
   faArrowDown,
   faQrcode,
   faFileCsv,
+  faCheckCircle,
+  faRotateBack,
 } from "@fortawesome/free-solid-svg-icons";
 import JsBarcode from "jsbarcode";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
-import { ListRequestCreateTem } from "../models/list-request-create-tem.model";
-import { AlertService } from "app/core/util/alert.service";
+import { MatDialog } from "@angular/material/dialog";
+import { Observable } from "rxjs/internal/Observable";
+import { GenerateTemInConfirmDialogComponent } from "../generate-tem-in-modal-confirm/modal-confirm.component";
+import { PageEvent } from "@angular/material/paginator";
+import { MatCardActions } from "@angular/material/card";
+
 export interface MaterialItem {
   stt: number; // Số thứ tự hiển thị
   id: number;
@@ -47,8 +55,11 @@ export interface MaterialItem {
   manufacturingDate: string;
   arrivalDate: string;
   qrCode: string;
-  lanIn?: number;
-  soTem?: number;
+  requestCreateTemId: number;
+  temQuantity: number;
+  numberOfPrints: number;
+  isEditing?: boolean;
+  isSaving?: boolean;
 }
 export interface GenerateTemResponse {
   success: boolean;
@@ -57,36 +68,25 @@ export interface GenerateTemResponse {
 }
 
 interface CsvDataItem {
+  productOfRequestId: number;
   reelId: string;
   sapCode: string;
   productName: string;
   partNumber: string;
   lot: string;
-  storageUnit: string;
   initialQuantity: number;
   vendor: string;
   userData1: string;
-}
-
-interface PrintLabel {
-  qrCode?: string;
-  msd: string;
-  exp: string;
-  code: string;
-  productName: string;
-  orderCode: string;
-  qty: number;
-  vendor: string;
-  lot: string;
-  rankM: string;
-  rankA: string;
-  rankQ: string;
+  userData2: string;
+  userData3: string;
+  userData4: string;
+  userData5: string;
   storageUnit: string;
-  nw: string;
-  po: string;
-  nv: string;
-  note: string;
-  lo: string;
+  expirationDate: string;
+  manufacturingDate: string;
+  arrivalDate: string;
+  qrCode: string;
+  slTemQuantity: number;
 }
 
 //interface trong tem in
@@ -112,6 +112,15 @@ export interface TemDetail {
   qrCode: string;
   slTemQuantity: number;
 }
+export interface ListRequestCreateTem {
+  id: number;
+  vendor: string;
+  userData5: string;
+  createdBy: string;
+  numberProduction: number;
+  totalQuantity: number;
+  status: string;
+}
 @Component({
   selector: "jhi-generate-tem-in-import",
   templateUrl: "./generate-tem-in-detail.component.html",
@@ -120,13 +129,98 @@ export interface TemDetail {
 })
 export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   //biến lấy id PO
-  poNumber = "12345";
+  poNumber = "";
   //biến in
   printMode: "single" | "all" = "all";
 
+  //id nhận từ requestCreateTem
+  @Input() requestId!: number;
+
+  //column table
+  displayedColumns: string[] = [
+    "stt",
+    "actions",
+    "numberOfPrints",
+    "sapCode",
+    "userData5",
+    "partNumber",
+    "lot",
+    "storageUnit",
+    "temQuantity",
+    "initialQuantity",
+    "vendor",
+    "manufacturingDate",
+    "expirationDate",
+    "arrivalDate",
+  ];
+  temDetailColumns: string[] = [
+    "stt",
+    "id",
+    "reelId",
+    "sapCode",
+    "productName",
+    "partNumber",
+    "lot",
+    "initialQuantity",
+    "vendor",
+    "userData1",
+    "userData2",
+    "userData3",
+    "userData4",
+    "userData5",
+    "storageUnit",
+    "expirationDate",
+    "manufacturingDate",
+    "arrivalDate",
+    "slTemQuantity",
+    "qrCode",
+  ];
+  // CSV columns
+  csvColumns: string[] = [
+    "reelId",
+    "sapCode",
+    "partNumber",
+    "lot",
+    "storageUnit",
+    "initialQuantity",
+    "vendor",
+    "userData1",
+    "userData2",
+    "userData3",
+    "userData4",
+    "userData5",
+    "expirationDate",
+    "manufacturingDate",
+    "arrivalDate",
+    "slTemQuantity",
+  ];
+
   //biến chứa kho
-  storageUnits: string[] = ["RD-01", "RD-02", "RD-03", "RD-04", "RD-05"];
+  storageUnits: string[] = [
+    "RD-01",
+    "RD-02",
+    "RD-03",
+    "RD-04",
+    "RD-05",
+    "SMT-ZONE-01",
+    "SMT-ZONE-02",
+    "SMT-ZONE-03",
+    "SMT-ZONE-04",
+    "SMT-ZONE-05",
+    "WH-01",
+    "WH-02",
+    "WH-03",
+    "WH-04",
+    "WH-05",
+    "PACK-01",
+    "PACK-02",
+    "PACK-03",
+    "PACK-04",
+    "PACK-05",
+  ];
+  filteredUnits: string[] = [];
   selectedStorageUnit: string | null = null;
+
   requestList: ListRequestCreateTem[] = [];
   selectedRequestId: number | null = null;
 
@@ -140,6 +234,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   qrReady: boolean = false;
 
   //prepare icon
+  faRotateBack = faRotateBack;
   faFileExcel = faFileExcel;
   faPlusCircle = faPlusCircle;
   faPrint = faPrint;
@@ -150,11 +245,14 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   faArrowDown = faArrowDown;
   faQrcode = faQrcode;
   faFileCsv = faFileCsv;
+  faCheckCircle = faCheckCircle;
 
-  //pagination
-  currentPage = 1;
-  totalPages = 10;
-  pages = [1, 2, 3];
+  //pagination detail
+  materialCurrentPage = 0; // Material paginator bắt đầu từ 0
+  materialPageSize = 10;
+  materialTotalItems = 0;
+  materialPageSizeOptions = [5, 10, 25, 50, 100];
+  pagedMaterials: MaterialItem[] = [];
 
   // Modal states
   showQrModal = false;
@@ -178,174 +276,343 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   printLabels: TemDetail[] = [];
 
   materials: MaterialItem[] = [];
+
+  //bien edit
+  // isEditing = false;
+
+  //flag
+  private _filteredLabelsCache: TemDetail[] = [];
+  private barcodesGenerated = false;
+  private isGeneratingBarcodes = false;
   constructor(
     private http: HttpClient,
     private generateTemInService: GenerateTemInService,
-    private alertService: AlertService,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog,
+    private route: ActivatedRoute,
+    private router: Router,
   ) {}
   ngAfterViewChecked(): void {
-    if (this.printLabels?.length > 0) {
-      this.printLabels.forEach((label, i) => {
-        const nvTarget = document.getElementById(`barcode-nv-${i}`);
-        const poTarget = document.getElementById(`barcode-po-${i}`);
-
-        //rút gọn từ 2025-10-11 -> "251011"
-        const rawDate = label.arrivalDate || "000000"; // "2025-10-11"
-        const compactDate = rawDate.replace(/-/g, "").slice(2); // "251011"
-
-        if (nvTarget) {
-          JsBarcode(nvTarget, compactDate || "000000", {
-            format: "CODE128",
-            lineColor: "#000",
-            width: 2,
-            height: 28,
-            displayValue: true,
-            textAlign: "right",
-          });
-        }
-
-        if (poTarget) {
-          JsBarcode(poTarget, label.userData5 || "00000", {
-            format: "CODE128",
-            lineColor: "#000",
-            width: 2,
-            height: 28,
-            displayValue: true,
-            textAlign: "right",
-          });
-        }
-      });
+    if (
+      !this.barcodesGenerated &&
+      !this.isGeneratingBarcodes &&
+      this.showPrintModal &&
+      this._filteredLabelsCache.length > 0
+    ) {
+      this.isGeneratingBarcodes = true;
+      setTimeout(() => {
+        this.generateBarcodes();
+        this.barcodesGenerated = true;
+        this.isGeneratingBarcodes = false;
+      }, 0);
     }
   }
 
   ngOnInit(): void {
-    this.generateTemInService.getMaterialItems().subscribe((data) => {
-      this.materials = data;
-    });
-    this.generateTemInService.getRequestList().subscribe((data) => {
-      this.requestList = data;
+    const requestId = Number(this.route.snapshot.paramMap.get("id"));
+    this.requestId = requestId;
+    if (requestId) {
+      this.getListRequest(requestId);
+    }
+    this.getListAllTemDetails();
+  }
+  //back btn
+  goBack(): void {
+    this.router.navigate(["/generate-tem-in"]);
+  }
+  getListRequest(requestId: number): void {
+    this.generateTemInService
+      .getProductsByRequestId(requestId)
+      .subscribe((data) => {
+        this.materials = data.map((item: MaterialItem) => ({
+          ...item,
+          isEditing: false,
+          isSaving: false,
+        }));
+        this.materialTotalItems = this.materials.length;
+        this.updatePagedMaterials();
+
+        if (this.materials.length > 0) {
+          this.poNumber = this.materials[0].userData5;
+        }
+      });
+  }
+  //phan trang
+  updatePagedMaterials(): void {
+    const startIndex = this.materialCurrentPage * this.materialPageSize;
+    const endIndex = startIndex + this.materialPageSize;
+    this.pagedMaterials = this.materials.slice(startIndex, endIndex);
+  }
+  onPageChange(event: PageEvent): void {
+    this.materialCurrentPage = event.pageIndex;
+    this.materialPageSize = event.pageSize;
+    this.updatePagedMaterials();
+  }
+
+  getListAllTemDetails(): void {
+    this.generateTemInService.getAllTemDetails().subscribe((data) => {
+      this.temDetailList = data;
     });
   }
 
-  onGenerateTemForRequest(): void {
-    if (!this.selectedStorageUnit) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Vui lòng chọn kho!",
-        timeout: 5000,
-        toast: true,
-      });
+  //snackbar notification
+  showSnackbar(
+    message: string,
+    action: string = "Đóng",
+    duration: number = 3000,
+    type: "success" | "error" | "warning" = "success",
+  ): void {
+    const panelClass = {
+      success: "snackbar-success",
+      error: "snackbar-error",
+      warning: "snackbar-warning",
+    }[type];
+
+    this.snackBar.open(message, action, {
+      duration,
+      horizontalPosition: "center",
+      verticalPosition: "bottom",
+      panelClass: [panelClass],
+    });
+  }
+
+  //confirm dialog action
+  confirmAction(message: string): Observable<boolean> {
+    const dialogRef = this.dialog.open(GenerateTemInConfirmDialogComponent, {
+      data: { message },
+    });
+    return dialogRef.afterClosed() as Observable<boolean>;
+  }
+
+  //ham loc location
+  filterStorageUnits(): void {
+    const keyword = this.selectedStorageUnit?.toLowerCase() ?? "";
+    if (keyword === "") {
+      this.filteredUnits = []; //ẩn danh sách nếu không nhập gì
       return;
     }
+    this.filteredUnits = this.storageUnits
+      .filter((unit) => unit.toLowerCase().includes(keyword))
+      .slice(0, 10);
+  }
 
-    if (
-      confirm(
-        `Bạn có chắc muốn tạo tem cho TẤT CẢ sản phẩm với kho ${this.selectedStorageUnit}?`,
-      )
-    ) {
+  selectUnit(unit: string): void {
+    this.selectedStorageUnit = unit;
+    this.filteredUnits = [];
+  }
+
+  //format date
+  formatArrivalDate(dateStr: string): string {
+    if (!dateStr) {
+      return "";
+    }
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) {
+      return dateStr;
+    }
+    return parts[0].slice(2) + parts[1] + parts[2]; // "2025" → "25"
+  }
+
+  trackByLabelId(index: number, label: TemDetail): string {
+    // Tạo unique key từ id + index
+    return `${label.id}-${index}`;
+  }
+  onGenerateTemForRequest(requestId: number): void {
+    this.confirmAction(
+      `Bạn có chắc muốn tạo tem cho tất cả sản phẩm thuộc yêu cầu #${requestId}?`,
+    ).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+
       this.isGenerating = true;
 
-      this.generateTemInService
-        .generateTem(this.selectedStorageUnit)
-        .subscribe({
-          next: (response) => {
-            console.log("Response:", response);
+      this.generateTemInService.generateTemByRequest(requestId).subscribe({
+        next: (response) => {
+          console.log("Response:", response);
 
-            if (response.success) {
-              this.alertService.addAlert({
-                type: "success",
-                message: response.message,
-                timeout: 5000,
-                toast: true,
-              });
-            } else {
-              this.alertService.addAlert({
-                type: "warning",
-                message: response.message,
-                timeout: 5000,
-                toast: true,
-              });
-            }
+          const type = response.success ? "success" : "error";
+          this.showSnackbar(response.message, "Đóng", 3000, type);
 
-            this.isGenerating = false;
-          },
-          error: (err) => {
-            console.error("Lỗi:", err);
-            this.alertService.addAlert({
-              type: "danger",
-              message: "Có lỗi xảy ra khi tạo tem!",
-              timeout: 5000,
-              toast: true,
-            });
-            this.isGenerating = false;
-          },
-        });
-    }
+          this.isGenerating = false;
+        },
+        error: (err) => {
+          this.showSnackbar(
+            err.message || "Có lỗi xảy ra khi tạo tem!",
+            "Đóng",
+            3000,
+            "error",
+          );
+          this.isGenerating = false;
+        },
+      });
+    });
   }
 
   exportToExcel(): void {
     console.log("Export to Excel");
     // Implement Excel export logic here
   }
+  get filteredLabels(): TemDetail[] {
+    return this._filteredLabelsCache;
+  }
 
   printTable(): void {
-    // Convert canvas QR codes to images for printing
-    const qrElements = document.querySelectorAll(".label qrcode");
-    const originalContents: { element: Element; html: string }[] = [];
+    console.log("🖨️ Starting print...");
+    console.log("Total labels:", this.filteredLabels.length);
 
-    //Phân biệt chế độ in single||all
-    const filteredQRElements = Array.from(qrElements).filter((el) => {
-      if (this.printMode === "single") {
-        const reelId = el
-          .closest(".label")
-          ?.querySelector(".big-code")
-          ?.textContent?.trim();
-        return reelId === this.selectedProductItem?.reelId;
-      }
-      return true;
-    });
+    const modal = document.getElementById("printPreviewModal");
+    if (!modal) {
+      console.error("Modal not found!");
+      return;
+    }
 
-    filteredQRElements.forEach((qrElement) => {
-      const canvas = qrElement.querySelector("canvas");
-      if (canvas) {
-        // Lưu nội dung gốc
-        originalContents.push({
-          element: qrElement,
-          html: qrElement.innerHTML,
-        });
+    //  Lấy container có labels
+    const container = modal.querySelector(".print-preview-container");
+    if (!container) {
+      console.error("Container not found!");
+      return;
+    }
 
-        // Convert canvas to image
-        const imgDataUrl = canvas.toDataURL("image/png");
-        const img = document.createElement("img");
-        img.src = imgDataUrl;
-        img.style.width = canvas.width + "px";
-        img.style.height = canvas.height + "px";
-        img.style.display = "block";
+    //  Clone container để không ảnh hưởng modal gốc
+    const printContainer = container.cloneNode(true) as HTMLElement;
+    printContainer.id = "printPreviewModal";
 
-        // Thay canvas bằng img
-        qrElement.innerHTML = "";
-        qrElement.appendChild(img);
+    //  Thêm container mới vào body (ngang level với modal)
+    const originalCanvases = container.querySelectorAll("canvas");
+    const clonedCanvases = printContainer.querySelectorAll("canvas");
+
+    originalCanvases.forEach((originalCanvas, index) => {
+      const clonedCanvas = clonedCanvases[index] as HTMLCanvasElement;
+      const ctx = clonedCanvas.getContext("2d");
+      if (ctx) {
+        clonedCanvas.width = originalCanvas.width;
+        clonedCanvas.height = originalCanvas.height;
+        ctx.drawImage(originalCanvas, 0, 0);
       }
     });
+    //  Ẩn modal gốc
+    printContainer.style.display = "none";
+    modal.style.display = "none";
+    document.body.appendChild(printContainer);
 
-    // Print sau khi đã convert xong
+    //  Inject CSS cho print
+    const style = document.createElement("style");
+    style.id = "temp-print-style";
+    style.textContent = `
+    @media print {
+      @page {
+        size: 807px 276px;
+        margin: 0;
+      }
+
+      /* Hide everything */
+      body > * {
+        display: none !important;
+      }
+
+      /* Only show temp container */
+      #printPreviewModal {
+        display: block !important;
+        visibility: visible !important;
+        position: static !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;  
+      }
+      #printPreviewModal,
+      #printPreviewModal * {
+        visibility: visible !important;
+      }
+
+      /* Label = page */
+       #printPreviewModal .label {
+        width: 650px !important;
+        height: 199px !important;
+        top: 0;
+        left: 0;
+        position: relative !important;
+        overflow: hidden !important;
+        background: white !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+      }
+
+      #printPreviewModal .label:last-of-type {
+        page-break-after: avoid !important;
+      }
+
+      /* Scaled content */
+      #printPreviewModal .label-content {
+        position: relative !important;
+        top: 1px !important;
+        left: 1px !important;
+        width: 820px !important;
+        height: 250px !important;
+        padding: 5px !important;
+        transform: scale(0.9, 0.9) !important;
+        transform-origin: top left !important;
+        // border: 3px solid black !important;
+        border-radius: 10px !important;
+        background: white !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Colors */
+      #printPreviewModal * {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      #printPreviewModal .label-content>* {
+        transform: none !important;
+      }
+      /* QR & Barcodes */
+      #printPreviewModal canvas,
+      #printPreviewModal qrcode,
+      #printPreviewModal qrcode canvas,
+      #printPreviewModal svg,
+      #printPreviewModal img {
+        visibility: visible !important;
+        display: block !important;
+        opacity: 1 !important;
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      #printPreviewModal .qr-box {
+        visibility: visible !important;
+        display: block !important;
+      }
+      body>*:not(#printPreviewModal) {
+        display: none !important;
+      }
+    }
+  `;
+    document.head.appendChild(style);
+
+    console.log(" Temp container created");
+
+    //  Đợi DOM render xong
     setTimeout(() => {
       window.print();
 
-      // Restore lại canvas sau khi print (khi user đóng print dialog)
-      const restoreQRCodes = (): void => {
-        originalContents.forEach(({ element, html }) => {
-          element.innerHTML = html;
-        });
-        window.removeEventListener("afterprint", restoreQRCodes);
+      //  Cleanup sau khi print
+      const cleanup = (): void => {
+        console.log(" Cleaning up...");
+
+        // Xóa temp elements
+        printContainer.remove();
+        style.remove();
+
+        // Hiện lại modal
+        modal.style.display = "block";
+
+        window.removeEventListener("afterprint", cleanup);
+        console.log(" Cleanup done");
       };
 
-      // Listen cho afterprint event
-      window.addEventListener("afterprint", restoreQRCodes);
-
-      // Fallback: restore sau 2 giây nếu afterprint không fire
-      setTimeout(restoreQRCodes, 2000);
-    }, 300);
+      window.addEventListener("afterprint", cleanup);
+      setTimeout(cleanup, 3000); // Fallback
+    }, 500);
   }
   onAction(action: string, item: any, index: number): void {
     if (action === "view") {
@@ -354,13 +621,92 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       this.loadTemDetails(item.id); // item.id là id của list_product_of_request
       document.body.classList.add("modal-open");
     }
+    if (action === "exportCsv") {
+      this.selectedItem = item;
+      console.log("TemDetailList:", this.temDetailList);
+      console.log("SelectedItem ID:", item.id);
+      this.loadTemDetails(item.id, () => {
+        this.prepareSingleCsvData(Number(item.id));
+      });
+
+      document.body.classList.add("modal-open");
+    }
+    if (action === "edit") {
+      item.isEditing = true;
+    }
+    if (action === "confirm") {
+      // Kiểm tra validation
+      if (!item.id) {
+        this.showSnackbar(
+          "Thiếu ID sản phẩm không thể cập nhật",
+          "Đóng",
+          3000,
+          "warning",
+        );
+        return;
+      }
+
+      // Đánh dấu đang lưu trên chính object item
+      item.isSaving = true;
+
+      const payload = {
+        input: {
+          id: Number(item.id),
+          sapCode: item.sapCode,
+          requestCreateTemId: item.requestCreateTemId,
+          partNumber: item.partNumber,
+          lot: item.lot,
+          temQuantity: item.temQuantity,
+          initialQuantity: item.initialQuantity,
+          vendor: item.vendor,
+          userData1: item.userData1,
+          userData2: item.userData2,
+          userData3: item.userData3,
+          userData4: item.userData4,
+          userData5: item.userData5,
+          storageUnit: item.storageUnit,
+          expirationDate: item.expirationDate,
+          manufacturingDate: item.manufacturingDate,
+          arrivalDate: item.arrivalDate,
+          numberOfPrints: item.numberOfPrints,
+        },
+      };
+
+      console.log("📦 Payload gửi lên mutation:", payload);
+
+      // Gọi mutation
+      this.generateTemInService.updateProductOfRequest(item).subscribe({
+        next: (res) => {
+          if (res.data?.updateProductOfRequest?.success) {
+            // Cập nhật trực tiếp trên object item
+            item.isSaving = false;
+            item.isEditing = false;
+            this.showSnackbar("Cập nhật thành công!", "Đóng", 3000, "success");
+          } else {
+            item.isSaving = false;
+            this.showSnackbar(
+              "Cập nhật thất bại: " + `${res.data?.updateProductOfRequest}`,
+              "Đóng",
+              3000,
+              "error",
+            );
+          }
+        },
+        error: (err) => {
+          console.error("Lỗi khi gọi mutation:", err);
+          item.isSaving = false;
+          this.showSnackbar("Lỗi khi cập nhật", "Đóng", 3000, "error");
+        },
+      });
+    }
+
     if (action === "print") {
       this.printMode = "single";
       this.selectedProductItem = item;
       document.body.classList.add("modal-open");
 
       this.loadTemDetails(item.id, () => {
-        this.openPrintPreviewForProduct();
+        this.openPrintPreviewForProduct(item.id);
       });
     }
   }
@@ -384,12 +730,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       },
       error: (err) => {
         console.error("Error loading tem details:", err);
-        this.alertService.addAlert({
-          type: "danger",
-          message: "Không thể tải danh sách tem!",
-          timeout: 5000,
-          toast: true,
-        });
+        this.showSnackbar(
+          "Không thể tải danh sách tem!",
+          "Đóng",
+          3000,
+          "error",
+        );
         this.isLoadingTemDetails = false;
       },
     });
@@ -413,9 +759,49 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     this.qrTableVisible = true;
   }
 
-  //save btn
-  save(): void {
-    console.log("Save changes");
+  //choose location
+  onSelectUnit(unit: string): void {
+    this.selectedStorageUnit = unit;
+    console.log("Kho đã chọn:", unit);
+  }
+  //save location button
+  saveLocation(): void {
+    console.log("Kho đang chọn:", this.selectedStorageUnit);
+    console.log("Request ID:", this.requestId);
+
+    if (!this.selectedStorageUnit || !this.requestId) {
+      this.showSnackbar("Vui lòng chọn kho!", "Đóng", 3000, "error");
+      return;
+    }
+
+    this.generateTemInService
+      .updateStorageUnitForRequest(this.requestId, this.selectedStorageUnit)
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.showSnackbar(
+              "Đã cập nhật kho thành công!",
+              "Đóng",
+              3000,
+              "success",
+            );
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          } else {
+            this.showSnackbar("Cập nhật thất bại", "Đóng", 3000, "error");
+          }
+        },
+        error: (err) => {
+          console.error("Lỗi khi cập nhật kho:", err);
+          this.showSnackbar(
+            "Có lỗi xảy ra khi lưu kho!",
+            "Đóng",
+            3000,
+            "error",
+          );
+        },
+      });
   }
   // CSV Preview Methods
   openCsvPreview(): void {
@@ -429,18 +815,60 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     document.body.classList.remove("modal-open");
   }
 
+  prepareSingleCsvData(productId: number): void {
+    const matched = this.temDetailList.find(
+      (item) => item.productOfRequestId === productId,
+    );
+    console.log("Matched tem:", matched);
+    this.csvData = matched
+      ? [
+          {
+            productOfRequestId: matched.productOfRequestId,
+            reelId: matched.reelId,
+            sapCode: matched.sapCode,
+            productName: matched.productName,
+            partNumber: matched.partNumber,
+            lot: matched.lot,
+            initialQuantity: matched.initialQuantity,
+            vendor: matched.vendor,
+            userData1: matched.userData1,
+            userData2: matched.userData2,
+            userData3: matched.userData3,
+            userData4: matched.userData4,
+            userData5: matched.userData5,
+            storageUnit: matched.storageUnit,
+            expirationDate: matched.expirationDate,
+            manufacturingDate: matched.manufacturingDate,
+            arrivalDate: matched.arrivalDate,
+            qrCode: matched.qrCode,
+            slTemQuantity: matched.slTemQuantity,
+          },
+        ]
+      : [];
+    this.showCsvModal = true;
+  }
+
   prepareCsvData(): void {
-    // Generate CSV preview data from materials
-    this.csvData = this.materials.map((item, index) => ({
-      reelId: "92520250628162829",
+    this.csvData = this.temDetailList.map((item) => ({
+      productOfRequestId: item.productOfRequestId,
+      reelId: item.reelId,
       sapCode: item.sapCode,
       productName: item.productName,
       partNumber: item.partNumber,
       lot: item.lot,
-      storageUnit: item.storageUnit,
       initialQuantity: item.initialQuantity,
-      vendor: "V900000136",
-      userData1: "250916110017A",
+      vendor: item.vendor,
+      userData1: item.userData1,
+      userData2: item.userData2,
+      userData3: item.userData3,
+      userData4: item.userData4,
+      userData5: item.userData5,
+      storageUnit: item.storageUnit,
+      expirationDate: item.expirationDate,
+      manufacturingDate: item.manufacturingDate,
+      arrivalDate: item.arrivalDate,
+      qrCode: item.qrCode,
+      slTemQuantity: item.slTemQuantity,
     }));
   }
 
@@ -463,116 +891,178 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   generateCsvContent(): string {
     const headers = [
       "ReelID",
-      "SAPCode",
-      "Tên SP",
       "PartNumber",
-      "LOT",
-      "StorageUnit",
-      "InitialQuantity",
       "Vendor",
+      "Lot",
       "UserData1",
+      "UserData2",
+      "UserData3",
+      "UserData4",
+      "UserData5",
+      "InitialQuantity",
+      "MSDLevel",
+      "MSDInitialFloorTime",
+      "MSDBagSealDate",
+      "MarketUsage",
+      "QuantityOverride",
+      "ShelfTime",
+      "SPMaterialName",
+      "WarningLimit",
+      "MaximumLimit",
+      "Comments",
+      "WarmupTime",
+      "StorageUnit",
+      "SubStorageUnit",
+      "LocationOverride",
+      "ExpirationDate",
+      "ManufacturingDate",
+      "Partclass",
+      "SAPCode",
     ];
+
     const rows = this.csvData.map((item) => [
       item.reelId,
-      item.sapCode,
-      item.productName,
       item.partNumber,
-      item.lot,
-      item.storageUnit,
-      item.initialQuantity,
       item.vendor,
+      item.lot,
       item.userData1,
+      item.userData2,
+      item.userData3,
+      item.userData4,
+      item.userData5,
+      item.initialQuantity,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "", // MSD fields & others
+      "",
+      item.storageUnit,
+      "", // SubStorageUnit, LocationOverride
+      "", // SubStorageUnit, LocationOverride
+      item.expirationDate?.replace(/-/g, ""),
+      item.manufacturingDate?.replace(/-/g, ""),
+      "", // Partclass
+      item.sapCode,
     ]);
 
-    const csvRows = [headers, ...rows].map((row) => row.join(",")).join("\n");
-    return "\ufeff" + csvRows; // Add BOM for UTF-8
+    const csvRows = [headers, ...rows]
+      .map((row) => row.map((cell) => cell ?? "").join(","))
+      .join("\n");
+
+    return "\ufeff" + csvRows;
   }
 
   // Print Preview Methods
-  // Print Preview Methods
-  openPrintPreview(): void {
-    this.preparePrintLabels();
-    this.showPrintModal = true;
-    document.body.classList.add("modal-open");
-  }
-  openPrintPreviewForProduct(): void {
-    console.log("🖨️ In tem cho product:", this.selectedProductItem?.partNumber);
+  openPrintPreviewForProduct(requestId: number): void {
+    // console.log(" In tem cho product:", this.selectedProductItem?.partNumber);
 
     if (!this.temDetailList || this.temDetailList.length === 0) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Chưa có tem nào cho sản phẩm này!",
-        timeout: 5000,
-        toast: true,
-      });
+      this.showSnackbar(
+        "Chưa có tem nào cho sản phẩm này!",
+        "Đóng",
+        3000,
+        "warning",
+      );
       return;
     }
-    const matchedTem = this.temDetailList.find(
-      (tem) => tem.productOfRequestId === Number(this.selectedProductItem?.id),
+
+    const matchedTems = this.temDetailList.filter(
+      (tem) => tem.productOfRequestId === Number(requestId),
     );
 
-    if (!matchedTem) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Không tìm thấy tem phù hợp để in!",
-        timeout: 5000,
-        toast: true,
-      });
+    if (!matchedTems) {
+      this.showSnackbar(
+        "Không tìm thấy tem phù hợp để in!",
+        "Đóng",
+        3000,
+        "warning",
+      );
       return;
     }
 
-    this.printLabels = [matchedTem];
+    this.printLabels = matchedTems;
+    this.calculateFilteredLabels();
 
-    console.log("Số tem của product này:", this.printLabels.length);
+    // console.log("Số tem của product này:", this.printLabels.length);
+    // console.log("Số tem của product này:", this.printLabels);
 
     this.showPrintModal = true;
   }
 
   openPrintPreviewAll(): void {
     this.printMode = "all";
-    console.log("🖨️ In TẤT CẢ tem");
+    // console.log("In TẤT CẢ tem");
 
-    // Load tất cả tem từ info_tem_detail
+    // CRITICAL: Reset tất cả trước khi load
+    this.barcodesGenerated = false;
+    this.isGeneratingBarcodes = false;
+    this._filteredLabelsCache = [];
+    this.printLabels = [];
+
+    //  Đóng modal nếu đang mở (clear DOM cũ)
+    this.showPrintModal = false;
+
     this.generateTemInService.getAllTemDetails().subscribe({
       next: (data) => {
         this.printLabels = data;
         console.log("Tổng số tem để in:", this.printLabels.length);
 
         if (this.printLabels.length === 0) {
-          this.alertService.addAlert({
-            type: "warning",
-            message: "Chưa có tem nào được tạo!",
-            timeout: 5000,
-            toast: true,
-          });
+          this.showSnackbar(
+            "Chưa có tem nào được tạo!",
+            "Đóng",
+            3000,
+            "warning",
+          );
           return;
         }
 
-        this.showPrintModal = true;
-        document.body.classList.add("modal-open");
+        this.calculateFilteredLabels();
+
+        //  Đợi một chút để Angular clear DOM
+        setTimeout(() => {
+          this.showPrintModal = true;
+          document.body.classList.add("modal-open");
+          // console.log(
+          //   "Modal opened, should render",
+          //   this._filteredLabelsCache.length,
+          //   "labels",
+          // );
+        }, 100);
       },
       error: (err) => {
         console.error("Lỗi khi load tem:", err);
-        this.alertService.addAlert({
-          type: "danger",
-          message: "Không thể tải danh sách tem!",
-          timeout: 5000,
-          toast: true,
-        });
+        this.showSnackbar(
+          "Không thể tải danh sách tem!",
+          "Đóng",
+          3000,
+          "error",
+        );
       },
     });
   }
 
   closePrintModal(): void {
+    this._filteredLabelsCache = [];
     this.showPrintModal = false;
-    document.body.classList.remove("modal-open");
+    this.barcodesGenerated = false;
+    this.isGeneratingBarcodes = false;
+    setTimeout(() => {
+      document.body.classList.remove("modal-open");
+    }, 0);
   }
 
   preparePrintLabels(): void {
     // Lấy trực tiếp từ temDetailList (đã load từ modal)
     this.printLabels = [...this.temDetailList];
 
-    console.log("Print labels prepared:", this.printLabels.length);
+    // console.log("Print labels prepared:", this.printLabels.length);
   }
 
   closeAllModals(): void {
@@ -580,9 +1070,68 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     this.closePrintModal();
   }
 
-  goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
+  private calculateFilteredLabels(): void {
+    if (this.printMode === "single") {
+      this._filteredLabelsCache = [...this.printLabels];
+    } else {
+      const expanded: TemDetail[] = [];
+      this.printLabels.forEach((label) => {
+        const count = Number(label.slTemQuantity) || 1;
+        for (let i = 0; i < count; i++) {
+          // Deep copy để tránh reference issues
+          expanded.push(JSON.parse(JSON.stringify(label)));
+        }
+      });
+      this._filteredLabelsCache = expanded;
     }
+
+    // console.log(
+    //   `📦 Calculated ${this._filteredLabelsCache.length} labels to render`,
+    // );
+  }
+  private generateBarcodes(): void {
+    // console.log(" Generating barcodes...");
+
+    this._filteredLabelsCache.forEach((label, i) => {
+      //"Dùng ID mới: label.id + index
+      const uniqueId = `${label.id}-${i}`;
+      const nvTarget = document.getElementById(`barcode-nv-${uniqueId}`);
+      const poTarget = document.getElementById(`barcode-po-${uniqueId}`);
+
+      const rawDate = label.arrivalDate || "000000";
+      const compactDate = rawDate.replace(/-/g, "").slice(2);
+
+      if (nvTarget) {
+        try {
+          JsBarcode(nvTarget, compactDate || "000000", {
+            format: "CODE128",
+            lineColor: "#000",
+            width: 2,
+            height: 28,
+            displayValue: false,
+            margin: 0,
+          });
+        } catch (e) {
+          console.error(`Barcode NV error at ${i}:`, e);
+        }
+      }
+
+      if (poTarget) {
+        try {
+          JsBarcode(poTarget, label.userData5 || "00000", {
+            format: "CODE128",
+            lineColor: "#000",
+            width: 2,
+            height: 28,
+            displayValue: false,
+            margin: 0,
+          });
+        } catch (e) {
+          console.error(`Barcode PO error at ${i}:`, e);
+        }
+      }
+    });
+
+    // console.log("Generated ${this._filteredLabelsCache.length} barcodes`");
   }
 }

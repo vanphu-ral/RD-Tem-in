@@ -1,8 +1,10 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.graphql.RequestResolver;
 import com.mycompany.myapp.graphql.dto.CreateProductInput;
 import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput;
 import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse;
+import com.mycompany.renderQr.domain.*;
 import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
 import com.mycompany.renderQr.domain.ListRequestCreateTem;
@@ -10,9 +12,14 @@ import com.mycompany.renderQr.domain.ListRequestCreateTemResponse;
 import com.mycompany.renderQr.repository.ListProductOfRequestRepository;
 import com.mycompany.renderQr.repository.ListRequestCreateTemRepository;
 import java.time.LocalDateTime;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
@@ -20,6 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ListProductOfRequestService {
+
+    private static final Logger log = LoggerFactory.getLogger(
+        RequestResolver.class
+    );
 
     @Autowired
     private ListProductOfRequestRepository repository;
@@ -29,6 +40,95 @@ public class ListProductOfRequestService {
 
     public List<ListProductOfRequestResponse> getAll() {
         return repository.findAllProjectedBy();
+    }
+
+    public List<ListProductOfRequest> findByRequestCreateTemId(Long requestId) {
+        return repository.findByRequestCreateTemId(requestId);
+    }
+
+    //update all for product
+    public boolean updateProduct(UpdateProductInput input) {
+        Optional<ListProductOfRequest> optional = repository.findById(
+            input.getId()
+        );
+        if (optional.isEmpty()) return false;
+
+        ListProductOfRequest entity = optional.get();
+
+        entity.setSapCode(input.getSapCode());
+        entity.setPartNumber(input.getPartNumber());
+        entity.setRequestCreateTemId(input.getRequestCreateTemId());
+        entity.setTemQuantity(input.getTemQuantity());
+        entity.setLot(input.getLot());
+        entity.setInitialQuantity(input.getInitialQuantity());
+        entity.setVendor(input.getVendor());
+        entity.setUserData1(input.getUserData1());
+        entity.setUserData2(input.getUserData2());
+        entity.setUserData3(input.getUserData3());
+        entity.setUserData4(input.getUserData4());
+        entity.setUserData5(input.getUserData5());
+        entity.setStorageUnit(input.getStorageUnit());
+        entity.setNumberOfPrints(input.getNumberOfPrints());
+
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+        entity.setExpirationDate(
+            LocalDateTime.parse(input.getExpirationDate(), formatter)
+        );
+        entity.setManufacturingDate(
+            LocalDateTime.parse(input.getManufacturingDate(), formatter)
+        );
+        entity.setArrivalDate(
+            LocalDateTime.parse(input.getArrivalDate(), formatter)
+        );
+
+        log.info("📦 Trước khi save entity:");
+        log.info("requestCreateTemId = {}", entity.getRequestCreateTemId());
+        log.info("temQuantity = {}", entity.getTemQuantity());
+        log.info("numberOfPrints = {}", entity.getNumberOfPrints());
+        log.info("expirationDate = {}", entity.getExpirationDate());
+        log.info("manufacturingDate = {}", entity.getManufacturingDate());
+        log.info("arrivalDate = {}", entity.getArrivalDate());
+        log.info("initialQuantity = {}", entity.getInitialQuantity());
+        log.info("lot = {}", entity.getLot());
+        log.info("partNumber = {}", entity.getPartNumber());
+        log.info("sapCode = {}", entity.getSapCode());
+        log.info("vendor = {}", entity.getVendor());
+        log.info("userData1 = {}", entity.getUserData1());
+        log.info("userData2 = {}", entity.getUserData2());
+        log.info("userData3 = {}", entity.getUserData3());
+        log.info("userData4 = {}", entity.getUserData4());
+        log.info("userData5 = {}", entity.getUserData5());
+
+        repository.save(entity);
+        return true;
+    }
+
+    //update location by requestID
+    @Transactional
+    public UpdateResponse updateStorageUnitForRequest(
+        Long requestId,
+        String storageUnit
+    ) {
+        List<ListProductOfRequest> products =
+            repository.findByRequestCreateTemId(requestId);
+
+        if (products.isEmpty()) {
+            return new UpdateResponse(
+                false,
+                "Không tìm thấy request nào thuộc yêu cầu này"
+            );
+        }
+
+        for (ListProductOfRequest product : products) {
+            product.setStorageUnit(storageUnit); // update
+        }
+
+        repository.saveAll(products);
+        return new UpdateResponse(
+            true,
+            "Đã cập nhật kho cho " + products.size() + ""
+        );
     }
 
     @Transactional
