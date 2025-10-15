@@ -38,6 +38,7 @@ const GET_PRODUCTS_BY_REQUEST_QUERY = gql`
       id
       products(page: 0, size: 100) {
         id
+        product_name
         Request_create_tem_id
         SAPCode
         Tem_quantity
@@ -66,6 +67,7 @@ const CREATE_PRODUCT_MUTATION = gql`
       id
       requestCreateTemId
       sapCode
+      productName
       temQuantity
       partNumber
       lot
@@ -94,6 +96,7 @@ const CREATE_PRODUCTS_BATCH_MUTATION = gql`
       id
       requestCreateTemId
       sapCode
+      productName
       temQuantity
       partNumber
       lot
@@ -121,6 +124,7 @@ const CREATE_REQUEST_AND_PRODUCTS_MUTATION = gql`
         id
         requestCreateTemId
         sapCode
+        productName
         temQuantity
         partNumber
         lot
@@ -244,6 +248,7 @@ export class GenerateTemInService {
           id
           requestCreateTemId
           sapCode
+          productName
           partNumber
           lot
           initialQuantity
@@ -258,6 +263,7 @@ export class GenerateTemInService {
           manufacturingDate
           arrivalDate
           numberOfPrints
+          temQuantity
         }
       }
     `;
@@ -274,7 +280,7 @@ export class GenerateTemInService {
             productOfRequestId: item.requestCreateTemId,
             reelId: "",
             sapCode: item.sapCode,
-            productName: "",
+            productName: item.productName,
             partNumber: item.partNumber,
             lot: item.lot,
             initialQuantity: item.initialQuantity,
@@ -289,8 +295,8 @@ export class GenerateTemInService {
             manufacturingDate: item.manufacturingDate,
             arrivalDate: item.arrivalDate,
             qrCode: "",
-            lanIn: 1,
-            soTem: 1,
+            lanIn: 0,
+            soTem: item.temQuantity,
           })),
         ),
       );

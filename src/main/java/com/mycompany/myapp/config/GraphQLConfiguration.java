@@ -97,47 +97,107 @@ public class GraphQLConfiguration {
             )
             // MUTATION - THÊM PHẦN NÀY!
             .type("Mutation", builder ->
-                builder.dataFetcher("generateTem", env -> {
-                    //                    log.info("==========================================");
-                    //                    log.info("Mutation: generateTem called!");
-                    //                    log.info("==========================================");
+                builder
+                    .dataFetcher("generateTem", env -> {
+                        // log.info("==========================================");
+                        // log.info("Mutation: generateTem called!");
+                        // log.info("==========================================");
 
-                    String storageUnit = env.getArgument("storageUnit");
-                    //                    log.info("Argument storageUnit: {}", storageUnit);
+                        String storageUnit = env.getArgument("storageUnit");
+                        // log.info("Argument storageUnit: {}", storageUnit);
 
-                    try {
-                        GenerateTemResponse response =
-                            detailResolver.generateTem(storageUnit);
+                        try {
+                            GenerateTemResponse response =
+                                detailResolver.generateTem(storageUnit);
 
-                        if (response == null) {
-                            //                            log.error("DetailResolver.generateTem returned NULL!");
+                            if (response == null) {
+                                // log.error("DetailResolver.generateTem returned NULL!");
+                                return new GenerateTemResponse(
+                                    false,
+                                    "Resolver returned null",
+                                    0
+                                );
+                            }
+
+                            log.info(
+                                "Response: success={}, totalTems={}",
+                                response.isSuccess(),
+                                response.getTotalTems()
+                            );
+
+                            return response;
+                        } catch (Exception e) {
+                            log.error(
+                                "Error in generateTem DataFetcher: {}",
+                                e.getMessage(),
+                                e
+                            );
                             return new GenerateTemResponse(
                                 false,
-                                "Resolver returned null",
+                                "Error: " + e.getMessage(),
                                 0
                             );
                         }
+                    })
+                    .dataFetcher("createProduct", env -> {
+                        log.debug("Mutation: createProduct called");
+                        com.mycompany.myapp.graphql.dto.CreateProductInput input =
+                            env.getArgument("input");
+                        return productResolver.createProduct(input);
+                    })
+                    .dataFetcher("createProductsBatch", env -> {
+                        log.debug("Mutation: createProductsBatch called");
+                        Integer requestId = env.getArgument("requestId");
+                        java.util.List<
+                            com.mycompany.myapp.graphql.dto.CreateProductInput
+                        > products = env.getArgument("products");
+                        return productResolver.createProductsBatch(
+                            requestId,
+                            products
+                        );
+                    })
+                    .dataFetcher("createRequestAndProducts", env -> {
+                        log.debug("Mutation: createRequestAndProducts called");
+                        try {
+                            java.util.Map<String, Object> inputMap =
+                                env.getArgument("input");
+                            com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput input =
+                                convertMapToInput(inputMap);
+                            com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse response =
+                                productResolver.createRequestAndProducts(input);
 
-                        log.info(
-                            "Response: success={}, totalTems={}",
-                            response.isSuccess(),
-                            response.getTotalTems()
-                        );
+                            if (response == null) {
+                                log.error(
+                                    "createRequestAndProducts returned null!"
+                                );
+                                return new com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse(
+                                    null,
+                                    java.util.Collections.emptyList(),
+                                    "Error: Service returned null"
+                                );
+                            }
 
-                        return response;
-                    } catch (Exception e) {
-                        log.error(
-                            "Error in generateTem DataFetcher: {}",
-                            e.getMessage(),
-                            e
-                        );
-                        return new GenerateTemResponse(
-                            false,
-                            "Error: " + e.getMessage(),
-                            0
-                        );
-                    }
-                })
+                            log.debug(
+                                "createRequestAndProducts succeeded: requestId={}, products={}",
+                                response.getRequestId(),
+                                response.getProducts() != null
+                                    ? response.getProducts().size()
+                                    : 0
+                            );
+                            return response;
+                        } catch (Exception e) {
+                            log.error(
+                                "Error in createRequestAndProducts DataFetcher: {}",
+                                e.getMessage(),
+                                e
+                            );
+                            return new com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse(
+                                null,
+                                java.util.Collections.emptyList(),
+                                "Error: " + e.getMessage()
+                            );
+                        }
+                    })
             )
             .build();
 
@@ -147,10 +207,76 @@ public class GraphQLConfiguration {
             runtimeWiring
         );
 
-        //        log.info("GraphQL Schema loaded successfully!");
-        //        log.info("Registered Queries: listRequestCreateTems, listProductOfRequests, infoTemDetails");
-        //        log.info("Registered Mutations: generateTem");
+        // log.info("GraphQL Schema loaded successfully!");
+        // log.info("Registered Queries: listRequestCreateTems, listProductOfRequests,
+        // infoTemDetails");
+        // log.info("Registered Mutations: generateTem");
 
         return schema;
+    }
+
+    private com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput convertMapToInput(
+        java.util.Map<String, Object> inputMap
+    ) {
+        com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput input =
+            new com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput();
+
+        input.setVendor((String) inputMap.get("vendor"));
+        input.setUserData5((String) inputMap.get("userData5"));
+        input.setCreatedBy((String) inputMap.get("createdBy"));
+
+        @SuppressWarnings("unchecked")
+        java.util.List<java.util.Map<String, Object>> productsMap =
+            (java.util.List<java.util.Map<String, Object>>) inputMap.get(
+                "products"
+            );
+        java.util.List<
+            com.mycompany.myapp.graphql.dto.CreateProductInput
+        > products = new java.util.ArrayList<>();
+
+        if (productsMap != null) {
+            for (java.util.Map<String, Object> productMap : productsMap) {
+                com.mycompany.myapp.graphql.dto.CreateProductInput productInput =
+                    new com.mycompany.myapp.graphql.dto.CreateProductInput();
+
+                productInput.setRequestCreateTemId(
+                    (Integer) productMap.get("requestCreateTemId")
+                );
+                productInput.setSapCode((String) productMap.get("sapCode"));
+                productInput.setTemQuantity(
+                    (Integer) productMap.get("temQuantity")
+                );
+                productInput.setPartNumber(
+                    (String) productMap.get("partNumber")
+                );
+                productInput.setLot((String) productMap.get("lot"));
+                productInput.setInitialQuantity(
+                    (Integer) productMap.get("initialQuantity")
+                );
+                productInput.setVendor((String) productMap.get("vendor"));
+                productInput.setUserData1((String) productMap.get("userData1"));
+                productInput.setUserData2((String) productMap.get("userData2"));
+                productInput.setUserData3((String) productMap.get("userData3"));
+                productInput.setUserData4((String) productMap.get("userData4"));
+                productInput.setUserData5((String) productMap.get("userData5"));
+                productInput.setStorageUnit(
+                    (String) productMap.get("storageUnit")
+                );
+                productInput.setExpirationDate(
+                    (String) productMap.get("expirationDate")
+                );
+                productInput.setManufacturingDate(
+                    (String) productMap.get("manufacturingDate")
+                );
+                productInput.setArrivalDate(
+                    (String) productMap.get("arrivalDate")
+                );
+
+                products.add(productInput);
+            }
+        }
+
+        input.setProducts(products);
+        return input;
     }
 }

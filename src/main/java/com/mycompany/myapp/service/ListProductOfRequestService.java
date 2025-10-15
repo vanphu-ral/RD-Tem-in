@@ -222,6 +222,15 @@ public class ListProductOfRequestService {
             totalQuantity
         );
 
+        // Debug: Check if request was created successfully
+        if (request == null || request.getId() == null) {
+            throw new RuntimeException(
+                "Failed to create request - request or request ID is null"
+            );
+        }
+
+        System.out.println("Created request with ID: " + request.getId());
+
         // Step 2: Create products with the returned request ID
         List<ListProductOfRequest> savedProducts = createProductsBatch(
             request.getId().intValue(),

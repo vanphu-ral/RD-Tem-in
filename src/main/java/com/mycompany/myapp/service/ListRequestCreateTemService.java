@@ -37,7 +37,17 @@ public class ListRequestCreateTemService {
         request.setTotalQuantity(totalQuantity);
         request.setStatus("Bản nháp");
 
-        return repository.save(request);
+        ListRequestCreateTem savedRequest = repository.save(request);
+
+        // Debug: Ensure the ID was generated
+        if (savedRequest.getId() == null) {
+            throw new RuntimeException("Failed to generate ID for new request");
+        }
+
+        System.out.println(
+            "Saved request with generated ID: " + savedRequest.getId()
+        );
+        return savedRequest;
     }
 
     @Transactional
