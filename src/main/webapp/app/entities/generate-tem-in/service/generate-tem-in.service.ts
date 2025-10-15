@@ -439,6 +439,9 @@ export class GenerateTemInService {
       if (!item.sapCode || item.sapCode.trim() === "") {
         throw new Error(`Row ${index + 1}: SAP Code is required`);
       }
+      if (!item.tenSP || item.tenSP.trim() === "") {
+        throw new Error(`Row ${index + 1}: Product Name is required`);
+      }
       if (!item.partNumber || item.partNumber.trim() === "") {
         throw new Error(`Row ${index + 1}: Part Number is required`);
       }
@@ -471,6 +474,7 @@ export class GenerateTemInService {
       return {
         requestCreateTemId: requestId,
         sapCode: item.sapCode.trim(),
+        productName: item.tenSP?.trim() ?? "",
         temQuantity: item.temQuantity,
         partNumber: item.partNumber.trim(),
         lot: item.lot.trim(),

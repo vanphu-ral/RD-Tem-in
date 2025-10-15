@@ -242,6 +242,9 @@ public class GraphQLConfiguration {
                 productInput.setRequestCreateTemId(
                     (Integer) productMap.get("requestCreateTemId")
                 );
+                productInput.setProductName(
+                    (String) productMap.get("productName")
+                );
                 productInput.setSapCode((String) productMap.get("sapCode"));
                 productInput.setTemQuantity(
                     (Integer) productMap.get("temQuantity")

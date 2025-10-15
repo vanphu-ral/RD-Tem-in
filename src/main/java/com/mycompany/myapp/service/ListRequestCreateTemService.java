@@ -39,9 +39,14 @@ public class ListRequestCreateTemService {
 
         ListRequestCreateTem savedRequest = repository.save(request);
 
+        // Force flush to ensure ID is generated immediately
+        repository.flush();
+
         // Debug: Ensure the ID was generated
         if (savedRequest.getId() == null) {
-            throw new RuntimeException("Failed to generate ID for new request");
+            throw new RuntimeException(
+                "Failed to generate ID for new request after flush"
+            );
         }
 
         System.out.println(

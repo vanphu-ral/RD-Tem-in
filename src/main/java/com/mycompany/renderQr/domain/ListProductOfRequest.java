@@ -14,6 +14,9 @@ public class ListProductOfRequest {
     @Column(name = "Request_create_tem_id", nullable = false)
     private Long requestCreateTemId;
 
+    @Column(name = "product_name", length = 255)
+    private String productName;
+
     @Column(name = "SAPCode", nullable = false, length = 8)
     private String sapCode;
 
@@ -76,6 +79,14 @@ public class ListProductOfRequest {
 
     public void setRequestCreateTemId(Long requestCreateTemId) {
         this.requestCreateTemId = requestCreateTemId;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
     public String getSapCode() {

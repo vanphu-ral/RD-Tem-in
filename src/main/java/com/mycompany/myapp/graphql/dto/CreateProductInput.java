@@ -3,6 +3,7 @@ package com.mycompany.myapp.graphql.dto;
 public class CreateProductInput {
 
     private Integer requestCreateTemId;
+    private String productName;
     private String sapCode;
     private Integer temQuantity;
     private String partNumber;
@@ -26,6 +27,14 @@ public class CreateProductInput {
 
     public void setRequestCreateTemId(Integer requestCreateTemId) {
         this.requestCreateTemId = requestCreateTemId;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
     public String getSapCode() {
