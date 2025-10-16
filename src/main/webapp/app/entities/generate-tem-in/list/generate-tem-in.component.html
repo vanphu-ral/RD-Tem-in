@@ -77,15 +77,7 @@
               (click)="onView(item)"
               matTooltip="Xem thông tin tem in"
             >
-              <mat-icon>visibility</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="primary"
-              (click)="onEdit(item)"
-              matTooltip="Chỉnh sửa thông tin"
-            >
-              <mat-icon>edit</mat-icon>
+              <mat-icon color="primary">info_circle_outline</mat-icon>
             </button>
             <button
               mat-icon-button
@@ -93,15 +85,15 @@
               (click)="onDelete(item)"
               matTooltip="Xóa"
             >
-              <mat-icon>delete_outline</mat-icon>
+              <mat-icon>delete</mat-icon>
             </button>
 
             <button
               mat-icon-button
               [routerLink]="['detail', item.id]"
-              matTooltip="In TEM"
+              matTooltip="Chi tiết"
             >
-              <mat-icon>local_printshop</mat-icon>
+              <mat-icon>visibility</mat-icon>
             </button>
           </div>
         </td>

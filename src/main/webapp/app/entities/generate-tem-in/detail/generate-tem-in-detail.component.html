@@ -50,10 +50,16 @@
           mat-raised-button
           color="primary"
           (click)="onGenerateTemForRequest(requestId)"
+          [disabled]="isDisableGenerate"
         >
           Generate tem in
         </button>
-        <button mat-raised-button color="primary" (click)="saveLocation()">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="saveLocation()"
+          [disabled]="isDisableInputLocation"
+        >
           Lưu
         </button>
 
@@ -62,6 +68,7 @@
           color="primary"
           (click)="openCsvPreview()"
           matTooltip="Xuất Excel"
+          [disabled]="isDisable"
         >
           <fa-icon [icon]="faFileCsv"></fa-icon>
         </button>
@@ -71,6 +78,7 @@
           color="primary"
           (click)="openPrintPreviewAll()"
           matTooltip="In tất cả tem"
+          [disabled]="isDisable"
         >
           <fa-icon [icon]="faPrint"></fa-icon>
         </button>
@@ -139,6 +147,7 @@
               mat-icon-button
               (click)="onAction('exportCsv', item, index)"
               matTooltip="Xuất CSV"
+              [disabled]="isDisable"
             >
               <fa-icon [icon]="faFileCsv" size="xs"></fa-icon>
             </button>
@@ -147,6 +156,7 @@
               mat-icon-button
               (click)="onAction('print', item, index)"
               matTooltip="In tem"
+              [disabled]="isDisable"
             >
               <mat-icon>local_printshop</mat-icon>
             </button>
@@ -326,16 +336,16 @@
     </table>
 
     <!-- Paginator -->
-    <mat-divider class="my-3"></mat-divider>
-    <mat-paginator
-      [length]="materialTotalItems"
-      [pageSize]="materialPageSize"
-      [pageSizeOptions]="[5, 10, 25, 50, 100]"
-      (page)="onPageChange($event)"
-      showFirstLastButtons
-    >
-    </mat-paginator>
   </div>
+  <mat-divider class="my-3"></mat-divider>
+  <mat-paginator
+    [length]="materialTotalItems"
+    [pageSize]="materialPageSize"
+    [pageSizeOptions]="[5, 10, 25, 50, 100]"
+    (page)="onPageChange($event)"
+    showFirstLastButtons
+  >
+  </mat-paginator>
   <!-- Footer -->
   <!-- <div class="d-flex justify-content-end footer" style="margin-top: 1rem;">
     
@@ -924,7 +934,7 @@
         ></button>
       </div>
       <div class="modal-body pt-0" style="background-color: #f5f5f5">
-        <div class="print-preview-container" style="overflow-y: auto">
+        <div class="print-preview-container">
           <div
             class="label"
             *ngFor="
@@ -934,98 +944,105 @@
             "
           >
             <div class="label-content">
-              <div class="row-top">
+              <!-- Cột 1: QR Code + MSD Info -->
+              <div class="col-left">
                 <div class="qr-box">
-                  <!-- unique identifier -->
                   <qrcode
                     [qrdata]="label.qrCode"
-                    [width]="95"
+                    [width]="90"
                     [margin]="0"
                     [errorCorrectionLevel]="'M'"
                     [attr.data-label-id]="label.id + '-' + i"
                   >
                   </qrcode>
                 </div>
-
-                <div class="center-content">
-                  <div class="logo-line">
-                    <img
-                      style="margin-bottom: 0px"
-                      src="../../../content/images/logo-rang-dong.webp"
-                      alt="Logo-RangDong"
-                      class="sidebar-img"
-                    />
+                <div class="msd-info">
+                  <div class="msd-title">MSD:</div>
+                  <div class="msd-item">
+                    Date: {{ label.manufacturingDate }}
                   </div>
-                  <div class="big-code">{{ label.userData4 }}</div>
-                  <div class="product-name">{{ label.productName }}</div>
-                  <div class="order-code">{{ label.reelId }}</div>
+                  <div class="msd-item">Exp: {{ label.expirationDate }}</div>
                 </div>
+              </div>
 
-                <div class="rank-box">
-                  <div class="rank-item">
+              <!-- Cột 2: Center Content -->
+              <div class="col-center">
+                <div class="logo-box">
+                  <img
+                    src="../../../content/images/logo-rang-dong.webp"
+                    alt="Logo"
+                    class="logo-img"
+                  />
+                </div>
+                <div class="sap-code">{{ label.sapCode }}</div>
+                <div class="part-number">{{ label.partNumber }}</div>
+                <div class="reel-id-tem">{{ label.reelId }}</div>
+                <div class="info-grid-tem">
+                  <div class="info-row-tem">
+                    <span class="info-label-tem">Qty:</span>
+                    <span class="info-value-tem qty-big">{{
+                      label.initialQuantity
+                    }}</span>
+                  </div>
+                  <div class="info-row-tem">
+                    <span class="info-label-tem">Vendor:</span>
+                    <span class="info-value-tem">{{ label.vendor }}</span>
+                  </div>
+                  <div class="info-row-tem">
+                    <span class="info-label-tem">LOT:</span>
+                    <span class="info-value-tem">{{ label.lot }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột 3: Rank + Barcode -->
+              <div class="col-right">
+                <div class="rank-section">
+                  <div class="rank-item-small">
                     <span>Rank M:</span>
-                    <span class="rank-lg">{{ label.userData1 }}</span>
+                    <span class="rank-val">{{ label.userData1 }}</span>
                   </div>
-                  <div class="rank-item">
+                  <div class="rank-item-small">
                     <span>Rank A:</span>
-                    <span class="rank-lg">{{ label.userData2 }}</span>
+                    <span class="rank-val">{{ label.userData2 }}</span>
                   </div>
-                  <div class="rank-item">
+                  <div class="rank-item-small">
                     <span>Rank Q:</span>
-                    <span class="rank-lg">{{ label.userData3 }}</span>
-                  </div>
-                  <div class="lo-txt">Lo: {{ label.lot }}</div>
-                </div>
-              </div>
-
-              <div class="row-bottom">
-                <div class="info-left">
-                  <div class="msd-group">
-                    <div>MSD:</div>
-                    <div><b>Date:</b> {{ label.manufacturingDate }}</div>
-                    <div><b>Exp:</b> {{ label.expirationDate }}</div>
-                  </div>
-                  <div class="qty-group">
-                    <div>
-                      <b>Qty:</b>
-                      <span class="qty-big">{{ label.initialQuantity }}</span>
-                    </div>
-                    <div><b>Vendor:</b> {{ label.vendor }}</div>
-                    <div>
-                      <b>Lot:</b> <span>{{ label.lot }}</span>
-                    </div>
+                    <span class="rank-val">{{ label.userData3 }}</span>
                   </div>
                 </div>
 
-                <div class="info-right">
-                  <div class="rd-badge">{{ label.storageUnit }}</div>
+                <div class="storage-unit">{{ label.storageUnit }}</div>
+                <div class="lot-info">
+                  <span>Lo:</span>
+                  <span class="lot-info-bold">{{ label.lot }}</span>
+                </div>
 
-                  <div class="bc-item">
-                    <div class="bc-num">
-                      {{ formatArrivalDate(label.arrivalDate) }}
-                    </div>
+                <div class="barcode-box">
+                  <div class="bc-item-compact">
                     <div class="bc-line">
-                      <span>NV:</span>
-                      <!-- label.id  -->
-                      <span class="bars"
-                        ><svg [id]="'barcode-nv-' + label.id + '-' + i"></svg
-                      ></span>
+                      <div class="bc-label">NN:</div>
+                      <div class="bc-code">
+                        {{ formatArrivalDate(label.arrivalDate) }}
+                      </div>
+                    </div>
+                    <div class="bc-svg">
+                      <svg [id]="'barcode-nv-' + label.id + '-' + i"></svg>
                     </div>
                   </div>
 
-                  <div class="bc-item">
-                    <div class="bc-num">{{ label.userData5 }}</div>
+                  <div class="bc-item-compact">
                     <div class="bc-line">
-                      <span>Po:</span>
-                      <!-- label.id -->
-                      <span class="bars"
-                        ><svg [id]="'barcode-po-' + label.id + '-' + i"></svg
-                      ></span>
+                      <div class="bc-label">Po:</div>
+                      <div class="bc-code">{{ label.userData5 }}</div>
+                    </div>
+                    <div class="bc-svg">
+                      <svg [id]="'barcode-po-' + label.id + '-' + i"></svg>
                     </div>
                   </div>
                 </div>
+                <div class="product-name-small">{{ label.productName }}</div>
               </div>
-              <div class="note-bottom">{{ label.partNumber }}</div>
             </div>
           </div>
         </div>
