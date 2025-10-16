@@ -7,6 +7,7 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
+import { Router } from "@angular/router";
 import { GenerateTemInImportEditDialogComponent } from "./generate-tem-in-import-edit-dialog.component";
 
 // Models and Services
@@ -109,6 +110,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     private excelParserService: ExcelParserService,
     private dialog: MatDialog,
     private alertService: AlertService,
+    private router: Router,
   ) {}
 
   fc(k: DisplayColumnKeys): FormControl<string | null> {
@@ -486,17 +488,25 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    // Check if this group has been saved
+    const requestId = this.savedRequestIds.get(groupIndex);
+    if (!requestId) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Vui lòng lưu dữ liệu trước khi tạo mã QR",
+        timeout: 5000,
+        toast: true,
+      });
+      return;
+    }
+
     const group = this.groupedData[groupIndex];
     console.log(
-      `Tạo mã QR cho nhóm ${groupIndex + 1}: PO ${group.poCode} - Vendor ${group.vendor}, Products: ${group.products.length}`,
+      `Chuyển sang trang chi tiết để tạo mã QR cho nhóm ${groupIndex + 1}: PO ${group.poCode} - Vendor ${group.vendor}, Request ID: ${requestId}`,
     );
-    // TODO: Implement QR generation for specific group
-    this.alertService.addAlert({
-      type: "info",
-      message: `Tạo mã QR cho nhóm ${groupIndex + 1} (${group.poCode} - ${group.vendor}) - Chức năng đang được phát triển.`,
-      timeout: 5000,
-      toast: true,
-    });
+
+    // Navigate to detail page with the requestId
+    this.router.navigate(["/generate-tem-in/detail", requestId]);
   }
 
   // Debug method to check data loading

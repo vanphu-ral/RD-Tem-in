@@ -39,7 +39,7 @@ public class RequestResolver {
         return productService.findByRequestCreateTemId(Long.valueOf(requestId));
     }
 
-    //update
+    // update
     @QueryMapping(name = "updateProductOfRequest")
     public UpdateResponse updateProductOfRequest(
         @Argument("input") Map<String, Object> inputMap
@@ -55,7 +55,7 @@ public class RequestResolver {
     private UpdateProductInput convertToInput(Map<String, Object> map) {
         UpdateProductInput input = new UpdateProductInput();
 
-        //        log.info("🔍 Bắt đầu convert input map: {}", map);
+        // log.info("🔍 Bắt đầu convert input map: {}", map);
 
         try {
             Object idObj = map.get("id");
@@ -130,7 +130,7 @@ public class RequestResolver {
         return input;
     }
 
-    //Update location by request id
+    // Update location by request id
     @MutationMapping(name = "updateStorageUnitForRequest")
     public UpdateResponse updateStorageUnitForRequest(
         @Argument Integer requestId,

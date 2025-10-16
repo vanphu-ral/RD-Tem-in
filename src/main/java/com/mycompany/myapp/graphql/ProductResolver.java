@@ -7,6 +7,8 @@ import com.mycompany.myapp.service.ListProductOfRequestService;
 import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -16,6 +18,10 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 public class ProductResolver {
+
+    private static final Logger log = LoggerFactory.getLogger(
+        ProductResolver.class
+    );
 
     @Autowired
     private ListProductOfRequestService service;
@@ -40,11 +46,61 @@ public class ProductResolver {
         return service.createProductsBatch(requestId, products);
     }
 
-    @MutationMapping
+    @MutationMapping(name = "createRequestAndProducts")
     public CreateRequestWithProductsResponse createRequestAndProducts(
-        @Argument CreateRequestWithProductsInput input
+        @Argument("input") CreateRequestWithProductsInput input
     ) {
-        return service.createRequestAndProducts(input);
+        log.info("ProductResolver: Received createRequestAndProducts request");
+        log.info(
+            "Input: vendor={}, userData5={}, createdBy={}, products count={}",
+            input.getVendor(),
+            input.getUserData5(),
+            input.getCreatedBy(),
+            input.getProducts() != null ? input.getProducts().size() : 0
+        );
+
+        // Validate input
+        if (input == null) {
+            log.error("Input is null");
+            throw new IllegalArgumentException("Input cannot be null");
+        }
+
+        if (input.getProducts() == null || input.getProducts().isEmpty()) {
+            log.error("Products list is null or empty");
+            throw new IllegalArgumentException(
+                "Products list cannot be null or empty"
+            );
+        }
+
+        CreateRequestWithProductsResponse response =
+            service.createRequestAndProducts(input);
+
+        if (response == null) {
+            log.error("Service returned null response");
+            throw new IllegalStateException("Service returned null response");
+        }
+
+        if (response.getRequestId() == null) {
+            log.error("Response requestId is null");
+            throw new IllegalStateException(
+                "Response requestId cannot be null"
+            );
+        }
+
+        if (response.getProducts() == null) {
+            log.error("Response products is null");
+            throw new IllegalStateException("Response products cannot be null");
+        }
+
+        log.info(
+            "ProductResolver: Successfully created request with ID: {}",
+            response.getRequestId()
+        );
+        log.info(
+            "ProductResolver: Created {} products",
+            response.getProducts().size()
+        );
+        return response;
     }
 
     @MutationMapping

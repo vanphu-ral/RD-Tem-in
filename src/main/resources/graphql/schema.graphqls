@@ -9,11 +9,15 @@ type Mutation {
     createProduct(input: CreateProductInput!): ListProductOfRequest!
     createProductsBatch(requestId: Int!, products: [CreateProductInput!]!): [ListProductOfRequest!]!
     createRequestAndProducts(input: CreateRequestWithProductsInput!): CreateRequestWithProductsResponse!
+    generateTem(requestId: Int!): GenerateTemResponse!
+    updateProductOfRequest(input: UpdateProductInput!): UpdateResponse!
+    updateStorageUnitForRequest(requestId: Int!, storageUnit: String!): UpdateResponse!
 }
 
 input CreateProductInput {
     requestCreateTemId: Int
     sapCode: String!
+    productName: String
     temQuantity: Int!
     partNumber: String!
     lot: String!
@@ -41,9 +45,6 @@ type CreateRequestWithProductsResponse {
     requestId: Int!
     products: [ListProductOfRequest!]!
     message: String
-    generateTem(requestId: Int!): GenerateTemResponse!
-    updateProductOfRequest(input: UpdateProductInput!): UpdateResponse!
-    updateStorageUnitForRequest(requestId: Int!, storageUnit: String!): UpdateResponse!
 }
 
 # response generate tem in

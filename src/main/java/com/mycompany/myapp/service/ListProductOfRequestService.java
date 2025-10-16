@@ -45,7 +45,7 @@ public class ListProductOfRequestService {
         return repository.findByRequestCreateTemId(requestId);
     }
 
-    //update all for product
+    // update all for product
     public boolean updateProduct(UpdateProductInput input) {
         Optional<ListProductOfRequest> optional = repository.findById(
             input.getId()
@@ -103,7 +103,7 @@ public class ListProductOfRequestService {
         return true;
     }
 
-    //update location by requestID
+    // update location by requestID
     @Transactional
     public UpdateResponse updateStorageUnitForRequest(
         Long requestId,
@@ -307,46 +307,129 @@ public class ListProductOfRequestService {
     public CreateRequestWithProductsResponse createRequestAndProducts(
         CreateRequestWithProductsInput input
     ) {
-        // Calculate total quantity and number of products
-        int numberProduction = input.getProducts().size();
-        long totalQuantity = input
-            .getProducts()
-            .stream()
-            .mapToLong(p -> p.getInitialQuantity().longValue())
-            .sum();
+        try {
+            log.info("=== Starting createRequestAndProducts ===");
+            log.info("Input vendor: {}", input.getVendor());
+            log.info("Input userData5: {}", input.getUserData5());
+            log.info("Input createdBy: {}", input.getCreatedBy());
+            log.info(
+                "Number of products: {}",
+                input.getProducts() != null ? input.getProducts().size() : 0
+            );
 
-        // Step 1: Create the request first
-        ListRequestCreateTem request = requestService.createRequest(
-            input.getVendor(),
-            input.getUserData5(),
-            input.getCreatedBy(),
-            numberProduction,
-            totalQuantity
-        );
+            // Validate input
+            if (input == null) {
+                log.error("Input is null");
+                throw new IllegalArgumentException("Input cannot be null");
+            }
 
-        // Debug: Check if request was created successfully
-        if (request == null || request.getId() == null) {
+            if (input.getProducts() == null || input.getProducts().isEmpty()) {
+                log.error("Products list is null or empty");
+                throw new IllegalArgumentException(
+                    "Products list cannot be null or empty"
+                );
+            }
+
+            // Calculate total quantity and number of products
+            int numberProduction = input.getProducts().size();
+            long totalQuantity = input
+                .getProducts()
+                .stream()
+                .mapToLong(p ->
+                    p.getInitialQuantity() != null
+                        ? p.getInitialQuantity().longValue()
+                        : 0L
+                )
+                .sum();
+
+            log.info("Calculated numberProduction: {}", numberProduction);
+            log.info("Calculated totalQuantity: {}", totalQuantity);
+
+            // Step 1: Create the request first
+            log.info("Step 1: Creating request...");
+            ListRequestCreateTem request = requestService.createRequest(
+                input.getVendor(),
+                input.getUserData5(),
+                input.getCreatedBy(),
+                numberProduction,
+                totalQuantity
+            );
+
+            // Debug: Check if request was created successfully
+            if (request == null || request.getId() == null) {
+                log.error(
+                    "Failed to create request - request or request ID is null"
+                );
+                throw new RuntimeException(
+                    "Failed to create request - request or request ID is null"
+                );
+            }
+
+            log.info("Created request with ID: {}", request.getId());
+
+            // Step 2: Create products with the returned request ID
+            log.info("Step 2: Creating products batch...");
+            List<ListProductOfRequest> savedProducts = createProductsBatch(
+                request.getId().intValue(),
+                input.getProducts()
+            );
+
+            if (savedProducts == null || savedProducts.isEmpty()) {
+                log.error(
+                    "Failed to create products - savedProducts is null or empty"
+                );
+                throw new RuntimeException("Failed to create products");
+            }
+
+            log.info("Successfully created {} products", savedProducts.size());
+
+            // Step 3: Return response with request ID and products
+            // Ensure all fields are non-null
+            CreateRequestWithProductsResponse response =
+                new CreateRequestWithProductsResponse();
+            response.setRequestId(request.getId().intValue());
+            response.setProducts(savedProducts);
+            response.setMessage(
+                "Successfully created request and " +
+                savedProducts.size() +
+                " products"
+            );
+
+            // Validate response before returning
+            if (response.getRequestId() == null) {
+                log.error("Response requestId is null after setting");
+                throw new RuntimeException(
+                    "Failed to set requestId in response"
+                );
+            }
+
+            if (response.getProducts() == null) {
+                log.error("Response products is null after setting");
+                throw new RuntimeException(
+                    "Failed to set products in response"
+                );
+            }
+
+            log.info("=== createRequestAndProducts completed successfully ===");
+            log.info(
+                "Response: requestId={}, products count={}, message={}",
+                response.getRequestId(),
+                response.getProducts().size(),
+                response.getMessage()
+            );
+
+            return response;
+        } catch (Exception e) {
+            log.error(
+                "Error in createRequestAndProducts: {}",
+                e.getMessage(),
+                e
+            );
             throw new RuntimeException(
-                "Failed to create request - request or request ID is null"
+                "Failed to create request and products: " + e.getMessage(),
+                e
             );
         }
-
-        System.out.println("Created request with ID: " + request.getId());
-
-        // Step 2: Create products with the returned request ID
-        List<ListProductOfRequest> savedProducts = createProductsBatch(
-            request.getId().intValue(),
-            input.getProducts()
-        );
-
-        // Step 3: Return response with request ID and products
-        return new CreateRequestWithProductsResponse(
-            request.getId().intValue(),
-            savedProducts,
-            "Successfully created request and " +
-            savedProducts.size() +
-            " products"
-        );
     }
 
     @Transactional
