@@ -22,6 +22,14 @@ import {
 } from "../service/excel-parser.service";
 import { AlertService } from "app/core/util/alert.service";
 
+export interface SaveStatus {
+  groupIndex: number;
+  groupName: string;
+  status: "pending" | "saving" | "success" | "error";
+  message?: string;
+  timestamp?: Date;
+}
+
 export interface VatTuRow {
   stt: number;
   id?: number; // Product ID from database
@@ -64,6 +72,10 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
 
   // Track save button state for each group
   isSaving: Map<number, boolean> = new Map();
+
+  // Track save status for notification panel
+  saveStatuses: SaveStatus[] = [];
+  showSaveStatusPanel = false;
 
   displayedColumns: string[] = [
     "stt",
@@ -343,6 +355,11 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     const group = this.groupedData[groupIndex];
     this.isSaving.set(groupIndex, true);
 
+    // Show save status panel and add/update status
+    this.showSaveStatusPanel = true;
+    const groupName = `${group.poCode} - ${group.vendor}`;
+    this.updateSaveStatus(groupIndex, groupName, "saving");
+
     // Get current data from the data source (includes any edits)
     const dataSource = this.getDataSourceForGroup(groupIndex);
     const currentData = dataSource.data;
@@ -408,6 +425,14 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
             toast: true,
           });
           this.isSaving.set(groupIndex, false);
+
+          // Update save status
+          this.updateSaveStatus(
+            groupIndex,
+            groupName,
+            "success",
+            `Cập nhật thành công ${totalProducts} sản phẩm`,
+          );
         })
         .catch((error: any) => {
           console.error(`Error updating group ${groupIndex + 1}:`, error);
@@ -418,6 +443,9 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
             toast: true,
           });
           this.isSaving.set(groupIndex, false);
+
+          // Update save status
+          this.updateSaveStatus(groupIndex, groupName, "error", error.message);
         });
     } else {
       // Create new request
@@ -459,6 +487,14 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
             toast: true,
           });
           this.isSaving.set(groupIndex, false);
+
+          // Update save status
+          this.updateSaveStatus(
+            groupIndex,
+            groupName,
+            "success",
+            `Lưu thành công ${totalProducts} sản phẩm`,
+          );
         })
         .catch((error) => {
           console.error(`Error saving group ${groupIndex + 1}:`, error);
@@ -469,7 +505,76 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
             toast: true,
           });
           this.isSaving.set(groupIndex, false);
+
+          // Update save status
+          this.updateSaveStatus(groupIndex, groupName, "error", error.message);
         });
+    }
+  }
+
+  // Update save status for notification panel with auto-close
+  updateSaveStatus(
+    groupIndex: number,
+    groupName: string,
+    status: "pending" | "saving" | "success" | "error",
+    message?: string,
+  ): void {
+    const existingIndex = this.saveStatuses.findIndex(
+      (s) => s.groupIndex === groupIndex,
+    );
+    const newStatus: SaveStatus = {
+      groupIndex,
+      groupName,
+      status,
+      message,
+      timestamp: new Date(),
+    };
+
+    if (existingIndex >= 0) {
+      this.saveStatuses[existingIndex] = newStatus;
+    } else {
+      this.saveStatuses.push(newStatus);
+    }
+
+    // Auto-close after 3 seconds for success or error status
+    if (status === "success" || status === "error") {
+      setTimeout(() => {
+        this.clearSaveStatuses();
+      }, 3000);
+    }
+  }
+
+  // Clear all save statuses
+  clearSaveStatuses(): void {
+    this.saveStatuses = [];
+    this.showSaveStatusPanel = false;
+  }
+
+  // Get status icon
+  getStatusIcon(status: string): string {
+    switch (status) {
+      case "saving":
+        return "hourglass_empty";
+      case "success":
+        return "check_circle";
+      case "error":
+        return "error";
+      default:
+        return "pending";
+    }
+  }
+
+  // Get status color class
+  getStatusClass(status: string): string {
+    switch (status) {
+      case "saving":
+        return "status-saving";
+      case "success":
+        return "status-success";
+      case "error":
+        return "status-error";
+      default:
+        return "status-pending";
     }
   }
 
