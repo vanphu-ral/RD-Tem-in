@@ -228,9 +228,9 @@ public class ListProductOfRequestService {
         product.setVendor(input.getVendor());
 
         // Handle optional fields
-        product.setProductName(
-            input.getProductName() != null ? input.getProductName() : ""
-        );
+        //        product.setProductName(
+        //            input.getProductName() != null ? input.getProductName() : ""
+        //        );
         product.setUserData1(
             input.getUserData1() != null ? input.getUserData1() : ""
         );
@@ -506,4 +506,6 @@ public class ListProductOfRequestService {
 
         return savedProducts;
     }
+
+    //delete
 }

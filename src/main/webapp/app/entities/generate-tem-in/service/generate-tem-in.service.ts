@@ -41,30 +41,26 @@ const GET_REQUESTS_QUERY = gql`
 `;
 
 const GET_PRODUCTS_BY_REQUEST_QUERY = gql`
-  query GetProductsByRequest($requestId: ID!) {
-    requestList(page: 0, size: 1) {
+  query GetProductsByRequest($requestId: Int!) {
+    getProductOfRequestByRequestId(requestId: $requestId) {
       id
-      products(page: 0, size: 100) {
-        id
-        product_name
-        Request_create_tem_id
-        SAPCode
-        Tem_quantity
-        PartNumber
-        LOT
-        InitialQuantity
-        Vendor
-        UserData1
-        UserData2
-        UserData3
-        UserData4
-        UserData5
-        StorageUnit
-        ExpirationDate
-        ManufacturingDate
-        Arrival_date
-        Number_of_prints
-      }
+      requestCreateTemId
+      sapCode
+      temQuantity
+      partNumber
+      lot
+      initialQuantity
+      vendor
+      userData1
+      userData2
+      userData3
+      userData4
+      userData5
+      storageUnit
+      expirationDate
+      manufacturingDate
+      arrivalDate
+      numberOfPrints
     }
   }
 `;

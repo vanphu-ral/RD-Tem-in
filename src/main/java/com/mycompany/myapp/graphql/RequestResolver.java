@@ -141,4 +141,15 @@ public class RequestResolver {
             storageUnit
         );
     }
+
+    //delete req
+    @MutationMapping
+    public UpdateResponse deleteProduct(@Argument Integer productId) {
+        try {
+            //            productService.deleteById(productId);
+            return new UpdateResponse(true, "Xóa thành công");
+        } catch (Exception e) {
+            return new UpdateResponse(false, "Lỗi khi xóa: " + e.getMessage());
+        }
+    }
 }

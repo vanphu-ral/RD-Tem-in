@@ -1,10 +1,12 @@
 @use "@angular/material" as mat;
+
 .container {
   padding: 20px;
   background-color: #f8f9fa;
   min-height: 100vh;
   max-width: calc(95vw);
 }
+
 .gap-3 {
   gap: 1rem;
 }
@@ -59,7 +61,9 @@
 
 /* Table Container */
 .table-container {
-  width: 100%;
+  max-width: 100%;
+  height: 600px;
+  border-radius: 6px;
 }
 
 /* Material Table Styles */
@@ -434,406 +438,212 @@ thead tr:nth-child(2) {
 
 // Print Label Styling (36mm x 109mm)
 .print-preview-container {
-  padding: 20px;
-
-  .label {
-    width: 650px;
-    height: 235px;
-    border: 1px solid #ddd;
-    margin-bottom: 20px;
-    background: white;
-    position: relative;
-
-    // Preview styling
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-}
-
-.label-preview {
-  width: 109mm;
-  height: 36mm;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  page-break-after: always;
-}
-
-.label-content {
-  // display: flex;
-  height: 100%;
-  // padding: 4mm;
-  gap: 2mm;
-}
-
-// Left section (QR Code + Dates)
-.label-left {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1mm;
-}
-
-.qr-code-placeholder {
-  width: 20mm;
-  height: 20mm;
-  border: 2px solid #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-
-  .qr-placeholder {
-    font-size: 10px;
-    font-weight: bold;
-  }
-}
-
-.label-dates {
-  font-size: 7px;
-  text-align: center;
-  line-height: 1.2;
-
-  small {
-    font-size: 6px;
-  }
-}
-
-// Center section (Main Info)
-.label-center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5mm;
-  padding: 0 2mm;
-}
-
-.label-logo {
-  display: flex;
-  align-items: center;
-  gap: 2mm;
-  margin-bottom: 1mm;
-
-  img {
-    height: 4mm;
-  }
-
-  span {
-    font-size: 9px;
-    font-weight: bold;
-  }
-}
-
-.label-code {
-  font-size: 14px;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.label-part-number {
-  font-size: 13px;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.label-detail {
-  font-size: 7px;
-  color: #666;
-  line-height: 1;
-}
-
-.label-info-row {
-  font-size: 8px;
-  line-height: 1.3;
-
-  strong {
-    font-weight: 600;
-  }
-
-  small {
-    font-size: 7px;
-  }
-}
-
-// Right section (Ranks + Storage)
-.label-right {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2mm;
-  width: 25mm;
-}
-
-.rank-info {
-  font-size: 7px;
-  line-height: 1.4;
-
-  div {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  strong {
-    font-weight: 600;
-  }
-}
-
-.storage-box {
-  border: 1px solid #000;
-  border-radius: 3px;
-  padding: 2mm;
-  display: flex;
-  flex-direction: column;
-  gap: 1mm;
-}
-
-.storage-label {
-  font-size: 10px;
-  font-weight: bold;
-  text-align: center;
-  background: #f0f0f0;
-  padding: 1mm;
-  border-radius: 2px;
-}
-
-.barcode-area {
-  display: flex;
-  gap: 1px;
-  justify-content: space-between;
-  height: 8mm;
-  padding: 1mm 0;
-}
-
-.barcode-line {
-  width: 2px;
-  background: #000;
-  height: 100%;
-}
-
-.storage-details {
-  font-size: 6px;
-  line-height: 1.3;
-
-  div {
-    display: flex;
-    align-items: center;
-    gap: 1mm;
-  }
-
-  small {
-    font-size: 5px;
-  }
-}
-
-.barcode-small {
-  font-family: "Courier New", monospace;
-  font-size: 6px;
-  letter-spacing: -0.5px;
-  display: inline-flex;
-  align-items: center;
-
-  &::before,
-  &::after {
-    content: "|||";
-    font-size: 8px;
-    margin: 0 1px;
-  }
+  overflow-y: auto;
 }
 
 .label {
-  width: 650px;
-  height: 235px;
+  width: 600px;
+  height: 200px;
+  page-break-after: always;
   background: white;
-  border: 3px solid black;
-  border-radius: 10px;
-  padding: 8px;
-  position: relative;
+  margin-bottom: 1rem;
+}
+
+.label-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: 3rem;
+  padding: 1rem;
   font-family: Arial, sans-serif;
 }
 
-.row-top {
+/* === CỘT 1: QR + MSD === */
+.col-left {
+  width: 28mm;
   display: flex;
-  gap: 8px;
-  height: 130px;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .qr-box {
-  width: 110px;
-  height: 110px;
-  border: 2px solid black;
-  border-radius: 4px;
-  padding: 5px;
-  flex-shrink: 0;
+  width: 28mm;
+  height: 28mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid;
+  border-radius: 5px;
+  padding-top: 6px;
 }
 
-.center-content {
+.msd-info {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.msd-title {
+  margin-bottom: 1px;
+}
+
+.msd-item {
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1.2rem;
+}
+
+/* === CỘT 2: CENTER === */
+.col-center {
   flex: 1;
-
-  .logo-line {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    height: 24px;
-    margin-bottom: 2px;
-
-    img {
-      height: 22px;
-    }
-
-    .logo-txt {
-      color: #dc2626;
-      font-weight: 700;
-      font-size: 11px;
-    }
-  }
-
-  .big-code {
-    font-size: 28px;
-    font-weight: 900;
-    line-height: 0.8;
-    letter-spacing: -1.5px;
-    margin-bottom: 10px;
-  }
-
-  .product-name {
-    font-size: 30px;
-    font-weight: 900;
-    line-height: 0.85;
-    letter-spacing: -1px;
-    margin-bottom: 10px;
-  }
-
-  .order-code {
-    font-size: 14px;
-    font-weight: 600;
-    margin-top: 2px;
-  }
-}
-
-.rank-box {
-  width: 140px;
-  text-align: right;
-  font-size: 10px;
-  flex-shrink: 0;
-
-  .rank-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 1px;
-    font-weight: 700;
-
-    .rank-sm {
-      font-size: 11px;
-      font-weight: 900;
-    }
-
-    .rank-lg {
-      font-size: 14px;
-      font-weight: 900;
-      line-height: 0.9;
-    }
-  }
-
-  .lo-txt {
-    font-size: 18px;
-    font-weight: 700;
-    margin-top: 12px;
-  }
-}
-
-.row-bottom {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 5px;
-  font-size: 10px;
-}
-
-.info-left {
-  display: flex;
-  gap: 2px;
-
-  .msd-group {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    font-size: 14px;
-  }
-
-  .qty-group {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    margin-left: 55px;
-    font-size: 14px;
-    margin-top: -15px;
-
-    .qty-big {
-      font-size: 24px;
-      font-weight: 700;
-      line-height: 1;
-    }
-  }
-
-  .lot-small {
-    font-size: 9px;
-  }
-}
-
-.info-right {
-  text-align: right;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: -50px;
+  gap: 1mm;
+  align-items: left;
+}
 
-  .rd-badge {
-    border: 2px solid black;
-    border-radius: 3px;
-    padding: 2px 20px;
-    font-weight: 900;
-    font-size: 14px;
-    margin-bottom: 4px;
-    display: inline-block;
+.logo-box {
+  height: 6mm;
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  height: 5mm;
+  width: auto;
+}
+
+.sap-code {
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 0.3px;
+}
+
+.part-number {
+  font-size: 18px;
+  font-weight: 600;
+  font-weight: bold;
+}
+
+.reel-id {
+  font-size: 16px;
+}
+
+.info-grid-tem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+  width: 100%;
+  line-height: 1rem;
+}
+
+.info-row-tem {
+  display: flex;
+  gap: 2mm;
+  font-size: 10px;
+}
+
+.info-label-tem {
+  min-width: 12mm;
+}
+
+.info-value-tem {
+  font-weight: lighter;
+}
+
+.qty-big {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* === CỘT 3: RANK + BARCODE === */
+.col-right {
+  width: 32mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  font-size: 6pt;
+}
+
+.rank-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+}
+
+.rank-item-small {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.rank-val {
+  font-weight: bold;
+}
+
+.storage-unit {
+  color: rgb(0, 0, 0);
+  text-align: right;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.lot-info {
+  font-size: 10px;
+  justify-content: space-between;
+  display: flex;
+
+  .lot-info-bold {
+    font-weight: bold;
   }
+}
 
-  .bc-item {
-    .bc-num {
-      font-weight: 900;
-      font-size: 12px;
-      line-height: 0.9;
-      margin-bottom: 1px;
-      margin-top: 2px;
-    }
+.barcode-box {
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 1.5mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  flex: 1;
+}
 
-    .bc-line {
-      display: flex;
-      justify-content: flex-end;
-      gap: 3px;
-      font-size: 9px;
-      font-weight: 700;
+.bc-line {
+  display: flex;
+  justify-content: space-between;
+}
 
-      .bars {
-        width: 11rem;
-        height: 28px;
-        overflow: hidden;
-        display: flex;
-        justify-content: flex-end;
-      }
+.bc-item-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3mm;
+}
 
-      .bars svg {
-        display: inline-block;
-        margin-left: auto;
-      }
-    }
-  }
+.bc-label {
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.bc-code {
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.bc-svg {
+  height: 15px;
+  display: flex;
+  align-items: center;
+  align-self: end;
+}
+
+.bc-svg svg {
+  width: 100%;
+  height: 100%;
+}
+
+.product-name-small {
+  font-size: 8px;
+  text-align: right;
+  line-height: 0.4;
 }
 
 //modal
@@ -1170,6 +980,7 @@ thead tr:nth-child(2) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .po-number {
   background-color: #e3f2fd;
   color: #1565c0;
@@ -1473,6 +1284,7 @@ thead tr:nth-child(2) {
 //     size: 102.5mm 35mm;
 //     margin: 0;
 //   }
+// }
 
 //   // Hide everything
 //   * {

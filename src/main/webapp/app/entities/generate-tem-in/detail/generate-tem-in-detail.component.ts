@@ -130,6 +130,10 @@ export interface ListRequestCreateTem {
 export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   //biến lấy id PO
   poNumber = "";
+  //disable
+  isDisable = false;
+  isDisableInputLocation = false;
+  isDisableGenerate = false;
   //biến in
   printMode: "single" | "all" = "all";
 
@@ -314,7 +318,6 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     if (requestId) {
       this.getListRequest(requestId);
     }
-    this.getListAllTemDetails();
   }
   //back btn
   goBack(): void {
@@ -334,6 +337,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
         if (this.materials.length > 0) {
           this.poNumber = this.materials[0].userData5;
+          const productId = this.materials[0].id;
+          this.getListAllTemDetails(productId);
         }
       });
   }
@@ -349,10 +354,15 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     this.updatePagedMaterials();
   }
 
-  getListAllTemDetails(): void {
-    this.generateTemInService.getAllTemDetails().subscribe((data) => {
-      this.temDetailList = data;
-    });
+  getListAllTemDetails(requestId: number): void {
+    this.generateTemInService
+      .getTemDetailsByProductId(requestId)
+      .subscribe((data) => {
+        this.temDetailList = data;
+        this.isDisable = data.length === 0;
+        this.isDisableGenerate = data.length > 0;
+        console.log("data detail: ", data);
+      });
   }
 
   //snackbar notification
@@ -387,6 +397,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   //ham loc location
   filterStorageUnits(): void {
     const keyword = this.selectedStorageUnit?.toLowerCase() ?? "";
+    //disable save
+    this.isDisableInputLocation = keyword.trim() === "";
     if (keyword === "") {
       this.filteredUnits = []; //ẩn danh sách nếu không nhập gì
       return;
@@ -399,6 +411,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   selectUnit(unit: string): void {
     this.selectedStorageUnit = unit;
     this.filteredUnits = [];
+    this.isDisableInputLocation = unit.trim() === "";
   }
 
   //format date
@@ -435,6 +448,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
           this.showSnackbar(response.message, "Đóng", 3000, type);
 
           this.isGenerating = false;
+          window.location.reload();
         },
         error: (err) => {
           this.showSnackbar(
@@ -502,8 +516,20 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     style.textContent = `
     @media print {
       @page {
-        size: 807px 276px;
+        size: 102.5mm 35mm;
         margin: 0;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 102.5mm !important;
+        height: 35mm !important;
       }
 
       /* Hide everything */
@@ -518,19 +544,22 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         position: static !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: visible !important;  
+        overflow: visible !important;
+        width: 102.5mm !important;
+        height: auto !important;
       }
+
       #printPreviewModal,
       #printPreviewModal * {
         visibility: visible !important;
       }
 
       /* Label = page */
-       #printPreviewModal .label {
-        width: 650px !important;
-        height: 199px !important;
-        top: 0;
-        left: 0;
+      #printPreviewModal .label {
+        width: 102.5mm !important;
+        height: 35mm !important;
+        margin: 0 !important;
+        padding: 2mm !important;
         position: relative !important;
         overflow: hidden !important;
         background: white !important;
@@ -542,20 +571,176 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         page-break-after: avoid !important;
       }
 
-      /* Scaled content */
+      /* Content - Thu nhỏ padding */
       #printPreviewModal .label-content {
         position: relative !important;
-        top: 1px !important;
-        left: 1px !important;
-        width: 820px !important;
-        height: 250px !important;
-        padding: 5px !important;
-        transform: scale(0.9, 0.9) !important;
-        transform-origin: top left !important;
-        // border: 3px solid black !important;
-        border-radius: 10px !important;
+        width: 100% !important;
+        height: 100% !important;
+        padding: 0.8mm !important;
+        gap: 1.5mm !important;
+        transform: none !important;
         background: white !important;
         box-sizing: border-box !important;
+        display: flex !important;
+      }
+
+      /* Cột trái - THU NHỎ QR */
+      #printPreviewModal .col-left {
+        width: 25mm !important;
+        gap: 1.5mm !important;
+      }
+
+      #printPreviewModal .qr-box {
+        width: 22mm !important;
+        height: 22mm !important;
+        border: 0.5px solid #000 !important;
+        border-radius: 1px !important;
+        padding: 1mm !important;
+      }
+
+      /* THU NHỎ QR CODE */
+      #printPreviewModal .qr-box qrcode,
+      #printPreviewModal .qr-box canvas {
+        width: 18mm !important;
+        height: 18mm !important;
+        max-width: 18mm !important;
+        max-height: 18mm !important;
+      }
+
+      #printPreviewModal .msd-info {
+        font-size: 5.5pt !important;
+        line-height: 1.1 !important;
+      }
+
+      #printPreviewModal .msd-title {
+        font-size: 6pt !important;
+        margin-bottom: 0.3mm !important;
+      }
+
+      #printPreviewModal .msd-item {
+        font-size: 5.5pt !important;
+        line-height: 1.15 !important;
+        font-weight: bold !important;
+      }
+
+      /* Cột giữa */
+      #printPreviewModal .col-center {
+        flex: 1 !important;
+        gap: 2.5mm !important;
+      }
+
+      #printPreviewModal .logo-box {
+        height: 4mm !important;
+      }
+
+      #printPreviewModal .logo-img {
+        height: 3.5mm !important;
+      }
+
+      #printPreviewModal .sap-code {
+        font-size: 10pt !important;
+        line-height: 1 !important;
+      }
+
+      #printPreviewModal .part-number {
+        font-size: 8pt !important;
+        line-height: 1 !important;
+      }
+
+      #printPreviewModal .reel-id-tem {
+        font-size: 7pt !important;
+        line-height: 1 !important;
+      }
+
+      #printPreviewModal .info-grid-tem {
+        gap: 0.2mm !important;
+        line-height: 1 !important;
+      }
+
+      #printPreviewModal .info-row-tem {
+        font-size: 6pt !important;
+        line-height: 1.1 !important;
+        gap: 1mm !important;
+      }
+
+      #printPreviewModal .info-label-tem {
+        min-width: 10mm !important;
+        font-weight: bold !important;
+      }
+
+      #printPreviewModal .qty-big {
+        font-size: 7pt !important;
+        font-weight: bold !important;
+      }
+
+      /* Cột phải */
+      #printPreviewModal .col-right {
+        width: 28mm !important;
+        gap: 0.3mm !important;
+      }
+
+      #printPreviewModal .rank-section {
+        gap: 0.2mm !important;
+      }
+
+      #printPreviewModal .rank-item-small {
+        font-size: 5.5pt !important;
+        line-height: 1.1 !important;
+      }
+
+      #printPreviewModal .storage-unit {
+        font-size: 6pt !important;
+        padding: 0.3mm 0.5mm !important;
+        line-height: 1.2 !important;
+      }
+
+      #printPreviewModal .lot-info {
+        font-size: 5.5pt !important;
+        line-height: 1.1 !important;
+      }
+
+      #printPreviewModal .barcode-box {
+        padding: 0.5mm !important;
+        gap: 0.2mm !important;
+        border: 0.5px solid #333 !important;
+      }
+
+      #printPreviewModal .bc-item-compact {
+        gap: 0.2mm !important;
+      }
+
+      #printPreviewModal .bc-line {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.3mm !important;
+      }
+
+      #printPreviewModal .bc-label {
+        font-size: 5.5pt !important;
+        line-height: 1 !important;
+      }
+
+      #printPreviewModal .bc-code {
+        font-size: 5.5pt !important;
+        line-height: 1 !important;
+      }
+
+      #printPreviewModal .bc-svg {
+        height: 3.5mm !important;
+        flex: 1 !important;
+      }
+
+      #printPreviewModal .bc-svg svg {
+        height: 100% !important;
+        width: auto !important;
+        max-width: 100% !important;
+        object-fit: contain !important;
+      }
+
+      #printPreviewModal .product-name-small {
+        font-size: 4.5pt !important;
+        line-height: 1.1 !important;
+        margin-top: 0.3mm !important;
       }
 
       /* Colors */
@@ -563,9 +748,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
       }
-      #printPreviewModal .label-content>* {
-        transform: none !important;
-      }
+
       /* QR & Barcodes */
       #printPreviewModal canvas,
       #printPreviewModal qrcode,
@@ -578,10 +761,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
       }
-      #printPreviewModal .qr-box {
-        visibility: visible !important;
-        display: block !important;
-      }
+
       body>*:not(#printPreviewModal) {
         display: none !important;
       }
@@ -724,6 +904,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         console.log("Loaded tem details:", data.length);
         this.isLoadingTemDetails = false;
 
+        this.isDisable = data.length === 0;
         if (callback) {
           callback(); // gọi sau khi dữ liệu đã sẵn sàng
         }
@@ -737,6 +918,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
           "error",
         );
         this.isLoadingTemDetails = false;
+        this.isDisable = true;
       },
     });
   }
@@ -816,35 +998,31 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
 
   prepareSingleCsvData(productId: number): void {
-    const matched = this.temDetailList.find(
+    const matchedItems = this.temDetailList.filter(
       (item) => item.productOfRequestId === productId,
     );
-    console.log("Matched tem:", matched);
-    this.csvData = matched
-      ? [
-          {
-            productOfRequestId: matched.productOfRequestId,
-            reelId: matched.reelId,
-            sapCode: matched.sapCode,
-            productName: matched.productName,
-            partNumber: matched.partNumber,
-            lot: matched.lot,
-            initialQuantity: matched.initialQuantity,
-            vendor: matched.vendor,
-            userData1: matched.userData1,
-            userData2: matched.userData2,
-            userData3: matched.userData3,
-            userData4: matched.userData4,
-            userData5: matched.userData5,
-            storageUnit: matched.storageUnit,
-            expirationDate: matched.expirationDate,
-            manufacturingDate: matched.manufacturingDate,
-            arrivalDate: matched.arrivalDate,
-            qrCode: matched.qrCode,
-            slTemQuantity: matched.slTemQuantity,
-          },
-        ]
-      : [];
+    console.log("Matched tem:", matchedItems);
+    this.csvData = matchedItems.map((matched) => ({
+      productOfRequestId: matched.productOfRequestId,
+      reelId: matched.reelId,
+      sapCode: matched.sapCode,
+      productName: matched.productName,
+      partNumber: matched.partNumber,
+      lot: matched.lot,
+      initialQuantity: matched.initialQuantity,
+      vendor: matched.vendor,
+      userData1: matched.userData1,
+      userData2: matched.userData2,
+      userData3: matched.userData3,
+      userData4: matched.userData4,
+      userData5: matched.userData5,
+      storageUnit: matched.storageUnit,
+      expirationDate: matched.expirationDate,
+      manufacturingDate: matched.manufacturingDate,
+      arrivalDate: matched.arrivalDate,
+      qrCode: matched.qrCode,
+      slTemQuantity: matched.slTemQuantity,
+    }));
     this.showCsvModal = true;
   }
 
@@ -870,6 +1048,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       qrCode: item.qrCode,
       slTemQuantity: item.slTemQuantity,
     }));
+    this.isDisable = this.temDetailList.length === 0;
   }
 
   exportCsv(): void {
@@ -1006,14 +1185,14 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     this.printLabels = [];
 
     //  Đóng modal nếu đang mở (clear DOM cũ)
-    this.showPrintModal = false;
+    // this.showPrintModal = false;
 
     this.generateTemInService.getAllTemDetails().subscribe({
       next: (data) => {
         this.printLabels = data;
+        this.isDisable = data.length === 0;
         console.log("Tổng số tem để in:", this.printLabels.length);
-
-        if (this.printLabels.length === 0) {
+        if (this.isDisable) {
           this.showSnackbar(
             "Chưa có tem nào được tạo!",
             "Đóng",
