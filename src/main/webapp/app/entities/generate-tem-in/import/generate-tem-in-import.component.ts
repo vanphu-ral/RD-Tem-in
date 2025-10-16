@@ -64,6 +64,9 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   khoControl = new FormControl<string | null>(null);
   allowSplitControl = new FormControl<boolean>(false);
 
+  // Popup control
+  showImportPopup = false;
+
   // Track saved request IDs for each group to prevent duplicate creation
   savedRequestIds: Map<number, number> = new Map();
 
@@ -254,6 +257,16 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     return this.groupDataSources.get(groupIndex)!;
   }
 
+  // Open import popup
+  openImportPopup(): void {
+    this.showImportPopup = true;
+  }
+
+  // Close import popup
+  closeImportPopup(): void {
+    this.showImportPopup = false;
+  }
+
   import(): void {
     if (!this.selectedFile) {
       this.alertService.addAlert({
@@ -271,6 +284,9 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     this.isSaving.clear();
 
     this.parseExcelFile(this.selectedFile);
+
+    // Close popup after successful import
+    this.closeImportPopup();
   }
 
   save(): void {
@@ -482,18 +498,17 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
 
           this.alertService.addAlert({
             type: "success",
-            message: `Lưu thành công nhóm ${groupIndex + 1} (${group.poCode} - ${group.vendor}) với ${totalProducts} sản phẩm.`,
+            message: `Lưu thành công nhóm ${groupIndex + 1} (${group.poCode} - ${group.vendor})`,
             timeout: 5000,
             toast: true,
           });
           this.isSaving.set(groupIndex, false);
 
-          // Update save status
           this.updateSaveStatus(
             groupIndex,
             groupName,
             "success",
-            `Lưu thành công ${totalProducts} sản phẩm`,
+            `Lưu thành công`,
           );
         })
         .catch((error) => {
