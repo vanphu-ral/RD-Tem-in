@@ -26,6 +26,9 @@ import { GenerateTemInDetailComponent } from "./detail/generate-tem-in-detail.co
 import { GenerateTemInImportEditDialogComponent } from "./import/generate-tem-in-import-edit-dialog.component";
 import { HttpLink } from "apollo-angular/http";
 import { InMemoryCache } from "@apollo/client/cache";
+import { GenerateTemInConfirmDialogComponent } from "./generate-tem-in-modal-confirm/modal-confirm.component";
+import { MatCardModule } from "@angular/material/card";
+
 // import { ApolloModule } from 'apollo-angular';
 // import { HttpClientModule } from '@angular/common/http';
 import { MatDialogModule } from "@angular/material/dialog";
@@ -36,7 +39,7 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { MatDividerModule } from "@angular/material/divider";
 @NgModule({
   imports: [
-    MatDialogModule,
+    // MatDialogModule,
     MatProgressSpinnerModule,
     MatChipsModule,
     MatSortModule,
@@ -55,6 +58,7 @@ import { MatDividerModule } from "@angular/material/divider";
     MatSelectModule,
     MatMenuModule,
     MatRadioModule,
+    MatCardModule,
     // ApolloModule,
     // HttpClientModule,
     MatListModule,
@@ -66,12 +70,14 @@ import { MatDividerModule } from "@angular/material/divider";
     SharedModule,
     MatAutocompleteModule,
     QRCodeComponent,
+    MatDialogModule,
   ],
 
   declarations: [
     GenerateTemInComponent,
     GenerateTemInImportComponent,
     GenerateTemInDetailComponent,
+    GenerateTemInConfirmDialogComponent,
     GenerateTemInImportEditDialogComponent,
   ],
 
@@ -79,6 +85,7 @@ import { MatDividerModule } from "@angular/material/divider";
     GenerateTemInComponent,
     GenerateTemInImportComponent,
     GenerateTemInDetailComponent,
+    GenerateTemInConfirmDialogComponent,
   ],
 })
 export class GenerateTemInModule {}

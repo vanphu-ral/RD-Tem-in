@@ -16,6 +16,14 @@ import {
   MaterialItem,
   TemDetail,
 } from "../detail/generate-tem-in-detail.component";
+export interface UpdateResponse {
+  success: boolean;
+  message: string;
+}
+
+// @Injectable({
+//   providedIn: "root",
+// })
 
 const GET_REQUESTS_QUERY = gql`
   query GetRequests {
@@ -180,10 +188,7 @@ type GetRequestsResult = {
 };
 
 type GetProductsByRequestResult = {
-  requestList: Array<{
-    id: string | number;
-    products: ListProductOfRequest[];
-  }>;
+  getProductOfRequestByRequestId: MaterialItem[];
 };
 
 type CreateProductResult = {
@@ -278,6 +283,7 @@ export class GenerateTemInService {
           requestCreateTemId
           sapCode
           productName
+          temQuantity
           partNumber
           lot
           initialQuantity
@@ -292,7 +298,6 @@ export class GenerateTemInService {
           manufacturingDate
           arrivalDate
           numberOfPrints
-          temQuantity
         }
       }
     `;
@@ -324,30 +329,26 @@ export class GenerateTemInService {
             manufacturingDate: item.manufacturingDate,
             arrivalDate: item.arrivalDate,
             qrCode: "",
-            lanIn: 0,
-            soTem: item.temQuantity,
+            requestCreateTemId: item.requestCreateTemId,
+            temQuantity: item.temQuantity,
+            numberOfPrints: item.numberOfPrints,
           })),
         ),
       );
   }
 
-  getProductsByRequestId(
-    requestId: number,
-  ): Observable<ListProductOfRequest[]> {
+  getProductsByRequestId(requestId: number): Observable<MaterialItem[]> {
     return this.apollo
       .query<GetProductsByRequestResult>({
         query: GET_PRODUCTS_BY_REQUEST_QUERY,
-        variables: { requestId: String(requestId) },
+        variables: { requestId },
         fetchPolicy: "network-only",
       })
       .pipe(
-        map((result) => {
-          const requests = result.data.requestList;
-          if (Array.isArray(requests) && requests.length > 0) {
-            return (requests[0].products || []) as ListProductOfRequest[];
-          }
-          return [] as ListProductOfRequest[];
-        }),
+        map(
+          (result): MaterialItem[] =>
+            result.data.getProductOfRequestByRequestId as MaterialItem[],
+        ),
       );
   }
 
@@ -648,11 +649,44 @@ export class GenerateTemInService {
       responseType: "blob",
     });
   }
+  //lưu kho
+  updateStorageUnitForRequest(
+    requestId: number,
+    storageUnit: string,
+  ): Observable<UpdateResponse> {
+    const UPDATE_STORAGE_UNIT = gql`
+      mutation ($requestId: Int!, $storageUnit: String!) {
+        updateStorageUnitForRequest(
+          requestId: $requestId
+          storageUnit: $storageUnit
+        ) {
+          success
+          message
+        }
+      }
+    `;
 
-  generateTem(storageUnit: string): Observable<GenerateTemResponse> {
-    const GENERATE_TEM = gql`
-      mutation ($storageUnit: String!) {
-        generateTem(storageUnit: $storageUnit) {
+    return this.apollo
+      .mutate<{ updateStorageUnitForRequest: UpdateResponse }>({
+        mutation: UPDATE_STORAGE_UNIT,
+        variables: { requestId, storageUnit },
+      })
+      .pipe(
+        map(
+          (result) =>
+            result.data?.updateStorageUnitForRequest ?? {
+              success: false,
+              message: "Không nhận được phản hồi từ server",
+            },
+        ),
+      );
+  }
+
+  //thông báo sau khi render tem
+  generateTemByRequest(requestId: number): Observable<GenerateTemResponse> {
+    const GENERATE_TEM_BY_REQUEST = gql`
+      mutation ($requestId: Int!) {
+        generateTem(requestId: $requestId) {
           success
           message
           totalTems
@@ -662,8 +696,8 @@ export class GenerateTemInService {
 
     return this.apollo
       .mutate<{ generateTem: GenerateTemResponse }>({
-        mutation: GENERATE_TEM,
-        variables: { storageUnit },
+        mutation: GENERATE_TEM_BY_REQUEST,
+        variables: { requestId },
       })
       .pipe(
         map(
@@ -676,6 +710,8 @@ export class GenerateTemInService {
         ),
       );
   }
+
+  //Lấy chi tiết tem detai theo Request_create_tem_id của list_product_of_request
   getTemDetailsByProductId(productId: number): Observable<TemDetail[]> {
     const GET_TEM_DETAILS = gql`
       query GetTemDetailsByProductId($productId: Int!) {
@@ -748,5 +784,44 @@ export class GenerateTemInService {
         fetchPolicy: "network-only",
       })
       .valueChanges.pipe(map((result) => result.data.infoTemDetails));
+  }
+  /**
+   * Query: Chỉnh sửa bảng list_product_of_request
+   */
+  updateProductOfRequest(product: any): Observable<any> {
+    const UPDATE_PRODUCT_MUTATION = gql`
+      mutation UpdateProductOfRequest($input: UpdateProductInput!) {
+        updateProductOfRequest(input: $input) {
+          success
+          message
+        }
+      }
+    `;
+
+    return this.apollo.mutate({
+      mutation: UPDATE_PRODUCT_MUTATION,
+      variables: {
+        input: {
+          id: Number(product.id),
+          sapCode: product.sapCode,
+          requestCreateTemId: product.requestCreateTemId,
+          partNumber: product.partNumber,
+          lot: product.lot,
+          temQuantity: product.temQuantity,
+          initialQuantity: product.initialQuantity,
+          vendor: product.vendor,
+          userData1: product.userData1,
+          userData2: product.userData2,
+          userData3: product.userData3,
+          userData4: product.userData4,
+          userData5: product.userData5,
+          storageUnit: product.storageUnit,
+          expirationDate: product.expirationDate,
+          manufacturingDate: product.manufacturingDate,
+          arrivalDate: product.arrivalDate,
+          numberOfPrints: product.numberOfPrints,
+        },
+      },
+    });
   }
 }

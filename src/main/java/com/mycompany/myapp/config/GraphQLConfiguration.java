@@ -12,6 +12,7 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -94,110 +95,61 @@ public class GraphQLConfiguration {
                             productId
                         );
                     })
+                    .dataFetcher("updateProductOfRequest", env -> {
+                        Map<String, Object> inputMap = env.getArgument("input");
+                        return requestResolver.updateProductOfRequest(inputMap);
+                    })
+                    // lay du lieu request
+                    .dataFetcher("getProductOfRequestByRequestId", env -> {
+                        Integer requestId = env.getArgument("requestId");
+                        return requestResolver.listProductOfRequestByRequestId(
+                            requestId
+                        );
+                    })
             )
             // MUTATION - THÊM PHẦN NÀY!
             .type("Mutation", builder ->
-                builder
-                    .dataFetcher("generateTem", env -> {
-                        // log.info("==========================================");
-                        // log.info("Mutation: generateTem called!");
-                        // log.info("==========================================");
+                builder.dataFetcher("generateTem", env -> {
+                    // log.info("==========================================");
+                    // log.info("Mutation: generateTem called!");
+                    // log.info("==========================================");
 
-                        String storageUnit = env.getArgument("storageUnit");
-                        // log.info("Argument storageUnit: {}", storageUnit);
+                    Integer storageUnit = env.getArgument("storageUnit");
+                    // log.info("Argument storageUnit: {}", storageUnit);
 
-                        try {
-                            GenerateTemResponse response =
-                                detailResolver.generateTem(storageUnit);
+                    try {
+                        GenerateTemResponse response =
+                            detailResolver.generateTem(storageUnit);
 
-                            if (response == null) {
-                                // log.error("DetailResolver.generateTem returned NULL!");
-                                return new GenerateTemResponse(
-                                    false,
-                                    "Resolver returned null",
-                                    0
-                                );
-                            }
-
-                            log.info(
-                                "Response: success={}, totalTems={}",
-                                response.isSuccess(),
-                                response.getTotalTems()
-                            );
-
-                            return response;
-                        } catch (Exception e) {
-                            log.error(
-                                "Error in generateTem DataFetcher: {}",
-                                e.getMessage(),
-                                e
-                            );
+                        if (response == null) {
+                            // log.error("DetailResolver.generateTem returned NULL!");
                             return new GenerateTemResponse(
                                 false,
-                                "Error: " + e.getMessage(),
+                                "Resolver returned null",
                                 0
                             );
                         }
-                    })
-                    .dataFetcher("createProduct", env -> {
-                        log.debug("Mutation: createProduct called");
-                        com.mycompany.myapp.graphql.dto.CreateProductInput input =
-                            env.getArgument("input");
-                        return productResolver.createProduct(input);
-                    })
-                    .dataFetcher("createProductsBatch", env -> {
-                        log.debug("Mutation: createProductsBatch called");
-                        Integer requestId = env.getArgument("requestId");
-                        java.util.List<
-                            com.mycompany.myapp.graphql.dto.CreateProductInput
-                        > products = env.getArgument("products");
-                        return productResolver.createProductsBatch(
-                            requestId,
-                            products
+
+                        log.info(
+                            "Response: success={}, totalTems={}",
+                            response.isSuccess(),
+                            response.getTotalTems()
                         );
-                    })
-                    .dataFetcher("createRequestAndProducts", env -> {
-                        log.debug("Mutation: createRequestAndProducts called");
-                        try {
-                            java.util.Map<String, Object> inputMap =
-                                env.getArgument("input");
-                            com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput input =
-                                convertMapToInput(inputMap);
-                            com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse response =
-                                productResolver.createRequestAndProducts(input);
 
-                            if (response == null) {
-                                log.error(
-                                    "createRequestAndProducts returned null!"
-                                );
-                                return new com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse(
-                                    null,
-                                    java.util.Collections.emptyList(),
-                                    "Error: Service returned null"
-                                );
-                            }
-
-                            log.debug(
-                                "createRequestAndProducts succeeded: requestId={}, products={}",
-                                response.getRequestId(),
-                                response.getProducts() != null
-                                    ? response.getProducts().size()
-                                    : 0
-                            );
-                            return response;
-                        } catch (Exception e) {
-                            log.error(
-                                "Error in createRequestAndProducts DataFetcher: {}",
-                                e.getMessage(),
-                                e
-                            );
-                            return new com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse(
-                                null,
-                                java.util.Collections.emptyList(),
-                                "Error: " + e.getMessage()
-                            );
-                        }
-                    })
+                        return response;
+                    } catch (Exception e) {
+                        log.error(
+                            "Error in generateTem DataFetcher: {}",
+                            e.getMessage(),
+                            e
+                        );
+                        return new GenerateTemResponse(
+                            false,
+                            "Error: " + e.getMessage(),
+                            0
+                        );
+                    }
+                })
             )
             .build();
 

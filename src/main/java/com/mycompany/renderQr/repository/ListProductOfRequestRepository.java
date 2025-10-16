@@ -16,7 +16,7 @@ public interface ListProductOfRequestRepository
     @Query(
         "SELECT p FROM ListProductOfRequest p WHERE p.requestCreateTemId = :requestId"
     )
-    List<ListProductOfRequestResponse> findByRequestCreateTemId(
+    List<ListProductOfRequest> findByRequestCreateTemId(
         @Param("requestId") Long requestId
     );
 

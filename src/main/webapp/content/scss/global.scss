@@ -58,7 +58,65 @@ Browser Upgrade Prompt
 /* ==========================================================================
 Generic styles
 ========================================================================== */
+//Màu mềm mại, dễ nhìn
+.mat-mdc-snack-bar-container {
+  &.snackbar-success {
+    --mdc-snackbar-container-color: #10b981 !important; // Green-500 (Tailwind)
+    --mat-snack-bar-button-color: #fff !important;
 
+    .mdc-snackbar__surface {
+      background-color: #10b981 !important; // Xanh lá nhẹ nhàng
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+    }
+
+    .mat-mdc-snack-bar-label,
+    .mat-mdc-button {
+      color: #ffffff !important;
+      font-weight: 500;
+    }
+  }
+
+  &.snackbar-error {
+    --mdc-snackbar-container-color: #ef4444 !important; // Red-500 (Tailwind)
+    --mat-snack-bar-button-color: #fff !important;
+
+    .mdc-snackbar__surface {
+      background-color: #ef4444 !important; // Đỏ vừa phải
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+    }
+
+    .mat-mdc-snack-bar-label,
+    .mat-mdc-button {
+      color: #ffffff !important;
+      font-weight: 500;
+    }
+  }
+
+  &.snackbar-warning {
+    --mdc-snackbar-container-color: #f59e0b !important; // Amber-500 (Tailwind)
+    --mat-snack-bar-button-color: #fff !important;
+
+    .mdc-snackbar__surface {
+      background-color: #f59e0b !important; // Cam vàng dịu
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
+    }
+
+    .mat-mdc-snack-bar-label,
+    .mat-mdc-button {
+      color: #ffffff !important;
+      font-weight: 500;
+    }
+  }
+}
+
+// ✅ Optional: Thêm animation mượt hơn
+.mat-mdc-snack-bar-container {
+  border-radius: 8px !important;
+
+  .mdc-snackbar__surface {
+    border-radius: 8px !important;
+  }
+}
 /* Error highlight on input fields */
 // .ng-valid[required],
 // .ng-valid.required {

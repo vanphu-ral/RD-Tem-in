@@ -21,7 +21,7 @@ const generateTemInRoute: Routes = [
     canActivate: [UserRouteAccessService],
   },
   {
-    path: "detail",
+    path: "detail/:id",
     component: GenerateTemInDetailComponent,
     canActivate: [UserRouteAccessService],
   },

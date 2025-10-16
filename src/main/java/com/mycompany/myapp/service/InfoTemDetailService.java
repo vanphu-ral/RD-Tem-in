@@ -28,17 +28,11 @@ public class InfoTemDetailService {
     private ListRequestCreateTemRepository requestRepo;
 
     @Transactional
-    public GenerateTemResponse generateTemForAllProducts(String storageUnit) {
-        System.out.println("=== BẮT ĐẦU TẠO TEM ===");
-        System.out.println("Storage Unit: " + storageUnit);
-
+    public GenerateTemResponse generateTemForAllProducts(Long requestId) {
         try {
-            // 1. Lấy TẤT CẢ sản phẩm từ bảng list_product_of_request
-            List<ListProductOfRequest> allProducts = productRepo.findAll();
-
-            System.out.println(
-                "Tổng số sản phẩm trong DB: " + allProducts.size()
-            );
+            //Lấy TẤT CẢ sản phẩm từ bảng list_product_of_request
+            List<ListProductOfRequest> allProducts =
+                productRepo.findByRequestCreateTemId(requestId);
 
             if (allProducts.isEmpty()) {
                 return new GenerateTemResponse(
@@ -48,37 +42,26 @@ public class InfoTemDetailService {
                 );
             }
 
-            // 2. Lấy timestamp hiện tại (dùng chung cho tất cả tem)
+            //Lấy timestamp hiện tại (dùng chung cho tất cả tem)
             String timestamp = LocalDateTime.now().format(
                 DateTimeFormatter.ofPattern("yyyyMMddHHmm")
             );
-            System.out.println("Timestamp: " + timestamp);
+            //            System.out.println("Timestamp: " + timestamp);
 
-            // 3. Lấy sequence number cuối cùng
+            // Lấy sequence number cuối cùng
             int reelCounter = getLastSequenceNumber() + 1;
-            System.out.println("Bắt đầu từ sequence: " + reelCounter);
+            //            System.out.println("Bắt đầu từ sequence: " + reelCounter);
 
             List<InfoTemDetail> allTemList = new ArrayList<>();
             int totalTems = 0;
 
-            // 4. Duyệt qua TỪNG sản phẩm
+            //Duyệt qua TỪNG sản phẩm
             for (ListProductOfRequest product : allProducts) {
-                System.out.println(
-                    "\n--- Xử lý sản phẩm ID: " + product.getId() + " ---"
-                );
-                System.out.println("PartNumber: " + product.getPartNumber());
-                System.out.println(
-                    "PO Code (UserData5): " + product.getUserData5()
-                );
-                System.out.println(
-                    "Số tem cần tạo: " + product.getTemQuantity()
-                );
-
                 // Lấy 2 số cuối của PO code
                 String poNumber = extractPONumber(product.getUserData5());
-                System.out.println("PO Number (2 số cuối): " + poNumber);
+                //                System.out.println("PO Number (2 số cuối): " + poNumber);
 
-                // 5. Tạo TEM theo số lượng Tem_quantity
+                // Tạo TEM theo số lượng Tem_quantity
                 for (int i = 0; i < product.getTemQuantity(); i++) {
                     // Generate ReelID: yyyyMMddHHmm + PO(2 số) + XXXX
                     String reelId =
@@ -101,7 +84,7 @@ public class InfoTemDetailService {
                         product.getUserData5(), // POCode
                         String.valueOf(product.getInitialQuantity()), // Qty
                         "MSL", // MSL (hard-coded)
-                        storageUnit, // Storage Unit (từ FE)
+                        product.getStorageUnit(), // Storage Unit (từ BE)
                         product
                             .getManufacturingDate()
                             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")), // MFG Date
@@ -125,7 +108,7 @@ public class InfoTemDetailService {
                     detail.setUserData3(product.getUserData3());
                     detail.setUserData4(product.getUserData4());
                     detail.setUserData5(product.getUserData5());
-                    detail.setStorageUnit(storageUnit); // LƯU KHO VÀO ĐÂY
+                    detail.setStorageUnit(product.getStorageUnit()); // LƯU KHO VÀO ĐÂY
                     detail.setExpirationDate(
                         product.getExpirationDate().toLocalDate()
                     );
@@ -150,7 +133,7 @@ public class InfoTemDetailService {
                 }
             }
 
-            // 6. Lưu TẤT CẢ tem vào database một lần
+            // Lưu TẤT CẢ tem vào database một lần
             if (!allTemList.isEmpty()) {
                 detailRepo.saveAll(allTemList);
                 System.out.println(
@@ -251,13 +234,8 @@ public class InfoTemDetailService {
         return detailRepo
             .findAll()
             .stream()
-            .map(this::mapToResponse)
+            .map(this::convertToResponse)
             .collect(Collectors.toList());
-    }
-
-    private InfoTemDetailResponse mapToResponse(InfoTemDetail entity) {
-        // Mapping logic
-        return (InfoTemDetailResponse) detailRepo.findAllTemDetailProjected();
     }
 
     public List<InfoTemDetailResponse> getInfoTemDetailByProductId(

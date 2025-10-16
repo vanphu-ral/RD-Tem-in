@@ -96,7 +96,11 @@
               <mat-icon>delete_outline</mat-icon>
             </button>
 
-            <button mat-icon-button (click)="onPrint(item)" matTooltip="In TEM">
+            <button
+              mat-icon-button
+              [routerLink]="['detail', item.id]"
+              matTooltip="In TEM"
+            >
               <mat-icon>local_printshop</mat-icon>
             </button>
           </div>

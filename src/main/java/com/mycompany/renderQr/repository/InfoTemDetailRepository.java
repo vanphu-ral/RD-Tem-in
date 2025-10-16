@@ -11,9 +11,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface InfoTemDetailRepository
     extends JpaRepository<InfoTemDetail, Long> {
-    @Query(value = "SELECT * FROM info_tem_detail", nativeQuery = true)
-    List<InfoTemDetailResponse> findAllTemDetailProjected();
-
     Optional<InfoTemDetail> findTopByOrderByIdDesc();
 
     //lấy tem detail theo request id

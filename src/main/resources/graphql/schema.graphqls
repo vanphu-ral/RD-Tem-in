@@ -1,22 +1,19 @@
 type Query {
     listRequestCreateTems: [ListRequestCreateTem]
-    listProductOfRequests: [ListProductOfRequest]
+    getProductOfRequestByRequestId(requestId: Int!): [ListProductOfRequest]
     infoTemDetails: [InfoTemDetail]
     infoTemDetailsByProductId(productId: Int!): [InfoTemDetail]
 }
-
+#mutation để gọi trong configuration
 type Mutation {
-    generateTem(storageUnit: String!): GenerateTemResponse!
     createProduct(input: CreateProductInput!): ListProductOfRequest!
     createProductsBatch(requestId: Int!, products: [CreateProductInput!]!): [ListProductOfRequest!]!
     createRequestAndProducts(input: CreateRequestWithProductsInput!): CreateRequestWithProductsResponse!
-    updateRequestProducts(requestId: Int!, products: [CreateProductInput!]!): [ListProductOfRequest!]!
 }
 
 input CreateProductInput {
     requestCreateTemId: Int
     sapCode: String!
-    productName: String
     temQuantity: Int!
     partNumber: String!
     lot: String!
@@ -44,15 +41,19 @@ type CreateRequestWithProductsResponse {
     requestId: Int!
     products: [ListProductOfRequest!]!
     message: String
+    generateTem(requestId: Int!): GenerateTemResponse!
+    updateProductOfRequest(input: UpdateProductInput!): UpdateResponse!
+    updateStorageUnitForRequest(requestId: Int!, storageUnit: String!): UpdateResponse!
 }
 
-# THÊM TYPE MỚI
+# response generate tem in
 type GenerateTemResponse {
     success: Boolean!
     message: String!
     totalTems: Int!
 }
 
+#khai báo bảng list request create tem
 type ListRequestCreateTem {
     id: ID
     vendor: String
@@ -64,6 +65,7 @@ type ListRequestCreateTem {
     createdDate: String
 }
 
+#khai báo bảng list product of request
 type ListProductOfRequest {
     id: ID
     requestCreateTemId: Int
@@ -86,6 +88,7 @@ type ListProductOfRequest {
     numberOfPrints: Int
 }
 
+#khai báo bảng info tem detail
 type InfoTemDetail {
     id: ID
     productOfRequestId: Int
@@ -107,4 +110,32 @@ type InfoTemDetail {
     arrivalDate: String
     qrCode: String
     slTemQuantity: Int
+}
+
+#Response chỉnh sửa
+type UpdateResponse {
+    success: Boolean!
+    message: String!
+}
+
+#đầu vào query chỉnh sửa
+input UpdateProductInput {
+    id: ID!
+    sapCode: String
+    partNumber: String
+    requestCreateTemId: Int
+    temQuantity: Int
+    lot: String
+    initialQuantity: Int
+    vendor: String
+    userData1: String
+    userData2: String
+    userData3: String
+    userData4: String
+    userData5: String
+    storageUnit: String
+    expirationDate: String
+    manufacturingDate: String
+    arrivalDate: String
+    numberOfPrints: Int
 }

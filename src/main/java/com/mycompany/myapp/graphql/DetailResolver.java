@@ -29,11 +29,8 @@ public class DetailResolver {
 
     // XÓA name = "generateTem"
     //    @MutationMapping
-    public GenerateTemResponse generateTem(@Argument String storageUnit) {
-        GenerateTemResponse response = service.generateTemForAllProducts(
-            storageUnit
-        );
-        return response;
+    public GenerateTemResponse generateTem(@Argument Integer requestId) {
+        return service.generateTemForAllProducts(Long.valueOf(requestId));
     }
 
     @QueryMapping
