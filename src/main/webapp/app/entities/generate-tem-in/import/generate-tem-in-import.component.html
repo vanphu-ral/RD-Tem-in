@@ -1,75 +1,95 @@
 <div class="container">
-  <!-- Header -->
-  <div class="header" style="gap: 20px">
-    <h1>Import thông tin vật tư</h1>
+  <!-- Import Zone -->
+  <div
+    class="import-zone-container"
+    style="
+      padding-top: 20px;
+      padding-right: 20px;
+      padding-bottom: 10px;
+      padding-left: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 10px;
+    "
+  >
+    <div class="header" style="gap: 20px">
+      <h1>Import thông tin vật tư</h1>
 
-    <!-- Quay lại trang danh sách -->
-    <button
-      mat-raised-button
-      [routerLink]="['../']"
-      aria-label="Quay lại trang danh sách"
-      class="back-button"
-      style="
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-      "
-    >
-      <mat-icon aria-hidden="true" class="back-icon"
-        >keyboard_backspace</mat-icon
+      <!-- Quay lại trang danh sách -->
+      <button
+        mat-raised-button
+        [routerLink]="['../']"
+        aria-label="Quay lại trang danh sách"
+        class="back-button"
+        style="
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+        "
       >
-    </button>
-  </div>
-
-  <!-- Phần chọn file -->
-  <div class="import-section">
-    <div
-      class="import-actions"
-      style="
-        padding-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      "
-    >
-      <label
-        class="file-input-wrapper"
-        for="fileImport"
-        title="Chọn tệp import"
-      >
-        <input id="fileImport" type="file" (change)="onFileChange($event)" />
-        <span class="file-label">
-          <mat-icon aria-hidden="true">file_upload</mat-icon>
-          Chọn tệp
-        </span>
-      </label>
-      <div *ngIf="selectedFile" class="selected-file-name">
-        <mat-icon aria-hidden="true" class="file-icon">description</mat-icon>
-        <span class="file-name-text">{{ selectedFile.name }}</span>
-      </div>
-    </div>
-    <div style="display: flex; justify-content: space-between">
-      <div style="display: flex; gap: 20px">
-        <p class="import-instructions">
-          Chọn file import. Hỗ trợ file .xlsx | .xlsm |
-        </p>
-        <p class="import-instructions">Tải template</p>
-      </div>
-      <div style="display: flex; justify-content: center; align-items: center">
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="import()"
-          [disabled]="!selectedFile"
-          aria-label="Thực hiện import"
+        <mat-icon aria-hidden="true" class="back-icon"
+          >keyboard_backspace</mat-icon
         >
-          <mat-icon
-            style="display: flex; justify-content: center; align-items: center"
-            aria-hidden="true"
-            >playlist_add</mat-icon
+      </button>
+    </div>
+
+    <!-- Phần chọn file -->
+    <div class="import-section">
+      <div
+        class="import-actions"
+        style="
+          padding-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        "
+      >
+        <label
+          class="file-input-wrapper"
+          for="fileImport"
+          title="Chọn tệp import"
+        >
+          <input id="fileImport" type="file" (change)="onFileChange($event)" />
+          <span class="file-label">
+            <mat-icon aria-hidden="true">file_upload</mat-icon>
+            Chọn tệp
+          </span>
+        </label>
+        <div *ngIf="selectedFile" class="selected-file-name">
+          <mat-icon aria-hidden="true" class="file-icon">description</mat-icon>
+          <span class="file-name-text">{{ selectedFile.name }}</span>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between">
+        <div style="display: flex; gap: 20px">
+          <p class="import-instructions">
+            Chọn file import. Hỗ trợ file .xlsx | .xlsm |
+          </p>
+          <p class="import-instructions">Tải template</p>
+        </div>
+        <div
+          style="display: flex; justify-content: center; align-items: center"
+        >
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="import()"
+            [disabled]="!selectedFile"
+            aria-label="Thực hiện import"
           >
-          Import
-        </button>
+            <mat-icon
+              style="
+                display: flex;
+                justify-content: center;
+                align-items: center;
+              "
+              aria-hidden="true"
+              >playlist_add</mat-icon
+            >
+            Import
+          </button>
+        </div>
       </div>
     </div>
 
@@ -123,11 +143,12 @@
                 mat-stroked-button
                 color="primary"
                 (click)="saveGroup(i)"
+                [disabled]="isSaveDisabled(i)"
                 aria-label="Lưu"
                 style="height: 40px"
               >
                 <mat-icon aria-hidden="true">save</mat-icon>
-                Lưu
+                {{ getSaveButtonText(i) }}
               </button>
               <button
                 mat-stroked-button

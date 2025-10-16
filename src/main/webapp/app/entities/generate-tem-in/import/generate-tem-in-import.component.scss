@@ -56,12 +56,23 @@
   gap: 8px;
 }
 
-/* ========= File input đẹp hơn ========= */
 .file-input-wrapper {
   position: relative;
   display: inline-flex;
   align-items: center;
   cursor: pointer;
+  border: 1px solid #707275;
+  border-radius: 5px;
+}
+
+.file-input-wrapper input[type="file"] {
+  display: none;
+}
+
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .file-input-wrapper input[type="file"] {
@@ -93,14 +104,11 @@
   line-height: 18px;
 }
 
-/* ========= Selected file name display ========= */
 .selected-file-name {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(79, 70, 229, 0.1);
-  border: 1px solid rgba(79, 70, 229, 0.2);
   border-radius: 6px;
   color: var(--brand);
   font-size: 14px;

@@ -6,7 +6,6 @@ import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse;
 import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
 import com.mycompany.renderQr.domain.ListRequestCreateTem;
-import com.mycompany.renderQr.domain.ListRequestCreateTemResponse;
 import com.mycompany.renderQr.repository.ListProductOfRequestRepository;
 import com.mycompany.renderQr.repository.ListRequestCreateTemRepository;
 import java.time.LocalDateTime;
@@ -248,5 +247,80 @@ public class ListProductOfRequestService {
             savedProducts.size() +
             " products"
         );
+    }
+
+    @Transactional
+    public List<ListProductOfRequest> updateRequestProducts(
+        Integer requestId,
+        List<CreateProductInput> inputs
+    ) {
+        if (inputs == null || inputs.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Products list cannot be null or empty"
+            );
+        }
+
+        if (requestId == null) {
+            throw new IllegalArgumentException("Request ID cannot be null");
+        }
+
+        System.out.println("=== Starting updateRequestProducts ===");
+        System.out.println("Request ID: " + requestId);
+        System.out.println("Number of products to update: " + inputs.size());
+
+        // Step 1: Delete all existing products for this request
+        System.out.println("Step 1: Deleting existing products...");
+        repository.deleteByRequestCreateTemId(requestId.longValue());
+        repository.flush(); // Force the delete to execute immediately
+        System.out.println(
+            "Successfully deleted existing products for request: " + requestId
+        );
+
+        // Step 2: Create new products with the updated data
+        System.out.println("Step 2: Creating new product entities...");
+        List<ListProductOfRequest> products = new ArrayList<>();
+        for (int i = 0; i < inputs.size(); i++) {
+            CreateProductInput input = inputs.get(i);
+            if (input == null) {
+                System.out.println("Skipping null input at index " + i);
+                continue;
+            }
+            ListProductOfRequest product = new ListProductOfRequest();
+            // Set the requestCreateTemId
+            input.setRequestCreateTemId(requestId);
+            mapInputToEntity(input, product);
+            products.add(product);
+            System.out.println(
+                "Created product entity " + (i + 1) + ": " + input.getSapCode()
+            );
+        }
+
+        if (products.isEmpty()) {
+            throw new RuntimeException("No valid products to save");
+        }
+
+        System.out.println(
+            "Created " + products.size() + " new product entities"
+        );
+
+        // Step 3: Save all new products
+        System.out.println("Step 3: Saving products to database...");
+        List<ListProductOfRequest> savedProducts = repository.saveAll(products);
+        repository.flush(); // Ensure all products are saved
+
+        if (savedProducts == null || savedProducts.isEmpty()) {
+            throw new RuntimeException(
+                "Failed to save products - no products returned"
+            );
+        }
+
+        System.out.println(
+            "Successfully saved " + savedProducts.size() + " products"
+        );
+        System.out.println(
+            "=== updateRequestProducts completed successfully ==="
+        );
+
+        return savedProducts;
     }
 }

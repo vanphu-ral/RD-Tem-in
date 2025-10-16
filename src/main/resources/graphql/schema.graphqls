@@ -10,6 +10,7 @@ type Mutation {
     createProduct(input: CreateProductInput!): ListProductOfRequest!
     createProductsBatch(requestId: Int!, products: [CreateProductInput!]!): [ListProductOfRequest!]!
     createRequestAndProducts(input: CreateRequestWithProductsInput!): CreateRequestWithProductsResponse!
+    updateRequestProducts(requestId: Int!, products: [CreateProductInput!]!): [ListProductOfRequest!]!
 }
 
 input CreateProductInput {

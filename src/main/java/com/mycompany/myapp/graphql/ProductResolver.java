@@ -46,4 +46,12 @@ public class ProductResolver {
     ) {
         return service.createRequestAndProducts(input);
     }
+
+    @MutationMapping
+    public List<ListProductOfRequest> updateRequestProducts(
+        @Argument Integer requestId,
+        @Argument List<CreateProductInput> products
+    ) {
+        return service.updateRequestProducts(requestId, products);
+    }
 }

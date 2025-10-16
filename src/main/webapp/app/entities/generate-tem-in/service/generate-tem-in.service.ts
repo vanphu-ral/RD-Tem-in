@@ -146,6 +146,35 @@ const CREATE_REQUEST_AND_PRODUCTS_MUTATION = gql`
   }
 `;
 
+const UPDATE_REQUEST_PRODUCTS_MUTATION = gql`
+  mutation UpdateRequestProducts(
+    $requestId: Int!
+    $products: [CreateProductInput!]!
+  ) {
+    updateRequestProducts(requestId: $requestId, products: $products) {
+      id
+      requestCreateTemId
+      sapCode
+      productName
+      temQuantity
+      partNumber
+      lot
+      initialQuantity
+      vendor
+      userData1
+      userData2
+      userData3
+      userData4
+      userData5
+      storageUnit
+      expirationDate
+      manufacturingDate
+      arrivalDate
+      numberOfPrints
+    }
+  }
+`;
+
 type GetRequestsResult = {
   listRequestCreateTems: ListRequestCreateTem[];
 };
@@ -379,6 +408,7 @@ export class GenerateTemInService {
 
       return {
         sapCode: item.sapCode.trim(),
+        productName: item.tenSP?.trim() ?? "",
         temQuantity: item.temQuantity,
         partNumber: item.partNumber.trim(),
         lot: item.lot.trim(),
@@ -420,6 +450,83 @@ export class GenerateTemInService {
             throw new Error("No data returned from server");
           }
           return result.data.createRequestAndProducts;
+        }),
+      );
+  }
+
+  updateRequestProducts(
+    requestId: number,
+    products: ExcelImportData[],
+  ): Observable<ListProductOfRequest[]> {
+    // Convert ExcelImportData to CreateProductInput format with validation
+    const productInputs = products.map((item, index) => {
+      // Validate required fields
+      if (!item.sapCode || item.sapCode.trim() === "") {
+        throw new Error(`Row ${index + 1}: SAP Code is required`);
+      }
+      if (!item.partNumber || item.partNumber.trim() === "") {
+        throw new Error(`Row ${index + 1}: Part Number is required`);
+      }
+      if (!item.lot || item.lot.trim() === "") {
+        throw new Error(`Row ${index + 1}: LOT is required`);
+      }
+      if (!item.vendor || item.vendor.trim() === "") {
+        throw new Error(`Row ${index + 1}: Vendor is required`);
+      }
+      if (!item.temQuantity || item.temQuantity <= 0) {
+        throw new Error(
+          `Row ${index + 1}: Tem Quantity must be greater than 0`,
+        );
+      }
+      if (!item.initialQuantity || item.initialQuantity <= 0) {
+        throw new Error(
+          `Row ${index + 1}: Initial Quantity must be greater than 0`,
+        );
+      }
+      if (!item.expirationDate || item.expirationDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Expiration Date is required`);
+      }
+      if (!item.manufacturingDate || item.manufacturingDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Manufacturing Date is required`);
+      }
+      if (!item.arrivalDate || item.arrivalDate.trim() === "") {
+        throw new Error(`Row ${index + 1}: Arrival Date is required`);
+      }
+
+      return {
+        sapCode: item.sapCode.trim(),
+        productName: item.tenSP?.trim() ?? "",
+        temQuantity: item.temQuantity,
+        partNumber: item.partNumber.trim(),
+        lot: item.lot.trim(),
+        initialQuantity: item.initialQuantity,
+        vendor: item.vendor.trim(),
+        userData1: item.userData1 ?? "",
+        userData2: item.userData2 ?? "",
+        userData3: item.userData3 ?? "",
+        userData4: item.userData4 ?? "",
+        userData5: item.userData5 ?? "",
+        storageUnit: item.storageUnit ?? "",
+        expirationDate: item.expirationDate.trim(),
+        manufacturingDate: item.manufacturingDate.trim(),
+        arrivalDate: item.arrivalDate.trim(),
+      };
+    });
+
+    return this.apollo
+      .mutate<{ updateRequestProducts: ListProductOfRequest[] }>({
+        mutation: UPDATE_REQUEST_PRODUCTS_MUTATION,
+        variables: {
+          requestId: requestId,
+          products: productInputs,
+        },
+      })
+      .pipe(
+        map((result) => {
+          if (!result.data || !result.data.updateRequestProducts) {
+            throw new Error("No data returned from server");
+          }
+          return result.data.updateRequestProducts;
         }),
       );
   }

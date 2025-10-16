@@ -189,7 +189,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
       width: "400px",
       data: {
         title: "Xác nhận xóa",
-        message: `Bạn có chắc chắn muốn xóa yêu cầu tạo tem này?\n\nPO Code: ${item.userData5}\nVendor: ${item.vendor}\nSố sản phẩm: ${item.numberProduction}`,
+        message: "Bạn có chắc chắn muốn xóa yêu cầu tạo tem này?",
         confirmText: "Xóa",
         cancelText: "Hủy",
       },

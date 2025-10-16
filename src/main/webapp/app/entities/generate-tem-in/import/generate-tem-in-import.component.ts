@@ -23,6 +23,8 @@ import { AlertService } from "app/core/util/alert.service";
 
 export interface VatTuRow {
   stt: number;
+  id?: number; // Product ID from database
+  requestCreateTemId?: number; // Request ID from database
   sapCode: string;
   tenSp: string;
   partNumber: string;
@@ -52,6 +54,15 @@ type DisplayColumnKeys = VatTuKeys | "ngayVe";
 export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   khoControl = new FormControl<string | null>(null);
   allowSplitControl = new FormControl<boolean>(false);
+
+  // Track saved request IDs for each group to prevent duplicate creation
+  savedRequestIds: Map<number, number> = new Map();
+
+  // Track if data has been modified after save
+  dataModified: Map<number, boolean> = new Map();
+
+  // Track save button state for each group
+  isSaving: Map<number, boolean> = new Map();
 
   displayedColumns: string[] = [
     "stt",
@@ -240,6 +251,11 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    // Reset saved request IDs when importing new data
+    this.savedRequestIds.clear();
+    this.dataModified.clear();
+    this.isSaving.clear();
+
     this.parseExcelFile(this.selectedFile);
   }
 
@@ -323,37 +339,136 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     }
 
     const group = this.groupedData[groupIndex];
-    this.isLoading = true;
+    this.isSaving.set(groupIndex, true);
 
-    this.generateTemInService
-      .createRequestAndProducts(
-        group.vendor,
-        group.poCode,
-        "system",
-        group.products,
-      )
-      .toPromise()
-      .then((result) => {
-        console.log(`Group ${groupIndex + 1} saved successfully:`, result);
-        const totalProducts = result?.products?.length ?? 0;
-        this.alertService.addAlert({
-          type: "success",
-          message: `Lưu thành công nhóm ${groupIndex + 1} (${group.poCode} - ${group.vendor}) với ${totalProducts} sản phẩm.`,
-          timeout: 5000,
-          toast: true,
-        });
-        this.isLoading = false;
-      })
-      .catch((error) => {
-        console.error(`Error saving group ${groupIndex + 1}:`, error);
-        this.alertService.addAlert({
-          type: "danger",
-          message: `Lỗi khi lưu nhóm ${groupIndex + 1}: ${error.message}`,
-          timeout: 5000,
-          toast: true,
-        });
-        this.isLoading = false;
+    // Get current data from the data source (includes any edits)
+    const dataSource = this.getDataSourceForGroup(groupIndex);
+    const currentData = dataSource.data;
+
+    // Update group.products with current table data
+    group.products = currentData.map((row) => ({
+      sapCode: row.sapCode,
+      tenSP: row.tenSp,
+      partNumber: row.partNumber,
+      lot: String(row.lot),
+      temQuantity: row.soTem,
+      initialQuantity: row.initialQuantity,
+      vendor: row.vendor,
+      userData1: row.userData1,
+      userData2: row.userData2,
+      userData3: row.userData3,
+      userData4: row.userData4,
+      userData5: row.userData5,
+      storageUnit: row.storageUnit,
+      expirationDate: row.expirationDate,
+      manufacturingDate: row.manufacturingDate,
+      arrivalDate: row.arrivalDate,
+    }));
+
+    // Check if this group has already been saved
+    const existingRequestId = this.savedRequestIds.get(groupIndex);
+
+    if (existingRequestId) {
+      // Update existing request - use the existing requestId
+      this.alertService.addAlert({
+        type: "info",
+        message: `Đang cập nhật nhóm ${groupIndex + 1}...`,
+        timeout: 3000,
+        toast: true,
       });
+
+      // Update products for the existing request
+      this.generateTemInService
+        .updateRequestProducts(existingRequestId, group.products)
+        .toPromise()
+        .then((result: any) => {
+          console.log(`Group ${groupIndex + 1} updated successfully:`, result);
+          const totalProducts = result?.length ?? 0;
+
+          // Update the data source with the returned product IDs
+          if (result && Array.isArray(result)) {
+            const updatedDataSource = this.getDataSourceForGroup(groupIndex);
+            updatedDataSource.data = updatedDataSource.data.map((row, idx) => ({
+              ...row,
+              id: result[idx]?.id,
+              requestCreateTemId: existingRequestId,
+            }));
+            updatedDataSource._updateChangeSubscription();
+          }
+
+          // Mark as not modified after successful save
+          this.dataModified.set(groupIndex, false);
+
+          this.alertService.addAlert({
+            type: "success",
+            message: `Cập nhật thành công nhóm ${groupIndex + 1} (${group.poCode} - ${group.vendor}) với ${totalProducts} sản phẩm.`,
+            timeout: 5000,
+            toast: true,
+          });
+          this.isSaving.set(groupIndex, false);
+        })
+        .catch((error: any) => {
+          console.error(`Error updating group ${groupIndex + 1}:`, error);
+          this.alertService.addAlert({
+            type: "danger",
+            message: `Lỗi khi cập nhật nhóm ${groupIndex + 1}: ${error.message}`,
+            timeout: 5000,
+            toast: true,
+          });
+          this.isSaving.set(groupIndex, false);
+        });
+    } else {
+      // Create new request
+      this.generateTemInService
+        .createRequestAndProducts(
+          group.vendor,
+          group.poCode,
+          "system",
+          group.products,
+        )
+        .toPromise()
+        .then((result) => {
+          console.log(`Group ${groupIndex + 1} saved successfully:`, result);
+          const totalProducts = result?.products?.length ?? 0;
+
+          // Store the request ID for future saves
+          if (result?.requestId) {
+            this.savedRequestIds.set(groupIndex, result.requestId);
+          }
+
+          // Update the data source with the returned product IDs and requestId
+          if (result && result.products && result.requestId) {
+            const updatedDataSource = this.getDataSourceForGroup(groupIndex);
+            updatedDataSource.data = updatedDataSource.data.map((row, idx) => ({
+              ...row,
+              id: result.products[idx]?.id,
+              requestCreateTemId: result.requestId,
+            }));
+            updatedDataSource._updateChangeSubscription();
+          }
+
+          // Mark as not modified after successful save
+          this.dataModified.set(groupIndex, false);
+
+          this.alertService.addAlert({
+            type: "success",
+            message: `Lưu thành công nhóm ${groupIndex + 1} (${group.poCode} - ${group.vendor}) với ${totalProducts} sản phẩm.`,
+            timeout: 5000,
+            toast: true,
+          });
+          this.isSaving.set(groupIndex, false);
+        })
+        .catch((error) => {
+          console.error(`Error saving group ${groupIndex + 1}:`, error);
+          this.alertService.addAlert({
+            type: "danger",
+            message: `Lỗi khi lưu nhóm ${groupIndex + 1}: ${error.message}`,
+            timeout: 5000,
+            toast: true,
+          });
+          this.isSaving.set(groupIndex, false);
+        });
+    }
   }
 
   genQR(): void {
@@ -419,6 +534,9 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
               ...result,
             };
             dataSource._updateChangeSubscription();
+
+            // Mark data as modified
+            this.dataModified.set(groupIndex, true);
           }
         } else {
           // Fallback to old method for backward compatibility
@@ -447,6 +565,9 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         // Update STT for remaining rows
         dataSource.data.forEach((r, i) => (r.stt = i + 1));
         dataSource._updateChangeSubscription();
+
+        // Mark data as modified
+        this.dataModified.set(groupIndex, true);
       }
     } else {
       // Fallback to old method for backward compatibility
@@ -458,6 +579,37 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         this.dataSource._updateChangeSubscription();
       }
     }
+  }
+
+  // Check if save button should be disabled for a group
+  isSaveDisabled(groupIndex: number): boolean {
+    // Disable if currently saving
+    if (this.isSaving.get(groupIndex)) {
+      return true;
+    }
+
+    // Disable if already saved and no modifications made
+    if (
+      this.savedRequestIds.has(groupIndex) &&
+      !this.dataModified.get(groupIndex)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Get save button text based on state
+  getSaveButtonText(groupIndex: number): string {
+    if (this.isSaving.get(groupIndex)) {
+      return "Đang lưu...";
+    }
+
+    if (this.savedRequestIds.has(groupIndex)) {
+      return this.dataModified.get(groupIndex) ? "Cập nhật" : "Đã lưu";
+    }
+
+    return "Lưu";
   }
 
   private updateDataSourceForSelectedTab(): void {
