@@ -230,13 +230,27 @@
               <mat-form-field
                 appearance="outline"
                 class="kho-select"
-                style="min-width: 150px"
+                style="min-width: 250px; margin-bottom: -19px"
               >
                 <mat-label>Chọn Kho chứa</mat-label>
-                <mat-select [formControl]="khoControl">
-                  <mat-option value="option1">Kho 1</mat-option>
-                  <mat-option value="option2">Kho 2</mat-option>
-                </mat-select>
+                <input
+                  type="text"
+                  matInput
+                  [formControl]="khoControl"
+                  [matAutocomplete]="auto"
+                  placeholder="Nhập tên kho..."
+                />
+                <mat-autocomplete
+                  #auto="matAutocomplete"
+                  (optionSelected)="chonKho($event.option.value)"
+                >
+                  <mat-option
+                    *ngFor="let kho of danhSachKho"
+                    [value]="kho.locationName"
+                  >
+                    {{ kho.locationFullName }}
+                  </mat-option>
+                </mat-autocomplete>
               </mat-form-field>
               <button
                 mat-stroked-button

@@ -40,7 +40,7 @@ public class RequestResolver {
     }
 
     // update
-    @QueryMapping(name = "updateProductOfRequest")
+    @MutationMapping(name = "updateProductOfRequest")
     public UpdateResponse updateProductOfRequest(
         @Argument("input") Map<String, Object> inputMap
     ) {
@@ -142,12 +142,32 @@ public class RequestResolver {
         );
     }
 
-    //delete req
-    @MutationMapping
-    public UpdateResponse deleteProduct(@Argument Integer productId) {
+    //delete product
+    @MutationMapping(name = "deleteProduct")
+    public UpdateResponse deleteProduct(
+        @Argument("productId") Integer productId
+    ) {
+        if (productId == null) {
+            return new UpdateResponse(false, "productId bị null từ FE");
+        }
+
         try {
-            //            productService.deleteById(productId);
+            productService.deleteProductById(productId.longValue());
             return new UpdateResponse(true, "Xóa thành công");
+        } catch (Exception e) {
+            return new UpdateResponse(false, "Lỗi khi xóa: " + e.getMessage());
+        }
+    }
+
+    //xoa request
+    @MutationMapping(name = "deleteRequest")
+    public UpdateResponse deleteRequest(@Argument Integer requestId) {
+        try {
+            service.deleteRequestCascade(Long.valueOf(requestId));
+            return new UpdateResponse(
+                true,
+                "Xóa yêu cầu và toàn bộ dữ liệu liên quan thành công"
+            );
         } catch (Exception e) {
             return new UpdateResponse(false, "Lỗi khi xóa: " + e.getMessage());
         }

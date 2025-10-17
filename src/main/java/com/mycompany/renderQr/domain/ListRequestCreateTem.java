@@ -1,5 +1,6 @@
 package com.mycompany.renderQr.domain;
 
+import java.time.LocalDateTime;
 import javax.persistence.*;
 
 @Entity
@@ -27,6 +28,9 @@ public class ListRequestCreateTem {
 
     @Column(name = "Status", length = 20)
     private String status;
+
+    @Column(name = "CreatedDate")
+    private LocalDateTime createdDate;
 
     // Getters and Setters
 
@@ -84,5 +88,13 @@ public class ListRequestCreateTem {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
     }
 }

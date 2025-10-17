@@ -1,5 +1,7 @@
 package com.mycompany.renderQr.domain;
 
+import java.time.LocalDateTime;
+
 public interface ListRequestCreateTemResponse {
     Long getId();
     String getVendor();
@@ -8,4 +10,5 @@ public interface ListRequestCreateTemResponse {
     Short getNumberProduction();
     Long getTotalQuantity();
     String getStatus();
+    LocalDateTime getCreatedDate();
 }

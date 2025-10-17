@@ -3,6 +3,7 @@ type Query {
     getProductOfRequestByRequestId(requestId: Int!): [ListProductOfRequest]
     infoTemDetails: [InfoTemDetail]
     infoTemDetailsByProductId(productId: Int!): [InfoTemDetail]
+    infoTemDetailsByRequestId(requestId: Int!): [InfoTemDetail]
 }
 #mutation để gọi trong configuration
 type Mutation {
@@ -13,6 +14,7 @@ type Mutation {
     updateProductOfRequest(input: UpdateProductInput!): UpdateResponse!
     updateStorageUnitForRequest(requestId: Int!, storageUnit: String!): UpdateResponse!
     deleteProduct(productId: Int!): UpdateResponse!
+    deleteRequest(requestId: Int!): UpdateResponse!
 }
 
 input CreateProductInput {
@@ -39,6 +41,7 @@ input CreateRequestWithProductsInput {
     vendor: String!
     userData5: String!
     createdBy: String
+    createdDate: String
     products: [CreateProductInput!]!
 }
 

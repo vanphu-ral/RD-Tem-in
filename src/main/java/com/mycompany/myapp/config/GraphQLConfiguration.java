@@ -95,9 +95,11 @@ public class GraphQLConfiguration {
                             productId
                         );
                     })
-                    .dataFetcher("updateProductOfRequest", env -> {
-                        Map<String, Object> inputMap = env.getArgument("input");
-                        return requestResolver.updateProductOfRequest(inputMap);
+                    .dataFetcher("infoTemDetailsByRequestId", env -> {
+                        Integer requestId = env.getArgument("requestId");
+                        return detailResolver.infoTemDetailsByRequestId(
+                            requestId
+                        );
                     })
                     // lay du lieu request
                     .dataFetcher("getProductOfRequestByRequestId", env -> {
@@ -111,19 +113,13 @@ public class GraphQLConfiguration {
             .type("Mutation", builder ->
                 builder
                     .dataFetcher("generateTem", env -> {
-                        // log.info("==========================================");
-                        // log.info("Mutation: generateTem called!");
-                        // log.info("==========================================");
-
-                        Integer storageUnit = env.getArgument("storageUnit");
-                        // log.info("Argument storageUnit: {}", storageUnit);
+                        Integer requestId = env.getArgument("requestId");
 
                         try {
                             GenerateTemResponse response =
-                                detailResolver.generateTem(storageUnit);
+                                detailResolver.generateTem(requestId);
 
                             if (response == null) {
-                                // log.error("DetailResolver.generateTem returned NULL!");
                                 return new GenerateTemResponse(
                                     false,
                                     "Resolver returned null",
@@ -131,19 +127,8 @@ public class GraphQLConfiguration {
                                 );
                             }
 
-                            log.info(
-                                "Response: success={}, totalTems={}",
-                                response.isSuccess(),
-                                response.getTotalTems()
-                            );
-
                             return response;
                         } catch (Exception e) {
-                            log.error(
-                                "Error in generateTem DataFetcher: {}",
-                                e.getMessage(),
-                                e
-                            );
                             return new GenerateTemResponse(
                                 false,
                                 "Error: " + e.getMessage(),
@@ -152,10 +137,6 @@ public class GraphQLConfiguration {
                         }
                     })
                     .dataFetcher("createRequestAndProducts", env -> {
-                        log.info("==========================================");
-                        log.info("Mutation: createRequestAndProducts called!");
-                        log.info("==========================================");
-
                         Map<String, Object> inputMap = env.getArgument("input");
                         log.info("Input map: {}", inputMap);
 
@@ -210,6 +191,18 @@ public class GraphQLConfiguration {
                             requestId,
                             storageUnit
                         );
+                    })
+                    .dataFetcher("deleteProduct", env -> {
+                        Integer productId = env.getArgument("productId");
+                        return requestResolver.deleteProduct(productId);
+                    })
+                    .dataFetcher("deleteRequest", env -> {
+                        Integer requestId = env.getArgument("requestId");
+                        return requestResolver.deleteRequest(requestId);
+                    })
+                    .dataFetcher("updateProductOfRequest", env -> {
+                        Map<String, Object> inputMap = env.getArgument("input");
+                        return requestResolver.updateProductOfRequest(inputMap);
                     })
             )
             .build();

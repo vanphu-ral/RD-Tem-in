@@ -8,15 +8,19 @@ import com.mycompany.renderQr.domain.*;
 import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
 import com.mycompany.renderQr.domain.ListRequestCreateTem;
+import com.mycompany.renderQr.repository.InfoTemDetailRepository;
 import com.mycompany.renderQr.repository.ListProductOfRequestRepository;
 import com.mycompany.renderQr.repository.ListRequestCreateTemRepository;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +37,9 @@ public class ListProductOfRequestService {
 
     @Autowired
     private ListProductOfRequestRepository repository;
+
+    @Autowired
+    private InfoTemDetailRepository detailRepository;
 
     @Autowired
     private ListRequestCreateTemService requestService;
@@ -349,12 +356,35 @@ public class ListProductOfRequestService {
 
             // Step 1: Create the request first
             log.info("Step 1: Creating request...");
+            LocalDateTime parsedCreatedDate;
+
+            if (
+                input.getCreatedDate() != null &&
+                !input.getCreatedDate().isBlank()
+            ) {
+                try {
+                    parsedCreatedDate = LocalDate.parse(
+                        input.getCreatedDate()
+                    ).atStartOfDay();
+                } catch (DateTimeParseException e) {
+                    log.warn(
+                        "Invalid createdDate format '{}', using current time instead",
+                        input.getCreatedDate()
+                    );
+                    parsedCreatedDate = LocalDateTime.now();
+                }
+            } else {
+                log.warn("createdDate is null or blank, using current time");
+                parsedCreatedDate = LocalDateTime.now();
+            }
+
             ListRequestCreateTem request = requestService.createRequest(
                 input.getVendor(),
                 input.getUserData5(),
                 input.getCreatedBy(),
                 numberProduction,
-                totalQuantity
+                totalQuantity,
+                parsedCreatedDate
             );
 
             // Debug: Check if request was created successfully
@@ -510,4 +540,32 @@ public class ListProductOfRequestService {
     }
 
     // delete
+    @Transactional
+    public void deleteProductById(Long productId) {
+        Optional<ListProductOfRequest> productOpt = repository.findById(
+            productId
+        );
+
+        if (productOpt.isEmpty()) {
+            throw new EntityNotFoundException(
+                "Không tìm thấy sản phẩm với ID: " + productId
+            );
+        }
+
+        ListProductOfRequest product = productOpt.get();
+        Long requestId = product.getRequestCreateTemId();
+
+        if (requestId == null) {
+            throw new IllegalStateException(
+                "requestCreateTemId bị null cho productId: " + productId
+            );
+        }
+        detailRepository.deleteByProductOfRequestId(productId);
+
+        // Xóa sản phẩm
+        repository.deleteById(productId);
+
+        // Cập nhật số lượng sản phẩm trong bảng cha
+        requestService.updateRequestProductCount(requestId);
+    }
 }

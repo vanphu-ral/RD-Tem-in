@@ -34,7 +34,6 @@ import { Observable } from "rxjs/internal/Observable";
 import { GenerateTemInConfirmDialogComponent } from "../generate-tem-in-modal-confirm/modal-confirm.component";
 import { PageEvent } from "@angular/material/paginator";
 import { MatCardActions } from "@angular/material/card";
-import { HttpHeaders } from "@angular/common/http";
 
 export interface MaterialItem {
   stt: number; // Số thứ tự hiển thị
@@ -136,6 +135,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   isDisable = false;
   isDisableInputLocation = false;
   isDisableGenerate = false;
+  isDelete = false;
   //biến in
   printMode: "single" | "all" = "all";
 
@@ -202,30 +202,9 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   ];
 
   //biến chứa kho
-  storageUnits: string[] = [
-    "RD-01",
-    "RD-02",
-    "RD-03",
-    "RD-04",
-    "RD-05",
-    "SMT-ZONE-01",
-    "SMT-ZONE-02",
-    "SMT-ZONE-03",
-    "SMT-ZONE-04",
-    "SMT-ZONE-05",
-    "WH-01",
-    "WH-02",
-    "WH-03",
-    "WH-04",
-    "WH-05",
-    "PACK-01",
-    "PACK-02",
-    "PACK-03",
-    "PACK-04",
-    "PACK-05",
-  ];
+  storageUnits: CachedWarehouse[] = [];
   filteredUnits: string[] = [];
-  selectedStorageUnit: string | null = null;
+  selectedStorageUnit = "";
 
   requestList: ListRequestCreateTem[] = [];
   selectedRequestId: number | null = null;
@@ -256,7 +235,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
   //pagination detail
   materialCurrentPage = 0; // Material paginator bắt đầu từ 0
-  materialPageSize = 10;
+  materialPageSize = 25;
   materialTotalItems = 0;
   materialPageSizeOptions = [5, 10, 25, 50, 100];
   pagedMaterials: MaterialItem[] = [];
@@ -298,6 +277,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     private dialog: MatDialog,
     private route: ActivatedRoute,
     private router: Router,
+    private warehouseCache: WarehouseCacheService,
   ) {}
   ngAfterViewChecked(): void {
     if (
@@ -399,22 +379,15 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
   //ham loc location
   filterStorageUnits(): void {
-    const keyword = this.selectedStorageUnit?.toLowerCase() ?? "";
-    //disable save
-    this.isDisableInputLocation = keyword.trim() === "";
-    if (keyword === "") {
-      this.filteredUnits = []; //ẩn danh sách nếu không nhập gì
+    const keyword = this.selectedStorageUnit?.toLowerCase() || "";
+    if (keyword.length < 2) {
+      this.filteredUnits = [];
       return;
     }
-    this.filteredUnits = this.storageUnits
-      .filter((unit) => unit.toLowerCase().includes(keyword))
-      .slice(0, 10);
-  }
 
-  selectUnit(unit: string): void {
-    this.selectedStorageUnit = unit;
-    this.filteredUnits = [];
-    this.isDisableInputLocation = unit.trim() === "";
+    this.warehouseCache.searchByName(keyword).then((results) => {
+      this.filteredUnits = results.map((w) => w.locationName).slice(0, 25);
+    });
   }
 
   //format date
@@ -451,7 +424,9 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
           this.showSnackbar(response.message, "Đóng", 3000, type);
 
           this.isGenerating = false;
-          window.location.reload();
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
         },
         error: (err) => {
           this.showSnackbar(
@@ -892,6 +867,31 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         this.openPrintPreviewForProduct(item.id);
       });
     }
+    if (action === "delete") {
+      this.confirmAction(
+        `Bạn có chắc muốn xóa sản phẩm này?\nSAP Code: ${item.sapCode}`,
+      ).subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.isDelete = true;
+
+        this.generateTemInService.deleteReqById(Number(item.id)).subscribe({
+          next: () => {
+            this.materials.splice(index, 1);
+            this.updatePagedMaterials();
+            this.showSnackbar("Đã xóa sản phẩm!", "Đóng", 3000, "success");
+            this.isDelete = false;
+          },
+          error: (err) => {
+            this.showSnackbar("Lỗi khi xóa sản phẩm!", "Đóng", 3000, "error");
+            console.error("Delete error:", err);
+            this.isDelete = false;
+          },
+        });
+      });
+    }
   }
   /**
    * Load danh sách tem từ info_tem_detail
@@ -972,7 +972,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
             );
             setTimeout(() => {
               window.location.reload();
-            }, 500);
+            }, 1000);
           } else {
             this.showSnackbar("Cập nhật thất bại", "Đóng", 3000, "error");
           }
@@ -1386,7 +1386,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     this.showPrintModal = true;
   }
 
-  openPrintPreviewAll(): void {
+  openPrintPreviewAll(requestId: number): void {
     this.printMode = "all";
     // console.log("In TẤT CẢ tem");
 
@@ -1399,44 +1399,46 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     //  Đóng modal nếu đang mở (clear DOM cũ)
     // this.showPrintModal = false;
 
-    this.generateTemInService.getAllTemDetails().subscribe({
-      next: (data) => {
-        this.printLabels = data;
-        this.isDisable = data.length === 0;
-        console.log("Tổng số tem để in:", this.printLabels.length);
-        if (this.isDisable) {
+    this.generateTemInService
+      .getTemDetailsByRequestId(this.requestId)
+      .subscribe({
+        next: (data) => {
+          this.printLabels = data;
+          this.isDisable = data.length === 0;
+          console.log("Tổng số tem để in:", this.printLabels.length);
+          if (this.isDisable) {
+            this.showSnackbar(
+              "Chưa có tem nào được tạo!",
+              "Đóng",
+              3000,
+              "warning",
+            );
+            return;
+          }
+
+          this.calculateFilteredLabels();
+
+          //  Đợi một chút để Angular clear DOM
+          setTimeout(() => {
+            this.showPrintModal = true;
+            document.body.classList.add("modal-open");
+            // console.log(
+            //   "Modal opened, should render",
+            //   this._filteredLabelsCache.length,
+            //   "labels",
+            // );
+          }, 100);
+        },
+        error: (err) => {
+          console.error("Lỗi khi load tem:", err);
           this.showSnackbar(
-            "Chưa có tem nào được tạo!",
+            "Không thể tải danh sách tem!",
             "Đóng",
             3000,
-            "warning",
+            "error",
           );
-          return;
-        }
-
-        this.calculateFilteredLabels();
-
-        //  Đợi một chút để Angular clear DOM
-        setTimeout(() => {
-          this.showPrintModal = true;
-          document.body.classList.add("modal-open");
-          // console.log(
-          //   "Modal opened, should render",
-          //   this._filteredLabelsCache.length,
-          //   "labels",
-          // );
-        }, 100);
-      },
-      error: (err) => {
-        console.error("Lỗi khi load tem:", err);
-        this.showSnackbar(
-          "Không thể tải danh sách tem!",
-          "Đóng",
-          3000,
-          "error",
-        );
-      },
-    });
+        },
+      });
   }
 
   closePrintModal(): void {
@@ -1524,5 +1526,14 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     });
 
     // console.log("Generated ${this._filteredLabelsCache.length} barcodes`");
+  }
+  //filter kho
+  private async handleKhoSearch(keyword: string | null): Promise<void> {
+    if (!keyword || keyword.length < 2) {
+      this.storageUnits = [];
+      return;
+    }
+
+    this.storageUnits = await this.warehouseCache.searchByName(keyword);
   }
 }

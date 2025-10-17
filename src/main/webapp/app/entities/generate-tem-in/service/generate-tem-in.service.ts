@@ -25,6 +25,15 @@ export interface UpdateResponse {
 //   providedIn: "root",
 // })
 
+const DELETE_REQUEST_MUTATION = gql`
+  mutation DeleteRequest($requestId: Int!) {
+    deleteRequest(requestId: $requestId) {
+      success
+      message
+    }
+  }
+`;
+
 const GET_REQUESTS_QUERY = gql`
   query GetRequests {
     listRequestCreateTems {
@@ -48,6 +57,7 @@ const GET_PRODUCTS_BY_REQUEST_QUERY = gql`
       sapCode
       temQuantity
       partNumber
+      productName
       lot
       initialQuantity
       vendor
@@ -225,6 +235,7 @@ export class GenerateTemInService {
     status?: string;
     vendor?: string;
     createdBy?: string;
+    createdDate?: string;
     page?: number;
     size?: number;
     sort?: string;
@@ -267,8 +278,13 @@ export class GenerateTemInService {
     );
   }
 
-  deleteRequest(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/requests/${id}`);
+  deleteRequest(id: number): Observable<UpdateResponse> {
+    return this.apollo
+      .mutate<{ deleteRequest: UpdateResponse }>({
+        mutation: DELETE_REQUEST_MUTATION,
+        variables: { requestId: id },
+      })
+      .pipe(map((res) => res.data!.deleteRequest));
   }
 
   getMaterialItems(): Observable<MaterialItem[]> {
@@ -427,6 +443,7 @@ export class GenerateTemInService {
       vendor,
       userData5,
       createdBy,
+      createdDate: new Date().toISOString().slice(0, 10),
       products: productInputs,
     };
 
@@ -746,10 +763,10 @@ export class GenerateTemInService {
         map((result) => result.data.infoTemDetailsByProductId),
       );
   }
-  getAllTemDetails(): Observable<TemDetail[]> {
+  getTemDetailsByRequestId(requestId: number): Observable<TemDetail[]> {
     const GET_ALL_TEM_DETAILS = gql`
-      query GetAllTemDetails {
-        infoTemDetails {
+      query GetTemDetailsByRequestId($requestId: Int!) {
+        infoTemDetailsByRequestId(requestId: $requestId) {
           id
           productOfRequestId
           reelId
@@ -775,11 +792,14 @@ export class GenerateTemInService {
     `;
 
     return this.apollo
-      .watchQuery<{ infoTemDetails: TemDetail[] }>({
+      .watchQuery<{ infoTemDetailsByRequestId: TemDetail[] }>({
         query: GET_ALL_TEM_DETAILS,
+        variables: { requestId },
         fetchPolicy: "network-only",
       })
-      .valueChanges.pipe(map((result) => result.data.infoTemDetails));
+      .valueChanges.pipe(
+        map((result) => result.data.infoTemDetailsByRequestId),
+      );
   }
   /**
    * Query: Chỉnh sửa bảng list_product_of_request
@@ -819,5 +839,24 @@ export class GenerateTemInService {
         },
       },
     });
+  }
+  //xoa req
+  deleteReqById(productId: number): Observable<UpdateResponse> {
+    console.log("Deleting productId:", productId);
+    const DELETE_PRODUCT = gql`
+      mutation DeleteProduct($productId: Int!) {
+        deleteProduct(productId: $productId) {
+          success
+          message
+        }
+      }
+    `;
+
+    return this.apollo
+      .mutate<{ deleteProduct: UpdateResponse }>({
+        mutation: DELETE_PRODUCT,
+        variables: { productId },
+      })
+      .pipe(map((res) => res.data!.deleteProduct));
   }
 }

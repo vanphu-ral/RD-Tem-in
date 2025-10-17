@@ -27,6 +27,13 @@ public class DetailResolver {
         return service.getInfoTemDetail();
     }
 
+    @QueryMapping
+    public List<InfoTemDetailResponse> infoTemDetailsByRequestId(
+        @Argument Integer requestId
+    ) {
+        return service.getTemDetailsByRequestId(Long.valueOf(requestId));
+    }
+
     // XÓA name = "generateTem"
     //    @MutationMapping
     public GenerateTemResponse generateTem(@Argument Integer requestId) {

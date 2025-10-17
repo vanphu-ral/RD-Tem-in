@@ -7,6 +7,7 @@ public class CreateRequestWithProductsInput {
     private String vendor;
     private String userData5;
     private String createdBy;
+    private String createdDate;
     private List<CreateProductInput> products;
 
     // Getters and Setters
@@ -40,5 +41,13 @@ public class CreateRequestWithProductsInput {
 
     public void setProducts(List<CreateProductInput> products) {
         this.products = products;
+    }
+
+    public String getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(String createdDate) {
+        this.createdDate = createdDate;
     }
 }
