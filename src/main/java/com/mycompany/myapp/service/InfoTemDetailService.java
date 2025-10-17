@@ -141,15 +141,15 @@ public class InfoTemDetailService {
                 );
             }
 
-            // 7. Cập nhật status của TẤT CẢ requests thành "Đã tạo mã QR"
-            List<ListRequestCreateTem> allRequests = requestRepo.findAll();
-            for (ListRequestCreateTem request : allRequests) {
-                if (!"Đã tạo mã QR".equals(request.getStatus())) {
-                    request.setStatus("Đã tạo mã QR");
-                }
+            // 7. Cập nhật status  requests thành "Đã tạo mã QR"
+            Optional<ListRequestCreateTem> requestOpt = requestRepo.findById(
+                requestId
+            );
+            if (requestOpt.isPresent()) {
+                ListRequestCreateTem request = requestOpt.get();
+                request.setStatus("Đã tạo mã QR");
+                requestRepo.save(request);
             }
-            requestRepo.saveAll(allRequests);
-            System.out.println("=== CẬP NHẬT TRẠNG THÁI TẤT CẢ REQUESTS ===");
 
             String message = String.format(
                 "Tạo tem thành công! Tổng số tem: %d",
@@ -352,5 +352,18 @@ public class InfoTemDetailService {
                 return entity.getQrCode();
             }
         };
+    }
+
+    //get detail by requestID
+    public List<InfoTemDetailResponse> getTemDetailsByRequestId(
+        Long requestId
+    ) {
+        List<InfoTemDetail> details = detailRepo.findByRequestCreateTemId(
+            requestId
+        );
+        return details
+            .stream()
+            .map(this::convertToResponse)
+            .collect(Collectors.toList());
     }
 }

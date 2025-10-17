@@ -224,20 +224,21 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   private performDelete(item: TemMaterialItem): void {
     this.isLoading = true;
     this.generateTemInService.deleteRequest(item.id).subscribe({
-      next: () => {
-        console.log(`Successfully deleted request ${item.id}`);
-        // Reload the data after successful deletion
+      next: (response) => {
+        console.log(`Deleted request ${item.id}: ${response.message}`);
         this.loadRequests();
       },
       error: (error) => {
         console.error("Error deleting request:", error);
-        this.isLoading = false;
         this.alertService.addAlert({
           type: "danger",
           message: `Lỗi khi xóa yêu cầu: ${error.message || "Không thể xóa yêu cầu này"}`,
           timeout: 5000,
           toast: true,
         });
+      },
+      complete: () => {
+        this.isLoading = false;
       },
     });
   }

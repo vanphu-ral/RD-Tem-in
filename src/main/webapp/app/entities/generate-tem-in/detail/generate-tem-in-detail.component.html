@@ -24,7 +24,7 @@
         <mat-form-field
           appearance="outline"
           class="small-form-field"
-          style="width: 150px; margin-bottom: -1.5rem"
+          style="width: 250px; margin-bottom: -24px"
         >
           <mat-label>Nhập tên kho...</mat-label>
           <input
@@ -63,25 +63,37 @@
           Lưu
         </button>
 
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="openCsvPreview()"
-          matTooltip="Xuất Excel"
-          [disabled]="isDisable"
+        <span
+          matTooltip="Cần generate tem trước"
+          [matTooltipDisabled]="!isDisable"
+          matTooltipPosition="above"
         >
-          <fa-icon [icon]="faFileCsv"></fa-icon>
-        </button>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="openCsvPreview()"
+            matTooltip="Xuất Excel"
+            [disabled]="isDisable"
+          >
+            <fa-icon [icon]="faFileCsv"></fa-icon>
+          </button>
+        </span>
 
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="openPrintPreviewAll()"
-          matTooltip="In tất cả tem"
-          [disabled]="isDisable"
+        <span
+          matTooltip="Cần generate tem trước"
+          [matTooltipDisabled]="!isDisable"
+          matTooltipPosition="above"
         >
-          <fa-icon [icon]="faPrint"></fa-icon>
-        </button>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="openPrintPreviewAll(requestId)"
+            matTooltip="In tất cả tem"
+            [disabled]="isDisable"
+          >
+            <fa-icon [icon]="faPrint"></fa-icon>
+          </button>
+        </span>
       </div>
     </div>
   </mat-toolbar>
@@ -124,6 +136,7 @@
               color="accent"
               (click)="onAction('edit', item, index)"
               matTooltip="Chỉnh sửa"
+              [disabled]="!isDisable"
             >
               <mat-icon>edit</mat-icon>
             </button>
@@ -139,27 +152,44 @@
               <mat-icon>check_circle</mat-icon>
             </button>
 
-            <button mat-icon-button color="warn" matTooltip="Xóa">
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="onAction('delete', item, index)"
+              matTooltip="Xóa"
+            >
               <mat-icon>delete</mat-icon>
             </button>
 
-            <button
-              mat-icon-button
-              (click)="onAction('exportCsv', item, index)"
-              matTooltip="Xuất CSV"
-              [disabled]="isDisable"
+            <span
+              matTooltip="Cần generate tem trước"
+              [matTooltipDisabled]="!isDisable"
+              matTooltipPosition="above"
             >
-              <fa-icon [icon]="faFileCsv" size="xs"></fa-icon>
-            </button>
+              <button
+                mat-icon-button
+                (click)="onAction('exportCsv', item, index)"
+                matTooltip="Xuất CSV"
+                [disabled]="isDisable"
+              >
+                <fa-icon [icon]="faFileCsv" size="xs"></fa-icon>
+              </button>
+            </span>
 
-            <button
-              mat-icon-button
-              (click)="onAction('print', item, index)"
-              matTooltip="In tem"
-              [disabled]="isDisable"
+            <span
+              matTooltip="Cần generate tem trước"
+              [matTooltipDisabled]="!isDisable"
+              matTooltipPosition="above"
             >
-              <mat-icon>local_printshop</mat-icon>
-            </button>
+              <button
+                mat-icon-button
+                (click)="onAction('print', item, index)"
+                matTooltip="In tem"
+                [disabled]="isDisable"
+              >
+                <mat-icon>local_printshop</mat-icon>
+              </button>
+            </span>
 
             <button mat-icon-button color="primary" matTooltip="Scan">
               <mat-icon>qr_code_scanner</mat-icon>
@@ -674,9 +704,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>ReelID</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.reelId }}</td>
@@ -687,9 +714,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>SAPCode</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.sapCode }}</td>
@@ -700,9 +724,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>PartNumber</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.partNumber }}</td>
@@ -713,9 +734,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>LOT</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.lot }}</td>
@@ -726,9 +744,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>StorageUnit</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.storageUnit }}</td>
@@ -739,9 +754,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>InitialQuantity</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">
@@ -754,9 +766,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>Vendor</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.vendor }}</td>
@@ -767,9 +776,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>UserData1</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.userData1 }}</td>
@@ -780,9 +786,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>UserData2</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.userData2 }}</td>
@@ -793,9 +796,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>UserData3</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.userData3 }}</td>
@@ -806,9 +806,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>UserData4</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.userData4 }}</td>
@@ -819,9 +816,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>UserData5</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.userData5 }}</td>
@@ -832,9 +826,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>ExpirationDate</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.expirationDate }}</td>
@@ -845,9 +836,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>ManufacturingDate</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">
@@ -860,9 +848,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>ArrivalDate</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.arrivalDate }}</td>
@@ -873,9 +858,6 @@
               <th mat-header-cell *matHeaderCellDef>
                 <div class="header-with-filter">
                   <span>slTemQuantity</span>
-                  <mat-form-field appearance="outline" class="filter-field">
-                    <input matInput placeholder="Lọc..." />
-                  </mat-form-field>
                 </div>
               </th>
               <td mat-cell *matCellDef="let item">{{ item.slTemQuantity }}</td>

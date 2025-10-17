@@ -21,6 +21,8 @@ import {
   GroupedExcelData,
 } from "../service/excel-parser.service";
 import { AlertService } from "app/core/util/alert.service";
+import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
+import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 
 export interface SaveStatus {
   groupIndex: number;
@@ -61,7 +63,6 @@ type DisplayColumnKeys = VatTuKeys | "ngayVe";
   styleUrls: ["./generate-tem-in-import.component.scss"],
 })
 export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
-  khoControl = new FormControl<string | null>(null);
   allowSplitControl = new FormControl<boolean>(false);
 
   // Popup control
@@ -117,6 +118,10 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
 
   poCode = "12345";
 
+  //danh sach kh
+  danhSachKho: CachedWarehouse[] = [];
+  khoControl = new FormControl<string | null>(null);
+
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -126,6 +131,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     private dialog: MatDialog,
     private alertService: AlertService,
     private router: Router,
+    private warehouseCache: WarehouseCacheService,
   ) {}
 
   fc(k: DisplayColumnKeys): FormControl<string | null> {
@@ -153,6 +159,10 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         this.applyFilter();
       });
     });
+
+    this.khoControl.valueChanges.subscribe((keyword: string | null) => {
+      this.handleKhoSearch(keyword);
+    });
   }
 
   ngAfterViewInit(): void {
@@ -176,7 +186,17 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
       );
     };
   }
-
+  //filter locaiton
+  chonKho(selectedKho: string): void {
+    this.groupDataSources.forEach((dataSource) => {
+      const updatedData = dataSource.data.map((row) => ({
+        ...row,
+        storageUnit: selectedKho,
+      }));
+      dataSource.data = updatedData;
+      dataSource._updateChangeSubscription();
+    });
+  }
   applyFilter(): void {
     const f: Partial<Record<VatTuKeys, string>> = {};
     (
@@ -836,5 +856,14 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         });
         this.isLoading = false;
       });
+  }
+  //xu ly search kho:
+  private async handleKhoSearch(keyword: string | null): Promise<void> {
+    if (!keyword || keyword.length < 2) {
+      this.danhSachKho = [];
+      return;
+    }
+
+    this.danhSachKho = await this.warehouseCache.searchByName(keyword);
   }
 }
