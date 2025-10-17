@@ -235,3 +235,18 @@ jhipster:
 # ===================================================================
 
 # application:
+
+# ===================================================================
+# CSV Upload Configuration
+# ===================================================================
+csv:
+  upload:
+    # Local path for CSV uploads (fallback or development mode)
+    path: C:/Upload_software
+    # SMB share configuration
+    smb:
+      enabled: true
+      host: LAPTOPCUAXUAN
+      share: Log_Printer
+      username:
+      password:

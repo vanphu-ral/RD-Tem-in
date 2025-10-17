@@ -25,6 +25,7 @@ import {
   faFileCsv,
   faCheckCircle,
   faRotateBack,
+  faCloudUpload,
 } from "@fortawesome/free-solid-svg-icons";
 import JsBarcode from "jsbarcode";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
@@ -33,6 +34,7 @@ import { Observable } from "rxjs/internal/Observable";
 import { GenerateTemInConfirmDialogComponent } from "../generate-tem-in-modal-confirm/modal-confirm.component";
 import { PageEvent } from "@angular/material/paginator";
 import { MatCardActions } from "@angular/material/card";
+import { HttpHeaders } from "@angular/common/http";
 
 export interface MaterialItem {
   stt: number; // Số thứ tự hiển thị
@@ -250,6 +252,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   faQrcode = faQrcode;
   faFileCsv = faFileCsv;
   faCheckCircle = faCheckCircle;
+  faCloudUpload = faCloudUpload;
 
   //pagination detail
   materialCurrentPage = 0; // Material paginator bắt đầu từ 0
@@ -452,7 +455,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         },
         error: (err) => {
           this.showSnackbar(
-            err.message || "Có lỗi xảy ra khi tạo tem!",
+            err.message ?? "Có lỗi xảy ra khi tạo tem!",
             "Đóng",
             3000,
             "error",
@@ -1137,6 +1140,215 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     return "\ufeff" + csvRows;
   }
 
+  exportCsvToFixedIP(): void {
+    const csvContent = this.generateCsvContent();
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+    // Use backend API endpoint
+    const apiEndpoint = "/api/csv-upload";
+    const formData = new FormData();
+    formData.append("file", blob, this.csvFileName);
+
+    this.http.post<any>(apiEndpoint, formData).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.showSnackbar(
+            "Gửi thông tin tới hệ thống thành công!",
+            "Đóng",
+            5000,
+            "success",
+          );
+        } else {
+          this.showSnackbar(`Lỗi: ${response.message}`, "Đóng", 5000, "error");
+        }
+      },
+      error: (error) => {
+        console.error("Error uploading CSV:", error);
+        this.showSnackbar(
+          `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
+          "Đóng",
+          5000,
+          "error",
+        );
+      },
+    });
+  }
+
+  // Export CSV to fixed IP for single product row
+  // This function now uses the backend API endpoint
+  exportSingleProductCsvToFixedIP(productId: number): void {
+    // Delegate to the new independent function
+    this.importSingleProductCsvToFixedIP(productId);
+  }
+
+  /**
+   * Independent function to import CSV data to fixed IP address
+   * This function works independently without affecting other UI functions
+   * @param csvDataItems - Array of CSV data items to import
+   * @param targetIP - Target IP address (default: //192.168.68.16/Upload_software)
+   * @param fileName - Custom file name (optional)
+   */
+  importCsvToFixedIP(csvDataItems: CsvDataItem[], fileName?: string): void {
+    if (!csvDataItems || csvDataItems.length === 0) {
+      this.showSnackbar("Không có dữ liệu để gửi", "Đóng", 3000, "warning");
+      return;
+    }
+
+    // Generate CSV headers
+    const headers = [
+      "ReelID",
+      "PartNumber",
+      "Vendor",
+      "Lot",
+      "UserData1",
+      "UserData2",
+      "UserData3",
+      "UserData4",
+      "UserData5",
+      "InitialQuantity",
+      "MSDLevel",
+      "MSDInitialFloorTime",
+      "MSDBagSealDate",
+      "MarketUsage",
+      "QuantityOverride",
+      "ShelfTime",
+      "SPMaterialName",
+      "WarningLimit",
+      "MaximumLimit",
+      "Comments",
+      "WarmupTime",
+      "StorageUnit",
+      "SubStorageUnit",
+      "LocationOverride",
+      "ExpirationDate",
+      "ManufacturingDate",
+      "Partclass",
+      "SAPCode",
+    ];
+
+    // Generate CSV rows from data
+    const rows = csvDataItems.map((item) => [
+      item.reelId,
+      item.partNumber,
+      item.vendor,
+      item.lot,
+      item.userData1,
+      item.userData2,
+      item.userData3,
+      item.userData4,
+      item.userData5,
+      item.initialQuantity,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      item.storageUnit,
+      "",
+      "",
+      item.expirationDate?.replace(/-/g, ""),
+      item.manufacturingDate?.replace(/-/g, ""),
+      "",
+      item.sapCode,
+    ]);
+
+    // Create CSV content
+    const csvRows = [headers, ...rows]
+      .map((row) => row.map((cell) => cell ?? "").join(","))
+      .join("\n");
+
+    const csvContent = "\ufeff" + csvRows;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+    // Prepare form data
+    const formData = new FormData();
+    const defaultFileName =
+      fileName ?? `CSV_IMPORT_${new Date().toISOString().split("T")[0]}.csv`;
+    formData.append("file", blob, defaultFileName);
+
+    // Use backend API endpoint instead of direct SMB access
+    const apiEndpoint = "/api/csv-upload";
+
+    // Upload via backend API
+    this.http.post<any>(apiEndpoint, formData).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.showSnackbar(
+            `Đã gửi ${csvDataItems.length} bản ghi tới hệ thống thành công!`,
+            "Đóng",
+            3000,
+            "success",
+          );
+        } else {
+          this.showSnackbar(`Lỗi: ${response.message}`, "Đóng", 5000, "error");
+        }
+      },
+      error: (error) => {
+        console.error("Error uploading CSV:", error);
+        this.showSnackbar(
+          `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
+          "Đóng",
+          5000,
+          "error",
+        );
+      },
+    });
+  }
+
+  /**
+   * Import CSV for a specific product to fixed IP
+   * This is a wrapper function that uses the independent importCsvToFixedIP
+   * @param productId - Product ID to export
+   */
+  importSingleProductCsvToFixedIP(productId: number): void {
+    this.loadTemDetails(productId, () => {
+      const matchedItems = this.temDetailList.filter(
+        (item) => item.productOfRequestId === productId,
+      );
+
+      if (matchedItems.length === 0) {
+        this.showSnackbar(
+          "Không tìm thấy dữ liệu cho sản phẩm này",
+          "Đóng",
+          3000,
+          "warning",
+        );
+        return;
+      }
+
+      const csvData = matchedItems.map((matched) => ({
+        productOfRequestId: matched.productOfRequestId,
+        reelId: matched.reelId,
+        sapCode: matched.sapCode,
+        productName: matched.productName,
+        partNumber: matched.partNumber,
+        lot: matched.lot,
+        initialQuantity: matched.initialQuantity,
+        vendor: matched.vendor,
+        userData1: matched.userData1,
+        userData2: matched.userData2,
+        userData3: matched.userData3,
+        userData4: matched.userData4,
+        userData5: matched.userData5,
+        storageUnit: matched.storageUnit,
+        expirationDate: matched.expirationDate,
+        manufacturingDate: matched.manufacturingDate,
+        arrivalDate: matched.arrivalDate,
+        qrCode: matched.qrCode,
+        slTemQuantity: matched.slTemQuantity,
+      }));
+
+      const fileName = `CSV_PRODUCT_${productId}_${new Date().toISOString().split("T")[0]}.csv`;
+      this.importCsvToFixedIP(csvData, fileName);
+    });
+  }
+
   // Print Preview Methods
   openPrintPreviewForProduct(requestId: number): void {
     // console.log(" In tem cho product:", this.selectedProductItem?.partNumber);
@@ -1255,7 +1467,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     } else {
       const expanded: TemDetail[] = [];
       this.printLabels.forEach((label) => {
-        const count = Number(label.slTemQuantity) || 1;
+        const count = Number(label.slTemQuantity) ?? 1;
         for (let i = 0; i < count; i++) {
           // Deep copy để tránh reference issues
           expanded.push(JSON.parse(JSON.stringify(label)));
@@ -1277,12 +1489,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       const nvTarget = document.getElementById(`barcode-nv-${uniqueId}`);
       const poTarget = document.getElementById(`barcode-po-${uniqueId}`);
 
-      const rawDate = label.arrivalDate || "000000";
+      const rawDate = label.arrivalDate ?? "000000";
       const compactDate = rawDate.replace(/-/g, "").slice(2);
 
       if (nvTarget) {
         try {
-          JsBarcode(nvTarget, compactDate || "000000", {
+          JsBarcode(nvTarget, compactDate ?? "000000", {
             format: "CODE128",
             lineColor: "#000",
             width: 2,
@@ -1297,7 +1509,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
       if (poTarget) {
         try {
-          JsBarcode(poTarget, label.userData5 || "00000", {
+          JsBarcode(poTarget, label.userData5 ?? "00000", {
             format: "CODE128",
             lineColor: "#000",
             width: 2,

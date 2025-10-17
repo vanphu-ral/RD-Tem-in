@@ -291,6 +291,22 @@
   min-width: 96px;
   display: inline-flex;
   justify-content: center;
+
+  /* Status chip colors - Angular Material chips */
+  ::ng-deep .mat-mdc-chip.mat-primary {
+    --mdc-chip-elevated-container-color: #2196f3;
+    --mdc-chip-label-text-color: #ffffff;
+  }
+
+  ::ng-deep .mat-mdc-chip.mat-accent {
+    --mdc-chip-elevated-container-color: #ff9800;
+    --mdc-chip-label-text-color: #ffffff;
+  }
+
+  ::ng-deep .mat-mdc-chip.mat-warn {
+    --mdc-chip-elevated-container-color: #f44336;
+    --mdc-chip-label-text-color: #ffffff;
+  }
 }
 
 .table-container .mat-mdc-header-row {
