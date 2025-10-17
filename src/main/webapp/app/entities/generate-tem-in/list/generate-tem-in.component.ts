@@ -163,13 +163,10 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   statusColor(status: string): "primary" | "accent" | "warn" {
     switch ((status || "").toLowerCase()) {
       case "bản nháp":
-        return "primary";
-      case "đã nhập":
-      case "hoàn tất":
-      case "done":
+        return "accent";
+      case "đã gen mã":
         return "primary";
       case "lỗi":
-      case "error":
         return "warn";
       default:
         return "accent";
