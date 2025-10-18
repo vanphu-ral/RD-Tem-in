@@ -29,7 +29,7 @@ public class ListRequestCreateTem {
     @Column(name = "Status", length = 20)
     private String status;
 
-    @Column(name = "CreatedDate")
+    @Column(name = "created_date")
     private LocalDateTime createdDate;
 
     // Getters and Setters
