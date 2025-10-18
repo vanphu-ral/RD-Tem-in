@@ -45,8 +45,11 @@
     >
       <div>
         <div class="header" style="gap: 20px">
+          <button mat-icon-button [routerLink]="['../']" class="mr-3">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
           <h1>Import thông tin vật tư</h1>
-          <button
+          <!-- <button
             mat-raised-button
             [routerLink]="['../']"
             aria-label="Quay lại trang danh sách"
@@ -60,7 +63,7 @@
             <mat-icon aria-hidden="true" class="back-icon"
               >keyboard_backspace</mat-icon
             >
-          </button>
+          </button> -->
         </div>
       </div>
       <div style="display: flex; justify-content: center; align-items: center">
@@ -253,7 +256,7 @@
                 </mat-autocomplete>
               </mat-form-field>
               <button
-                mat-stroked-button
+                mat-raised-button
                 color="primary"
                 (click)="saveGroup(i)"
                 [disabled]="isSaveDisabled(i)"
@@ -264,7 +267,7 @@
                 {{ getSaveButtonText(i) }}
               </button>
               <button
-                mat-stroked-button
+                mat-raised-button
                 (click)="genQRForGroup(i)"
                 aria-label="Tạo mã QR"
                 style="height: 40px"

@@ -253,6 +253,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
   // Danh sách tem chi tiết (từ info_tem_detail)
   temDetailList: TemDetail[] = [];
+  searchReelId: string = "";
+  filteredTemDetailList: any[] = [];
   //tat ca tem
   allTemDetails: TemDetail[] = [];
 
@@ -937,7 +939,17 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       },
     });
   }
+  filterTemDetails(): void {
+    const keyword = this.searchReelId.trim().toLowerCase();
+    if (!keyword) {
+      this.filteredTemDetailList = this.temDetailList;
+      return;
+    }
 
+    this.filteredTemDetailList = this.temDetailList.filter((item) =>
+      item.reelId?.toLowerCase().includes(keyword),
+    );
+  }
   closeQrModal(): void {
     this.showQrModal = false;
     document.body.classList.remove("modal-open");

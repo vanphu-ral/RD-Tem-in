@@ -78,6 +78,7 @@
           (click)="exportCsvToFixedIP()"
           matTooltip="Xuất CSV đến server"
           [disabled]="isDisable"
+          class="icon-only-button"
         >
           <mat-icon>system_update_alt</mat-icon>
         </button>
@@ -185,7 +186,7 @@
               [disabled]="isDisable"
               color="accent"
             >
-              <mat-icon>system_update_alt</mat-icon>
+              <mat-icon class="non-fa-i">system_update_alt</mat-icon>
             </button>
             <span
               matTooltip="Cần generate tem trước"
@@ -439,6 +440,20 @@
         </h3>
         <div class="info-grid">
           <div class="info-item">
+            <span class="info-label">Tìm kiếm</span>
+            <mat-form-field
+              appearance="outline"
+              class="w-full mt-1 small-form-field"
+            >
+              <input
+                matInput
+                [(ngModel)]="searchReelId"
+                (ngModelChange)="filterTemDetails()"
+                placeholder="Tìm kiếm ReelID"
+              />
+            </mat-form-field>
+          </div>
+          <div class="info-item">
             <span class="info-label">SAP Code</span>
             <span class="info-value">{{ selectedProductItem?.sapCode }}</span>
           </div>
@@ -494,7 +509,7 @@
         <div class="table-scroll-wrapper-view">
           <table
             mat-table
-            [dataSource]="temDetailList"
+            [dataSource]="filteredTemDetailList"
             class="tem-detail-table"
           >
             <!-- STT Column -->
@@ -670,10 +685,10 @@
 
     <!-- Footer -->
     <mat-card-actions class="modal-footer-material">
-      <button mat-raised-button color="primary" (click)="closeQrModal()">
+      <!-- <button mat-raised-button color="primary" (click)="closeQrModal()">
         <mat-icon>close</mat-icon>
         Đóng
-      </button>
+      </button> -->
     </mat-card-actions>
   </mat-card>
 </div>

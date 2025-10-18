@@ -1,5 +1,5 @@
 import { Component, OnInit, AfterViewInit, ViewChild } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { CommonModule, DatePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
 // Angular Material
@@ -95,6 +95,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     private generateTemInService: GenerateTemInService,
     private dialog: MatDialog,
     private alertService: AlertService,
+    private datePipe: DatePipe,
   ) {}
 
   // ================== LIFECYCLE ==================
@@ -166,6 +167,22 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
 
     this.dataSource.filter = JSON.stringify(this.filterValues);
   }
+  applyDateFilter(): void {
+    const selectedDate = this.filterValues.createdDate;
+    if (selectedDate) {
+      const formatted = this.datePipe.transform(selectedDate, "dd/MM/yyyy");
+      this.dataSource.filterPredicate = (data, filter) => {
+        const dataDate = this.datePipe.transform(
+          data.createdDate,
+          "dd/MM/yyyy",
+        );
+        return dataDate === formatted;
+      };
+      this.dataSource.filter = formatted ?? "";
+    } else {
+      this.dataSource.filter = "";
+    }
+  }
 
   clearFilters(): void {
     this.filters = {
@@ -179,17 +196,27 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     };
     this.applyFilter();
   }
-
-  statusColor(status: string): "primary" | "accent" | "warn" {
-    switch ((status || "").toLowerCase()) {
+  statusColor(status: string): { [key: string]: string } {
+    const normalized = (status || "").toLowerCase().trim();
+    switch (normalized) {
       case "bản nháp":
-        return "accent";
-      case "đã gen mã":
-        return "primary";
-      case "lỗi":
-        return "warn";
+        return {
+          backgroundColor: "#FFF9B0",
+          color: "#7A6A00",
+          border: "1px solid #F0E68C",
+        };
+      case "đã tạo mã qr":
+        return {
+          backgroundColor: "#C6F6D5",
+          color: "#3F6D52",
+          border: "1px solid #A3D9B8",
+        };
       default:
-        return "accent";
+        return {
+          backgroundColor: "#E0E0E0",
+          color: "#333",
+          border: "1px solid #CCC",
+        };
     }
   }
 
