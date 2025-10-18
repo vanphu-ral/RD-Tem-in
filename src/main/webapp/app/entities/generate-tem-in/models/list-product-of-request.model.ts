@@ -49,6 +49,7 @@ export interface ExcelImportData {
   temQuantity: number;
   initialQuantity: number;
   vendor: string;
+  tenNCC: string;
   userData1: string;
   userData2: string;
   userData3: string;

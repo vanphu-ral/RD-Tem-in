@@ -3,10 +3,21 @@
 .container {
   padding: 20px;
   background-color: #f8f9fa;
-  min-height: calc(100vh - 80px);
+  min-height: calc(95vh - 240px);
   max-width: calc(95vw);
 }
 
+.container mat-elevation-z2 {
+  padding: 20px;
+  background-color: #f8f9fa;
+  // min-height: calc(100vh - 80px);
+  max-height: calc(95vh - 240px);
+  max-width: calc(95vw);
+}
+
+// min-height: calc(100vh - 80px);
+// // max-height: 95vh;
+// max-width: calc(95vw);
 .gap-3 {
   gap: 1rem;
 }
@@ -62,8 +73,9 @@
 /* Table Container */
 .table-container {
   max-width: 100%;
-  height: calc(100vh - 260px);
+  height: calc(100vh - 375px);
   border-radius: 6px;
+  overflow: auto;
 }
 
 /* Material Table Styles */
@@ -826,6 +838,7 @@ thead tr:nth-child(2) {
   position: relative;
   padding: 0 1.5rem;
 }
+
 .table-scroll-wrapper-view {
   overflow: auto;
   max-height: 700px;
@@ -1198,6 +1211,7 @@ thead tr:nth-child(2) {
     text-align: left;
     max-width: 70px;
   }
+
   .mat-column-userData4,
   .mat-column-userData5 {
     text-align: left;

@@ -454,7 +454,20 @@
                   />
                 </td>
               </ng-container>
-
+              <!-- Tên NCC -->
+              <ng-container matColumnDef="tenNCC">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                  Tên NCC
+                </th>
+                <td mat-cell *matCellDef="let row">{{ row.tenNCC }}</td>
+                <td mat-footer-cell *matFooterCellDef>
+                  <input
+                    class="table-filter"
+                    [formControl]="fc('tenNCC')"
+                    placeholder="Lọc Tên NCC"
+                  />
+                </td>
+              </ng-container>
               <!-- UserData1 -->
               <ng-container matColumnDef="userData1">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>

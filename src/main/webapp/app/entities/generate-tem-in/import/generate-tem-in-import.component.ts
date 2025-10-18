@@ -44,6 +44,7 @@ export interface VatTuRow {
   soTem: number;
   initialQuantity: number;
   vendor: string;
+  tenNCC: string;
   userData1: string;
   userData2: string;
   userData3: string;
@@ -92,6 +93,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     "soTem",
     "initialQuantity",
     "vendor",
+    "tenNCC",
     "userData1",
     "userData2",
     "userData3",
@@ -258,6 +260,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
             soTem: item.temQuantity,
             initialQuantity: item.initialQuantity,
             vendor: item.vendor,
+            tenNCC: item.tenNCC,
             userData1: item.userData1,
             userData2: item.userData2,
             userData3: item.userData3,
@@ -409,6 +412,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
       temQuantity: row.soTem,
       initialQuantity: row.initialQuantity,
       vendor: row.vendor,
+      tenNCC: row.tenNCC,
       userData1: row.userData1,
       userData2: row.userData2,
       userData3: row.userData3,
@@ -776,6 +780,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
           soTem: item.temQuantity,
           initialQuantity: item.initialQuantity,
           vendor: item.vendor,
+          tenNCC: item.tenNCC,
           userData1: item.userData1,
           userData2: item.userData2,
           userData3: item.userData3,

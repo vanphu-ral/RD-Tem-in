@@ -412,7 +412,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
   onGenerateTemForRequest(requestId: number): void {
     this.confirmAction(
-      `Bạn có chắc muốn tạo tem cho tất cả sản phẩm thuộc yêu cầu #${requestId}?`,
+      `Xác nhận tạo mã tem cho tất cả sản phẩm thuộc yêu cầu này?`,
     ).subscribe((confirmed) => {
       if (!confirmed) {
         return;
@@ -1042,6 +1042,11 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
 
   prepareCsvData(): void {
+    console.log(
+      "🔧 prepareCsvData - temDetailList length:",
+      this.temDetailList.length,
+    );
+
     this.csvData = this.temDetailList.map((item) => ({
       productOfRequestId: item.productOfRequestId,
       reelId: item.reelId,
@@ -1063,10 +1068,36 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       qrCode: item.qrCode,
       slTemQuantity: item.slTemQuantity,
     }));
+
+    console.log(
+      "prepareCsvData - csvData prepared with",
+      this.csvData.length,
+      "items",
+    );
+    if (this.csvData.length > 0) {
+      console.log("📋 First item sample:", this.csvData[0]);
+    }
+
     this.isDisable = this.temDetailList.length === 0;
   }
 
   exportCsv(): void {
+    // Đảm bảo csvData được chuẩn bị trước khi tạo CSV
+    if (!this.csvData || this.csvData.length === 0) {
+      this.prepareCsvData();
+    }
+
+    // Kiểm tra lại sau khi prepare
+    if (!this.csvData || this.csvData.length === 0) {
+      this.showSnackbar(
+        "Không có dữ liệu để xuất CSV!",
+        "Đóng",
+        3000,
+        "warning",
+      );
+      return;
+    }
+
     const csvContent = this.generateCsvContent();
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -1083,6 +1114,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
 
   generateCsvContent(): string {
+    console.log("🔍 generateCsvContent - csvData length:", this.csvData.length);
+
     const headers = [
       "ReelID",
       "PartNumber",
@@ -1114,36 +1147,42 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       "SAPCode",
     ];
 
-    const rows = this.csvData.map((item) => [
-      item.reelId,
-      item.partNumber,
-      item.vendor,
-      item.lot,
-      item.userData1,
-      item.userData2,
-      item.userData3,
-      item.userData4,
-      item.userData5,
-      item.initialQuantity,
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "", // MSD fields & others
-      "",
-      item.storageUnit,
-      "", // SubStorageUnit, LocationOverride
-      "", // SubStorageUnit, LocationOverride
-      item.expirationDate?.replace(/-/g, ""),
-      item.manufacturingDate?.replace(/-/g, ""),
-      "", // Partclass
-      item.sapCode,
-    ]);
+    const rows = this.csvData.map((item) => {
+      const row = [
+        item.reelId,
+        item.partNumber,
+        item.vendor,
+        item.lot,
+        item.userData1,
+        item.userData2,
+        item.userData3,
+        item.userData4,
+        item.userData5,
+        item.initialQuantity,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "", // MSD fields & others
+        "",
+        item.storageUnit,
+        "", // SubStorageUnit
+        "", // LocationOverride
+        item.expirationDate?.replace(/-/g, ""),
+        item.manufacturingDate?.replace(/-/g, ""),
+        "", // Partclass
+        item.sapCode,
+      ];
+      console.log("📝 Row data:", row);
+      return row;
+    });
+
+    console.log("📊 Total rows (including header):", rows.length + 1);
 
     const csvRows = [headers, ...rows]
       .map((row) => row.map((cell) => cell ?? "").join(","))
@@ -1153,6 +1192,22 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
 
   exportCsvToFixedIP(): void {
+    // Đảm bảo csvData được chuẩn bị trước khi tạo CSV
+    if (!this.csvData || this.csvData.length === 0) {
+      this.prepareCsvData();
+    }
+
+    // Kiểm tra lại sau khi prepare
+    if (!this.csvData || this.csvData.length === 0) {
+      this.showSnackbar(
+        "Không có dữ liệu để xuất CSV!",
+        "Đóng",
+        3000,
+        "warning",
+      );
+      return;
+    }
+
     const csvContent = this.generateCsvContent();
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
