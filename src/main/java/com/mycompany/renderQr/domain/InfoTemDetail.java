@@ -65,9 +65,6 @@ public class InfoTemDetail {
     @Column(name = "QR_code")
     private String qrCode;
 
-    @Column(name = "sl_tem_quantity")
-    private Integer slTemQuantity;
-
     public Long getId() {
         return id;
     }
@@ -218,13 +215,5 @@ public class InfoTemDetail {
 
     public void setQrCode(String qrCode) {
         this.qrCode = qrCode;
-    }
-
-    public Integer getSlTemQuantity() {
-        return slTemQuantity;
-    }
-
-    public void setSlTemQuantity(Integer slTemQuantity) {
-        this.slTemQuantity = slTemQuantity;
     }
 }

@@ -748,7 +748,6 @@ export class GenerateTemInService {
           manufacturingDate
           arrivalDate
           qrCode
-          slTemQuantity
         }
       }
     `;
@@ -786,7 +785,6 @@ export class GenerateTemInService {
           manufacturingDate
           arrivalDate
           qrCode
-          slTemQuantity
         }
       }
     `;

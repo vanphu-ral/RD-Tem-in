@@ -370,11 +370,11 @@ export class ListMaterialService {
     }
     this.refreshSelectedItems();
     this.loadSelectedIds();
-    this.fetchMaterialsData(1, this.defaultPageSize)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe();
+    // this.fetchMaterialsData(1, this.defaultPageSize)
+    //   .pipe(takeUntil(this.destroy$))
+    //   .subscribe();
 
-    this.fetchAllInventoryUpdateRequests();
+    // this.fetchAllInventoryUpdateRequests();
     this.approvalHistoryDetailData$ =
       this._approvalHistoryDetailData.asObservable();
     this.updateRequestData$ = this._allInventoryUpdateRequests.asObservable();
@@ -490,7 +490,7 @@ export class ListMaterialService {
     );
   }
 
-  public fetchAllInventoryUpdateRequests(): void {
+  fetchAllInventoryUpdateRequests(): void {
     // console.log(`Goi API  ${this.apiRequest}`);
 
     this.http.get<inventory_update_requests[]>(this.apiRequest).subscribe({

@@ -121,9 +121,6 @@ public class InfoTemDetailService {
                     detail.setQrCode(qrCode);
 
                     // Nếu có trường sl_tem_quantity
-                    if (hasSlTemQuantityField(detail)) {
-                        detail.setSlTemQuantity(1);
-                    }
 
                     allTemList.add(detail);
                     System.out.println("  Tem #" + (i + 1) + ": " + reelId);
@@ -214,18 +211,6 @@ public class InfoTemDetailService {
         } catch (NumberFormatException e) {
             System.out.println("Không thể parse sequence từ ReelID: " + reelId);
             return 0;
-        }
-    }
-
-    /**
-     * Kiểm tra xem entity có trường slTemQuantity không
-     */
-    private boolean hasSlTemQuantityField(InfoTemDetail detail) {
-        try {
-            detail.getClass().getMethod("setSlTemQuantity", Integer.class);
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
         }
     }
 

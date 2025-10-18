@@ -66,7 +66,7 @@
         <button
           mat-raised-button
           color="primary"
-          (click)="openCsvPreview()"
+          (click)="openCsvPreview(requestId)"
           matTooltip="Xuất Excel"
           [disabled]="isDisable"
         >
@@ -75,7 +75,7 @@
         <button
           mat-raised-button
           color="primary"
-          (click)="exportCsvToFixedIP()"
+          (click)="exportCsvToFixedIP(requestId)"
           matTooltip="Xuất CSV đến server"
           [disabled]="isDisable"
           class="icon-only-button"
@@ -185,6 +185,7 @@
               matTooltip="Xuất CSV đến server"
               [disabled]="isDisable"
               color="accent"
+              class="icon-only-button"
             >
               <mat-icon class="non-fa-i">system_update_alt</mat-icon>
             </button>
@@ -439,7 +440,7 @@
           Thông Tin Sản Phẩm
         </h3>
         <div class="info-grid">
-          <div class="info-item">
+          <!-- <div class="info-item">
             <span class="info-label">Tìm kiếm</span>
             <mat-form-field
               appearance="outline"
@@ -452,7 +453,7 @@
                 placeholder="Tìm kiếm ReelID"
               />
             </mat-form-field>
-          </div>
+          </div> -->
           <div class="info-item">
             <span class="info-label">SAP Code</span>
             <span class="info-value">{{ selectedProductItem?.sapCode }}</span>
@@ -509,7 +510,7 @@
         <div class="table-scroll-wrapper-view">
           <table
             mat-table
-            [dataSource]="filteredTemDetailList"
+            [dataSource]="temDetailList"
             class="tem-detail-table"
           >
             <!-- STT Column -->
@@ -622,9 +623,7 @@
             <ng-container matColumnDef="storageUnit">
               <th mat-header-cell *matHeaderCellDef>Kho</th>
               <td mat-cell *matCellDef="let item">
-                <mat-chip color="accent" selected>{{
-                  item.storageUnit
-                }}</mat-chip>
+                {{ item.storageUnit }}
               </td>
             </ng-container>
 
@@ -905,7 +904,7 @@
         <mat-icon>close</mat-icon>
         Hủy
       </button>
-      <button mat-raised-button color="primary" (click)="exportCsv()">
+      <button mat-raised-button color="primary" (click)="exportCsv(requestId)">
         <mat-icon>file_download</mat-icon>
         Xuất CSV
       </button>

@@ -89,7 +89,6 @@ interface CsvDataItem {
   manufacturingDate: string;
   arrivalDate: string;
   qrCode: string;
-  slTemQuantity: number;
 }
 
 //interface trong tem in
@@ -113,7 +112,6 @@ export interface TemDetail {
   manufacturingDate: string;
   arrivalDate: string;
   qrCode: string;
-  slTemQuantity: number;
 }
 export interface ListRequestCreateTem {
   id: number;
@@ -341,9 +339,9 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     this.updatePagedMaterials();
   }
 
-  getListAllTemDetails(requestId: number): void {
+  getListAllTemDetails(productId: number): void {
     this.generateTemInService
-      .getTemDetailsByProductId(requestId)
+      .getTemDetailsByProductId(productId)
       .subscribe((data) => {
         this.temDetailList = data;
         this.isDisable = data.length === 0;
@@ -785,6 +783,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       this.loadTemDetails(item.id); // item.id là id của list_product_of_request
       document.body.classList.add("modal-open");
     }
+
     if (action === "exportCsv") {
       this.selectedItem = item;
       console.log("TemDetailList:", this.temDetailList);
@@ -1013,8 +1012,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       });
   }
   // CSV Preview Methods
-  openCsvPreview(): void {
-    this.prepareCsvData();
+  openCsvPreview(requestId: number): void {
+    this.prepareCsvData(requestId);
     this.showCsvModal = true;
     document.body.classList.add("modal-open");
   }
@@ -1048,55 +1047,87 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       manufacturingDate: matched.manufacturingDate,
       arrivalDate: matched.arrivalDate,
       qrCode: matched.qrCode,
-      slTemQuantity: matched.slTemQuantity,
     }));
     this.showCsvModal = true;
   }
 
-  prepareCsvData(): void {
-    console.log(
-      "🔧 prepareCsvData - temDetailList length:",
-      this.temDetailList.length,
-    );
+  prepareCsvDataToIP(requestId: number): void {
+    this.generateTemInService
+      .getTemDetailsByRequestId(requestId)
+      .subscribe((data) => {
+        this.temDetailList = data;
 
-    this.csvData = this.temDetailList.map((item) => ({
-      productOfRequestId: item.productOfRequestId,
-      reelId: item.reelId,
-      sapCode: item.sapCode,
-      productName: item.productName,
-      partNumber: item.partNumber,
-      lot: item.lot,
-      initialQuantity: item.initialQuantity,
-      vendor: item.vendor,
-      userData1: item.userData1,
-      userData2: item.userData2,
-      userData3: item.userData3,
-      userData4: item.userData4,
-      userData5: item.userData5,
-      storageUnit: item.storageUnit,
-      expirationDate: item.expirationDate,
-      manufacturingDate: item.manufacturingDate,
-      arrivalDate: item.arrivalDate,
-      qrCode: item.qrCode,
-      slTemQuantity: item.slTemQuantity,
-    }));
+        this.csvData = data.map((item) => ({
+          productOfRequestId: item.productOfRequestId,
+          reelId: item.reelId,
+          sapCode: item.sapCode,
+          productName: item.productName,
+          partNumber: item.partNumber,
+          lot: item.lot,
+          initialQuantity: item.initialQuantity,
+          vendor: item.vendor,
+          userData1: item.userData1,
+          userData2: item.userData2,
+          userData3: item.userData3,
+          userData4: item.userData4,
+          userData5: item.userData5,
+          storageUnit: item.storageUnit,
+          expirationDate: item.expirationDate,
+          manufacturingDate: item.manufacturingDate,
+          arrivalDate: item.arrivalDate,
+          qrCode: item.qrCode,
+        }));
 
-    console.log(
-      "prepareCsvData - csvData prepared with",
-      this.csvData.length,
-      "items",
-    );
-    if (this.csvData.length > 0) {
-      console.log("📋 First item sample:", this.csvData[0]);
-    }
+        this.isDisable = this.csvData.length === 0;
 
-    this.isDisable = this.temDetailList.length === 0;
+        if (this.csvData.length > 0) {
+          console.log("📋 First item sample:", this.csvData[0]);
+        }
+      });
   }
 
-  exportCsv(): void {
+  prepareCsvData(requestId: number): void {
+    this.generateTemInService
+      .getTemDetailsByRequestId(requestId)
+      .subscribe((data) => {
+        this.temDetailList = data;
+
+        this.csvData = data.map((item) => ({
+          productOfRequestId: item.productOfRequestId,
+          reelId: item.reelId,
+          sapCode: item.sapCode,
+          productName: item.productName,
+          partNumber: item.partNumber,
+          lot: item.lot,
+          initialQuantity: item.initialQuantity,
+          vendor: item.vendor,
+          userData1: item.userData1,
+          userData2: item.userData2,
+          userData3: item.userData3,
+          userData4: item.userData4,
+          userData5: item.userData5,
+          storageUnit: item.storageUnit,
+          expirationDate: item.expirationDate,
+          manufacturingDate: item.manufacturingDate,
+          arrivalDate: item.arrivalDate,
+          qrCode: item.qrCode,
+        }));
+
+        this.isDisable = this.csvData.length === 0;
+
+        if (this.csvData.length > 0) {
+          console.log("📋 First item sample:", this.csvData[0]);
+        }
+
+        this.showCsvModal = true;
+        document.body.classList.add("modal-open");
+      });
+  }
+
+  exportCsv(requestId: number): void {
     // Đảm bảo csvData được chuẩn bị trước khi tạo CSV
     if (!this.csvData || this.csvData.length === 0) {
-      this.prepareCsvData();
+      this.prepareCsvData(requestId);
     }
 
     // Kiểm tra lại sau khi prepare
@@ -1203,10 +1234,10 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     return "\ufeff" + csvRows;
   }
 
-  exportCsvToFixedIP(): void {
+  exportCsvToFixedIP(requestId: number): void {
     // Đảm bảo csvData được chuẩn bị trước khi tạo CSV
     if (!this.csvData || this.csvData.length === 0) {
-      this.prepareCsvData();
+      this.prepareCsvDataToIP(requestId);
     }
 
     // Kiểm tra lại sau khi prepare
@@ -1421,7 +1452,6 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         manufacturingDate: matched.manufacturingDate,
         arrivalDate: matched.arrivalDate,
         qrCode: matched.qrCode,
-        slTemQuantity: matched.slTemQuantity,
       }));
 
       const fileName = `CSV_PRODUCT_${productId}_${new Date().toISOString().split("T")[0]}.csv`;
@@ -1548,20 +1578,25 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       this._filteredLabelsCache = [...this.printLabels];
     } else {
       const expanded: TemDetail[] = [];
+
       this.printLabels.forEach((label) => {
-        const count = Number(label.slTemQuantity) ?? 1;
+        // Tìm MaterialItem tương ứng
+        const material = this.materials.find(
+          (m) => m.productOfRequestId === label.productOfRequestId,
+        );
+
+        // Nếu tìm thấy, lấy temQuantity từ đó
+        const count = material?.temQuantity ?? 1;
+
         for (let i = 0; i < count; i++) {
-          // Deep copy để tránh reference issues
           expanded.push(JSON.parse(JSON.stringify(label)));
         }
       });
+
       this._filteredLabelsCache = expanded;
     }
-
-    // console.log(
-    //   `📦 Calculated ${this._filteredLabelsCache.length} labels to render`,
-    // );
   }
+
   private generateBarcodes(): void {
     // console.log(" Generating barcodes...");
 
