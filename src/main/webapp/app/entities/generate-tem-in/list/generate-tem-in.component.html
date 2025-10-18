@@ -24,7 +24,28 @@
       multiTemplateDataRows
     >
       <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Trạng thái</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          <div class="header-with-filter">
+            <span> Trạng thái</span>
+            <mat-form-field
+              appearance="outline"
+              class="w-full mt-1 input-filter"
+            >
+              <mat-select
+                [(value)]="filterValues.status"
+                (selectionChange)="applyFilter()"
+              >
+                <mat-option value="">Tất cả</mat-option>
+                <mat-option
+                  *ngFor="let status of statusOptions"
+                  [value]="status"
+                >
+                  {{ status }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item">
           <mat-chip
             [color]="statusColor(item.status)"
@@ -37,24 +58,84 @@
       </ng-container>
 
       <ng-container matColumnDef="vendor">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Mã NCC</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          <div class="header-with-filter">
+            Mã NCC
+            <mat-form-field
+              appearance="outline"
+              class="w-full mt-1 input-filter"
+            >
+              <input
+                matInput
+                [(ngModel)]="filterValues.vendor"
+                (ngModelChange)="applyFilter()"
+                placeholder="Tìm kiếm"
+              />
+            </mat-form-field>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item">{{ item.vendor }}</td>
       </ng-container>
 
       <ng-container matColumnDef="userData5">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Mã PO</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          <div class="header-with-filter">
+            <span>Mã PO</span>
+            <mat-form-field
+              appearance="outline"
+              class="w-full mt-1 input-filter"
+            >
+              <input
+                matInput
+                [(ngModel)]="filterValues.userData5"
+                (ngModelChange)="applyFilter()"
+                placeholder="Tìm kiếm"
+              />
+            </mat-form-field>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item">{{ item.userData5 }}</td>
       </ng-container>
 
       <ng-container matColumnDef="createdDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày tạo</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          <div class="header-with-filter">
+            <span>Ngày tạo</span>
+            <mat-form-field
+              appearance="outline"
+              class="w-full mt-1 input-filter"
+            >
+              <input
+                matInput
+                [(ngModel)]="filterValues.createdDate"
+                (ngModelChange)="applyFilter()"
+                placeholder="Tìm kiếm"
+              />
+            </mat-form-field>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item">
           {{ item.createdDate | date: "dd/MM/yyyy" }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="createdBy">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Tạo bởi</th>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          <div class="header-with-filter">
+            <span>Tạo bởi</span>
+            <mat-form-field
+              appearance="outline"
+              class="w-full mt-1 input-filter"
+            >
+              <input
+                matInput
+                [(ngModel)]="filterValues.createdBy"
+                (ngModelChange)="applyFilter()"
+                placeholder="Tìm kiếm"
+              />
+            </mat-form-field>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item">{{ item.createdBy }}</td>
       </ng-container>
 

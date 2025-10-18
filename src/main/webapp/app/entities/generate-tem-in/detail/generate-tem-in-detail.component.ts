@@ -180,7 +180,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     "expirationDate",
     "manufacturingDate",
     "arrivalDate",
-    "slTemQuantity",
+    // "slTemQuantity",
     "qrCode",
   ];
   // CSV columns
@@ -200,7 +200,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     "expirationDate",
     "manufacturingDate",
     "arrivalDate",
-    "slTemQuantity",
+    // "slTemQuantity",
   ];
 
   //biến chứa kho
@@ -793,6 +793,14 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
       document.body.classList.add("modal-open");
     }
+    if (action === "exportCsvToFixedIP") {
+      this.selectedItem = item;
+      this.loadTemDetails(item.id, () => {
+        this.exportSingleProductCsvToFixedIP(Number(item.id));
+      });
+
+      document.body.classList.add("modal-open");
+    }
     if (action === "edit") {
       item.isEditing = true;
     }
@@ -1314,6 +1322,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     this.loadTemDetails(productId, () => {
       const matchedItems = this.temDetailList.filter(
         (item) => item.productOfRequestId === productId,
+        console.log("productId", typeof productId),
       );
 
       if (matchedItems.length === 0) {

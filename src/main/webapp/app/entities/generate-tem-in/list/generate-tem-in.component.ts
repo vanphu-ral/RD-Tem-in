@@ -64,6 +64,14 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     "totalQuantity",
     "actions",
   ];
+  statusOptions = ["Đã tạo mã QR", "Bản nháp"];
+  filterValues = {
+    status: "",
+    vendor: "",
+    userData5: "",
+    createdBy: "",
+    createdDate: "",
+  };
 
   dataSource = new MatTableDataSource<TemMaterialItem>([]);
   totalItems = 0;
@@ -140,11 +148,23 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
   }
 
-  applyFilters(): void {
-    this.dataSource.filter = JSON.stringify(this.filters);
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+  applyFilter(): void {
+    this.dataSource.filterPredicate = (
+      data: TemMaterialItem,
+      filter: string,
+    ) => {
+      const filters = JSON.parse(filter);
+      return (
+        (filters.status === "" || data.status === filters.status) &&
+        data.vendor.toLowerCase().includes(filters.vendor.toLowerCase()) &&
+        data.userData5
+          .toLowerCase()
+          .includes(filters.userData5.toLowerCase()) &&
+        data.createdBy.toLowerCase().includes(filters.createdBy.toLowerCase())
+      );
+    };
+
+    this.dataSource.filter = JSON.stringify(this.filterValues);
   }
 
   clearFilters(): void {
@@ -157,7 +177,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
       numberProduction: "",
       totalQuantity: "",
     };
-    this.applyFilters();
+    this.applyFilter();
   }
 
   statusColor(status: string): "primary" | "accent" | "warn" {
