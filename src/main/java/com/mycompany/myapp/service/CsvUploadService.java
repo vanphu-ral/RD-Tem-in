@@ -14,16 +14,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Service for uploading CSV files to SMB share.
- * This service handles the actual file writing to the network share location.
- */
 @Service
 public class CsvUploadService {
 
     private final Logger log = LoggerFactory.getLogger(CsvUploadService.class);
 
-    // Configuration from application.yml
+    // Configuration --> application.yml
     @Value("${csv.upload.path:C:/Upload_software}")
     private String uploadPath;
 
@@ -43,11 +39,10 @@ public class CsvUploadService {
     private String smbPassword;
 
     /**
-     * Upload a CSV file to the configured SMB share or local path
      *
-     * @param file the MultipartFile to upload
-     * @return the path where the file was saved
-     * @throws IOException if an error occurs during file upload
+     * @param file
+     * @return
+     * @throws IOException
      */
     public String uploadToSmbShare(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
@@ -59,7 +54,6 @@ public class CsvUploadService {
             originalFilename = "upload_" + System.currentTimeMillis() + ".csv";
         }
 
-        // Add timestamp to filename to avoid conflicts
         String timestamp = LocalDateTime.now().format(
             DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
         );
@@ -87,17 +81,15 @@ public class CsvUploadService {
     }
 
     /**
-     * Upload file to SMB share using network path
-     * For Windows, this uses UNC path: \\host\share\file
      *
-     * @param file     the file to upload
-     * @param fileName the target filename
-     * @return the full path where file was saved
-     * @throws IOException if upload fails
+     * @param file
+     * @param fileName t
+     * @return
+     * @throws
      */
     private String uploadToSmbShareInternal(MultipartFile file, String fileName)
         throws IOException {
-        // Construct UNC path for Windows: \\LAPTOPCUAXUAN\Log_Printer\filename.csv
+        // \\LAPTOPCUAXUAN\Log_Printer\filename.csv
         String uncPath = String.format(
             "\\\\%s\\%s\\%s",
             smbHost,
@@ -113,7 +105,6 @@ public class CsvUploadService {
 
             log.info("Target path: {}", targetPath.toString());
 
-            // Ensure parent directory exists (the share itself)
             Path parentDir = targetPath.getParent();
             if (parentDir != null) {
                 log.info("Parent directory: {}", parentDir.toString());
@@ -129,7 +120,6 @@ public class CsvUploadService {
                             "Cannot create parent directory: {}",
                             e.getMessage()
                         );
-                        // Continue anyway, maybe the share exists but Java can't detect it
                     }
                 }
             }

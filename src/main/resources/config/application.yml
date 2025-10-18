@@ -246,7 +246,7 @@ csv:
     # SMB share configuration
     smb:
       enabled: true
-      host: LAPTOPCUAXUAN
-      share: Log_Printer
-      username:
-      password:
+      host: 192.168.68.16
+      share: Upload_software
+      username: rangdong
+      password: R@NGd0ng
