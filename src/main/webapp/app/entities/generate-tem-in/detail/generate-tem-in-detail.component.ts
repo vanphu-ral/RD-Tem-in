@@ -34,6 +34,8 @@ import { Observable } from "rxjs/internal/Observable";
 import { GenerateTemInConfirmDialogComponent } from "../generate-tem-in-modal-confirm/modal-confirm.component";
 import { PageEvent } from "@angular/material/paginator";
 import { MatCardActions } from "@angular/material/card";
+import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
+import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 
 export interface MaterialItem {
   stt: number; // Số thứ tự hiển thị
@@ -385,9 +387,11 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       return;
     }
 
-    this.warehouseCache.searchByName(keyword).then((results) => {
-      this.filteredUnits = results.map((w) => w.locationName).slice(0, 25);
-    });
+    this.warehouseCache
+      .searchByName(keyword)
+      .then((results: CachedWarehouse[]) => {
+        this.filteredUnits = results.map((w) => w.locationName).slice(0, 25);
+      });
   }
 
   //format date
