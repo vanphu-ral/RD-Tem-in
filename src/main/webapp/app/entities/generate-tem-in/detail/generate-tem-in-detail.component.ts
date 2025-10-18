@@ -259,7 +259,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   allTemDetails: TemDetail[] = [];
 
   // CSV Preview data
-  csvFileName = "CSV_IN_TEM_6_10_2025.csv";
+  csvFileName = "CSV_IN_TEM.csv";
   csvData: CsvDataItem[] = [];
 
   // Print Preview data
@@ -1190,11 +1190,11 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         "", // Partclass
         item.sapCode,
       ];
-      console.log("📝 Row data:", row);
+      console.log("Row data:", row);
       return row;
     });
 
-    console.log("📊 Total rows (including header):", rows.length + 1);
+    console.log("Total rows (including header):", rows.length + 1);
 
     const csvRows = [headers, ...rows]
       .map((row) => row.map((cell) => cell ?? "").join(","))
@@ -1268,7 +1268,11 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
    * @param fileName - Custom file name (optional)
    */
   importCsvToFixedIP(csvDataItems: CsvDataItem[], fileName?: string): void {
+    console.log("=== importCsvToFixedIP START ===");
+    console.log("CSV data items count:", csvDataItems?.length);
+
     if (!csvDataItems || csvDataItems.length === 0) {
+      console.warn("No CSV data to send");
       this.showSnackbar("Không có dữ liệu để gửi", "Đóng", 3000, "warning");
       return;
     }
@@ -1337,6 +1341,9 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       item.sapCode,
     ]);
 
+    console.log("CSV rows generated:", rows.length);
+    console.log("First CSV row:", rows[0]);
+
     // Create CSV content
     const csvRows = [headers, ...rows]
       .map((row) => row.map((cell) => cell ?? "").join(","))
@@ -1345,18 +1352,31 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     const csvContent = "\ufeff" + csvRows;
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
+    console.log("CSV blob created, size:", blob.size, "bytes");
+
     // Prepare form data
     const formData = new FormData();
     const defaultFileName =
       fileName ?? `CSV_IMPORT_${new Date().toISOString().split("T")[0]}.csv`;
     formData.append("file", blob, defaultFileName);
 
+    console.log("File name:", defaultFileName);
+    console.log("FormData prepared");
+
     // Use backend API endpoint instead of direct SMB access
     const apiEndpoint = "/api/csv-upload";
+    console.log("Sending POST request to:", apiEndpoint);
 
     // Upload via backend API
     this.http.post<any>(apiEndpoint, formData).subscribe({
       next: (response) => {
+        console.log("=== SERVER RESPONSE ===");
+        console.log("Response:", response);
+        console.log("Success:", response.success);
+        console.log("Message:", response.message);
+        console.log("File path:", response.filePath);
+        console.log("======================");
+
         if (response.success) {
           this.showSnackbar(
             `Đã gửi ${csvDataItems.length} bản ghi tới hệ thống thành công!`,
@@ -1369,7 +1389,13 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         }
       },
       error: (error) => {
-        console.error("Error uploading CSV:", error);
+        console.error("=== HTTP ERROR ===");
+        console.error("Error object:", error);
+        console.error("Error status:", error.status);
+        console.error("Error message:", error.message);
+        console.error("Error body:", error.error);
+        console.error("==================");
+
         this.showSnackbar(
           `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
           "Đóng",
@@ -1386,13 +1412,24 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
    * @param productId - Product ID to export
    */
   importSingleProductCsvToFixedIP(productId: number): void {
+    console.log("=== importSingleProductCsvToFixedIP START ===");
+    console.log("Product ID:", productId, "Type:", typeof productId);
+
     this.loadTemDetails(productId, () => {
-      const matchedItems = this.temDetailList.filter(
-        (item) => item.productOfRequestId === productId,
-        console.log("productId", typeof productId),
+      console.log(
+        "Tem details loaded, total items:",
+        this.temDetailList.length,
       );
 
+      const matchedItems = this.temDetailList.filter(
+        (item) => item.productOfRequestId === productId,
+      );
+
+      console.log("Matched items for product:", matchedItems.length);
+      console.log("Matched items data:", matchedItems);
+
       if (matchedItems.length === 0) {
+        console.warn("No matched items found for productId:", productId);
         this.showSnackbar(
           "Không tìm thấy dữ liệu cho sản phẩm này",
           "Đóng",
@@ -1424,7 +1461,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         slTemQuantity: matched.slTemQuantity,
       }));
 
-      const fileName = `CSV_PRODUCT_${productId}_${new Date().toISOString().split("T")[0]}.csv`;
+      console.log("CSV data prepared, rows:", csvData.length);
+      console.log("First row sample:", csvData[0]);
+
+      const fileName = `CSV_UP_Panacim_${new Date().toISOString().split("T")[0]}.csv`;
+      console.log("File name:", fileName);
+
       this.importCsvToFixedIP(csvData, fileName);
     });
   }
