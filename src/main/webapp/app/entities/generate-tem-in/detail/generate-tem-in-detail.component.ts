@@ -1356,7 +1356,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       "",
       "",
       "",
-      "",
+      "1",
       "",
       "",
       "",

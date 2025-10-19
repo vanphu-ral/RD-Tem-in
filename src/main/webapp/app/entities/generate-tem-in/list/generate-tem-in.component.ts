@@ -206,8 +206,10 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
           border: "1px solid #F0E68C",
         };
       case "đã tạo mã qr":
+      case "đã tạo mã":
+      case "đã gen mã":
         return {
-          backgroundColor: "#C6F6D5",
+          backgroundColor: "#2be265ff",
           color: "#3F6D52",
           border: "1px solid #A3D9B8",
         };
