@@ -5,7 +5,12 @@
       <h1>Quản lý thông tin TEM vật tư</h1>
     </div>
     <div class="header-actions">
-      <button mat-raised-button color="primary" [routerLink]="['import']">
+      <button
+        mat-raised-button
+        color="primary"
+        [routerLink]="['import']"
+        *jhiHasAnyAuthority="'ROLE_TEM_UPDATE'; rOLE_ADMIN_TEM"
+      >
         <mat-icon>publish</mat-icon>
         Import thông tin
       </button>
@@ -179,6 +184,7 @@
               color="warn"
               (click)="onDelete(item)"
               matTooltip="Xóa"
+              *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
             >
               <mat-icon>delete</mat-icon>
             </button>

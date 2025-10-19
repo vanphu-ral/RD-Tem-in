@@ -133,45 +133,53 @@
               <mat-icon>visibility</mat-icon>
             </button>
 
-            <button
-              *ngIf="!item.isEditing"
-              mat-icon-button
-              color="accent"
-              (click)="onAction('edit', item, index)"
-              matTooltip="Chỉnh sửa"
-              [disabled]="!isDisable"
-            >
-              <mat-icon>edit</mat-icon>
-            </button>
+            <span>
+              <button
+                *ngIf="!item.isEditing"
+                mat-icon-button
+                color="accent"
+                (click)="onAction('edit', item, index)"
+                matTooltip="Chỉnh sửa"
+                [disabled]="!isDisable"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+            </span>
 
-            <button
-              *ngIf="item.isEditing"
-              mat-icon-button
-              color="primary"
-              [disabled]="item.isSaving"
-              (click)="onAction('confirm', item, index)"
-              matTooltip="Xác nhận"
-            >
-              <mat-icon>check_circle</mat-icon>
-            </button>
+            <span>
+              <button
+                *ngIf="item.isEditing"
+                mat-icon-button
+                color="primary"
+                [disabled]="item.isSaving"
+                (click)="onAction('confirm', item, index)"
+                matTooltip="Xác nhận"
+              >
+                <mat-icon>check_circle</mat-icon>
+              </button>
+            </span>
 
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="onAction('delete', item, index)"
-              matTooltip="Xóa"
-            >
-              <mat-icon>delete</mat-icon>
-            </button>
+            <span *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'">
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="onAction('delete', item, index)"
+                matTooltip="Xóa"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </span>
 
-            <button
-              mat-icon-button
-              (click)="onAction('exportCsv', item, index)"
-              matTooltip="Xuất CSV"
-              [disabled]="isDisable"
-            >
-              <fa-icon [icon]="faFileCsv" size="xs"></fa-icon>
-            </button>
+            <span>
+              <button
+                mat-icon-button
+                (click)="onAction('exportCsv', item, index)"
+                matTooltip="Xuất CSV"
+                [disabled]="isDisable"
+              >
+                <fa-icon [icon]="faFileCsv" size="xs"></fa-icon>
+              </button>
+            </span>
             <!-- <button
               mat-icon-button
               (click)="exportSingleProductCsvToFixedIP(item.id)"
@@ -179,16 +187,19 @@
               [disabled]="isDisable"
               color="accent"
             > -->
-            <button
-              mat-icon-button
-              (click)="onAction('exportCsvToFixedIP', item, index)"
-              matTooltip="Xuất CSV đến server"
-              [disabled]="isDisable"
-              color="accent"
-              class="icon-only-button"
-            >
-              <mat-icon class="non-fa-i">system_update_alt</mat-icon>
-            </button>
+
+            <span>
+              <button
+                mat-icon-button
+                (click)="onAction('exportCsvToFixedIP', item, index)"
+                matTooltip="Xuất CSV đến server"
+                [disabled]="isDisable"
+                color="accent"
+                class="icon-only-button"
+              >
+                <mat-icon class="non-fa-i">system_update_alt</mat-icon>
+              </button>
+            </span>
             <span
               matTooltip="Cần generate tem trước"
               [matTooltipDisabled]="!isDisable"
@@ -212,12 +223,12 @@
       </ng-container>
 
       <!-- Lần in Column -->
-      <ng-container matColumnDef="numberOfPrints">
+      <!-- <ng-container matColumnDef="numberOfPrints">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Lần in</th>
         <td mat-cell *matCellDef="let item" class="text-center">
           {{ item.numberOfPrints }}
         </td>
-      </ng-container>
+      </ng-container> -->
 
       <!-- SAPCode Column -->
       <ng-container matColumnDef="sapCode">

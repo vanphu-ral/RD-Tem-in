@@ -146,7 +146,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   displayedColumns: string[] = [
     "stt",
     "actions",
-    "numberOfPrints",
+    // "numberOfPrints",
     "sapCode",
     "userData5",
     "partNumber",
@@ -1206,7 +1206,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         "",
         "",
         "",
-        "",
+        "1",
         "",
         "",
         "",
