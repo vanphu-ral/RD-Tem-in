@@ -6,6 +6,7 @@
   min-height: calc(95vh - 240px);
   max-width: calc(95vw);
 }
+
 .icon-only-button {
   padding: 0 !important;
   min-width: 40px !important;
@@ -23,11 +24,13 @@
     margin: 0 !important;
   }
 }
+
 ::ng-deep .small-form-field {
   @include mat.form-field-density(-5);
   @include mat.icon-button-density(-5);
   @include mat.datepicker-density(-5);
 }
+
 .container mat-elevation-z2 {
   padding: 20px;
   background-color: #f8f9fa;
@@ -887,6 +890,7 @@ thead tr:nth-child(2) {
 ::ng-deep .mat-mdc-card-header-text {
   width: 100%;
 }
+
 .tem-detail-table {
   width: 100%;
   table-layout: fixed; // Quan trọng: Phân bố đều các cột
@@ -1033,6 +1037,7 @@ thead tr:nth-child(2) {
   overflow-x: hidden; // Ẩn scroll ngang
   overflow-y: auto; // Giữ scroll dọc
 }
+
 /* Code Styles */
 .reel-id {
   background-color: #e3f2fd;
@@ -1054,6 +1059,11 @@ thead tr:nth-child(2) {
   margin: -8px 4px;
   border-radius: 4px;
   font-size: 18px;
+}
+
+.accent-blue {
+  background-color: transparent;
+  color: #0b66ff;
 }
 
 .qr-code-text {
@@ -1360,6 +1370,7 @@ thead tr:nth-child(2) {
   font-size: 9px;
   font-weight: 600;
 }
+
 //mobile
 // Mobile First - Điện thoại nhỏ
 @media (max-width: 599px) {

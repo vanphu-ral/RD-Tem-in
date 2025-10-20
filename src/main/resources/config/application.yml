@@ -242,11 +242,11 @@ jhipster:
 csv:
   upload:
     # Local path for CSV uploads (fallback or development mode)
-    path: C:/Monitor
+    path: C:/Upload_software
     # SMB share configuration
     smb:
       enabled: true
-      host: 172.168.6.3
-      share: Monitor
-      username: kho_khhttk
-      password: 123@abcde
+      host: 192.168.68.16
+      share: Upload_software
+      username: rangdong
+      password: R@NGd0ng

@@ -10,34 +10,120 @@ export interface GroupedExcelData {
   products: ExcelImportData[];
 }
 
+export interface ValidationResult {
+  isValid: boolean;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  errors: string[];
+}
+
+// Các cột bắt buộc theo đúng thứ tự
+const REQUIRED_COLUMNS = [
+  "SAPCode",
+  "Tên SP",
+  "PartNumber",
+  "LOT",
+  "Số TEM",
+  "InitialQuantity",
+  "Vendor",
+  "Tên NCC",
+  "UserData1",
+  "UserData2",
+  "UserData3",
+  "UserData4",
+  "UserData5",
+  "StorageUnit",
+  "ExpirationDate",
+  "ManufacturingDate",
+  "Ngày Về",
+];
+
 @Injectable({
   providedIn: "root",
 })
 export class ExcelParserService {
   constructor() {}
-  parseExcelFile(file: File): Promise<ExcelImportData[]> {
+  parseExcelFile(
+    file: File,
+  ): Promise<{ data: ExcelImportData[]; validationResult: ValidationResult }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
       reader.onload = (e: ProgressEvent<FileReader>) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          if (!e.target?.result) {
+            reject(new Error("Không thể đọc dữ liệu từ file"));
+            return;
+          }
+
+          const data = new Uint8Array(e.target.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: "array" });
 
+          // Kiểm tra xem file có sheet nào không
+          if (
+            !workbook.SheetNames ||
+            !Array.isArray(workbook.SheetNames) ||
+            workbook.SheetNames.length === 0
+          ) {
+            reject(
+              new Error(
+                "File Excel không có sheet nào hoặc định dạng không đúng",
+              ),
+            );
+            return;
+          }
+
           const sheetName = workbook.SheetNames[0];
+          if (!sheetName) {
+            reject(new Error("Tên sheet không hợp lệ"));
+            return;
+          }
+
           const worksheet = workbook.Sheets[sheetName];
+
+          // Kiểm tra sheet có dữ liệu không
+          if (!worksheet) {
+            reject(
+              new Error("Sheet không có dữ liệu hoặc định dạng không đúng"),
+            );
+            return;
+          }
 
           const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, {
             header: 1,
           });
 
+          if (!jsonData || !Array.isArray(jsonData) || jsonData.length < 2) {
+            reject(new Error("File Excel không có dữ liệu hoặc chỉ có header"));
+            return;
+          }
+
+          // Kiểm tra header có đúng format không
+          try {
+            if (!this.validateHeader(jsonData[0])) {
+              reject(
+                new Error(
+                  "Định dạng file không đúng. Vui lòng sử dụng template chuẩn.",
+                ),
+              );
+              return;
+            }
+          } catch {
+            reject(new Error("Lỗi kiểm tra định dạng file. Vui lòng thử lại."));
+            return;
+          }
+
           const parsedData: ExcelImportData[] = [];
 
           for (let i = 1; i < jsonData.length; i++) {
             const row = jsonData[i];
+            const rowNumber = i + 1;
 
-            if (!row || row.length === 0 || !row[0]) {
-              continue;
+            if (!row || !Array.isArray(row) || row.length === 0 || !row[0]) {
+              const errorMessage = `Dòng ${rowNumber} trống hoặc không có dữ liệu. Không thể import file với dữ liệu không hợp lệ.`;
+              reject(new Error(errorMessage));
+              return;
             }
 
             const excelRow: ExcelImportData = {
@@ -60,91 +146,175 @@ export class ExcelParserService {
               arrivalDate: this.parseDate(row[16]),
             };
 
-            if (this.validateExcelRow(excelRow)) {
-              parsedData.push(excelRow);
+            try {
+              // Thu thập lỗi validation cho dòng này
+              const rowErrors = this.getRowValidationErrors(
+                excelRow,
+                rowNumber,
+              );
+
+              if (rowErrors.length === 0 && this.validateExcelRow(excelRow)) {
+                parsedData.push(excelRow);
+              } else {
+                const errorDetails = rowErrors.join(", ");
+                const errorMessage = `Dòng ${rowNumber}: ${errorDetails}. Không thể import file với dữ liệu không hợp lệ.`;
+                reject(new Error(errorMessage));
+                return;
+              }
+            } catch (error) {
+              const errorMessage = `Lỗi xử lý dòng ${rowNumber}: ${error instanceof Error ? error.message : "Dữ liệu không hợp lệ"}`;
+              reject(new Error(errorMessage));
+              return;
             }
           }
 
-          resolve(parsedData);
+          try {
+            if (!parsedData || parsedData.length === 0) {
+              const errorMessage =
+                "File Excel không có dữ liệu hợp lệ để import.";
+              reject(new Error(errorMessage));
+              return;
+            }
+          } catch {
+            reject(new Error("Lỗi kiểm tra dữ liệu hợp lệ"));
+            return;
+          }
+
+          try {
+            const validationResult: ValidationResult = {
+              isValid: true,
+              totalRows: parsedData.length,
+              validRows: parsedData.length,
+              invalidRows: 0,
+              errors: [],
+            };
+
+            resolve({ data: parsedData, validationResult });
+          } catch {
+            reject(new Error("Lỗi tạo kết quả validation"));
+          }
         } catch (error: unknown) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : typeof error === "string"
-                ? error
-                : JSON.stringify(error);
-          reject(new Error(`Lỗi: ${message}`));
+          try {
+            const message =
+              error instanceof Error
+                ? error.message
+                : typeof error === "string"
+                  ? error
+                  : JSON.stringify(error);
+
+            // Thông báo lỗi chi tiết hơn
+            if (message.includes("Unsupported file")) {
+              reject(
+                new Error(
+                  "Định dạng file không được hỗ trợ. Chỉ chấp nhận file .xlsx và .xls",
+                ),
+              );
+            } else if (message.includes("ZIP")) {
+              reject(new Error("File Excel bị hỏng hoặc không đúng định dạng"));
+            } else {
+              reject(new Error(`Lỗi xử lý file: ${message}`));
+            }
+          } catch {
+            reject(new Error("Lỗi không xác định khi xử lý file Excel"));
+          }
         }
       };
 
       reader.onerror = () => {
-        reject(new Error("Error reading file"));
+        try {
+          reject(
+            new Error("Không thể đọc file. Vui lòng kiểm tra lại file Excel"),
+          );
+        } catch {
+          reject(new Error("Lỗi không xác định khi đọc file"));
+        }
       };
 
       reader.readAsArrayBuffer(file);
     });
   }
 
-  /**
-   * Group parsed Excel data by userData5 (PO Code) and Vendor
-   */
   groupDataByPOAndVendor(data: ExcelImportData[]): GroupedExcelData[] {
     const groups = new Map<string, GroupedExcelData>();
 
     data.forEach((item) => {
-      const poCode = item.userData5 || "UNKNOWN_PO";
-      const vendor = item.vendor || "UNKNOWN_VENDOR";
-      const groupKey = `${poCode}|${vendor}`;
+      try {
+        const poCode = item.userData5 || "UNKNOWN_PO";
+        const vendor = item.vendor || "UNKNOWN_VENDOR";
+        const groupKey = `${poCode}|${vendor}`;
 
-      if (!groups.has(groupKey)) {
-        groups.set(groupKey, {
-          groupKey,
-          poCode,
-          vendor,
-          tenNCC: "",
-          products: [],
-        });
+        if (!groups.has(groupKey)) {
+          groups.set(groupKey, {
+            groupKey,
+            poCode,
+            vendor,
+            tenNCC: "",
+            products: [],
+          });
+        }
+
+        groups.get(groupKey)!.products.push(item);
+      } catch {
+        // Bỏ qua item có lỗi
       }
-
-      groups.get(groupKey)!.products.push(item);
     });
 
-    const result = Array.from(groups.values()).map((group) => {
-      const tenNCC =
-        group.products.find((p) => p.tenNCC)?.tenNCC ?? "UNKNOWN_VENDOR";
-      return {
-        ...group,
-        tenNCC,
-      };
-    });
+    try {
+      const result = Array.from(groups.values()).map((group) => {
+        try {
+          const tenNCC =
+            group.products.find((p) => p.tenNCC)?.tenNCC ?? "UNKNOWN_VENDOR";
+          return {
+            ...group,
+            tenNCC,
+          };
+        } catch {
+          return {
+            ...group,
+            tenNCC: "UNKNOWN_VENDOR",
+          };
+        }
+      });
 
-    return result;
+      return result;
+    } catch {
+      return [];
+    }
   }
 
-  /**
-   * Generate sample Excel data for testing
-   * (Đặt PUBLIC METHOD này trước các PRIVATE METHOD để thỏa @typescript-eslint/member-ordering)
-   */
+  private validateHeader(headerRow: any[]): boolean {
+    if (!headerRow || !Array.isArray(headerRow)) {
+      return false;
+    }
 
-  /**
-   * Get cell value as string
-   */
+    return (
+      headerRow.length >= REQUIRED_COLUMNS.length &&
+      Boolean(headerRow[0]) && // Có cột đầu tiên (SAPCode)
+      Boolean(headerRow[6])
+    ); // Có cột thứ 7 (Vendor)
+  }
+
   private getCellValue(cell: unknown): string {
     if (cell === null || cell === undefined) {
       return "";
     }
-    return String(cell).trim();
+    try {
+      return String(cell).trim();
+    } catch {
+      return "";
+    }
   }
 
-  /**
-   * Parse number value
-   */
   private parseNumber(value: unknown): number {
     if (value === null || value === undefined || value === "") {
       return 0;
     }
-    const num = Number(value);
-    return Number.isNaN(num) ? 0 : num;
+    try {
+      const num = Number(value);
+      return Number.isNaN(num) ? 0 : num;
+    } catch {
+      return 0;
+    }
   }
 
   private parseDate(value: unknown): string {
@@ -152,25 +322,71 @@ export class ExcelParserService {
       return new Date().toISOString().split("T")[0];
     }
 
-    // Handle string dates
-    if (typeof value === "string") {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toISOString().split("T")[0];
+    try {
+      // Handle string dates
+      if (typeof value === "string") {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
       }
+
+      // Handle number dates (Excel timestamp)
+      if (typeof value === "number") {
+        const parsed = new Date((value - 25569) * 86400 * 1000); // Excel date conversion
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      }
+
+      return new Date().toISOString().split("T")[0];
+    } catch {
+      return new Date().toISOString().split("T")[0];
     }
-    return new Date().toISOString().split("T")[0];
   }
 
   private validateExcelRow(row: ExcelImportData): boolean {
-    return !!(
-      row.sapCode &&
-      row.partNumber &&
-      row.lot &&
-      row.vendor &&
-      row.userData1 &&
-      row.temQuantity > 0 &&
-      row.initialQuantity > 0
-    );
+    try {
+      return !!(
+        row.sapCode &&
+        row.partNumber &&
+        row.vendor &&
+        row.userData5 &&
+        row.initialQuantity > 0
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private getRowValidationErrors(
+    row: ExcelImportData,
+    rowNumber: number,
+  ): string[] {
+    const errors: string[] = [];
+
+    try {
+      if (!row.sapCode || row.sapCode.trim() === "") {
+        errors.push(`SAP Code trống`);
+      }
+      if (!row.userData5 || row.userData5.trim() === "") {
+        errors.push(`Mã PO trống`);
+      }
+      if (!row.partNumber || row.partNumber.trim() === "") {
+        errors.push(`Part Number trống`);
+      }
+
+      if (!row.vendor || row.vendor.trim() === "") {
+        errors.push(`Vendor trống`);
+      }
+
+      if (row.initialQuantity <= 0) {
+        errors.push(`Số lượng ≤ 0 (Yêu cầu > 0)`);
+      }
+    } catch {
+      errors.push(`Dữ liệu dòng không hợp lệ`);
+    }
+
+    return errors;
   }
 }
