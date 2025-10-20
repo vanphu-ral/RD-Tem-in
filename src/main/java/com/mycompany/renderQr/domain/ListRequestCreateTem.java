@@ -14,10 +14,13 @@ public class ListRequestCreateTem {
     @Column(name = "Vendor", length = 100)
     private String vendor;
 
+    @Column(name = "vendor_name", length = 255)
+    private String vendorName;
+
     @Column(name = "UserData5", length = 255)
     private String userData5;
 
-    @Column(name = "Created_by", length = 20)
+    @Column(name = "created_by", length = 20)
     private String createdBy;
 
     @Column(name = "Number_production")
@@ -96,5 +99,13 @@ public class ListRequestCreateTem {
 
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public String getVendorName() {
+        return vendorName;
+    }
+
+    public void setVendorName(String vendorName) {
+        this.vendorName = vendorName;
     }
 }

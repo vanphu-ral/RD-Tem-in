@@ -1,11 +1,13 @@
 * {
   font-family: "Nunito", sans-serif;
 }
+
 .page-heading {
-  width: 97%;
+  width: 100%;
 }
+
 table {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
@@ -16,7 +18,7 @@ table {
 
 th {
   color: #fff;
-  background-color: #6c7ae0;
+  background-color: #3d7bb9;
   text-align: left;
   padding: 8px;
   font-weight: bold;
@@ -25,18 +27,23 @@ th {
 .maKichBan-col {
   width: 10rem;
 }
+
 .nhomSanPham-col {
   width: 5rem;
 }
+
 .maSanPham-col {
   width: 7rem;
 }
+
 .dayChuyen-col {
   width: 7rem;
 }
+
 .maThietBi-col {
   width: 7rem;
 }
+
 .loaiThietBi-col {
   width: 6rem;
 }
@@ -143,13 +150,16 @@ ul.search-result {
   max-height: 150px;
   overflow-y: auto;
 }
+
 .detail-btn {
   color: #2d3748 !important;
   background-color: #cbd5e0 !important;
 }
+
 .detail-btn:hover {
   background-color: #8f949d !important;
 }
+
 .btn-group button {
   margin-right: 10px;
   padding: 5px 10px;
@@ -242,9 +252,11 @@ ul.search-result {
     height: 40px;
   }
 }
+
 .text-end {
   width: 7rem;
 }
+
 .form-select {
   width: 4vw;
   /* margin-top: 2vh; */

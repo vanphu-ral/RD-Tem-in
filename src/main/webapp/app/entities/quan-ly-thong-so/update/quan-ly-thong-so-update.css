@@ -4,9 +4,11 @@
   display: flex;
   justify-content: space-around;
 }
+
 .table {
-  width: 97%;
+  width: 100%;
 }
+
 .input-qly-thong-so {
   width: 40%;
 }

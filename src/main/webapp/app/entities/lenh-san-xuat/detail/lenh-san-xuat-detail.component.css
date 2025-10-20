@@ -1,30 +1,35 @@
 * {
   font-family: "Nunito", sans-serif;
 }
+
 .headling-detail {
   display: flex;
   justify-content: space-between;
-  width: 97%;
+  width: 100%;
   margin-top: 10px;
 }
+
 .headling-btn {
   display: flex;
   gap: 10px;
 }
+
 table {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 15px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 6px;
 }
+
 .info-table {
-  width: 97%;
+  width: 100%;
 }
+
 th {
   color: #fff;
-  background-color: #6c7ae0;
+  background-color: #3d7bb9;
   text-align: left;
   padding: 8px;
   font-weight: bold;

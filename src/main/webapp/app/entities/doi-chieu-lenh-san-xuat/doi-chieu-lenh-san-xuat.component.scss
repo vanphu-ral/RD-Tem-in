@@ -66,11 +66,13 @@ $checkmark-size: 1.2;
   color: #555;
   border-color: #ccc;
 }
+
 .status-col {
   width: 5rem !important;
 }
+
 .table {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin: 20px 0;
   font-size: 16px;
@@ -88,12 +90,12 @@ $checkmark-size: 1.2;
       padding: 12px 15px;
       cursor: pointer;
       position: relative;
-      background-color: #6c7ae0;
+      background-color: #3d7bb9;
       color: #ffffff;
       border: 0.5px solid #ccc;
 
       &:hover {
-        background-color: #6c7ae0;
+        background-color: #3d7bb9;
       }
 
       span {

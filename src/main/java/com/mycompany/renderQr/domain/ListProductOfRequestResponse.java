@@ -11,6 +11,7 @@ public interface ListProductOfRequestResponse {
     String getLot();
     Long getInitialQuantity();
     String getVendor();
+    String getVendorName();
     String getUserData1();
     String getUserData2();
     String getUserData3();

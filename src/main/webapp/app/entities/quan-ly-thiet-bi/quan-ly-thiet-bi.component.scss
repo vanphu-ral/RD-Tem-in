@@ -44,11 +44,13 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
 .ui-checkbox *::after {
   box-sizing: border-box;
 }
+
 .page-heading {
-  width: 97%;
+  width: 100%;
 }
+
 .table {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin: 20px 0;
   font-size: 16px;
@@ -67,12 +69,12 @@ $close-btn-hover-bg: darken($close-btn-bg, 10%);
       padding: 12px 15px;
       cursor: pointer;
       position: relative;
-      background-color: #6c7ae0;
+      background-color: #3d7bb9;
       color: #ffffff;
       border: 0.5px solid #fff;
 
       &:hover {
-        background-color: #6c7ae0;
+        background-color: #3d7bb9;
       }
 
       span {
@@ -160,11 +162,13 @@ th[scope="col"].sorted-asc::after {
 th[scope="col"].sorted-desc::after {
   display: inline-block;
 }
+
 .them-moi-thiet-bi-table {
   .span-cell {
     background-color: #fff;
   }
 }
+
 .btn {
   padding: 8px 12px;
   font-size: 14px;
@@ -232,7 +236,7 @@ th[scope="col"].sorted-desc::after {
   .paginate-container {
     display: flex;
     justify-content: space-between;
-    width: 97%;
+    width: 100%;
     gap: 10px;
   }
 
@@ -348,7 +352,7 @@ th[scope="col"].sorted-desc::after {
             padding: 12px 15px;
             cursor: pointer;
             position: relative;
-            background-color: #6c7ae0;
+            background-color: #3d7bb9;
             color: #ffffff;
             border: 0.5px solid #fff;
 
@@ -502,9 +506,11 @@ th[scope="col"].sorted-desc::after {
     }
   }
 }
+
 .text-end {
   width: 5rem;
 }
+
 .btn {
   display: inline-flex;
   align-items: center;

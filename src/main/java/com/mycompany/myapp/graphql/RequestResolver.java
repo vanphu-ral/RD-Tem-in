@@ -55,8 +55,6 @@ public class RequestResolver {
     private UpdateProductInput convertToInput(Map<String, Object> map) {
         UpdateProductInput input = new UpdateProductInput();
 
-        // log.info("🔍 Bắt đầu convert input map: {}", map);
-
         try {
             Object idObj = map.get("id");
             if (idObj != null) {
@@ -69,6 +67,7 @@ public class RequestResolver {
             input.setPartNumber((String) map.getOrDefault("partNumber", null));
             input.setLot((String) map.getOrDefault("lot", null));
             input.setVendor((String) map.getOrDefault("vendor", null));
+            input.setVendorName((String) map.getOrDefault("vendorName", null));
             input.setUserData1((String) map.getOrDefault("userData1", null));
             input.setUserData2((String) map.getOrDefault("userData2", null));
             input.setUserData3((String) map.getOrDefault("userData3", null));
@@ -120,11 +119,20 @@ public class RequestResolver {
             input.setArrivalDate(
                 (String) map.getOrDefault("arrivalDate", null)
             );
+            Object uploadPanacimObj = map.get("UploadPanacim");
+            if (uploadPanacimObj instanceof Boolean) {
+                input.setUploadPanacim((Boolean) uploadPanacimObj);
+            } else {
+                log.warn(
+                    "UploadPanacim không phải kiểu boolean: {}",
+                    uploadPanacimObj
+                );
+            }
 
             log.info("Convert thành công: {}", input);
         } catch (Exception e) {
             log.error("Lỗi khi convert input map: {}", e.getMessage(), e);
-            throw e; // hoặc return null nếu bạn muốn xử lý khác
+            throw e;
         }
 
         return input;

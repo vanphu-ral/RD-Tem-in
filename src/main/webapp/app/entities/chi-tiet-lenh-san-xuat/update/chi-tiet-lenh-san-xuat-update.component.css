@@ -6,12 +6,14 @@ table {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 6px;
 }
+
 .table-responsive {
   margin-left: 60px;
 }
+
 th {
   color: #fff;
-  background-color: #6c7ae0;
+  background-color: #3d7bb9;
   text-align: left;
   padding: 8px;
   font-weight: bold;

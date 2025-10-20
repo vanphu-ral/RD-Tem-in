@@ -26,6 +26,7 @@ input CreateProductInput {
     lot: String!
     initialQuantity: Int!
     vendor: String!
+    vendorName: String
     userData1: String
     userData2: String
     userData3: String
@@ -39,6 +40,7 @@ input CreateProductInput {
 
 input CreateRequestWithProductsInput {
     vendor: String!
+    vendorName: String
     userData5: String!
     createdBy: String
     createdDate: String
@@ -65,6 +67,7 @@ type GenerateTemResponse {
 type ListRequestCreateTem {
     id: ID
     vendor: String
+    vendorName: String
     userData5: String
     createdBy: String
     numberProduction: Int
@@ -84,6 +87,7 @@ type ListProductOfRequest {
     lot: String
     initialQuantity: Int
     vendor: String
+    vendorName: String
     userData1: String
     userData2: String
     userData3: String
@@ -94,6 +98,7 @@ type ListProductOfRequest {
     manufacturingDate: String
     arrivalDate: String
     numberOfPrints: Int
+    UploadPanacim: Boolean
 }
 
 #khai báo bảng info tem detail
@@ -135,6 +140,7 @@ input UpdateProductInput {
     lot: String
     initialQuantity: Int
     vendor: String
+    vendorName: String
     userData1: String
     userData2: String
     userData3: String
@@ -145,4 +151,5 @@ input UpdateProductInput {
     manufacturingDate: String
     arrivalDate: String
     numberOfPrints: Int
+    UploadPanacim: Boolean
 }

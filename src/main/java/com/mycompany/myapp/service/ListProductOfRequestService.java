@@ -68,6 +68,7 @@ public class ListProductOfRequestService {
         entity.setLot(input.getLot());
         entity.setInitialQuantity(input.getInitialQuantity());
         entity.setVendor(input.getVendor());
+        entity.setVendorName(input.getVendorName());
         entity.setUserData1(input.getUserData1());
         entity.setUserData2(input.getUserData2());
         entity.setUserData3(input.getUserData3());
@@ -87,24 +88,9 @@ public class ListProductOfRequestService {
         entity.setArrivalDate(
             LocalDateTime.parse(input.getArrivalDate(), formatter)
         );
-
-        log.info("📦 Trước khi save entity:");
-        log.info("requestCreateTemId = {}", entity.getRequestCreateTemId());
-        log.info("temQuantity = {}", entity.getTemQuantity());
-        log.info("numberOfPrints = {}", entity.getNumberOfPrints());
-        log.info("expirationDate = {}", entity.getExpirationDate());
-        log.info("manufacturingDate = {}", entity.getManufacturingDate());
-        log.info("arrivalDate = {}", entity.getArrivalDate());
-        log.info("initialQuantity = {}", entity.getInitialQuantity());
-        log.info("lot = {}", entity.getLot());
-        log.info("partNumber = {}", entity.getPartNumber());
-        log.info("sapCode = {}", entity.getSapCode());
-        log.info("vendor = {}", entity.getVendor());
-        log.info("userData1 = {}", entity.getUserData1());
-        log.info("userData2 = {}", entity.getUserData2());
-        log.info("userData3 = {}", entity.getUserData3());
-        log.info("userData4 = {}", entity.getUserData4());
-        log.info("userData5 = {}", entity.getUserData5());
+        if (input.getUploadPanacim() != null) {
+            entity.setUploadPanacim(input.getUploadPanacim());
+        }
 
         repository.save(entity);
         return true;
@@ -233,6 +219,9 @@ public class ListProductOfRequestService {
             );
         }
         product.setVendor(input.getVendor());
+        product.setVendorName(
+            input.getVendorName() != null ? input.getVendorName() : ""
+        );
 
         // Handle optional fields
         product.setProductName(
@@ -293,6 +282,11 @@ public class ListProductOfRequestService {
                 "arrivalDate cannot be null or empty"
             );
         }
+        log.info(
+            "mapInputToEntity - input vendorName: {}",
+            input.getVendorName()
+        );
+        log.info("mapInputToEntity - after set: {}", product.getVendorName());
         product.setArrivalDate(parseDate(input.getArrivalDate(), formatter));
     }
 
@@ -317,15 +311,6 @@ public class ListProductOfRequestService {
         CreateRequestWithProductsInput input
     ) {
         try {
-            log.info("=== Starting createRequestAndProducts ===");
-            log.info("Input vendor: {}", input.getVendor());
-            log.info("Input userData5: {}", input.getUserData5());
-            log.info("Input createdBy: {}", input.getCreatedBy());
-            log.info(
-                "Number of products: {}",
-                input.getProducts() != null ? input.getProducts().size() : 0
-            );
-
             // Validate input
             if (input == null) {
                 log.error("Input is null");
@@ -351,11 +336,6 @@ public class ListProductOfRequestService {
                 )
                 .sum();
 
-            log.info("Calculated numberProduction: {}", numberProduction);
-            log.info("Calculated totalQuantity: {}", totalQuantity);
-
-            // Step 1: Create the request first
-            log.info("Step 1: Creating request...");
             LocalDateTime parsedCreatedDate;
 
             if (
@@ -380,6 +360,7 @@ public class ListProductOfRequestService {
 
             ListRequestCreateTem request = requestService.createRequest(
                 input.getVendor(),
+                input.getVendorName(),
                 input.getUserData5(),
                 input.getCreatedBy(),
                 numberProduction,
@@ -397,10 +378,6 @@ public class ListProductOfRequestService {
                 );
             }
 
-            log.info("Created request with ID: {}", request.getId());
-
-            // Step 2: Create products with the returned request ID
-            log.info("Step 2: Creating products batch...");
             List<ListProductOfRequest> savedProducts = createProductsBatch(
                 request.getId().intValue(),
                 input.getProducts()
@@ -413,7 +390,7 @@ public class ListProductOfRequestService {
                 throw new RuntimeException("Failed to create products");
             }
 
-            log.info("Successfully created {} products", savedProducts.size());
+            //            log.info("Successfully created {} products", savedProducts.size());
 
             // Step 3: Return response with request ID and products
             // Ensure all fields are non-null
@@ -442,12 +419,17 @@ public class ListProductOfRequestService {
                 );
             }
 
-            log.info("=== createRequestAndProducts completed successfully ===");
+            //            log.info("=== createRequestAndProducts completed successfully ===");
+            //            log.info(
+            //                "Response: requestId={}, products count={}, message={}",
+            //                response.getRequestId(),
+            //                response.getProducts().size(),
+            //                response.getMessage()
+            //            );
+            log.info("Service received vendorName: {}", input.getVendorName());
             log.info(
-                "Response: requestId={}, products count={}, message={}",
-                response.getRequestId(),
-                response.getProducts().size(),
-                response.getMessage()
+                "First product vendorName: {}",
+                input.getProducts().get(0).getVendorName()
             );
 
             return response;
@@ -479,25 +461,23 @@ public class ListProductOfRequestService {
             throw new IllegalArgumentException("Request ID cannot be null");
         }
 
-        System.out.println("=== Starting updateRequestProducts ===");
-        System.out.println("Request ID: " + requestId);
-        System.out.println("Number of products to update: " + inputs.size());
+        //        System.out.println("=== Starting updateRequestProducts ===");
+        //        System.out.println("Request ID: " + requestId);
+        //        System.out.println("Number of products to update: " + inputs.size());
 
-        // Step 1: Delete all existing products for this request
-        System.out.println("Step 1: Deleting existing products...");
+        //        System.out.println("Deleting existing products...");
         repository.deleteByRequestCreateTemId(requestId.longValue());
         repository.flush(); // Force the delete to execute immediately
-        System.out.println(
-            "Successfully deleted existing products for request: " + requestId
-        );
+        //        System.out.println(
+        //            "Successfully deleted existing products for request: " + requestId
+        //        );
 
-        // Step 2: Create new products with the updated data
-        System.out.println("Step 2: Creating new product entities...");
+        //        System.out.println("Step 2: Creating new product entities...");
         List<ListProductOfRequest> products = new ArrayList<>();
         for (int i = 0; i < inputs.size(); i++) {
             CreateProductInput input = inputs.get(i);
             if (input == null) {
-                System.out.println("Skipping null input at index " + i);
+                //                System.out.println("Skipping null input at index " + i);
                 continue;
             }
             ListProductOfRequest product = new ListProductOfRequest();
@@ -505,21 +485,20 @@ public class ListProductOfRequestService {
             input.setRequestCreateTemId(requestId);
             mapInputToEntity(input, product);
             products.add(product);
-            System.out.println(
-                "Created product entity " + (i + 1) + ": " + input.getSapCode()
-            );
+            //            System.out.println(
+            //                "Created product entity " + (i + 1) + ": " + input.getSapCode()
+            //            );
         }
 
         if (products.isEmpty()) {
             throw new RuntimeException("No valid products to save");
         }
 
-        System.out.println(
-            "Created " + products.size() + " new product entities"
-        );
+        //        System.out.println(
+        //            "Created " + products.size() + " new product entities"
+        //        );
 
-        // Step 3: Save all new products
-        System.out.println("Step 3: Saving products to database...");
+        //        System.out.println("Step 3: Saving products to database...");
         List<ListProductOfRequest> savedProducts = repository.saveAll(products);
         repository.flush(); // Ensure all products are saved
 
@@ -529,12 +508,12 @@ public class ListProductOfRequestService {
             );
         }
 
-        System.out.println(
-            "Successfully saved " + savedProducts.size() + " products"
-        );
-        System.out.println(
-            "=== updateRequestProducts completed successfully ==="
-        );
+        //        System.out.println(
+        //            "Successfully saved " + savedProducts.size() + " products"
+        //        );
+        //        System.out.println(
+        //            "=== updateRequestProducts completed successfully ==="
+        //        );
 
         return savedProducts;
     }

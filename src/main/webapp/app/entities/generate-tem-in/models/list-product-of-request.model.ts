@@ -29,6 +29,7 @@ export interface ListProductOfRequestRequest {
   lot?: string;
   initialQuantity?: number;
   vendor?: string;
+  vendorName?: string;
   userData1?: string;
   userData2?: string;
   userData3?: string;

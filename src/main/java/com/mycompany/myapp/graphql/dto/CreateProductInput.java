@@ -10,6 +10,7 @@ public class CreateProductInput {
     private String lot;
     private Integer initialQuantity;
     private String vendor;
+    private String vendorName;
     private String userData1;
     private String userData2;
     private String userData3;
@@ -83,6 +84,14 @@ public class CreateProductInput {
 
     public void setVendor(String vendor) {
         this.vendor = vendor;
+    }
+
+    public String getVendorName() {
+        return vendorName;
+    }
+
+    public void setVendorName(String vendorName) {
+        this.vendorName = vendorName;
     }
 
     public String getUserData1() {

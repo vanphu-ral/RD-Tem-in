@@ -6,6 +6,7 @@ export interface GroupedExcelData {
   groupKey: string; // Format: "PO_Code|Vendor"
   poCode: string;
   vendor: string;
+  tenNCC: string;
   products: ExcelImportData[];
 }
 
@@ -100,6 +101,7 @@ export class ExcelParserService {
           groupKey,
           poCode,
           vendor,
+          tenNCC: "",
           products: [],
         });
       }
@@ -107,7 +109,16 @@ export class ExcelParserService {
       groups.get(groupKey)!.products.push(item);
     });
 
-    return Array.from(groups.values());
+    const result = Array.from(groups.values()).map((group) => {
+      const tenNCC =
+        group.products.find((p) => p.tenNCC)?.tenNCC ?? "UNKNOWN_VENDOR";
+      return {
+        ...group,
+        tenNCC,
+      };
+    });
+
+    return result;
   }
 
   /**

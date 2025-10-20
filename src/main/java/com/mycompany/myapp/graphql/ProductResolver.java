@@ -54,6 +54,7 @@ public class ProductResolver {
         log.info(
             "Input: vendor={}, userData5={}, createdBy={}, products count={}",
             input.getVendor(),
+            input.getVendorName(),
             input.getUserData5(),
             input.getCreatedBy(),
             input.getProducts() != null ? input.getProducts().size() : 0
@@ -100,6 +101,13 @@ public class ProductResolver {
             "ProductResolver: Created {} products",
             response.getProducts().size()
         );
+        log.info("Input vendorName: {}", input.getVendorName());
+        if (input.getProducts() != null && !input.getProducts().isEmpty()) {
+            log.info(
+                "First product vendorName: {}",
+                input.getProducts().get(0).getVendorName()
+            );
+        }
         return response;
     }
 

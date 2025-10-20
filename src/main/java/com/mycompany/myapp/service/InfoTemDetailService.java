@@ -123,7 +123,7 @@ public class InfoTemDetailService {
                     // Nếu có trường sl_tem_quantity
 
                     allTemList.add(detail);
-                    System.out.println("  Tem #" + (i + 1) + ": " + reelId);
+                    //                    System.out.println("  Tem #" + (i + 1) + ": " + reelId);
 
                     reelCounter++;
                     totalTems++;
@@ -133,9 +133,9 @@ public class InfoTemDetailService {
             // Lưu TẤT CẢ tem vào database một lần
             if (!allTemList.isEmpty()) {
                 detailRepo.saveAll(allTemList);
-                System.out.println(
-                    "\n=== ĐÃ LƯU " + totalTems + " TEM VÀO DATABASE ==="
-                );
+                //                System.out.println(
+                //                    "\n=== ĐÃ LƯU " + totalTems + " TEM VÀO DATABASE ==="
+                //                );
             }
 
             // 7. Cập nhật status  requests thành "Đã tạo mã QR"
@@ -154,7 +154,7 @@ public class InfoTemDetailService {
             );
             return new GenerateTemResponse(true, message, totalTems);
         } catch (Exception e) {
-            System.out.println("=== LỖI: " + e.getMessage() + " ===");
+            //            System.out.println("=== LỖI: " + e.getMessage() + " ===");
             e.printStackTrace();
             return new GenerateTemResponse(false, "Lỗi: " + e.getMessage(), 0);
         }
@@ -204,12 +204,12 @@ public class InfoTemDetailService {
             // Lấy 4 số cuối của ReelID
             String lastFour = reelId.substring(reelId.length() - 4);
             int seq = Integer.parseInt(lastFour);
-            System.out.println(
-                "ReelID cuối cùng: " + reelId + ", Sequence: " + seq
-            );
+            //            System.out.println(
+            //                "ReelID cuối cùng: " + reelId + ", Sequence: " + seq
+            //            );
             return seq;
         } catch (NumberFormatException e) {
-            System.out.println("Không thể parse sequence từ ReelID: " + reelId);
+            //            System.out.println("Không thể parse sequence từ ReelID: " + reelId);
             return 0;
         }
     }
@@ -226,13 +226,13 @@ public class InfoTemDetailService {
     public List<InfoTemDetailResponse> getInfoTemDetailByProductId(
         Long productId
     ) {
-        System.out.println("Loading tem details for productId: " + productId);
+        //        System.out.println("Loading tem details for productId: " + productId);
 
         List<InfoTemDetail> details = detailRepo.findByProductOfRequestId(
             productId
         );
 
-        System.out.println("Found " + details.size() + " tem details");
+        //        System.out.println("Found " + details.size() + " tem details");
 
         return details
             .stream()

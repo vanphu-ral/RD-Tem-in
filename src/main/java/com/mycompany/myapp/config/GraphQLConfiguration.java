@@ -228,6 +228,7 @@ public class GraphQLConfiguration {
             new com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput();
 
         input.setVendor((String) inputMap.get("vendor"));
+        input.setVendorName((String) inputMap.get("vendorName"));
         input.setUserData5((String) inputMap.get("userData5"));
         input.setCreatedBy((String) inputMap.get("createdBy"));
 
@@ -263,6 +264,9 @@ public class GraphQLConfiguration {
                     (Integer) productMap.get("initialQuantity")
                 );
                 productInput.setVendor((String) productMap.get("vendor"));
+                productInput.setVendorName(
+                    (String) productMap.get("vendorName")
+                );
                 productInput.setUserData1((String) productMap.get("userData1"));
                 productInput.setUserData2((String) productMap.get("userData2"));
                 productInput.setUserData3((String) productMap.get("userData3"));

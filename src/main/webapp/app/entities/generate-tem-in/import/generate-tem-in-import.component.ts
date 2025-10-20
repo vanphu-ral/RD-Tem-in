@@ -332,6 +332,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
       return this.generateTemInService
         .createRequestAndProducts(
           group.vendor,
+          group.tenNCC,
           group.poCode,
           "system", // You might want to get this from user context
           group.products,
@@ -492,6 +493,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
       this.generateTemInService
         .createRequestAndProducts(
           group.vendor,
+          group.tenNCC,
           group.poCode,
           "system",
           group.products,

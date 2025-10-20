@@ -5,6 +5,7 @@ import java.util.List;
 public class CreateRequestWithProductsInput {
 
     private String vendor;
+    private String vendorName;
     private String userData5;
     private String createdBy;
     private String createdDate;
@@ -17,6 +18,14 @@ public class CreateRequestWithProductsInput {
 
     public void setVendor(String vendor) {
         this.vendor = vendor;
+    }
+
+    public void setVendorName(String vendorName) {
+        this.vendorName = vendorName;
+    }
+
+    public String getVendorName() {
+        return vendorName;
     }
 
     public String getUserData5() {

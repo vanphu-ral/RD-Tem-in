@@ -63,6 +63,7 @@ export interface MaterialItem {
   numberOfPrints: number;
   isEditing?: boolean;
   isSaving?: boolean;
+  UploadPanacim?: boolean;
 }
 export interface GenerateTemResponse {
   success: boolean;
@@ -71,6 +72,7 @@ export interface GenerateTemResponse {
 }
 
 interface CsvDataItem {
+  id: number;
   productOfRequestId: number;
   reelId: string;
   sapCode: string;
@@ -136,6 +138,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   isDisableInputLocation = false;
   isDisableGenerate = false;
   isDelete = false;
+  allUploaded: boolean = false;
   //biến in
   printMode: "single" | "all" = "all";
 
@@ -155,6 +158,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     "temQuantity",
     "initialQuantity",
     "vendor",
+    "vendorName",
     "manufacturingDate",
     "expirationDate",
     "arrivalDate",
@@ -318,6 +322,9 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
           isSaving: false,
         }));
         this.materialTotalItems = this.materials.length;
+        this.allUploaded = this.materials.every(
+          (item) => item.UploadPanacim === true,
+        );
         this.updatePagedMaterials();
 
         if (this.materials.length > 0) {
@@ -429,7 +436,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
           this.isGenerating = false;
           setTimeout(() => {
-            window.location.reload();
+            this.getListRequest(this.requestId);
           }, 1000);
         },
         error: (err) => {
@@ -994,7 +1001,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
               "success",
             );
             setTimeout(() => {
-              window.location.reload();
+              this.getListRequest(this.requestId);
             }, 1000);
           } else {
             this.showSnackbar("Cập nhật thất bại", "Đóng", 3000, "error");
@@ -1029,6 +1036,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     );
     console.log("Matched tem:", matchedItems);
     this.csvData = matchedItems.map((matched) => ({
+      id: matched.productOfRequestId,
       productOfRequestId: matched.productOfRequestId,
       reelId: matched.reelId,
       sapCode: matched.sapCode,
@@ -1058,6 +1066,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         this.temDetailList = data;
 
         this.csvData = data.map((item) => ({
+          id: item.productOfRequestId,
           productOfRequestId: item.productOfRequestId,
           reelId: item.reelId,
           sapCode: item.sapCode,
@@ -1093,6 +1102,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         this.temDetailList = data;
 
         this.csvData = data.map((item) => ({
+          id: item.productOfRequestId,
           productOfRequestId: item.productOfRequestId,
           reelId: item.reelId,
           sapCode: item.sapCode,
@@ -1235,51 +1245,114 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
 
   exportCsvToFixedIP(requestId: number): void {
-    // Đảm bảo csvData được chuẩn bị trước khi tạo CSV
-    if (!this.csvData || this.csvData.length === 0) {
-      this.prepareCsvDataToIP(requestId);
-    }
+    this.generateTemInService.getTemDetailsByRequestId(requestId).subscribe({
+      next: (data) => {
+        this.temDetailList = data;
 
-    // Kiểm tra lại sau khi prepare
-    if (!this.csvData || this.csvData.length === 0) {
-      this.showSnackbar(
-        "Không có dữ liệu để xuất CSV!",
-        "Đóng",
-        3000,
-        "warning",
-      );
-      return;
-    }
+        this.csvData = data.map((item) => ({
+          id: item.productOfRequestId,
+          productOfRequestId: item.productOfRequestId,
+          reelId: item.reelId,
+          sapCode: item.sapCode,
+          productName: item.productName,
+          partNumber: item.partNumber,
+          lot: item.lot,
+          initialQuantity: item.initialQuantity,
+          vendor: item.vendor,
+          userData1: item.userData1,
+          userData2: item.userData2,
+          userData3: item.userData3,
+          userData4: item.userData4,
+          userData5: item.userData5,
+          storageUnit: item.storageUnit,
+          expirationDate: item.expirationDate,
+          manufacturingDate: item.manufacturingDate,
+          arrivalDate: item.arrivalDate,
+          qrCode: item.qrCode,
+        }));
 
-    const csvContent = this.generateCsvContent();
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-
-    // Use backend API endpoint
-    const apiEndpoint = "/api/csv-upload";
-    const formData = new FormData();
-    formData.append("file", blob, this.csvFileName);
-
-    this.http.post<any>(apiEndpoint, formData).subscribe({
-      next: (response) => {
-        if (response.success) {
+        if (!this.csvData || this.csvData.length === 0) {
           this.showSnackbar(
-            "Gửi thông tin tới hệ thống thành công!",
+            "Không có dữ liệu để xuất CSV!",
             "Đóng",
-            5000,
-            "success",
+            3000,
+            "warning",
           );
-        } else {
-          this.showSnackbar(`Lỗi: ${response.message}`, "Đóng", 5000, "error");
+          return;
         }
+
+        const csvContent = this.generateCsvContent();
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+
+        const apiEndpoint = "/api/csv-upload";
+        const formData = new FormData();
+        formData.append("file", blob, this.csvFileName);
+
+        this.http.post<any>(apiEndpoint, formData).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.showSnackbar(
+                "Gửi thông tin tới hệ thống thành công!",
+                "Đóng",
+                5000,
+                "success",
+              );
+
+              // Gọi mutation cập nhật UploadPanacim cho từng sản phẩm
+              this.csvData.forEach((item) => {
+                const product = this.materials.find(
+                  (p) => Number(p.id) === Number(item.productOfRequestId),
+                );
+                if (product) {
+                  this.generateTemInService
+                    .updateUploadPanacim(product)
+                    .subscribe({
+                      next: (res) => {
+                        console.log(
+                          `Đã cập nhật UploadPanacim cho sản phẩm ${product.id}`,
+                        );
+                        // product.uploadPanacim = true;
+                        this.allUploaded = this.materials.every(
+                          (p) => p.UploadPanacim === true,
+                        );
+                        setTimeout(() => {
+                          this.getListRequest(this.requestId);
+                        }, 1000);
+                      },
+                      error: (err) => {
+                        console.error(
+                          `Lỗi khi cập nhật UploadPanacim cho sản phẩm ${product.id}:`,
+                          err,
+                        );
+                      },
+                    });
+                }
+              });
+            } else {
+              this.showSnackbar(
+                `Lỗi: ${response.message}`,
+                "Đóng",
+                5000,
+                "error",
+              );
+            }
+          },
+          error: (error) => {
+            console.error("Error uploading CSV:", error);
+            this.showSnackbar(
+              `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
+              "Đóng",
+              5000,
+              "error",
+            );
+          },
+        });
       },
-      error: (error) => {
-        console.error("Error uploading CSV:", error);
-        this.showSnackbar(
-          `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
-          "Đóng",
-          5000,
-          "error",
-        );
+      error: (err) => {
+        console.error("Lỗi khi tải tem detail:", err);
+        this.showSnackbar("Không thể tải dữ liệu tem!", "Đóng", 3000, "error");
       },
     });
   }
@@ -1471,6 +1544,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
 
       const csvData = matchedItems.map((matched) => ({
+        id: matched.productOfRequestId, // dùng để cập nhật UploadPanacim
         productOfRequestId: matched.productOfRequestId,
         reelId: matched.reelId,
         sapCode: matched.sapCode,
@@ -1498,6 +1572,29 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       console.log("File name:", fileName);
 
       this.importCsvToFixedIP(csvData, fileName);
+      const product = this.materials.find(
+        (p) => Number(p.id) === Number(productId),
+      );
+      console.log("Danh sách sản phẩm:", this.materials);
+      console.log("Đang tìm sản phẩm có id =", productId);
+
+      if (!product) {
+        console.warn(
+          "Không tìm thấy sản phẩm trong danh sách gốc để cập nhật UploadPanacim",
+        );
+        return;
+      }
+      this.generateTemInService.updateUploadPanacim(product).subscribe({
+        next: (res) => {
+          console.log("Đã cập nhật UploadPanacim:", res.data);
+          setTimeout(() => {
+            this.getListRequest(this.requestId);
+          }, 1000);
+        },
+        error: (err) => {
+          console.error("Lỗi khi cập nhật UploadPanacim:", err);
+        },
+      });
     });
   }
 

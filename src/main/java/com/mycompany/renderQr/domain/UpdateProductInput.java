@@ -10,6 +10,7 @@ public class UpdateProductInput {
     private Integer temQuantity;
     private Long initialQuantity;
     private String vendor;
+    private String vendorName;
     private String userData1;
     private String userData2;
     private String userData3;
@@ -20,8 +21,9 @@ public class UpdateProductInput {
     private String manufacturingDate;
     private String arrivalDate;
     private Integer numberOfPrints;
+    private Boolean uploadPanacim;
 
-    // ✅ Getters và setters đầy đủ
+    // Getters và setters đầy đủ
     public Long getId() {
         return id;
     }
@@ -68,6 +70,14 @@ public class UpdateProductInput {
 
     public void setVendor(String vendor) {
         this.vendor = vendor;
+    }
+
+    public String getVendorName() {
+        return vendorName;
+    }
+
+    public void setVendorName(String vendorName) {
+        this.vendorName = vendorName;
     }
 
     public String getUserData1() {
@@ -164,5 +174,13 @@ public class UpdateProductInput {
 
     public void setTemQuantity(Integer temQuantity) {
         this.temQuantity = temQuantity;
+    }
+
+    public Boolean getUploadPanacim() {
+        return uploadPanacim;
+    }
+
+    public void setUploadPanacim(Boolean uploadPanacim) {
+        this.uploadPanacim = uploadPanacim;
     }
 }

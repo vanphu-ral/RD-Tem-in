@@ -1,11 +1,13 @@
 * {
   font-family: "Nunito", sans-serif;
 }
+
 .page-heading {
-  width: 97%;
+  width: 100%;
 }
+
 table {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
@@ -16,7 +18,7 @@ table {
 
 th {
   color: #fff;
-  background-color: #6c7ae0;
+  background-color: #3d7bb9;
   text-align: left;
   padding: 8px;
   font-weight: bold;

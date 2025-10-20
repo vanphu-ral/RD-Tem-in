@@ -1,16 +1,19 @@
 * {
   font-family: "Nunito", sans-serif;
 }
+
 .page-heading {
-  width: 97%;
+  width: 100%;
 }
+
 .pagiantorr {
   display: flex;
   justify-content: space-between;
-  width: 97%;
+  width: 100%;
 }
+
 table {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
@@ -21,14 +24,16 @@ table {
 
 th {
   color: #fff;
-  background-color: #6c7ae0;
+  background-color: #3d7bb9;
   text-align: left;
   padding: 8px;
   font-weight: bold;
 }
+
 .text-end {
   width: 7rem;
 }
+
 /* tr:nth-child(even) {
   background-color: #f2f2f2;
 }
@@ -44,9 +49,11 @@ tr:nth-child(odd) {
   color: #2d3748 !important;
   background-color: #cbd5e0 !important;
 }
+
 .detail-btn:hover {
   background-color: #8f949d !important;
 }
+
 td {
   padding: 8px;
   border: 1px solid #ccc;

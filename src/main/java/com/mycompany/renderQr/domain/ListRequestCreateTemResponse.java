@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public interface ListRequestCreateTemResponse {
     Long getId();
     String getVendor();
+    String getVendorName();
     String getUserData5();
     String getCreatedBy();
     Short getNumberProduction();

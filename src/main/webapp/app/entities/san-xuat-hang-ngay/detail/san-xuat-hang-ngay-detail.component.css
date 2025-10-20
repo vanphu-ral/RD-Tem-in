@@ -3,7 +3,7 @@
 }
 
 table {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
@@ -13,7 +13,7 @@ table {
 
 th {
   color: #ffffff;
-  background-color: #6c7ae0;
+  background-color: #3d7bb9;
   text-align: left;
   padding: 8px;
   font-weight: bold;
@@ -39,7 +39,7 @@ td {
 
 .export-file {
   display: flex;
-  width: 97%;
+  width: 100%;
   justify-content: space-between;
 }
 
@@ -60,6 +60,7 @@ td {
   outline: none;
   box-shadow: 0 0 5px #17bb17;
 }
+
 .btn {
   color: #fff;
 }

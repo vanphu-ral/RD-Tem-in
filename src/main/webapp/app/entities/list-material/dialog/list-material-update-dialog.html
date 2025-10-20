@@ -534,6 +534,8 @@
                       placeholder="Nhập số cho tất cả"
                       [(ngModel)]="headerQuantityChange"
                       (keyup.enter)="applyHeaderQuantityChange()"
+                      (blur)="applyHeaderQuantityChange()"
+                      (change)="applyHeaderQuantityChange()"
                     />
                   </mat-form-field>
                 </div>

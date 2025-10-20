@@ -1,6 +1,7 @@
 export interface ListRequestCreateTem {
   id?: number;
   vendor?: string;
+  vendorName?: string;
   userData5?: string;
   numberProduction?: number;
   totalQuantity?: number;
@@ -12,6 +13,7 @@ export interface ListRequestCreateTem {
 
 export interface ListRequestCreateTemRequest {
   vendor?: string;
+  vendorName?: string;
   userData5?: string;
   createdBy?: string;
   numberProduction?: number;

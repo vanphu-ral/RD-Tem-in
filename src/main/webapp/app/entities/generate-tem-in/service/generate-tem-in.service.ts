@@ -39,6 +39,7 @@ const GET_REQUESTS_QUERY = gql`
     listRequestCreateTems {
       id
       vendor
+      vendorName
       userData5
       createdBy
       numberProduction
@@ -61,6 +62,7 @@ const GET_PRODUCTS_BY_REQUEST_QUERY = gql`
       lot
       initialQuantity
       vendor
+      vendorName
       userData1
       userData2
       userData3
@@ -71,6 +73,7 @@ const GET_PRODUCTS_BY_REQUEST_QUERY = gql`
       manufacturingDate
       arrivalDate
       numberOfPrints
+      UploadPanacim
     }
   }
 `;
@@ -116,6 +119,7 @@ const CREATE_PRODUCTS_BATCH_MUTATION = gql`
       lot
       initialQuantity
       vendor
+      vendorName
       userData1
       userData2
       userData3
@@ -144,6 +148,7 @@ const CREATE_REQUEST_AND_PRODUCTS_MUTATION = gql`
         lot
         initialQuantity
         vendor
+        vendorName
         userData1
         userData2
         userData3
@@ -175,6 +180,7 @@ const UPDATE_REQUEST_PRODUCTS_MUTATION = gql`
       lot
       initialQuantity
       vendor
+      vendorName
       userData1
       userData2
       userData3
@@ -376,6 +382,7 @@ export class GenerateTemInService {
 
   createRequestAndProducts(
     vendor: string,
+    vendorName: string,
     userData5: string,
     createdBy: string,
     products: ExcelImportData[],
@@ -398,6 +405,9 @@ export class GenerateTemInService {
       }
       if (!item.vendor || item.vendor.trim() === "") {
         throw new Error(`Row ${index + 1}: Vendor is required`);
+      }
+      if (!item.tenNCC || item.tenNCC.trim() === "") {
+        throw new Error(`Row ${index + 1}: Vendor name is required`);
       }
       if (!item.temQuantity || item.temQuantity <= 0) {
         throw new Error(
@@ -427,6 +437,7 @@ export class GenerateTemInService {
         lot: item.lot.trim(),
         initialQuantity: item.initialQuantity,
         vendor: item.vendor.trim(),
+        vendorName: item.tenNCC.trim(),
         userData1: item.userData1 ?? "",
         userData2: item.userData2 ?? "",
         userData3: item.userData3 ?? "",
@@ -441,6 +452,7 @@ export class GenerateTemInService {
 
     const input = {
       vendor,
+      vendorName,
       userData5,
       createdBy,
       createdDate: new Date().toISOString().slice(0, 10),
@@ -487,6 +499,9 @@ export class GenerateTemInService {
       if (!item.vendor || item.vendor.trim() === "") {
         throw new Error(`Row ${index + 1}: Vendor is required`);
       }
+      if (!item.tenNCC || item.tenNCC.trim() === "") {
+        throw new Error(`Row ${index + 1}: Vendor name is required`);
+      }
       if (!item.temQuantity || item.temQuantity <= 0) {
         throw new Error(
           `Row ${index + 1}: Tem Quantity must be greater than 0`,
@@ -515,6 +530,7 @@ export class GenerateTemInService {
         lot: item.lot.trim(),
         initialQuantity: item.initialQuantity,
         vendor: item.vendor.trim(),
+        vendorName: item.tenNCC.trim(),
         userData1: item.userData1 ?? "",
         userData2: item.userData2 ?? "",
         userData3: item.userData3 ?? "",
@@ -856,5 +872,45 @@ export class GenerateTemInService {
         variables: { productId },
       })
       .pipe(map((res) => res.data!.deleteProduct));
+  }
+
+  //upload panacim
+  updateUploadPanacim(productId: any): Observable<any> {
+    const UPDATE_UPLOAD_STATUS = gql`
+      mutation UpdateProductOfRequest($input: UpdateProductInput!) {
+        updateProductOfRequest(input: $input) {
+          success
+          message
+        }
+      }
+    `;
+
+    return this.apollo.mutate({
+      mutation: UPDATE_UPLOAD_STATUS,
+      variables: {
+        input: {
+          id: Number(productId.id),
+          sapCode: productId.sapCode,
+          requestCreateTemId: productId.requestCreateTemId,
+          partNumber: productId.partNumber,
+          lot: productId.lot,
+          temQuantity: productId.temQuantity,
+          initialQuantity: productId.initialQuantity,
+          vendor: productId.vendor,
+          vendorName: productId.vendorName,
+          userData1: productId.userData1,
+          userData2: productId.userData2,
+          userData3: productId.userData3,
+          userData4: productId.userData4,
+          userData5: productId.userData5,
+          storageUnit: productId.storageUnit,
+          expirationDate: productId.expirationDate,
+          manufacturingDate: productId.manufacturingDate,
+          arrivalDate: productId.arrivalDate,
+          numberOfPrints: productId.numberOfPrints,
+          UploadPanacim: true,
+        },
+      },
+    });
   }
 }

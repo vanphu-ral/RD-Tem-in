@@ -57,6 +57,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "status",
     "vendor",
+    "vendorName",
     "userData5",
     "createdDate",
     "createdBy",
@@ -68,6 +69,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   filterValues = {
     status: "",
     vendor: "",
+    vendorName: "",
     userData5: "",
     createdBy: "",
     createdDate: "",
@@ -299,6 +301,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
             id: item.id ?? 0,
             status: item.status ?? "",
             vendor: item.vendor ?? "",
+            vendorName: item.vendorName ?? "",
             userData5: item.userData5 ?? "",
             createdDate: item.createdDate ?? "",
             createdBy: item.createdBy ?? "",

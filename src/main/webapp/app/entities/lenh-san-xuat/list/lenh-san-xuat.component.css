@@ -13,7 +13,7 @@ table {
 
 th {
   color: #fff;
-  background-color: #6c7ae0;
+  background-color: #3d7bb9;
   text-align: left;
   padding: 8px;
   font-weight: bold;
@@ -36,19 +36,24 @@ td {
   background-color: #fff;
   border: 1px solid #ccc;
 }
+
 .tenHangHoa-col {
   width: 9rem;
 }
+
 .text-end {
   width: 7rem;
 }
+
 .detail-btn {
   color: #2d3748 !important;
   background-color: #cbd5e0 !important;
 }
+
 .detail-btn:hover {
   background-color: #8f949d !important;
 }
+
 .create-thiet-bi {
   border: none !important;
   color: #fff;
@@ -116,12 +121,15 @@ ul.search-result {
   max-height: 150px;
   overflow-y: auto;
 }
+
 .date-col {
   width: 6rem;
 }
+
 .page-heading {
-  width: 97%;
+  width: 100%;
 }
+
 .btn-group button {
   margin-right: 10px;
   padding: 5px 10px;

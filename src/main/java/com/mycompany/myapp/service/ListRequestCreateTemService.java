@@ -34,6 +34,7 @@ public class ListRequestCreateTemService {
     @Transactional
     public ListRequestCreateTem createRequest(
         String vendor,
+        String vendorName,
         String userData5,
         String createdBy,
         int numberProduction,
@@ -42,11 +43,18 @@ public class ListRequestCreateTemService {
     ) {
         ListRequestCreateTem request = new ListRequestCreateTem();
         request.setVendor(vendor);
+        request.setVendorName(vendorName);
         request.setUserData5(userData5);
         request.setCreatedBy(createdBy != null ? createdBy : "system");
         request.setNumberProduction((short) numberProduction);
         request.setTotalQuantity(totalQuantity);
         request.setStatus("Bản nháp");
+        System.out.println("Input vendorName: " + vendorName);
+        System.out.println("vendorName is null? " + (vendorName == null));
+        System.out.println(
+            "vendorName is blank? " +
+            (vendorName != null && vendorName.isBlank())
+        );
         if (createdDate != null) {
             request.setCreatedDate(createdDate);
         } else {
@@ -57,6 +65,9 @@ public class ListRequestCreateTemService {
 
         // Force flush to ensure ID is generated immediately
         repository.flush();
+        System.out.println(
+            "After save - vendorName from DB: " + savedRequest.getVendorName()
+        );
 
         // Debug: Ensure the ID was generated
         if (savedRequest.getId() == null) {
@@ -65,9 +76,9 @@ public class ListRequestCreateTemService {
             );
         }
 
-        System.out.println(
-            "Saved request with generated ID: " + savedRequest.getId()
-        );
+        //        System.out.println(
+        //            "Saved request with generated ID: " + savedRequest.getId()
+        //        );
         return savedRequest;
     }
 

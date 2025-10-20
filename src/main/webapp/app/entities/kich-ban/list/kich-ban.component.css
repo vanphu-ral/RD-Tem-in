@@ -1,11 +1,13 @@
 * {
   font-family: "Nunito", sans-serif;
 }
+
 .page-heading {
-  width: 97%;
+  width: 100%;
 }
+
 table {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 14px;
@@ -20,6 +22,7 @@ th {
   padding: 8px;
   font-weight: bold;
 }
+
 /* 
 tr:nth-child(even) {
   background-color: #f2f2f2;
@@ -85,9 +88,11 @@ select {
 .maKichBan-col {
   min-width: 9rem;
 }
+
 .maThietBi-col {
   width: 5rem;
 }
+
 .date-col {
   width: 7rem;
 }
@@ -99,6 +104,7 @@ select {
 .version-col {
   width: 8rem;
 }
+
 .maSanPham-col {
   width: 6rem;
 }
@@ -155,21 +161,24 @@ ul.search-result {
 }
 
 .table.table-striped {
-  width: 97%;
+  width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
   margin-right: 15px;
 }
+
 .detail-btn {
   color: #2d3748 !important;
   background-color: #cbd5e0 !important;
 }
+
 .detail-btn:hover {
   background-color: #8f949d !important;
 }
+
 .table th {
   color: #fff;
-  background-color: #6c7ae0;
+  background-color: #3d7bb9;
   font-weight: bold;
   padding: 10px;
   /* text-align: center; */
@@ -256,9 +265,11 @@ ul.search-result {
     height: 40px;
   }
 }
+
 .text-end {
   width: 7rem;
 }
+
 .form-select {
   width: 4vw;
   /* margin-top: 2vh; */

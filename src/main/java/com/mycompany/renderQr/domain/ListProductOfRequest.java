@@ -35,6 +35,9 @@ public class ListProductOfRequest {
     @Column(name = "Vendor", nullable = false, length = 100)
     private String vendor;
 
+    @Column(name = "vendor_name", nullable = false, length = 255)
+    private String vendorName;
+
     @Column(name = "UserData1", nullable = false, length = 100)
     private String userData1;
 
@@ -59,11 +62,14 @@ public class ListProductOfRequest {
     @Column(name = "ManufacturingDate", nullable = false)
     private LocalDateTime manufacturingDate;
 
-    @Column(name = "Arrival_date", nullable = false)
+    @Column(name = "arrival_date", nullable = false)
     private LocalDateTime arrivalDate;
 
-    @Column(name = "Number_of_prints", nullable = false)
+    @Column(name = "number_of_prints", nullable = false)
     private Integer numberOfPrints;
+
+    @Column(name = "upload_panacim", nullable = false)
+    private Boolean uploadPanacim;
 
     public Long getId() {
         return id;
@@ -215,5 +221,21 @@ public class ListProductOfRequest {
 
     public void setNumberOfPrints(Integer numberOfPrints) {
         this.numberOfPrints = numberOfPrints;
+    }
+
+    public String getVendorName() {
+        return vendorName;
+    }
+
+    public void setVendorName(String vendorName) {
+        this.vendorName = vendorName;
+    }
+
+    public Boolean getUploadPanacim() {
+        return uploadPanacim;
+    }
+
+    public void setUploadPanacim(Boolean uploadPanacim) {
+        this.uploadPanacim = uploadPanacim;
     }
 }

@@ -82,6 +82,27 @@
         <td mat-cell *matCellDef="let item">{{ item.vendor }}</td>
       </ng-container>
 
+      <ng-container matColumnDef="vendorName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          <div class="header-with-filter">
+            Tên NCC
+            <mat-form-field
+              appearance="outline"
+              class="mt-1 input-filter"
+              style="width: 7rem"
+            >
+              <input
+                matInput
+                [(ngModel)]="filterValues.vendorName"
+                (ngModelChange)="applyFilter()"
+                placeholder="Tìm kiếm"
+              />
+            </mat-form-field>
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let item">{{ item.vendorName }}</td>
+      </ng-container>
+
       <ng-container matColumnDef="userData5">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>
           <div class="header-with-filter">
