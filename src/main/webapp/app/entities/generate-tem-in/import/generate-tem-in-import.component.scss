@@ -118,10 +118,10 @@
   font-weight: 500;
 }
 
-.selected-file-name .file-icon {
-  font-size: 16px;
-  line-height: 16px;
-}
+// .selected-file-name .file-icon {
+//   font-size: 16px;
+//   line-height: 16px;
+// }
 
 .selected-file-name .file-name-text {
   max-width: 200px;
@@ -282,13 +282,15 @@ h2 {
 
 /* Căn theo cột */
 .table-container .mat-column-actions {
-  width: 112px;
+  width: 140px;
   text-align: center;
+  min-width: 140px;
 }
 
 .table-container .mat-column-stt {
-  width: 50px;
+  width: 60px;
   text-align: center;
+  min-width: 60px;
 }
 
 .text-center {
@@ -348,11 +350,16 @@ h2 {
 // .table-container .mat-column-createdDate   { width: 140px; }
 
 .table-container .mat-column-stt {
-  max-width: 40px;
+  max-width: 60px;
 }
 
-.table-container .mat-column-actions {
-  max-width: 80px;
+/* Action buttons styling */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 .back-icon {
