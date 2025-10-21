@@ -78,7 +78,7 @@ partner2:
 renderqr:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=tem-info-tempt;encrypt=true;trustServerCertificate=true;
+    url: jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=tem-info;encrypt=true;trustServerCertificate=true;
     username: sa
     password: 112358
     hikari:

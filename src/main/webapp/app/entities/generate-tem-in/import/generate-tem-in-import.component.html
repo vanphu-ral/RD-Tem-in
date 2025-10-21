@@ -21,6 +21,29 @@
     </div>
   </div>
 
+  <!-- Import Status Panel -->
+  <div
+    class="import-status-panel"
+    *ngIf="showImportStatusPanel && importStatuses.length > 0"
+  >
+    <div class="panel-content">
+      <div
+        *ngFor="let status of importStatuses"
+        class="status-item"
+        [ngClass]="getStatusClass(status.status)"
+      >
+        <mat-icon class="status-icon">{{
+          getStatusIcon(status.status)
+        }}</mat-icon>
+        <div class="status-details">
+          <div class="status-message">
+            {{ status.message || status.groupName }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Import Zone -->
   <div
     class="import-zone-container"

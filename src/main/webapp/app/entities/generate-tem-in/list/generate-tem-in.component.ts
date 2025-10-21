@@ -310,6 +310,12 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
           }),
         );
         console.log("Mapped data:", data);
+        // Sort data by createdDate in descending order (newest first)
+        data.sort((a, b) => {
+          const dateA = new Date(a.createdDate);
+          const dateB = new Date(b.createdDate);
+          return dateB.getTime() - dateA.getTime();
+        });
         this.dataSource.data = data;
         this.totalItems = response.length;
         this.isLoading = false;

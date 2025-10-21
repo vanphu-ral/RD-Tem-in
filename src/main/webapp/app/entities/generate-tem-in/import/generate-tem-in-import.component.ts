@@ -21,21 +21,22 @@ import {
   GroupedExcelData,
 } from "../service/excel-parser.service";
 import { AlertService } from "app/core/util/alert.service";
+import { AccountService } from "app/core/auth/account.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 
 export interface SaveStatus {
   groupIndex: number;
   groupName: string;
-  status: "pending" | "saving" | "success" | "error";
+  status: "pending" | "saving" | "importing" | "success" | "error";
   message?: string;
   timestamp?: Date;
 }
 
 export interface VatTuRow {
   stt: number;
-  id?: number; // Product ID from database
-  requestCreateTemId?: number; // Request ID from database
+  id?: number;
+  requestCreateTemId?: number;
   sapCode: string;
   tenSp: string;
   partNumber: string;
@@ -82,6 +83,10 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   saveStatuses: SaveStatus[] = [];
   showSaveStatusPanel = false;
 
+  // Track import status for notification panel
+  importStatuses: SaveStatus[] = [];
+  showImportStatusPanel = false;
+
   displayedColumns: string[] = [
     "stt",
     "actions",
@@ -104,7 +109,6 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     "ngayVe",
   ];
 
-  // Grouped data support
   groupedData: GroupedExcelData[] = [];
   selectedTabIndex = 0;
   tabLabels: string[] = [];
@@ -115,7 +119,6 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   importProgress = 0;
   selectedFile: File | null = null;
 
-  // Dùng string | null để an toàn với Typed Forms và template
   filters: Partial<Record<VatTuKeys, FormControl<string | null>>> = {};
 
   poCode = "12345";
@@ -123,6 +126,8 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   //danh sach kh
   danhSachKho: CachedWarehouse[] = [];
   khoControl = new FormControl<string | null>(null);
+
+  currentUser: string = "unknown";
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -132,6 +137,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     private excelParserService: ExcelParserService,
     private dialog: MatDialog,
     private alertService: AlertService,
+    private accountService: AccountService,
     private router: Router,
     private warehouseCache: WarehouseCacheService,
   ) {}
@@ -150,6 +156,12 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.accountService.identity().subscribe(() => {
+      this.accountService.getAuthenticationState().subscribe((account) => {
+        this.currentUser = account?.login ?? "unknown";
+      });
+    });
+
     (
       this.displayedColumns.filter((c) => c !== "actions") as VatTuKeys[]
     ).forEach((c) => {
@@ -326,15 +338,14 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     this.isLoading = true;
     this.importProgress = 0;
 
-    // Save each group as a separate request
     const savePromises = this.groupedData.map((group, index) => {
-      const currentIndex = index; // Capture index for progress tracking
+      const currentIndex = index;
       return this.generateTemInService
         .createRequestAndProducts(
           group.vendor,
           group.tenNCC,
           group.poCode,
-          "system", // You might want to get this from user context
+          this.currentUser,
           group.products,
         )
         .toPromise()
@@ -351,7 +362,6 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         });
     });
 
-    // Execute all save operations
     Promise.all(savePromises)
       .then((results) => {
         console.log("All groups saved successfully:", results);
@@ -495,7 +505,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
           group.vendor,
           group.tenNCC,
           group.poCode,
-          "system",
+          this.currentUser,
           group.products,
         )
         .toPromise()
@@ -591,10 +601,41 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     this.showSaveStatusPanel = false;
   }
 
+  // Update import status for notification panel
+  updateImportStatus(
+    status: "pending" | "importing" | "success" | "error",
+    message?: string,
+  ): void {
+    const newStatus: SaveStatus = {
+      groupIndex: 0,
+      groupName: "Import File",
+      status,
+      message,
+      timestamp: new Date(),
+    };
+
+    this.importStatuses = [newStatus];
+    this.showImportStatusPanel = true;
+
+    // Auto-close after 3 seconds for success or error status
+    if (status === "success" || status === "error") {
+      setTimeout(() => {
+        this.clearImportStatuses();
+      }, 3000);
+    }
+  }
+
+  // Clear all import statuses
+  clearImportStatuses(): void {
+    this.importStatuses = [];
+    this.showImportStatusPanel = false;
+  }
+
   // Get status icon
   getStatusIcon(status: string): string {
     switch (status) {
       case "saving":
+      case "importing":
         return "hourglass_empty";
       case "success":
         return "check_circle";
@@ -609,6 +650,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   getStatusClass(status: string): string {
     switch (status) {
       case "saving":
+      case "importing":
         return "status-saving";
       case "success":
         return "status-success";
@@ -800,13 +842,26 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   private parseExcelFile(file: File): void {
     this.isLoading = true;
 
+    // Show import status panel and start importing
+    this.updateImportStatus("importing", "Đang xử lý file Excel...");
+
     this.excelParserService
       .parseExcelFile(file)
-      .then((parsedData: ExcelImportData[]) => {
+      .then(({ data: parsedData, validationResult }) => {
+        if (validationResult.invalidRows > 0) {
+          this.alertService.addAlert({
+            type: "warning",
+            message: `File có dòng không hợp lệ. Vui lòng kiểm tra lại file Excel.`,
+            timeout: 5000,
+            toast: true,
+          });
+        }
+
         if (parsedData.length === 0) {
           this.alertService.addAlert({
             type: "danger",
-            message: "Định dạng file không chính xác.",
+            message:
+              "Không có dữ liệu hợp lệ để import. Vui lòng kiểm tra lại file Excel.",
             timeout: 5000,
             toast: true,
           });
@@ -821,7 +876,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         if (this.groupedData.length === 0) {
           this.alertService.addAlert({
             type: "warning",
-            message: "Không có dữ liệu hợp lệ để nhóm.",
+            message: "Không có dữ liệu hợp lệ để nhóm sau khi xử lý.",
             timeout: 5000,
             toast: true,
           });
@@ -845,20 +900,28 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         this.updateDataSourceForSelectedTab();
         this.isLoading = false;
 
-        console.log(
-          `Successfully parsed ${parsedData.length} rows into ${this.groupedData.length} groups`,
-        );
+        this.updateImportStatus("success", `Import thành công.`);
+
+        this.alertService.addAlert({
+          type: "success",
+          message: `Import thông tin vật tư thành công.`,
+          timeout: 6000,
+          toast: true,
+        });
 
         console.log(
-          `Successfully parsed and grouped ${parsedData.length} rows into ${this.groupedData.length} groups`,
+          `Successfully parsed ${parsedData.length} valid rows from ${validationResult.totalRows} total rows into ${this.groupedData.length} groups`,
         );
       })
       .catch((error: Error) => {
         console.error("Lỗi:", error);
+
+        this.updateImportStatus("error", error.message);
+
         this.alertService.addAlert({
           type: "danger",
-          message: `Lỗi: ${error.message}`,
-          timeout: 5000,
+          message: error.message,
+          timeout: 8000,
           toast: true,
         });
         this.isLoading = false;
