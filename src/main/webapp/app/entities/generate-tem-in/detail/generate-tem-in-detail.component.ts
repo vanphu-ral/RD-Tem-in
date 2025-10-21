@@ -479,7 +479,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
     //  Clone container để không ảnh hưởng modal gốc
     const printContainer = container.cloneNode(true) as HTMLElement;
-    printContainer.id = "printPreviewModal";
+    printContainer.id = "printPreviewClone";
 
     //  Thêm container mới vào body (ngang level với modal)
     const originalCanvases = container.querySelectorAll("canvas");
@@ -527,7 +527,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
 
       /* Only show temp container */
-      #printPreviewModal {
+      #printPreviewClone {
         display: block !important;
         visibility: visible !important;
         position: static !important;
@@ -538,13 +538,13 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         height: auto !important;
       }
 
-      #printPreviewModal,
-      #printPreviewModal * {
+      #printPreviewClone,
+      #printPreviewClone * {
         visibility: visible !important;
       }
 
       /* Label = page */
-      #printPreviewModal .label {
+      #printPreviewClone .label {
         width: 102.5mm !important;
         height: 35mm !important;
         margin: 0 !important;
@@ -556,12 +556,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         page-break-inside: avoid !important;
       }
 
-      #printPreviewModal .label:last-of-type {
+      #printPreviewClone .label:last-of-type {
         page-break-after: avoid !important;
       }
 
       /* Content - Thu nhỏ padding */
-      #printPreviewModal .label-content {
+      #printPreviewClone .label-content {
         position: relative !important;
         width: 100% !important;
         height: 100% !important;
@@ -574,12 +574,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
 
       /* Cột trái - THU NHỎ QR */
-      #printPreviewModal .col-left {
+      #printPreviewClone .col-left {
         width: 25mm !important;
         gap: 1.5mm !important;
       }
 
-      #printPreviewModal .qr-box {
+      #printPreviewClone .qr-box {
         width: 22mm !important;
         height: 22mm !important;
         border: 0.5px solid #000 !important;
@@ -588,162 +588,162 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
 
       /* THU NHỎ QR CODE */
-      #printPreviewModal .qr-box qrcode,
-      #printPreviewModal .qr-box canvas {
+      #printPreviewClone .qr-box qrcode,
+      #printPreviewClone .qr-box canvas {
         width: 18mm !important;
         height: 18mm !important;
         max-width: 18mm !important;
         max-height: 18mm !important;
       }
 
-      #printPreviewModal .msd-info {
+      #printPreviewClone .msd-info {
         font-size: 5.5pt !important;
         line-height: 1.1 !important;
       }
 
-      #printPreviewModal .msd-title {
+      #printPreviewClone .msd-title {
         font-size: 6pt !important;
         margin-bottom: 0.3mm !important;
       }
 
-      #printPreviewModal .msd-item {
+      #printPreviewClone .msd-item {
         font-size: 5.5pt !important;
         line-height: 1.15 !important;
         font-weight: bold !important;
       }
 
       /* Cột giữa */
-      #printPreviewModal .col-center {
+      #printPreviewClone .col-center {
         flex: 1 !important;
         gap: 2.5mm !important;
       }
 
-      #printPreviewModal .logo-box {
+      #printPreviewClone .logo-box {
         height: 4mm !important;
       }
 
-      #printPreviewModal .logo-img {
+      #printPreviewClone .logo-img {
         height: 3.5mm !important;
       }
 
-      #printPreviewModal .sap-code {
+      #printPreviewClone .sap-code {
         font-size: 10pt !important;
         line-height: 1 !important;
       }
 
-      #printPreviewModal .part-number {
+      #printPreviewClone .part-number {
         font-size: 8pt !important;
         line-height: 1 !important;
       }
 
-      #printPreviewModal .reel-id-tem {
+      #printPreviewClone .reel-id-tem {
         font-size: 7pt !important;
         line-height: 1 !important;
       }
 
-      #printPreviewModal .info-grid-tem {
+      #printPreviewClone .info-grid-tem {
         gap: 0.2mm !important;
         line-height: 1 !important;
       }
 
-      #printPreviewModal .info-row-tem {
+      #printPreviewClone .info-row-tem {
         font-size: 6pt !important;
         line-height: 1.1 !important;
         gap: 1mm !important;
       }
 
-      #printPreviewModal .info-label-tem {
+      #printPreviewClone .info-label-tem {
         min-width: 10mm !important;
         font-weight: bold !important;
       }
 
-      #printPreviewModal .qty-big {
+      #printPreviewClone .qty-big {
         font-size: 7pt !important;
         font-weight: bold !important;
       }
 
       /* Cột phải */
-      #printPreviewModal .col-right {
+      #printPreviewClone .col-right {
         width: 28mm !important;
         gap: 0.3mm !important;
       }
 
-      #printPreviewModal .rank-section {
+      #printPreviewClone .rank-section {
         gap: 0.2mm !important;
       }
 
-      #printPreviewModal .rank-item-small {
+      #printPreviewClone .rank-item-small {
         font-size: 5.5pt !important;
         line-height: 1.1 !important;
       }
 
-      #printPreviewModal .storage-unit {
+      #printPreviewClone .storage-unit {
         font-size: 6pt !important;
         padding: 0.3mm 0.5mm !important;
         line-height: 1.2 !important;
       }
 
-      #printPreviewModal .lot-info {
+      #printPreviewClone .lot-info {
         font-size: 5.5pt !important;
         line-height: 1.1 !important;
       }
 
-      #printPreviewModal .barcode-box {
+      #printPreviewClone .barcode-box {
         padding: 0.5mm !important;
         gap: 0.2mm !important;
         border: 0.5px solid #333 !important;
       }
 
-      #printPreviewModal .bc-item-compact {
+      #printPreviewClone .bc-item-compact {
         gap: 0.2mm !important;
       }
 
-      #printPreviewModal .bc-line {
+      #printPreviewClone .bc-line {
         display: flex !important;
         align-items: center !important;
         gap: 0.3mm !important;
       }
 
-      #printPreviewModal .bc-label {
+      #printPreviewClone .bc-label {
         font-size: 5.5pt !important;
         line-height: 1 !important;
       }
 
-      #printPreviewModal .bc-code {
+      #printPreviewClone .bc-code {
         font-size: 5.5pt !important;
         line-height: 1 !important;
       }
 
-      #printPreviewModal .bc-svg {
+      #printPreviewClone .bc-svg {
         height: 3.5mm !important;
         flex: 1 !important;
       }
 
-      #printPreviewModal .bc-svg svg {
+      #printPreviewClone .bc-svg svg {
         height: 100% !important;
         width: auto !important;
         max-width: 100% !important;
         object-fit: contain !important;
       }
 
-      #printPreviewModal .product-name-small {
+      #printPreviewClone .product-name-small {
         font-size: 4.5pt !important;
         line-height: 1.1 !important;
         margin-top: 0.3mm !important;
       }
 
       /* Colors */
-      #printPreviewModal * {
+      #printPreviewClone * {
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
       }
 
       /* QR & Barcodes */
-      #printPreviewModal canvas,
-      #printPreviewModal qrcode,
-      #printPreviewModal qrcode canvas,
-      #printPreviewModal svg,
-      #printPreviewModal img {
+      #printPreviewClone canvas,
+      #printPreviewClone qrcode,
+      #printPreviewClone qrcode canvas,
+      #printPreviewClone svg,
+      #printPreviewClone img {
         visibility: visible !important;
         display: block !important;
         opacity: 1 !important;
@@ -751,7 +751,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         -webkit-print-color-adjust: exact !important;
       }
 
-      body>*:not(#printPreviewModal) {
+      body>*:not(#printPreviewClone) {
         display: none !important;
       }
     }
@@ -781,6 +781,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
       window.addEventListener("afterprint", cleanup);
       setTimeout(cleanup, 3000); // Fallback
+      this.closePrintModal();
     }, 500);
   }
   onAction(action: string, item: any, index: number): void {
@@ -805,7 +806,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       if (action === "exportCsvToFixedIP") {
         this.confirmAction(
           "Bạn có chắc chắn muốn gửi dữ liệu sản phẩm '" +
-            item.productName +
+            item.sapCode +
             "' đến hệ thống không?",
         ).subscribe((confirmed) => {
           if (confirmed) {

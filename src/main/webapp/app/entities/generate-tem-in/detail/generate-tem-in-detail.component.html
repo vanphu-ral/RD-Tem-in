@@ -943,7 +943,7 @@
   id="printPreviewModal"
   tabindex="-1"
   [class.show]="showPrintModal"
-  [style.display]="showPrintModal ? 'block' : 'none'"
+  *ngIf="showPrintModal"
 >
   <div class="modal-dialog modal-fullscreen modal-dialog-centered">
     <div class="modal-content">
