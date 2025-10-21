@@ -802,12 +802,21 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       document.body.classList.add("modal-open");
     }
     if (action === "exportCsvToFixedIP") {
-      this.selectedItem = item;
-      this.loadTemDetails(item.id, () => {
-        this.exportSingleProductCsvToFixedIP(Number(item.id));
-      });
-
-      document.body.classList.add("modal-open");
+      if (action === "exportCsvToFixedIP") {
+        this.confirmAction(
+          "Bạn có chắc chắn muốn gửi dữ liệu sản phẩm '" +
+            item.productName +
+            "' đến hệ thống không?",
+        ).subscribe((confirmed) => {
+          if (confirmed) {
+            this.selectedItem = item;
+            this.loadTemDetails(item.id, () => {
+              this.exportSingleProductCsvToFixedIP(Number(item.id));
+            });
+            document.body.classList.add("modal-open");
+          }
+        });
+      }
     }
     if (action === "edit") {
       item.isEditing = true;
@@ -1242,6 +1251,16 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       .join("\n");
 
     return "\ufeff" + csvRows;
+  }
+
+  onExportAllClicked(): void {
+    this.confirmAction(
+      "Bạn có chắc chắn muốn gửi toàn bộ dữ liệu đến hệ thống không?",
+    ).subscribe((confirmed) => {
+      if (confirmed) {
+        this.exportCsvToFixedIP(this.requestId);
+      }
+    });
   }
 
   exportCsvToFixedIP(requestId: number): void {
