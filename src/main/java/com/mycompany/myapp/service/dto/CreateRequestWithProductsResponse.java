@@ -1,4 +1,4 @@
-package com.mycompany.myapp.graphql.dto;
+package com.mycompany.myapp.service.dto;
 
 import com.mycompany.renderQr.domain.ListProductOfRequest;
 import java.util.List;

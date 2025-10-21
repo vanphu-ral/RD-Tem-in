@@ -5,6 +5,7 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
@@ -19,7 +20,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import tech.jhipster.config.JHipsterConstants;
 
 @Configuration
-@EnableJpaRepositories({ "com.mycompany.myapp.repository" })
+@EnableJpaRepositories(
+    { "com.mycompany.myapp.repository", "com.mycompany.renderQr.repository" }
+)
+@EntityScan({ "com.mycompany.myapp.domain", "com.mycompany.renderQr.domain" })
 @EnableJpaAuditing(auditorAwareRef = "springSecurityAuditorAware")
 @EnableTransactionManagement
 public class DatabaseConfiguration {
@@ -35,22 +39,31 @@ public class DatabaseConfiguration {
     @Primary
     @ConfigurationProperties("spring.datasource")
     public DataSource defaultDataSource() {
-        return defaultDataSourceProperties().initializeDataSourceBuilder().build();
+        return defaultDataSourceProperties()
+            .initializeDataSourceBuilder()
+            .build();
     }
 
     @Bean(name = "entityManagerFactory")
     @Primary
-    public LocalContainerEntityManagerFactoryBean customerEntityManagerFactory(EntityManagerFactoryBuilder builder) {
+    public LocalContainerEntityManagerFactoryBean customerEntityManagerFactory(
+        EntityManagerFactoryBuilder builder
+    ) {
         return builder
             .dataSource(defaultDataSource())
-            .packages("com.mycompany.myapp.domain") // Adjust package as needed
+            .packages(
+                "com.mycompany.myapp.domain",
+                "com.mycompany.renderQr.domain"
+            ) // Adjust package as needed
             .persistenceUnit("default")
             .build();
     }
 
     @Bean(name = "transactionManager")
     @Primary
-    public JpaTransactionManager db2TransactionManager(@Qualifier("entityManagerFactory") final EntityManagerFactory emf) {
+    public JpaTransactionManager db2TransactionManager(
+        @Qualifier("entityManagerFactory") final EntityManagerFactory emf
+    ) {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(emf);
         return transactionManager;

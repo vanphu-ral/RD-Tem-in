@@ -364,7 +364,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
 
     Promise.all(savePromises)
       .then((results) => {
-        console.log("All groups saved successfully:", results);
+        // console.log("All groups saved successfully:", results);
         const totalProducts = results.reduce(
           (sum, result) => sum + (result?.products?.length ?? 0),
           0,
@@ -452,7 +452,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         .updateRequestProducts(existingRequestId, group.products)
         .toPromise()
         .then((result: any) => {
-          console.log(`Group ${groupIndex + 1} updated successfully:`, result);
+          // console.log(`Group ${groupIndex + 1} updated successfully:`, result);
           const totalProducts = result?.length ?? 0;
 
           // Update the data source with the returned product IDs
@@ -510,7 +510,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
         )
         .toPromise()
         .then((result) => {
-          console.log(`Group ${groupIndex + 1} saved successfully:`, result);
+          // console.log(`Group ${groupIndex + 1} saved successfully:`, result);
           const totalProducts = result?.products?.length ?? 0;
 
           // Store the request ID for future saves
@@ -662,7 +662,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   }
 
   genQR(): void {
-    console.log("Sang trang tạo mã chi tiết.");
+    // console.log("Sang trang tạo mã chi tiết.");
   }
 
   genQRForGroup(groupIndex: number): void {
@@ -699,14 +699,14 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
 
   // Debug method to check data loading
   checkDataLoading(): void {
-    console.log("=== DATA LOADING DEBUG ===");
-    console.log(`Grouped data length: ${this.groupedData.length}`);
-    console.log(`Group data sources size: ${this.groupDataSources.size}`);
+    // console.log("=== DATA LOADING DEBUG ===");
+    // console.log(`Grouped data length: ${this.groupedData.length}`);
+    // console.log(`Group data sources size: ${this.groupDataSources.size}`);
 
     this.groupedData.forEach((group, index) => {
-      console.log(
-        `Group ${index}: PO ${group.poCode}, Vendor: ${group.vendor}, Products: ${group.products.length}`,
-      );
+      // console.log(
+      //   `Group ${index}: PO ${group.poCode}, Vendor: ${group.vendor}, Products: ${group.products.length}`,
+      // );
       const dataSource = this.getDataSourceForGroup(index);
       console.log(
         `Data source for group ${index}: ${dataSource?.data?.length || 0} rows`,
@@ -909,9 +909,9 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
           toast: true,
         });
 
-        console.log(
-          `Successfully parsed ${parsedData.length} valid rows from ${validationResult.totalRows} total rows into ${this.groupedData.length} groups`,
-        );
+        // console.log(
+        //   `Successfully parsed ${parsedData.length} valid rows from ${validationResult.totalRows} total rows into ${this.groupedData.length} groups`,
+        // );
       })
       .catch((error: Error) => {
         console.error("Lỗi:", error);

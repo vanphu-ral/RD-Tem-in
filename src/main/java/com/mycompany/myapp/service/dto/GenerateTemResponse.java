@@ -1,4 +1,4 @@
-package com.mycompany.myapp.graphql.dto;
+package com.mycompany.myapp.service.dto;
 
 public class GenerateTemResponse {
 

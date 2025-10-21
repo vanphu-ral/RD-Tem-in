@@ -1,8 +1,11 @@
 package com.mycompany.myapp.config;
 
-import com.mycompany.myapp.graphql.DetailResolver;
-import com.mycompany.myapp.graphql.ProductResolver;
-import com.mycompany.myapp.graphql.RequestResolver;
+import com.mycompany.myapp.service.dto.CreateProductInput;
+import com.mycompany.myapp.service.dto.CreateRequestWithProductsInput;
+import com.mycompany.myapp.service.dto.CreateRequestWithProductsResponse;
+import com.mycompany.myapp.web.graphql.DetailResolver;
+import com.mycompany.myapp.web.graphql.ProductResolver;
+import com.mycompany.myapp.web.graphql.RequestResolver;
 import com.mycompany.renderQr.domain.GenerateTemResponse;
 import graphql.GraphQL;
 import graphql.schema.GraphQLSchema;
@@ -141,7 +144,7 @@ public class GraphQLConfiguration {
                         log.info("Input map: {}", inputMap);
 
                         try {
-                            com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput input =
+                            CreateRequestWithProductsInput input =
                                 convertMapToInput(inputMap);
 
                             log.info(
@@ -153,7 +156,7 @@ public class GraphQLConfiguration {
                                     : 0
                             );
 
-                            com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse response =
+                            CreateRequestWithProductsResponse response =
                                 productResolver.createRequestAndProducts(input);
 
                             if (response == null) {
@@ -221,11 +224,11 @@ public class GraphQLConfiguration {
         return schema;
     }
 
-    private com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput convertMapToInput(
+    private CreateRequestWithProductsInput convertMapToInput(
         java.util.Map<String, Object> inputMap
     ) {
-        com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput input =
-            new com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput();
+        CreateRequestWithProductsInput input =
+            new CreateRequestWithProductsInput();
 
         input.setVendor((String) inputMap.get("vendor"));
         input.setVendorName((String) inputMap.get("vendorName"));
@@ -237,14 +240,12 @@ public class GraphQLConfiguration {
             (java.util.List<java.util.Map<String, Object>>) inputMap.get(
                 "products"
             );
-        java.util.List<
-            com.mycompany.myapp.graphql.dto.CreateProductInput
-        > products = new java.util.ArrayList<>();
+        java.util.List<CreateProductInput> products =
+            new java.util.ArrayList<>();
 
         if (productsMap != null) {
             for (java.util.Map<String, Object> productMap : productsMap) {
-                com.mycompany.myapp.graphql.dto.CreateProductInput productInput =
-                    new com.mycompany.myapp.graphql.dto.CreateProductInput();
+                CreateProductInput productInput = new CreateProductInput();
 
                 productInput.setRequestCreateTemId(
                     (Integer) productMap.get("requestCreateTemId")

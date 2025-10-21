@@ -20,6 +20,10 @@ spring:
   config:
     activate:
       on-profile: "!api-docs"
+  graphql:
+    path: /graphql
+    graphiql:
+      enabled: true
 springdoc:
   api-docs:
     enabled: false
@@ -242,11 +246,11 @@ jhipster:
 csv:
   upload:
     # Local path for CSV uploads (fallback or development mode)
-    path: C:/Upload_software
+    path: C:/Monitor
     # SMB share configuration
     smb:
       enabled: true
-      host: 192.168.68.16
-      share: Upload_software
-      username: rangdong
-      password: R@NGd0ng
+      host: 172.168.6.3
+      share: Monitor
+      username: kho_khhttk
+      password: 123@abcde

@@ -1,9 +1,9 @@
-package com.mycompany.myapp.graphql;
+package com.mycompany.myapp.web.graphql;
 
-import com.mycompany.myapp.graphql.dto.CreateProductInput;
-import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsInput;
-import com.mycompany.myapp.graphql.dto.CreateRequestWithProductsResponse;
 import com.mycompany.myapp.service.ListProductOfRequestService;
+import com.mycompany.myapp.service.dto.CreateProductInput;
+import com.mycompany.myapp.service.dto.CreateRequestWithProductsInput;
+import com.mycompany.myapp.service.dto.CreateRequestWithProductsResponse;
 import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
 import java.util.List;
@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 
 @Controller
@@ -50,15 +49,15 @@ public class ProductResolver {
     public CreateRequestWithProductsResponse createRequestAndProducts(
         @Argument("input") CreateRequestWithProductsInput input
     ) {
-        log.info("ProductResolver: Received createRequestAndProducts request");
-        log.info(
-            "Input: vendor={}, userData5={}, createdBy={}, products count={}",
-            input.getVendor(),
-            input.getVendorName(),
-            input.getUserData5(),
-            input.getCreatedBy(),
-            input.getProducts() != null ? input.getProducts().size() : 0
-        );
+        //        log.info("ProductResolver: Received createRequestAndProducts request");
+        //        log.info(
+        //            "Input: vendor={}, userData5={}, createdBy={}, products count={}",
+        //            input.getVendor(),
+        //            input.getVendorName(),
+        //            input.getUserData5(),
+        //            input.getCreatedBy(),
+        //            input.getProducts() != null ? input.getProducts().size() : 0
+        //        );
 
         // Validate input
         if (input == null) {

@@ -353,7 +353,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         this.temDetailList = data;
         this.isDisable = data.length === 0;
         this.isDisableGenerate = data.length > 0;
-        console.log("data detail: ", data);
+        // console.log("data detail: ", data);
       });
   }
 
@@ -429,7 +429,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
       this.generateTemInService.generateTemByRequest(requestId).subscribe({
         next: (response) => {
-          console.log("Response:", response);
+          // console.log("Response:", response);
 
           const type = response.success ? "success" : "error";
           this.showSnackbar(response.message, "Đóng", 3000, type);
@@ -453,7 +453,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
 
   exportToExcel(): void {
-    console.log("Export to Excel");
+    // console.log("Export to Excel");
     // Implement Excel export logic here
   }
   get filteredLabels(): TemDetail[] {
@@ -461,8 +461,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
 
   printTable(): void {
-    console.log("🖨️ Starting print...");
-    console.log("Total labels:", this.filteredLabels.length);
+    // console.log("🖨️ Starting print...");
+    // console.log("Total labels:", this.filteredLabels.length);
 
     const modal = document.getElementById("printPreviewModal");
     if (!modal) {
@@ -758,7 +758,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   `;
     document.head.appendChild(style);
 
-    console.log(" Temp container created");
+    // console.log(" Temp container created");
 
     //  Đợi DOM render xong
     setTimeout(() => {
@@ -766,7 +766,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
       //  Cleanup sau khi print
       const cleanup = (): void => {
-        console.log(" Cleaning up...");
+        // console.log(" Cleaning up...");
 
         // Xóa temp elements
         printContainer.remove();
@@ -776,7 +776,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         modal.style.display = "block";
 
         window.removeEventListener("afterprint", cleanup);
-        console.log(" Cleanup done");
+        // console.log(" Cleanup done");
       };
 
       window.addEventListener("afterprint", cleanup);
@@ -793,8 +793,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
     if (action === "exportCsv") {
       this.selectedItem = item;
-      console.log("TemDetailList:", this.temDetailList);
-      console.log("SelectedItem ID:", item.id);
+      // console.log("TemDetailList:", this.temDetailList);
+      // console.log("SelectedItem ID:", item.id);
       this.loadTemDetails(item.id, () => {
         this.prepareSingleCsvData(Number(item.id));
       });
@@ -859,7 +859,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         },
       };
 
-      console.log("📦 Payload gửi lên mutation:", payload);
+      // console.log("📦 Payload gửi lên mutation:", payload);
 
       // Gọi mutation
       this.generateTemInService.updateProductOfRequest(item).subscribe({
@@ -933,7 +933,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     this.generateTemInService.getTemDetailsByProductId(productId).subscribe({
       next: (data) => {
         this.temDetailList = data;
-        console.log("Loaded tem details:", data.length);
+        // console.log("Loaded tem details:", data.length);
         this.isLoadingTemDetails = false;
 
         this.isDisable = data.length === 0;
@@ -986,12 +986,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   //choose location
   onSelectUnit(unit: string): void {
     this.selectedStorageUnit = unit;
-    console.log("Kho đã chọn:", unit);
+    // console.log("Kho đã chọn:", unit);
   }
   //save location button
   saveLocation(): void {
-    console.log("Kho đang chọn:", this.selectedStorageUnit);
-    console.log("Request ID:", this.requestId);
+    // console.log("Kho đang chọn:", this.selectedStorageUnit);
+    // console.log("Request ID:", this.requestId);
 
     if (!this.selectedStorageUnit || !this.requestId) {
       this.showSnackbar("Vui lòng chọn kho!", "Đóng", 3000, "error");
@@ -1043,7 +1043,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     const matchedItems = this.temDetailList.filter(
       (item) => item.productOfRequestId === productId,
     );
-    console.log("Matched tem:", matchedItems);
+    // console.log("Matched tem:", matchedItems);
     this.csvData = matchedItems.map((matched) => ({
       id: matched.productOfRequestId,
       productOfRequestId: matched.productOfRequestId,
@@ -1099,7 +1099,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         this.isDisable = this.csvData.length === 0;
 
         if (this.csvData.length > 0) {
-          console.log("📋 First item sample:", this.csvData[0]);
+          // console.log("📋 First item sample:", this.csvData[0]);
         }
       });
   }
@@ -1135,7 +1135,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         this.isDisable = this.csvData.length === 0;
 
         if (this.csvData.length > 0) {
-          console.log("📋 First item sample:", this.csvData[0]);
+          // console.log("📋 First item sample:", this.csvData[0]);
         }
 
         this.showCsvModal = true;
@@ -1176,7 +1176,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   }
 
   generateCsvContent(): string {
-    console.log("🔍 generateCsvContent - csvData length:", this.csvData.length);
+    // console.log("🔍 generateCsvContent - csvData length:", this.csvData.length);
 
     const headers = [
       "ReelID",
@@ -1240,11 +1240,11 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         "", // Partclass
         item.sapCode,
       ];
-      console.log("Row data:", row);
+      // console.log("Row data:", row);
       return row;
     });
 
-    console.log("Total rows (including header):", rows.length + 1);
+    // console.log("Total rows (including header):", rows.length + 1);
 
     const csvRows = [headers, ...rows]
       .map((row) => row.map((cell) => cell ?? "").join(","))
@@ -1329,9 +1329,9 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
                     .updateUploadPanacim(product)
                     .subscribe({
                       next: (res) => {
-                        console.log(
-                          `Đã cập nhật UploadPanacim cho sản phẩm ${product.id}`,
-                        );
+                        // console.log(
+                        //   `Đã cập nhật UploadPanacim cho sản phẩm ${product.id}`,
+                        // );
                         // product.uploadPanacim = true;
                         this.allUploaded = this.materials.every(
                           (p) => p.UploadPanacim === true,
@@ -1391,11 +1391,11 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
    * @param fileName - Custom file name (optional)
    */
   importCsvToFixedIP(csvDataItems: CsvDataItem[], fileName?: string): void {
-    console.log("=== importCsvToFixedIP START ===");
-    console.log("CSV data items count:", csvDataItems?.length);
+    // console.log("=== importCsvToFixedIP START ===");
+    // console.log("CSV data items count:", csvDataItems?.length);
 
     if (!csvDataItems || csvDataItems.length === 0) {
-      console.warn("No CSV data to send");
+      // console.warn("No CSV data to send");
       this.showSnackbar("Không có dữ liệu để gửi", "Đóng", 3000, "warning");
       return;
     }
@@ -1464,8 +1464,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       item.sapCode,
     ]);
 
-    console.log("CSV rows generated:", rows.length);
-    console.log("First CSV row:", rows[0]);
+    // console.log("CSV rows generated:", rows.length);
+    // console.log("First CSV row:", rows[0]);
 
     // Create CSV content
     const csvRows = [headers, ...rows]
@@ -1475,7 +1475,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     const csvContent = "\ufeff" + csvRows;
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
-    console.log("CSV blob created, size:", blob.size, "bytes");
+    // console.log("CSV blob created, size:", blob.size, "bytes");
 
     // Prepare form data
     const formData = new FormData();
@@ -1483,22 +1483,22 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       fileName ?? `CSV_IMPORT_${new Date().toISOString().split("T")[0]}.csv`;
     formData.append("file", blob, defaultFileName);
 
-    console.log("File name:", defaultFileName);
-    console.log("FormData prepared");
+    // console.log("File name:", defaultFileName);
+    // console.log("FormData prepared");
 
     // Use backend API endpoint instead of direct SMB access
     const apiEndpoint = "/api/csv-upload";
-    console.log("Sending POST request to:", apiEndpoint);
+    // console.log("Sending POST request to:", apiEndpoint);
 
     // Upload via backend API
     this.http.post<any>(apiEndpoint, formData).subscribe({
       next: (response) => {
-        console.log("=== SERVER RESPONSE ===");
-        console.log("Response:", response);
-        console.log("Success:", response.success);
-        console.log("Message:", response.message);
-        console.log("File path:", response.filePath);
-        console.log("======================");
+        // console.log("=== SERVER RESPONSE ===");
+        // console.log("Response:", response);
+        // console.log("Success:", response.success);
+        // console.log("Message:", response.message);
+        // console.log("File path:", response.filePath);
+        // console.log("======================");
 
         if (response.success) {
           this.showSnackbar(
@@ -1535,21 +1535,21 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
    * @param productId - Product ID to export
    */
   importSingleProductCsvToFixedIP(productId: number): void {
-    console.log("=== importSingleProductCsvToFixedIP START ===");
-    console.log("Product ID:", productId, "Type:", typeof productId);
+    // console.log("=== importSingleProductCsvToFixedIP START ===");
+    // console.log("Product ID:", productId, "Type:", typeof productId);
 
     this.loadTemDetails(productId, () => {
-      console.log(
-        "Tem details loaded, total items:",
-        this.temDetailList.length,
-      );
+      // console.log(
+      //   "Tem details loaded, total items:",
+      //   this.temDetailList.length,
+      // );
 
       const matchedItems = this.temDetailList.filter(
         (item) => item.productOfRequestId === productId,
       );
 
-      console.log("Matched items for product:", matchedItems.length);
-      console.log("Matched items data:", matchedItems);
+      // console.log("Matched items for product:", matchedItems.length);
+      // console.log("Matched items data:", matchedItems);
 
       if (matchedItems.length === 0) {
         console.warn("No matched items found for productId:", productId);
@@ -1584,18 +1584,18 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         qrCode: matched.qrCode,
       }));
 
-      console.log("CSV data prepared, rows:", csvData.length);
-      console.log("First row sample:", csvData[0]);
+      // console.log("CSV data prepared, rows:", csvData.length);
+      // console.log("First row sample:", csvData[0]);
 
       const fileName = `CSV_UP_Panacim_${new Date().toISOString().split("T")[0]}.csv`;
-      console.log("File name:", fileName);
+      // console.log("File name:", fileName);
 
       this.importCsvToFixedIP(csvData, fileName);
       const product = this.materials.find(
         (p) => Number(p.id) === Number(productId),
       );
-      console.log("Danh sách sản phẩm:", this.materials);
-      console.log("Đang tìm sản phẩm có id =", productId);
+      // console.log("Danh sách sản phẩm:", this.materials);
+      // console.log("Đang tìm sản phẩm có id =", productId);
 
       if (!product) {
         console.warn(
@@ -1605,7 +1605,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
       this.generateTemInService.updateUploadPanacim(product).subscribe({
         next: (res) => {
-          console.log("Đã cập nhật UploadPanacim:", res.data);
+          // console.log("Đã cập nhật UploadPanacim:", res.data);
           setTimeout(() => {
             this.getListRequest(this.requestId);
           }, 1000);
@@ -1673,7 +1673,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         next: (data) => {
           this.printLabels = data;
           this.isDisable = data.length === 0;
-          console.log("Tổng số tem để in:", this.printLabels.length);
+          // console.log("Tổng số tem để in:", this.printLabels.length);
           if (this.isDisable) {
             this.showSnackbar(
               "Chưa có tem nào được tạo!",

@@ -52,6 +52,7 @@ import { IdleService } from "./entities/list-material/services/idle.service";
 import { APOLLO_OPTIONS } from "apollo-angular";
 import { HttpLink } from "apollo-angular/http";
 import { InMemoryCache } from "@apollo/client/cache";
+import { environment } from "./environments/environment";
 
 export const MY_DATE_FORMATS = {
   parse: { dateInput: "DD/MM/YYYY" },
@@ -114,7 +115,7 @@ export const MY_DATE_FORMATS = {
       useFactory: (httpLink: HttpLink) => ({
         cache: new InMemoryCache(),
         link: httpLink.create({
-          uri: "http://localhost:8085/graphql",
+          uri: environment.graphqlApiUrl,
         }),
       }),
       deps: [HttpLink],

@@ -90,7 +90,11 @@ public class SecurityConfiguration {
             .authorizeRequests()
             .antMatchers("/graphql")
             .permitAll() // GraphQL endpoint
-            .antMatchers("/graphiql")
+            .antMatchers(HttpMethod.POST, "/graphql")
+            .permitAll()
+            .antMatchers(HttpMethod.GET, "/graphql")
+            .permitAll()
+            .antMatchers("/graphql")
             .permitAll() // GraphiQL UI
             .antMatchers(HttpMethod.OPTIONS, "/**")
             .permitAll()

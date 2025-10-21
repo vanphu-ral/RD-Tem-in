@@ -1,4 +1,4 @@
-package com.mycompany.myapp.graphql;
+package com.mycompany.myapp.web.graphql;
 
 import com.mycompany.myapp.service.InfoTemDetailService;
 import com.mycompany.renderQr.domain.GenerateTemResponse;
@@ -35,7 +35,7 @@ public class DetailResolver {
     }
 
     // XÓA name = "generateTem"
-    //    @MutationMapping
+    @MutationMapping
     public GenerateTemResponse generateTem(@Argument Integer requestId) {
         return service.generateTemForAllProducts(Long.valueOf(requestId));
     }

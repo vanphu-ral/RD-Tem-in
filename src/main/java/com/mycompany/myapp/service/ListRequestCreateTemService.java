@@ -49,12 +49,12 @@ public class ListRequestCreateTemService {
         request.setNumberProduction((short) numberProduction);
         request.setTotalQuantity(totalQuantity);
         request.setStatus("Bản nháp");
-        System.out.println("Input vendorName: " + vendorName);
-        System.out.println("vendorName is null? " + (vendorName == null));
-        System.out.println(
-            "vendorName is blank? " +
-            (vendorName != null && vendorName.isBlank())
-        );
+        //        System.out.println("Input vendorName: " + vendorName);
+        //        System.out.println("vendorName is null? " + (vendorName == null));
+        //        System.out.println(
+        //            "vendorName is blank? " +
+        //            (vendorName != null && vendorName.isBlank())
+        //        );
         if (createdDate != null) {
             request.setCreatedDate(createdDate);
         } else {
@@ -65,9 +65,9 @@ public class ListRequestCreateTemService {
 
         // Force flush to ensure ID is generated immediately
         repository.flush();
-        System.out.println(
-            "After save - vendorName from DB: " + savedRequest.getVendorName()
-        );
+        //        System.out.println(
+        //            "After save - vendorName from DB: " + savedRequest.getVendorName()
+        //        );
 
         // Debug: Ensure the ID was generated
         if (savedRequest.getId() == null) {

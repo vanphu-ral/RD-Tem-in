@@ -225,11 +225,11 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   }
 
   onImport(): void {
-    console.log("Import functionality");
+    // console.log("Import functionality");
   }
 
   onEdit(item: TemMaterialItem): void {
-    console.log("Edit item:", item);
+    // console.log("Edit item:", item);
   }
 
   onDelete(item: TemMaterialItem): void {
@@ -261,19 +261,19 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       // Handle any actions after dialog closes if needed
-      console.log("Preview dialog closed");
+      // console.log("Preview dialog closed");
     });
   }
 
   onPrint(item: TemMaterialItem): void {
-    console.log("Print item:", item);
+    // console.log("Print item:", item);
   }
 
   private performDelete(item: TemMaterialItem): void {
     this.isLoading = true;
     this.generateTemInService.deleteRequest(item.id).subscribe({
       next: (response) => {
-        console.log(`Deleted request ${item.id}: ${response.message}`);
+        // console.log(`Deleted request ${item.id}: ${response.message}`);
         this.loadRequests();
       },
       error: (error) => {
@@ -295,7 +295,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     this.isLoading = true;
     this.generateTemInService.getAllRequests().subscribe({
       next: (response: ListRequestCreateTem[]) => {
-        console.log("Dữ liệu nhận từ gql: ", response);
+        // console.log("Dữ liệu nhận từ gql: ", response);
         const data: TemMaterialItem[] = response.map(
           (item: ListRequestCreateTem) => ({
             id: item.id ?? 0,
@@ -309,7 +309,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
             totalQuantity: item.totalQuantity ?? 0,
           }),
         );
-        console.log("Mapped data:", data);
+        // console.log("Mapped data:", data);
         // Sort data by createdDate in descending order (newest first)
         data.sort((a, b) => {
           const dateA = new Date(a.createdDate);

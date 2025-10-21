@@ -19,10 +19,10 @@ logging:
     tech.jhipster: ERROR
     org.hibernate.SQL: ERROR
     com.mycompany.myapp: DEBUG
-    org.springframework.graphql: DEBUG
-    org.springframework.boot.autoconfigure.graphql: DEBUG
-    com.mycompany.myapp.graphql: DEBUG
-    com.mycompany.myapp.service: DEBUG
+    org.springframework.graphql: ERROR
+    org.springframework.boot.autoconfigure.graphql: ERROR
+    com.mycompany.myapp.graphql: ERROR
+    com.mycompany.myapp.service: ERROR
 
 spring:
   devtools:
@@ -31,6 +31,10 @@ spring:
       additional-exclude: static/**
     livereload:
       enabled: false # we use Webpack dev server + BrowserSync for livereload
+  graphql:
+    path: /graphql
+    graphiql:
+      enabled: true
   jackson:
     serialization:
       indent-output: true
@@ -75,20 +79,20 @@ partner2:
       prepStmtCacheSize: 250
       prepStmtCacheSqlLimit: 2048
       useServerPrepStmts: true
-renderqr:
-  datasource:
-    type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=tem-info;encrypt=true;trustServerCertificate=true;
-    username: sa
-    password: 112358
-    hikari:
-      poolName: Hikari
-      auto-commit: false
-      data-source-properties:
-        cachePrepStmts: true
-        prepStmtCacheSize: 250
-        prepStmtCacheSqlLimit: 2048
-        useServerPrepStmts: true
+  #renderqr:
+  #  datasource:
+  #    type: com.zaxxer.hikari.HikariDataSource
+  #    url: jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=RenderTemQR;encrypt=true;trustServerCertificate=true;
+  #    username: renderqr_user
+  #    password: StrongPassword123!
+  #    hikari:
+  #      poolName: Hikari
+  #      auto-commit: false
+  #      data-source-properties:
+  #        cachePrepStmts: true
+  #        prepStmtCacheSize: 250
+  #        prepStmtCacheSqlLimit: 2048
+  #        useServerPrepStmts: true
   jpa:
   liquibase:
     # Remove 'faker' if you do not want the sample data to be loaded automatically
