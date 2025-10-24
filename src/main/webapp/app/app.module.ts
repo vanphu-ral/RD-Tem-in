@@ -52,7 +52,7 @@ import { IdleService } from "./entities/list-material/services/idle.service";
 import { APOLLO_OPTIONS } from "apollo-angular";
 import { HttpLink } from "apollo-angular/http";
 import { InMemoryCache } from "@apollo/client/cache";
-import { environment } from "./environments/environment";
+import { environment } from "./environments/environment.development";
 
 export const MY_DATE_FORMATS = {
   parse: { dateInput: "DD/MM/YYYY" },

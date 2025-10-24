@@ -241,11 +241,11 @@
             "
           >
             <h3 style="margin: 0 0 15px 0; color: #333">
-              PO Material List:
+              Danh sách vật tư PO:
               <span style="color: #007bff; font-weight: bold">{{
                 group.poCode
               }}</span>
-              - Vendor:
+              - NCC:
               <span style="color: #007bff; font-weight: bold">{{
                 group.vendor
               }}</span>
@@ -280,10 +280,11 @@
                 </mat-autocomplete>
               </mat-form-field>
               <button
+                *ngIf="!isSaveButtonHidden(i)"
                 mat-raised-button
                 color="primary"
                 (click)="saveGroup(i)"
-                [disabled]="isSaveDisabled(i)"
+                [disabled]="isSaving.get(i)"
                 aria-label="Lưu"
                 style="height: 40px"
               >

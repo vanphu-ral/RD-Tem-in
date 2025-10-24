@@ -1,7 +1,7 @@
 <h2 mat-dialog-title>Chỉnh sửa thông tin TEM</h2>
 <div style="margin-top: 4px">
   <mat-dialog-content>
-    <form [formGroup]="editForm" class="edit-form">
+    <form [formGroup]="editForm" class="edit-form" (keydown.enter)="onSave()">
       <mat-form-field appearance="outline">
         <mat-label>SAP Code</mat-label>
         <input matInput formControlName="sapCode" required />
@@ -48,6 +48,11 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline">
+        <mat-label>Tên NCC</mat-label>
+        <input matInput formControlName="tenNCC" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
         <mat-label>User Data 1</mat-label>
         <input matInput formControlName="userData1" />
       </mat-form-field>
@@ -91,13 +96,14 @@
 </div>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Hủy</button>
+  <button mat-button (click)="onCancel()" [disabled]="isSaving">Hủy</button>
   <button
     mat-raised-button
     color="primary"
     (click)="onSave()"
-    [disabled]="!editForm.valid"
+    [disabled]="!editForm.valid || isSaving"
   >
-    Lưu
+    <span *ngIf="!isSaving">Lưu</span>
+    <span *ngIf="isSaving">Đang lưu...</span>
   </button>
 </mat-dialog-actions>

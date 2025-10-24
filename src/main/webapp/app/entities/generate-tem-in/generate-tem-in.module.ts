@@ -24,6 +24,7 @@ import { QRCodeComponent } from "angularx-qrcode";
 import { GenerateTemInImportComponent } from "./import/generate-tem-in-import.component";
 import { GenerateTemInDetailComponent } from "./detail/generate-tem-in-detail.component";
 import { GenerateTemInImportEditDialogComponent } from "./import/generate-tem-in-import-edit-dialog.component";
+import { SaveConfirmationDialogComponent } from "./import/save-confirmation-dialog.component";
 import { HttpLink } from "apollo-angular/http";
 import { InMemoryCache } from "@apollo/client/cache";
 import { GenerateTemInConfirmDialogComponent } from "./generate-tem-in-modal-confirm/modal-confirm.component";
@@ -79,6 +80,7 @@ import { MatDividerModule } from "@angular/material/divider";
     GenerateTemInDetailComponent,
     GenerateTemInConfirmDialogComponent,
     GenerateTemInImportEditDialogComponent,
+    SaveConfirmationDialogComponent,
   ],
 
   exports: [

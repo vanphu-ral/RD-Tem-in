@@ -9,6 +9,7 @@ import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
 import { GenerateTemInImportEditDialogComponent } from "./generate-tem-in-import-edit-dialog.component";
+import { SaveConfirmationDialogComponent } from "./save-confirmation-dialog.component";
 
 // Models and Services
 import {
@@ -402,6 +403,337 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    // Check if there are multiple groups and show confirmation dialog
+    if (this.groupedData.length > 1) {
+      const group = this.groupedData[groupIndex];
+      const groupName = `${group.poCode} - ${group.vendor}`;
+
+      const dialogRef = this.dialog.open(SaveConfirmationDialogComponent, {
+        width: "500px",
+        data: {
+          groupName: groupName,
+          totalGroups: this.groupedData.length,
+        },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result === "single") {
+          this.performSaveGroup(groupIndex);
+        } else if (result === "all") {
+          this.saveAllGroups();
+        }
+      });
+    } else {
+      // Only one group, save directly
+      this.performSaveGroup(groupIndex);
+    }
+  }
+
+  // Update save status for notification panel with auto-close
+  updateSaveStatus(
+    groupIndex: number,
+    groupName: string,
+    status: "pending" | "saving" | "success" | "error",
+    message?: string,
+  ): void {
+    const existingIndex = this.saveStatuses.findIndex(
+      (s) => s.groupIndex === groupIndex,
+    );
+    const newStatus: SaveStatus = {
+      groupIndex,
+      groupName,
+      status,
+      message,
+      timestamp: new Date(),
+    };
+
+    if (existingIndex >= 0) {
+      this.saveStatuses[existingIndex] = newStatus;
+    } else {
+      this.saveStatuses.push(newStatus);
+    }
+
+    // Auto-close after 3 seconds for success or error status
+    if (status === "success" || status === "error") {
+      setTimeout(() => {
+        this.clearSaveStatuses();
+      }, 3000);
+    }
+  }
+
+  // Clear all save statuses
+  clearSaveStatuses(): void {
+    this.saveStatuses = [];
+    this.showSaveStatusPanel = false;
+  }
+
+  // Update import status for notification panel
+  updateImportStatus(
+    status: "pending" | "importing" | "success" | "error",
+    message?: string,
+  ): void {
+    const newStatus: SaveStatus = {
+      groupIndex: 0,
+      groupName: "Import File",
+      status,
+      message,
+      timestamp: new Date(),
+    };
+
+    this.importStatuses = [newStatus];
+    this.showImportStatusPanel = true;
+
+    // Auto-close after 3 seconds for success or error status
+    if (status === "success" || status === "error") {
+      setTimeout(() => {
+        this.clearImportStatuses();
+      }, 3000);
+    }
+  }
+
+  // Clear all import statuses
+  clearImportStatuses(): void {
+    this.importStatuses = [];
+    this.showImportStatusPanel = false;
+  }
+
+  // Get status icon
+  getStatusIcon(status: string): string {
+    switch (status) {
+      case "saving":
+      case "importing":
+        return "hourglass_empty";
+      case "success":
+        return "check_circle";
+      case "error":
+        return "error";
+      default:
+        return "pending";
+    }
+  }
+
+  // Get status color class
+  getStatusClass(status: string): string {
+    switch (status) {
+      case "saving":
+      case "importing":
+        return "status-saving";
+      case "success":
+        return "status-success";
+      case "error":
+        return "status-error";
+      default:
+        return "status-pending";
+    }
+  }
+
+  genQR(): void {
+    // console.log("Sang trang tạo mã chi tiết.");
+  }
+
+  genQRForGroup(groupIndex: number): void {
+    if (this.groupedData.length === 0 || !this.groupedData[groupIndex]) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Không có dữ liệu để tạo mã QR",
+        timeout: 5000,
+        toast: true,
+      });
+      return;
+    }
+
+    // Check if this group has been saved
+    const requestId = this.savedRequestIds.get(groupIndex);
+    if (!requestId) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Vui lòng lưu dữ liệu trước khi tạo mã QR",
+        timeout: 5000,
+        toast: true,
+      });
+      return;
+    }
+
+    const group = this.groupedData[groupIndex];
+    console.log(
+      `Chuyển sang trang chi tiết để tạo mã QR cho nhóm ${groupIndex + 1}: PO ${group.poCode} - Vendor ${group.vendor}, Request ID: ${requestId}`,
+    );
+
+    // Navigate to detail page with the requestId
+    this.router.navigate(["/generate-tem-in/detail", requestId]);
+  }
+
+  // Debug method to check data loading
+  checkDataLoading(): void {
+    // console.log("=== DATA LOADING DEBUG ===");
+    // console.log(`Grouped data length: ${this.groupedData.length}`);
+    // console.log(`Group data sources size: ${this.groupDataSources.size}`);
+
+    this.groupedData.forEach((group, index) => {
+      // console.log(
+      //   `Group ${index}: PO ${group.poCode}, Vendor: ${group.vendor}, Products: ${group.products.length}`,
+      // );
+      const dataSource = this.getDataSourceForGroup(index);
+      console.log(
+        `Data source for group ${index}: ${dataSource?.data?.length || 0} rows`,
+      );
+    });
+  }
+
+  saveAllGroups(): void {
+    if (this.groupedData.length === 0) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Không có dữ liệu để lưu",
+        timeout: 5000,
+        toast: true,
+      });
+      return;
+    }
+
+    this.showSaveStatusPanel = true;
+
+    // Save all groups sequentially
+    const savePromises = this.groupedData.map((group, index) =>
+      this.performSaveGroupPromise(index),
+    );
+
+    Promise.all(savePromises)
+      .then(() => {
+        this.alertService.addAlert({
+          type: "success",
+          message: `Lưu thành công tất cả ${this.groupedData.length} nhóm`,
+          timeout: 5000,
+          toast: true,
+        });
+      })
+      .catch((error) => {
+        console.error("Error saving all groups:", error);
+        this.alertService.addAlert({
+          type: "danger",
+          message: `Lỗi khi lưu: ${error.message}`,
+          timeout: 5000,
+          toast: true,
+        });
+      });
+  }
+
+  editRow(row: VatTuRow, groupIndex?: number): void {
+    const isSaved =
+      groupIndex !== undefined && this.savedRequestIds.has(groupIndex);
+
+    const dialogRef = this.dialog.open(GenerateTemInImportEditDialogComponent, {
+      width: "600px",
+      data: {
+        ...row,
+        isSaved: isSaved,
+        groupIndex: groupIndex,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        if (groupIndex !== undefined) {
+          // Edit row in specific group
+          const dataSource = this.getDataSourceForGroup(groupIndex);
+          const index = dataSource.data.findIndex((r) => r.stt === row.stt);
+          if (index > -1) {
+            dataSource.data[index] = {
+              ...dataSource.data[index],
+              ...result,
+            };
+            dataSource._updateChangeSubscription();
+
+            // Only mark as modified if row doesn't have ID (not saved to DB yet)
+            if (!result.id) {
+              this.dataModified.set(groupIndex, true);
+            }
+          }
+        } else {
+          // Fallback to old method for backward compatibility
+          const index = this.dataSource.data.findIndex(
+            (r) => r.stt === row.stt,
+          );
+          if (index > -1) {
+            this.dataSource.data[index] = {
+              ...this.dataSource.data[index],
+              ...result,
+            };
+            this.dataSource._updateChangeSubscription();
+          }
+        }
+      }
+    });
+  }
+
+  deleteRow(row: VatTuRow, groupIndex?: number): void {
+    if (groupIndex !== undefined) {
+      // Delete row from specific group
+      const dataSource = this.getDataSourceForGroup(groupIndex);
+      const index = dataSource.data.findIndex((r) => r.stt === row.stt);
+      if (index > -1) {
+        dataSource.data.splice(index, 1);
+        // Update STT for remaining rows
+        dataSource.data.forEach((r, i) => (r.stt = i + 1));
+        dataSource._updateChangeSubscription();
+
+        // Mark data as modified
+        this.dataModified.set(groupIndex, true);
+      }
+    } else {
+      // Fallback to old method for backward compatibility
+      const index = this.dataSource.data.findIndex((r) => r.stt === row.stt);
+      if (index > -1) {
+        this.dataSource.data.splice(index, 1);
+        // Update STT for remaining rows
+        this.dataSource.data.forEach((r, i) => (r.stt = i + 1));
+        this.dataSource._updateChangeSubscription();
+      }
+    }
+  }
+
+  // Check if save button should be disabled for a group
+  isSaveDisabled(groupIndex: number): boolean {
+    // Disable if currently saving
+    if (this.isSaving.get(groupIndex)) {
+      return true;
+    }
+
+    // Disable if already saved and no modifications made
+    if (
+      this.savedRequestIds.has(groupIndex) &&
+      !this.dataModified.get(groupIndex)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Check if save button should be hidden for a group
+  isSaveButtonHidden(groupIndex: number): boolean {
+    // Hide if already saved and no modifications made
+    return (
+      this.savedRequestIds.has(groupIndex) && !this.dataModified.get(groupIndex)
+    );
+  }
+
+  // Get save button text based on state
+  getSaveButtonText(groupIndex: number): string {
+    if (this.isSaving.get(groupIndex)) {
+      return "Đang lưu...";
+    }
+
+    if (this.savedRequestIds.has(groupIndex)) {
+      return this.dataModified.get(groupIndex) ? "Cập nhật" : "Đã lưu";
+    }
+
+    return "Lưu";
+  }
+
+  // Get save button text based on state
+
+  private performSaveGroup(groupIndex: number): void {
     const group = this.groupedData[groupIndex];
     this.isSaving.set(groupIndex, true);
 
@@ -563,251 +895,133 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // Update save status for notification panel with auto-close
-  updateSaveStatus(
-    groupIndex: number,
-    groupName: string,
-    status: "pending" | "saving" | "success" | "error",
-    message?: string,
-  ): void {
-    const existingIndex = this.saveStatuses.findIndex(
-      (s) => s.groupIndex === groupIndex,
-    );
-    const newStatus: SaveStatus = {
-      groupIndex,
-      groupName,
-      status,
-      message,
-      timestamp: new Date(),
-    };
+  private performSaveGroupPromise(groupIndex: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const group = this.groupedData[groupIndex];
+      this.isSaving.set(groupIndex, true);
 
-    if (existingIndex >= 0) {
-      this.saveStatuses[existingIndex] = newStatus;
-    } else {
-      this.saveStatuses.push(newStatus);
-    }
+      const groupName = `${group.poCode} - ${group.vendor}`;
+      this.updateSaveStatus(groupIndex, groupName, "saving");
 
-    // Auto-close after 3 seconds for success or error status
-    if (status === "success" || status === "error") {
-      setTimeout(() => {
-        this.clearSaveStatuses();
-      }, 3000);
-    }
-  }
-
-  // Clear all save statuses
-  clearSaveStatuses(): void {
-    this.saveStatuses = [];
-    this.showSaveStatusPanel = false;
-  }
-
-  // Update import status for notification panel
-  updateImportStatus(
-    status: "pending" | "importing" | "success" | "error",
-    message?: string,
-  ): void {
-    const newStatus: SaveStatus = {
-      groupIndex: 0,
-      groupName: "Import File",
-      status,
-      message,
-      timestamp: new Date(),
-    };
-
-    this.importStatuses = [newStatus];
-    this.showImportStatusPanel = true;
-
-    // Auto-close after 3 seconds for success or error status
-    if (status === "success" || status === "error") {
-      setTimeout(() => {
-        this.clearImportStatuses();
-      }, 3000);
-    }
-  }
-
-  // Clear all import statuses
-  clearImportStatuses(): void {
-    this.importStatuses = [];
-    this.showImportStatusPanel = false;
-  }
-
-  // Get status icon
-  getStatusIcon(status: string): string {
-    switch (status) {
-      case "saving":
-      case "importing":
-        return "hourglass_empty";
-      case "success":
-        return "check_circle";
-      case "error":
-        return "error";
-      default:
-        return "pending";
-    }
-  }
-
-  // Get status color class
-  getStatusClass(status: string): string {
-    switch (status) {
-      case "saving":
-      case "importing":
-        return "status-saving";
-      case "success":
-        return "status-success";
-      case "error":
-        return "status-error";
-      default:
-        return "status-pending";
-    }
-  }
-
-  genQR(): void {
-    // console.log("Sang trang tạo mã chi tiết.");
-  }
-
-  genQRForGroup(groupIndex: number): void {
-    if (this.groupedData.length === 0 || !this.groupedData[groupIndex]) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Không có dữ liệu để tạo mã QR",
-        timeout: 5000,
-        toast: true,
-      });
-      return;
-    }
-
-    // Check if this group has been saved
-    const requestId = this.savedRequestIds.get(groupIndex);
-    if (!requestId) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Vui lòng lưu dữ liệu trước khi tạo mã QR",
-        timeout: 5000,
-        toast: true,
-      });
-      return;
-    }
-
-    const group = this.groupedData[groupIndex];
-    console.log(
-      `Chuyển sang trang chi tiết để tạo mã QR cho nhóm ${groupIndex + 1}: PO ${group.poCode} - Vendor ${group.vendor}, Request ID: ${requestId}`,
-    );
-
-    // Navigate to detail page with the requestId
-    this.router.navigate(["/generate-tem-in/detail", requestId]);
-  }
-
-  // Debug method to check data loading
-  checkDataLoading(): void {
-    // console.log("=== DATA LOADING DEBUG ===");
-    // console.log(`Grouped data length: ${this.groupedData.length}`);
-    // console.log(`Group data sources size: ${this.groupDataSources.size}`);
-
-    this.groupedData.forEach((group, index) => {
-      // console.log(
-      //   `Group ${index}: PO ${group.poCode}, Vendor: ${group.vendor}, Products: ${group.products.length}`,
-      // );
-      const dataSource = this.getDataSourceForGroup(index);
-      console.log(
-        `Data source for group ${index}: ${dataSource?.data?.length || 0} rows`,
-      );
-    });
-  }
-
-  editRow(row: VatTuRow, groupIndex?: number): void {
-    const dialogRef = this.dialog.open(GenerateTemInImportEditDialogComponent, {
-      width: "600px",
-      data: { ...row },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        if (groupIndex !== undefined) {
-          // Edit row in specific group
-          const dataSource = this.getDataSourceForGroup(groupIndex);
-          const index = dataSource.data.findIndex((r) => r.stt === row.stt);
-          if (index > -1) {
-            dataSource.data[index] = {
-              ...dataSource.data[index],
-              ...result,
-            };
-            dataSource._updateChangeSubscription();
-
-            // Mark data as modified
-            this.dataModified.set(groupIndex, true);
-          }
-        } else {
-          // Fallback to old method for backward compatibility
-          const index = this.dataSource.data.findIndex(
-            (r) => r.stt === row.stt,
-          );
-          if (index > -1) {
-            this.dataSource.data[index] = {
-              ...this.dataSource.data[index],
-              ...result,
-            };
-            this.dataSource._updateChangeSubscription();
-          }
-        }
-      }
-    });
-  }
-
-  deleteRow(row: VatTuRow, groupIndex?: number): void {
-    if (groupIndex !== undefined) {
-      // Delete row from specific group
       const dataSource = this.getDataSourceForGroup(groupIndex);
-      const index = dataSource.data.findIndex((r) => r.stt === row.stt);
-      if (index > -1) {
-        dataSource.data.splice(index, 1);
-        // Update STT for remaining rows
-        dataSource.data.forEach((r, i) => (r.stt = i + 1));
-        dataSource._updateChangeSubscription();
+      const currentData = dataSource.data;
 
-        // Mark data as modified
-        this.dataModified.set(groupIndex, true);
+      group.products = currentData.map((row) => ({
+        sapCode: row.sapCode,
+        tenSP: row.tenSp,
+        partNumber: row.partNumber,
+        lot: String(row.lot),
+        temQuantity: row.soTem,
+        initialQuantity: row.initialQuantity,
+        vendor: row.vendor,
+        tenNCC: row.tenNCC,
+        userData1: row.userData1,
+        userData2: row.userData2,
+        userData3: row.userData3,
+        userData4: row.userData4,
+        userData5: row.userData5,
+        storageUnit: row.storageUnit,
+        expirationDate: row.expirationDate,
+        manufacturingDate: row.manufacturingDate,
+        arrivalDate: row.arrivalDate,
+      }));
+
+      const existingRequestId = this.savedRequestIds.get(groupIndex);
+
+      if (existingRequestId) {
+        // Update existing request
+        this.generateTemInService
+          .updateRequestProducts(existingRequestId, group.products)
+          .toPromise()
+          .then((result: any) => {
+            const totalProducts = result?.length ?? 0;
+
+            if (result && Array.isArray(result)) {
+              const updatedDataSource = this.getDataSourceForGroup(groupIndex);
+              updatedDataSource.data = updatedDataSource.data.map(
+                (row, idx) => ({
+                  ...row,
+                  id: result[idx]?.id,
+                  requestCreateTemId: existingRequestId,
+                }),
+              );
+              updatedDataSource._updateChangeSubscription();
+            }
+
+            this.dataModified.set(groupIndex, false);
+            this.isSaving.set(groupIndex, false);
+            this.updateSaveStatus(
+              groupIndex,
+              groupName,
+              "success",
+              `Cập nhật thành công ${totalProducts} sản phẩm`,
+            );
+            resolve();
+          })
+          .catch((error: any) => {
+            console.error(`Error updating group ${groupIndex + 1}:`, error);
+            this.isSaving.set(groupIndex, false);
+            this.updateSaveStatus(
+              groupIndex,
+              groupName,
+              "error",
+              error.message,
+            );
+            reject(error);
+          });
+      } else {
+        // Create new request
+        this.generateTemInService
+          .createRequestAndProducts(
+            group.vendor,
+            group.tenNCC,
+            group.poCode,
+            this.currentUser,
+            group.products,
+          )
+          .toPromise()
+          .then((result) => {
+            const totalProducts = result?.products?.length ?? 0;
+
+            if (result?.requestId) {
+              this.savedRequestIds.set(groupIndex, result.requestId);
+            }
+
+            if (result && result.products && result.requestId) {
+              const updatedDataSource = this.getDataSourceForGroup(groupIndex);
+              updatedDataSource.data = updatedDataSource.data.map(
+                (row, idx) => ({
+                  ...row,
+                  id: result.products[idx]?.id,
+                  requestCreateTemId: result.requestId,
+                }),
+              );
+              updatedDataSource._updateChangeSubscription();
+            }
+
+            this.dataModified.set(groupIndex, false);
+            this.isSaving.set(groupIndex, false);
+            this.updateSaveStatus(
+              groupIndex,
+              groupName,
+              "success",
+              `Lưu thành công`,
+            );
+            resolve();
+          })
+          .catch((error) => {
+            console.error(`Error saving group ${groupIndex + 1}:`, error);
+            this.isSaving.set(groupIndex, false);
+            this.updateSaveStatus(
+              groupIndex,
+              groupName,
+              "error",
+              error.message,
+            );
+            reject(error);
+          });
       }
-    } else {
-      // Fallback to old method for backward compatibility
-      const index = this.dataSource.data.findIndex((r) => r.stt === row.stt);
-      if (index > -1) {
-        this.dataSource.data.splice(index, 1);
-        // Update STT for remaining rows
-        this.dataSource.data.forEach((r, i) => (r.stt = i + 1));
-        this.dataSource._updateChangeSubscription();
-      }
-    }
-  }
-
-  // Check if save button should be disabled for a group
-  isSaveDisabled(groupIndex: number): boolean {
-    // Disable if currently saving
-    if (this.isSaving.get(groupIndex)) {
-      return true;
-    }
-
-    // Disable if already saved and no modifications made
-    if (
-      this.savedRequestIds.has(groupIndex) &&
-      !this.dataModified.get(groupIndex)
-    ) {
-      return true;
-    }
-
-    return false;
-  }
-
-  // Get save button text based on state
-  getSaveButtonText(groupIndex: number): string {
-    if (this.isSaving.get(groupIndex)) {
-      return "Đang lưu...";
-    }
-
-    if (this.savedRequestIds.has(groupIndex)) {
-      return this.dataModified.get(groupIndex) ? "Cập nhật" : "Đã lưu";
-    }
-
-    return "Lưu";
+    });
   }
 
   private updateDataSourceForSelectedTab(): void {
