@@ -42,13 +42,12 @@ export class PreviewOrderDialogComponent implements OnInit {
   productsDataSource = new MatTableDataSource<ListProductOfRequest>([]);
   displayedColumns: string[] = [
     "sapCode",
+    "productName",
     "partNumber",
     "lot",
     "initialQuantity",
     "temQuantity",
     "vendor",
-    "expirationDate",
-    "manufacturingDate",
   ];
 
   isLoading = false;

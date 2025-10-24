@@ -2,6 +2,7 @@ export interface ListProductOfRequest {
   id?: number;
   requestCreateTemId?: number;
   sapCode?: string;
+  productName?: string;
   temQuantity?: number;
   partNumber?: string;
   lot?: string;

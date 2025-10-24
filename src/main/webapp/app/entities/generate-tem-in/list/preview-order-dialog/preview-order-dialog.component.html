@@ -81,6 +81,15 @@
             <td mat-cell *matCellDef="let product">{{ product.sapCode }}</td>
           </ng-container>
 
+          <ng-container matColumnDef="productName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              Tên sản phẩm
+            </th>
+            <td mat-cell *matCellDef="let product">
+              {{ product.productName }}
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="partNumber">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>
               Part Number
@@ -112,24 +121,6 @@
               Nhà cung cấp
             </th>
             <td mat-cell *matCellDef="let product">{{ product.vendor }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="expirationDate">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Hạn sử dụng
-            </th>
-            <td mat-cell *matCellDef="let product">
-              {{ formatDate(product.expirationDate) }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="manufacturingDate">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Ngày sản xuất
-            </th>
-            <td mat-cell *matCellDef="let product">
-              {{ formatDate(product.manufacturingDate) }}
-            </td>
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
