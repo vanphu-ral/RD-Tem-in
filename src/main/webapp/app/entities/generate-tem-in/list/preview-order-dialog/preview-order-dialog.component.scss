@@ -119,18 +119,60 @@
   }
 }
 
-@media (max-width: 600px) {
-  .preview-dialog {
-    min-width: 95vw;
-    margin: 8px;
+// @media (max-width: 600px) {
+//   .preview-dialog {
+//     min-width: 95vw;
+//     margin: 8px;
 
-    .products-table {
-      font-size: 12px;
+//     .products-table {
+//       font-size: 12px;
 
-      th,
-      td {
-        padding: 8px 4px;
-      }
-    }
+//       th,
+//       td {
+//         padding: 8px 4px;
+//       }
+//     }
+//   }
+// }
+/* Ẩn desktop table trên mobile */
+@media (max-width: 768px) {
+  .products-table {
+    display: none;
+  }
+
+  .mobile-products-view {
+    display: block;
+  }
+
+  .mobile-product-card {
+    margin-bottom: 1rem;
+  }
+
+  .mobile-product-card .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  .mobile-product-card .info-row:last-child {
+    border-bottom: none;
+  }
+
+  .mobile-product-card .label {
+    font-weight: 500;
+    color: #666;
+  }
+
+  .mobile-product-card .value {
+    text-align: right;
+    font-weight: 400;
+  }
+}
+
+/* Ẩn mobile view trên desktop */
+@media (min-width: 769px) {
+  .mobile-products-view {
+    display: none;
   }
 }

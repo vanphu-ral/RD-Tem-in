@@ -1,7 +1,7 @@
 <div class="container mat-elevation-z2">
   <!-- Header -->
   <div class="header">
-    <div style="display: flex; gap: 30px">
+    <div class="header-title">
       <h1>Quản lý thông tin TEM vật tư</h1>
     </div>
     <div class="header-actions">
@@ -12,15 +12,95 @@
         *jhiHasAnyAuthority="'ROLE_TEM_UPDATE'; rOLE_ADMIN_TEM"
       >
         <mat-icon>publish</mat-icon>
-        Import thông tin
+        <span class="button-text">Import thông tin</span>
       </button>
     </div>
   </div>
 
-  <!-- <mat-divider class="my-3"></mat-divider> -->
+  <!-- Mobile Filters -->
+  <div class="mobile-filters">
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>filter_list</mat-icon>
+          <span>Bộ lọc</span>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
 
-  <!-- Table -->
-  <div class="table-container">
+      <div class="filter-group">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Trạng thái</mat-label>
+          <mat-select
+            [(value)]="filterValues.status"
+            (selectionChange)="applyFilter()"
+          >
+            <mat-option value="">Tất cả</mat-option>
+            <mat-option *ngFor="let status of statusOptions" [value]="status">
+              {{ status }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Mã PO</mat-label>
+          <input
+            matInput
+            [(ngModel)]="filterValues.userData5"
+            (ngModelChange)="applyFilter()"
+            placeholder="Tìm kiếm"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Mã NCC</mat-label>
+          <input
+            matInput
+            [(ngModel)]="filterValues.vendor"
+            (ngModelChange)="applyFilter()"
+            placeholder="Tìm kiếm"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Tên NCC</mat-label>
+          <input
+            matInput
+            [(ngModel)]="filterValues.vendorName"
+            (ngModelChange)="applyFilter()"
+            placeholder="Tìm kiếm"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Ngày tạo</mat-label>
+          <input
+            matInput
+            [matDatepicker]="mobilePicker"
+            [(ngModel)]="filterValues.createdDate"
+            (dateChange)="applyDateFilter()"
+            placeholder="dd/MM/yyyy"
+          />
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="mobilePicker"
+          ></mat-datepicker-toggle>
+          <mat-datepicker #mobilePicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Tạo bởi</mat-label>
+          <input
+            matInput
+            [(ngModel)]="filterValues.createdBy"
+            (ngModelChange)="applyFilter()"
+            placeholder="Tìm kiếm"
+          />
+        </mat-form-field>
+      </div>
+    </mat-expansion-panel>
+  </div>
+
+  <!-- Desktop Table View -->
+  <div class="table-container desktop-view">
     <table
       mat-table
       [dataSource]="dataSource"
@@ -31,7 +111,7 @@
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>
           <div class="header-with-filter">
-            <span> Trạng thái</span>
+            <span>Trạng thái</span>
             <mat-form-field
               appearance="outline"
               class="w-full mt-1 input-filter"
@@ -213,10 +293,90 @@
         </td>
       </ng-container>
 
-      <!-- Header & Rows -->
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div class="mobile-view">
+    <ng-container
+      *ngIf="mobileDataSource && mobileDataSource.length > 0; else noData"
+    >
+      <mat-card *ngFor="let item of mobileDataSource" class="mobile-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-chip
+              [ngStyle]="statusColor(item.status)"
+              selected
+              class="status-chip"
+            >
+              {{ item.status }}
+            </mat-chip>
+          </mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="info-row">
+            <span class="label">Mã PO:</span>
+            <span class="value">{{ item.userData5 }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Mã NCC:</span>
+            <span class="value">{{ item.vendor }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Tên NCC:</span>
+            <span class="value">{{ item.vendorName }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Ngày tạo:</span>
+            <span class="value">{{
+              item.createdDate | date: "dd/MM/yyyy"
+            }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Tạo bởi:</span>
+            <span class="value">{{ item.createdBy }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Số hàng hóa:</span>
+            <span class="value">{{ item.numberProduction }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Tổng số lượng:</span>
+            <span class="value">{{ item.totalQuantity }}</span>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-button color="primary" (click)="onView(item)">
+            <mat-icon>info</mat-icon>
+            Xem tem
+          </button>
+          <button mat-button color="accent" [routerLink]="['detail', item.id]">
+            <mat-icon>visibility</mat-icon>
+            Chi tiết
+          </button>
+          <button
+            mat-button
+            color="warn"
+            (click)="onDelete(item)"
+            *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
+          >
+            <mat-icon>delete</mat-icon>
+            Xóa
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </ng-container>
+
+    <ng-template #noData>
+      <div class="no-data">
+        <mat-icon>inbox</mat-icon>
+        <p>Không có dữ liệu</p>
+      </div>
+    </ng-template>
   </div>
 
   <!-- Paginator -->

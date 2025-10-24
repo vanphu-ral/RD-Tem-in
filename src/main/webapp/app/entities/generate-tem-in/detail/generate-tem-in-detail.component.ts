@@ -151,6 +151,11 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     "actions",
     // "numberOfPrints",
     "sapCode",
+    "productName",
+    "userData1",
+    "userData2",
+    "userData3",
+    "userData4",
     "userData5",
     "partNumber",
     "lot",
@@ -548,7 +553,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         width: 102.5mm !important;
         height: 35mm !important;
         margin: 0 !important;
-        padding: 2mm !important;
+        padding: 1mm 3mm !important;
         position: relative !important;
         overflow: hidden !important;
         background: white !important;
@@ -566,7 +571,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         width: 100% !important;
         height: 100% !important;
         padding: 0.8mm !important;
-        gap: 1.5mm !important;
+        gap: 5mm !important;
         transform: none !important;
         background: white !important;
         box-sizing: border-box !important;
@@ -584,16 +589,16 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
         height: 22mm !important;
         border: 0.5px solid #000 !important;
         border-radius: 1px !important;
-        padding: 1mm !important;
+        padding: 1.5mm !important;
       }
 
       /* THU NHỎ QR CODE */
       #printPreviewClone .qr-box qrcode,
       #printPreviewClone .qr-box canvas {
-        width: 18mm !important;
-        height: 18mm !important;
-        max-width: 18mm !important;
-        max-height: 18mm !important;
+        width: 19mm !important;
+        height: 19mm !important;
+        max-width: 19mm !important;
+        max-height: 19mm !important;
       }
 
       #printPreviewClone .msd-info {
@@ -607,7 +612,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
 
       #printPreviewClone .msd-item {
-        font-size: 5.5pt !important;
+        font-size: 6.5pt !important;
         line-height: 1.15 !important;
         font-weight: bold !important;
       }
@@ -615,7 +620,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       /* Cột giữa */
       #printPreviewClone .col-center {
         flex: 1 !important;
-        gap: 2.5mm !important;
+        gap: 2mm !important;
       }
 
       #printPreviewClone .logo-box {
@@ -627,17 +632,17 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
 
       #printPreviewClone .sap-code {
-        font-size: 10pt !important;
+        font-size: 12pt !important;
         line-height: 1 !important;
       }
 
       #printPreviewClone .part-number {
-        font-size: 8pt !important;
+        font-size: 10pt !important;
         line-height: 1 !important;
       }
 
       #printPreviewClone .reel-id-tem {
-        font-size: 7pt !important;
+        font-size: 8pt !important;
         line-height: 1 !important;
       }
 
@@ -675,6 +680,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       #printPreviewClone .rank-item-small {
         font-size: 5.5pt !important;
         line-height: 1.1 !important;
+        font-weight: bold;
       }
 
       #printPreviewClone .storage-unit {
@@ -727,7 +733,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
 
       #printPreviewClone .product-name-small {
-        font-size: 4.5pt !important;
+        font-size: 5.5pt !important;
         line-height: 1.1 !important;
         margin-top: 0.3mm !important;
       }
@@ -847,6 +853,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
           temQuantity: item.temQuantity,
           initialQuantity: item.initialQuantity,
           vendor: item.vendor,
+          vendorName: item.vendorName,
           userData1: item.userData1,
           userData2: item.userData2,
           userData3: item.userData3,

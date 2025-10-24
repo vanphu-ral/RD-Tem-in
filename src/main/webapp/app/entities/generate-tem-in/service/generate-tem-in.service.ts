@@ -840,6 +840,7 @@ export class GenerateTemInService {
           temQuantity: product.temQuantity,
           initialQuantity: product.initialQuantity,
           vendor: product.vendor,
+          vendorName: product.vendorName,
           userData1: product.userData1,
           userData2: product.userData2,
           userData3: product.userData3,

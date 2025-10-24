@@ -1,4 +1,10 @@
-import { Component, OnInit, AfterViewInit, ViewChild } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ViewChild,
+  ChangeDetectorRef,
+} from "@angular/core";
 import { CommonModule, DatePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
@@ -30,6 +36,7 @@ interface TemMaterialItem {
   status: string;
   vendor: string;
   userData5: string;
+  vendorName: string;
   createdDate: string; // LocalDate from backend as string
   createdBy: string;
   numberProduction: number;
@@ -56,9 +63,9 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   // Columns hiển thị
   displayedColumns: string[] = [
     "status",
+    "userData5",
     "vendor",
     "vendorName",
-    "userData5",
     "createdDate",
     "createdBy",
     "numberProduction",
@@ -88,7 +95,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     numberProduction: "",
     totalQuantity: "",
   };
-
+  mobileItems: TemMaterialItem[] = [];
   // ViewChild
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -98,6 +105,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     private dialog: MatDialog,
     private alertService: AlertService,
     private datePipe: DatePipe,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   // ================== LIFECYCLE ==================
@@ -149,6 +157,25 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
 
     this.dataSource.sort = this.sort;
     this.dataSource.paginator = this.paginator;
+    this.updateMobileItems();
+  }
+  get mobileDataSource(): TemMaterialItem[] {
+    if (!this.dataSource) {
+      return [];
+    }
+
+    const data = this.dataSource.filteredData || this.dataSource.data || [];
+
+    // Nếu chưa có paginator, trả về tất cả data
+    if (!this.paginator) {
+      return data;
+    }
+
+    // Nếu có paginator, chỉ trả về data của trang hiện tại
+    const startIndex = this.paginator.pageIndex * this.paginator.pageSize;
+    const endIndex = startIndex + this.paginator.pageSize;
+
+    return data.slice(startIndex, endIndex);
   }
 
   applyFilter(): void {
@@ -168,6 +195,8 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     };
 
     this.dataSource.filter = JSON.stringify(this.filterValues);
+    this.mobileItems = this.dataSource.filteredData;
+    this.updateMobileItems();
   }
   applyDateFilter(): void {
     const selectedDate = this.filterValues.createdDate;
@@ -317,8 +346,15 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
           return dateB.getTime() - dateA.getTime();
         });
         this.dataSource.data = data;
+        this.mobileItems = data;
         this.totalItems = response.length;
         this.isLoading = false;
+        this.dataSource.paginator = this.paginator;
+        this.dataSource.filter = JSON.stringify(this.filterValues);
+        this.updateMobileItems();
+        console.log("filteredData:", this.dataSource.filteredData);
+        console.log("mobileDataSource:", this.mobileDataSource);
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error("Error loading requests:", error);
@@ -329,13 +365,21 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
           url: error.url,
         });
         this.dataSource.data = [];
+        this.mobileItems = [];
         this.totalItems = 0;
         this.isLoading = false;
         console.warn("Failed to load data from database.");
       },
     });
   }
-
+  private updateMobileItems(): void {
+    const data = this.dataSource.filteredData || this.dataSource.data || [];
+    const startIndex =
+      this.paginator?.pageIndex * this.paginator?.pageSize || 0;
+    const endIndex = startIndex + (this.paginator?.pageSize || 25);
+    this.mobileItems = data.slice(startIndex, endIndex);
+    this.cdr.detectChanges();
+  }
   private sameDate(a: Date | string, b: Date): boolean {
     const d1 = new Date(a);
     return (

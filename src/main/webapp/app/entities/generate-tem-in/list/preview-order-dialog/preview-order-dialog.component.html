@@ -135,6 +135,50 @@
     </mat-card-content>
   </mat-card>
 
+  <!-- Mobile Product List View -->
+  <div class="mobile-products-view" *ngIf="!isLoading && !error">
+    <mat-card
+      *ngFor="let product of productsDataSource.data"
+      class="mobile-product-card"
+    >
+      <mat-card-content>
+        <div class="info-row">
+          <span class="label">Mã SAP:</span>
+          <span class="value">{{ product.sapCode }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Tên sản phẩm:</span>
+          <span class="value">{{ product.productName }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Part Number:</span>
+          <span class="value">{{ product.partNumber }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">LOT:</span>
+          <span class="value">{{ product.lot }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Số lượng:</span>
+          <span class="value">{{ product.initialQuantity }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Số tem:</span>
+          <span class="value">{{ product.temQuantity }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Nhà cung cấp:</span>
+          <span class="value">{{ product.vendor }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div *ngIf="productsDataSource.data.length === 0" class="no-data">
+      <mat-icon>info</mat-icon>
+      <p>Không có sản phẩm nào trong yêu cầu này</p>
+    </div>
+  </div>
+
   <mat-dialog-actions align="end">
     <button mat-button (click)="onClose()">Đóng</button>
   </mat-dialog-actions>

@@ -29,6 +29,7 @@ import { HttpLink } from "apollo-angular/http";
 import { InMemoryCache } from "@apollo/client/cache";
 import { GenerateTemInConfirmDialogComponent } from "./generate-tem-in-modal-confirm/modal-confirm.component";
 import { MatCardModule } from "@angular/material/card";
+import { MatExpansionModule } from "@angular/material/expansion";
 
 // import { ApolloModule } from 'apollo-angular';
 // import { HttpClientModule } from '@angular/common/http';
@@ -72,6 +73,7 @@ import { MatDividerModule } from "@angular/material/divider";
     MatAutocompleteModule,
     QRCodeComponent,
     MatDialogModule,
+    MatExpansionModule,
   ],
 
   declarations: [

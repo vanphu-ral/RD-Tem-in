@@ -152,10 +152,17 @@
     <script type="text/javascript">
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const currentPath = window.location.pathname;
+      const hasRedirected = sessionStorage.getItem("hasRedirected");
 
-      if (isMobile && currentPath !== "/list-material/update-list") {
+      if (
+        isMobile &&
+        currentPath !== "/list-material/update-list" &&
+        !hasRedirected
+      ) {
+        sessionStorage.setItem("hasRedirected", "true");
         window.location.href = "/list-material/update-list";
       }
+
       function updateVh() {
         document.documentElement.style.setProperty(
           "--vh",

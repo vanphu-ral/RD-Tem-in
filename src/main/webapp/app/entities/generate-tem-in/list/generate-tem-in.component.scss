@@ -444,3 +444,143 @@
 .table-container .mat-mdc-header-cell:last-child {
   border-top-right-radius: 6px;
 }
+
+/* Mobile Filters - Hidden on desktop */
+.mobile-filters {
+  display: none;
+  margin-bottom: 1rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+/* Mobile Card View - Hidden on desktop */
+.mobile-view {
+  display: none;
+}
+
+.mobile-card {
+  margin-bottom: 1rem;
+}
+
+.mobile-card .status-chip {
+  font-size: 0.875rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row .label {
+  font-weight: 500;
+  color: #666;
+}
+
+.info-row .value {
+  font-weight: 400;
+  text-align: right;
+}
+
+.mobile-card mat-card-actions {
+  display: flex;
+  justify-content: space-around;
+  padding: 0.5rem;
+}
+
+.mobile-card mat-card-actions button {
+  flex: 1;
+}
+
+.no-data {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #999;
+}
+
+.no-data mat-icon {
+  font-size: 4rem;
+  width: 4rem;
+  height: 4rem;
+  color: #ccc;
+}
+
+/* Desktop View - Shown by default */
+.desktop-view {
+  display: block;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  /* Hide desktop table */
+  .desktop-view {
+    display: none;
+  }
+
+  /* Show mobile view */
+  .mobile-view {
+    display: block;
+  }
+
+  /* Show mobile filters */
+  .mobile-filters {
+    display: block;
+  }
+
+  /* Adjust header for mobile */
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .header-title h1 {
+    font-size: 1.25rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions button {
+    width: 100%;
+  }
+
+  .button-text {
+    margin-left: 0.5rem;
+  }
+
+  /* Adjust container padding */
+  .container {
+    padding: 1rem;
+  }
+
+  /* Make paginator more compact */
+  mat-paginator {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-title h1 {
+    font-size: 1.1rem;
+  }
+
+  .mobile-card mat-card-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mobile-card mat-card-actions button {
+    width: 100%;
+  }
+}
