@@ -19,24 +19,44 @@ export interface ValidationResult {
 }
 
 // Các cột bắt buộc theo đúng thứ tự
+// const REQUIRED_COLUMNS = [
+//   "SAPCode",
+//   "Tên SP",
+//   "PartNumber",
+//   "LOT",
+//   "Số TEM",
+//   "InitialQuantity",
+//   "Vendor",
+//   "Tên NCC",
+//   "UserData1",
+//   "UserData2",
+//   "UserData3",
+//   "UserData4",
+//   "UserData5",
+//   "StorageUnit",
+//   "ExpirationDate",
+//   "ManufacturingDate",
+//   "Ngày Về",
+// ];
+
 const REQUIRED_COLUMNS = [
-  "SAPCode",
-  "Tên SP",
-  "PartNumber",
-  "LOT",
-  "Số TEM",
-  "InitialQuantity",
-  "Vendor",
-  "Tên NCC",
-  "UserData1",
-  "UserData2",
-  "UserData3",
-  "UserData4",
-  "UserData5",
-  "StorageUnit",
-  "ExpirationDate",
-  "ManufacturingDate",
-  "Ngày Về",
+  "SAPCode*\n(Định dang TEXT)\n0001201",
+  "Tên SP\n(Định dang TEXT)\nNắp nhựa bảo vệ MPL1062 50W",
+  "PartNumber\n(Định dang TEXT)\n10000003255",
+  "LOT\n(Định dang TEXT)\n20251025",
+  "Số TEM\n(Định dang SỐ NGUYÊN)\n20",
+  "InitialQuantity\n(Định dang SỐ NGUYÊN)\n3000",
+  "Vendor*\n(Định dang TEXT)\nV900000181",
+  "Tên NCC\n(Định dang TEXT)\nZhejiang Yankon Mega Mega",
+  "UserData1\n(Định dang TEXT)\nNO",
+  "UserData2\n(Định dang TEXT)\nNO",
+  "UserData3\n(Định dang TEXT)\nNO",
+  "UserData4\n(Định dang TEXT)\n00045127-121025",
+  "UserData5(PO)*\n(Định dang TEXT)\n235645",
+  "StorageUnit\n(Định dang TEXT)\nRD",
+  "ExpirationDate\n(Định dang TEXT)\nddmmyyyy",
+  "ManufacturingDate\n(Định dang TEXT)\nddmmyyyy",
+  "Ngày Về\n(Định dang TEXT)\nddmmyyyy",
 ];
 
 @Injectable({
@@ -141,9 +161,9 @@ export class ExcelParserService {
               userData4: this.getCellValue(row[11]),
               userData5: this.getCellValue(row[12]),
               storageUnit: this.getCellValue(row[13]),
-              expirationDate: this.parseDate(row[14]),
-              manufacturingDate: this.parseDate(row[15]),
-              arrivalDate: this.parseDate(row[16]),
+              expirationDate: this.parseDateAsText(row[14]),
+              manufacturingDate: this.parseDateAsText(row[15]),
+              arrivalDate: this.parseDateAsText(row[16]),
             };
 
             try {
@@ -342,6 +362,38 @@ export class ExcelParserService {
       return new Date().toISOString().split("T")[0];
     } catch {
       return new Date().toISOString().split("T")[0];
+    }
+  }
+
+  private parseDateAsText(value: unknown): string {
+    if (!value) {
+      return "";
+    }
+
+    try {
+      // Convert to string and remove any whitespace
+      const dateStr = String(value).trim();
+
+      // If it's already in ddmmyyyy format (8 digits), return as is
+      if (/^\d{8}$/.test(dateStr)) {
+        return dateStr;
+      }
+
+      // If it's a number (Excel serial date), convert to ddmmyyyy format
+      if (typeof value === "number") {
+        const parsed = new Date((value - 25569) * 86400 * 1000);
+        if (!Number.isNaN(parsed.getTime())) {
+          const day = String(parsed.getDate()).padStart(2, "0");
+          const month = String(parsed.getMonth() + 1).padStart(2, "0");
+          const year = parsed.getFullYear();
+          return `${day}${month}${year}`;
+        }
+      }
+
+      // Return the string value as is
+      return dateStr;
+    } catch {
+      return "";
     }
   }
 
