@@ -187,7 +187,8 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
         this.accountService.hasAnyAuthority("ROLE_PANACIM_VIEW") &&
         !this.canApprove;
     });
-    this.loadData();
+    this.loadPendingRequests();
+    // this.loadData();
     this.ngOnInitFilterPredicate();
     this.searchTerms = {};
     this.activeFilters = {};
@@ -195,7 +196,7 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.dataSource_update_manage.paginator = this.paginator;
+    // this.dataSource_update_manage.paginator = this.paginator;
     this.dataSource_update_manage.sort = this.sort;
 
     const statusRank: Record<string, number> = {
@@ -446,9 +447,9 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
   }
 
   public handlePageEvent(e: PageEvent): void {
-    this.pageEvent = e;
     this.pageSize = e.pageSize;
     this.pageIndex = e.pageIndex;
+    this.loadPendingRequests();
   }
 
   public setPageSizeOptions(setPageSizeOptionsInput: string): void {
@@ -826,6 +827,22 @@ export class ApproveMaterialUpdateComponent implements OnInit, AfterViewInit {
         );
 
       this.dataSource_update_manage.data = pendingOnly;
+    });
+  }
+  private loadPendingRequests(): void {
+    this.MaterialService.fetchPendingInventoryUpdateRequests(
+      this.pageIndex,
+      this.pageSize,
+    ).subscribe({
+      next: (res) => {
+        this.dataSource_update_manage.data = res.content;
+        this.length = res.totalElements;
+      },
+      error: (err) => {
+        console.error("Error fetching pending inventory update requests:", err);
+        this.dataSource_update_manage.data = [];
+        this.length = 0;
+      },
     });
   }
 

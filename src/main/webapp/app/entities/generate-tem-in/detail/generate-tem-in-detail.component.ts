@@ -6,6 +6,7 @@ import {
   ViewChild,
   AfterViewChecked,
   Input,
+  OnDestroy,
 } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { MatSnackBar } from "@angular/material/snack-bar";
@@ -36,6 +37,7 @@ import { PageEvent } from "@angular/material/paginator";
 import { MatCardActions } from "@angular/material/card";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
+import { EditProductDialogComponent } from "./edit-product-dialog.component";
 
 export interface MaterialItem {
   stt: number; // Số thứ tự hiển thị
@@ -130,7 +132,9 @@ export interface ListRequestCreateTem {
   styleUrl: "./generate-tem-in-detail.component.scss",
   standalone: false,
 })
-export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
+export class GenerateTemInDetailComponent
+  implements OnInit, AfterViewChecked, OnDestroy
+{
   //biến lấy id PO
   poNumber = "";
   //disable
@@ -139,6 +143,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   isDisableGenerate = false;
   isDelete = false;
   allUploaded: boolean = false;
+  isMobile = false;
   //biến in
   printMode: "single" | "all" = "all";
 
@@ -222,6 +227,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
   selectedWarehouseRow: string = "";
   selectedItem: any = null;
   isGenerating = false;
+  isDeletePermission = true;
   //qrcode row
   qrTableVisible = false;
   generatedQRCodes: any[] = [];
@@ -312,6 +318,8 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
     if (requestId) {
       this.getListRequest(requestId);
     }
+    this.checkScreenSize();
+    window.addEventListener("resize", () => this.checkScreenSize());
   }
   //back btn
   goBack(): void {
@@ -338,6 +346,12 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
           this.getListAllTemDetails(productId);
         }
       });
+  }
+  checkScreenSize(): void {
+    this.isMobile = window.innerWidth <= 767;
+  }
+  ngOnDestroy(): void {
+    window.removeEventListener("resize", () => this.checkScreenSize());
   }
   //phan trang
   updatePagedMaterials(): void {
@@ -804,6 +818,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       // console.log("SelectedItem ID:", item.id);
       this.loadTemDetails(item.id, () => {
         this.prepareSingleCsvData(Number(item.id));
+        item.exportedCsv = true;
       });
 
       document.body.classList.add("modal-open");
@@ -819,6 +834,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
             this.selectedItem = item;
             this.loadTemDetails(item.id, () => {
               this.exportSingleProductCsvToFixedIP(Number(item.id));
+              item.UploadPanacim = true;
             });
             document.body.classList.add("modal-open");
           }
@@ -826,73 +842,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       }
     }
     if (action === "edit") {
-      item.isEditing = true;
-    }
-    if (action === "confirm") {
-      // Kiểm tra validation
-      if (!item.id) {
-        this.showSnackbar(
-          "Thiếu ID sản phẩm không thể cập nhật",
-          "Đóng",
-          3000,
-          "warning",
-        );
-        return;
-      }
-
-      // Đánh dấu đang lưu trên chính object item
-      item.isSaving = true;
-
-      const payload = {
-        input: {
-          id: Number(item.id),
-          sapCode: item.sapCode,
-          requestCreateTemId: item.requestCreateTemId,
-          partNumber: item.partNumber,
-          lot: item.lot,
-          temQuantity: item.temQuantity,
-          initialQuantity: item.initialQuantity,
-          vendor: item.vendor,
-          vendorName: item.vendorName,
-          userData1: item.userData1,
-          userData2: item.userData2,
-          userData3: item.userData3,
-          userData4: item.userData4,
-          userData5: item.userData5,
-          storageUnit: item.storageUnit,
-          expirationDate: item.expirationDate,
-          manufacturingDate: item.manufacturingDate,
-          arrivalDate: item.arrivalDate,
-          numberOfPrints: item.numberOfPrints,
-        },
-      };
-
-      // console.log("📦 Payload gửi lên mutation:", payload);
-
-      // Gọi mutation
-      this.generateTemInService.updateProductOfRequest(item).subscribe({
-        next: (res) => {
-          if (res.data?.updateProductOfRequest?.success) {
-            // Cập nhật trực tiếp trên object item
-            item.isSaving = false;
-            item.isEditing = false;
-            this.showSnackbar("Cập nhật thành công!", "Đóng", 3000, "success");
-          } else {
-            item.isSaving = false;
-            this.showSnackbar(
-              "Cập nhật thất bại: " + `${res.data?.updateProductOfRequest}`,
-              "Đóng",
-              3000,
-              "error",
-            );
-          }
-        },
-        error: (err) => {
-          console.error("Lỗi khi gọi mutation:", err);
-          item.isSaving = false;
-          this.showSnackbar("Lỗi khi cập nhật", "Đóng", 3000, "error");
-        },
-      });
+      this.openEditDialog(item, index);
     }
 
     if (action === "print") {
@@ -902,6 +852,7 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
 
       this.loadTemDetails(item.id, () => {
         this.openPrintPreviewForProduct(item.id);
+        item.printed = true;
       });
     }
     if (action === "delete") {
@@ -930,6 +881,97 @@ export class GenerateTemInDetailComponent implements OnInit, AfterViewChecked {
       });
     }
   }
+  canDelete(item: any): boolean {
+    // Nếu không có quyền xóa thì luôn false
+    if (!this.isDeletePermission) {
+      return false;
+    }
+
+    // Nếu đã xuất CSV, gửi server hoặc in tem thì không cho xóa
+    return !item.exportedCsv && !item.UploadPanacim && !item.printed;
+  }
+
+  openEditDialog(item: any, index: number): void {
+    const dialogRef = this.dialog.open(EditProductDialogComponent, {
+      width: "800px",
+      maxHeight: "90vh",
+      data: { item: { ...item } }, // Clone object
+      disableClose: true,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result && result.action === "save") {
+        this.updateProduct(item, result.data);
+      }
+    });
+  }
+  updateProduct(item: any, formData: any): void {
+    // Kiểm tra validation
+    if (!item.id) {
+      this.showSnackbar(
+        "Thiếu ID sản phẩm không thể cập nhật",
+        "Đóng",
+        3000,
+        "warning",
+      );
+      return;
+    }
+
+    const payload = {
+      input: {
+        id: Number(item.id),
+        sapCode: formData.sapCode,
+        productName: formData.productName,
+        requestCreateTemId: item.requestCreateTemId,
+        partNumber: formData.partNumber,
+        lot: formData.lot,
+        temQuantity: formData.temQuantity,
+        initialQuantity: formData.initialQuantity,
+        vendor: formData.vendor,
+        vendorName: formData.vendorName,
+        userData1: formData.userData1,
+        userData2: formData.userData2,
+        userData3: formData.userData3,
+        userData4: formData.userData4,
+        userData5: formData.userData5,
+        storageUnit: formData.storageUnit,
+        expirationDate: formData.expirationDate,
+        manufacturingDate: formData.manufacturingDate,
+        arrivalDate: formData.arrivalDate,
+        numberOfPrints: item.numberOfPrints,
+      },
+    };
+
+    // Gọi mutation
+    this.generateTemInService.updateProductOfRequest(payload.input).subscribe({
+      next: (res) => {
+        if (res.data?.updateProductOfRequest?.success) {
+          // Cập nhật item trong danh sách với data đã format
+          Object.assign(item, {
+            ...formData,
+            // Đảm bảo các trường date được cập nhật đúng
+            expirationDate: formData.expirationDate,
+            manufacturingDate: formData.manufacturingDate,
+            arrivalDate: formData.arrivalDate,
+          });
+
+          this.showSnackbar("Cập nhật thành công!", "Đóng", 3000, "success");
+        } else {
+          this.showSnackbar(
+            "Cập nhật thất bại: " + res.data?.updateProductOfRequest,
+            "Đóng",
+            3000,
+            "error",
+          );
+        }
+      },
+      error: (err) => {
+        console.error("Lỗi khi gọi mutation:", err);
+        this.showSnackbar("Lỗi khi cập nhật", "Đóng", 3000, "error");
+      },
+    });
+  }
+
   /**
    * Load danh sách tem từ info_tem_detail
    * Lọc theo Product_of_request_id = productId

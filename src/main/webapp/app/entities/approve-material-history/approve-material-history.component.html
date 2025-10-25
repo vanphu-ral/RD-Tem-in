@@ -814,7 +814,8 @@
         #paginator
         [pageSizeOptions]="pageSizeOptions"
         [pageSize]="pageSize"
-        [length]="dataSource_update_manage.data.length"
+        [length]="length"
+        (page)="handlePageEvent($event)"
         showFirstLastButtons
       >
       </mat-paginator>

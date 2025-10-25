@@ -31,6 +31,15 @@ export interface RawGraphQLLocation {
   locationFullName: string;
 }
 
+//interface page cho phe duyet va lich su
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number; // current page
+}
+
 export interface UserSummary {
   username: string;
 }
@@ -490,29 +499,70 @@ export class ListMaterialService {
     );
   }
 
-  fetchAllInventoryUpdateRequests(): void {
-    // console.log(`Goi API  ${this.apiRequest}`);
+  fetchAllInventoryUpdateRequests(
+    page: number = 0,
+    size: number = 50,
+    status?: string,
+  ): void {
+    const params: any = {
+      page: page.toString(),
+      size: size.toString(),
+    };
 
-    this.http.get<inventory_update_requests[]>(this.apiRequest).subscribe({
-      next: (data) => {
-        if (Array.isArray(data)) {
-          this._allInventoryUpdateRequests.next(data);
-          // console.log(
-          //   "MaterialService (HTTP): All inventory update requests data successfully fetched:",
-          //   data,
-          // );
-        } else {
+    if (status) {
+      params.status = status;
+    }
+
+    this.http
+      .get<PageResponse<inventory_update_requests>>(this.apiRequest, { params })
+      .subscribe({
+        next: (res) => {
+          if (Array.isArray(res.content)) {
+            this._allInventoryUpdateRequests.next(res.content);
+          } else {
+            this._allInventoryUpdateRequests.next([]);
+          }
+        },
+        error: (err) => {
+          console.error(
+            "Error fetching paginated inventory update requests:",
+            err,
+          );
           this._allInventoryUpdateRequests.next([]);
-        }
-      },
-      error: (err) => {
-        console.error(
-          "MaterialService (HTTP): Error fetching all inventory update requests:",
-          err,
-        );
-        this._allInventoryUpdateRequests.next([]);
-      },
-    });
+        },
+      });
+  }
+
+  //danh sach phe duyet
+  fetchPendingInventoryUpdateRequests(
+    page: number = 0,
+    size: number = 50,
+  ): Observable<PageResponse<inventory_update_requests>> {
+    const params = {
+      page: page.toString(),
+      size: size.toString(),
+    };
+
+    return this.http.get<PageResponse<inventory_update_requests>>(
+      `${this.apiRequest}/pending`,
+      { params },
+    );
+  }
+
+  //danh sach lich su
+  fetchHistoryInventoryUpdateRequests(
+    page: number = 0,
+    size: number = 50,
+  ): Observable<PageResponse<inventory_update_requests>> {
+    const params = {
+      page: page.toString(),
+      size: size.toString(),
+    };
+
+    return this.http.get<PageResponse<inventory_update_requests>>(
+      `${this.apiRequest}/history`,
+      { params },
+    );
   }
 
   public clearSelection(): void {

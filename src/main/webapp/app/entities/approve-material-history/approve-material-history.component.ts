@@ -181,7 +181,8 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
 
   // #region Lifecycle hooks
   ngOnInit(): void {
-    this.loadData();
+    this.loadHistoryRequests();
+    // this.loadData();
     this.ngOnInitFilterPredicate();
     this.searchTerms = {};
     this.activeFilters = {};
@@ -189,7 +190,7 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.dataSource_update_manage.paginator = this.paginator;
+    // this.dataSource_update_manage.paginator = this.paginator;
     this.dataSource_update_manage.sort = this.sort;
 
     const statusRank: Record<string, number> = {
@@ -619,9 +620,9 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
   }
 
   public handlePageEvent(e: PageEvent): void {
-    this.pageEvent = e;
     this.pageSize = e.pageSize;
     this.pageIndex = e.pageIndex;
+    this.loadHistoryRequests();
   }
 
   public setPageSizeOptions(setPageSizeOptionsInput: string): void {
@@ -826,6 +827,22 @@ export class ApproveMaterialHistoryComponent implements OnInit, AfterViewInit {
         this.sort.direction = "desc";
         this.sort.sortChange.emit({ active: "status", direction: "desc" });
       });
+    });
+  }
+  private loadHistoryRequests(): void {
+    this.MaterialService.fetchHistoryInventoryUpdateRequests(
+      this.pageIndex,
+      this.pageSize,
+    ).subscribe({
+      next: (res) => {
+        this.dataSource_update_manage.data = res.content;
+        this.length = res.totalElements;
+      },
+      error: (err) => {
+        console.error("Error fetching history inventory update requests:", err);
+        this.dataSource_update_manage.data = [];
+        this.length = 0;
+      },
     });
   }
 

@@ -5,6 +5,8 @@ import com.mycompany.myapp.service.dto.RequestDTO;
 import com.mycompany.wmsral.domain.InventoryUpdateRequests;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,9 +22,24 @@ public class InventoryUpdateRequestsController {
         this.inventoryUpdateRequestsService.updateInfo(requestDTO);
     }
 
-    @GetMapping("")
-    public List<InventoryUpdateRequests> getAll() {
-        System.out.println("Cong doan: 12");
-        return this.inventoryUpdateRequestsService.getAll();
+    //gọi data phê duyệt/lic sử có theem phân trang
+    @GetMapping("/pending")
+    public ResponseEntity<Page<InventoryUpdateRequests>> getPendingRequests(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "50") int size
+    ) {
+        Page<InventoryUpdateRequests> result =
+            inventoryUpdateRequestsService.getPendingRequests(page, size);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<Page<InventoryUpdateRequests>> getHistoryRequests(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "50") int size
+    ) {
+        Page<InventoryUpdateRequests> result =
+            inventoryUpdateRequestsService.getHistoryRequests(page, size);
+        return ResponseEntity.ok(result);
     }
 }

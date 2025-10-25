@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -36,8 +37,29 @@ public class InventoryUpdateRequestsService {
     @Autowired
     InventoryUpdateRequestsHistoryRepository inventoryUpdateRequestsHistoryRepository;
 
-    public List<InventoryUpdateRequests> getAll() {
-        return this.inventoryUpdateRequestsRepository.findAll();
+    //danh sach phe duyet va lich su co phan trang
+    public Page<InventoryUpdateRequests> getPendingRequests(
+        int page,
+        int size
+    ) {
+        int offset = page * size;
+        List<InventoryUpdateRequests> content =
+            inventoryUpdateRequestsRepository.getPendingRequests(offset, size);
+        long total = inventoryUpdateRequestsRepository.countPendingRequests();
+        Pageable pageable = PageRequest.of(page, size);
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    public Page<InventoryUpdateRequests> getHistoryRequests(
+        int page,
+        int size
+    ) {
+        int offset = page * size;
+        List<InventoryUpdateRequests> content =
+            inventoryUpdateRequestsRepository.getHistoryRequests(offset, size);
+        long total = inventoryUpdateRequestsRepository.countHistoryRequests();
+        Pageable pageable = PageRequest.of(page, size);
+        return new PageImpl<>(content, pageable, total);
     }
 
     public void updateInfo(RequestDTO requestDTO) {

@@ -8,7 +8,7 @@
   <mat-toolbar class="mb-3 mat-elevation-z2">
     <div class="d-flex justify-content-between w-100">
       <!-- Trái -->
-      <div class="d-flex align-items-center">
+      <div class="d-flex align-items-center mobile-header-left">
         <button mat-icon-button (click)="goBack()" class="mr-3">
           <mat-icon>arrow_back</mat-icon>
         </button>
@@ -19,7 +19,7 @@
       </div>
 
       <!-- Phải -->
-      <div class="d-flex align-items-center gap-3">
+      <div class="d-flex align-items-center gap-3 mobile-header-right">
         <!-- Nhập kho -->
         <mat-form-field
           appearance="outline"
@@ -102,383 +102,468 @@
     </div>
   </mat-toolbar>
 
-  <!-- Table -->
-  <div class="table-container">
-    <table
-      mat-table
-      [dataSource]="pagedMaterials"
-      matSort
-      class="mat-elevation-z1"
-    >
-      <!-- STT Column -->
-      <ng-container matColumnDef="stt">
-        <th mat-header-cell *matHeaderCellDef style="width: 50px">STT</th>
-        <td mat-cell *matCellDef="let item; let i = index" class="text-center">
-          {{ materialCurrentPage * materialPageSize + i + 1 }}
-        </td>
-      </ng-container>
+  <!-- Desktop view -->
+  <div class="desktop-table-view">
+    <!-- Table -->
+    <div class="table-container">
+      <table
+        mat-table
+        [dataSource]="pagedMaterials"
+        matSort
+        class="mat-elevation-z1"
+      >
+        <!-- STT Column -->
+        <ng-container matColumnDef="stt">
+          <th mat-header-cell *matHeaderCellDef style="width: 50px">STT</th>
+          <td
+            mat-cell
+            *matCellDef="let item; let i = index"
+            class="text-center"
+          >
+            {{ materialCurrentPage * materialPageSize + i + 1 }}
+          </td>
+        </ng-container>
 
-      <!-- Thao tác Column -->
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef style="min-width: 300px">
-          Thao tác
-        </th>
-        <td mat-cell *matCellDef="let item; let index = index">
-          <div class="action-buttons">
-            <button
-              mat-icon-button
-              color="primary"
-              (click)="onAction('view', item, index)"
-              matTooltip="Xem chi tiết"
-            >
-              <mat-icon>visibility</mat-icon>
-            </button>
-
-            <span *ngIf="isDisable">
+        <!-- Thao tác Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef style="min-width: 5rem">
+            Thao tác
+          </th>
+          <td mat-cell *matCellDef="let item; let index = index">
+            <div class="action-buttons">
               <button
-                *ngIf="!item.isEditing"
-                mat-icon-button
-                color="accent"
-                (click)="onAction('edit', item, index)"
-                matTooltip="Chỉnh sửa"
-              >
-                <mat-icon>edit</mat-icon>
-              </button>
-            </span>
-
-            <span>
-              <button
-                *ngIf="item.isEditing"
                 mat-icon-button
                 color="primary"
-                [disabled]="item.isSaving"
-                (click)="onAction('confirm', item, index)"
-                matTooltip="Xác nhận"
+                (click)="onAction('view', item, index)"
+                matTooltip="Xem chi tiết"
               >
-                <mat-icon>check_circle</mat-icon>
+                <mat-icon>visibility</mat-icon>
               </button>
-            </span>
 
-            <span *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'">
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="onAction('delete', item, index)"
-                matTooltip="Xóa"
+              <span *ngIf="isDisable">
+                <button
+                  mat-icon-button
+                  color="accent"
+                  (click)="onAction('edit', item, index)"
+                  matTooltip="Chỉnh sửa"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+              </span>
+
+              <!-- <span>
+                 <button
+                   *ngIf="item.isEditing"
+                   mat-icon-button
+                   color="primary"
+                   [disabled]="item.isSaving"
+                   (click)="onAction('confirm', item, index)"
+                   matTooltip="Xác nhận"
+                 >
+                   <mat-icon>check_circle</mat-icon>
+                 </button>
+               </span> -->
+
+              <span
+                *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
+                matTooltip="Không thể xóa vì đã xuất csv hoặc in tem"
+                [matTooltipDisabled]="canDelete(item)"
               >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </span>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="onAction('delete', item, index)"
+                  matTooltip="Xóa"
+                  [disabled]="!canDelete(item)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </span>
 
-            <span>
-              <button
-                mat-icon-button
-                (click)="onAction('exportCsv', item, index)"
-                matTooltip="Xuất CSV"
-                *ngIf="!isDisable"
+              <span>
+                <button
+                  mat-icon-button
+                  (click)="onAction('exportCsv', item, index)"
+                  matTooltip="Xuất CSV"
+                  *ngIf="!isDisable"
+                >
+                  <fa-icon [icon]="faFileCsv" size="xs"></fa-icon>
+                </button>
+              </span>
+              <!-- <button
+                 mat-icon-button
+                 (click)="exportSingleProductCsvToFixedIP(item.id)"
+                 matTooltip="Xuất CSV đến server"
+                 [disabled]="isDisable"
+                 color="accent"
+               > -->
+
+              <span>
+                <button
+                  mat-icon-button
+                  (click)="onAction('exportCsvToFixedIP', item, index)"
+                  matTooltip="Xuất CSV đến server"
+                  [disabled]="item.UploadPanacim || isDisable"
+                  class="accent-blue"
+                >
+                  <mat-icon>system_update_alt</mat-icon>
+                </button>
+              </span>
+              <span
+                matTooltip="Cần generate tem trước"
+                [matTooltipDisabled]="!isDisable"
+                matTooltipPosition="above"
               >
-                <fa-icon [icon]="faFileCsv" size="xs"></fa-icon>
+                <button
+                  mat-icon-button
+                  (click)="onAction('print', item, index)"
+                  matTooltip="In tem"
+                  *ngIf="!isDisable"
+                >
+                  <mat-icon>local_printshop</mat-icon>
+                </button>
+              </span>
+
+              <button mat-icon-button color="primary" matTooltip="Scan">
+                <mat-icon>qr_code_scanner</mat-icon>
               </button>
-            </span>
-            <!-- <button
-              mat-icon-button
-              (click)="exportSingleProductCsvToFixedIP(item.id)"
-              matTooltip="Xuất CSV đến server"
-              [disabled]="isDisable"
-              color="accent"
-            > -->
+            </div>
+          </td>
+        </ng-container>
 
-            <span>
-              <button
-                mat-icon-button
-                (click)="onAction('exportCsvToFixedIP', item, index)"
-                matTooltip="Xuất CSV đến server"
-                [disabled]="item.UploadPanacim || isDisable"
-                class="accent-blue"
-              >
-                <mat-icon>system_update_alt</mat-icon>
-              </button>
-            </span>
-            <span
-              matTooltip="Cần generate tem trước"
-              [matTooltipDisabled]="!isDisable"
-              matTooltipPosition="above"
-            >
-              <button
-                mat-icon-button
-                (click)="onAction('print', item, index)"
-                matTooltip="In tem"
-                *ngIf="!isDisable"
-              >
-                <mat-icon>local_printshop</mat-icon>
-              </button>
-            </span>
+        <!-- Lần in Column -->
+        <!-- <ng-container matColumnDef="numberOfPrints">
+           <th mat-header-cell *matHeaderCellDef mat-sort-header>Lần in</th>
+           <td mat-cell *matCellDef="let item" class="text-center">
+             {{ item.numberOfPrints }}
+           </td>
+         </ng-container> -->
 
-            <button mat-icon-button color="primary" matTooltip="Scan">
-              <mat-icon>qr_code_scanner</mat-icon>
-            </button>
-          </div>
-        </td>
-      </ng-container>
-
-      <!-- Lần in Column -->
-      <!-- <ng-container matColumnDef="numberOfPrints">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Lần in</th>
-        <td mat-cell *matCellDef="let item" class="text-center">
-          {{ item.numberOfPrints }}
-        </td>
-      </ng-container> -->
-
-      <!-- SAPCode Column -->
-      <ng-container matColumnDef="sapCode">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>SAPCode</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewSapCode">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.sapCode" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewSapCode>
+        <!-- SAPCode Column -->
+        <ng-container matColumnDef="sapCode">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>SAPCode</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.sapCode }}
-          </ng-template>
-        </td>
-      </ng-container>
-      <!-- product Name Column -->
-      <ng-container matColumnDef="productName">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Tên Sp</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewProductName">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.productName" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewProductName>
+          </td>
+        </ng-container>
+        <!-- product Name Column -->
+        <ng-container matColumnDef="productName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Tên Sp</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.productName }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Mã PO Column -->
-      <ng-container matColumnDef="userData1">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Rank M</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewUserData1">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.userData1" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewUserData1>
+        <!-- Mã PO Column -->
+        <ng-container matColumnDef="userData1">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Rank M</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.userData1 }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Mã PO Column -->
-      <ng-container matColumnDef="userData2">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Rank A</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewUserData2">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.userData2" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewUserData2>
+        <!-- Mã PO Column -->
+        <ng-container matColumnDef="userData2">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Rank A</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.userData2 }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Mã PO Column -->
-      <ng-container matColumnDef="userData3">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Rank Q</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewUserData3">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.userData3" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewUserData3>
+        <!-- Mã PO Column -->
+        <ng-container matColumnDef="userData3">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Rank Q</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.userData3 }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Mã PO Column -->
-      <ng-container matColumnDef="userData4">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>User Data 4</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewUserData4">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.userData4" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewUserData4>
+        <!-- Mã PO Column -->
+        <ng-container matColumnDef="userData4">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>User Data 4</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.userData4 }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Mã PO Column -->
-      <ng-container matColumnDef="userData5">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Mã PO</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewUserData5">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.userData5" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewUserData5>
+        <!-- Mã PO Column -->
+        <ng-container matColumnDef="userData5">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Mã PO</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.userData5 }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- PartNumber Column -->
-      <ng-container matColumnDef="partNumber">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>PartNumber</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewPartNumber">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.partNumber" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewPartNumber>
+        <!-- PartNumber Column -->
+        <ng-container matColumnDef="partNumber">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>PartNumber</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.partNumber }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- LOT Column -->
-      <ng-container matColumnDef="lot">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>LOT</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewLot">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.lot" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewLot>
+        <!-- LOT Column -->
+        <ng-container matColumnDef="lot">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>LOT</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.lot }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- StorageUnit Column -->
-      <ng-container matColumnDef="storageUnit">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>StorageUnit</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewStorageUnit">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.storageUnit" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewStorageUnit>
+        <!-- StorageUnit Column -->
+        <ng-container matColumnDef="storageUnit">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>StorageUnit</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.storageUnit }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Số TEM Column -->
-      <ng-container matColumnDef="temQuantity">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Số TEM</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewSoTem">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.temQuantity" type="number" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewSoTem>
+        <!-- Số TEM Column -->
+        <ng-container matColumnDef="temQuantity">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Số TEM</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.temQuantity }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- InitialQuantity Column -->
-      <ng-container matColumnDef="initialQuantity">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
-          InitialQuantity
-        </th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewInitialQuantity">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input
-                matInput
-                [(ngModel)]="item.initialQuantity"
-                type="number"
-              />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewInitialQuantity>
+        <!-- InitialQuantity Column -->
+        <ng-container matColumnDef="initialQuantity">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            InitialQuantity
+          </th>
+          <td mat-cell *matCellDef="let item">
             {{ item.initialQuantity }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Vendor Column -->
-      <ng-container matColumnDef="vendor">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Vendor</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewVendor">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.vendor" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewVendor>
+        <!-- Vendor Column -->
+        <ng-container matColumnDef="vendor">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Vendor</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.vendor }}
-          </ng-template>
-        </td>
-      </ng-container>
-      <!-- VendorName Column -->
-      <ng-container matColumnDef="vendorName">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Vendor Name</th>
-        <td mat-cell *matCellDef="let item">
-          <ng-container *ngIf="item.isEditing; else viewVendorName">
-            <mat-form-field appearance="outline" class="compact-field">
-              <input matInput [(ngModel)]="item.vendorName" />
-            </mat-form-field>
-          </ng-container>
-          <ng-template #viewVendorName>
+          </td>
+        </ng-container>
+        <!-- VendorName Column -->
+        <ng-container matColumnDef="vendorName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Vendor Name</th>
+          <td mat-cell *matCellDef="let item">
             {{ item.vendorName }}
-          </ng-template>
-        </td>
-      </ng-container>
+          </td>
+        </ng-container>
 
-      <!-- Ngày sản xuất Column -->
-      <ng-container matColumnDef="manufacturingDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày sản xuất</th>
-        <td mat-cell *matCellDef="let item">
-          {{ item.manufacturingDate | date: "dd/MM/yyyy" }}
-        </td>
-      </ng-container>
+        <!-- Ngày sản xuất Column -->
+        <ng-container matColumnDef="manufacturingDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            Ngày sản xuất
+          </th>
+          <td mat-cell *matCellDef="let item">
+            {{ item.manufacturingDate | date: "dd/MM/yyyy" }}
+          </td>
+        </ng-container>
 
-      <!-- Ngày hết hạn Column -->
-      <ng-container matColumnDef="expirationDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày hết hạn</th>
-        <td mat-cell *matCellDef="let item">
-          {{ item.expirationDate | date: "dd/MM/yyyy" }}
-        </td>
-      </ng-container>
+        <!-- Ngày hết hạn Column -->
+        <ng-container matColumnDef="expirationDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            Ngày hết hạn
+          </th>
+          <td mat-cell *matCellDef="let item">
+            {{ item.expirationDate | date: "dd/MM/yyyy" }}
+          </td>
+        </ng-container>
 
-      <!-- Ngày nhập kho Column -->
-      <ng-container matColumnDef="arrivalDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày về</th>
-        <td mat-cell *matCellDef="let item">
-          {{ item.arrivalDate | date: "dd/MM/yyyy" }}
-        </td>
-      </ng-container>
+        <!-- Ngày nhập kho Column -->
+        <ng-container matColumnDef="arrivalDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày về</th>
+          <td mat-cell *matCellDef="let item">
+            {{ item.arrivalDate | date: "dd/MM/yyyy" }}
+          </td>
+        </ng-container>
 
-      <!-- Header & Rows -->
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns"
-        [class.editing-row]="row.isEditing"
-      ></tr>
-    </table>
+        <!-- Header & Rows -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          [class.editing-row]="row.isEditing"
+        ></tr>
+      </table>
 
-    <!-- Paginator -->
+      <!-- Paginator -->
+    </div>
+    <mat-divider class="my-3"></mat-divider>
   </div>
-  <mat-divider class="my-3"></mat-divider>
+
+  <!-- Mobile Card View -->
+  <div class="mobile-card-view">
+    <div
+      class="material-card"
+      *ngFor="let item of pagedMaterials; let i = index"
+    >
+      <div class="card-header">
+        <div class="card-title">
+          <div class="sap-code">{{ item.sapCode }}</div>
+          <div class="product-name">{{ item.productName }}</div>
+        </div>
+        <div class="card-actions">
+          <button
+            mat-icon-button
+            color="primary"
+            (click)="onAction('view', item, i)"
+            matTooltip="Xem"
+          >
+            <mat-icon>visibility</mat-icon>
+          </button>
+
+          <button
+            *ngIf="isDisable"
+            mat-icon-button
+            color="accent"
+            (click)="onAction('edit', item, i)"
+            matTooltip="Sửa"
+          >
+            <mat-icon>edit</mat-icon>
+          </button>
+
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="moreMenu"
+            matTooltip="Thêm"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+
+          <mat-menu #moreMenu="matMenu">
+            <button
+              mat-menu-item
+              *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
+              [disabled]="!canDelete(item)"
+              (click)="onAction('delete', item, i)"
+            >
+              <mat-icon color="warn">delete</mat-icon>
+              <span>Xóa</span>
+            </button>
+
+            <button
+              mat-menu-item
+              *ngIf="!isDisable"
+              (click)="onAction('exportCsv', item, i)"
+            >
+              <mat-icon>download</mat-icon>
+              <span>Xuất CSV</span>
+            </button>
+
+            <button
+              mat-menu-item
+              [disabled]="item.UploadPanacim || isDisable"
+              (click)="onAction('exportCsvToFixedIP', item, i)"
+            >
+              <mat-icon>system_update_alt</mat-icon>
+              <span>Xuất CSV Server</span>
+            </button>
+
+            <button
+              mat-menu-item
+              *ngIf="!isDisable"
+              [disabled]="isDisable"
+              (click)="onAction('print', item, i)"
+            >
+              <mat-icon>local_printshop</mat-icon>
+              <span>In tem</span>
+            </button>
+
+            <button mat-menu-item>
+              <mat-icon>qr_code_scanner</mat-icon>
+              <span>Scan</span>
+            </button>
+          </mat-menu>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">STT:</span>
+          <span class="value">{{
+            materialCurrentPage * materialPageSize + i + 1
+          }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Part Number:</span>
+          <span class="value">{{ item.partNumber }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">LOT:</span>
+          <span class="value">{{ item.lot }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Storage Unit:</span>
+          <span class="value">{{ item.storageUnit }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Số TEM:</span>
+          <span class="value">{{ item.temQuantity }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Initial Quantity:</span>
+          <span class="value">{{ item.initialQuantity }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Vendor:</span>
+          <span class="value">{{ item.vendor }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Rank M:</span>
+          <span class="value">{{ item.userData1 }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Rank A:</span>
+          <span class="value">{{ item.userData2 }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Rank Q:</span>
+          <span class="value">{{ item.userData3 }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">User Data 4:</span>
+          <span class="value">{{ item.userData4 }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Mã PO:</span>
+          <span class="value">{{ item.userData5 }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Ngày sản xuất:</span>
+          <span class="value">{{
+            item.manufacturingDate | date: "dd/MM/yyyy"
+          }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Ngày hết hạn:</span>
+          <span class="value">{{
+            item.expirationDate | date: "dd/MM/yyyy"
+          }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Ngày về:</span>
+          <span class="value">{{ item.arrivalDate | date: "dd/MM/yyyy" }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <mat-paginator
     [length]="materialTotalItems"
     [pageSize]="materialPageSize"

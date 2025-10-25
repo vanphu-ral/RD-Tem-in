@@ -30,7 +30,7 @@ import { InMemoryCache } from "@apollo/client/cache";
 import { GenerateTemInConfirmDialogComponent } from "./generate-tem-in-modal-confirm/modal-confirm.component";
 import { MatCardModule } from "@angular/material/card";
 import { MatExpansionModule } from "@angular/material/expansion";
-
+import { EditProductDialogComponent } from "./detail/edit-product-dialog.component";
 // import { ApolloModule } from 'apollo-angular';
 // import { HttpClientModule } from '@angular/common/http';
 import { MatDialogModule } from "@angular/material/dialog";
@@ -83,6 +83,7 @@ import { MatDividerModule } from "@angular/material/divider";
     GenerateTemInConfirmDialogComponent,
     GenerateTemInImportEditDialogComponent,
     SaveConfirmationDialogComponent,
+    EditProductDialogComponent,
   ],
 
   exports: [
@@ -90,6 +91,7 @@ import { MatDividerModule } from "@angular/material/divider";
     GenerateTemInImportComponent,
     GenerateTemInDetailComponent,
     GenerateTemInConfirmDialogComponent,
+    EditProductDialogComponent,
   ],
 })
 export class GenerateTemInModule {}
