@@ -4,6 +4,8 @@ import com.mycompany.panacimmc.domain.Inventory;
 import com.mycompany.panacimmc.domain.InventoryResponse;
 import java.util.List;
 import javax.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -480,6 +482,110 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         String materialIdentifier
     );
 
+    //    @Query(
+    //        value = "SELECT  \n" +
+    //        "     a.[Inventory_Id] AS inventoryId\n" +
+    //        "    ,a.[Inventory_PartId] AS partId\n" +
+    //        "    ,a.[Inventory_PartNumber] AS partNumber\n" +
+    //        "    ,a.[Inventory_TrackingType] AS trackingType\n" +
+    //        "    ,a.[Inventory_MaterialTraceId] AS materialTraceId\n" +
+    //        "    ,a.[Inventory_Quantity] AS quantity\n" +
+    //        "    ,a.[Inventory_LocationId] AS locationId\n" +
+    //        "    ,a.[Inventory_ParentLocationId] AS parentLocationId\n" +
+    //        "    ,a.[Inventory_LastLocationId] AS lastLocationId\n" +
+    //        "    ,a.[Inventory_MaterialControl] AS materialControl\n" +
+    //        "    ,a.[Inventory_MaterialIdentifier] AS materialIdentifier\n" +
+    //        "    ,a.[Inventory_Status] AS status\n" +
+    //        "    ,a.[Inventory_ReservationReference] AS reservationReference\n" +
+    //        "    ,a.[Inventory_ExpirationDate] AS expirationDate\n" +
+    //        "    ,a.[Inventory_ReceivedDate] AS receivedDate\n" +
+    //        "    ,a.[Inventory_UOMId] AS uomId\n" +
+    //        "    ,a.[Inventory_UOMName] AS uomName\n" +
+    //        "    ,a.[Inventory_UpdatedDate] AS updatedDate\n" +
+    //        "    ,a.[Inventory_UpdatedBy] AS updatedBy\n" +
+    //        "    ,a.[Inventory_LabelingStatus] AS labelingStatus\n" +
+    //        "    ,a.[Inventory_Printer] AS printer\n" +
+    //        "    ,a.[Inventory_SplicedMaterialIdentifier] AS splicedMaterialIdentifier\n" +
+    //        "    ,a.[Inventory_SplicedInventoryId] AS splicedInventoryId\n" +
+    //        "    ,a.[Inventory_CarrierId] AS carrierId\n" +
+    //        "    ,a.[Inventory_CarrierNumber] AS carrierNumber\n" +
+    //        "    ,a.[Inventory_ReservedQuantity] AS reservedQuantity\n" +
+    //        "    ,a.[Inventory_CalculatedStatus] AS calculatedStatus\n" +
+    //        "    ,a.[Inventory_InitialQuantity] AS initialQuantity\n" +
+    //        "    ,a.[Inventory_AvailableQuantity] AS availableQuantity\n" +
+    //        "    ,a.[Inventory_ConsumedQuantity] AS consumedQuantity\n" +
+    //        "    ,a.[Inventory_ScrappedQuantity] AS scrappedQuantity\n" +
+    //        "    ,a.[Inventory_ParentInventory_Id] AS parentInventoryId\n" +
+    //        "    ,a.[Inventory_ParentMaterialIdentifier] AS parentMaterialIdentifier\n" +
+    //        "    ,a.[Inventroy_MaterialName] AS materialName\n" +
+    //        "    ,a.[Inventory_PU_Location] AS puLocation\n" +
+    //        "    ,a.[Inventory_LifetimeCount] AS lifetimeCount\n" +
+    //        "    ,a.[Inventory_Bulk_Barcode] AS bulkBarcode\n" +
+    //        "    ,a.[Inventory_Is_Bulk] AS isBulk\n" +
+    //        "    ,a.[Inventory_ManufacturingDate] AS manufacturingDate\n" +
+    //        "    ,a.[Inventory_PartClass] AS partClass\n" +
+    //        "    ,a.[Inventory_MaterialType] AS materialType\n" +
+    //        "    ,a.[Inventory_CheckinDate] AS checkinDate\n" +
+    //        "    ,a.[Inventory_UsageCount] AS usageCount\n" +
+    //        "    ,a.[Inventory_PartAlternateNumbers_Id] AS partAlternateNumbersId\n" +
+    //        "    ,a.[Inventory_ReelNumber] AS reelNumber\n" +
+    //        "    ,a.[Inventory_MainReelId] AS mainReelId\n" +
+    //        "    ,a.[Inventory_ReasonCode] AS reasonCode\n" +
+    //        "    ,a.[Inventory_LastCarrierNumber] AS lastCarrierNumber\n" +
+    //        "    ,b.Location_FullName AS locationName\n" +
+    //        "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
+    //        "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
+    //        "    ,d3.InventoryMaterialTraceDetail_MaterialTraceDataValue  as userData5 " +
+    //        "FROM Inventory a\n" +
+    //        "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+    //        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
+    //        "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
+    //        "  ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+    //        " AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+    //        "\n" +
+    //        "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
+    //        "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+    //        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
+    //        "LEFT JOIN InventoryMaterialTraceDetail d3 \n" +
+    //        "  ON d3.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
+    //        " AND d3.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 5' \n" +
+    //        "WHERE a.Inventory_MaterialIdentifier like ?1 " +
+    //        "AND a.Inventory_Status in(3,6,19) and Inventory_Quantity >0 " +
+    //        "AND a.Inventory_Status like ?2 " +
+    //        "AND a.Inventory_PartNumber like ?3 " +
+    //        "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
+    //        "AND ( ?5 IS NULL OR a.Inventory_AvailableQuantity = ?5 ) " +
+    //        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?6 " +
+    //        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
+    //        "AND d3.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?8 " +
+    //        "AND b.Location_FullName like ?9 " +
+    //        "AND ( ?10 IS NULL OR a.Inventory_ExpirationDate like ?10) " +
+    //        "AND (\n" +
+    //        "  ?11 IS NULL OR \n" +
+    //        "  a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND \n" +
+    //        "  a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400\n" +
+    //        ")" +
+    //        "ORDER BY a.Inventory_UpdatedDate desc " +
+    //        "OFFSET ?12 ROWS FETCH NEXT ?13 ROWS ONLY ;\n",
+    //        nativeQuery = true
+    //    )
+    //    public List<InventoryResponse> getInventories(
+    //        String materialIdentifier,
+    //        String status,
+    //        String partNumber,
+    //        Integer quantity,
+    //        Integer availableQuantity,
+    //        String lotNumber,
+    //        String userData4,
+    //        String userData5,
+    //        String locationName,
+    //        String expirationDate,
+    //        String updatedDate,
+    //        Integer pageNumber,
+    //        Integer itemPerPage
+    //    );
+
+    //
     @Query(
         value = "SELECT  \n" +
         "     a.[Inventory_Id] AS inventoryId\n" +
@@ -531,43 +637,56 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,a.[Inventory_ReasonCode] AS reasonCode\n" +
         "    ,a.[Inventory_LastCarrierNumber] AS lastCarrierNumber\n" +
         "    ,b.Location_FullName AS locationName\n" +
-        "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4 " +
-        "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue  as lotNumber " +
-        "    ,d3.InventoryMaterialTraceDetail_MaterialTraceDataValue  as userData5 " +
+        "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData4\n" +
+        "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue as lotNumber\n" +
+        "    ,d3.InventoryMaterialTraceDetail_MaterialTraceDataValue as userData5\n" +
+        "    ,d4.InventoryMaterialTraceDetail_MaterialTraceDataValue as rankAp\n" +
+        "    ,d5.InventoryMaterialTraceDetail_MaterialTraceDataValue as rankQuang\n" +
+        "    ,d6.InventoryMaterialTraceDetail_MaterialTraceDataValue as rankMau\n" +
         "FROM Inventory a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
-        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId " +
-        "  LEFT JOIN InventoryMaterialTraceDetail d1 \n" +
-        "  ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
-        " AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
-        "\n" +
-        "LEFT JOIN InventoryMaterialTraceDetail d2 \n" +
-        "  ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
-        " AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot' " +
-        "LEFT JOIN InventoryMaterialTraceDetail d3 \n" +
-        "  ON d3.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
-        " AND d3.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 5' \n" +
-        "WHERE a.Inventory_MaterialIdentifier like ?1 " +
-        "AND a.Inventory_Status in(3,6,19) and Inventory_Quantity >0 " +
-        "AND a.Inventory_Status like ?2 " +
-        "AND a.Inventory_PartNumber like ?3 " +
-        "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
-        "AND ( ?5 IS NULL OR a.Inventory_AvailableQuantity = ?5 ) " +
-        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?6 " +
-        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
-        "AND d3.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?8 " +
-        "AND b.Location_FullName like ?9 " +
-        "AND ( ?10 IS NULL OR a.Inventory_ExpirationDate like ?10) " +
-        "AND (\n" +
-        "  ?11 IS NULL OR \n" +
-        "  a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND \n" +
-        "  a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400\n" +
-        ")" +
-        "ORDER BY a.Inventory_UpdatedDate desc " +
-        "OFFSET ?12 ROWS FETCH NEXT ?13 ROWS ONLY ;\n",
+        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d1 ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d2 ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d3 ON d3.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d3.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 5'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d4 ON d4.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d4.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank ap'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d5 ON d5.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d5.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank quang'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d6 ON d6.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d6.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank mau'\n" +
+        "WHERE a.Inventory_MaterialIdentifier LIKE ?1\n" +
+        "AND a.Inventory_Status IN (3,6,19) AND a.Inventory_Quantity > 0\n" +
+        "AND a.Inventory_Status LIKE ?2\n" +
+        "AND a.Inventory_PartNumber LIKE ?3\n" +
+        "AND (?4 IS NULL OR a.Inventory_Quantity = ?4)\n" +
+        "AND (?5 IS NULL OR a.Inventory_AvailableQuantity = ?5)\n" +
+        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?6\n" +
+        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?7\n" +
+        "AND d3.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?8\n" +
+        "AND b.Location_FullName LIKE ?9\n" +
+        "AND (?10 IS NULL OR a.Inventory_ExpirationDate LIKE ?10)\n" +
+        "AND (?11 IS NULL OR a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400)" +
+        "ORDER BY a.Inventory_UpdatedDate DESC " +
+        "OFFSET ?12 ROWS FETCH NEXT ?13 ROWS ONLY",
+        countQuery = "SELECT COUNT(*) FROM Inventory a\n" +
+        "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+        "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d1 ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d2 ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d3 ON d3.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d3.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 5'\n" +
+        "WHERE a.Inventory_MaterialIdentifier LIKE ?1\n" +
+        "AND a.Inventory_Status IN (3,6,19) AND a.Inventory_Quantity > 0\n" +
+        "AND a.Inventory_Status LIKE ?2\n" +
+        "AND a.Inventory_PartNumber LIKE ?3\n" +
+        "AND (?4 IS NULL OR a.Inventory_Quantity = ?4)\n" +
+        "AND (?5 IS NULL OR a.Inventory_AvailableQuantity = ?5)\n" +
+        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?6\n" +
+        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?7\n" +
+        "AND d3.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?8\n" +
+        "AND b.Location_FullName LIKE ?9\n" +
+        "AND (?10 IS NULL OR a.Inventory_ExpirationDate LIKE ?10)\n" +
+        "AND (?11 IS NULL OR a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400)",
         nativeQuery = true
     )
-    public List<InventoryResponse> getInventories(
+    List<InventoryResponse> getInventories(
         String materialIdentifier,
         String status,
         String partNumber,
@@ -579,8 +698,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         String locationName,
         String expirationDate,
         String updatedDate,
-        Integer pageNumber,
-        Integer itemPerPage
+        Integer offset,
+        Integer pageSize
     );
 
     @Query(

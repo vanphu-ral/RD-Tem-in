@@ -690,7 +690,7 @@
         *ngIf="
           !isLoadingTemDetails && temDetailList && temDetailList.length > 0
         "
-        class="table-container-modal"
+        class="table-container-modal desktop-view"
       >
         <div class="table-scroll-wrapper-view">
           <table
@@ -1141,7 +1141,7 @@
                 <div class="qr-box">
                   <qrcode
                     [qrdata]="label.qrCode"
-                    [width]="90"
+                    [width]="100"
                     [margin]="0"
                     [errorCorrectionLevel]="'M'"
                     [attr.data-label-id]="label.id + '-' + i"
@@ -1205,10 +1205,10 @@
                 </div>
 
                 <div class="storage-unit">{{ label.storageUnit }}</div>
-                <div class="lot-info">
+                <!-- <div class="lot-info">
                   <span>Lo:</span>
                   <span class="lot-info-bold">{{ label.lot }}</span>
-                </div>
+                </div> -->
 
                 <div class="barcode-box">
                   <div class="bc-item-compact">
@@ -1233,9 +1233,10 @@
                     </div>
                   </div>
                 </div>
-                <div class="product-name-small">{{ label.productName }}</div>
+                <!-- <div class="product-name-small">{{ label.productName }}</div> -->
               </div>
             </div>
+            <div class="product-name-small">{{ label.productName }}</div>
           </div>
         </div>
       </div>

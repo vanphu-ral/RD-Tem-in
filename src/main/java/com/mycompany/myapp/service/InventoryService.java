@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import javax.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -228,23 +229,79 @@ public class InventoryService {
     public InventoriesResponse getInventoriesResponse(
         InventoryRequestDTO request
     ) {
-        List<InventoryResponse> inventories = this.getInventories(request);
-        Integer totalItems = this.getTotalInventories(request);
-        return new InventoriesResponse(totalItems, inventories);
+        Page<InventoryResponse> page = this.getInventories(request);
+        return new InventoriesResponse(
+            (int) page.getTotalElements(),
+            page.getContent()
+        );
     }
 
-    public List<InventoryResponse> getInventories(InventoryRequestDTO request) {
-        System.out.println("get pageNumber: " + request.getPageNumber());
+    //    public InventoriesResponse getInventoriesResponse(
+    //        InventoryRequestDTO request
+    //    ) {
+    //        List<InventoryResponse> inventories = this.getInventories(request);
+    //        Integer totalItems = this.getTotalInventories(request);
+    //        return new InventoriesResponse(totalItems, inventories);
+    //    }
 
+    //    public List<InventoryResponse> getInventories(InventoryRequestDTO request) {
+    //        System.out.println("get pageNumber: " + request.getPageNumber());
+    //
+    //        String updatedDateEpoch = Optional.ofNullable(request.getUpdatedDate())
+    //            .filter(dateStr -> !dateStr.isBlank())
+    //            .map(dateStr -> {
+    //                try {
+    //                    // Nếu là số, giữ nguyên
+    //                    if (dateStr.matches("\\d+")) {
+    //                        return dateStr;
+    //                    }
+    //                    // Nếu là chuỗi ngày, parse sang epoch
+    //                    LocalDate date = LocalDate.parse(
+    //                        dateStr,
+    //                        DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    //                    );
+    //                    return String.valueOf(
+    //                        date
+    //                            .atStartOfDay(ZoneId.systemDefault())
+    //                            .toEpochSecond()
+    //                    );
+    //                } catch (Exception e) {
+    //                    return null;
+    //                }
+    //            })
+    //            .orElse(null);
+    //
+    //        System.out.println("updatedDateEpoch: " + updatedDateEpoch);
+    //        return this.inventoryRepository.getInventories(
+    //            "%" +
+    //            Optional.ofNullable(request.getMaterialIdentifier()).orElse("") +
+    //            "%",
+    //            "%" + Optional.ofNullable(request.getStatus()).orElse("") + "%",
+    //            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+    //            request.getQuantity(),
+    //            request.getAvailableQuantity(),
+    //            "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
+    //            "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",
+    //            "%" + Optional.ofNullable(request.getUserData5()).orElse("") + "%",
+    //            "%" +
+    //            Optional.ofNullable(request.getLocationName()).orElse("") +
+    //            "%",
+    //            "%" +
+    //            Optional.ofNullable(request.getExpirationDate()).orElse("") +
+    //            "%",
+    //            updatedDateEpoch,
+    //            (request.getPageNumber() - 1) * request.getItemPerPage(),
+    //            request.getItemPerPage()
+    //        );
+    //    }
+    public Page<InventoryResponse> getInventories(InventoryRequestDTO request) {
         String updatedDateEpoch = Optional.ofNullable(request.getUpdatedDate())
             .filter(dateStr -> !dateStr.isBlank())
             .map(dateStr -> {
                 try {
-                    // Nếu là số, giữ nguyên
                     if (dateStr.matches("\\d+")) {
                         return dateStr;
                     }
-                    // Nếu là chuỗi ngày, parse sang epoch
                     LocalDate date = LocalDate.parse(
                         dateStr,
                         DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -260,8 +317,44 @@ public class InventoryService {
             })
             .orElse(null);
 
-        System.out.println("updatedDateEpoch: " + updatedDateEpoch);
-        return this.inventoryRepository.getInventories(
+        int pageNumber = request.getPageNumber();
+        int pageSize = request.getItemPerPage();
+        int offset = (pageNumber - 1) * pageSize;
+
+        List<InventoryResponse> inventories =
+            inventoryRepository.getInventories(
+                "%" +
+                Optional.ofNullable(request.getMaterialIdentifier()).orElse(
+                    ""
+                ) +
+                "%",
+                "%" + Optional.ofNullable(request.getStatus()).orElse("") + "%",
+                "%" +
+                Optional.ofNullable(request.getPartNumber()).orElse("") +
+                "%",
+                request.getQuantity(),
+                request.getAvailableQuantity(),
+                "%" +
+                Optional.ofNullable(request.getLotNumber()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData4()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getUserData5()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getLocationName()).orElse("") +
+                "%",
+                "%" +
+                Optional.ofNullable(request.getExpirationDate()).orElse("") +
+                "%",
+                updatedDateEpoch,
+                offset,
+                pageSize
+            );
+
+        int totalItems = inventoryRepository.getTotalInventories(
             "%" +
             Optional.ofNullable(request.getMaterialIdentifier()).orElse("") +
             "%",
@@ -278,10 +371,11 @@ public class InventoryService {
             "%" +
             Optional.ofNullable(request.getExpirationDate()).orElse("") +
             "%",
-            updatedDateEpoch,
-            (request.getPageNumber() - 1) * request.getItemPerPage(),
-            request.getItemPerPage()
+            updatedDateEpoch
         );
+
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+        return new PageImpl<>(inventories, pageable, totalItems);
     }
 
     public Integer getTotalInventories(InventoryRequestDTO request) {

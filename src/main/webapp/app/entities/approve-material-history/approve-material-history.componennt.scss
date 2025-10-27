@@ -85,7 +85,7 @@ th {
 }
 
 .full-scroll-table-container {
-  height: 750px;
+  height: 100%;
   //  width: 1660px;
   max-width: 100%;
   overflow: auto;
@@ -447,7 +447,8 @@ td.mat-mdc-cell.status-reject {
   display: flex;
   flex-direction: column;
   height: 900px;
-  width: calc(100% - 50px);
+  // width: calc(100% - 50px);
+  width: 100%;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   margin-top: 5px;

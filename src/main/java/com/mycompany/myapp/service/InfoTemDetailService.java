@@ -74,6 +74,7 @@ public class InfoTemDetailService {
                     String qrCode = String.join(
                         "#",
                         reelId, // REELID
+                        product.getProductName(), // PartNumber
                         product.getPartNumber(), // PartNumber
                         product.getVendor(), // Vendor
                         product.getLot(), // Lot_Number
@@ -96,7 +97,7 @@ public class InfoTemDetailService {
                     detail.setProductOfRequestId(product.getId());
                     detail.setReelID(reelId);
                     detail.setSapCode(product.getSapCode());
-                    detail.setProductName(product.getPartNumber()); // hoặc lấy từ master table
+                    detail.setProductName(product.getProductName()); // hoặc lấy từ master table
                     detail.setPartNumber(product.getPartNumber());
                     detail.setLot(product.getLot());
                     detail.setInitialQuantity(

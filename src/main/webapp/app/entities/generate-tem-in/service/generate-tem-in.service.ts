@@ -429,6 +429,14 @@ export class GenerateTemInService {
         throw new Error(`Row ${index + 1}: Arrival Date is required`);
       }
 
+      const formattedExpirationDate = this.formatDateFromExcel(
+        item.expirationDate,
+      );
+      const formattedManufacturingDate = this.formatDateFromExcel(
+        item.manufacturingDate,
+      );
+      const formattedArrivalDate = this.formatDateFromExcel(item.arrivalDate);
+
       return {
         sapCode: item.sapCode.trim(),
         productName: item.tenSP?.trim() ?? "",
@@ -444,9 +452,9 @@ export class GenerateTemInService {
         userData4: item.userData4 ?? "",
         userData5: item.userData5 ?? "",
         storageUnit: item.storageUnit ?? "",
-        expirationDate: item.expirationDate.trim(),
-        manufacturingDate: item.manufacturingDate.trim(),
-        arrivalDate: item.arrivalDate.trim(),
+        expirationDate: formattedExpirationDate,
+        manufacturingDate: formattedManufacturingDate,
+        arrivalDate: formattedArrivalDate,
       };
     });
 
@@ -521,7 +529,13 @@ export class GenerateTemInService {
       if (!item.arrivalDate || item.arrivalDate.trim() === "") {
         throw new Error(`Row ${index + 1}: Arrival Date is required`);
       }
-
+      const formattedExpirationDate = this.formatDateFromExcel(
+        item.expirationDate,
+      );
+      const formattedManufacturingDate = this.formatDateFromExcel(
+        item.manufacturingDate,
+      );
+      const formattedArrivalDate = this.formatDateFromExcel(item.arrivalDate);
       return {
         sapCode: item.sapCode.trim(),
         productName: item.tenSP?.trim() ?? "",
@@ -537,9 +551,9 @@ export class GenerateTemInService {
         userData4: item.userData4 ?? "",
         userData5: item.userData5 ?? "",
         storageUnit: item.storageUnit ?? "",
-        expirationDate: item.expirationDate.trim(),
-        manufacturingDate: item.manufacturingDate.trim(),
-        arrivalDate: item.arrivalDate.trim(),
+        expirationDate: formattedExpirationDate,
+        manufacturingDate: formattedManufacturingDate,
+        arrivalDate: formattedArrivalDate,
       };
     });
 
@@ -608,6 +622,14 @@ export class GenerateTemInService {
         throw new Error(`Row ${index + 1}: Arrival Date is required`);
       }
 
+      const formattedExpirationDate = this.formatDateFromExcel(
+        item.expirationDate,
+      );
+      const formattedManufacturingDate = this.formatDateFromExcel(
+        item.manufacturingDate,
+      );
+      const formattedArrivalDate = this.formatDateFromExcel(item.arrivalDate);
+
       return {
         requestCreateTemId: requestId,
         sapCode: item.sapCode.trim(),
@@ -623,9 +645,9 @@ export class GenerateTemInService {
         userData4: item.userData4 ?? "",
         userData5: item.userData5 ?? "",
         storageUnit: item.storageUnit ?? "",
-        expirationDate: item.expirationDate.trim(),
-        manufacturingDate: item.manufacturingDate.trim(),
-        arrivalDate: item.arrivalDate.trim(),
+        expirationDate: formattedExpirationDate,
+        manufacturingDate: formattedManufacturingDate,
+        arrivalDate: formattedArrivalDate,
       };
     });
 
@@ -913,5 +935,39 @@ export class GenerateTemInService {
         },
       },
     });
+  }
+  // Thêm hàm helper vào component hoặc service
+  private formatDateFromExcel(dateStr: string): string {
+    if (!dateStr || dateStr.trim() === "") {
+      return "";
+    }
+
+    // Remove any whitespace
+    const cleaned = dateStr.trim();
+
+    // Check if it's in ddMMyyyy format (8 digits)
+    if (/^\d{8}$/.test(cleaned)) {
+      const day = cleaned.substring(0, 2);
+      const month = cleaned.substring(2, 4);
+      const year = cleaned.substring(4, 8);
+
+      // Return in yyyy-MM-dd format (ISO date format)
+      return `${year}-${month}-${day}`;
+    }
+
+    // If already in correct format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+      return cleaned;
+    }
+
+    // Try other common formats
+    // Format: dd/MM/yyyy
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(cleaned)) {
+      const parts = cleaned.split("/");
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+
+    console.warn(`Unknown date format: ${dateStr}`);
+    return cleaned;
   }
 }

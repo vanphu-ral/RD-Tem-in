@@ -25,6 +25,7 @@ import { AlertService } from "app/core/util/alert.service";
 import { AccountService } from "app/core/auth/account.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
+import { ListMaterialService } from "app/entities/list-material/services/list-material.service";
 
 export interface SaveStatus {
   groupIndex: number;
@@ -141,6 +142,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     private accountService: AccountService,
     private router: Router,
     private warehouseCache: WarehouseCacheService,
+    private listMaterial: ListMaterialService,
   ) {}
 
   fc(k: DisplayColumnKeys): FormControl<string | null> {
@@ -157,6 +159,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.listMaterial.initLocations();
     this.accountService.identity().subscribe(() => {
       this.accountService.getAuthenticationState().subscribe((account) => {
         this.currentUser = account?.login ?? "unknown";
@@ -266,7 +269,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
           (item: ExcelImportData, index: number) => ({
             stt: index + 1,
             sapCode: item.sapCode,
-            tenSp: item.partNumber,
+            tenSp: item.tenSP,
             partNumber: item.partNumber,
             lot: item.lot,
             storageUnit: item.storageUnit ?? "",

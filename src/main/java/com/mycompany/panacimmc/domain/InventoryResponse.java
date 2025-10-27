@@ -50,6 +50,10 @@ public interface InventoryResponse {
     String getReasonCode();
     String getLastCarrierNumber();
 
+    String getRankAp();
+    String getRankQuang();
+    String getRankMau();
+
     // Các field từ bảng liên kết
     String getLocationName();
     String getUserData4();

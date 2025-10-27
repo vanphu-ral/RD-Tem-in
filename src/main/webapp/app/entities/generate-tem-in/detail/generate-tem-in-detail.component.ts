@@ -573,17 +573,19 @@ export class GenerateTemInDetailComponent
         background: white !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
 
       #printPreviewClone .label:last-of-type {
         page-break-after: avoid !important;
       }
 
-      /* Content - Thu nhỏ padding */
+      /* Content - 3 cột chính */
       #printPreviewClone .label-content {
         position: relative !important;
         width: 100% !important;
-        height: 100% !important;
+        flex: 1 !important;
         padding: 0.8mm !important;
         gap: 5mm !important;
         transform: none !important;
@@ -592,27 +594,33 @@ export class GenerateTemInDetailComponent
         display: flex !important;
       }
 
-      /* Cột trái - THU NHỎ QR */
+      /* Cột trái - QR CODE NHỎ HƠN */
       #printPreviewClone .col-left {
-        width: 25mm !important;
-        gap: 1.5mm !important;
+        width: 22mm !important;
+        gap: 1mm !important;
+        padding: 1mm !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
 
       #printPreviewClone .qr-box {
-        width: 22mm !important;
-        height: 22mm !important;
-        border: 0.5px solid #000 !important;
-        border-radius: 1px !important;
-        padding: 1.5mm !important;
+        width: 18mm !important;
+        height: 18mm !important;
+        border: 0.3px solid #000 !important;
+        border-radius: 3px !important;
+        padding: 1mm !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
 
-      /* THU NHỎ QR CODE */
+      /* QR CODE - Giữ độ phân giải cao nhưng hiển thị nhỏ */
       #printPreviewClone .qr-box qrcode,
       #printPreviewClone .qr-box canvas {
-        width: 19mm !important;
-        height: 19mm !important;
-        max-width: 19mm !important;
-        max-height: 19mm !important;
+        width: 16mm !important;
+        height: 16mm !important;
+        max-width: 16mm !important;
+        max-height: 16mm !important;
       }
 
       #printPreviewClone .msd-info {
@@ -634,19 +642,21 @@ export class GenerateTemInDetailComponent
       /* Cột giữa */
       #printPreviewClone .col-center {
         flex: 1 !important;
-        gap: 2mm !important;
+        gap: 1mm !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
 
       #printPreviewClone .logo-box {
-        height: 4mm !important;
+        height: 5mm !important;
       }
 
       #printPreviewClone .logo-img {
-        height: 3.5mm !important;
+        height: 4.5mm !important;
       }
 
       #printPreviewClone .sap-code {
-        font-size: 12pt !important;
+        font-size: 16pt !important;
         line-height: 1 !important;
       }
 
@@ -663,12 +673,15 @@ export class GenerateTemInDetailComponent
       #printPreviewClone .info-grid-tem {
         gap: 0.2mm !important;
         line-height: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
 
       #printPreviewClone .info-row-tem {
         font-size: 6pt !important;
         line-height: 1.1 !important;
         gap: 1mm !important;
+        display: flex !important;
       }
 
       #printPreviewClone .info-label-tem {
@@ -677,6 +690,11 @@ export class GenerateTemInDetailComponent
       }
 
       #printPreviewClone .qty-big {
+        font-size: 9pt !important;
+        font-weight: bold !important;
+      }
+      
+      #printPreviewClone .info-value-tem {   
         font-size: 7pt !important;
         font-weight: bold !important;
       }
@@ -685,16 +703,22 @@ export class GenerateTemInDetailComponent
       #printPreviewClone .col-right {
         width: 28mm !important;
         gap: 0.3mm !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
 
       #printPreviewClone .rank-section {
         gap: 0.2mm !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
 
       #printPreviewClone .rank-item-small {
         font-size: 5.5pt !important;
         line-height: 1.1 !important;
-        font-weight: bold;
+        font-weight: bold !important;
+        display: flex !important;
+        justify-content: space-between !important;
       }
 
       #printPreviewClone .storage-unit {
@@ -706,16 +730,23 @@ export class GenerateTemInDetailComponent
       #printPreviewClone .lot-info {
         font-size: 5.5pt !important;
         line-height: 1.1 !important;
+        display: flex !important;
+        gap: 1mm !important;
       }
 
       #printPreviewClone .barcode-box {
         padding: 0.5mm !important;
         gap: 0.2mm !important;
+        max-height: 15.5mm !important;
         border: 0.5px solid #333 !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
 
       #printPreviewClone .bc-item-compact {
         gap: 0.2mm !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
 
       #printPreviewClone .bc-line {
@@ -727,6 +758,7 @@ export class GenerateTemInDetailComponent
       #printPreviewClone .bc-label {
         font-size: 5.5pt !important;
         line-height: 1 !important;
+        font-weight: bold !important;
       }
 
       #printPreviewClone .bc-code {
@@ -746,10 +778,20 @@ export class GenerateTemInDetailComponent
         object-fit: contain !important;
       }
 
+      /* PRODUCT NAME - Hiển thị ở dưới cùng */
       #printPreviewClone .product-name-small {
-        font-size: 5.5pt !important;
-        line-height: 1.1 !important;
-        margin-top: 0.3mm !important;
+        display: block !important;
+        visibility: visible !important;
+        font-size: 7pt !important;
+        line-height: 0.4 !important;
+        padding: 0.5mm 1mm !important;
+        margin: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        background: white !important;
       }
 
       /* Colors */
@@ -1823,7 +1865,7 @@ export class GenerateTemInDetailComponent
             format: "CODE128",
             lineColor: "#000",
             width: 2,
-            height: 28,
+            height: 25,
             displayValue: false,
             margin: 0,
           });
@@ -1838,7 +1880,7 @@ export class GenerateTemInDetailComponent
             format: "CODE128",
             lineColor: "#000",
             width: 2,
-            height: 28,
+            height: 25,
             displayValue: false,
             margin: 0,
           });

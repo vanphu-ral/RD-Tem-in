@@ -450,7 +450,8 @@ td.mat-mdc-cell.status-reject {
   display: flex;
   flex-direction: column;
   // height: 900px;
-  width: calc(100% - 50px);
+  width: 100%;
+  // width: calc(100% - 50px);
   margin-top: 5px;
   padding-left: 0.5rem;
   padding-right: 0.5rem;

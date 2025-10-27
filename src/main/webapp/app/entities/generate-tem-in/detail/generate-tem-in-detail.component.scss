@@ -499,12 +499,12 @@ thead tr:nth-child(2) {
   width: 28mm;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
 }
 
 .qr-box {
-  width: 28mm;
-  height: 28mm;
+  width: 24mm;
+  height: 24mm;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -636,10 +636,9 @@ thead tr:nth-child(2) {
 .barcode-box {
   border: 1px solid #333;
   border-radius: 3px;
-  padding: 1.5mm;
+  padding: 0.5mm;
   display: flex;
   flex-direction: column;
-  gap: 1mm;
   flex: 1;
 }
 
@@ -677,9 +676,12 @@ thead tr:nth-child(2) {
 }
 
 .product-name-small {
-  font-size: 8px;
+  font-size: 10px;
   text-align: right;
   line-height: 0.4;
+  font-weight: bold;
+  margin-top: -12px;
+  margin-right: 1rem;
 }
 
 //modal
@@ -1543,6 +1545,7 @@ mat-toolbar {
             flex-shrink: 0;
             min-width: 120px;
             max-width: 40%;
+            height: 1rem;
           }
 
           .value {

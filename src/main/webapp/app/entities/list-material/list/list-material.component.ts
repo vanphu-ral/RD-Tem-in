@@ -143,6 +143,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         completed: false,
       },
       { name: "Tracking Type", matColumnDef: "trackingType", completed: false },
+      { name: "Rank Ap", matColumnDef: "rankAp", completed: false },
+      { name: "Rank Quang", matColumnDef: "rankQuang", completed: false },
+      { name: "Rank Mau", matColumnDef: "rankMau", completed: false },
       { name: "InventoryId", matColumnDef: "inventoryId", completed: false },
       { name: "Quantity", matColumnDef: "quantity", completed: false },
       {
@@ -195,7 +198,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   dataSource = new MatTableDataSource<RawGraphQLMaterial>();
   length = 0;
   pageSize = 50;
-  pageIndex = 1;
+  pageIndex = 0;
   pageSizeOptions = [15, 25, 50, 100, 150];
   hidePageSize = false;
   showPageSizeOptions = true;
@@ -320,16 +323,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        //lấy param từ
-        // this.mapParamsToFilters(effectiveParams);
-        // this.pageIndex = (effectiveParams.page ?? 1) - 1;
-        // this.pageSize = effectiveParams.pageSize ?? this.pageSize;
-        // this.fetchPage({
-        //   ...effectiveParams,
-        //   page: this.pageIndex + 1,
-        //   pageSize: this.pageSize,
-        // });
-
         this.mapParamsToFilters(initialParams);
         this.pageIndex = (initialParams.page ?? 1) - 1;
         this.pageSize = initialParams.pageSize ?? this.pageSize;
@@ -342,6 +335,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onPageChange(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
