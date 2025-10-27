@@ -187,6 +187,9 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
       return (
         (filters.status === "" || data.status === filters.status) &&
         data.vendor.toLowerCase().includes(filters.vendor.toLowerCase()) &&
+        data.vendorName
+          .toLowerCase()
+          .includes(filters.vendorName.toLowerCase()) &&
         data.userData5
           .toLowerCase()
           .includes(filters.userData5.toLowerCase()) &&

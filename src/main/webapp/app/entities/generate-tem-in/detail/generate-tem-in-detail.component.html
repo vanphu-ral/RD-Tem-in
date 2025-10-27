@@ -1,14 +1,15 @@
 <div class="container mat-elevation-z2">
   <!-- Header -->
-  <div class="mb-4">
+  <div class="mb-4 hide-on-mobile">
     <h2>Chi tiết thông tin vật tư</h2>
   </div>
 
   <!-- Toolbar -->
-  <mat-toolbar class="mb-3 mat-elevation-z2">
-    <div class="d-flex justify-content-between w-100">
+  <mat-toolbar class="mb-3 mat-elevation-z2 detail-toolbar">
+    <!-- DESKTOP VIEW (Original) -->
+    <div class="d-flex justify-content-between w-100 desktop-toolbar-content">
       <!-- Trái -->
-      <div class="d-flex align-items-center mobile-header-left">
+      <div class="d-flex align-items-center">
         <button mat-icon-button (click)="goBack()" class="mr-3">
           <mat-icon>arrow_back</mat-icon>
         </button>
@@ -19,7 +20,7 @@
       </div>
 
       <!-- Phải -->
-      <div class="d-flex align-items-center gap-3 mobile-header-right">
+      <div class="d-flex align-items-center gap-3">
         <!-- Nhập kho -->
         <mat-form-field
           appearance="outline"
@@ -98,6 +99,110 @@
             <fa-icon [icon]="faPrint"></fa-icon>
           </button>
         </span>
+      </div>
+    </div>
+
+    <!-- MOBILE VIEW (2 rows) -->
+    <div class="mobile-toolbar-content">
+      <!-- Row 1: Back + Title + PO -->
+      <div class="mobile-toolbar-row-1">
+        <button mat-icon-button (click)="goBack()" class="mobile-back-btn">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="mobile-title-section">
+          <h3 class="mobile-page-title">Chi tiết vật tư</h3>
+          <div class="mobile-po-info">
+            <span class="po-label">PO:</span>
+            <span class="po-value">{{ poNumber }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Kho input (nếu có) -->
+      <div class="mobile-toolbar-row-2" *ngIf="!isDisableGenerate">
+        <mat-form-field appearance="outline" class="mobile-storage-field">
+          <mat-label>Update kho</mat-label>
+          <input
+            type="text"
+            matInput
+            [(ngModel)]="selectedStorageUnit"
+            [matAutocomplete]="autoMobile"
+            (input)="filterStorageUnits()"
+            autocomplete="off"
+          />
+          <mat-icon matPrefix>warehouse</mat-icon>
+          <mat-autocomplete
+            #autoMobile="matAutocomplete"
+            (optionSelected)="onSelectUnit($event.option.value)"
+          >
+            <mat-option *ngFor="let unit of filteredUnits" [value]="unit">
+              {{ unit }}
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+      </div>
+
+      <!-- Row 3: Action Buttons -->
+      <div class="mobile-toolbar-row-3">
+        <!-- Generate + Lưu (khi chưa generate) -->
+        <ng-container *ngIf="!isDisableGenerate">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="onGenerateTemForRequest(requestId)"
+            class="mobile-action-btn"
+          >
+            <mat-icon>add_circle</mat-icon>
+            <span>Generate tem</span>
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="saveLocation()"
+            class="mobile-action-btn"
+          >
+            <mat-icon>save</mat-icon>
+            <span>Lưu</span>
+          </button>
+        </ng-container>
+
+        <!-- Export + Print (sau khi generate) -->
+        <ng-container *ngIf="!isDisable">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="openCsvPreview(requestId)"
+            class="mobile-action-btn"
+            matTooltip="Xuất CSV"
+          >
+            <fa-icon [icon]="faFileCsv"></fa-icon>
+            <span>CSV</span>
+          </button>
+
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="openPrintPreviewAll(requestId)"
+            class="mobile-action-btn"
+            matTooltip="In tất cả tem"
+          >
+            <fa-icon [icon]="faPrint"></fa-icon>
+            <span>In all tem</span>
+          </button>
+        </ng-container>
+
+        <!-- Upload to server -->
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="onExportAllClicked()"
+          [disabled]="isDisable || allUploaded"
+          class="mobile-action-btn"
+          matTooltip="Xuất CSV đến server"
+        >
+          <mat-icon>system_update_alt</mat-icon>
+          <span>Đẩy CSV vào HT</span>
+        </button>
       </div>
     </div>
   </mat-toolbar>
@@ -623,20 +728,6 @@
           Thông Tin Sản Phẩm
         </h3>
         <div class="info-grid">
-          <!-- <div class="info-item">
-            <span class="info-label">Tìm kiếm</span>
-            <mat-form-field
-              appearance="outline"
-              class="w-full mt-1 small-form-field"
-            >
-              <input
-                matInput
-                [(ngModel)]="searchReelId"
-                (ngModelChange)="filterTemDetails()"
-                placeholder="Tìm kiếm ReelID"
-              />
-            </mat-form-field>
-          </div> -->
           <div class="info-item">
             <span class="info-label">SAP Code</span>
             <span class="info-value">{{ selectedProductItem?.sapCode }}</span>
@@ -685,7 +776,7 @@
         <p class="empty-text">Chưa có tem nào được tạo cho sản phẩm này</p>
       </div>
 
-      <!-- Danh sách tem -->
+      <!-- ========== DESKTOP VIEW - TABLE ========== -->
       <div
         *ngIf="
           !isLoadingTemDetails && temDetailList && temDetailList.length > 0
@@ -836,16 +927,6 @@
               </td>
             </ng-container>
 
-            <!-- SL Tem Column -->
-            <!-- <ng-container matColumnDef="slTemQuantity">
-              <th mat-header-cell *matHeaderCellDef class="text-center">
-                SL Tem
-              </th>
-              <td mat-cell *matCellDef="let item" class="text-center">
-                {{ item.slTemQuantity || 1 }}
-              </td>
-            </ng-container> -->
-
             <!-- QR Code Column -->
             <ng-container matColumnDef="qrCode">
               <th mat-header-cell *matHeaderCellDef>QR Code</th>
@@ -863,16 +944,168 @@
           </table>
         </div>
       </div>
+
+      <!-- ========== MOBILE VIEW - CARDS ========== -->
+      <div
+        *ngIf="
+          !isLoadingTemDetails && temDetailList && temDetailList.length > 0
+        "
+        class="mobile-view"
+      >
+        <div class="mobile-cards-container">
+          <mat-card
+            *ngFor="let item of temDetailList; let i = index"
+            class="tem-card"
+          >
+            <!-- Card Header -->
+            <mat-card-header class="tem-card-header">
+              <div class="card-header-content">
+                <div class="card-number">
+                  <mat-icon>tag</mat-icon>
+                  <span>#{{ i + 1 }}</span>
+                </div>
+                <mat-chip color="primary" selected class="chip-small">
+                  ID: {{ item.id }}
+                </mat-chip>
+              </div>
+            </mat-card-header>
+
+            <mat-divider></mat-divider>
+
+            <!-- Card Content -->
+            <mat-card-content class="tem-card-content">
+              <!-- ReelID - Highlighted -->
+              <div class="card-field highlight-field">
+                <mat-icon class="field-icon">qr_code</mat-icon>
+                <div class="field-content">
+                  <span class="field-label">ReelID</span>
+                  <code class="field-value reel-id-mobile">{{
+                    item.reelId
+                  }}</code>
+                </div>
+              </div>
+
+              <!-- Basic Info Grid -->
+              <div class="card-info-grid">
+                <div class="card-field">
+                  <span class="field-label">SAP Code</span>
+                  <span class="field-value">{{ item.sapCode }}</span>
+                </div>
+
+                <div class="card-field">
+                  <span class="field-label">Part Number</span>
+                  <span class="field-value">{{ item.partNumber }}</span>
+                </div>
+
+                <div class="card-field">
+                  <span class="field-label">LOT</span>
+                  <span class="field-value">{{ item.lot }}</span>
+                </div>
+
+                <div class="card-field">
+                  <span class="field-label">Số lượng</span>
+                  <span class="field-value highlight-value">
+                    {{ item.initialQuantity | number }}
+                  </span>
+                </div>
+              </div>
+
+              <mat-divider class="card-divider"></mat-divider>
+
+              <!-- Vendor Info -->
+              <div class="card-section">
+                <h4 class="section-subtitle">
+                  <mat-icon class="subtitle-icon">business</mat-icon>
+                  Thông tin NCC
+                </h4>
+                <div class="card-info-grid">
+                  <div class="card-field">
+                    <span class="field-label">Vendor</span>
+                    <span class="field-value">{{ item.vendor }}</span>
+                  </div>
+                  <div class="card-field">
+                    <span class="field-label">PO Code</span>
+                    <span class="field-value">{{ item.userData5 }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <mat-divider class="card-divider"></mat-divider>
+
+              <!-- Rank Info -->
+              <div class="card-section">
+                <h4 class="section-subtitle">
+                  <mat-icon class="subtitle-icon">star</mat-icon>
+                  Rank
+                </h4>
+                <div class="rank-badges">
+                  <mat-chip class="rank-chip" *ngIf="item.userData1">
+                    Màu: {{ item.userData1 }}
+                  </mat-chip>
+                  <mat-chip class="rank-chip" *ngIf="item.userData2">
+                    Áp: {{ item.userData2 }}
+                  </mat-chip>
+                  <mat-chip class="rank-chip" *ngIf="item.userData3">
+                    Quang: {{ item.userData3 }}
+                  </mat-chip>
+                </div>
+              </div>
+
+              <mat-divider class="card-divider"></mat-divider>
+
+              <!-- Dates Info -->
+              <div class="card-section">
+                <h4 class="section-subtitle">
+                  <mat-icon class="subtitle-icon">event</mat-icon>
+                  Ngày tháng
+                </h4>
+                <div class="card-info-grid">
+                  <div class="card-field">
+                    <span class="field-label">NSX</span>
+                    <span class="field-value">
+                      {{ item.manufacturingDate | date: "dd/MM/yyyy" }}
+                    </span>
+                  </div>
+                  <div class="card-field">
+                    <span class="field-label">HSD</span>
+                    <span class="field-value">
+                      {{ item.expirationDate | date: "dd/MM/yyyy" }}
+                    </span>
+                  </div>
+                  <div class="card-field">
+                    <span class="field-label">Ngày nhập</span>
+                    <span class="field-value">
+                      {{ item.arrivalDate | date: "dd/MM/yyyy" }}
+                    </span>
+                  </div>
+                  <div class="card-field">
+                    <span class="field-label">Kho</span>
+                    <span class="field-value">{{ item.storageUnit }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- QR Code - Expandable -->
+              <mat-expansion-panel class="qr-expansion">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>qr_code_2</mat-icon>
+                    Mã QR Code
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                <code class="qr-code-mobile">{{ item.qrCode }}</code>
+              </mat-expansion-panel>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
     </mat-card-content>
 
     <mat-divider></mat-divider>
 
     <!-- Footer -->
     <mat-card-actions class="modal-footer-material">
-      <!-- <button mat-raised-button color="primary" (click)="closeQrModal()">
-        <mat-icon>close</mat-icon>
-        Đóng
-      </button> -->
+      <!-- Có thể thêm actions nếu cần -->
     </mat-card-actions>
   </mat-card>
 </div>

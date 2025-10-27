@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.panacimmc.repository.LocationRepository;
 import com.mycompany.renderQr.domain.*;
 import com.mycompany.renderQr.repository.InfoTemDetailRepository;
 import com.mycompany.renderQr.repository.ListProductOfRequestRepository;
@@ -27,10 +28,12 @@ public class InfoTemDetailService {
     @Autowired
     private ListRequestCreateTemRepository requestRepo;
 
+    @Autowired
+    private LocationRepository locationRepo;
+
     @Transactional
     public GenerateTemResponse generateTemForAllProducts(Long requestId) {
         try {
-            //Lấy TẤT CẢ sản phẩm từ bảng list_product_of_request
             List<ListProductOfRequest> allProducts =
                 productRepo.findByRequestCreateTemId(requestId);
 
@@ -42,62 +45,121 @@ public class InfoTemDetailService {
                 );
             }
 
-            //Lấy timestamp hiện tại (dùng chung cho tất cả tem)
             String timestamp = LocalDateTime.now().format(
                 DateTimeFormatter.ofPattern("yyyyMMddHHmm")
             );
-            //            System.out.println("Timestamp: " + timestamp);
-
-            // Lấy sequence number cuối cùng
             int reelCounter = getLastSequenceNumber() + 1;
-            //            System.out.println("Bắt đầu từ sequence: " + reelCounter);
 
             List<InfoTemDetail> allTemList = new ArrayList<>();
             int totalTems = 0;
 
-            //Duyệt qua TỪNG sản phẩm
             for (ListProductOfRequest product : allProducts) {
-                // Lấy 2 số cuối của PO code
-                String poNumber = extractPONumber(product.getUserData5());
-                //                System.out.println("PO Number (2 số cuối): " + poNumber);
+                //  VALIDATE dữ liệu sản phẩm
+                if (
+                    product.getTemQuantity() == null ||
+                    product.getTemQuantity() <= 0
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Sản phẩm có số lượng tem không hợp lệ",
+                        0
+                    );
+                }
 
-                // Tạo TEM theo số lượng Tem_quantity
+                if (
+                    product.getInitialQuantity() == null ||
+                    product.getInitialQuantity() <= 0
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Thiếu thông tin số lượng ban đầu",
+                        0
+                    );
+                }
+
+                if (product.getManufacturingDate() == null) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Thiếu ngày sản xuất",
+                        0
+                    );
+                }
+
+                if (
+                    product.getProductName() == null ||
+                    product.getProductName().isBlank()
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Thiếu tên sản phẩm",
+                        0
+                    );
+                }
+
+                if (
+                    product.getPartNumber() == null ||
+                    product.getPartNumber().isBlank()
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Thiếu mã linh kiện",
+                        0
+                    );
+                }
+
+                String poNumber = extractPONumber(product.getUserData5());
+                //                if (poNumber.equals("00")) {
+                //                    return new GenerateTemResponse(false, "PO code không hợp lệ: " + product.getUserData5(), 0);
+                //                }
+
+                //  Kiểm tra kho có tồn tại trong DB
+                if (
+                    product.getStorageUnit() == null ||
+                    locationRepo.checkLocationExists(
+                        product.getStorageUnit()
+                    ) ==
+                    null
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "StorageUnit không hợp lệ: " + product.getStorageUnit(),
+                        0
+                    );
+                }
+
+                //  Sinh tem theo số lượng
                 for (int i = 0; i < product.getTemQuantity(); i++) {
-                    // Generate ReelID: yyyyMMddHHmm + PO(2 số) + XXXX
                     String reelId =
                         timestamp +
                         poNumber +
                         String.format("%04d", reelCounter);
 
-                    // Generate QR Code string
-                    // Format: REELID#PartNumber#Vendor#Lot#RankMàu#RankÁp#RankQuang#UserData4#POCode#Qty#MSL#StorageUnit#MFGDate#SapCode
                     String qrCode = String.join(
                         "#",
-                        reelId, // REELID
-                        product.getProductName(), // PartNumber
-                        product.getPartNumber(), // PartNumber
-                        product.getVendor(), // Vendor
-                        product.getLot(), // Lot_Number
-                        product.getUserData1(), // RankMàu
-                        product.getUserData2(), // RankÁp
-                        product.getUserData3(), // RankQuang
-                        product.getUserData4(), // UserData4
-                        product.getUserData5(), // POCode
-                        String.valueOf(product.getInitialQuantity()), // Qty
-                        "MSL", // MSL (hard-coded)
-                        product.getStorageUnit(), // Storage Unit (từ BE)
+                        reelId,
+                        product.getProductName(),
+                        product.getPartNumber(),
+                        product.getVendor(),
+                        product.getLot(),
+                        product.getUserData1(),
+                        product.getUserData2(),
+                        product.getUserData3(),
+                        product.getUserData4(),
+                        product.getUserData5(),
+                        String.valueOf(product.getInitialQuantity()),
+                        "MSL",
+                        product.getStorageUnit(),
                         product
                             .getManufacturingDate()
-                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")), // MFG Date
-                        product.getSapCode() // SapCode
+                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                        product.getSapCode()
                     );
 
-                    // Tạo entity InfoTemDetail
                     InfoTemDetail detail = new InfoTemDetail();
                     detail.setProductOfRequestId(product.getId());
                     detail.setReelID(reelId);
                     detail.setSapCode(product.getSapCode());
-                    detail.setProductName(product.getProductName()); // hoặc lấy từ master table
+                    detail.setProductName(product.getProductName());
                     detail.setPartNumber(product.getPartNumber());
                     detail.setLot(product.getLot());
                     detail.setInitialQuantity(
@@ -109,7 +171,7 @@ public class InfoTemDetailService {
                     detail.setUserData3(product.getUserData3());
                     detail.setUserData4(product.getUserData4());
                     detail.setUserData5(product.getUserData5());
-                    detail.setStorageUnit(product.getStorageUnit()); // LƯU KHO VÀO ĐÂY
+                    detail.setStorageUnit(product.getStorageUnit());
                     detail.setExpirationDate(
                         product.getExpirationDate().toLocalDate()
                     );
@@ -121,25 +183,16 @@ public class InfoTemDetailService {
                     );
                     detail.setQrCode(qrCode);
 
-                    // Nếu có trường sl_tem_quantity
-
                     allTemList.add(detail);
-                    //                    System.out.println("  Tem #" + (i + 1) + ": " + reelId);
-
                     reelCounter++;
                     totalTems++;
                 }
             }
 
-            // Lưu TẤT CẢ tem vào database một lần
             if (!allTemList.isEmpty()) {
                 detailRepo.saveAll(allTemList);
-                //                System.out.println(
-                //                    "\n=== ĐÃ LƯU " + totalTems + " TEM VÀO DATABASE ==="
-                //                );
             }
 
-            // 7. Cập nhật status  requests thành "Đã tạo mã QR"
             Optional<ListRequestCreateTem> requestOpt = requestRepo.findById(
                 requestId
             );
@@ -155,7 +208,6 @@ public class InfoTemDetailService {
             );
             return new GenerateTemResponse(true, message, totalTems);
         } catch (Exception e) {
-            //            System.out.println("=== LỖI: " + e.getMessage() + " ===");
             e.printStackTrace();
             return new GenerateTemResponse(false, "Lỗi: " + e.getMessage(), 0);
         }

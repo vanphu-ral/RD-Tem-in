@@ -5,6 +5,7 @@ import com.mycompany.panacimmc.domain.LocationResponse;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -22,11 +23,17 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     //    List<LocationResponse> getFullLocation();
     @Query(
         value = "select " +
-        "Location_Id as id" +
-        ",Location_Name as locationName " +
-        ",Location_FullName as locationFullName" +
-        " from Location ;",
+            "Location_Id as id" +
+            ",Location_Name as locationName " +
+            ",Location_FullName as locationFullName" +
+            " from Location ;",
         nativeQuery = true
     )
     public List<LocationResponse> getFullLocation();
+
+    @Query(
+        value = "SELECT TOP 1 1 FROM Location WHERE Location_Name = :locationName",
+        nativeQuery = true
+    )
+    Integer checkLocationExists(@Param("locationName") String locationName);
 }

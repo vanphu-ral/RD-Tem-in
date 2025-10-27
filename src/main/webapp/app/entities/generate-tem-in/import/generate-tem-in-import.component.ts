@@ -159,6 +159,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.showImportPopup = true;
     this.listMaterial.initLocations();
     this.accountService.identity().subscribe(() => {
       this.accountService.getAuthenticationState().subscribe((account) => {

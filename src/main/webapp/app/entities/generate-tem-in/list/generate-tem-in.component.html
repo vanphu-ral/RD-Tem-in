@@ -105,16 +105,17 @@
       mat-table
       [dataSource]="dataSource"
       matSort
-      class="mat-elevation-z1"
+      class="mat-elevation-z1 table-no-scroll"
       multiTemplateDataRows
     >
       <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        <th mat-header-cell *matHeaderCellDef>
           <div class="header-with-filter">
-            <span>Trạng thái</span>
+            <span mat-sort-header>Trạng thái</span>
             <mat-form-field
               appearance="outline"
               class="w-full mt-1 input-filter"
+              (click)="$event.stopPropagation()"
             >
               <mat-select
                 [(value)]="filterValues.status"
@@ -143,18 +144,20 @@
       </ng-container>
 
       <ng-container matColumnDef="vendor">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        <th mat-header-cell *matHeaderCellDef>
           <div class="header-with-filter">
-            Mã NCC
+            <span mat-sort-header>Mã NCC</span>
             <mat-form-field
               appearance="outline"
               class="w-full mt-1 input-filter"
+              (click)="$event.stopPropagation()"
             >
               <input
                 matInput
                 [(ngModel)]="filterValues.vendor"
                 (ngModelChange)="applyFilter()"
                 placeholder="Tìm kiếm"
+                (keydown)="$event.stopPropagation()"
               />
             </mat-form-field>
           </div>
@@ -163,19 +166,20 @@
       </ng-container>
 
       <ng-container matColumnDef="vendorName">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        <th mat-header-cell *matHeaderCellDef>
           <div class="header-with-filter">
-            Tên NCC
+            <span mat-sort-header>Tên NCC</span>
             <mat-form-field
               appearance="outline"
               class="mt-1 input-filter"
-              style="width: 7rem"
+              (click)="$event.stopPropagation()"
             >
               <input
                 matInput
                 [(ngModel)]="filterValues.vendorName"
                 (ngModelChange)="applyFilter()"
                 placeholder="Tìm kiếm"
+                (keydown)="$event.stopPropagation()"
               />
             </mat-form-field>
           </div>
@@ -184,18 +188,20 @@
       </ng-container>
 
       <ng-container matColumnDef="userData5">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        <th mat-header-cell *matHeaderCellDef>
           <div class="header-with-filter">
-            <span>Mã PO</span>
+            <span mat-sort-header>Mã PO</span>
             <mat-form-field
               appearance="outline"
               class="w-full mt-1 input-filter"
+              (click)="$event.stopPropagation()"
             >
               <input
                 matInput
                 [(ngModel)]="filterValues.userData5"
                 (ngModelChange)="applyFilter()"
                 placeholder="Tìm kiếm"
+                (keydown)="$event.stopPropagation()"
               />
             </mat-form-field>
           </div>
@@ -204,12 +210,13 @@
       </ng-container>
 
       <ng-container matColumnDef="createdDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        <th mat-header-cell *matHeaderCellDef>
           <div class="header-with-filter">
-            <span>Ngày tạo</span>
+            <span mat-sort-header>Ngày tạo</span>
             <mat-form-field
               appearance="outline"
               class="w-full mt-1 input-filter"
+              (click)="$event.stopPropagation()"
             >
               <input
                 matInput
@@ -217,6 +224,7 @@
                 [(ngModel)]="filterValues.createdDate"
                 (dateChange)="applyDateFilter()"
                 placeholder="dd/MM/yyyy"
+                (keydown)="$event.stopPropagation()"
               />
               <mat-datepicker-toggle
                 matSuffix
@@ -232,18 +240,20 @@
       </ng-container>
 
       <ng-container matColumnDef="createdBy">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        <th mat-header-cell *matHeaderCellDef>
           <div class="header-with-filter">
-            <span>Tạo bởi</span>
+            <span mat-sort-header>Tạo bởi</span>
             <mat-form-field
               appearance="outline"
               class="w-full mt-1 input-filter"
+              (click)="$event.stopPropagation()"
             >
               <input
                 matInput
                 [(ngModel)]="filterValues.createdBy"
                 (ngModelChange)="applyFilter()"
                 placeholder="Tìm kiếm"
+                (keydown)="$event.stopPropagation()"
               />
             </mat-form-field>
           </div>

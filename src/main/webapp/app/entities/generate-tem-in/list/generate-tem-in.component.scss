@@ -239,11 +239,16 @@
 .table-container {
   max-width: 100%;
   height: calc(100vh - 260px);
-  overflow: auto;
+  overflow-x: hidden !important;
+  overflow-y: auto;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
 }
-
+/* Table tự động fit màn hình */
+.table-no-scroll {
+  width: 100%;
+  table-layout: fixed !important;
+}
 /* ====== Bảng Angular Material ====== */
 .table-container table[mat-table] {
   border-collapse: collapse;
@@ -270,11 +275,15 @@
 }
 
 .mat-column-totalQuantity {
-  width: 10rem;
+  flex: 0 0 120px;
+  max-width: 120px;
+  text-align: center;
 }
 
 .mat-column-numberProduction {
-  width: 10rem;
+  flex: 0 0 110px;
+  max-width: 110px;
+  text-align: center;
 }
 
 ::ng-deep .mat-sort-header-container {
@@ -285,12 +294,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 120px;
   align-items: baseline;
 
   > span {
     font-weight: 600;
     white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
   }
 
   .input-filter {
@@ -366,9 +376,21 @@
   ::ng-deep .mat-mdc-form-field-bottom-align {
     display: none;
   }
+  .mat-column-vendor {
+    flex: 0 0 100px;
+    max-width: 100px;
+  }
 
   .mat-column-vendorName {
-    width: 6rem;
+    flex: 0 0 150px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mat-column-userData5 {
+    flex: 0 0 120px;
+    max-width: 120px;
   }
 }
 
@@ -386,15 +408,18 @@
 }
 
 .table-container .mat-column-createdDate {
+  flex: 0 0 150px;
+  max-width: 150px;
   text-align: left;
+}
+.mat-column-createdBy {
+  flex: 0 0 120px;
+  max-width: 120px;
 }
 
 .table-container .mat-column-status {
-  width: 7.5rem;
-
-  .input-filter {
-    width: 7rem;
-  }
+  flex: 0 0 120px;
+  max-width: 120px;
 }
 
 // .table-container .mat-column-supplierCode  { width: 140px; }
@@ -404,7 +429,14 @@
 // .table-container .mat-column-itemCount     { width: 130px; }
 // .table-container .mat-column-totalQuantity { width: 150px; }
 .table-container .mat-column-actions {
-  width: 100px;
+  flex: 0 0 140px;
+  max-width: 140px;
+}
+.mat-cell,
+.mat-header-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 8px !important;
 }
 
 /* ====== Chip trạng thái ====== */
