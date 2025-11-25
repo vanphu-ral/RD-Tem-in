@@ -19,6 +19,7 @@ import javax.persistence.criteria.Root;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.springframework.beans.BeanUtils;
 import org.springframework.format.datetime.standard.DateTimeFormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
@@ -32,7 +33,10 @@ public final class TestUtil {
 
     private static ObjectMapper createObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS, false);
+        mapper.configure(
+            SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS,
+            false
+        );
         mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         mapper.registerModule(new JavaTimeModule());
         return mapper;
@@ -45,7 +49,8 @@ public final class TestUtil {
      * @return the JSON byte array.
      * @throws IOException
      */
-    public static byte[] convertObjectToJsonBytes(Object object) throws IOException {
+    public static byte[] convertObjectToJsonBytes(Object object)
+        throws IOException {
         return mapper.writeValueAsBytes(object);
     }
 
@@ -65,9 +70,11 @@ public final class TestUtil {
     }
 
     /**
-     * A matcher that tests that the examined string represents the same instant as the reference datetime.
+     * A matcher that tests that the examined string represents the same instant as
+     * the reference datetime.
      */
-    public static class ZonedDateTimeMatcher extends TypeSafeDiagnosingMatcher<String> {
+    public static class ZonedDateTimeMatcher
+        extends TypeSafeDiagnosingMatcher<String> {
 
         private final ZonedDateTime date;
 
@@ -76,7 +83,10 @@ public final class TestUtil {
         }
 
         @Override
-        protected boolean matchesSafely(String item, Description mismatchDescription) {
+        protected boolean matchesSafely(
+            String item,
+            Description mismatchDescription
+        ) {
             try {
                 if (!date.isEqual(ZonedDateTime.parse(item))) {
                     mismatchDescription.appendText("was ").appendValue(item);
@@ -84,28 +94,38 @@ public final class TestUtil {
                 }
                 return true;
             } catch (DateTimeParseException e) {
-                mismatchDescription.appendText("was ").appendValue(item).appendText(", which could not be parsed as a ZonedDateTime");
+                mismatchDescription
+                    .appendText("was ")
+                    .appendValue(item)
+                    .appendText(
+                        ", which could not be parsed as a ZonedDateTime"
+                    );
                 return false;
             }
         }
 
         @Override
         public void describeTo(Description description) {
-            description.appendText("a String representing the same Instant as ").appendValue(date);
+            description
+                .appendText("a String representing the same Instant as ")
+                .appendValue(date);
         }
     }
 
     /**
-     * Creates a matcher that matches when the examined string represents the same instant as the reference datetime.
+     * Creates a matcher that matches when the examined string represents the same
+     * instant as the reference datetime.
      *
-     * @param date the reference datetime against which the examined string is checked.
+     * @param date the reference datetime against which the examined string is
+     *             checked.
      */
     public static ZonedDateTimeMatcher sameInstant(ZonedDateTime date) {
         return new ZonedDateTimeMatcher(date);
     }
 
     /**
-     * A matcher that tests that the examined number represents the same value - it can be Long, Double, etc - as the reference BigDecimal.
+     * A matcher that tests that the examined number represents the same value - it
+     * can be Long, Double, etc - as the reference BigDecimal.
      */
     public static class NumberMatcher extends TypeSafeMatcher<Number> {
 
@@ -147,9 +167,11 @@ public final class TestUtil {
     }
 
     /**
-     * Creates a matcher that matches when the examined number represents the same value as the reference BigDecimal.
+     * Creates a matcher that matches when the examined number represents the same
+     * value as the reference BigDecimal.
      *
-     * @param number the reference BigDecimal against which the examined number is checked.
+     * @param number the reference BigDecimal against which the examined number is
+     *               checked.
      */
     public static NumberMatcher sameNumber(BigDecimal number) {
         return new NumberMatcher(number);
@@ -175,11 +197,14 @@ public final class TestUtil {
     }
 
     /**
-     * Create a {@link FormattingConversionService} which use ISO date format, instead of the localized one.
+     * Create a {@link FormattingConversionService} which use ISO date format,
+     * instead of the localized one.
+     *
      * @return the {@link FormattingConversionService}.
      */
     public static FormattingConversionService createFormattingConversionService() {
-        DefaultFormattingConversionService dfcs = new DefaultFormattingConversionService();
+        DefaultFormattingConversionService dfcs =
+            new DefaultFormattingConversionService();
         DateTimeFormatterRegistrar registrar = new DateTimeFormatterRegistrar();
         registrar.setUseIsoFormat(true);
         registrar.registerFormatters(dfcs);
@@ -188,8 +213,9 @@ public final class TestUtil {
 
     /**
      * Makes a an executes a query to the EntityManager finding all stored objects.
-     * @param <T> The type of objects to be searched
-     * @param em The instance of the EntityManager
+     *
+     * @param <T>  The type of objects to be searched
+     * @param em   The instance of the EntityManager
      * @param clss The class type to be searched
      * @return A list of all found objects
      */
@@ -200,6 +226,36 @@ public final class TestUtil {
         CriteriaQuery<T> all = cq.select(rootEntry);
         TypedQuery<T> allQuery = em.createQuery(all);
         return allQuery.getResultList();
+    }
+
+    /**
+     * Create an update proxy for bean by copying non-null properties from update to
+     * a copy of original.
+     *
+     * @param <T>      The type of the bean
+     * @param update   the update object with modified properties
+     * @param original the original object
+     * @return the proxy object with merged properties
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T createUpdateProxyForBean(T update, T original) {
+        try {
+            T result = (T) original.getClass().getConstructor().newInstance();
+            BeanUtils.copyProperties(original, result);
+            java.lang.reflect.Field[] fields = update
+                .getClass()
+                .getDeclaredFields();
+            for (java.lang.reflect.Field field : fields) {
+                field.setAccessible(true);
+                Object value = field.get(update);
+                if (value != null) {
+                    field.set(result, value);
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private TestUtil() {}

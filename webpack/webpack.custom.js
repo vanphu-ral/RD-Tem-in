@@ -89,7 +89,7 @@ module.exports = async (config, options, targetOptions) => {
       from: require.resolve("axios/dist/axios.min.js"),
       to: "swagger-ui/",
     },
-    { from: "./src/main/webapp/swagger-ui/", to: "swagger-ui/" },
+    // { from: "./src/main/webapp/swagger-ui/", to: "swagger-ui/" },
     // jhipster-needle-add-assets-to-webpack - JHipster will add/remove third-party resources in this array
   ];
 

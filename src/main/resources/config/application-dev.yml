@@ -15,14 +15,14 @@
 
 logging:
   level:
-    ROOT: ERROR
-    tech.jhipster: ERROR
+    ROOT: INFO # ERROR
+    tech.jhipster: INFO
     org.hibernate.SQL: ERROR
-    com.mycompany.myapp: ERROR
-    org.springframework.graphql: ERROR
-    org.springframework.boot.autoconfigure.graphql: ERROR
-    com.mycompany.myapp.graphql: ERROR
-    com.mycompany.myapp.service: ERROR
+    com.mycompany.myapp: INFO
+    org.springframework.graphql: INFO
+    org.springframework.boot.autoconfigure.graphql: INFO
+    com.mycompany.myapp.graphql: INFO
+    com.mycompany.myapp.service: INFO
 
 spring:
   devtools:
@@ -39,19 +39,24 @@ spring:
     serialization:
       indent-output: true
   datasource:
+    enabled: false
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://172.168.6.99:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
-    username: SA
-    password: Led@R@ngDong
+    url: jdbc:sqlserver://localhost:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
+    username: sa
+    password: Led@R@ngDong123!
     hikari:
       poolName: Hikari
       auto-commit: false
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
       data-source-properties:
         cachePrepStmts: true
         prepStmtCacheSize: 250
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 partner:
+  enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:sqlserver://172.168.6.3:1433;database=PanaCIMMC;encrypt=true;trustServerCertificate=true;
@@ -60,12 +65,16 @@ partner:
     hikari:
       poolName: Hikari
       auto-commit: false
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
       data-source-properties:
         cachePrepStmts: true
         prepStmtCacheSize: 250
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 partner2:
+  enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:sqlserver://172.168.6.99:1433;database=WMSRAL;encrypt=true;trustServerCertificate=true;
@@ -74,11 +83,34 @@ partner2:
   hikari:
     poolName: Hikari
     auto-commit: false
+    connection-test-query: SELECT 1
+    validation-timeout: 5000
+    leak-detection-threshold: 60000
     data-source-properties:
       cachePrepStmts: true
       prepStmtCacheSize: 250
       prepStmtCacheSqlLimit: 2048
       useServerPrepStmts: true
+
+partner3:
+  enabled: true
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/PNM_DB
+    username: admin
+    password: admin123
+    hikari:
+      poolName: HikariCP-Partner3
+      auto-commit: false
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+      data-source-properties:
+        reWriteBatchedInserts: true
+
   #renderqr:
   #  datasource:
   #    type: com.zaxxer.hikari.HikariDataSource

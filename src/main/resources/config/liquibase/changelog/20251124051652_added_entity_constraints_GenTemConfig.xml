@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+    <!--
+        Added the constraints for entity GenTemConfig.
+    -->
+    <changeSet id="20251124051652-2" author="jhipster">
+
+        <addForeignKeyConstraint baseColumnNames="ma_lenh_san_xuat_id"
+                                 baseTableName="gen_tem_config"
+                                 constraintName="fk_gen_tem_config__ma_lenh_san_xuat_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="warehouse_stamp_info"
+                                 />
+    </changeSet>
+</databaseChangeLog>

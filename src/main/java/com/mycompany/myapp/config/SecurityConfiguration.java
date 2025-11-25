@@ -1,7 +1,6 @@
 package com.mycompany.myapp.config;
 
 import com.mycompany.myapp.security.*;
-import com.mycompany.myapp.security.SecurityUtils;
 import com.mycompany.myapp.security.oauth2.AudienceValidator;
 import com.mycompany.myapp.security.oauth2.CustomClaimConverter;
 import com.mycompany.myapp.security.oauth2.JwtGrantedAuthorityConverter;
@@ -62,9 +61,10 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf()
-            .ignoringAntMatchers("/graphql")
-            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-            .and()
+            .disable()
+            // .ignoringAntMatchers("/graphql")
+            // .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+            // .and()
             .addFilterBefore(corsFilter, CsrfFilter.class)
             .exceptionHandling()
             .authenticationEntryPoint(problemSupport)
@@ -123,10 +123,15 @@ public class SecurityConfiguration {
             .antMatchers("/management/prometheus")
             .permitAll()
             .antMatchers("/management/**")
+            .permitAll()
+            .antMatchers("/management/**")
             .hasAuthority(AuthoritiesConstants.ADMIN)
-            .antMatchers("/api/**")
-            .authenticated()
-            // XÓA dòng .antMatchers("/**").permitAll()
+            // .antMatchers("/api/**")
+            .antMatchers("/api/warehouse-stamp-infos/**")
+            .permitAll()
+            // .authenticated()
+            .antMatchers("/**")
+            .permitAll()
             .and()
             .oauth2Login()
             .and()
@@ -152,7 +157,7 @@ public class SecurityConfiguration {
      * Map authorities from "groups" or "roles" claim in ID Token.
      *
      * @return a {@link GrantedAuthoritiesMapper} that maps groups from
-     * the IdP to Spring Security Authorities.
+     *         the IdP to Spring Security Authorities.
      */
     @Bean
     public GrantedAuthoritiesMapper userAuthoritiesMapper() {
