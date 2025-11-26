@@ -99,7 +99,7 @@ class WarehouseStampInfoResourceIT {
     private static final String DEFAULT_DELETED_BY = "AAAAAAAAAA";
     private static final String UPDATED_DELETED_BY = "BBBBBBBBBB";
 
-    private static final String ENTITY_API_URL = "/api/warehouse-stamp-infos";
+    private static final String ENTITY_API_URL = "/api/warehouse-note-infos";
     private static final String ENTITY_API_URL_ID = ENTITY_API_URL + "/{id}";
 
     private static Random random = new Random();

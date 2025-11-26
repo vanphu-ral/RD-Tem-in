@@ -14,7 +14,7 @@
                                  baseTableName="serial_box_pallet_mapping"
                                  constraintName="fk_serial_box_pallet_mapping__ma_lenh_san_xuat_id"
                                  referencedColumnNames="id"
-                                 referencedTableName="warehouse_stamp_info"
+                                 referencedTableName="warehouse_note_info"
                                  />
     </changeSet>
 </databaseChangeLog>

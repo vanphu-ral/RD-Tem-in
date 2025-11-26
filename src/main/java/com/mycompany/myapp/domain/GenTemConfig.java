@@ -11,7 +11,7 @@ import javax.validation.constraints.*;
  * A GenTemConfig.
  */
 @Entity
-@Table(name = "gen_tem_config")
+@Table(name = "gen_note_config")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class GenTemConfig implements Serializable {
 
@@ -95,6 +95,7 @@ public class GenTemConfig implements Serializable {
     private String updatedBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ma_lenh_san_xuat_id")
     @JsonIgnoreProperties(
         value = { "genTemConfigs", "serialMappings", "details" },
         allowSetters = true
@@ -386,27 +387,27 @@ public class GenTemConfig implements Serializable {
 
     // prettier-ignore
     @Override
-  public String toString() {
-    return "GenTemConfig{" +
-        "id=" + getId() +
-        ", tpNk='" + getTpNk() + "'" +
-        ", rank='" + getRank() + "'" +
-        ", mfg='" + getMfg() + "'" +
-        ", quantityPerBox=" + getQuantityPerBox() +
-        ", note='" + getNote() + "'" +
-        ", numBoxPerPallet=" + getNumBoxPerPallet() +
-        ", branch='" + getBranch() + "'" +
-        ", groupName='" + getGroupName() + "'" +
-        ", customerName='" + getCustomerName() + "'" +
-        ", poNumber='" + getPoNumber() + "'" +
-        ", dateCode='" + getDateCode() + "'" +
-        ", itemNoSku='" + getItemNoSku() + "'" +
-        ", qdsxNo='" + getQdsxNo() + "'" +
-        ", productionDate='" + getProductionDate() + "'" +
-        ", inspectorName='" + getInspectorName() + "'" +
-        ", inspectionResult='" + getInspectionResult() + "'" +
-        ", updatedAt='" + getUpdatedAt() + "'" +
-        ", updatedBy='" + getUpdatedBy() + "'" +
-        "}";
-  }
+    public String toString() {
+        return "GenTemConfig{" +
+                "id=" + getId() +
+                ", tpNk='" + getTpNk() + "'" +
+                ", rank='" + getRank() + "'" +
+                ", mfg='" + getMfg() + "'" +
+                ", quantityPerBox=" + getQuantityPerBox() +
+                ", note='" + getNote() + "'" +
+                ", numBoxPerPallet=" + getNumBoxPerPallet() +
+                ", branch='" + getBranch() + "'" +
+                ", groupName='" + getGroupName() + "'" +
+                ", customerName='" + getCustomerName() + "'" +
+                ", poNumber='" + getPoNumber() + "'" +
+                ", dateCode='" + getDateCode() + "'" +
+                ", itemNoSku='" + getItemNoSku() + "'" +
+                ", qdsxNo='" + getQdsxNo() + "'" +
+                ", productionDate='" + getProductionDate() + "'" +
+                ", inspectorName='" + getInspectorName() + "'" +
+                ", inspectionResult='" + getInspectionResult() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                "}";
+    }
 }

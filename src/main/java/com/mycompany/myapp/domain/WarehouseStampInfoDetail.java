@@ -9,7 +9,7 @@ import javax.validation.constraints.*;
  * A WarehouseStampInfoDetail.
  */
 @Entity
-@Table(name = "warehouse_stamp_info_detail")
+@Table(name = "warehouse_note_info_detail")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class WarehouseStampInfoDetail implements Serializable {
 
@@ -145,6 +145,7 @@ public class WarehouseStampInfoDetail implements Serializable {
     private Integer checked;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ma_lenh_san_xuat_id")
     @JsonIgnoreProperties(
         value = { "genTemConfigs", "serialMappings", "details" },
         allowSetters = true
@@ -614,40 +615,40 @@ public class WarehouseStampInfoDetail implements Serializable {
 
     // prettier-ignore
     @Override
-  public String toString() {
-    return "WarehouseStampInfoDetail{" +
-        "id=" + getId() +
-        ", reelId='" + getReelId() + "'" +
-        ", partNumber='" + getPartNumber() + "'" +
-        ", vendor='" + getVendor() + "'" +
-        ", lot='" + getLot() + "'" +
-        ", userData1='" + getUserData1() + "'" +
-        ", userData2='" + getUserData2() + "'" +
-        ", userData3='" + getUserData3() + "'" +
-        ", userData4='" + getUserData4() + "'" +
-        ", userData5='" + getUserData5() + "'" +
-        ", initialQuantity=" + getInitialQuantity() +
-        ", msdLevel='" + getMsdLevel() + "'" +
-        ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
-        ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
-        ", marketUsage='" + getMarketUsage() + "'" +
-        ", quantityOverride=" + getQuantityOverride() +
-        ", shelfTime='" + getShelfTime() + "'" +
-        ", spMaterialName='" + getSpMaterialName() + "'" +
-        ", warningLimit='" + getWarningLimit() + "'" +
-        ", maximumLimit='" + getMaximumLimit() + "'" +
-        ", comments='" + getComments() + "'" +
-        ", warmupTime='" + getWarmupTime() + "'" +
-        ", storageUnit='" + getStorageUnit() + "'" +
-        ", subStorageUnit='" + getSubStorageUnit() + "'" +
-        ", locationOverride='" + getLocationOverride() + "'" +
-        ", expirationDate='" + getExpirationDate() + "'" +
-        ", manufacturingDate='" + getManufacturingDate() + "'" +
-        ", partClass='" + getPartClass() + "'" +
-        ", sapCode='" + getSapCode() + "'" +
-        ", lenhSanXuatId=" + getLenhSanXuatId() +
-        ", trangThai='" + getTrangThai() + "'" +
-        ", checked=" + getChecked() +
-        "}";
-  }
+    public String toString() {
+        return "WarehouseStampInfoDetail{" +
+                "id=" + getId() +
+                ", reelId='" + getReelId() + "'" +
+                ", partNumber='" + getPartNumber() + "'" +
+                ", vendor='" + getVendor() + "'" +
+                ", lot='" + getLot() + "'" +
+                ", userData1='" + getUserData1() + "'" +
+                ", userData2='" + getUserData2() + "'" +
+                ", userData3='" + getUserData3() + "'" +
+                ", userData4='" + getUserData4() + "'" +
+                ", userData5='" + getUserData5() + "'" +
+                ", initialQuantity=" + getInitialQuantity() +
+                ", msdLevel='" + getMsdLevel() + "'" +
+                ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
+                ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
+                ", marketUsage='" + getMarketUsage() + "'" +
+                ", quantityOverride=" + getQuantityOverride() +
+                ", shelfTime='" + getShelfTime() + "'" +
+                ", spMaterialName='" + getSpMaterialName() + "'" +
+                ", warningLimit='" + getWarningLimit() + "'" +
+                ", maximumLimit='" + getMaximumLimit() + "'" +
+                ", comments='" + getComments() + "'" +
+                ", warmupTime='" + getWarmupTime() + "'" +
+                ", storageUnit='" + getStorageUnit() + "'" +
+                ", subStorageUnit='" + getSubStorageUnit() + "'" +
+                ", locationOverride='" + getLocationOverride() + "'" +
+                ", expirationDate='" + getExpirationDate() + "'" +
+                ", manufacturingDate='" + getManufacturingDate() + "'" +
+                ", partClass='" + getPartClass() + "'" +
+                ", sapCode='" + getSapCode() + "'" +
+                ", lenhSanXuatId=" + getLenhSanXuatId() +
+                ", trangThai='" + getTrangThai() + "'" +
+                ", checked=" + getChecked() +
+                "}";
+    }
 }

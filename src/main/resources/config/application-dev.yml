@@ -17,7 +17,8 @@ logging:
   level:
     ROOT: INFO # ERROR
     tech.jhipster: INFO
-    org.hibernate.SQL: ERROR
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     com.mycompany.myapp: INFO
     org.springframework.graphql: INFO
     org.springframework.boot.autoconfigure.graphql: INFO
@@ -39,11 +40,11 @@ spring:
     serialization:
       indent-output: true
   datasource:
-    enabled: false
+    # enabled: false
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://localhost:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
-    username: sa
-    password: Led@R@ngDong123!
+    url: jdbc:sqlserver://172.168.6.99:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
+    username: SA
+    password: Led@R@ngDong
     hikari:
       poolName: Hikari
       auto-commit: false
@@ -56,7 +57,7 @@ spring:
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 partner:
-  enabled: false
+  # enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:sqlserver://172.168.6.3:1433;database=PanaCIMMC;encrypt=true;trustServerCertificate=true;
@@ -74,7 +75,7 @@ partner:
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 partner2:
-  enabled: false
+  # enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:sqlserver://172.168.6.99:1433;database=WMSRAL;encrypt=true;trustServerCertificate=true;

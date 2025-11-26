@@ -11,10 +11,10 @@
     <changeSet id="20251124051654-2" author="jhipster">
 
         <addForeignKeyConstraint baseColumnNames="ma_lenh_san_xuat_id"
-                                 baseTableName="warehouse_stamp_info_detail"
-                                 constraintName="fk_warehouse_stamp_info_detail__ma_lenh_san_xuat_id"
+                                 baseTableName="warehouse_note_info_detail"
+                                 constraintName="fk_warehouse_note_info_detail__ma_lenh_san_xuat_id"
                                  referencedColumnNames="id"
-                                 referencedTableName="warehouse_stamp_info"
+                                 referencedTableName="warehouse_note_info"
                                  />
     </changeSet>
 </databaseChangeLog>

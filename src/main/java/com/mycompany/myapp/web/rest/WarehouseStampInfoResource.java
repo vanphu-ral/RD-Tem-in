@@ -31,7 +31,7 @@ import tech.jhipster.web.util.ResponseUtil;
  * {@link com.mycompany.myapp.domain.WarehouseStampInfo}.
  */
 @RestController
-@RequestMapping("/api/warehouse-stamp-infos")
+@RequestMapping("/api/warehouse-note-infos")
 public class WarehouseStampInfoResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(
@@ -61,7 +61,7 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code POST  /warehouse-stamp-infos} : Create a new warehouseStampInfo.
+     * {@code POST  /warehouse-note-infos} : Create a new warehouseStampInfo.
      *
      * @param warehouseStampInfoDTO the warehouseStampInfoDTO to create.
      * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
@@ -90,7 +90,7 @@ public class WarehouseStampInfoResource {
         );
         return ResponseEntity.created(
             new URI(
-                "/api/warehouse-stamp-infos/" + warehouseStampInfoDTO.getId()
+                "/api/warehouse-note-infos/" + warehouseStampInfoDTO.getId()
             )
         )
             .headers(
@@ -105,7 +105,7 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code PUT  /warehouse-stamp-infos/:id} : Updates an existing
+     * {@code PUT  /warehouse-note-infos/:id} : Updates an existing
      * warehouseStampInfo.
      *
      * @param id                    the id of the warehouseStampInfoDTO to save.
@@ -167,7 +167,7 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code PATCH  /warehouse-stamp-infos/:id} : Partial updates given fields of
+     * {@code PATCH  /warehouse-note-infos/:id} : Partial updates given fields of
      * an existing warehouseStampInfo, field will ignore if it is null
      *
      * @param id                    the id of the warehouseStampInfoDTO to save.
@@ -235,7 +235,7 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code GET  /warehouse-stamp-infos} : get all the warehouseStampInfos.
+     * {@code GET  /warehouse-note-infos} : get all the warehouseStampInfos.
      *
      * @param pageable the pagination information.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
@@ -259,7 +259,7 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code GET  /warehouse-stamp-infos/create-by/:createBy} : get all
+     * {@code GET  /warehouse-note-infos/create-by/:createBy} : get all
      * warehouseStampInfos by createBy.
      *
      * @param createBy the createBy to filter by.
@@ -280,7 +280,7 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code GET  /warehouse-stamp-infos/approver-by/:approverBy} : get all
+     * {@code GET  /warehouse-note-infos/approver-by/:approverBy} : get all
      * warehouseStampInfos by approverBy.
      *
      * @param approverBy the approverBy to filter by.
@@ -301,7 +301,7 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code GET  /warehouse-stamp-infos/:id} : get the "id" warehouseStampInfo.
+     * {@code GET  /warehouse-note-infos/:id} : get the "id" warehouseStampInfo.
      *
      * @param id the id of the warehouseStampInfoDTO to retrieve.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
@@ -318,7 +318,7 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code DELETE  /warehouse-stamp-infos/:id} : delete the "id"
+     * {@code DELETE  /warehouse-note-infos/:id} : delete the "id"
      * warehouseStampInfo.
      *
      * @param id the id of the warehouseStampInfoDTO to delete.

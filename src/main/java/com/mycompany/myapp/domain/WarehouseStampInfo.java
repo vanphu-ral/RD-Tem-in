@@ -12,7 +12,7 @@ import javax.validation.constraints.*;
  * A WarehouseStampInfo.
  */
 @Entity
-@Table(name = "warehouse_stamp_info")
+@Table(name = "warehouse_note_info")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class WarehouseStampInfo implements Serializable {
 
@@ -507,28 +507,28 @@ public class WarehouseStampInfo implements Serializable {
 
     // prettier-ignore
     @Override
-  public String toString() {
-    return "WarehouseStampInfo{" +
-        "id=" + getId() +
-        ", maLenhSanXuat='" + getMaLenhSanXuat() + "'" +
-        ", sapCode='" + getSapCode() + "'" +
-        ", sapName='" + getSapName() + "'" +
-        ", workOrderCode='" + getWorkOrderCode() + "'" +
-        ", version='" + getVersion() + "'" +
-        ", storageCode='" + getStorageCode() + "'" +
-        ", totalQuantity=" + getTotalQuantity() +
-        ", createBy='" + getCreateBy() + "'" +
-        ", entryTime='" + getEntryTime() + "'" +
-        ", trangThai='" + getTrangThai() + "'" +
-        ", comment='" + getComment() + "'" +
-        ", timeUpdate='" + getTimeUpdate() + "'" +
-        ", groupName='" + getGroupName() + "'" +
-        ", comment2='" + getComment2() + "'" +
-        ", approverBy='" + getApproverBy() + "'" +
-        ", branch='" + getBranch() + "'" +
-        ", productType='" + getProductType() + "'" +
-        ", deletedAt='" + getDeletedAt() + "'" +
-        ", deletedBy='" + getDeletedBy() + "'" +
-        "}";
-  }
+    public String toString() {
+        return "WarehouseStampInfo{" +
+                "id=" + getId() +
+                ", maLenhSanXuat='" + getMaLenhSanXuat() + "'" +
+                ", sapCode='" + getSapCode() + "'" +
+                ", sapName='" + getSapName() + "'" +
+                ", workOrderCode='" + getWorkOrderCode() + "'" +
+                ", version='" + getVersion() + "'" +
+                ", storageCode='" + getStorageCode() + "'" +
+                ", totalQuantity=" + getTotalQuantity() +
+                ", createBy='" + getCreateBy() + "'" +
+                ", entryTime='" + getEntryTime() + "'" +
+                ", trangThai='" + getTrangThai() + "'" +
+                ", comment='" + getComment() + "'" +
+                ", timeUpdate='" + getTimeUpdate() + "'" +
+                ", groupName='" + getGroupName() + "'" +
+                ", comment2='" + getComment2() + "'" +
+                ", approverBy='" + getApproverBy() + "'" +
+                ", branch='" + getBranch() + "'" +
+                ", productType='" + getProductType() + "'" +
+                ", deletedAt='" + getDeletedAt() + "'" +
+                ", deletedBy='" + getDeletedBy() + "'" +
+                "}";
+    }
 }

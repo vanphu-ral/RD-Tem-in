@@ -29,7 +29,7 @@ springdoc:
     enabled: false
 ---
 keycloak:
-  server-url: http://localhost:9080/auth
+  server-url: http://192.168.68.90:8080/auth
   realm: QLSX
   client-id: tem_in_test
   username: admin
@@ -169,7 +169,7 @@ spring:
       client:
         provider:
           oidc:
-            issuer-uri: http://localhost:9080/auth/realms/QLSX
+            issuer-uri: http://192.168.68.90:8080/auth/realms/QLSX
         #            issuer-uri: http://localhost:8080/auth/realms/jhipster
         registration:
           oidc:
@@ -223,7 +223,7 @@ jhipster:
     license: unlicensed
     license-url:
   security:
-    content-security-policy: "default-src 'self'; connect-src 'self' http://localhost:9080; frame-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:"
+    content-security-policy: "default-src 'self'; connect-src 'self' http://localhost:8080; frame-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:"
     oauth2:
       audience:
         - account

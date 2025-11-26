@@ -10,7 +10,7 @@
         Added the entity WarehouseStampInfo.
     -->
     <changeSet id="20251124051651-1" author="jhipster">
-        <createTable tableName="warehouse_stamp_info">
+        <createTable tableName="warehouse_note_info">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -73,9 +73,9 @@
             </column>
             <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here -->
         </createTable>
-        <dropDefaultValue tableName="warehouse_stamp_info" columnName="entry_time" columnDataType="${datetimeType}"/>
-        <dropDefaultValue tableName="warehouse_stamp_info" columnName="time_update" columnDataType="${datetimeType}"/>
-        <dropDefaultValue tableName="warehouse_stamp_info" columnName="deleted_at" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="warehouse_note_info" columnName="entry_time" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="warehouse_note_info" columnName="time_update" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="warehouse_note_info" columnName="deleted_at" columnDataType="${datetimeType}"/>
     </changeSet>
 
     <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here -->
@@ -90,9 +90,9 @@
     -->
     <changeSet id="20251124051651-1-data" author="jhipster" context="faker">
         <loadData
-                  file="config/liquibase/fake-data/warehouse_stamp_info.csv"
+                  file="config/liquibase/fake-data/warehouse_note_info.csv"
                   separator=";"
-                  tableName="warehouse_stamp_info"
+                  tableName="warehouse_note_info"
                   usePreparedStatements="true">
             <column name="id" type="numeric"/>
             <column name="ma_lenh_san_xuat" type="string"/>

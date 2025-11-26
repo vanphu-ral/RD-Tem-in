@@ -41,6 +41,7 @@ public class SerialBoxPalletMapping implements Serializable {
     private String updatedBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ma_lenh_san_xuat_id")
     @JsonIgnoreProperties(
         value = { "genTemConfigs", "serialMappings", "details" },
         allowSetters = true
@@ -155,13 +156,13 @@ public class SerialBoxPalletMapping implements Serializable {
 
     // prettier-ignore
     @Override
-  public String toString() {
-    return "SerialBoxPalletMapping{" +
-        "id=" + getId() +
-        ", serialBox='" + getSerialBox() + "'" +
-        ", serialPallet='" + getSerialPallet() + "'" +
-        ", updatedAt='" + getUpdatedAt() + "'" +
-        ", updatedBy='" + getUpdatedBy() + "'" +
-        "}";
-  }
+    public String toString() {
+        return "SerialBoxPalletMapping{" +
+                "id=" + getId() +
+                ", serialBox='" + getSerialBox() + "'" +
+                ", serialPallet='" + getSerialPallet() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                "}";
+    }
 }

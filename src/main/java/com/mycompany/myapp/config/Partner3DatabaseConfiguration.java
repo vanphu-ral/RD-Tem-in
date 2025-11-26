@@ -27,11 +27,16 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
     transactionManagerRef = "partner3TransactionManager",
     entityManagerFactoryRef = "partner3EntityManagerFactory",
     basePackages = {
-        "com.mycompany.myapp.repository",
+        // "com.mycompany.myapp.repository",
         "com.mycompany.myapp.repository.partner3",
     }
 )
-@Primary
+// @EnableJpaRepositories(transactionManagerRef =
+// "partner3TransactionManager",entityManagerFactoryRef =
+// "partner3EntityManagerFactory", basePackages =
+// "com.mycompany.myapp.repository.partner3")
+
+// @Primary
 public class Partner3DatabaseConfiguration {
 
     @Bean
@@ -41,7 +46,7 @@ public class Partner3DatabaseConfiguration {
     }
 
     @Bean
-    @Primary
+    // @Primary
     @LiquibaseDataSource
     @ConfigurationProperties("partner3.datasource")
     public DataSource partner3DataSource() {
@@ -51,7 +56,7 @@ public class Partner3DatabaseConfiguration {
     }
 
     @Bean(name = "partner3EntityManagerFactory")
-    @Primary
+    // @Primary
     public LocalContainerEntityManagerFactoryBean customerEntityManagerFactory(
         EntityManagerFactoryBuilder builder
     ) {
@@ -59,6 +64,14 @@ public class Partner3DatabaseConfiguration {
         properties.setProperty(
             "hibernate.dialect",
             "org.hibernate.dialect.PostgreSQLDialect"
+        );
+        properties.setProperty(
+            "hibernate.physical_naming_strategy",
+            "org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy"
+        );
+        properties.setProperty(
+            "hibernate.implicit_naming_strategy",
+            "org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy"
         );
         properties.setProperty("hibernate.jdbc.batch_size", "25");
         properties.setProperty("hibernate.order_inserts", "true");
@@ -75,7 +88,7 @@ public class Partner3DatabaseConfiguration {
     }
 
     @Bean(name = "partner3TransactionManager")
-    @Primary
+    // @Primary
     public JpaTransactionManager db2TransactionManager(
         @Qualifier(
             "partner3EntityManagerFactory"

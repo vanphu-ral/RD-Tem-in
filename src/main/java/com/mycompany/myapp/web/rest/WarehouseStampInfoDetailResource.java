@@ -30,7 +30,7 @@ import tech.jhipster.web.util.ResponseUtil;
  * {@link com.mycompany.myapp.domain.WarehouseStampInfoDetail}.
  */
 @RestController
-@RequestMapping("/api/warehouse-stamp-info-details")
+@RequestMapping("/api/warehouse-note-info-details")
 public class WarehouseStampInfoDetailResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(
@@ -56,7 +56,7 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
-     * {@code POST  /warehouse-stamp-info-details} : Create a new
+     * {@code POST  /warehouse-note-info-details} : Create a new
      * warehouseStampInfoDetail.
      *
      * @param warehouseStampInfoDetailDTO the warehouseStampInfoDetailDTO to create.
@@ -88,7 +88,7 @@ public class WarehouseStampInfoDetailResource {
         );
         return ResponseEntity.created(
             new URI(
-                "/api/warehouse-stamp-info-details/" +
+                "/api/warehouse-note-info-details/" +
                 warehouseStampInfoDetailDTO.getId()
             )
         )
@@ -104,7 +104,7 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
-     * {@code PUT  /warehouse-stamp-info-details/:id} : Updates an existing
+     * {@code PUT  /warehouse-note-info-details/:id} : Updates an existing
      * warehouseStampInfoDetail.
      *
      * @param id                          the id of the warehouseStampInfoDetailDTO
@@ -169,7 +169,7 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
-     * {@code PATCH  /warehouse-stamp-info-details/:id} : Partial updates given
+     * {@code PATCH  /warehouse-note-info-details/:id} : Partial updates given
      * fields of an existing warehouseStampInfoDetail, field will ignore if it is
      * null
      *
@@ -241,7 +241,7 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
-     * {@code GET  /warehouse-stamp-info-details} : get all the
+     * {@code GET  /warehouse-note-info-details} : get all the
      * warehouseStampInfoDetails.
      *
      * @param pageable the pagination information.
@@ -265,7 +265,7 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
-     * {@code GET  /warehouse-stamp-info-details/:id} : get the "id"
+     * {@code GET  /warehouse-note-info-details/:id} : get the "id"
      * warehouseStampInfoDetail.
      *
      * @param id the id of the warehouseStampInfoDetailDTO to retrieve.
@@ -284,7 +284,7 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
-     * {@code DELETE  /warehouse-stamp-info-details/:id} : delete the "id"
+     * {@code DELETE  /warehouse-note-info-details/:id} : delete the "id"
      * warehouseStampInfoDetail.
      *
      * @param id the id of the warehouseStampInfoDetailDTO to delete.

@@ -10,7 +10,7 @@
         Added the entity GenTemConfig.
     -->
     <changeSet id="20251124051652-1" author="jhipster">
-        <createTable tableName="gen_tem_config">
+        <createTable tableName="gen_note_config">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -73,7 +73,7 @@
             </column>
             <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here -->
         </createTable>
-        <dropDefaultValue tableName="gen_tem_config" columnName="updated_at" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="gen_note_config" columnName="updated_at" columnDataType="${datetimeType}"/>
     </changeSet>
 
     <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here -->
@@ -88,9 +88,9 @@
     -->
     <changeSet id="20251124051652-1-data" author="jhipster" context="faker">
         <loadData
-                  file="config/liquibase/fake-data/gen_tem_config.csv"
+                  file="config/liquibase/fake-data/gen_note_config.csv"
                   separator=";"
-                  tableName="gen_tem_config"
+                  tableName="gen_note_config"
                   usePreparedStatements="true">
             <column name="id" type="numeric"/>
             <column name="tp_nk" type="string"/>

@@ -127,7 +127,7 @@ public class SecurityConfiguration {
             .antMatchers("/management/**")
             .hasAuthority(AuthoritiesConstants.ADMIN)
             // .antMatchers("/api/**")
-            .antMatchers("/api/warehouse-stamp-infos/**")
+            .antMatchers("/api/warehouse-note-infos/**")
             .permitAll()
             // .authenticated()
             .antMatchers("/**")

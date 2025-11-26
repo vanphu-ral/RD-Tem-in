@@ -10,7 +10,7 @@
         Added the entity WarehouseStampInfoDetail.
     -->
     <changeSet id="20251124051654-1" author="jhipster">
-        <createTable tableName="warehouse_stamp_info_detail">
+        <createTable tableName="warehouse_note_info_detail">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -126,9 +126,9 @@
     -->
     <changeSet id="20251124051654-1-data" author="jhipster" context="faker">
         <loadData
-                  file="config/liquibase/fake-data/warehouse_stamp_info_detail.csv"
+                  file="config/liquibase/fake-data/warehouse_note_info_detail.csv"
                   separator=";"
-                  tableName="warehouse_stamp_info_detail"
+                  tableName="warehouse_note_info_detail"
                   usePreparedStatements="true">
             <column name="id" type="numeric"/>
             <column name="reel_id" type="string"/>

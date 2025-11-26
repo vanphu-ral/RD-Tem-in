@@ -29,7 +29,7 @@ import tech.jhipster.web.util.ResponseUtil;
  * REST controller for managing {@link com.mycompany.myapp.domain.GenTemConfig}.
  */
 @RestController
-@RequestMapping("/api/gen-tem-configs")
+@RequestMapping("/api/gen-note-configs")
 public class GenTemConfigResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(
@@ -54,7 +54,7 @@ public class GenTemConfigResource {
     }
 
     /**
-     * {@code POST  /gen-tem-configs} : Create a new genTemConfig.
+     * {@code POST  /gen-note-configs} : Create a new genTemConfig.
      *
      * @param genTemConfigDTO the genTemConfigDTO to create.
      * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
@@ -76,7 +76,7 @@ public class GenTemConfigResource {
         }
         genTemConfigDTO = genTemConfigService.save(genTemConfigDTO);
         return ResponseEntity.created(
-            new URI("/api/gen-tem-configs/" + genTemConfigDTO.getId())
+            new URI("/api/gen-note-configs/" + genTemConfigDTO.getId())
         )
             .headers(
                 HeaderUtil.createEntityCreationAlert(
@@ -90,7 +90,7 @@ public class GenTemConfigResource {
     }
 
     /**
-     * {@code PUT  /gen-tem-configs/:id} : Updates an existing genTemConfig.
+     * {@code PUT  /gen-note-configs/:id} : Updates an existing genTemConfig.
      *
      * @param id              the id of the genTemConfigDTO to save.
      * @param genTemConfigDTO the genTemConfigDTO to update.
@@ -149,7 +149,7 @@ public class GenTemConfigResource {
     }
 
     /**
-     * {@code PATCH  /gen-tem-configs/:id} : Partial updates given fields of an
+     * {@code PATCH  /gen-note-configs/:id} : Partial updates given fields of an
      * existing genTemConfig, field will ignore if it is null
      *
      * @param id              the id of the genTemConfigDTO to save.
@@ -216,7 +216,7 @@ public class GenTemConfigResource {
     }
 
     /**
-     * {@code GET  /gen-tem-configs} : get all the genTemConfigs.
+     * {@code GET  /gen-note-configs} : get all the genTemConfigs.
      *
      * @param pageable the pagination information.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
@@ -236,7 +236,7 @@ public class GenTemConfigResource {
     }
 
     /**
-     * {@code GET  /gen-tem-configs/:id} : get the "id" genTemConfig.
+     * {@code GET  /gen-note-configs/:id} : get the "id" genTemConfig.
      *
      * @param id the id of the genTemConfigDTO to retrieve.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
@@ -254,7 +254,7 @@ public class GenTemConfigResource {
     }
 
     /**
-     * {@code DELETE  /gen-tem-configs/:id} : delete the "id" genTemConfig.
+     * {@code DELETE  /gen-note-configs/:id} : delete the "id" genTemConfig.
      *
      * @param id the id of the genTemConfigDTO to delete.
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.

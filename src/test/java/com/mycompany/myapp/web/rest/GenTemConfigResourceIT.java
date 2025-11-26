@@ -98,7 +98,7 @@ class GenTemConfigResourceIT {
     private static final String DEFAULT_UPDATED_BY = "AAAAAAAAAA";
     private static final String UPDATED_UPDATED_BY = "BBBBBBBBBB";
 
-    private static final String ENTITY_API_URL = "/api/gen-tem-configs";
+    private static final String ENTITY_API_URL = "/api/gen-note-configs";
     private static final String ENTITY_API_URL_ID = ENTITY_API_URL + "/{id}";
 
     private static Random random = new Random();
