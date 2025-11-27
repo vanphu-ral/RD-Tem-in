@@ -1,9 +1,10 @@
 package com.mycompany.myapp.web.rest;
 
-import com.mycompany.myapp.repository.PalletInforDetailRepository;
+import com.mycompany.myapp.repository.partner3.Partner3PalletInforDetailRepository;
 import com.mycompany.myapp.service.PalletInforDetailService;
 import com.mycompany.myapp.service.Partner3MigrationService;
 import com.mycompany.myapp.service.dto.CombinedPalletWarehouseDTO;
+import com.mycompany.myapp.service.dto.MaxSerialResponseDTO;
 import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
@@ -45,13 +46,13 @@ public class PalletInforDetailResource {
 
     private final PalletInforDetailService palletInforDetailService;
 
-    private final PalletInforDetailRepository palletInforDetailRepository;
+    private final Partner3PalletInforDetailRepository palletInforDetailRepository;
 
     private final Partner3MigrationService partner3MigrationService;
 
     public PalletInforDetailResource(
         PalletInforDetailService palletInforDetailService,
-        PalletInforDetailRepository palletInforDetailRepository,
+        Partner3PalletInforDetailRepository palletInforDetailRepository,
         Partner3MigrationService partner3MigrationService
     ) {
         this.palletInforDetailService = palletInforDetailService;
@@ -78,9 +79,9 @@ public class PalletInforDetailResource {
         );
         if (
             palletInforDetailDTO.getSerialPallet() != null &&
-            palletInforDetailRepository.existsById(
-                palletInforDetailDTO.getSerialPallet()
-            )
+            palletInforDetailRepository
+                .findBySerialPallet(palletInforDetailDTO.getSerialPallet())
+                .isPresent()
         ) {
             throw new BadRequestAlertException(
                 "A new palletInforDetail cannot already have an ID",
@@ -217,7 +218,7 @@ public class PalletInforDetailResource {
             );
         }
 
-        if (!palletInforDetailRepository.existsById(id)) {
+        if (!palletInforDetailRepository.findBySerialPallet(id).isPresent()) {
             throw new BadRequestAlertException(
                 "Entity not found",
                 ENTITY_NAME,
@@ -318,7 +319,7 @@ public class PalletInforDetailResource {
             );
         }
 
-        if (!palletInforDetailRepository.existsById(id)) {
+        if (!palletInforDetailRepository.findBySerialPallet(id).isPresent()) {
             throw new BadRequestAlertException(
                 "Entity not found",
                 ENTITY_NAME,
@@ -402,5 +403,19 @@ public class PalletInforDetailResource {
                 )
             )
             .build();
+    }
+
+    /**
+     * {@code GET  /pallet-infor-details/max-serials} : get the max serial numbers
+     * starting with 'B'.
+     *
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the max serial numbers.
+     */
+    @GetMapping("/max-serials")
+    public ResponseEntity<MaxSerialResponseDTO> getMaxSerials() {
+        LOG.debug("REST request to get max serials starting with B");
+        MaxSerialResponseDTO result = palletInforDetailService.getMaxSerials();
+        return ResponseEntity.ok().body(result);
     }
 }

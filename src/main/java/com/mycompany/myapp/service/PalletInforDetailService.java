@@ -2,9 +2,12 @@ package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.domain.PalletInforDetail;
 import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
+import com.mycompany.myapp.repository.PalletInforDetailRepository;
+import com.mycompany.myapp.repository.WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.repository.partner3.Partner3PalletInforDetailRepository;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.service.dto.CombinedPalletWarehouseDTO;
+import com.mycompany.myapp.service.dto.MaxSerialResponseDTO;
 import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.PalletInforDetailMapper;
@@ -38,17 +41,25 @@ public class PalletInforDetailService {
 
     private final WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper;
 
+    private final PalletInforDetailRepository mainPalletRepository;
+
+    private final WarehouseStampInfoDetailRepository mainWarehouseRepository;
+
     public PalletInforDetailService(
         Partner3PalletInforDetailRepository palletInforDetailRepository,
         PalletInforDetailMapper palletInforDetailMapper,
         Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository,
-        WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper
+        WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper,
+        PalletInforDetailRepository mainPalletRepository,
+        WarehouseStampInfoDetailRepository mainWarehouseRepository
     ) {
         this.palletInforDetailRepository = palletInforDetailRepository;
         this.palletInforDetailMapper = palletInforDetailMapper;
         this.warehouseStampInfoDetailRepository =
             warehouseStampInfoDetailRepository;
         this.warehouseStampInfoDetailMapper = warehouseStampInfoDetailMapper;
+        this.mainPalletRepository = mainPalletRepository;
+        this.mainWarehouseRepository = mainWarehouseRepository;
     }
 
     /**
@@ -341,5 +352,22 @@ public class PalletInforDetailService {
         }
 
         return updatedDTOs;
+    }
+
+    /**
+     * Get max serial numbers starting with 'B'.
+     *
+     * @return the max serial numbers
+     */
+    @Transactional(readOnly = true)
+    public MaxSerialResponseDTO getMaxSerials() {
+        LOG.debug("Request to get max serials starting with B");
+
+        String maxSerialPallet =
+            palletInforDetailRepository.findMaxSerialPalletStartingWith("B");
+        String maxSerialBox =
+            warehouseStampInfoDetailRepository.findMaxReelIdStartingWith("B");
+
+        return new MaxSerialResponseDTO(maxSerialPallet, maxSerialBox);
     }
 }

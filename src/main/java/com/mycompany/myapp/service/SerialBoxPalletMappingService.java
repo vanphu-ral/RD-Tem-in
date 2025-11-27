@@ -99,6 +99,7 @@ public class SerialBoxPalletMappingService {
             new SerialBoxPalletMapping();
         serialBoxPalletMapping.setSerialBox(insertDTO.getSerialBox());
         serialBoxPalletMapping.setSerialPallet(insertDTO.getSerialPallet());
+        serialBoxPalletMapping.setStatus(insertDTO.getStatus());
         serialBoxPalletMapping.setUpdatedAt(Instant.now());
         serialBoxPalletMapping.setUpdatedBy(
             SecurityUtils.getCurrentUserLogin().orElse("system")

@@ -10,7 +10,9 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -21,7 +23,20 @@ import tech.jhipster.config.JHipsterConstants;
 
 @Configuration
 @EnableJpaRepositories(
-    { "com.mycompany.myapp.repository", "com.mycompany.renderQr.repository" }
+    basePackages = {
+        "com.mycompany.myapp.repository", "com.mycompany.renderQr.repository",
+    },
+    excludeFilters = @ComponentScan.Filter(
+        type = FilterType.ASSIGNABLE_TYPE,
+        classes = {
+            com.mycompany.myapp.repository.partner3
+                .Partner3PalletInforDetailRepository.class,
+            com.mycompany.myapp.repository.partner3
+                .Partner3SerialBoxPalletMappingRepository.class,
+            com.mycompany.myapp.repository.partner3
+                .Partner3WarehouseStampInfoDetailRepository.class,
+        }
+    )
 )
 @EntityScan({ "com.mycompany.myapp.domain", "com.mycompany.renderQr.domain" })
 @EnableJpaAuditing(auditorAwareRef = "springSecurityAuditorAware")

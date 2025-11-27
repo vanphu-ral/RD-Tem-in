@@ -25,6 +25,8 @@ public class SerialBoxPalletMappingDTO implements Serializable {
     @Size(max = 50)
     private String updatedBy;
 
+    private Integer status;
+
     private WarehouseStampInfoDTO maLenhSanXuat;
 
     public Long getId() {
@@ -67,6 +69,14 @@ public class SerialBoxPalletMappingDTO implements Serializable {
         this.updatedBy = updatedBy;
     }
 
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
     public WarehouseStampInfoDTO getMaLenhSanXuat() {
         return maLenhSanXuat;
     }
@@ -99,14 +109,15 @@ public class SerialBoxPalletMappingDTO implements Serializable {
 
     // prettier-ignore
     @Override
-  public String toString() {
-    return "SerialBoxPalletMappingDTO{" +
-        "id=" + getId() +
-        ", serialBox='" + getSerialBox() + "'" +
-        ", serialPallet='" + getSerialPallet() + "'" +
-        ", updatedAt='" + getUpdatedAt() + "'" +
-        ", updatedBy='" + getUpdatedBy() + "'" +
-        ", maLenhSanXuat=" + getMaLenhSanXuat() +
-        "}";
-  }
+    public String toString() {
+        return "SerialBoxPalletMappingDTO{" +
+                "id=" + getId() +
+                ", serialBox='" + getSerialBox() + "'" +
+                ", serialPallet='" + getSerialPallet() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                ", status=" + getStatus() +
+                ", maLenhSanXuat=" + getMaLenhSanXuat() +
+                "}";
+    }
 }

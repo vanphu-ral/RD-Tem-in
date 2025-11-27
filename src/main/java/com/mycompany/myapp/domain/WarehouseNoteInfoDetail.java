@@ -20,8 +20,8 @@ public class WarehouseNoteInfoDetail implements Serializable {
     @Column(name = "id")
     private Long id;
 
-    @Size(max = 30)
-    @Column(name = "reel_id", length = 30)
+    @Size(max = 50)
+    @Column(name = "reel_id", length = 50)
     private String reelId;
 
     @Size(max = 50)
@@ -82,8 +82,8 @@ public class WarehouseNoteInfoDetail implements Serializable {
     @Column(name = "shelf_time", length = 20)
     private String shelfTime;
 
-    @Size(max = 20)
-    @Column(name = "sp_material_name", length = 20)
+    @Size(max = 255)
+    @Column(name = "sp_material_name", length = 255)
     private String spMaterialName;
 
     @Size(max = 20)

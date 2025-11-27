@@ -36,6 +36,9 @@ public class SerialBoxPalletMapping implements Serializable {
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
+    @Column(name = "status")
+    private Integer status;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ma_lenh_san_xuat_id")
     @JsonIgnoreProperties(
@@ -111,6 +114,19 @@ public class SerialBoxPalletMapping implements Serializable {
         this.updatedBy = updatedBy;
     }
 
+    public Integer getStatus() {
+        return this.status;
+    }
+
+    public SerialBoxPalletMapping status(Integer status) {
+        this.setStatus(status);
+        return this;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
     public WarehouseNoteInfo getMaLenhSanXuat() {
         return this.maLenhSanXuat;
     }
@@ -159,6 +175,7 @@ public class SerialBoxPalletMapping implements Serializable {
                 ", serialPallet='" + getSerialPallet() + "'" +
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +
+                ", status=" + getStatus() +
                 "}";
     }
 }

@@ -16,6 +16,8 @@ public class SerialBoxPalletMappingInsertDTO implements Serializable {
     @NotNull
     private String serialPallet;
 
+    private Integer status;
+
     public String getSerialBox() {
         return serialBox;
     }
@@ -32,6 +34,14 @@ public class SerialBoxPalletMappingInsertDTO implements Serializable {
         this.serialPallet = serialPallet;
     }
 
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
     @Override
     public String toString() {
         return (
@@ -42,6 +52,8 @@ public class SerialBoxPalletMappingInsertDTO implements Serializable {
             ", serialPallet='" +
             serialPallet +
             '\'' +
+            ", status=" +
+            status +
             '}'
         );
     }
