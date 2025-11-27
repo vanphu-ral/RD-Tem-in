@@ -1,0 +1,174 @@
+<div class="dialog-wrapper">
+  <!-- Dialog Header (No Print) -->
+  <div class="dialog-header no-print">
+    <h2>Print Preview</h2>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="onPrint()">
+        <mat-icon>print</mat-icon>
+        Print
+      </button>
+      <button mat-icon-button (click)="onClose()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Print Content (A5 Size) -->
+  <div class="print-content">
+    <div class="pallet-card">
+      <!-- Top Section with QR Code and Title -->
+      <div class="top-section">
+        <div class="qr-code-wrapper">
+          <qrcode
+            [qrdata]="qrCodeUrl1"
+            [width]="95"
+            [margin]="1"
+            [colorDark]="'#000000'"
+            [colorLight]="'#FFFFFF'"
+          >
+          </qrcode>
+        </div>
+
+        <div class="title-wrapper">
+          <h1>PHIẾU THÔNG TIN</h1>
+        </div>
+      </div>
+
+      <!-- Main Info Table -->
+      <table class="info-table">
+        <tbody>
+          <!-- Row: Khách hàng -->
+          <tr>
+            <td class="label-cell">Khách hàng</td>
+            <td class="value-cell" colspan="3">{{ data.khachHang }}</td>
+          </tr>
+
+          <!-- Row: Serial pallet -->
+          <tr>
+            <td class="label-cell">Serial pallet</td>
+            <td class="value-cell" colspan="3">{{ data.serialPallet }}</td>
+          </tr>
+
+          <!-- Row: Tên sản phẩm -->
+          <tr>
+            <td class="label-cell">Tên sản phẩm</td>
+            <td class="value-cell" colspan="3">{{ data.tenSanPham }}</td>
+          </tr>
+
+          <!-- Row: PO Number -->
+          <tr>
+            <td class="label-cell">PO Number</td>
+            <td class="value-cell" colspan="3">{{ data.poNumber }}</td>
+          </tr>
+
+          <!-- Row: Item No/SKU -->
+          <tr>
+            <td class="label-cell">Item No/SKU</td>
+            <td class="value-cell">{{ data.itemNoSku }}</td>
+            <td class="split-cell">
+              <span class="sub-label">Ngành</span>
+              <span class="sub-value">{{ data.nganh }}</span>
+            </td>
+            <td class="split-cell">
+              <span class="sub-label">LED2</span>
+              <span class="sub-value">{{ data.led2 }}</span>
+            </td>
+          </tr>
+
+          <!-- Row: Số QDSX -->
+          <tr>
+            <td class="label-cell">Số QDSX</td>
+            <td class="value-cell">{{ data.soQdsx }}</td>
+            <td class="split-cell">
+              <span class="sub-label">Tổ</span>
+              <span class="sub-value">{{ data.to }}</span>
+            </td>
+            <td class="split-cell">
+              <span class="sub-label">LPL2</span>
+              <span class="sub-value">{{ data.lpl2 }}</span>
+            </td>
+          </tr>
+
+          <!-- Row: Ngày sản xuất -->
+          <tr>
+            <td class="label-cell">Ngày sản xuất</td>
+            <td class="value-cell">{{ data.ngaySanXuat }}</td>
+            <td class="split-cell" colspan="2">
+              <span class="sub-label">Date Code</span>
+              <span class="sub-value">{{ data.dateCode }}</span>
+            </td>
+          </tr>
+
+          <!-- Row: Số lượng (cái đặt pallet) -->
+          <tr>
+            <td class="label-cell">Số lượng<br />(cái đặt pallet)</td>
+            <td class="value-cell">{{ data.soLuongCaiDatPallet }}</td>
+            <td class="split-cell" colspan="2">
+              <span class="sub-label">Thứ tự giá pallet</span>
+              <span class="sub-value">{{ data.thuTuGiaPallet }}</span>
+            </td>
+          </tr>
+
+          <!-- Row: Số lượng báo ngoại -->
+          <tr>
+            <td class="label-cell">
+              Số lượng báo ngoại<br />(thùng/giá pallet)
+            </td>
+            <td class="value-cell">{{ data.soLuongBaoNgoaiThungGiaPallet }}</td>
+            <td class="split-cell" colspan="2">
+              <span class="sub-label">SL/Thùng</span>
+              <span class="sub-value">{{ data.slThung }}</span>
+            </td>
+          </tr>
+
+          <!-- Row: Người kiểm tra -->
+          <tr>
+            <td class="label-cell">Người kiểm tra</td>
+            <td class="value-cell">{{ data.nguoiKiemTra }}</td>
+            <td class="split-cell" colspan="2">
+              <span class="sub-label">Kết quả kiểm tra</span>
+              <span class="sub-value">{{ data.ketQuaKiemTra }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Bottom Section with QR Code and Product Info -->
+      <div class="bottom-section">
+        <div class="qr-code-wrapper">
+          <qrcode
+            [qrdata]="qrCodeUrl2"
+            [width]="95"
+            [margin]="1"
+            [colorDark]="'#000000'"
+            [colorLight]="'#FFFFFF'"
+          >
+          </qrcode>
+        </div>
+
+        <div class="product-info">
+          <div class="info-row">
+            <span class="info-label">Product Code:</span>
+            <span class="info-value">{{ data.productCode }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Serial Box:</span>
+            <span class="info-value">{{ data.serialBox }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Qty:</span>
+            <span class="info-value">{{ data.qty }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Lot:</span>
+            <span class="info-value">{{ data.lot }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date:</span>
+            <span class="info-value">{{ data.date }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,303 @@
+.dialog-wrapper {
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+// Dialog Header (Not printed)
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+}
+
+// Print Content Container
+.print-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  min-height: calc(100vh - 73px);
+}
+
+// A5 Card
+.pallet-card {
+  width: 148mm;
+  height: 210mm;
+  background: white;
+  padding: 10mm;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border: 3px solid #000;
+}
+
+// Top Section
+.top-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 5mm;
+  margin-bottom: 3mm;
+  padding-bottom: 3mm;
+  border-bottom: 2px solid #000;
+
+  .qr-code-wrapper {
+    flex-shrink: 0;
+    width: 30mm;
+    height: 30mm;
+    border: 2px solid #000;
+    background: white;
+    padding: 2mm;
+    box-sizing: border-box;
+
+    .qr-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  .title-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 5mm;
+
+    h1 {
+      margin: 0;
+      font-size: 24pt;
+      font-weight: bold;
+      text-align: center;
+      color: #000;
+      letter-spacing: 1px;
+    }
+  }
+}
+
+// Info Table
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-bottom: 3mm;
+
+  tbody tr {
+    border-bottom: 1px solid #000;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  td {
+    padding: 2mm 3mm;
+    vertical-align: middle;
+    border-right: 1px solid #000;
+
+    &:last-child {
+      border-right: none;
+    }
+  }
+
+  .label-cell {
+    width: 35%;
+    font-weight: 600;
+    background: #f5f5f5;
+    color: #000;
+    text-align: left;
+    line-height: 1.3;
+  }
+
+  .value-cell {
+    color: #000;
+    font-weight: 500;
+    text-align: left;
+  }
+
+  .split-cell {
+    width: 22%;
+    padding: 1mm 2mm;
+
+    .sub-label {
+      display: block;
+      font-size: 8pt;
+      font-weight: 600;
+      color: #000;
+      margin-bottom: 0.5mm;
+    }
+
+    .sub-value {
+      display: block;
+      font-size: 9pt;
+      font-weight: 500;
+      color: #000;
+    }
+  }
+}
+
+// Bottom Section
+.bottom-section {
+  margin-top: auto;
+  display: flex;
+  gap: 5mm;
+  padding-top: 3mm;
+  border-top: 2px solid #000;
+
+  .qr-code-wrapper {
+    flex-shrink: 0;
+    width: 30mm;
+    height: 30mm;
+    border: 2px solid #000;
+    background: white;
+    padding: 2mm;
+    box-sizing: border-box;
+
+    .qr-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  .product-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5mm;
+    justify-content: center;
+
+    .info-row {
+      display: flex;
+      gap: 3mm;
+      font-size: 8pt;
+      line-height: 1.4;
+
+      .info-label {
+        font-weight: 600;
+        color: #000;
+        min-width: 30mm;
+      }
+
+      .info-value {
+        font-weight: 500;
+        color: #000;
+      }
+    }
+  }
+}
+
+// Print Styles
+@media print {
+  .dialog-wrapper {
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-content {
+    padding: 0;
+    min-height: auto;
+    display: block;
+  }
+
+  .pallet-card {
+    width: 148mm;
+    height: 210mm;
+    box-shadow: none;
+    margin: 0;
+    padding: 10mm;
+    page-break-after: always;
+    border: 3px solid #000;
+  }
+
+  @page {
+    size: A5;
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .info-table {
+    .label-cell {
+      background: #f0f0f0 !important;
+      -webkit-print-color-adjust: exact !important;
+    }
+
+    tr,
+    td {
+      border-color: #000 !important;
+    }
+  }
+
+  .qr-code-wrapper {
+    background: white !important;
+    border: 2px solid #000 !important;
+  }
+
+  .top-section,
+  .bottom-section {
+    border-color: #000 !important;
+  }
+}
+
+// Responsive for preview
+@media (max-width: 768px) {
+  .print-content {
+    padding: 20px 10px;
+  }
+
+  .pallet-card {
+    transform: scale(0.65);
+    transform-origin: top center;
+  }
+}
+
+@media (max-width: 480px) {
+  .pallet-card {
+    transform: scale(0.45);
+  }
+}

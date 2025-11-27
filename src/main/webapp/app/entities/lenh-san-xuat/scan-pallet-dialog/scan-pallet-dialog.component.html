@@ -1,0 +1,264 @@
+<div class="scan-dialog-wrapper">
+  <!-- Header -->
+  <div class="scan-header">
+    <button mat-icon-button class="back-btn" (click)="onClose()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="header-info">
+      <span class="header-label">Đang scan pallet</span>
+      <h3 class="pallet-code">{{ palletData.maPallet }}</h3>
+    </div>
+    <div class="progress-badge">
+      <span class="progress-text">Tiến độ</span>
+      <span class="progress-count">
+        <span class="current">{{ scannedCount }}</span>
+        <span class="separator">/</span>
+        <span class="total">{{ palletData.soThung }}</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="scan-content">
+    <!-- Left Column: QR Code Section -->
+    <div class="pallet-qr-section">
+      <div class="qr-display">
+        <qrcode
+          [qrdata]="palletData.qrCode"
+          [width]="160"
+          [errorCorrectionLevel]="'M'"
+        ></qrcode>
+      </div>
+      <p class="qr-label">MÃ PALLET</p>
+      <p class="qr-code">{{ palletData.maPallet }}</p>
+      <button
+        mat-raised-button
+        [color]="scanModeActive ? null : 'primary'"
+        [ngClass]="{ 'scan-toggle-btn': true, 'scan-active': scanModeActive }"
+        (click)="toggleScanMode()"
+      >
+        <mat-icon>{{
+          scanModeActive ? "fullscreen" : "qr_code_scanner"
+        }}</mat-icon>
+        {{ scanModeActive ? "Đang scan..." : "Nhấn để kích hoạt Scan" }}
+      </button>
+
+      <!-- <button mat-stroked-button class="simulate-btn" (click)="simulateScan()">
+                <mat-icon>refresh</mat-icon>
+                Giả lập Scan
+            </button>
+            <button mat-stroked-button color="warn" class="test-btn" *ngIf="isTestMode" (click)="simulateScan()">
+                <mat-icon>bug_report</mat-icon>
+                Giả lập Scan
+            </button> -->
+    </div>
+
+    <!-- Right Column: All other sections -->
+    <div class="right-column">
+      <!-- Scanner Section -->
+      <div class="scanner-section">
+        <!-- Desktop: Hidden Input for Scanner -->
+        <div class="desktop-scanner" *ngIf="!isMobile">
+          <input
+            #scannerInput
+            type="text"
+            class="hidden-input"
+            [(ngModel)]="scannedCode"
+            (keyup.enter)="processScannedCode()"
+            placeholder="Scan barcode..."
+            [disabled]="!scanModeActive"
+          />
+        </div>
+
+        <!-- Mobile: Camera Scanner -->
+        <div class="mobile-scanner" *ngIf="isMobile">
+          <div class="camera-container" [class.active]="cameraActive">
+            <!-- Camera Preview -->
+            <zxing-scanner
+              *ngIf="cameraActive"
+              #scanner
+              [device]="selectedDevice"
+              [formats]="formats"
+              (scanSuccess)="onScanSuccess($event)"
+              (camerasFound)="onCamerasFound($event)"
+              (permissionResponse)="onPermissionResponse($event)"
+              class="camera-preview"
+            >
+            </zxing-scanner>
+
+            <!-- Camera Placeholder -->
+            <div class="camera-placeholder" *ngIf="!cameraActive">
+              <button
+                mat-fab
+                color="primary"
+                (click)="startCamera()"
+                class="start-camera-btn"
+              >
+                <mat-icon>videocam</mat-icon>
+              </button>
+            </div>
+
+            <!-- Camera Overlay -->
+            <div class="camera-overlay" *ngIf="cameraActive">
+              <div class="scan-frame">
+                <div class="corner top-left"></div>
+                <div class="corner top-right"></div>
+                <div class="corner bottom-left"></div>
+                <div class="corner bottom-right"></div>
+              </div>
+            </div>
+
+            <!-- Camera Controls -->
+            <div class="camera-controls" *ngIf="cameraActive">
+              <button mat-mini-fab class="control-btn" (click)="stopCamera()">
+                <mat-icon>close</mat-icon>
+              </button>
+              <button
+                mat-mini-fab
+                class="control-btn"
+                (click)="switchCamera()"
+                *ngIf="availableCameras.length > 1"
+              >
+                <mat-icon>flip_camera_ios</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Manual Input Toggle -->
+          <button
+            mat-stroked-button
+            class="manual-input-toggle"
+            (click)="toggleScanMode()"
+          >
+            <mat-icon>keyboard</mat-icon>
+            Nhấn để kích hoạt Scan
+          </button>
+        </div>
+
+        <!-- Scan Result Feedback -->
+        <div
+          class="scan-feedback"
+          *ngIf="lastScanResult"
+          [@slideIn]
+          [ngClass]="lastScanResult.type"
+        >
+          <mat-icon>{{
+            lastScanResult.type === "success" ? "check_circle" : "error"
+          }}</mat-icon>
+          <span>{{ lastScanResult.message }}</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row -->
+
+      <!-- Progress Bar -->
+      <div class="progress-section">
+        <div class="progress-header">
+          <span class="progress-label">Tiến độ scan</span>
+          <span class="progress-percent">{{ getProgressPercent() }}%</span>
+        </div>
+        <mat-progress-bar
+          mode="determinate"
+          [value]="getProgressPercent()"
+          [color]="getProgressPercent() === 100 ? 'accent' : 'primary'"
+        >
+        </mat-progress-bar>
+        <div class="progress-stats">
+          <span class="stat-item">
+            <mat-icon>check_circle</mat-icon>
+            {{ scannedBoxes.length }} đúng
+          </span>
+        </div>
+      </div>
+
+      <!-- Summary Stats Cards -->
+      <div class="summary-stats">
+        <div class="stat-card total">
+          <span class="stat-label">TỔNG SỐ CHỨA</span>
+          <span class="stat-value">{{ palletData.soThung }}</span>
+        </div>
+        <div class="stat-card scanned">
+          <span class="stat-label">ĐÃ SCAN</span>
+          <span class="stat-value">{{ scannedCount }}</span>
+        </div>
+        <div class="stat-card error" *ngIf="errorBoxes.length > 0">
+          <span class="stat-label">LỖI / NGOẠI LỆ</span>
+          <span class="stat-value">{{ errorBoxes.length }}</span>
+        </div>
+      </div>
+
+      <!-- Tabs: / Success / Error -->
+      <div class="scan-sections">
+        <!-- Vùng bên trái: Scan Thành Công -->
+        <div class="scan-section success-section">
+          <div class="section-header">
+            <span class="tab-label">ĐÚNG ({{ scannedBoxes.length }})</span>
+          </div>
+          <div class="boxes-list">
+            <div
+              class="box-item success"
+              *ngFor="let box of scannedBoxes; let i = index"
+              [@slideIn]
+            >
+              <mat-icon class="box-icon">check_circle</mat-icon>
+              <div class="box-info">
+                <span class="box-code">{{ box.code }}</span>
+                <span class="box-time">{{
+                  box.timestamp | date: "HH:mm:ss"
+                }}</span>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="scannedBoxes.length === 0">
+              <mat-icon>check_circle_outline</mat-icon>
+              <p>Chưa có thùng nào scan thành công</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vùng bên phải: Scan Lỗi -->
+        <div class="scan-section error-section">
+          <div class="section-header">
+            <span class="tab-label">LỖI ({{ errorBoxes.length }})</span>
+          </div>
+          <div class="boxes-list">
+            <div
+              class="box-item error"
+              *ngFor="let box of errorBoxes; let i = index"
+              [@slideIn]
+            >
+              <mat-icon class="box-icon">cancel</mat-icon>
+              <div class="box-info">
+                <span class="box-code">{{ box.code }}</span>
+                <span class="box-time">{{
+                  box.timestamp | date: "HH:mm:ss"
+                }}</span>
+                <span class="box-message">
+                  <mat-icon>info</mat-icon>
+                  {{ box.message }}
+                </span>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="errorBoxes.length === 0">
+              <mat-icon>check_circle</mat-icon>
+              <p>Không có lỗi nào</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- End Right Column -->
+  </div>
+
+  <!-- Footer Actions -->
+  <div class="scan-footer">
+    <button
+      mat-raised-button
+      color="primary"
+      class="complete-btn"
+      (click)="onComplete()"
+    >
+      <mat-icon>check_circle</mat-icon>
+      HOÀN THÀNH
+    </button>
+  </div>
+</div>

@@ -1,23 +1,24 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { NgModule } from "@angular/core";
+import { RouterModule, Routes } from "@angular/router";
 
-import { UserRouteAccessService } from 'app/core/auth/user-route-access.service';
-import { LenhSanXuatComponent } from '../list/lenh-san-xuat.component';
-import { LenhSanXuatDetailComponent } from '../detail/lenh-san-xuat-detail.component';
-import { LenhSanXuatUpdateComponent } from '../update/lenh-san-xuat-update.component';
-import { LenhSanXuatRoutingResolveService } from './lenh-san-xuat-routing-resolve.service';
+import { UserRouteAccessService } from "app/core/auth/user-route-access.service";
+import { LenhSanXuatComponent } from "../list/lenh-san-xuat.component";
+import { LenhSanXuatDetailComponent } from "../detail/lenh-san-xuat-detail.component";
+import { LenhSanXuatUpdateComponent } from "../update/lenh-san-xuat-update.component";
+import { LenhSanXuatRoutingResolveService } from "./lenh-san-xuat-routing-resolve.service";
+import { AddNewLenhSanXuatComponent } from "../add-new/add-new-lenh-san-xuat.component";
 
 const lenhSanXuatRoute: Routes = [
   {
-    path: '',
+    path: "",
     component: LenhSanXuatComponent,
     data: {
-      defaultSort: 'id,asc',
+      defaultSort: "id,asc",
     },
     canActivate: [UserRouteAccessService],
   },
   {
-    path: ':id/view',
+    path: ":id/view",
     component: LenhSanXuatDetailComponent,
     resolve: {
       lenhSanXuat: LenhSanXuatRoutingResolveService,
@@ -25,7 +26,7 @@ const lenhSanXuatRoute: Routes = [
     canActivate: [UserRouteAccessService],
   },
   {
-    path: 'new',
+    path: "new",
     component: LenhSanXuatUpdateComponent,
     resolve: {
       lenhSanXuat: LenhSanXuatRoutingResolveService,
@@ -33,7 +34,23 @@ const lenhSanXuatRoute: Routes = [
     canActivate: [UserRouteAccessService],
   },
   {
-    path: ':id/edit',
+    path: "add-new",
+    component: AddNewLenhSanXuatComponent,
+    resolve: {
+      lenhSanXuat: LenhSanXuatRoutingResolveService,
+    },
+    canActivate: [UserRouteAccessService],
+  },
+  {
+    path: ":id/add-new",
+    component: AddNewLenhSanXuatComponent,
+    resolve: {
+      lenhSanXuat: LenhSanXuatRoutingResolveService,
+    },
+    canActivate: [UserRouteAccessService],
+  },
+  {
+    path: ":id/edit",
     component: LenhSanXuatUpdateComponent,
     resolve: {
       lenhSanXuat: LenhSanXuatRoutingResolveService,

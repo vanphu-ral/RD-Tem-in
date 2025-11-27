@@ -1,0 +1,848 @@
+<div class="main-content">
+  <div class="header">
+    <h2>Mã lệnh sản xuất</h2>
+    <div class="submit-search-sap" [formGroup]="form">
+      <mat-form-field appearance="outline" class="sap-input">
+        <mat-label>Lệnh SX</mat-label>
+        <input
+          matInput
+          formControlName="woId"
+          placeholder="Nhập lệnh sx..."
+          (keydown.enter)="onApply()"
+        />
+        <mat-error
+          *ngIf="
+            form.get('woId')?.hasError('required') && form.get('woId')?.touched
+          "
+        >
+          Vui lòng nhập Lệnh SX
+        </mat-error>
+      </mat-form-field>
+
+      <button
+        mat-raised-button
+        color="primary"
+        class="search-button"
+        (click)="onApply()"
+      >
+        <mat-icon>check_circle_outline</mat-icon>
+        Apply
+      </button>
+    </div>
+  </div>
+
+  <!-- Production Order Table -->
+  <div class="table-container">
+    <mat-progress-bar
+      *ngIf="loading"
+      mode="indeterminate"
+      color="primary"
+    ></mat-progress-bar>
+    <table mat-table [dataSource]="productionOrders" class="production-table">
+      <ng-container matColumnDef="maLenhSanXuat">
+        <th mat-header-cell *matHeaderCellDef>Mã lệnh sản xuất</th>
+        <td mat-cell data-label="Mã lệnh SX" *matCellDef="let element">
+          {{ element.maLenhSanXuat }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="maSAP">
+        <th mat-header-cell *matHeaderCellDef>Mã SAP</th>
+        <td mat-cell data-label="Mã SAP" *matCellDef="let element">
+          {{ element.maSAP }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tenHangHoa">
+        <th mat-header-cell *matHeaderCellDef>Tên hàng hoá</th>
+        <td mat-cell data-label="Tên hàng hóa" *matCellDef="let element">
+          {{ element.tenHangHoa }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="maWO">
+        <th mat-header-cell *matHeaderCellDef>Mã WO</th>
+        <td mat-cell data-label="Mã WO" *matCellDef="let element">
+          {{ element.maWO }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="version">
+        <th mat-header-cell *matHeaderCellDef>Version</th>
+        <td mat-cell data-label="Version" *matCellDef="let element">
+          {{ element.version }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="maKhoNhap">
+        <th mat-header-cell *matHeaderCellDef>Mã kho nhập</th>
+        <td mat-cell data-label="Mã kho nhập" *matCellDef="let element">
+          <mat-form-field appearance="outline" class="compact-field">
+            <mat-select [(value)]="element.maKhoNhap">
+              <mat-option value="">--</mat-option>
+              <mat-option value="01">01 - Kho linh kiện điện tử</mat-option>
+              <mat-option value="02">02 - Kho vật tư LED</mat-option>
+              <mat-option value="03">03 - Kho vật tư TBCS</mat-option>
+              <mat-option value="04">04 - Kho vật tư CLC</mat-option>
+              <mat-option value="05">05 - Kho ngành ĐTTĐ</mat-option>
+              <mat-option value="06">06 - Kho ngành LRSP LED 1</mat-option>
+              <mat-option value="07">07 - Kho ngành SMART</mat-option>
+              <mat-option value="08">08 - Kho ngành LED2</mat-option>
+              <mat-option value="10">10 - Kho cơ khí xưởng</mat-option>
+              <mat-option value="11">11 - Kho ngành CNPT</mat-option>
+              <mat-option value="12">12 - Kho vật tư Smart</mat-option>
+              <mat-option value="13">13 - Kho ngành CNPT 2</mat-option>
+              <mat-option value="14">14 - Kho chị Hòa 2</mat-option>
+              <mat-option value="15">15 - Kho Pilot TTRD</mat-option>
+              <mat-option value="17">17 - Kho vật tư SKD</mat-option>
+              <mat-option value="18">18 - Kho trung tâm RD</mat-option>
+              <mat-option value="19">19 - Kho LKDT thủ công</mat-option>
+              <mat-option value="20">20 - Kho xuất khẩu</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="nganh">
+        <th mat-header-cell *matHeaderCellDef>Ngành</th>
+        <td mat-cell *matCellDef="let element">{{ element.nganh }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="to">
+        <th mat-header-cell *matHeaderCellDef>Tổ</th>
+        <td mat-cell *matCellDef="let element">{{ element.to }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tongSoLuong">
+        <th mat-header-cell *matHeaderCellDef>Tổng số lượng</th>
+        <td mat-cell data-label="Tổng SL" *matCellDef="let element">
+          {{ element.tongSoLuong }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="trangThai">
+        <th mat-header-cell *matHeaderCellDef>Trạng thái</th>
+        <td mat-cell data-label="Trạng thái" *matCellDef="let element">
+          {{ element.trangThai }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="loaiSanPham">
+        <th mat-header-cell *matHeaderCellDef>Loại sản phẩm</th>
+        <td mat-cell data-label="Loại SP" *matCellDef="let element">
+          {{ element.loaiSanPham }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <div class="action-buttons">
+      <button mat-raised-button color="primary" (click)="saveWarehouseNotes()">
+        <mat-icon>save</mat-icon>
+        Lưu
+      </button>
+    </div>
+  </div>
+
+  <!-- Backdrop cho FAB menu (đặt NGOÀI tabs-wrapper) -->
+  <div
+    class="fab-backdrop"
+    [class.active]="fabMenuOpen"
+    (click)="toggleFabMenu()"
+  ></div>
+
+  <!-- Tabs Section -->
+  <div class="tabs-wrapper">
+    <mat-tab-group class="management-tabs" [(selectedIndex)]="selectedTabIndex">
+      <!-- TAB 1: Quản lý thùng -->
+      <mat-tab *ngIf="showThungTab">
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">view_in_ar</mat-icon>
+          <span class="mdc-tab__text-label">Thùng</span>
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="items-table-container">
+            <mat-progress-bar
+              *ngIf="loadingBox"
+              mode="indeterminate"
+              color="primary"
+            ></mat-progress-bar>
+            <table mat-table [dataSource]="boxItems" class="items-table">
+              <ng-container matColumnDef="stt">
+                <th mat-header-cell *matHeaderCellDef style="width: 50px">
+                  STT
+                </th>
+                <td mat-cell data-label="STT" *matCellDef="let element">
+                  {{ element.stt }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="maSanPham">
+                <th mat-header-cell *matHeaderCellDef>Mã sản phẩm</th>
+                <td mat-cell data-label="Mã SP" *matCellDef="let element">
+                  {{ element.maSanPham }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="tenSanPham">
+                <th mat-header-cell *matHeaderCellDef>Tên sản phẩm</th>
+                <td mat-cell data-label="Tên SP" *matCellDef="let element">
+                  {{ element.tenSanPham }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="lotNumber">
+                <th mat-header-cell *matHeaderCellDef>Lot Number</th>
+                <td mat-cell data-label="Lot Number" *matCellDef="let element">
+                  {{ element.lotNumber }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="vendor">
+                <th mat-header-cell *matHeaderCellDef>Vendor</th>
+                <td mat-cell data-label="Vendor" *matCellDef="let element">
+                  {{ element.vendor }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="soLuongThung">
+                <th mat-header-cell *matHeaderCellDef>Số lượng thùng</th>
+                <td mat-cell data-label="SL thùng" *matCellDef="let element">
+                  {{ element.soLuongThung }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="soLuongSp">
+                <th mat-header-cell *matHeaderCellDef>Số lượng SP</th>
+                <td mat-cell data-label="SL SP" *matCellDef="let element">
+                  {{ element.soLuongSp }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="ghiChu">
+                <th mat-header-cell *matHeaderCellDef>Ghi chú</th>
+                <td mat-cell data-label="Ghi chú" *matCellDef="let element">
+                  {{ element.ghiChu }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="kho">
+                <th mat-header-cell *matHeaderCellDef>Kho</th>
+                <td mat-cell data-label="Kho" *matCellDef="let element">
+                  {{ element.kho }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="trangThaiIn">
+                <th mat-header-cell *matHeaderCellDef>Trạng thái in</th>
+                <td mat-cell data-label="TT in" *matCellDef="let element">
+                  <span
+                    class="status-badge"
+                    [ngClass]="element.trangThaiIn ? 'printed' : 'not-printed'"
+                  >
+                    {{ element.trangThaiIn ? "Đã in" : "Chưa in" }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="tuyChon">
+                <th mat-header-cell *matHeaderCellDef>Tuỳ chọn</th>
+                <td
+                  mat-cell
+                  data-label=""
+                  *matCellDef="let element; let i = index"
+                >
+                  <button
+                    mat-icon-button
+                    color="primary"
+                    (click)="openBoxDetailDialog(element)"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="deleteBox(i)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="boxColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: boxColumns"></tr>
+            </table>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB 2: Quản lý pallet -->
+      <mat-tab *ngIf="showPalletTab">
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">layers</mat-icon>
+          <span class="mdc-tab__text-label">Pallet</span>
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="items-table-container">
+            <table mat-table [dataSource]="palletItems" class="items-table">
+              <ng-container matColumnDef="stt">
+                <th mat-header-cell *matHeaderCellDef style="width: 50px">
+                  STT
+                </th>
+                <td mat-cell data-label="STT" *matCellDef="let element">
+                  {{ element.stt }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="tenSanPham">
+                <th mat-header-cell *matHeaderCellDef>Tên sản phẩm</th>
+                <td mat-cell data-label="Tên SP" *matCellDef="let element">
+                  {{ element.tenSanPham }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="noSKU">
+                <th mat-header-cell *matHeaderCellDef>No/SKU</th>
+                <td mat-cell data-label="No/SKU" *matCellDef="let element">
+                  {{ element.noSKU }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="createdAt">
+                <th mat-header-cell *matHeaderCellDef>Thời gian tạo</th>
+                <td mat-cell data-label="Thời gian" *matCellDef="let element">
+                  {{ element.createdAt }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="khachHang">
+                <th mat-header-cell *matHeaderCellDef>Khách hàng</th>
+                <td mat-cell data-label="Khách hàng" *matCellDef="let element">
+                  {{ element.khachHang }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="poNumber">
+                <th mat-header-cell *matHeaderCellDef>PO Number</th>
+                <td mat-cell data-label="PO Number" *matCellDef="let element">
+                  {{ element.poNumber }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="dateCode">
+                <th mat-header-cell *matHeaderCellDef>Date Code</th>
+                <td mat-cell data-label="Date Code" *matCellDef="let element">
+                  {{ element.dateCode }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="qdsx">
+                <th mat-header-cell *matHeaderCellDef>QDSX</th>
+                <td mat-cell data-label="QDSX" *matCellDef="let element">
+                  {{ element.qdsx }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="nguoiKiemTra">
+                <th mat-header-cell *matHeaderCellDef>Người kiểm tra</th>
+                <td mat-cell data-label="Người KT" *matCellDef="let element">
+                  {{ element.nguoiKiemTra }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="ketQuaKiemTra">
+                <th mat-header-cell *matHeaderCellDef>Kết quả kiểm tra</th>
+                <td mat-cell data-label="KQ KT" *matCellDef="let element">
+                  {{ element.ketQuaKiemTra }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="tongPallet">
+                <th mat-header-cell *matHeaderCellDef>Tổng pallet</th>
+                <td mat-cell data-label="Tổng pallet" *matCellDef="let element">
+                  {{ element.tongPallet }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="tongSlSp">
+                <th mat-header-cell *matHeaderCellDef>Tổng sản phẩm</th>
+                <td mat-cell data-label="Tổng SP" *matCellDef="let element">
+                  {{ element.tongSlSp }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="tongSoThung">
+                <th mat-header-cell *matHeaderCellDef>Tổng số thùng</th>
+                <td mat-cell data-label="Tổng thùng" *matCellDef="let element">
+                  {{ element.tongSoThung }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="trangThaiIn">
+                <th mat-header-cell *matHeaderCellDef>Trạng thái in</th>
+                <td mat-cell data-label="TT in" *matCellDef="let element">
+                  <span
+                    class="status-badge"
+                    [ngClass]="element.trangThaiIn ? 'printed' : 'not-printed'"
+                  >
+                    {{ element.trangThaiIn ? "Đã in" : "Chưa in" }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="tuyChon">
+                <th mat-header-cell *matHeaderCellDef>Tuỳ chọn</th>
+                <td mat-cell data-label="" *matCellDef="let element">
+                  <button
+                    mat-icon-button
+                    color="primary"
+                    (click)="openPalletDetailDialog(element)"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                  <button mat-icon-button color="primary">
+                    <mat-icon>system_update_alt</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="palletColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: palletColumns"></tr>
+            </table>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB 3: Quản lý tem BTP -->
+      <mat-tab *ngIf="showTemBtpTab">
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">qr_code</mat-icon>
+          <span class="mdc-tab__text-label">Tem BTP</span>
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="items-table-container scroll-container">
+            <table
+              mat-table
+              [dataSource]="reelDataList"
+              class="items-table tem-btp-table"
+            >
+              <ng-container matColumnDef="stt">
+                <th mat-header-cell *matHeaderCellDef>STT</th>
+                <td
+                  mat-cell
+                  data-label="STT"
+                  *matCellDef="let element; let i = index"
+                >
+                  {{ i + 1 }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="reelID">
+                <th mat-header-cell *matHeaderCellDef>Reel ID</th>
+                <td mat-cell data-label="Reel ID" *matCellDef="let element">
+                  {{ element.reelID }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="partNumber">
+                <th mat-header-cell *matHeaderCellDef>Part Number</th>
+                <td mat-cell data-label="Part Number" *matCellDef="let element">
+                  {{ element.partNumber }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="vendor">
+                <th mat-header-cell *matHeaderCellDef>Vendor</th>
+                <td mat-cell data-label="Vendor" *matCellDef="let element">
+                  {{ element.vendor }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="lot">
+                <th mat-header-cell *matHeaderCellDef>Lot</th>
+                <td mat-cell data-label="Lot" *matCellDef="let element">
+                  {{ element.lot }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="storageUnit">
+                <th mat-header-cell *matHeaderCellDef>
+                  Storage Unit
+                  <div class="header-actions">
+                    <mat-form-field
+                      appearance="outline"
+                      class="compact-field"
+                      style="width: 5rem; background: #fff"
+                    >
+                      <input matInput [(ngModel)]="storageUnitHeaderValue" />
+                    </mat-form-field>
+                    <button
+                      mat-icon-button
+                      color="primary"
+                      (click)="applyStorageUnitToAll()"
+                      class="header-actions-btn"
+                    >
+                      <mat-icon>check</mat-icon>
+                    </button>
+                  </div>
+                </th>
+                <td
+                  mat-cell
+                  data-label="Storage Unit"
+                  *matCellDef="let element"
+                >
+                  <mat-form-field appearance="outline" class="compact-field">
+                    <input matInput [(ngModel)]="element.storageUnit" />
+                  </mat-form-field>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="trangThai">
+                <th mat-header-cell *matHeaderCellDef>Trạng thái</th>
+                <td mat-cell data-label="Trạng thái" *matCellDef="let element">
+                  {{ element.trangThai }}
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="userData1">
+                <th mat-header-cell *matHeaderCellDef>User Data 1</th>
+                <td mat-cell data-label="User Data 1" *matCellDef="let element">
+                  {{ element.userData1 }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="userData2">
+                <th mat-header-cell *matHeaderCellDef>User Data 2</th>
+                <td mat-cell data-label="User Data 2" *matCellDef="let element">
+                  {{ element.userData2 }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="userData3">
+                <th mat-header-cell *matHeaderCellDef>User Data 3</th>
+                <td mat-cell data-label="User Data 3" *matCellDef="let element">
+                  {{ element.userData3 }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="userData4">
+                <th mat-header-cell *matHeaderCellDef>User Data 4</th>
+                <td mat-cell data-label="User Data 4" *matCellDef="let element">
+                  {{ element.userData4 }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="userData5">
+                <th mat-header-cell *matHeaderCellDef>User Data 5</th>
+                <td mat-cell data-label="User Data 5" *matCellDef="let element">
+                  {{ element.userData5 }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="initialQuantity">
+                <th mat-header-cell *matHeaderCellDef>Initial Quantity</th>
+                <td
+                  mat-cell
+                  data-label="Initial Quantity"
+                  *matCellDef="let element"
+                >
+                  {{ element.initialQuantity }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="msdLevel">
+                <th mat-header-cell *matHeaderCellDef>MSD Level</th>
+                <td mat-cell data-label="MSD Level" *matCellDef="let element">
+                  {{ element.msdLevel }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="msdInitialFloorTime">
+                <th mat-header-cell *matHeaderCellDef>
+                  MSD Initial Floor Time
+                </th>
+                <td
+                  mat-cell
+                  data-label="MSD Initial Floor Time"
+                  *matCellDef="let element"
+                >
+                  {{ element.msdInitialFloorTime }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="msdBagSealDate">
+                <th mat-header-cell *matHeaderCellDef>MSD Bag Seal Date</th>
+                <td
+                  mat-cell
+                  data-label="MSD Bag Seal Date"
+                  *matCellDef="let element"
+                >
+                  {{ element.msdBagSealDate }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="marketUsage">
+                <th mat-header-cell *matHeaderCellDef>Market Usage</th>
+                <td
+                  mat-cell
+                  data-label="Market Usage"
+                  *matCellDef="let element"
+                >
+                  {{ element.marketUsage }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="quantityOverride">
+                <th mat-header-cell *matHeaderCellDef>Quantity Override</th>
+                <td
+                  mat-cell
+                  data-label="Quantity Override"
+                  *matCellDef="let element"
+                >
+                  {{ element.quantityOverride }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="shelfTime">
+                <th mat-header-cell *matHeaderCellDef>Shelf Time</th>
+                <td mat-cell data-label="Shelf Time" *matCellDef="let element">
+                  {{ element.shelfTime }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="spMaterialName">
+                <th mat-header-cell *matHeaderCellDef>SP Material Name</th>
+                <td
+                  mat-cell
+                  data-label="SP Material Name"
+                  *matCellDef="let element"
+                >
+                  {{ element.spMaterialName }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="warningLimit">
+                <th mat-header-cell *matHeaderCellDef>Warning Limit</th>
+                <td
+                  mat-cell
+                  data-label="Warning Limit"
+                  *matCellDef="let element"
+                >
+                  {{ element.warningLimit }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="maximumLimit">
+                <th mat-header-cell *matHeaderCellDef>Maximum Limit</th>
+                <td
+                  mat-cell
+                  data-label="Maximum Limit"
+                  *matCellDef="let element"
+                >
+                  {{ element.maximumLimit }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="comments">
+                <th mat-header-cell *matHeaderCellDef>Comments</th>
+                <td mat-cell data-label="Comments" *matCellDef="let element">
+                  {{ element.comments }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="warmupTime">
+                <th mat-header-cell *matHeaderCellDef>Warmup Time</th>
+                <td mat-cell data-label="Warmup Time" *matCellDef="let element">
+                  {{ element.warmupTime }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="subStorageUnit">
+                <th mat-header-cell *matHeaderCellDef>Sub Storage Unit</th>
+                <td
+                  mat-cell
+                  data-label="Sub Storage Unit"
+                  *matCellDef="let element"
+                >
+                  {{ element.subStorageUnit }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="locationOverride">
+                <th mat-header-cell *matHeaderCellDef>Location Override</th>
+                <td
+                  mat-cell
+                  data-label="Location Override"
+                  *matCellDef="let element"
+                >
+                  {{ element.locationOverride }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="expirationDate">
+                <th mat-header-cell *matHeaderCellDef>Expiration Date</th>
+                <td
+                  mat-cell
+                  data-label="Expiration Date"
+                  *matCellDef="let element"
+                >
+                  {{ element.expirationDate }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="manufacturingDate">
+                <th mat-header-cell *matHeaderCellDef>Manufacturing Date</th>
+                <td
+                  mat-cell
+                  data-label="Manufacturing Date"
+                  *matCellDef="let element"
+                >
+                  {{ element.manufacturingDate }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="partClass">
+                <th mat-header-cell *matHeaderCellDef>Part Class</th>
+                <td mat-cell data-label="Part Class" *matCellDef="let element">
+                  {{ element.partClass }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="sapCode">
+                <th mat-header-cell *matHeaderCellDef>SAP Code</th>
+                <td mat-cell data-label="SAP Code" *matCellDef="let element">
+                  {{ element.sapCode }}
+                </td>
+              </ng-container>
+
+              <tr
+                mat-header-row
+                *matHeaderRowDef="reelColumns; sticky: true"
+              ></tr>
+              <tr mat-row *matRowDef="let row; columns: reelColumns"></tr>
+            </table>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+
+    <!-- Action buttons trong tabs -->
+    <div class="action-buttons">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="saveCombined(maLenhSanXuatId)"
+      >
+        <mat-icon>save</mat-icon>
+        Lưu
+      </button>
+      <!-- <button mat-raised-button color="primary" (click)="onCreateLabels()" *ngIf="productionOrders[0]?.loaiSanPham === 'Bán thành phẩm'">
+                <mat-icon>play_arrow</mat-icon>
+                Tạo tem
+            </button> -->
+    </div>
+
+    <!-- DESKTOP VERSION - Pakage buttons -->
+    <div class="pakage-button desktop-only">
+      <button
+        mat-raised-button
+        color="primary"
+        class="add-box-btn"
+        (click)="openCreateBoxDialog()"
+      >
+        <mat-icon>add</mat-icon>
+        Tạo Box mới
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        class="add-box-btn"
+        (click)="openCreatePalletDialog()"
+      >
+        <mat-icon>add</mat-icon>
+        Tạo Pallet mới
+      </button>
+      <button mat-raised-button color="primary" class="add-box-btn">
+        <mat-icon>print</mat-icon>
+        In tất cả
+      </button>
+      <button
+        mat-raised-button
+        color="accent"
+        (click)="openPackagePalletDialog()"
+      >
+        <mat-icon>qr_code_scanner</mat-icon>
+        Pakage (Đóng gói)
+      </button>
+    </div>
+  </div>
+
+  <!-- MOBILE VERSION - FAB Menu -->
+  <div class="pakage-button mobile-fab" [class.open]="fabMenuOpen">
+    <button
+      mat-fab
+      color="primary"
+      (click)="toggleFabMenu()"
+      matTooltip="Menu"
+      matTooltipPosition="left"
+    >
+      <mat-icon>{{ fabMenuOpen ? "close" : "menu" }}</mat-icon>
+    </button>
+
+    <button
+      mat-fab
+      class="add-box-btn"
+      (click)="openCreateBoxDialog(); toggleFabMenu()"
+      matTooltip="Tạo Box"
+      matTooltipPosition="left"
+    >
+      <mat-icon>view_in_ar</mat-icon>
+    </button>
+
+    <button
+      mat-fab
+      class="add-box-btn"
+      (click)="openCreatePalletDialog(); toggleFabMenu()"
+      matTooltip="Tạo Pallet"
+      matTooltipPosition="left"
+    >
+      <mat-icon>layers</mat-icon>
+    </button>
+
+    <button
+      mat-fab
+      color="primary"
+      class="add-box-btn"
+      (click)="printAll(); toggleFabMenu()"
+      matTooltip="In tất cả"
+      matTooltipPosition="left"
+    >
+      <mat-icon>print</mat-icon>
+    </button>
+
+    <button
+      mat-fab
+      color="accent"
+      (click)="openPackagePalletDialog(); toggleFabMenu()"
+      matTooltip="Đóng gói"
+      matTooltipPosition="left"
+    >
+      <mat-icon>qr_code_scanner</mat-icon>
+    </button>
+  </div>
+
+  <!-- Footer buttons -->
+  <div class="footer-button">
+    <button mat-raised-button color="primary">
+      <mat-icon>arrow_back</mat-icon>
+      Trở lại
+    </button>
+
+    <button mat-raised-button color="primary">
+      <mat-icon>check_circle_outline</mat-icon>
+      Gửi phê duyệt
+    </button>
+  </div>
+</div>
