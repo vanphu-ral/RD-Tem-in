@@ -212,7 +212,7 @@
 <!--            <column name="comment" type="varchar(255)"/>-->
 <!--            <column name="create_by" type="varchar(255)"/>-->
 <!--            <column name="entry_time" type="varchar(255)"/>-->
-<!--            <column name="ma_lenh_san_xuat" type="bigint">-->
+<!--            <column name="ma_lenh_san_xuat_id" type="bigint">-->
 <!--                <constraints nullable="false"/>-->
 <!--            </column>-->
 <!--            <column name="sap_code" type="varchar(255)"/>-->
@@ -319,7 +319,7 @@
 <!--        <addUniqueConstraint columnNames="login" constraintName="UC_JHI_USERLOGIN_COL" tableName="jhi_user"/>-->
 <!--    </changeSet>-->
 <!--    <changeSet author="Dell (generated)" id="1699863987455-23">-->
-<!--        <addUniqueConstraint columnNames="ma_lenh_san_xuat" constraintName="UC_LENH_SAN_XUATMA_LENH_SAN_XUAT_COL" tableName="lenh_san_xuat"/>-->
+<!--        <addUniqueConstraint columnNames="ma_lenh_san_xuat_id" constraintName="UC_LENH_SAN_XUATMA_LENH_SAN_XUAT_COL" tableName="lenh_san_xuat"/>-->
 <!--    </changeSet>-->
 <!--    <changeSet author="Dell (generated)" id="1699863987455-24">-->
 <!--        <addForeignKeyConstraint baseColumnNames="lenh_san_xuat_id" baseTableName="chi_tiet_lenh_san_xuat" constraintName="FK24hocs1ls1tp84m8uj6ej32xy" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="lenh_san_xuat" validate="true"/>-->
@@ -360,6 +360,7 @@
     <changeSet author="Dell (generated)" id="1699863987455-4">
         <alterSequence sequenceName="sequence_generator"/>
     </changeSet> -->
+    <include file="config/liquibase/changelog/20251127043950_updated_schema.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->

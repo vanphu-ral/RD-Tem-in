@@ -17,11 +17,7 @@ public class SerialBoxPalletMapping implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "sequenceGenerator"
-    )
-    @SequenceGenerator(name = "sequenceGenerator")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
@@ -46,7 +42,7 @@ public class SerialBoxPalletMapping implements Serializable {
         value = { "genTemConfigs", "serialMappings", "details" },
         allowSetters = true
     )
-    private WarehouseStampInfo maLenhSanXuat;
+    private WarehouseNoteInfo maLenhSanXuat;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
@@ -115,16 +111,16 @@ public class SerialBoxPalletMapping implements Serializable {
         this.updatedBy = updatedBy;
     }
 
-    public WarehouseStampInfo getMaLenhSanXuat() {
+    public WarehouseNoteInfo getMaLenhSanXuat() {
         return this.maLenhSanXuat;
     }
 
-    public void setMaLenhSanXuat(WarehouseStampInfo warehouseStampInfo) {
+    public void setMaLenhSanXuat(WarehouseNoteInfo warehouseStampInfo) {
         this.maLenhSanXuat = warehouseStampInfo;
     }
 
     public SerialBoxPalletMapping maLenhSanXuat(
-        WarehouseStampInfo warehouseStampInfo
+        WarehouseNoteInfo warehouseStampInfo
     ) {
         this.setMaLenhSanXuat(warehouseStampInfo);
         return this;

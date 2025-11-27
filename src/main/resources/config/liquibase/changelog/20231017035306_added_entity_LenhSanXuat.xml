@@ -14,7 +14,7 @@
 <!--            <column name="id" type="bigint">-->
 <!--                <constraints primaryKey="true" nullable="false"/>-->
 <!--            </column>-->
-<!--            <column name="ma_lenh_san_xuat" type="integer">-->
+<!--            <column name="ma_lenh_san_xuat_id" type="integer">-->
 <!--                <constraints nullable="false" unique="true" uniqueConstraintName="ux_lenh_san_xuat__ma_lenh_san_xuat" />-->
 <!--            </column>-->
 <!--            <column name="sap_code" type="varchar(255)">-->
@@ -68,7 +68,7 @@
 <!--                  tableName="lenh_san_xuat"-->
 <!--                  usePreparedStatements="true">-->
 <!--            <column name="id" type="numeric"/>-->
-<!--            <column name="ma_lenh_san_xuat" type="numeric"/>-->
+<!--            <column name="ma_lenh_san_xuat_id" type="numeric"/>-->
 <!--            <column name="sap_code" type="string"/>-->
 <!--            <column name="sap_name" type="string"/>-->
 <!--            <column name="work_order_code" type="string"/>-->

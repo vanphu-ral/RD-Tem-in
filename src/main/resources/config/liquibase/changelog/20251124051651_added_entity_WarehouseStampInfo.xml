@@ -7,14 +7,14 @@
                         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
     <!--
-        Added the entity WarehouseStampInfo.
+        Added the entity WarehouseNoteInfo.
     -->
     <changeSet id="20251124051651-1" author="jhipster">
         <createTable tableName="warehouse_note_info">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="ma_lenh_san_xuat" type="varchar(30)">
+            <column name="ma_lenh_san_xuat_id" type="varchar(30)">
                 <constraints nullable="true" />
             </column>
             <column name="sap_code" type="varchar(50)">
@@ -95,7 +95,7 @@
                   tableName="warehouse_note_info"
                   usePreparedStatements="true">
             <column name="id" type="numeric"/>
-            <column name="ma_lenh_san_xuat" type="string"/>
+            <column name="ma_lenh_san_xuat_id" type="string"/>
             <column name="sap_code" type="string"/>
             <column name="sap_name" type="string"/>
             <column name="work_order_code" type="string"/>

@@ -1,13 +1,14 @@
 package com.mycompany.myapp.service.mapper;
 
 import com.mycompany.myapp.domain.GenTemConfig;
-import com.mycompany.myapp.domain.WarehouseStampInfo;
+import com.mycompany.myapp.domain.WarehouseNoteInfo;
 import com.mycompany.myapp.service.dto.GenTemConfigDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import org.mapstruct.*;
 
 /**
- * Mapper for the entity {@link GenTemConfig} and its DTO {@link GenTemConfigDTO}.
+ * Mapper for the entity {@link GenTemConfig} and its DTO
+ * {@link GenTemConfigDTO}.
  */
 @Mapper(componentModel = "spring")
 public interface GenTemConfigMapper
@@ -23,6 +24,6 @@ public interface GenTemConfigMapper
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
     WarehouseStampInfoDTO toDtoWarehouseStampInfoId(
-        WarehouseStampInfo warehouseStampInfo
+        WarehouseNoteInfo warehouseStampInfo
     );
 }

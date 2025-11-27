@@ -15,8 +15,8 @@ public class WarehouseStampInfoDetailTestSamples {
         random.nextInt() + (2 * Short.MAX_VALUE)
     );
 
-    public static WarehouseStampInfoDetail getWarehouseStampInfoDetailSample1() {
-        return new WarehouseStampInfoDetail()
+    public static WarehouseNoteInfoDetail getWarehouseStampInfoDetailSample1() {
+        return new WarehouseNoteInfoDetail()
             .id(1L)
             .reelId("reelId1")
             .partNumber("partNumber1")
@@ -51,8 +51,8 @@ public class WarehouseStampInfoDetailTestSamples {
             .checked(1);
     }
 
-    public static WarehouseStampInfoDetail getWarehouseStampInfoDetailSample2() {
-        return new WarehouseStampInfoDetail()
+    public static WarehouseNoteInfoDetail getWarehouseStampInfoDetailSample2() {
+        return new WarehouseNoteInfoDetail()
             .id(2L)
             .reelId("reelId2")
             .partNumber("partNumber2")
@@ -87,8 +87,8 @@ public class WarehouseStampInfoDetailTestSamples {
             .checked(2);
     }
 
-    public static WarehouseStampInfoDetail getWarehouseStampInfoDetailRandomSampleGenerator() {
-        return new WarehouseStampInfoDetail()
+    public static WarehouseNoteInfoDetail getWarehouseStampInfoDetailRandomSampleGenerator() {
+        return new WarehouseNoteInfoDetail()
             .id(longCount.incrementAndGet())
             .reelId(UUID.randomUUID().toString())
             .partNumber(UUID.randomUUID().toString())

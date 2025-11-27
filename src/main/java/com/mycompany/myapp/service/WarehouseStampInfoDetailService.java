@@ -1,6 +1,6 @@
 package com.mycompany.myapp.service;
 
-import com.mycompany.myapp.domain.WarehouseStampInfoDetail;
+import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service Implementation for managing
- * {@link com.mycompany.myapp.domain.WarehouseStampInfoDetail}.
+ * {@link com.mycompany.myapp.domain.WarehouseNoteInfoDetail}.
  */
 @Service
 @Transactional("partner3TransactionManager")
@@ -47,10 +47,10 @@ public class WarehouseStampInfoDetailService {
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
     ) {
         LOG.debug(
-            "Request to save WarehouseStampInfoDetail : {}",
+            "Request to save WarehouseNoteInfoDetail : {}",
             warehouseStampInfoDetailDTO
         );
-        WarehouseStampInfoDetail warehouseStampInfoDetail =
+        WarehouseNoteInfoDetail warehouseStampInfoDetail =
             warehouseStampInfoDetailMapper.toEntity(
                 warehouseStampInfoDetailDTO
             );
@@ -70,10 +70,10 @@ public class WarehouseStampInfoDetailService {
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
     ) {
         LOG.debug(
-            "Request to update WarehouseStampInfoDetail : {}",
+            "Request to update WarehouseNoteInfoDetail : {}",
             warehouseStampInfoDetailDTO
         );
-        WarehouseStampInfoDetail warehouseStampInfoDetail =
+        WarehouseNoteInfoDetail warehouseStampInfoDetail =
             warehouseStampInfoDetailMapper.toEntity(
                 warehouseStampInfoDetailDTO
             );
@@ -93,7 +93,7 @@ public class WarehouseStampInfoDetailService {
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
     ) {
         LOG.debug(
-            "Request to partially update WarehouseStampInfoDetail : {}",
+            "Request to partially update WarehouseNoteInfoDetail : {}",
             warehouseStampInfoDetailDTO
         );
 
@@ -133,7 +133,7 @@ public class WarehouseStampInfoDetailService {
      */
     @Transactional(readOnly = true)
     public Optional<WarehouseStampInfoDetailDTO> findOne(Long id) {
-        LOG.debug("Request to get WarehouseStampInfoDetail : {}", id);
+        LOG.debug("Request to get WarehouseNoteInfoDetail : {}", id);
         return warehouseStampInfoDetailRepository
             .findById(id)
             .map(warehouseStampInfoDetailMapper::toDto);
@@ -145,7 +145,163 @@ public class WarehouseStampInfoDetailService {
      * @param id the id of the entity.
      */
     public void delete(Long id) {
-        LOG.debug("Request to delete WarehouseStampInfoDetail : {}", id);
+        LOG.debug("Request to delete WarehouseNoteInfoDetail : {}", id);
         warehouseStampInfoDetailRepository.deleteById(id);
+    }
+
+    /**
+     * Batch update warehouse stamp info details by ID.
+     *
+     * @param warehouseStampInfoDetailDTOs the list of entities to update.
+     * @return the list of updated entities.
+     */
+    public java.util.List<WarehouseStampInfoDetailDTO> batchUpdate(
+        java.util.List<WarehouseStampInfoDetailDTO> warehouseStampInfoDetailDTOs
+    ) {
+        LOG.debug(
+            "Request to batch update WarehouseStampInfoDetails : {}",
+            warehouseStampInfoDetailDTOs
+        );
+
+        java.util.List<WarehouseStampInfoDetailDTO> updatedDTOs =
+            new java.util.ArrayList<>();
+
+        for (WarehouseStampInfoDetailDTO dto : warehouseStampInfoDetailDTOs) {
+            if (dto.getId() == null) {
+                LOG.warn(
+                    "WarehouseNoteInfoDetail with null ID, skipping update"
+                );
+                continue;
+            }
+
+            // Find existing warehouse detail by ID
+            Optional<WarehouseNoteInfoDetail> existingDetailOpt =
+                warehouseStampInfoDetailRepository.findById(dto.getId());
+
+            if (existingDetailOpt.isPresent()) {
+                WarehouseNoteInfoDetail existingDetail =
+                    existingDetailOpt.get();
+
+                // Update all provided fields
+                if (dto.getReelId() != null) {
+                    existingDetail.setReelId(dto.getReelId());
+                }
+                if (dto.getPartNumber() != null) {
+                    existingDetail.setPartNumber(dto.getPartNumber());
+                }
+                if (dto.getVendor() != null) {
+                    existingDetail.setVendor(dto.getVendor());
+                }
+                if (dto.getLot() != null) {
+                    existingDetail.setLot(dto.getLot());
+                }
+                if (dto.getUserData1() != null) {
+                    existingDetail.setUserData1(dto.getUserData1());
+                }
+                if (dto.getUserData2() != null) {
+                    existingDetail.setUserData2(dto.getUserData2());
+                }
+                if (dto.getUserData3() != null) {
+                    existingDetail.setUserData3(dto.getUserData3());
+                }
+                if (dto.getUserData4() != null) {
+                    existingDetail.setUserData4(dto.getUserData4());
+                }
+                if (dto.getUserData5() != null) {
+                    existingDetail.setUserData5(dto.getUserData5());
+                }
+                if (dto.getInitialQuantity() != null) {
+                    existingDetail.setInitialQuantity(dto.getInitialQuantity());
+                }
+                if (dto.getMsdLevel() != null) {
+                    existingDetail.setMsdLevel(dto.getMsdLevel());
+                }
+                if (dto.getMsdInitialFloorTime() != null) {
+                    existingDetail.setMsdInitialFloorTime(
+                        dto.getMsdInitialFloorTime()
+                    );
+                }
+                if (dto.getMsdBagSealDate() != null) {
+                    existingDetail.setMsdBagSealDate(dto.getMsdBagSealDate());
+                }
+                if (dto.getMarketUsage() != null) {
+                    existingDetail.setMarketUsage(dto.getMarketUsage());
+                }
+                if (dto.getQuantityOverride() != null) {
+                    existingDetail.setQuantityOverride(
+                        dto.getQuantityOverride()
+                    );
+                }
+                if (dto.getShelfTime() != null) {
+                    existingDetail.setShelfTime(dto.getShelfTime());
+                }
+                if (dto.getSpMaterialName() != null) {
+                    existingDetail.setSpMaterialName(dto.getSpMaterialName());
+                }
+                if (dto.getWarningLimit() != null) {
+                    existingDetail.setWarningLimit(dto.getWarningLimit());
+                }
+                if (dto.getMaximumLimit() != null) {
+                    existingDetail.setMaximumLimit(dto.getMaximumLimit());
+                }
+                if (dto.getComments() != null) {
+                    existingDetail.setComments(dto.getComments());
+                }
+                if (dto.getWarmupTime() != null) {
+                    existingDetail.setWarmupTime(dto.getWarmupTime());
+                }
+                if (dto.getStorageUnit() != null) {
+                    existingDetail.setStorageUnit(dto.getStorageUnit());
+                }
+                if (dto.getSubStorageUnit() != null) {
+                    existingDetail.setSubStorageUnit(dto.getSubStorageUnit());
+                }
+                if (dto.getLocationOverride() != null) {
+                    existingDetail.setLocationOverride(
+                        dto.getLocationOverride()
+                    );
+                }
+                if (dto.getExpirationDate() != null) {
+                    existingDetail.setExpirationDate(dto.getExpirationDate());
+                }
+                if (dto.getManufacturingDate() != null) {
+                    existingDetail.setManufacturingDate(
+                        dto.getManufacturingDate()
+                    );
+                }
+                if (dto.getPartClass() != null) {
+                    existingDetail.setPartClass(dto.getPartClass());
+                }
+                if (dto.getSapCode() != null) {
+                    existingDetail.setSapCode(dto.getSapCode());
+                }
+                if (dto.getMaLenhSanXuatId() != null) {
+                    existingDetail.setmaLenhSanXuatId(dto.getMaLenhSanXuatId());
+                }
+                if (dto.getLenhSanXuatId() != null) {
+                    existingDetail.setLenhSanXuatId(dto.getLenhSanXuatId());
+                }
+                if (dto.getTrangThai() != null) {
+                    existingDetail.setTrangThai(dto.getTrangThai());
+                }
+                if (dto.getChecked() != null) {
+                    existingDetail.setChecked(dto.getChecked());
+                }
+
+                // Save the updated entity
+                WarehouseNoteInfoDetail savedDetail =
+                    warehouseStampInfoDetailRepository.save(existingDetail);
+                updatedDTOs.add(
+                    warehouseStampInfoDetailMapper.toDto(savedDetail)
+                );
+            } else {
+                LOG.warn(
+                    "WarehouseNoteInfoDetail with ID {} not found, skipping update",
+                    dto.getId()
+                );
+            }
+        }
+
+        return updatedDTOs;
     }
 }

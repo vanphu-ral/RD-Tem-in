@@ -3,6 +3,7 @@ package com.mycompany.myapp.web.rest;
 import com.mycompany.myapp.repository.SerialBoxPalletMappingRepository;
 import com.mycompany.myapp.service.SerialBoxPalletMappingService;
 import com.mycompany.myapp.service.dto.SerialBoxPalletMappingDTO;
+import com.mycompany.myapp.service.dto.SerialBoxPalletMappingInsertDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -101,6 +102,48 @@ public class SerialBoxPalletMappingResource {
                 )
             )
             .body(serialBoxPalletMappingDTO);
+    }
+
+    /**
+     * {@code POST  /serial-box-pallet-mappings/ma-lenh-san-xuat/{maLenhSanXuatId}} : Create a new
+     * serialBoxPalletMapping with maLenhSanXuat.
+     *
+     * @param maLenhSanXuatId the id of maLenhSanXuat.
+     * @param insertDTO the insert data.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
+     *         body the new serialBoxPalletMappingDTO.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PostMapping("/ma-lenh-san-xuat/{maLenhSanXuatId}")
+    public ResponseEntity<
+        SerialBoxPalletMappingDTO
+    > createSerialBoxPalletMappingWithMaLenhSanXuat(
+        @PathVariable Long maLenhSanXuatId,
+        @Valid @RequestBody SerialBoxPalletMappingInsertDTO insertDTO
+    ) throws URISyntaxException {
+        LOG.debug(
+            "REST request to save SerialBoxPalletMapping with maLenhSanXuatId : {} and data : {}",
+            maLenhSanXuatId,
+            insertDTO
+        );
+
+        SerialBoxPalletMappingDTO result =
+            serialBoxPalletMappingService.insertWithMaLenhSanXuat(
+                maLenhSanXuatId,
+                insertDTO
+            );
+        return ResponseEntity.created(
+            new URI("/api/serial-box-pallet-mappings/" + result.getId())
+        )
+            .headers(
+                HeaderUtil.createEntityCreationAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    result.getId().toString()
+                )
+            )
+            .body(result);
     }
 
     /**

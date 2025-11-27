@@ -33,7 +33,7 @@ class SerialBoxPalletMappingTest {
     void maLenhSanXuatTest() {
         SerialBoxPalletMapping serialBoxPalletMapping =
             getSerialBoxPalletMappingRandomSampleGenerator();
-        WarehouseStampInfo warehouseStampInfoBack =
+        WarehouseNoteInfo warehouseStampInfoBack =
             getWarehouseStampInfoRandomSampleGenerator();
 
         serialBoxPalletMapping.setMaLenhSanXuat(warehouseStampInfoBack);

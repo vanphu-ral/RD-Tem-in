@@ -3,6 +3,7 @@ package com.mycompany.myapp.web.rest;
 import com.mycompany.myapp.repository.GenTemConfigRepository;
 import com.mycompany.myapp.service.GenTemConfigService;
 import com.mycompany.myapp.service.dto.GenTemConfigDTO;
+import com.mycompany.myapp.service.dto.GenTemConfigSimpleDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -87,6 +88,50 @@ public class GenTemConfigResource {
                 )
             )
             .body(genTemConfigDTO);
+    }
+
+    /**
+     * {@code POST  /gen-note-configs/simple} : Create a new genTemConfig using
+     * simple DTO.
+     *
+     * @param genTemConfigSimpleDTO the genTemConfigSimpleDTO to create.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
+     *         body the new genTemConfigSimpleDTO, or with status
+     *         {@code 400 (Bad Request)} if the genTemConfig has already an ID.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PostMapping("/simple")
+    public ResponseEntity<GenTemConfigSimpleDTO> createGenTemConfigSimple(
+        @Valid @RequestBody GenTemConfigSimpleDTO genTemConfigSimpleDTO
+    ) throws URISyntaxException {
+        LOG.debug(
+            "REST request to save GenTemConfig (simple) : {}",
+            genTemConfigSimpleDTO
+        );
+        if (genTemConfigSimpleDTO.getId() != null) {
+            throw new BadRequestAlertException(
+                "A new genTemConfig cannot already have an ID",
+                ENTITY_NAME,
+                "idexists"
+            );
+        }
+        genTemConfigSimpleDTO = genTemConfigService.saveSimple(
+            genTemConfigSimpleDTO
+        );
+        return ResponseEntity.created(
+            new URI(
+                "/api/gen-note-configs/simple/" + genTemConfigSimpleDTO.getId()
+            )
+        )
+            .headers(
+                HeaderUtil.createEntityCreationAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    genTemConfigSimpleDTO.getId().toString()
+                )
+            )
+            .body(genTemConfigSimpleDTO);
     }
 
     /**
@@ -275,5 +320,95 @@ public class GenTemConfigResource {
                 )
             )
             .build();
+    }
+
+    /**
+     * {@code GET  /gen-note-configs/by-ma-lenh-san-xuat/:maLenhSanXuatId} : get all
+     * genTemConfigs by ma_lenh_san_xuat_id.
+     *
+     * @param maLenhSanXuatId the id of the WarehouseNoteInfo to filter by.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of genTemConfigs in body.
+     */
+    @GetMapping("/by-ma-lenh-san-xuat/{maLenhSanXuatId}")
+    public ResponseEntity<
+        List<GenTemConfigDTO>
+    > getGenTemConfigsByMaLenhSanXuatId(
+        @PathVariable("maLenhSanXuatId") Long maLenhSanXuatId
+    ) {
+        LOG.debug(
+            "REST request to get GenTemConfigs by maLenhSanXuatId : {}",
+            maLenhSanXuatId
+        );
+        List<GenTemConfigDTO> genTemConfigDTOs =
+            genTemConfigService.findByMaLenhSanXuatId(maLenhSanXuatId);
+        return ResponseEntity.ok().body(genTemConfigDTOs);
+    }
+
+    /**
+     * {@code GET  /gen-note-configs/simple/by-ma-lenh-san-xuat/:maLenhSanXuatId} :
+     * get all genTemConfigs by ma_lenh_san_xuat_id using simple DTO.
+     *
+     * @param maLenhSanXuatId the id of the WarehouseNoteInfo to filter by.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of genTemConfigs in body.
+     */
+    @GetMapping("/simple/by-ma-lenh-san-xuat/{maLenhSanXuatId}")
+    public ResponseEntity<
+        List<GenTemConfigSimpleDTO>
+    > getGenTemConfigsSimpleByMaLenhSanXuatId(
+        @PathVariable("maLenhSanXuatId") Long maLenhSanXuatId
+    ) {
+        LOG.debug(
+            "REST request to get GenTemConfigs (simple) by maLenhSanXuatId : {}",
+            maLenhSanXuatId
+        );
+        List<GenTemConfigSimpleDTO> genTemConfigSimpleDTOs =
+            genTemConfigService.findSimpleByMaLenhSanXuatId(maLenhSanXuatId);
+        return ResponseEntity.ok().body(genTemConfigSimpleDTOs);
+    }
+
+    /**
+     * {@code PATCH  /gen-note-configs/simple/upsert} : Upsert a genTemConfig using
+     * simple DTO.
+     * If a record with the given ma_lenh_san_xuat_id exists, update it. Otherwise,
+     * insert a new record.
+     *
+     * @param genTemConfigSimpleDTO the genTemConfigSimpleDTO to upsert.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the upserted genTemConfigSimpleDTO, or with status
+     *         {@code 400 (Bad Request)} if the ma_lenh_san_xuat_id is not provided.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PatchMapping("/simple/upsert")
+    public ResponseEntity<GenTemConfigSimpleDTO> upsertGenTemConfigSimple(
+        @Valid @RequestBody GenTemConfigSimpleDTO genTemConfigSimpleDTO
+    ) throws URISyntaxException {
+        LOG.debug(
+            "REST request to upsert GenTemConfig (simple) : {}",
+            genTemConfigSimpleDTO
+        );
+
+        if (genTemConfigSimpleDTO.getMaLenhSanXuatId() == null) {
+            throw new BadRequestAlertException(
+                "ma_lenh_san_xuat_id is required for upsert operation",
+                ENTITY_NAME,
+                "malenhsanxuatidnull"
+            );
+        }
+
+        genTemConfigSimpleDTO = genTemConfigService.upsertSimple(
+            genTemConfigSimpleDTO
+        );
+
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createAlert(
+                    applicationName,
+                    "GenTemConfig upserted successfully",
+                    genTemConfigSimpleDTO.getId().toString()
+                )
+            )
+            .body(genTemConfigSimpleDTO);
     }
 }

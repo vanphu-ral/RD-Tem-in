@@ -1,9 +1,10 @@
 package com.mycompany.myapp.service;
 
-import com.mycompany.myapp.domain.WarehouseStampInfo;
+import com.mycompany.myapp.domain.WarehouseNoteInfo;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -15,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service Implementation for managing
- * {@link com.mycompany.myapp.domain.WarehouseStampInfo}.
+ * {@link com.mycompany.myapp.domain.WarehouseNoteInfo}.
  */
 @Service
 @Transactional("partner3TransactionManager")
@@ -47,10 +48,16 @@ public class WarehouseStampInfoService {
         WarehouseStampInfoDTO warehouseStampInfoDTO
     ) {
         LOG.debug(
-            "Request to save WarehouseStampInfo : {}",
+            "Request to save WarehouseNoteInfo : {}",
             warehouseStampInfoDTO
         );
-        WarehouseStampInfo warehouseStampInfo =
+        if (warehouseStampInfoDTO.getEntryTime() == null) {
+            warehouseStampInfoDTO.setEntryTime(Instant.now());
+        }
+        if (warehouseStampInfoDTO.getTimeUpdate() == null) {
+            warehouseStampInfoDTO.setTimeUpdate(Instant.now());
+        }
+        WarehouseNoteInfo warehouseStampInfo =
             warehouseStampInfoMapper.toEntity(warehouseStampInfoDTO);
         warehouseStampInfo = warehouseStampInfoRepository.save(
             warehouseStampInfo
@@ -68,10 +75,10 @@ public class WarehouseStampInfoService {
         WarehouseStampInfoDTO warehouseStampInfoDTO
     ) {
         LOG.debug(
-            "Request to update WarehouseStampInfo : {}",
+            "Request to update WarehouseNoteInfo : {}",
             warehouseStampInfoDTO
         );
-        WarehouseStampInfo warehouseStampInfo =
+        WarehouseNoteInfo warehouseStampInfo =
             warehouseStampInfoMapper.toEntity(warehouseStampInfoDTO);
         warehouseStampInfo = warehouseStampInfoRepository.save(
             warehouseStampInfo
@@ -89,7 +96,7 @@ public class WarehouseStampInfoService {
         WarehouseStampInfoDTO warehouseStampInfoDTO
     ) {
         LOG.debug(
-            "Request to partially update WarehouseStampInfo : {}",
+            "Request to partially update WarehouseNoteInfo : {}",
             warehouseStampInfoDTO
         );
 
@@ -129,7 +136,7 @@ public class WarehouseStampInfoService {
      */
     @Transactional(readOnly = true)
     public Optional<WarehouseStampInfoDTO> findOne(Long id) {
-        LOG.debug("Request to get WarehouseStampInfo : {}", id);
+        LOG.debug("Request to get WarehouseNoteInfo : {}", id);
         return warehouseStampInfoRepository
             .findById(id)
             .map(warehouseStampInfoMapper::toDto);
@@ -179,7 +186,7 @@ public class WarehouseStampInfoService {
      * @param id the id of the entity.
      */
     public void delete(Long id) {
-        LOG.debug("Request to delete WarehouseStampInfo : {}", id);
+        LOG.debug("Request to delete WarehouseNoteInfo : {}", id);
         warehouseStampInfoRepository.deleteById(id);
     }
 }

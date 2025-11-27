@@ -11,11 +11,11 @@ class WarehouseStampInfoDetailTest {
 
     @Test
     void equalsVerifier() throws Exception {
-        TestUtil.equalsVerifier(WarehouseStampInfoDetail.class);
-        WarehouseStampInfoDetail warehouseStampInfoDetail1 =
+        TestUtil.equalsVerifier(WarehouseNoteInfoDetail.class);
+        WarehouseNoteInfoDetail warehouseStampInfoDetail1 =
             getWarehouseStampInfoDetailSample1();
-        WarehouseStampInfoDetail warehouseStampInfoDetail2 =
-            new WarehouseStampInfoDetail();
+        WarehouseNoteInfoDetail warehouseStampInfoDetail2 =
+            new WarehouseNoteInfoDetail();
         assertThat(warehouseStampInfoDetail1).isNotEqualTo(
             warehouseStampInfoDetail2
         );
@@ -33,9 +33,9 @@ class WarehouseStampInfoDetailTest {
 
     @Test
     void maLenhSanXuatTest() {
-        WarehouseStampInfoDetail warehouseStampInfoDetail =
+        WarehouseNoteInfoDetail warehouseStampInfoDetail =
             getWarehouseStampInfoDetailRandomSampleGenerator();
-        WarehouseStampInfo warehouseStampInfoBack =
+        WarehouseNoteInfo warehouseStampInfoBack =
             getWarehouseStampInfoRandomSampleGenerator();
 
         warehouseStampInfoDetail.setMaLenhSanXuat(warehouseStampInfoBack);

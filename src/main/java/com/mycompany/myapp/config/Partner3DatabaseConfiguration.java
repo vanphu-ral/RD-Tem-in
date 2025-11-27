@@ -47,7 +47,7 @@ public class Partner3DatabaseConfiguration {
 
     @Bean
     // @Primary
-    @LiquibaseDataSource
+    // @LiquibaseDataSource - Removed to prevent automatic liquibase execution
     @ConfigurationProperties("partner3.datasource")
     public DataSource partner3DataSource() {
         return partner3DataSourceProperties()

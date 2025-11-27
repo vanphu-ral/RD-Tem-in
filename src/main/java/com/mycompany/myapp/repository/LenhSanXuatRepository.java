@@ -32,16 +32,16 @@ public interface LenhSanXuatRepository
         @Param("i") String trangThai
     );
 
-    //    @Query(
-    //        value = "select top(20) * from lenh_san_xuat LenhSanXuat where" +
-    //        " trang_thai = N'Chờ duyệt' or trang_thai = N'Đã phê duyệt' " +
-    //        "or trang_thai = N'Từ chối' or trang_thai = N'Kho hủy'",
-    //    nativeQuery = true
-    //        )
+    // @Query(
+    // value = "select top(20) * from lenh_san_xuat LenhSanXuat where" +
+    // " trang_thai = N'Chờ duyệt' or trang_thai = N'Đã phê duyệt' " +
+    // "or trang_thai = N'Từ chối' or trang_thai = N'Kho hủy'",
+    // nativeQuery = true
+    // )
     @Query(
         value = "select  * from  lenh_san_xuat as a where \n" +
         "a.trang_thai != N'Bản nháp' " +
-        "and a.ma_lenh_san_xuat like ?1 " +
+        "and a.ma_lenh_san_xuat_id like ?1 " +
         "and a.sap_code like ?2 " +
         "and a.sap_name like ?3 " +
         "and a.work_order_code like ?4 " +
@@ -75,7 +75,7 @@ public interface LenhSanXuatRepository
     @Query(
         value = "select  COUNT(trang_thai) from lenh_san_xuat where \n" +
         "trang_thai != N'Bản nháp' " +
-        "and ma_lenh_san_xuat like ?1 " +
+        "and ma_lenh_san_xuat_id like ?1 " +
         "and sap_code like ?2 " +
         "and sap_name like ?3 " +
         "and work_order_code like ?4 " +
@@ -104,7 +104,7 @@ public interface LenhSanXuatRepository
 
     @Query(
         value = "select  * from  lenh_san_xuat as a where \n" +
-        " a.ma_lenh_san_xuat like ?1 " +
+        " a.ma_lenh_san_xuat_id like ?1 " +
         "and a.sap_code like ?2 " +
         "and a.sap_name like ?3 " +
         "and a.work_order_code like ?4 " +
@@ -134,7 +134,7 @@ public interface LenhSanXuatRepository
 
     @Query(
         value = "select  COUNT(trang_thai) from lenh_san_xuat where \n" +
-        "ma_lenh_san_xuat like ?1 " +
+        "ma_lenh_san_xuat_id like ?1 " +
         "and sap_code like ?2 " +
         "and sap_name like ?3 " +
         "and work_order_code like ?4 " +
@@ -159,7 +159,7 @@ public interface LenhSanXuatRepository
     );
 
     @Query(
-        value = "select DISTINCT ma_lenh_san_xuat from lenh_san_xuat LenhSanXuat ",
+        value = "select DISTINCT ma_lenh_san_xuat_id from lenh_san_xuat LenhSanXuat ",
         nativeQuery = true
     )
     public List<String> getListMaLenhSanXuat();

@@ -28,7 +28,7 @@ import tech.jhipster.web.util.ResponseUtil;
 
 /**
  * REST controller for managing
- * {@link com.mycompany.myapp.domain.WarehouseStampInfo}.
+ * {@link com.mycompany.myapp.domain.WarehouseNoteInfo}.
  */
 @RestController
 @RequestMapping("/api/warehouse-note-infos")
@@ -75,7 +75,7 @@ public class WarehouseStampInfoResource {
         @Valid @RequestBody WarehouseStampInfoDTO warehouseStampInfoDTO
     ) throws URISyntaxException {
         LOG.debug(
-            "REST request to save WarehouseStampInfo : {}",
+            "REST request to save WarehouseNoteInfo : {}",
             warehouseStampInfoDTO
         );
         if (warehouseStampInfoDTO.getId() != null) {
@@ -124,7 +124,7 @@ public class WarehouseStampInfoResource {
         @Valid @RequestBody WarehouseStampInfoDTO warehouseStampInfoDTO
     ) throws URISyntaxException {
         LOG.debug(
-            "REST request to update WarehouseStampInfo : {}, {}",
+            "REST request to update WarehouseNoteInfo : {}, {}",
             id,
             warehouseStampInfoDTO
         );
@@ -193,7 +193,7 @@ public class WarehouseStampInfoResource {
         @NotNull @RequestBody WarehouseStampInfoDTO warehouseStampInfoDTO
     ) throws URISyntaxException {
         LOG.debug(
-            "REST request to partial update WarehouseStampInfo partially : {}, {}",
+            "REST request to partial update WarehouseNoteInfo partially : {}, {}",
             id,
             warehouseStampInfoDTO
         );
@@ -311,7 +311,7 @@ public class WarehouseStampInfoResource {
     public ResponseEntity<WarehouseStampInfoDTO> getWarehouseStampInfo(
         @PathVariable("id") Long id
     ) {
-        LOG.debug("REST request to get WarehouseStampInfo : {}", id);
+        LOG.debug("REST request to get WarehouseNoteInfo : {}", id);
         Optional<WarehouseStampInfoDTO> warehouseStampInfoDTO =
             partner3WarehouseStampInfoService.findOne(id);
         return ResponseUtil.wrapOrNotFound(warehouseStampInfoDTO);
@@ -328,7 +328,7 @@ public class WarehouseStampInfoResource {
     public ResponseEntity<Void> deleteWarehouseStampInfo(
         @PathVariable("id") Long id
     ) {
-        LOG.debug("REST request to delete WarehouseStampInfo : {}", id);
+        LOG.debug("REST request to delete WarehouseNoteInfo : {}", id);
         warehouseStampInfoService.delete(id);
         return ResponseEntity.noContent()
             .headers(

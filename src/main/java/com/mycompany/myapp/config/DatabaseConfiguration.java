@@ -36,6 +36,7 @@ public class DatabaseConfiguration {
     }
 
     @Bean
+    @Primary
     @ConfigurationProperties("spring.datasource")
     public DataSource defaultDataSource() {
         return defaultDataSourceProperties()
@@ -44,6 +45,7 @@ public class DatabaseConfiguration {
     }
 
     @Bean(name = "entityManagerFactory")
+    @Primary
     public LocalContainerEntityManagerFactoryBean customerEntityManagerFactory(
         EntityManagerFactoryBuilder builder
     ) {
@@ -58,6 +60,7 @@ public class DatabaseConfiguration {
     }
 
     @Bean(name = "transactionManager")
+    @Primary
     public JpaTransactionManager db2TransactionManager(
         @Qualifier("entityManagerFactory") final EntityManagerFactory emf
     ) {

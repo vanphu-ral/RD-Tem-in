@@ -5,7 +5,7 @@ import java.util.Objects;
 import javax.validation.constraints.*;
 
 /**
- * A DTO for the {@link com.mycompany.myapp.domain.WarehouseStampInfoDetail}
+ * A DTO for the {@link com.mycompany.myapp.domain.WarehouseNoteInfoDetail}
  * entity.
  */
 @SuppressWarnings("common-java:DuplicatedBlocks")
@@ -95,14 +95,14 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
     @Size(max = 20)
     private String sapCode;
 
+    private Long maLenhSanXuatId;
+
     private Long lenhSanXuatId;
 
     @Size(max = 50)
     private String trangThai;
 
     private Integer checked;
-
-    private WarehouseStampInfoDTO maLenhSanXuat;
 
     public Long getId() {
         return id;
@@ -336,6 +336,14 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
         this.sapCode = sapCode;
     }
 
+    public Long getMaLenhSanXuatId() {
+        return maLenhSanXuatId;
+    }
+
+    public void setMaLenhSanXuatId(Long maLenhSanXuatId) {
+        this.maLenhSanXuatId = maLenhSanXuatId;
+    }
+
     public Long getLenhSanXuatId() {
         return lenhSanXuatId;
     }
@@ -358,14 +366,6 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
 
     public void setChecked(Integer checked) {
         this.checked = checked;
-    }
-
-    public WarehouseStampInfoDTO getMaLenhSanXuat() {
-        return maLenhSanXuat;
-    }
-
-    public void setMaLenhSanXuat(WarehouseStampInfoDTO maLenhSanXuat) {
-        this.maLenhSanXuat = maLenhSanXuat;
     }
 
     @Override
@@ -392,41 +392,41 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
 
     // prettier-ignore
     @Override
-  public String toString() {
-    return "WarehouseStampInfoDetailDTO{" +
-        "id=" + getId() +
-        ", reelId='" + getReelId() + "'" +
-        ", partNumber='" + getPartNumber() + "'" +
-        ", vendor='" + getVendor() + "'" +
-        ", lot='" + getLot() + "'" +
-        ", userData1='" + getUserData1() + "'" +
-        ", userData2='" + getUserData2() + "'" +
-        ", userData3='" + getUserData3() + "'" +
-        ", userData4='" + getUserData4() + "'" +
-        ", userData5='" + getUserData5() + "'" +
-        ", initialQuantity=" + getInitialQuantity() +
-        ", msdLevel='" + getMsdLevel() + "'" +
-        ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
-        ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
-        ", marketUsage='" + getMarketUsage() + "'" +
-        ", quantityOverride=" + getQuantityOverride() +
-        ", shelfTime='" + getShelfTime() + "'" +
-        ", spMaterialName='" + getSpMaterialName() + "'" +
-        ", warningLimit='" + getWarningLimit() + "'" +
-        ", maximumLimit='" + getMaximumLimit() + "'" +
-        ", comments='" + getComments() + "'" +
-        ", warmupTime='" + getWarmupTime() + "'" +
-        ", storageUnit='" + getStorageUnit() + "'" +
-        ", subStorageUnit='" + getSubStorageUnit() + "'" +
-        ", locationOverride='" + getLocationOverride() + "'" +
-        ", expirationDate='" + getExpirationDate() + "'" +
-        ", manufacturingDate='" + getManufacturingDate() + "'" +
-        ", partClass='" + getPartClass() + "'" +
-        ", sapCode='" + getSapCode() + "'" +
-        ", lenhSanXuatId=" + getLenhSanXuatId() +
-        ", trangThai='" + getTrangThai() + "'" +
-        ", checked=" + getChecked() +
-        ", maLenhSanXuat=" + getMaLenhSanXuat() +
-        "}";
-  }
+    public String toString() {
+        return "WarehouseStampInfoDetailDTO{" +
+                "id=" + getId() +
+                ", reelId='" + getReelId() + "'" +
+                ", partNumber='" + getPartNumber() + "'" +
+                ", vendor='" + getVendor() + "'" +
+                ", lot='" + getLot() + "'" +
+                ", userData1='" + getUserData1() + "'" +
+                ", userData2='" + getUserData2() + "'" +
+                ", userData3='" + getUserData3() + "'" +
+                ", userData4='" + getUserData4() + "'" +
+                ", userData5='" + getUserData5() + "'" +
+                ", initialQuantity=" + getInitialQuantity() +
+                ", msdLevel='" + getMsdLevel() + "'" +
+                ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
+                ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
+                ", marketUsage='" + getMarketUsage() + "'" +
+                ", quantityOverride=" + getQuantityOverride() +
+                ", shelfTime='" + getShelfTime() + "'" +
+                ", spMaterialName='" + getSpMaterialName() + "'" +
+                ", warningLimit='" + getWarningLimit() + "'" +
+                ", maximumLimit='" + getMaximumLimit() + "'" +
+                ", comments='" + getComments() + "'" +
+                ", warmupTime='" + getWarmupTime() + "'" +
+                ", storageUnit='" + getStorageUnit() + "'" +
+                ", subStorageUnit='" + getSubStorageUnit() + "'" +
+                ", locationOverride='" + getLocationOverride() + "'" +
+                ", expirationDate='" + getExpirationDate() + "'" +
+                ", manufacturingDate='" + getManufacturingDate() + "'" +
+                ", partClass='" + getPartClass() + "'" +
+                ", sapCode='" + getSapCode() + "'" +
+                ", maLenhSanXuatId=" + getMaLenhSanXuatId() +
+                ", lenhSanXuatId=" + getLenhSanXuatId() +
+                ", trangThai='" + getTrangThai() + "'" +
+                ", checked=" + getChecked() +
+                "}";
+    }
 }

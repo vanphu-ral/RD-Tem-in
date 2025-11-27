@@ -1,9 +1,14 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.domain.SerialBoxPalletMapping;
+import com.mycompany.myapp.domain.WarehouseNoteInfo;
 import com.mycompany.myapp.repository.partner3.Partner3SerialBoxPalletMappingRepository;
+import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
+import com.mycompany.myapp.security.SecurityUtils;
 import com.mycompany.myapp.service.dto.SerialBoxPalletMappingDTO;
+import com.mycompany.myapp.service.dto.SerialBoxPalletMappingInsertDTO;
 import com.mycompany.myapp.service.mapper.SerialBoxPalletMappingMapper;
+import java.time.Instant;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +33,18 @@ public class SerialBoxPalletMappingService {
 
     private final SerialBoxPalletMappingMapper serialBoxPalletMappingMapper;
 
+    private final Partner3WarehouseStampInfoRepository partner3WarehouseStampInfoRepository;
+
     public SerialBoxPalletMappingService(
         Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository,
-        SerialBoxPalletMappingMapper serialBoxPalletMappingMapper
+        SerialBoxPalletMappingMapper serialBoxPalletMappingMapper,
+        Partner3WarehouseStampInfoRepository partner3WarehouseStampInfoRepository
     ) {
         this.serialBoxPalletMappingRepository =
             serialBoxPalletMappingRepository;
         this.serialBoxPalletMappingMapper = serialBoxPalletMappingMapper;
+        this.partner3WarehouseStampInfoRepository =
+            partner3WarehouseStampInfoRepository;
     }
 
     /**
@@ -52,6 +62,49 @@ public class SerialBoxPalletMappingService {
         );
         SerialBoxPalletMapping serialBoxPalletMapping =
             serialBoxPalletMappingMapper.toEntity(serialBoxPalletMappingDTO);
+        serialBoxPalletMapping = serialBoxPalletMappingRepository.save(
+            serialBoxPalletMapping
+        );
+        return serialBoxPalletMappingMapper.toDto(serialBoxPalletMapping);
+    }
+
+    /**
+     * Insert a new SerialBoxPalletMapping with maLenhSanXuat.
+     *
+     * @param maLenhSanXuatId the id of WarehouseNoteInfo.
+     * @param insertDTO       the insert data.
+     * @return the persisted entity.
+     */
+    public SerialBoxPalletMappingDTO insertWithMaLenhSanXuat(
+        Long maLenhSanXuatId,
+        SerialBoxPalletMappingInsertDTO insertDTO
+    ) {
+        LOG.debug(
+            "Request to insert SerialBoxPalletMapping with maLenhSanXuatId : {} and data : {}",
+            maLenhSanXuatId,
+            insertDTO
+        );
+
+        WarehouseNoteInfo warehouseStampInfo =
+            partner3WarehouseStampInfoRepository
+                .findById(maLenhSanXuatId)
+                .orElseThrow(() ->
+                    new RuntimeException(
+                        "WarehouseNoteInfo not found with id: " +
+                        maLenhSanXuatId
+                    )
+                );
+
+        SerialBoxPalletMapping serialBoxPalletMapping =
+            new SerialBoxPalletMapping();
+        serialBoxPalletMapping.setSerialBox(insertDTO.getSerialBox());
+        serialBoxPalletMapping.setSerialPallet(insertDTO.getSerialPallet());
+        serialBoxPalletMapping.setUpdatedAt(Instant.now());
+        serialBoxPalletMapping.setUpdatedBy(
+            SecurityUtils.getCurrentUserLogin().orElse("system")
+        );
+        serialBoxPalletMapping.setMaLenhSanXuat(warehouseStampInfo);
+
         serialBoxPalletMapping = serialBoxPalletMappingRepository.save(
             serialBoxPalletMapping
         );

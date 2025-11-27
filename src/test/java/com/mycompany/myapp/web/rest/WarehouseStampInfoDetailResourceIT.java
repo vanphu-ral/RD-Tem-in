@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mycompany.myapp.IntegrationTest;
-import com.mycompany.myapp.domain.WarehouseStampInfoDetail;
+import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
 import com.mycompany.myapp.repository.WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
@@ -153,9 +153,9 @@ class WarehouseStampInfoDetailResourceIT {
     @Autowired
     private MockMvc restWarehouseStampInfoDetailMockMvc;
 
-    private WarehouseStampInfoDetail warehouseStampInfoDetail;
+    private WarehouseNoteInfoDetail warehouseStampInfoDetail;
 
-    private WarehouseStampInfoDetail insertedWarehouseStampInfoDetail;
+    private WarehouseNoteInfoDetail insertedWarehouseStampInfoDetail;
 
     /**
      * Create an entity for this test.
@@ -163,8 +163,8 @@ class WarehouseStampInfoDetailResourceIT {
      * This is a static method, as tests for other entities might also need it,
      * if they test an entity which requires the current entity.
      */
-    public static WarehouseStampInfoDetail createEntity() {
-        return new WarehouseStampInfoDetail()
+    public static WarehouseNoteInfoDetail createEntity() {
+        return new WarehouseNoteInfoDetail()
             .reelId(DEFAULT_REEL_ID)
             .partNumber(DEFAULT_PART_NUMBER)
             .vendor(DEFAULT_VENDOR)
@@ -204,8 +204,8 @@ class WarehouseStampInfoDetailResourceIT {
      * This is a static method, as tests for other entities might also need it,
      * if they test an entity which requires the current entity.
      */
-    public static WarehouseStampInfoDetail createUpdatedEntity() {
-        return new WarehouseStampInfoDetail()
+    public static WarehouseNoteInfoDetail createUpdatedEntity() {
+        return new WarehouseNoteInfoDetail()
             .reelId(UPDATED_REEL_ID)
             .partNumber(UPDATED_PART_NUMBER)
             .vendor(UPDATED_VENDOR)
@@ -258,7 +258,7 @@ class WarehouseStampInfoDetailResourceIT {
     @Transactional
     void createWarehouseStampInfoDetail() throws Exception {
         long databaseSizeBeforeCreate = getRepositoryCount();
-        // Create the WarehouseStampInfoDetail
+        // Create the WarehouseNoteInfoDetail
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailMapper.toDto(warehouseStampInfoDetail);
         var returnedWarehouseStampInfoDetailDTO = om.readValue(
@@ -278,7 +278,7 @@ class WarehouseStampInfoDetailResourceIT {
             WarehouseStampInfoDetailDTO.class
         );
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertIncrementedRepositoryCount(databaseSizeBeforeCreate);
         var returnedWarehouseStampInfoDetail =
             warehouseStampInfoDetailMapper.toEntity(
@@ -297,7 +297,7 @@ class WarehouseStampInfoDetailResourceIT {
     @Test
     @Transactional
     void createWarehouseStampInfoDetailWithExistingId() throws Exception {
-        // Create the WarehouseStampInfoDetail with an existing ID
+        // Create the WarehouseNoteInfoDetail with an existing ID
         warehouseStampInfoDetail.setId(1L);
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailMapper.toDto(warehouseStampInfoDetail);
@@ -314,7 +314,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isBadRequest());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertSameRepositoryCount(databaseSizeBeforeCreate);
     }
 
@@ -553,7 +553,7 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the warehouseStampInfoDetail
-        WarehouseStampInfoDetail updatedWarehouseStampInfoDetail =
+        WarehouseNoteInfoDetail updatedWarehouseStampInfoDetail =
             warehouseStampInfoDetailRepository
                 .findById(warehouseStampInfoDetail.getId())
                 .orElseThrow();
@@ -606,7 +606,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isOk());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
         assertPersistedWarehouseStampInfoDetailToMatchAllProperties(
             updatedWarehouseStampInfoDetail
@@ -619,7 +619,7 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
         warehouseStampInfoDetail.setId(longCount.incrementAndGet());
 
-        // Create the WarehouseStampInfoDetail
+        // Create the WarehouseNoteInfoDetail
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailMapper.toDto(warehouseStampInfoDetail);
 
@@ -633,7 +633,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isBadRequest());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
@@ -643,7 +643,7 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
         warehouseStampInfoDetail.setId(longCount.incrementAndGet());
 
-        // Create the WarehouseStampInfoDetail
+        // Create the WarehouseNoteInfoDetail
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailMapper.toDto(warehouseStampInfoDetail);
 
@@ -657,7 +657,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isBadRequest());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
@@ -667,7 +667,7 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
         warehouseStampInfoDetail.setId(longCount.incrementAndGet());
 
-        // Create the WarehouseStampInfoDetail
+        // Create the WarehouseNoteInfoDetail
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailMapper.toDto(warehouseStampInfoDetail);
 
@@ -681,7 +681,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isMethodNotAllowed());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
@@ -697,8 +697,8 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the warehouseStampInfoDetail using partial update
-        WarehouseStampInfoDetail partialUpdatedWarehouseStampInfoDetail =
-            new WarehouseStampInfoDetail();
+        WarehouseNoteInfoDetail partialUpdatedWarehouseStampInfoDetail =
+            new WarehouseNoteInfoDetail();
         partialUpdatedWarehouseStampInfoDetail.setId(
             warehouseStampInfoDetail.getId()
         );
@@ -736,7 +736,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isOk());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
 
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
         assertWarehouseStampInfoDetailUpdatableFieldsEquals(
@@ -760,8 +760,8 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the warehouseStampInfoDetail using partial update
-        WarehouseStampInfoDetail partialUpdatedWarehouseStampInfoDetail =
-            new WarehouseStampInfoDetail();
+        WarehouseNoteInfoDetail partialUpdatedWarehouseStampInfoDetail =
+            new WarehouseNoteInfoDetail();
         partialUpdatedWarehouseStampInfoDetail.setId(
             warehouseStampInfoDetail.getId()
         );
@@ -815,7 +815,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isOk());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
 
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
         assertWarehouseStampInfoDetailUpdatableFieldsEquals(
@@ -832,7 +832,7 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
         warehouseStampInfoDetail.setId(longCount.incrementAndGet());
 
-        // Create the WarehouseStampInfoDetail
+        // Create the WarehouseNoteInfoDetail
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailMapper.toDto(warehouseStampInfoDetail);
 
@@ -846,7 +846,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isBadRequest());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
@@ -856,7 +856,7 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
         warehouseStampInfoDetail.setId(longCount.incrementAndGet());
 
-        // Create the WarehouseStampInfoDetail
+        // Create the WarehouseNoteInfoDetail
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailMapper.toDto(warehouseStampInfoDetail);
 
@@ -870,7 +870,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isBadRequest());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
@@ -881,7 +881,7 @@ class WarehouseStampInfoDetailResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
         warehouseStampInfoDetail.setId(longCount.incrementAndGet());
 
-        // Create the WarehouseStampInfoDetail
+        // Create the WarehouseNoteInfoDetail
         WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailMapper.toDto(warehouseStampInfoDetail);
 
@@ -895,7 +895,7 @@ class WarehouseStampInfoDetailResourceIT {
             )
             .andExpect(status().isMethodNotAllowed());
 
-        // Validate the WarehouseStampInfoDetail in the database
+        // Validate the WarehouseNoteInfoDetail in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
@@ -939,8 +939,8 @@ class WarehouseStampInfoDetailResourceIT {
         assertThat(countBefore).isEqualTo(getRepositoryCount());
     }
 
-    protected WarehouseStampInfoDetail getPersistedWarehouseStampInfoDetail(
-        WarehouseStampInfoDetail warehouseStampInfoDetail
+    protected WarehouseNoteInfoDetail getPersistedWarehouseStampInfoDetail(
+        WarehouseNoteInfoDetail warehouseStampInfoDetail
     ) {
         return warehouseStampInfoDetailRepository
             .findById(warehouseStampInfoDetail.getId())
@@ -948,7 +948,7 @@ class WarehouseStampInfoDetailResourceIT {
     }
 
     protected void assertPersistedWarehouseStampInfoDetailToMatchAllProperties(
-        WarehouseStampInfoDetail expectedWarehouseStampInfoDetail
+        WarehouseNoteInfoDetail expectedWarehouseStampInfoDetail
     ) {
         assertWarehouseStampInfoDetailAllPropertiesEquals(
             expectedWarehouseStampInfoDetail,
@@ -959,7 +959,7 @@ class WarehouseStampInfoDetailResourceIT {
     }
 
     protected void assertPersistedWarehouseStampInfoDetailToMatchUpdatableProperties(
-        WarehouseStampInfoDetail expectedWarehouseStampInfoDetail
+        WarehouseNoteInfoDetail expectedWarehouseStampInfoDetail
     ) {
         assertWarehouseStampInfoDetailAllUpdatablePropertiesEquals(
             expectedWarehouseStampInfoDetail,

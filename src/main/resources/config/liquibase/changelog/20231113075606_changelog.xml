@@ -31,7 +31,7 @@
         <addUniqueConstraint columnNames="reel_id" constraintName="UC_CHI_TIET_LENH_SAN_XUATREEL_ID_COL" tableName="chi_tiet_lenh_san_xuat"/>
     </changeSet>
     <changeSet author="Dell (generated)" id="1699862174266-36">
-        <addUniqueConstraint columnNames="ma_lenh_san_xuat" constraintName="UC_LENH_SAN_XUATMA_LENH_SAN_XUAT_COL" tableName="lenh_san_xuat"/>
+        <addUniqueConstraint columnNames="ma_lenh_san_xuat_id" constraintName="UC_LENH_SAN_XUATMA_LENH_SAN_XUAT_COL" tableName="lenh_san_xuat"/>
     </changeSet>
     <changeSet author="Dell (generated)" id="1699862174266-37">
         <addForeignKeyConstraint baseColumnNames="lenh_san_xuat_id" baseTableName="chi_tiet_lenh_san_xuat" constraintName="FK24hocs1ls1tp84m8uj6ej32xy" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="lenh_san_xuat" validate="true"/>

@@ -24,7 +24,7 @@ public class LenhSanXuat implements Serializable {
     private Long id;
 
     @NotNull
-    @Column(name = "ma_lenh_san_xuat", nullable = false, unique = true)
+    @Column(name = "ma_lenh_san_xuat_id", nullable = false, unique = true)
     private String maLenhSanXuat;
 
     @Column(name = "sap_code")
@@ -261,7 +261,9 @@ public class LenhSanXuat implements Serializable {
         return this.chiTietLenhSanXuats;
     }
 
-    public void setChiTietLenhSanXuats(Set<ChiTietLenhSanXuat> chiTietLenhSanXuats) {
+    public void setChiTietLenhSanXuats(
+        Set<ChiTietLenhSanXuat> chiTietLenhSanXuats
+    ) {
         if (this.chiTietLenhSanXuats != null) {
             this.chiTietLenhSanXuats.forEach(i -> i.setLenhSanXuat(null));
         }
@@ -271,24 +273,31 @@ public class LenhSanXuat implements Serializable {
         this.chiTietLenhSanXuats = chiTietLenhSanXuats;
     }
 
-    public LenhSanXuat chiTietLenhSanXuats(Set<ChiTietLenhSanXuat> chiTietLenhSanXuats) {
+    public LenhSanXuat chiTietLenhSanXuats(
+        Set<ChiTietLenhSanXuat> chiTietLenhSanXuats
+    ) {
         this.setChiTietLenhSanXuats(chiTietLenhSanXuats);
         return this;
     }
 
-    public LenhSanXuat addChiTietLenhSanXuat(ChiTietLenhSanXuat chiTietLenhSanXuat) {
+    public LenhSanXuat addChiTietLenhSanXuat(
+        ChiTietLenhSanXuat chiTietLenhSanXuat
+    ) {
         this.chiTietLenhSanXuats.add(chiTietLenhSanXuat);
         chiTietLenhSanXuat.setLenhSanXuat(this);
         return this;
     }
 
-    public LenhSanXuat removeChiTietLenhSanXuat(ChiTietLenhSanXuat chiTietLenhSanXuat) {
+    public LenhSanXuat removeChiTietLenhSanXuat(
+        ChiTietLenhSanXuat chiTietLenhSanXuat
+    ) {
         this.chiTietLenhSanXuats.remove(chiTietLenhSanXuat);
         chiTietLenhSanXuat.setLenhSanXuat(null);
         return this;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
+    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
+    // setters here
 
     @Override
     public boolean equals(Object o) {
@@ -303,7 +312,8 @@ public class LenhSanXuat implements Serializable {
 
     @Override
     public int hashCode() {
-        // see https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
+        // see
+        // https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
         return getClass().hashCode();
     }
 

@@ -15,9 +15,9 @@ class WarehouseStampInfoTest {
 
     @Test
     void equalsVerifier() throws Exception {
-        TestUtil.equalsVerifier(WarehouseStampInfo.class);
-        WarehouseStampInfo warehouseStampInfo1 = getWarehouseStampInfoSample1();
-        WarehouseStampInfo warehouseStampInfo2 = new WarehouseStampInfo();
+        TestUtil.equalsVerifier(WarehouseNoteInfo.class);
+        WarehouseNoteInfo warehouseStampInfo1 = getWarehouseStampInfoSample1();
+        WarehouseNoteInfo warehouseStampInfo2 = new WarehouseNoteInfo();
         assertThat(warehouseStampInfo1).isNotEqualTo(warehouseStampInfo2);
 
         warehouseStampInfo2.setId(warehouseStampInfo1.getId());
@@ -29,7 +29,7 @@ class WarehouseStampInfoTest {
 
     @Test
     void genTemConfigsTest() {
-        WarehouseStampInfo warehouseStampInfo =
+        WarehouseNoteInfo warehouseStampInfo =
             getWarehouseStampInfoRandomSampleGenerator();
         GenTemConfig genTemConfigBack = getGenTemConfigRandomSampleGenerator();
 
@@ -66,7 +66,7 @@ class WarehouseStampInfoTest {
 
     @Test
     void serialMappingsTest() {
-        WarehouseStampInfo warehouseStampInfo =
+        WarehouseNoteInfo warehouseStampInfo =
             getWarehouseStampInfoRandomSampleGenerator();
         SerialBoxPalletMapping serialBoxPalletMappingBack =
             getSerialBoxPalletMappingRandomSampleGenerator();
@@ -104,9 +104,9 @@ class WarehouseStampInfoTest {
 
     @Test
     void detailsTest() {
-        WarehouseStampInfo warehouseStampInfo =
+        WarehouseNoteInfo warehouseStampInfo =
             getWarehouseStampInfoRandomSampleGenerator();
-        WarehouseStampInfoDetail warehouseStampInfoDetailBack =
+        WarehouseNoteInfoDetail warehouseStampInfoDetailBack =
             getWarehouseStampInfoDetailRandomSampleGenerator();
 
         warehouseStampInfo.addDetails(warehouseStampInfoDetailBack);

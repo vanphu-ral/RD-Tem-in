@@ -27,7 +27,7 @@ import tech.jhipster.web.util.ResponseUtil;
 
 /**
  * REST controller for managing
- * {@link com.mycompany.myapp.domain.WarehouseStampInfoDetail}.
+ * {@link com.mycompany.myapp.domain.WarehouseNoteInfoDetail}.
  */
 @RestController
 @RequestMapping("/api/warehouse-note-info-details")
@@ -73,7 +73,7 @@ public class WarehouseStampInfoDetailResource {
         @Valid @RequestBody WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
     ) throws URISyntaxException {
         LOG.debug(
-            "REST request to save WarehouseStampInfoDetail : {}",
+            "REST request to save WarehouseNoteInfoDetail : {}",
             warehouseStampInfoDetailDTO
         );
         if (warehouseStampInfoDetailDTO.getId() != null) {
@@ -126,7 +126,7 @@ public class WarehouseStampInfoDetailResource {
         @Valid @RequestBody WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
     ) throws URISyntaxException {
         LOG.debug(
-            "REST request to update WarehouseStampInfoDetail : {}, {}",
+            "REST request to update WarehouseNoteInfoDetail : {}, {}",
             id,
             warehouseStampInfoDetailDTO
         );
@@ -169,6 +169,46 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
+     * {@code PUT  /warehouse-note-info-details} : Batch update warehouse stamp info
+     * details.
+     *
+     * @param warehouseStampInfoDetailDTOs the list of warehouseStampInfoDetailDTOs
+     *                                     to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the list of updated warehouseStampInfoDetailDTOs.
+     */
+    @PutMapping("")
+    public ResponseEntity<
+        List<WarehouseStampInfoDetailDTO>
+    > batchUpdateWarehouseStampInfoDetails(
+        @Valid @RequestBody List<
+            WarehouseStampInfoDetailDTO
+        > warehouseStampInfoDetailDTOs
+    ) {
+        LOG.debug(
+            "REST request to batch update WarehouseStampInfoDetails : {}",
+            warehouseStampInfoDetailDTOs
+        );
+
+        List<WarehouseStampInfoDetailDTO> updatedDTOs =
+            warehouseStampInfoDetailService.batchUpdate(
+                warehouseStampInfoDetailDTOs
+            );
+
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createAlert(
+                    applicationName,
+                    "Batch update completed successfully. Updated " +
+                    updatedDTOs.size() +
+                    " records.",
+                    ENTITY_NAME
+                )
+            )
+            .body(updatedDTOs);
+    }
+
+    /**
      * {@code PATCH  /warehouse-note-info-details/:id} : Partial updates given
      * fields of an existing warehouseStampInfoDetail, field will ignore if it is
      * null
@@ -197,7 +237,7 @@ public class WarehouseStampInfoDetailResource {
         @NotNull @RequestBody WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
     ) throws URISyntaxException {
         LOG.debug(
-            "REST request to partial update WarehouseStampInfoDetail partially : {}, {}",
+            "REST request to partial update WarehouseNoteInfoDetail partially : {}, {}",
             id,
             warehouseStampInfoDetailDTO
         );
@@ -277,7 +317,7 @@ public class WarehouseStampInfoDetailResource {
     public ResponseEntity<
         WarehouseStampInfoDetailDTO
     > getWarehouseStampInfoDetail(@PathVariable("id") Long id) {
-        LOG.debug("REST request to get WarehouseStampInfoDetail : {}", id);
+        LOG.debug("REST request to get WarehouseNoteInfoDetail : {}", id);
         Optional<WarehouseStampInfoDetailDTO> warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailService.findOne(id);
         return ResponseUtil.wrapOrNotFound(warehouseStampInfoDetailDTO);
@@ -294,7 +334,7 @@ public class WarehouseStampInfoDetailResource {
     public ResponseEntity<Void> deleteWarehouseStampInfoDetail(
         @PathVariable("id") Long id
     ) {
-        LOG.debug("REST request to delete WarehouseStampInfoDetail : {}", id);
+        LOG.debug("REST request to delete WarehouseNoteInfoDetail : {}", id);
         warehouseStampInfoDetailService.delete(id);
         return ResponseEntity.noContent()
             .headers(

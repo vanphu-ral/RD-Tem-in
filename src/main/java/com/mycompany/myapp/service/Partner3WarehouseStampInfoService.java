@@ -1,6 +1,6 @@
 package com.mycompany.myapp.service;
 
-import com.mycompany.myapp.domain.WarehouseStampInfo;
+import com.mycompany.myapp.domain.WarehouseNoteInfo;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service Implementation for managing
- * {@link com.mycompany.myapp.domain.WarehouseStampInfo} using partner3
+ * {@link com.mycompany.myapp.domain.WarehouseNoteInfo} using partner3
  * datasource.
  */
 @Service
@@ -83,7 +83,7 @@ public class Partner3WarehouseStampInfoService {
      */
     @Transactional(readOnly = true)
     public Optional<WarehouseStampInfoDTO> findOne(Long id) {
-        LOG.debug("Request to get WarehouseStampInfo : {}", id);
+        LOG.debug("Request to get WarehouseNoteInfo : {}", id);
         return partner3WarehouseStampInfoRepository
             .findById(id)
             .map(warehouseStampInfoMapper::toDto);

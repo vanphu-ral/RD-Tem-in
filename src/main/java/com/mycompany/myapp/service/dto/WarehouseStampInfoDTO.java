@@ -6,7 +6,7 @@ import java.util.Objects;
 import javax.validation.constraints.*;
 
 /**
- * A DTO for the {@link com.mycompany.myapp.domain.WarehouseStampInfo} entity.
+ * A DTO for the {@link com.mycompany.myapp.domain.WarehouseNoteInfo} entity.
  */
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class WarehouseStampInfoDTO implements Serializable {
@@ -65,6 +65,8 @@ public class WarehouseStampInfoDTO implements Serializable {
 
     @Size(max = 50)
     private String deletedBy;
+
+    private Integer destinationWarehouse;
 
     public Long getId() {
         return id;
@@ -226,6 +228,14 @@ public class WarehouseStampInfoDTO implements Serializable {
         this.deletedBy = deletedBy;
     }
 
+    public Integer getDestinationWarehouse() {
+        return destinationWarehouse;
+    }
+
+    public void setDestinationWarehouse(Integer destinationWarehouse) {
+        this.destinationWarehouse = destinationWarehouse;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -249,28 +259,29 @@ public class WarehouseStampInfoDTO implements Serializable {
 
     // prettier-ignore
     @Override
-  public String toString() {
-    return "WarehouseStampInfoDTO{" +
-        "id=" + getId() +
-        ", maLenhSanXuat='" + getMaLenhSanXuat() + "'" +
-        ", sapCode='" + getSapCode() + "'" +
-        ", sapName='" + getSapName() + "'" +
-        ", workOrderCode='" + getWorkOrderCode() + "'" +
-        ", version='" + getVersion() + "'" +
-        ", storageCode='" + getStorageCode() + "'" +
-        ", totalQuantity=" + getTotalQuantity() +
-        ", createBy='" + getCreateBy() + "'" +
-        ", entryTime='" + getEntryTime() + "'" +
-        ", trangThai='" + getTrangThai() + "'" +
-        ", comment='" + getComment() + "'" +
-        ", timeUpdate='" + getTimeUpdate() + "'" +
-        ", groupName='" + getGroupName() + "'" +
-        ", comment2='" + getComment2() + "'" +
-        ", approverBy='" + getApproverBy() + "'" +
-        ", branch='" + getBranch() + "'" +
-        ", productType='" + getProductType() + "'" +
-        ", deletedAt='" + getDeletedAt() + "'" +
-        ", deletedBy='" + getDeletedBy() + "'" +
-        "}";
-  }
+    public String toString() {
+        return "WarehouseStampInfoDTO{" +
+                "id=" + getId() +
+                ", maLenhSanXuat='" + getMaLenhSanXuat() + "'" +
+                ", sapCode='" + getSapCode() + "'" +
+                ", sapName='" + getSapName() + "'" +
+                ", workOrderCode='" + getWorkOrderCode() + "'" +
+                ", version='" + getVersion() + "'" +
+                ", storageCode='" + getStorageCode() + "'" +
+                ", totalQuantity=" + getTotalQuantity() +
+                ", createBy='" + getCreateBy() + "'" +
+                ", entryTime='" + getEntryTime() + "'" +
+                ", trangThai='" + getTrangThai() + "'" +
+                ", comment='" + getComment() + "'" +
+                ", timeUpdate='" + getTimeUpdate() + "'" +
+                ", groupName='" + getGroupName() + "'" +
+                ", comment2='" + getComment2() + "'" +
+                ", approverBy='" + getApproverBy() + "'" +
+                ", branch='" + getBranch() + "'" +
+                ", productType='" + getProductType() + "'" +
+                ", deletedAt='" + getDeletedAt() + "'" +
+                ", deletedBy='" + getDeletedBy() + "'" +
+                ", destinationWarehouse=" + getDestinationWarehouse() +
+                "}";
+    }
 }

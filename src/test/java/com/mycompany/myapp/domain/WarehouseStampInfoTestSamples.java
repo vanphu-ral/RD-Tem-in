@@ -15,8 +15,8 @@ public class WarehouseStampInfoTestSamples {
         random.nextInt() + (2 * Short.MAX_VALUE)
     );
 
-    public static WarehouseStampInfo getWarehouseStampInfoSample1() {
-        return new WarehouseStampInfo()
+    public static WarehouseNoteInfo getWarehouseStampInfoSample1() {
+        return new WarehouseNoteInfo()
             .id(1L)
             .maLenhSanXuat("maLenhSanXuat1")
             .sapCode("sapCode1")
@@ -33,11 +33,12 @@ public class WarehouseStampInfoTestSamples {
             .approverBy("approverBy1")
             .branch("branch1")
             .productType("productType1")
-            .deletedBy("deletedBy1");
+            .deletedBy("deletedBy1")
+            .destinationWarehouse(1);
     }
 
-    public static WarehouseStampInfo getWarehouseStampInfoSample2() {
-        return new WarehouseStampInfo()
+    public static WarehouseNoteInfo getWarehouseStampInfoSample2() {
+        return new WarehouseNoteInfo()
             .id(2L)
             .maLenhSanXuat("maLenhSanXuat2")
             .sapCode("sapCode2")
@@ -54,11 +55,12 @@ public class WarehouseStampInfoTestSamples {
             .approverBy("approverBy2")
             .branch("branch2")
             .productType("productType2")
-            .deletedBy("deletedBy2");
+            .deletedBy("deletedBy2")
+            .destinationWarehouse(2);
     }
 
-    public static WarehouseStampInfo getWarehouseStampInfoRandomSampleGenerator() {
-        return new WarehouseStampInfo()
+    public static WarehouseNoteInfo getWarehouseStampInfoRandomSampleGenerator() {
+        return new WarehouseNoteInfo()
             .id(longCount.incrementAndGet())
             .maLenhSanXuat(UUID.randomUUID().toString())
             .sapCode(UUID.randomUUID().toString())
@@ -75,6 +77,7 @@ public class WarehouseStampInfoTestSamples {
             .approverBy(UUID.randomUUID().toString())
             .branch(UUID.randomUUID().toString())
             .productType(UUID.randomUUID().toString())
-            .deletedBy(UUID.randomUUID().toString());
+            .deletedBy(UUID.randomUUID().toString())
+            .destinationWarehouse(intCount.incrementAndGet());
     }
 }

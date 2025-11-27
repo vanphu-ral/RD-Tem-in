@@ -39,6 +39,7 @@ spring:
   jackson:
     serialization:
       indent-output: true
+    property-naming-strategy: SNAKE_CASE
   datasource:
     # enabled: false
     type: com.zaxxer.hikari.HikariDataSource

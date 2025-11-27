@@ -26,7 +26,7 @@ class GenTemConfigTest {
     @Test
     void maLenhSanXuatTest() {
         GenTemConfig genTemConfig = getGenTemConfigRandomSampleGenerator();
-        WarehouseStampInfo warehouseStampInfoBack =
+        WarehouseNoteInfo warehouseStampInfoBack =
             getWarehouseStampInfoRandomSampleGenerator();
 
         genTemConfig.setMaLenhSanXuat(warehouseStampInfoBack);

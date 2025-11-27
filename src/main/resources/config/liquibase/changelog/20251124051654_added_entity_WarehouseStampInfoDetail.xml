@@ -7,7 +7,7 @@
                         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
     <!--
-        Added the entity WarehouseStampInfoDetail.
+        Added the entity WarehouseNoteInfoDetail.
     -->
     <changeSet id="20251124051654-1" author="jhipster">
         <createTable tableName="warehouse_note_info_detail">
