@@ -3,7 +3,6 @@ package com.mycompany.myapp.service.mapper;
 import com.mycompany.myapp.domain.GenTemConfig;
 import com.mycompany.myapp.domain.WarehouseNoteInfo;
 import com.mycompany.myapp.service.dto.GenTemConfigDTO;
-import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import org.mapstruct.*;
 
 /**
@@ -13,17 +12,25 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface GenTemConfigMapper
     extends EntityMapper<GenTemConfigDTO, GenTemConfig> {
-    @Mapping(
-        target = "maLenhSanXuat",
-        source = "maLenhSanXuat",
-        qualifiedByName = "warehouseStampInfoId"
-    )
-    GenTemConfigDTO toDto(GenTemConfig s);
+    @Mapping(source = "maLenhSanXuat.id", target = "maLenhSanXuatId")
+    GenTemConfigDTO toDto(GenTemConfig genTemConfig);
 
-    @Named("warehouseStampInfoId")
-    @BeanMapping(ignoreByDefault = true)
-    @Mapping(target = "id", source = "id")
-    WarehouseStampInfoDTO toDtoWarehouseStampInfoId(
-        WarehouseNoteInfo warehouseStampInfo
-    );
+    @Mapping(source = "maLenhSanXuatId", target = "maLenhSanXuat")
+    GenTemConfig toEntity(GenTemConfigDTO genTemConfigDTO);
+
+    default WarehouseNoteInfo mapIdToWarehouseNoteInfo(Long id) {
+        if (id == null) {
+            return null;
+        }
+        WarehouseNoteInfo warehouseNoteInfo = new WarehouseNoteInfo();
+        warehouseNoteInfo.setId(id);
+        return warehouseNoteInfo;
+    }
+
+    default Long mapWarehouseNoteInfoToId(WarehouseNoteInfo warehouseNoteInfo) {
+        if (warehouseNoteInfo == null) {
+            return null;
+        }
+        return warehouseNoteInfo.getId();
+    }
 }

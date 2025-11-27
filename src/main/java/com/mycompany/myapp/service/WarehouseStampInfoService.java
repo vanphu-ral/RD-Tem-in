@@ -1,12 +1,30 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.domain.GenTemConfig;
+import com.mycompany.myapp.domain.PalletInforDetail;
+import com.mycompany.myapp.domain.SerialBoxPalletMapping;
 import com.mycompany.myapp.domain.WarehouseNoteInfo;
+import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
+import com.mycompany.myapp.repository.partner3.Partner3GenTemConfigRepository;
+import com.mycompany.myapp.repository.partner3.Partner3PalletInforDetailRepository;
+import com.mycompany.myapp.repository.partner3.Partner3SerialBoxPalletMappingRepository;
+import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
+import com.mycompany.myapp.service.dto.GenTemConfigDTO;
+import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
+import com.mycompany.myapp.service.dto.SerialBoxPalletMappingDTO;
+import com.mycompany.myapp.service.dto.WarehouseNoteInfoWithChildrenDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
+import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
+import com.mycompany.myapp.service.mapper.GenTemConfigMapper;
+import com.mycompany.myapp.service.mapper.PalletInforDetailMapper;
+import com.mycompany.myapp.service.mapper.SerialBoxPalletMappingMapper;
+import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -27,15 +45,41 @@ public class WarehouseStampInfoService {
     );
 
     private final Partner3WarehouseStampInfoRepository warehouseStampInfoRepository;
+    private final Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository;
+    private final Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository;
+    private final Partner3GenTemConfigRepository genTemConfigRepository;
+    private final Partner3PalletInforDetailRepository palletInforDetailRepository;
 
     private final WarehouseStampInfoMapper warehouseStampInfoMapper;
+    private final WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper;
+    private final SerialBoxPalletMappingMapper serialBoxPalletMappingMapper;
+    private final GenTemConfigMapper genTemConfigMapper;
+    private final PalletInforDetailMapper palletInforDetailMapper;
 
     public WarehouseStampInfoService(
         Partner3WarehouseStampInfoRepository warehouseStampInfoRepository,
-        WarehouseStampInfoMapper warehouseStampInfoMapper
+        Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository,
+        Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository,
+        Partner3GenTemConfigRepository genTemConfigRepository,
+        Partner3PalletInforDetailRepository palletInforDetailRepository,
+        WarehouseStampInfoMapper warehouseStampInfoMapper,
+        WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper,
+        SerialBoxPalletMappingMapper serialBoxPalletMappingMapper,
+        GenTemConfigMapper genTemConfigMapper,
+        PalletInforDetailMapper palletInforDetailMapper
     ) {
         this.warehouseStampInfoRepository = warehouseStampInfoRepository;
+        this.warehouseStampInfoDetailRepository =
+            warehouseStampInfoDetailRepository;
+        this.serialBoxPalletMappingRepository =
+            serialBoxPalletMappingRepository;
+        this.genTemConfigRepository = genTemConfigRepository;
+        this.palletInforDetailRepository = palletInforDetailRepository;
         this.warehouseStampInfoMapper = warehouseStampInfoMapper;
+        this.warehouseStampInfoDetailMapper = warehouseStampInfoDetailMapper;
+        this.serialBoxPalletMappingMapper = serialBoxPalletMappingMapper;
+        this.genTemConfigMapper = genTemConfigMapper;
+        this.palletInforDetailMapper = palletInforDetailMapper;
     }
 
     /**
@@ -188,5 +232,70 @@ public class WarehouseStampInfoService {
     public void delete(Long id) {
         LOG.debug("Request to delete WarehouseNoteInfo : {}", id);
         warehouseStampInfoRepository.deleteById(id);
+    }
+
+    /**
+     * Get WarehouseNoteInfo with all child tables data by id.
+     *
+     * @param id the id of the WarehouseNoteInfo.
+     * @return the combined entity with all children.
+     */
+    @Transactional(readOnly = true)
+    public Optional<WarehouseNoteInfoWithChildrenDTO> findOneWithChildren(
+        Long id
+    ) {
+        LOG.debug("Request to get WarehouseNoteInfo with children : {}", id);
+
+        return warehouseStampInfoRepository
+            .findById(id)
+            .map(warehouseNoteInfo -> {
+                // Map parent entity
+                WarehouseStampInfoDTO parentDTO =
+                    warehouseStampInfoMapper.toDto(warehouseNoteInfo);
+
+                // Fetch and map warehouse_note_info_detail
+                List<WarehouseNoteInfoDetail> details =
+                    warehouseStampInfoDetailRepository.findByMaLenhSanXuatId(
+                        id
+                    );
+                List<WarehouseStampInfoDetailDTO> detailDTOs = details
+                    .stream()
+                    .map(warehouseStampInfoDetailMapper::toDto)
+                    .collect(Collectors.toList());
+
+                // Fetch and map serial_box_pallet_mapping
+                List<SerialBoxPalletMapping> serialMappings =
+                    serialBoxPalletMappingRepository.findByMaLenhSanXuatId(id);
+                List<SerialBoxPalletMappingDTO> serialMappingDTOs =
+                    serialMappings
+                        .stream()
+                        .map(serialBoxPalletMappingMapper::toDto)
+                        .collect(Collectors.toList());
+
+                // Fetch and map gen_note_config
+                List<GenTemConfig> genConfigs =
+                    genTemConfigRepository.findByMaLenhSanXuatId(id);
+                List<GenTemConfigDTO> genConfigDTOs = genConfigs
+                    .stream()
+                    .map(genTemConfigMapper::toDto)
+                    .collect(Collectors.toList());
+
+                // Fetch and map pallet_infor_detail
+                List<PalletInforDetail> palletDetails =
+                    palletInforDetailRepository.findByMaLenhSanXuatId(id);
+                List<PalletInforDetailDTO> palletDetailDTOs = palletDetails
+                    .stream()
+                    .map(palletInforDetailMapper::toDto)
+                    .collect(Collectors.toList());
+
+                // Create and return combined DTO
+                return new WarehouseNoteInfoWithChildrenDTO(
+                    parentDTO,
+                    detailDTOs,
+                    serialMappingDTOs,
+                    genConfigDTOs,
+                    palletDetailDTOs
+                );
+            });
     }
 }

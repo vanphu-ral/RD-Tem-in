@@ -3,6 +3,7 @@ package com.mycompany.myapp.web.rest;
 import com.mycompany.myapp.repository.WarehouseStampInfoRepository;
 import com.mycompany.myapp.service.Partner3WarehouseStampInfoService;
 import com.mycompany.myapp.service.WarehouseStampInfoService;
+import com.mycompany.myapp.service.dto.WarehouseNoteInfoWithChildrenDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
@@ -315,6 +316,30 @@ public class WarehouseStampInfoResource {
         Optional<WarehouseStampInfoDTO> warehouseStampInfoDTO =
             partner3WarehouseStampInfoService.findOne(id);
         return ResponseUtil.wrapOrNotFound(warehouseStampInfoDTO);
+    }
+
+    /**
+     * {@code GET  /warehouse-note-infos/:id/with-children} : get the "id"
+     * warehouseStampInfo with all child tables data.
+     *
+     * @param id the id of the warehouseStampInfo to retrieve with children.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the warehouseNoteInfoWithChildrenDTO, or with status
+     *         {@code 404 (Not Found)}.
+     */
+    @GetMapping("/{id}/with-children")
+    public ResponseEntity<
+        WarehouseNoteInfoWithChildrenDTO
+    > getWarehouseStampInfoWithChildren(@PathVariable("id") Long id) {
+        LOG.debug(
+            "REST request to get WarehouseNoteInfo with children : {}",
+            id
+        );
+        Optional<
+            WarehouseNoteInfoWithChildrenDTO
+        > warehouseNoteInfoWithChildrenDTO =
+            warehouseStampInfoService.findOneWithChildren(id);
+        return ResponseUtil.wrapOrNotFound(warehouseNoteInfoWithChildrenDTO);
     }
 
     /**

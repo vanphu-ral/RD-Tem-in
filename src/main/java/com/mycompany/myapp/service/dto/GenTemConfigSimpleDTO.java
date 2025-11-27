@@ -7,10 +7,11 @@ import java.util.Objects;
 import javax.validation.constraints.*;
 
 /**
- * A DTO for the {@link com.mycompany.myapp.domain.GenTemConfig} entity.
+ * A simple DTO for the {@link com.mycompany.myapp.domain.GenTemConfig} entity
+ * containing only the table fields without nested objects.
  */
 @SuppressWarnings("common-java:DuplicatedBlocks")
-public class GenTemConfigDTO implements Serializable {
+public class GenTemConfigSimpleDTO implements Serializable {
 
     private Long id;
 
@@ -231,15 +232,15 @@ public class GenTemConfigDTO implements Serializable {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof GenTemConfigDTO)) {
+        if (!(o instanceof GenTemConfigSimpleDTO)) {
             return false;
         }
 
-        GenTemConfigDTO genTemConfigDTO = (GenTemConfigDTO) o;
+        GenTemConfigSimpleDTO genTemConfigSimpleDTO = (GenTemConfigSimpleDTO) o;
         if (this.id == null) {
             return false;
         }
-        return Objects.equals(this.id, genTemConfigDTO.id);
+        return Objects.equals(this.id, genTemConfigSimpleDTO.id);
     }
 
     @Override
@@ -250,7 +251,7 @@ public class GenTemConfigDTO implements Serializable {
     // prettier-ignore
     @Override
     public String toString() {
-        return "GenTemConfigDTO{" +
+        return "GenTemConfigSimpleDTO{" +
                 "id=" + getId() +
                 ", tpNk='" + getTpNk() + "'" +
                 ", rank='" + getRank() + "'" +

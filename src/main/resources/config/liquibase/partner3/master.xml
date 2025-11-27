@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+
+    <include file="config/liquibase/partner3/changelog/20251126170600_added_entity_PalletInforDetail.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/partner3/changelog/20251127005100_added_entity_WarehouseStampInfoDetail.xml" relativeToChangelogFile="false"/>
+
+    <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
+    <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
+
+</databaseChangeLog>

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+
+    <changeSet id="20251127043950-1" author="jhipster">
+        <sql>
+            DROP TABLE IF EXISTS warehouse_note_info CASCADE;
+            DROP TABLE IF EXISTS pallet_infor_detail CASCADE;
+            DROP TABLE IF EXISTS gen_note_config CASCADE;
+            DROP TABLE IF EXISTS serial_box_pallet_mapping CASCADE;
+            DROP TABLE IF EXISTS warehouse_note_info_detail CASCADE;
+            DROP TABLE IF EXISTS workshop CASCADE;
+            DROP TABLE IF EXISTS branch CASCADE;
+            DROP TABLE IF EXISTS "group" CASCADE;
+
+            CREATE TABLE "warehouse_note_info" (
+              "id" SERIAL PRIMARY KEY,
+              "ma_lenh_san_xuat" varchar(30),
+              "sap_code" varchar(50),
+              "sap_name" VARCHAR(150),
+              "work_order_code" varchar(50),
+              "version" varchar(50),
+              "storage_code" varchar(50),
+              "total_quantity" int,
+              "create_by" varchar(50),
+              "entry_time" TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NOW(),
+              "trang_thai" VARCHAR(50),
+              "comment" VARCHAR(150),
+              "time_update" TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NOW(),
+              "group_name" nchar(20),
+              "comment_2" VARCHAR(255),
+              "approver_by" VARCHAR(50),
+              "branch" VARCHAR(50),
+              "product_type" VARCHAR(50),
+              "deleted_at" TIMESTAMP(0) WITHOUT TIME ZONE,
+              "deleted_by" VARCHAR(50),
+              "destination_warehouse" bigint
+            );
+
+            CREATE TABLE pallet_infor_detail (
+                id SERIAL PRIMARY KEY,
+                serial_pallet VARCHAR(50),
+                ma_lenh_san_xuat_id bigint,
+                quantity_per_box int,
+                note VARCHAR(255),
+                num_box_per_pallet int,
+                customer_name VARCHAR(255),
+                po_number VARCHAR(255),
+                date_code varchar(10),
+                item_no_sku VARCHAR(255),
+                qdsx_no VARCHAR(255),
+                production_date date,
+                inspector_name VARCHAR(100),
+                inspection_result VARCHAR(100),
+                scan_progress INTEGER,
+                num_box_actual INTEGER,
+                updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NOW(),
+                updated_by VARCHAR(50)
+            );
+
+            CREATE TABLE "gen_note_config" (
+              "id" SERIAL PRIMARY KEY,
+              "ma_lenh_san_xuat_id" bigint,
+              "tp_nk" VARCHAR(50),
+              "rank" varchar(50),
+              "mfg" varchar(50),
+              "quantity_per_box" int,
+              "note" VARCHAR(255),
+              "num_box_per_pallet" int,
+              "branch" VARCHAR(50),
+              "group_name" VARCHAR(50),
+              "customer_name" VARCHAR(255),
+              "po_number" VARCHAR(255),
+              "date_code" varchar(10),
+              "item_no_sku" VARCHAR(255),
+              "qdsx_no" VARCHAR(255),
+              "production_date" date,
+              "inspector_name" VARCHAR(100),
+              "inspection_result" VARCHAR(100),
+              "updated_at" TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NOW(),
+              "updated_by" VARCHAR(50)
+            );
+
+            CREATE TABLE "serial_box_pallet_mapping" (
+              "id" SERIAL PRIMARY KEY,
+              "ma_lenh_san_xuat_id" bigint,
+              "serial_box" varchar(50),
+              "serial_pallet" varchar(50),
+              "updated_at" TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NOW(),
+              "updated_by" VARCHAR(50)
+            );
+
+            CREATE TABLE "warehouse_note_info_detail" (
+              "id" SERIAL PRIMARY KEY,
+              "reel_id" varchar(30),
+              "part_number" varchar(50),
+              "vendor" varchar(20),
+              "lot" varchar(20),
+              "user_data_1" varchar(20),
+              "user_data_2" varchar(255),
+              "user_data_3" varchar(100),
+              "user_data_4" varchar(20),
+              "user_data_5" varchar(20),
+              "initial_quantity" int,
+              "msd_level" varchar(20),
+              "msd_initial_floor_time" varchar(20),
+              "msd_bag_seal_date" varchar(20),
+              "market_usage" varchar(20),
+              "quantity_override" int,
+              "shelf_time" varchar(20),
+              "sp_material_name" varchar(20),
+              "warning_limit" varchar(20),
+              "maximum_limit" varchar(20),
+              "comments" varchar(50),
+              "warmup_time" varchar(20),
+              "storage_unit" varchar(20),
+              "sub_storage_unit" varchar(20),
+              "location_override" varchar(20),
+              "expiration_date" varchar(20),
+              "manufacturing_date" varchar(20),
+              "part_class" varchar(20),
+              "sap_code" varchar(20),
+              "ma_lenh_san_xuat_id" bigint,
+              "trang_thai" varchar(50),
+              "checked" int,
+              "lenh_san_xuat_id" bigint
+            );
+
+            CREATE TABLE "workshop" (
+              "id" int PRIMARY KEY,
+              "workshop_code" VARCHAR(15) UNIQUE,
+              "work_shop_name" VARCHAR(50),
+              "description" VARCHAR(255)
+            );
+
+            CREATE TABLE "branch" (
+              "id" int PRIMARY KEY,
+              "workshop_code" VARCHAR(15),
+              "branch_code" VARCHAR(15) UNIQUE,
+              "branch_name" VARCHAR(50)
+            );
+
+            CREATE TABLE "production_team" (
+              "id" int PRIMARY KEY,
+              "branch_code" VARCHAR(10),
+              "production_team_code" VARCHAR(15) UNIQUE,
+              "production_team_name" VARCHAR(50)
+            );
+
+            ALTER TABLE "branch" ADD FOREIGN KEY ("workshop_code") REFERENCES "workshop" ("workshop_code");
+
+            ALTER TABLE "production_team" ADD FOREIGN KEY ("branch_code") REFERENCES "branch" ("branch_code");
+
+            ALTER TABLE "warehouse_note_info_detail" ADD FOREIGN KEY ("ma_lenh_san_xuat_id") REFERENCES "warehouse_note_info" ("id");
+
+            ALTER TABLE "gen_note_config" ADD FOREIGN KEY ("ma_lenh_san_xuat_id") REFERENCES "warehouse_note_info" ("id");
+
+            ALTER TABLE "serial_box_pallet_mapping" ADD FOREIGN KEY ("ma_lenh_san_xuat_id") REFERENCES "warehouse_note_info" ("id");
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
