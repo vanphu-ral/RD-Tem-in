@@ -181,8 +181,8 @@ export class PalletDetailDialogComponent implements OnInit {
     return (scanned / item.tongSoThung) * 100;
   }
 
-  onExport(): void {
-    console.log("🔵 Starting export...");
+  public onExport(): void {
+    console.log("Starting export...");
 
     //  1. Thu thập dữ liệu
     const exportData: PalletExcelRow[] = [];
