@@ -31,7 +31,6 @@
     </div>
   </div>
 
-  <!-- Production Order Table -->
   <div class="table-container">
     <mat-progress-bar
       *ngIf="loading"
@@ -140,22 +139,19 @@
     <div class="action-buttons">
       <button mat-raised-button color="primary" (click)="saveWarehouseNotes()">
         <mat-icon>save</mat-icon>
-        Lưu
+        Lưu ghi chú kho
       </button>
     </div>
   </div>
 
-  <!-- Backdrop cho FAB menu (đặt NGOÀI tabs-wrapper) -->
   <div
     class="fab-backdrop"
     [class.active]="fabMenuOpen"
     (click)="toggleFabMenu()"
   ></div>
 
-  <!-- Tabs Section -->
   <div class="tabs-wrapper">
     <mat-tab-group class="management-tabs" [(selectedIndex)]="selectedTabIndex">
-      <!-- TAB 1: Quản lý thùng -->
       <mat-tab *ngIf="showThungTab">
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">view_in_ar</mat-icon>
@@ -274,7 +270,6 @@
         </div>
       </mat-tab>
 
-      <!-- TAB 2: Quản lý pallet -->
       <mat-tab *ngIf="showPalletTab">
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">layers</mat-icon>
@@ -415,7 +410,6 @@
         </div>
       </mat-tab>
 
-      <!-- TAB 3: Quản lý tem BTP -->
       <mat-tab *ngIf="showTemBtpTab">
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">qr_code</mat-icon>
@@ -728,23 +722,6 @@
       </mat-tab>
     </mat-tab-group>
 
-    <!-- Action buttons trong tabs -->
-    <div class="action-buttons">
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="saveCombined(maLenhSanXuatId)"
-      >
-        <mat-icon>save</mat-icon>
-        Lưu
-      </button>
-      <!-- <button mat-raised-button color="primary" (click)="onCreateLabels()" *ngIf="productionOrders[0]?.loaiSanPham === 'Bán thành phẩm'">
-                <mat-icon>play_arrow</mat-icon>
-                Tạo tem
-            </button> -->
-    </div>
-
-    <!-- DESKTOP VERSION - Pakage buttons -->
     <div class="pakage-button desktop-only">
       <button
         mat-raised-button
@@ -779,7 +756,17 @@
     </div>
   </div>
 
-  <!-- MOBILE VERSION - FAB Menu -->
+  <div class="tab-bottom-actions">
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="saveCombined(maLenhSanXuatId)"
+    >
+      <mat-icon>save</mat-icon>
+      Lưu
+    </button>
+  </div>
+
   <div class="pakage-button mobile-fab" [class.open]="fabMenuOpen">
     <button
       mat-fab
@@ -833,9 +820,8 @@
     </button>
   </div>
 
-  <!-- Footer buttons -->
   <div class="footer-button">
-    <button mat-raised-button color="primary">
+    <button mat-raised-button color="basic">
       <mat-icon>arrow_back</mat-icon>
       Trở lại
     </button>
