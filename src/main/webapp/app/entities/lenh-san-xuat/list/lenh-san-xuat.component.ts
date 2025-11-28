@@ -18,7 +18,7 @@ import {
 import { LenhSanXuatService } from "../service/lenh-san-xuat.service";
 import { LenhSanXuatDeleteDialogComponent } from "../delete/lenh-san-xuat-delete-dialog.component";
 import { PageEvent } from "@angular/material/paginator";
-
+import { environment } from "app/environments/environment";
 @Component({
   selector: "jhi-lenh-san-xuat",
   templateUrl: "./lenh-san-xuat.component.html",
@@ -26,6 +26,7 @@ import { PageEvent } from "@angular/material/paginator";
   standalone: false,
 })
 export class LenhSanXuatComponent implements OnInit {
+  testUrl = `${environment.baseInTemApiUrl}/warehouse-note-infos`;
   resourceUrl =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuat");
   totalDataUrl = this.applicationConfigService.getEndpointFor(
@@ -329,14 +330,37 @@ export class LenhSanXuatComponent implements OnInit {
     // this.createListOfWordOrderCode();
   }
 
+  // getLenhSanXuatList(): void {
+  //   this.http.post<any>(this.resourceUrl, this.body).subscribe((res) => {
+  //     this.lenhSanXuats = res;
+  //     setTimeout(() => {
+  //       this.changeColor();
+  //       // Lưu lại key word tìm kiếm
+  //       sessionStorage.setItem("tem-in-search-body", JSON.stringify(this.body));
+  //     }, 500);
+  //   });
+  // }
   getLenhSanXuatList(): void {
-    this.http.post<any>(this.resourceUrl, this.body).subscribe((res) => {
-      this.lenhSanXuats = res;
-      setTimeout(() => {
-        this.changeColor();
-        // Lưu lại key word tìm kiếm
-        sessionStorage.setItem("tem-in-search-body", JSON.stringify(this.body));
-      }, 500);
+    this.http.get<any[]>(this.testUrl).subscribe((res) => {
+      this.lenhSanXuats = res.map((item) => ({
+        id: item.id,
+        maLenhSanXuat: item.ma_lenh_san_xuat,
+        sapCode: item.sap_code,
+        sapName: item.sap_name,
+        workOrderCode: item.work_order_code,
+        version: item.version,
+        storageCode: item.storage_code,
+        totalQuantity: item.total_quantity,
+        createBy: item.create_by,
+        entryTime: item.entry_time,
+        timeUpdate: item.time_update,
+        trangThai: item.trang_thai,
+        groupName: item.group_name,
+        comment2: item.comment2,
+        comment: item.comment,
+        branch: item.branch,
+        productType: item.product_type,
+      }));
     });
   }
   reloadPage(): void {

@@ -5,6 +5,16 @@
 
       <div class="d-flex justify-content-end">
         <button
+          [routerLink]="['/lenh-san-xuat', 'add-new']"
+          class="btn btn-info me-2"
+          data-cy="entityDetailsButton"
+          data-bs-toggle="tooltip"
+          title="Thêm mới"
+        >
+          <fa-icon icon="plus"></fa-icon>
+          <span>Thêm mới</span>
+        </button>
+        <button
           class="btn btn-info me-2"
           (click)="reloadPage()"
           [disabled]="isLoading"
@@ -355,7 +365,7 @@
                   <!-- <span class="d-none d-md-inline">View</span> -->
                 </button>
 
-                <button
+                <!-- <button
                   *ngIf="lenhSanXuat.trangThai === 'Bản nháp'"
                   type="submit"
                   [routerLink]="['/lenh-san-xuat', lenhSanXuat.id, 'edit']"
@@ -365,7 +375,17 @@
                   title="Chỉnh sửa"
                 >
                   <fa-icon icon="pencil-alt"></fa-icon>
-                  <!-- <span class="d-none d-md-inline">Edit</span> -->
+                </button> -->
+                <button
+                  *ngIf="lenhSanXuat.trangThai === 'Bản nháp'"
+                  type="submit"
+                  [routerLink]="['/lenh-san-xuat', lenhSanXuat.id, 'add-new']"
+                  class="btn btn-primary btn-sm"
+                  data-cy="entityEditButton"
+                  data-bs-toggle="tooltip"
+                  title="Chỉnh sửa"
+                >
+                  <fa-icon icon="pencil-alt"></fa-icon>
                 </button>
 
                 <button

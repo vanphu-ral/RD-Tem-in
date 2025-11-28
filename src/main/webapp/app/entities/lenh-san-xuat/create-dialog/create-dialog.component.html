@@ -1,0 +1,177 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="dialog-title">
+      <mat-icon class="title-icon">{{ icon }}</mat-icon>
+      <h2>{{ title }}</h2>
+    </div>
+    <button mat-icon-button (click)="onCancel()" class="close-button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <form [formGroup]="form">
+      <div class="form-field">
+        <label class="field-label">Sản phẩm</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input
+            matInput
+            [formControlName]="isBoxType ? 'maSanPham' : 'tenSanPham'"
+            placeholder="Tên sản phẩm"
+          />
+        </mat-form-field>
+      </div>
+
+      <!-- Form fields for Box type -->
+      <ng-container *ngIf="isBoxType">
+        <div class="form-row">
+          <div class="form-field half-width">
+            <label class="field-label">Số lượng trong 1 thùng</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                type="number"
+                formControlName="soLuongTrongThung"
+              />
+            </mat-form-field>
+          </div>
+
+          <div class="form-field half-width">
+            <label class="field-label">Số lượng thùng</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput type="number" formControlName="soLuongThung" />
+            </mat-form-field>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Form fields for Pallet type -->
+      <ng-container *ngIf="!isBoxType">
+        <div class="form-row">
+          <div class="form-field half-width">
+            <label class="field-label">Khách hàng</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                formControlName="khachHang"
+                placeholder="Tên khách hàng..."
+              />
+            </mat-form-field>
+          </div>
+
+          <div class="form-field half-width">
+            <label class="field-label">PO Number</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                formControlName="poNumber"
+                placeholder="Số PO..."
+              />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field half-width">
+            <label class="field-label">Date Code</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                formControlName="dateCode"
+                placeholder="Date Code..."
+              />
+            </mat-form-field>
+          </div>
+
+          <div class="form-field half-width">
+            <label class="field-label">QDSX</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="qdsx" placeholder="Số QĐSX..." />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field half-width">
+            <label class="field-label">Người kiểm tra</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                formControlName="nguoiKiemTra"
+                placeholder="Tên người kiểm tra..."
+              />
+            </mat-form-field>
+          </div>
+
+          <div class="form-field half-width">
+            <label class="field-label">Kết quả kiểm tra</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                formControlName="ketQuaKiemTra"
+                placeholder="Kết quả..."
+              />
+            </mat-form-field>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field half-width">
+            <label class="field-label">No/SKU</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="noSKU" placeholder="No/SKU..." />
+            </mat-form-field>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Summary section -->
+      <div class="summary-section">
+        <ng-container *ngIf="isBoxType">
+          <div class="summary-content">
+            <span class="summary-label">Tổng số lượng:</span>
+            <span class="summary-value">{{ totalQuantity }}</span>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="!isBoxType">
+          <div class="summary-row">
+            <div class="summary-item">
+              <label class="field-label">Số lượng thùng trong pallet</label>
+              <mat-form-field appearance="outline" class="summary-input">
+                <input
+                  matInput
+                  type="number"
+                  formControlName="soLuongThungTrongPallet"
+                />
+              </mat-form-field>
+            </div>
+
+            <div class="summary-item">
+              <label class="field-label">Tổng số pallet tạo</label>
+              <mat-form-field appearance="outline" class="summary-input">
+                <input matInput type="number" formControlName="soLuongPallet" />
+              </mat-form-field>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </form>
+  </div>
+
+  <div class="dialog-actions">
+    <button mat-stroked-button (click)="onCancel()" class="cancel-button">
+      <mat-icon>close</mat-icon>
+      Hủy
+    </button>
+    <!-- <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="!form.valid" class="submit-button"> -->
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onSubmit()"
+      class="submit-button"
+    >
+      <mat-icon>check</mat-icon>
+      Hoàn thành
+    </button>
+  </div>
+</div>
