@@ -741,10 +741,10 @@
         <mat-icon>add</mat-icon>
         Tạo Pallet mới
       </button>
-      <button mat-raised-button color="primary" class="add-box-btn">
+      <!-- <button mat-raised-button color="primary" class="add-box-btn">
         <mat-icon>print</mat-icon>
         In tất cả
-      </button>
+      </button> -->
       <button
         mat-raised-button
         color="accent"
@@ -760,7 +760,7 @@
     <button
       mat-raised-button
       color="primary"
-      (click)="saveCombined(maLenhSanXuatId)"
+      (click)="saveCombined(maLenhSanXuatId!)"
     >
       <mat-icon>save</mat-icon>
       Lưu
@@ -821,7 +821,7 @@
   </div>
 
   <div class="footer-button">
-    <button mat-raised-button color="basic">
+    <button mat-raised-button color="basic" [routerLink]="'/lenh-san-xuat'">
       <mat-icon>arrow_back</mat-icon>
       Trở lại
     </button>
