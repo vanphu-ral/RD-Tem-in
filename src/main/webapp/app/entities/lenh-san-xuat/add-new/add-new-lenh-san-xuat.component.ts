@@ -257,7 +257,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   reelDataList: ReelData[] = [];
 
   selectedBranch = "Led1";
-  boxQuantity = 3;
+  boxQuantity = 1;
   quantityPerBox = 200;
 
   //biến tab

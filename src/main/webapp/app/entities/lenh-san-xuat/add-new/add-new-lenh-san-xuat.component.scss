@@ -5,9 +5,9 @@
 // ==========================================
 
 .main-content {
-  padding: 20px;
+  padding: 10px 10px 10px 10px;
   background: #f5f5f5;
-  min-height: 100vh;
+  min-height: calc(100vh - 80px);
   height: calc(100vh - 80px);
   overflow: hidden;
   display: flex;
@@ -29,7 +29,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   flex-shrink: 0;
 
   h2 {
@@ -41,19 +41,17 @@
 .tab-bottom-actions {
   display: flex;
   justify-content: flex-end;
-  /* Căn sang phải */
-  margin-top: 20px;
-  padding-top: 10px;
+
+  margin-top: 5px;
   border-top: 1px solid #f0f0f0;
-  /* Đường kẻ mờ tùy chọn */
   flex-shrink: 0;
 }
 
 .table-container {
   background: white;
   border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 10px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
   max-height: 200px;
@@ -63,7 +61,7 @@
 .production-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   font-size: 13px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border-radius: 8px;
@@ -171,10 +169,10 @@
 
 .tabs-wrapper {
   position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
   background: white;
   border-radius: 8px;
-  padding: 20px;
+  padding: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   flex: 1;
   overflow: hidden;
@@ -303,7 +301,7 @@
 }
 
 .items-table {
-  width: 100%;
+  width: calc(100% - 80px);
   border-collapse: collapse;
   margin-bottom: 20px;
   font-size: 13px;
@@ -313,7 +311,7 @@
 
   th {
     color: #fff;
-    background: #0276ff;
+    background: #3d7bb9;
     text-align: center;
     padding: 12px 8px;
     font-weight: 600;
@@ -413,8 +411,8 @@
 
 .footer-button {
   text-align: right;
-  margin-top: 20px;
-  padding-bottom: 20px;
+  margin-top: 10px;
+  padding-bottom: 10px;
   flex-shrink: 0;
 }
 
@@ -611,8 +609,8 @@
 
   // TABS
   .tabs-wrapper {
-    padding: 10px;
-    margin-bottom: 60px;
+    padding: 5px;
+    margin-bottom: 10px;
   }
 
   .management-tabs {

@@ -94,8 +94,8 @@ export class CreateDialogComponent {
     if (this.isBoxType) {
       return this.fb.group({
         maSanPham: [this.data.maSanPham ?? "", Validators.required],
-        soLuongTrongThung: [5000, [Validators.required, Validators.min(1)]],
-        soLuongThung: [3, [Validators.required, Validators.min(1)]],
+        soLuongTrongThung: [24, [Validators.required, Validators.min(1)]],
+        soLuongThung: [1, [Validators.required, Validators.min(1)]],
       });
     } else {
       return this.fb.group({
@@ -106,7 +106,7 @@ export class CreateDialogComponent {
         qdsx: [""],
         nguoiKiemTra: [""],
         ketQuaKiemTra: [""],
-        soLuongThungTrongPallet: [30, [Validators.required, Validators.min(1)]],
+        soLuongThungTrongPallet: [1, [Validators.required, Validators.min(1)]],
         soLuongPallet: [1, [Validators.required, Validators.min(1)]],
         noSKU: [""],
       });

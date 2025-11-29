@@ -1,9 +1,9 @@
 <div class="main-content">
   <div class="header">
-    <h2>Mã lệnh sản xuất</h2>
+    <h3>Tạo TEM/Phiếu cho lệnh sản xuất</h3>
     <div class="submit-search-sap" [formGroup]="form">
       <mat-form-field appearance="outline" class="sap-input">
-        <mat-label>Lệnh SX</mat-label>
+        <mat-label>Mã lệnh sản xuất</mat-label>
         <input
           matInput
           formControlName="woId"
@@ -15,7 +15,7 @@
             form.get('woId')?.hasError('required') && form.get('woId')?.touched
           "
         >
-          Vui lòng nhập Lệnh SX
+          Vui lòng nhập mã lệnh SX
         </mat-error>
       </mat-form-field>
 
