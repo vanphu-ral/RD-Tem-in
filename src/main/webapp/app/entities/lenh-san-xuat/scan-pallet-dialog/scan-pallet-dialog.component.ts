@@ -24,6 +24,8 @@ import { QRCodeComponent } from "angularx-qrcode";
 import { MatTabsModule } from "@angular/material/tabs";
 import { ZXingScannerModule } from "@zxing/ngx-scanner";
 import { FormsModule } from "@angular/forms";
+import { HttpClient } from "@angular/common/http";
+import { HttpClientModule } from "@angular/common/http";
 
 interface PalletData {
   id: string;
@@ -31,6 +33,8 @@ interface PalletData {
   tenSanPham: string;
   qrCode: string;
   soThung: number;
+  maLenhSanXuatId: number;
+  validReelIds?: string[];
 }
 
 interface BoxScan {
@@ -57,6 +61,7 @@ interface BoxScan {
     MatTabsModule,
     ZXingScannerModule,
     FormsModule,
+    HttpClientModule,
   ],
   animations: [
     trigger("slideIn", [
@@ -91,6 +96,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   scannedBoxes: BoxScan[] = [];
   errorBoxes: BoxScan[] = [];
   allBoxes: BoxScan[] = [];
+  validBoxes: string[] = [];
 
   selectedTabIndex = 0;
   scannedCount = 0;
@@ -107,8 +113,10 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   constructor(
     public dialogRef: MatDialogRef<ScanPalletDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PalletData,
+    private http: HttpClient,
   ) {
     this.palletData = data;
+    console.log("Scan dialog constructor data:", data);
   }
 
   ngOnInit(): void {
@@ -116,6 +124,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     if (this.scanModeActive) {
       this.focusScannerInput();
     }
+    this.initializeValidBoxes();
   }
 
   ngOnDestroy(): void {
@@ -128,6 +137,21 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     this.isMobile =
       window.innerWidth <= 768 ||
       /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  initializeValidBoxes(): void {
+    // Use the valid reel IDs passed from parent component
+    if (
+      this.palletData.validReelIds &&
+      this.palletData.validReelIds.length > 0
+    ) {
+      this.validBoxes = this.palletData.validReelIds;
+      console.log("Valid reel IDs loaded:", this.validBoxes);
+      console.log("Total valid boxes:", this.validBoxes.length);
+    } else {
+      console.warn("No valid reel IDs provided or empty array");
+      this.validBoxes = [];
+    }
   }
 
   // Desktop Scanner
@@ -217,20 +241,48 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
   // Validation & Processing
   validateAndAddBox(code: string): void {
+    console.log("Validating code:", code);
+    console.log("Valid boxes:", this.validBoxes);
+    console.log(
+      "Scanned count:",
+      this.scannedCount,
+      "Max:",
+      this.palletData.soThung,
+    );
+
     // Check if limit reached
     if (this.scannedCount >= this.palletData.soThung) {
+      console.log("Limit reached");
+      this.sendMappingRequest(code, 2); // already scanned or limit reached
       this.addErrorBox(code, "Vượt quá số lượng thùng tối đa");
       return;
     }
 
     // Check for duplicate
     if (this.scannedBoxes.some((box) => box.code === code)) {
+      console.log("Duplicate found");
+      this.sendMappingRequest(code, 2);
       this.addErrorBox(code, "Mã thùng đã được scan trước đó");
       return;
     }
 
-    // Validate box code format (customize as needed)
-    if (!this.isValidBoxCode(code)) {
+    // Check if box is in valid list
+    const trimmedCode = code.trim();
+    const isValid = this.validBoxes.some(
+      (validCode) => validCode.trim() === trimmedCode,
+    );
+    console.log(
+      "Checking code:",
+      trimmedCode,
+      "against valid boxes:",
+      this.validBoxes,
+      "isValid:",
+      isValid,
+    );
+
+    if (!isValid) {
+      console.log("Code not in valid list");
+      this.sendMappingRequest(code, 0);
       this.addErrorBox(
         code,
         "Mã thùng không hợp lệ hoặc không thuộc pallet này",
@@ -238,7 +290,9 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Add success
+    // Valid box
+    console.log("Valid box found");
+    this.sendMappingRequest(code, 1);
     this.addSuccessBox(code);
   }
 
@@ -246,6 +300,27 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     // Implement your validation logic here
     // Example: Check if code starts with "BOX-" or matches a pattern
     return code.length > 3;
+  }
+
+  sendMappingRequest(serialBox: string, status: number): void {
+    const payload = {
+      serial_box: serialBox,
+      serial_pallet: this.palletData.maPallet,
+      status: status,
+    };
+    this.http
+      .post(
+        `/api/serial-box-pallet-mappings/ma-lenh-san-xuat/${this.palletData.maLenhSanXuatId}`,
+        payload,
+      )
+      .subscribe({
+        next: (response) => {
+          console.log("Mapping saved", response);
+        },
+        error: (error) => {
+          console.error("Error saving mapping", error);
+        },
+      });
   }
 
   addSuccessBox(code: string): void {

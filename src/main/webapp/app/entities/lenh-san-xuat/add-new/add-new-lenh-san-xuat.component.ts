@@ -143,6 +143,8 @@ export interface PalletItem {
   serialPallet: string;
   subItems: PalletBoxItem[];
   tienDoScan?: number;
+  nganh?: string;
+  to?: string;
 }
 export interface PalletBoxItem {
   stt: number;
@@ -577,6 +579,34 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
   //detail pallet
   openPalletDetailDialog(pallet: PalletItem): void {
+    // Extract valid reel IDs from box items (the actual box serials)
+    const validReelIds: string[] = [];
+
+    // For Thành phẩm: extract from boxItems subItems
+    if (this.warehouseNoteInfo?.product_type === "Thành phẩm") {
+      this.boxItems.forEach((box) => {
+        box.subItems.forEach((subItem) => {
+          if (subItem.maThung && subItem.maThung.trim()) {
+            validReelIds.push(subItem.maThung.trim());
+          }
+        });
+      });
+    }
+    // For Bán thành phẩm: extract from reelDataList
+    else if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
+      this.reelDataList.forEach((reel) => {
+        if (reel.reelID && reel.reelID.trim()) {
+          validReelIds.push(reel.reelID.trim());
+        }
+      });
+    }
+
+    console.log("Product type:", this.warehouseNoteInfo?.product_type);
+    console.log("Box items:", this.boxItems);
+    console.log("Reel data list:", this.reelDataList);
+    console.log("Extracted valid reel IDs:", validReelIds);
+    console.log("maLenhSanXuatId:", this.maLenhSanXuatId);
+
     const dialogData: MultiPalletDialogData = {
       mode: "single",
       singleData: {
@@ -596,6 +626,12 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         nguoiKiemTra: pallet.nguoiKiemTra,
         ketQuaKiemTra: pallet.ketQuaKiemTra,
         subItems: pallet.subItems || [],
+        branch: this.productionOrders[0]?.nganh ?? "",
+        team: this.productionOrders[0]?.to ?? "",
+        // Add box data for print dialog
+        boxItems: this.boxItems,
+        maLenhSanXuatId: this.maLenhSanXuatId,
+        validReelIds: validReelIds,
       },
     };
 
@@ -628,7 +664,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       soLuongTrongThung: box.soLuongTrongThung,
       kho: box.kho,
       serialBox: box.serialBox,
-      subItems: box.subItems || [], //  THÊM DÒNG NÀY
+      subItems: box.subItems || [],
     };
 
     const dialogRef = this.dialog.open(DetailBoxDialogComponent, {
@@ -667,6 +703,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             qdsx: pallet.qdsx,
             nguoiKiemTra: pallet.nguoiKiemTra,
             ketQuaKiemTra: pallet.ketQuaKiemTra,
+            branch: pallet.nganh,
+            team: pallet.to,
           }),
         );
         return acc.concat(subData);
@@ -677,6 +715,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const dialogData: MultiPalletDialogData = {
       mode: "multiple",
       multipleData: allPallets,
+      boxItems: this.boxItems, // Add box data for print dialog
     };
 
     const dialogRef = this.dialog.open(PalletDetailDialogComponent, {
@@ -1397,6 +1436,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       trangThaiIn: false,
       serialPallet: this.generatePalletCode(index, 1),
       subItems,
+      nganh: this.productionOrders[0]?.nganh ?? "",
+      to: this.productionOrders[0]?.to ?? "",
     };
 
     this.palletItems = [...this.palletItems, newPallet];

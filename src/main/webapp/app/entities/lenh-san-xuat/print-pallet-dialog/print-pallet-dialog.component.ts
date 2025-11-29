@@ -33,6 +33,7 @@ export interface PrintPalletData {
   qty: number;
   lot: string;
   date: string;
+  scannedBoxes?: string[];
 }
 
 @Component({
@@ -66,7 +67,7 @@ export class PrintPalletDialogComponent implements OnInit {
       // QR code từ Serial pallet
       this.qrCodeUrl1 = this.data.serialPallet;
 
-      // QR code từ thông tin sản phẩm
+      // QR code từ serial box (từ paginatedItems trong detail-box-dialog)
       this.qrCodeUrl2 = this.data.serialBox;
     } catch (error) {
       console.error("Error generating QR codes:", error);

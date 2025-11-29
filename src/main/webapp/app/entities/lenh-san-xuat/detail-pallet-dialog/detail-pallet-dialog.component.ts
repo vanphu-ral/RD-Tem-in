@@ -36,6 +36,11 @@ export interface PalletDetailData {
   nguoiKiemTra?: string;
   ketQuaKiemTra?: string;
   subItems?: PalletBoxItem[];
+  branch?: string; // Ngành
+  team?: string; // Tổ
+  boxItems?: any[]; // Box data for print dialog
+  maLenhSanXuatId?: number; // Production order ID
+  validReelIds?: string[]; // Valid reel IDs for this production order
 }
 export interface PalletExcelRow {
   productionLine: string; // Production Line
@@ -70,6 +75,7 @@ export interface PalletBoxItem {
   parentPalletIndex?: number;
   tenSanPham?: string;
   noSKU?: string;
+  scannedBoxes?: string[];
 }
 
 // Multi-mode data interface
@@ -77,6 +83,7 @@ export interface MultiPalletDialogData {
   mode: "single" | "multiple";
   singleData?: PalletDetailData;
   multipleData?: PalletDetailData[];
+  boxItems?: any[]; // Box data for print dialog
 }
 
 @Component({
@@ -124,6 +131,9 @@ export class PalletDetailDialogComponent implements OnInit {
 
   // Single mode data
   singlePalletData?: PalletDetailData;
+
+  // Box data from parent component
+  boxItems: any[] = [];
 
   // Pagination
   pageSize = 10;
@@ -233,8 +243,8 @@ export class PalletDetailDialogComponent implements OnInit {
         boxesPerPallet: palletBoxItem.tongSoThung ?? 0,
 
         // Phân loại
-        branch: "",
-        team: "",
+        branch: sourceData.branch ?? "",
+        team: sourceData.team ?? "",
       };
 
       exportData.push(row);
@@ -269,7 +279,6 @@ export class PalletDetailDialogComponent implements OnInit {
       ],
     });
 
-    //  3. Đổi tên headers sang Tiếng Việt
     const headerMapping: { [key: string]: string } = {
       productionLine: "ProductionLine",
       lot: "Lot",
@@ -380,22 +389,43 @@ export class PalletDetailDialogComponent implements OnInit {
 
       // Data từ item hiện tại
       soLuongCaiDatPallet: item.tongSoThung,
-      soLuongBaoNgoaiThungGiaPallet: `${item.tienDoScan ?? 0} / ${item.tongSoThung}`,
+      soLuongBaoNgoaiThungGiaPallet: `${item.tienDoScan ?? 0}`,
 
       // Data cố định (nếu cần có thể truyền từ parent qua dialog data)
-      nganh: "LED2",
-      led2: "LED2",
-      to: "LPL2",
-      lpl2: "LPL2",
+      nganh: sourceData.branch ?? "",
+      led2: sourceData.branch ?? "",
+      to: sourceData.team ?? "",
+      lpl2: sourceData.team ?? "",
       thuTuGiaPallet: item.stt,
       slThung: item.tongSoThung * sourceData.tongPallet,
 
-      // Data từ Box items (để trống nếu chưa có)
-      productCode: "",
-      serialBox: "",
-      qty: 0,
-      lot: "",
-      date: new Date().toISOString().split("T")[0],
+      productCode:
+        this.boxItems && this.boxItems.length > 0
+          ? `LED${this.boxItems[0].maSanPham}`
+          : `LED${item.tenSanPham ?? sourceData.tenSanPham}`,
+      serialBox:
+        this.boxItems &&
+        this.boxItems.length > 0 &&
+        this.boxItems[0].subItems &&
+        this.boxItems[0].subItems.length > 0
+          ? this.boxItems[0].subItems[0].maThung
+          : this.boxItems && this.boxItems.length > 0
+            ? this.boxItems[0].serialBox
+            : item.scannedBoxes && item.scannedBoxes.length > 0
+              ? item.scannedBoxes[0]
+              : item.maPallet,
+      qty:
+        this.boxItems && this.boxItems.length > 0
+          ? this.boxItems[0].soLuongSp
+          : item.scannedBoxes
+            ? item.scannedBoxes.length
+            : (item.tienDoScan ?? 0),
+      lot:
+        this.boxItems && this.boxItems.length > 0
+          ? this.boxItems[0].lotNumber
+          : (sourceData.serialPallet ?? item.maPallet),
+      date: new Date().toLocaleDateString("vi-VN"),
+      scannedBoxes: item.scannedBoxes,
     };
 
     console.log(" Print data:", printData);
@@ -411,18 +441,23 @@ export class PalletDetailDialogComponent implements OnInit {
       return;
     }
 
+    const scanData = {
+      id: item.maPallet,
+      maPallet: item.maPallet,
+      tenSanPham: sourceData.tenSanPham,
+      qrCode: item.qrCode ?? item.maPallet,
+      soThung: item.tongSoThung,
+      maLenhSanXuatId: sourceData.maLenhSanXuatId,
+      validReelIds: sourceData.validReelIds,
+    };
+    console.log("Opening scan dialog with data:", scanData);
+
     const dialogRef = this.dialog.open(ScanPalletDialogComponent, {
       width: "100vw",
       height: "90vh",
       maxWidth: "1200px",
       maxHeight: "900px",
-      data: {
-        id: item.maPallet,
-        maPallet: item.maPallet,
-        tenSanPham: sourceData.tenSanPham,
-        qrCode: item.qrCode ?? item.maPallet,
-        soThung: item.tongSoThung,
-      },
+      data: scanData,
       panelClass: "scan-dialog-panel",
       disableClose: true,
     });
@@ -433,11 +468,17 @@ export class PalletDetailDialogComponent implements OnInit {
         // Update progress
         item.tienDoScan =
           result.totalScanned || result.scannedBoxes?.length || 0;
+        // Store scanned box codes
+        item.scannedBoxes =
+          result.scannedBoxes?.map((box: { code: string }) => box.code) ?? [];
         this.updatePaginatedItems();
       }
     });
   }
   private initializeData(): void {
+    // Extract box items from dialog data
+    this.boxItems = this.data.boxItems ?? [];
+
     // Check if data has mode property (new format)
     if (this.hasMode(this.data)) {
       this.isMultipleMode = this.data.mode === "multiple";
@@ -484,6 +525,7 @@ export class PalletDetailDialogComponent implements OnInit {
             parentPalletIndex: sourceIndex,
             tenSanPham: source.tenSanPham,
             noSKU: source.noSKU,
+            scannedBoxes: subItem.scannedBoxes ?? [],
           });
         });
       } else {
@@ -498,6 +540,7 @@ export class PalletDetailDialogComponent implements OnInit {
           parentPalletIndex: sourceIndex,
           tenSanPham: source.tenSanPham,
           noSKU: source.noSKU,
+          scannedBoxes: [],
         };
         this.palletBoxItems.push(item);
       }
