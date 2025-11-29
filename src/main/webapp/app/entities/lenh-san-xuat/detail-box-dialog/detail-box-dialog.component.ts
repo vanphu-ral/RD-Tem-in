@@ -22,6 +22,7 @@ export interface BoxDetailData {
   soLuongSp: number;
   kho: string;
   serialBox: string;
+  subItems: BoxSubItem[];
 }
 
 export interface BoxInfoCard {
@@ -58,12 +59,10 @@ export class DetailBoxDialogComponent implements OnInit {
   boxSubItems: BoxSubItem[] = [];
   paginatedItems: BoxSubItem[] = [];
 
-  // Pagination
   pageSize = 10;
   pageIndex = 0;
   totalItems = 0;
 
-  // Summary
   soLuongThung: number = 0;
   tongSoLuong: number = 0;
 
@@ -74,9 +73,11 @@ export class DetailBoxDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.initializeInfoCards();
-    this.generateBoxSubItems();
+    this.loadBoxSubItems();
+    this.calculateSummary();
     this.updatePaginatedItems();
   }
+
   onPageChange(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
@@ -85,17 +86,16 @@ export class DetailBoxDialogComponent implements OnInit {
 
   onExport(): void {
     console.log("Xuất file chi tiết thùng");
-    // Thực hiện logic xuất file Excel/CSV
   }
 
   onPrint(): void {
     console.log("In tem cho tất cả thùng");
-    // Thực hiện logic in tem
   }
 
   onClose(): void {
     this.dialogRef.close();
   }
+
   private initializeInfoCards(): void {
     this.infoCards = [
       { label: "Lot Number", value: this.data.lotNumber },
@@ -105,34 +105,26 @@ export class DetailBoxDialogComponent implements OnInit {
     ];
   }
 
-  private generateBoxSubItems(): void {
-    this.boxSubItems = [];
-
-    // Mỗi BoxItem đã có serialBox, chỉ cần hiển thị lại
-    const item: BoxSubItem = {
-      stt: this.data.stt,
-      maThung: this.data.serialBox,
-      soLuong: this.data.soLuongTrongThung || 0,
-      qrCode: this.data.serialBox, // nếu muốn hiển thị QR
-    };
-
-    this.boxSubItems.push(item);
-
+  //  HÀM MỚI: Load từ data.subItems
+  private loadBoxSubItems(): void {
+    // Sử dụng subItems từ data đã truyền vào
+    this.boxSubItems = this.data.subItems || [];
     this.totalItems = this.boxSubItems.length;
-    this.tongSoLuong = item.soLuong;
+
+    console.log(" Loaded subItems:", this.boxSubItems.length);
+    console.log(" SubItems data:", this.boxSubItems);
   }
 
-  private generateBoxCode(index: number): string {
-    // Tạo mã thùng theo format: B + timestamp + index
-    const date = new Date();
-    const year = date.getFullYear();
-    const xuong = "01";
-    const nganh = "04";
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const sequence = String(index).padStart(10, "0");
+  //  HÀM MỚI: Tính tổng
+  private calculateSummary(): void {
+    this.soLuongThung = this.boxSubItems.length;
+    this.tongSoLuong = this.boxSubItems.reduce(
+      (sum, item) => sum + (item.soLuong || 0),
+      0,
+    );
 
-    return `B${xuong}${nganh}${year}${month}${day}${sequence}`;
+    console.log(" Số lượng thùng:", this.soLuongThung);
+    console.log(" Tổng số lượng:", this.tongSoLuong);
   }
 
   private updatePaginatedItems(): void {

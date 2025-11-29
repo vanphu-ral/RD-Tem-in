@@ -18,6 +18,7 @@ import {
   PrintPalletData,
 } from "../print-pallet-dialog/print-pallet-dialog.component";
 import { ScanPalletDialogComponent } from "../scan-pallet-dialog/scan-pallet-dialog.component";
+import * as XLSX from "xlsx";
 
 export interface PalletDetailData {
   stt: number;
@@ -28,16 +29,44 @@ export interface PalletDetailData {
   tongSlSp: number;
   tongSoThung: number;
   serialPallet: string;
+  khachHang?: string;
+  poNumber?: string;
+  dateCode?: string;
+  qdsx?: string;
+  nguoiKiemTra?: string;
+  ketQuaKiemTra?: string;
+  subItems?: PalletBoxItem[];
 }
-
+export interface PalletExcelRow {
+  productionLine: string; // Production Line
+  lot: string; // Lot
+  poCode: string; // PoCode
+  planningCode: string; // Planning Code
+  numberOfItems: number; // Number Items
+  itemCode: string; // ItemCode
+  productName: string; // ProductName
+  sapWo: string; // SapWo
+  version: string; // Version
+  qtyBox: number; // QtyBox
+  customers: string; // Customers
+  dateCode: string; // DateCode
+  manufactureDate: string; // ManufactureDate
+  qdsx: string; // QDSX
+  inspectionResult: string; // Kết Quả Kiểm Tra
+  inspector: string; // Người kiểm tra
+  totalQuantity: number; // Tổng số lượng SP
+  itemNoSku: string; // Item No/SKU
+  boxesPerPallet: number; // SL/Thùng
+  branch: string; // Ngành
+  team: string; // Tổ
+}
 export interface PalletBoxItem {
   stt: number;
   maPallet: string;
-  qrCode?: string;
-  tienDoScan: number;
   tongSoThung: number;
-  sucChua: string;
-  // Thêm fields để phân biệt pallet gốc
+  qrCode?: string;
+  tienDoScan?: number;
+  sucChua?: string;
   parentPalletIndex?: number;
   tenSanPham?: string;
   noSKU?: string;
@@ -109,7 +138,7 @@ export class PalletDetailDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.initializeData();
-    this.generatePalletBoxItems();
+    this.loadPalletBoxItems();
     this.updatePaginatedItems();
   }
 
@@ -148,12 +177,178 @@ export class PalletDetailDialogComponent implements OnInit {
   }
 
   getProgressPercentage(item: PalletBoxItem): number {
-    return (item.tienDoScan / item.tongSoThung) * 100;
+    const scanned = item.tienDoScan ?? 0;
+    return (scanned / item.tongSoThung) * 100;
   }
 
-  onExport(): void {
-    console.log("Xuất file chi tiết pallet");
-    // Thực hiện logic xuất file Excel/CSV
+  public onExport(): void {
+    console.log("Starting export...");
+
+    //  1. Thu thập dữ liệu
+    const exportData: PalletExcelRow[] = [];
+
+    this.palletBoxItems.forEach((palletBoxItem, index) => {
+      const sourceData = this.isMultipleMode
+        ? this.palletSources[palletBoxItem.parentPalletIndex ?? 0]
+        : this.singlePalletData;
+
+      if (!sourceData) {
+        console.warn(` Không tìm thấy source data cho item ${index}`);
+        return;
+      }
+
+      //  Tạo row data cho mỗi pallet
+      const row: PalletExcelRow = {
+        // Thông tin sản xuất
+        productionLine: "", // Có thể lấy từ metadata
+        lot: sourceData.serialPallet ?? "", // Lot từ serial pallet
+        poCode: sourceData.poNumber ?? "",
+        planningCode: "", // Cần bổ sung nếu có
+        numberOfItems: palletBoxItem.tongSoThung ?? 0,
+
+        // Thông tin sản phẩm
+        itemCode: sourceData.noSKU ?? "",
+        productName: sourceData.tenSanPham ?? "",
+        sapWo: "", // Cần lấy từ parent component
+        version: "", // Cần lấy từ parent component
+
+        // Thông tin đóng gói
+        qtyBox: palletBoxItem.tongSoThung ?? 0,
+        customers: sourceData.khachHang ?? "",
+        dateCode: sourceData.dateCode ?? "",
+        manufactureDate: sourceData.createdAt
+          ? new Date(sourceData.createdAt)
+              .toLocaleDateString("en-GB")
+              .replace(/\//g, "")
+          : "",
+
+        // Thông tin kiểm tra
+        qdsx: sourceData.qdsx ?? "",
+        inspectionResult: sourceData.ketQuaKiemTra ?? "",
+        inspector: sourceData.nguoiKiemTra ?? "",
+
+        // Thống kê
+        totalQuantity: sourceData.tongSlSp ?? 0,
+        itemNoSku: sourceData.noSKU ?? "",
+        boxesPerPallet: palletBoxItem.tongSoThung ?? 0,
+
+        // Phân loại
+        branch: "",
+        team: "",
+      };
+
+      exportData.push(row);
+    });
+
+    console.log(" Export data:", exportData);
+
+    //  2. Tạo worksheet với headers Tiếng Việt
+    const worksheet = XLSX.utils.json_to_sheet(exportData, {
+      header: [
+        "productionLine",
+        "lot",
+        "poCode",
+        "planningCode",
+        "numberOfItems",
+        "itemCode",
+        "productName",
+        "sapWo",
+        "version",
+        "qtyBox",
+        "customers",
+        "dateCode",
+        "manufactureDate",
+        "qdsx",
+        "inspectionResult",
+        "inspector",
+        "totalQuantity",
+        "itemNoSku",
+        "boxesPerPallet",
+        "branch",
+        "team",
+      ],
+    });
+
+    //  3. Đổi tên headers sang Tiếng Việt
+    const headerMapping: { [key: string]: string } = {
+      productionLine: "ProductionLine",
+      lot: "Lot",
+      poCode: "PoCode",
+      planningCode: "PlanningCode",
+      numberOfItems: "Numbe Items",
+      itemCode: "ItemCode",
+      productName: "ProductName",
+      sapWo: "SapWo",
+      version: "Versio",
+      qtyBox: "QtyBox",
+      customers: "Customers",
+      dateCode: "DateCode",
+      manufactureDate: "ManufactureDa",
+      qdsx: "QDSX",
+      inspectionResult: "Kết Quả Kiểm Tra",
+      inspector: "Người kiểm tra",
+      totalQuantity: "Tổng số lượng SP",
+      itemNoSku: "Item No/SKU",
+      boxesPerPallet: "SL/Thùng",
+      branch: "Ngành",
+      team: "Tổ",
+    };
+
+    // Replace headers
+    const range = XLSX.utils.decode_range(worksheet["!ref"] ?? "A1");
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + "1";
+      if (!worksheet[address]) {
+        continue;
+      }
+
+      const originalHeader = worksheet[address].v;
+      if (headerMapping[originalHeader]) {
+        worksheet[address].v = headerMapping[originalHeader];
+      }
+    }
+
+    //  4. Styling (optional - set column widths)
+    const columnWidths = [
+      { wch: 20 }, // ProductionLine
+      { wch: 15 }, // Lot
+      { wch: 12 }, // PoCode
+      { wch: 15 }, // PlanningCode
+      { wch: 12 }, // Numbe Items
+      { wch: 12 }, // ItemCode
+      { wch: 30 }, // ProductName
+      { wch: 15 }, // SapWo
+      { wch: 10 }, // Version
+      { wch: 10 }, // QtyBox
+      { wch: 15 }, // Customers
+      { wch: 12 }, // DateCode
+      { wch: 15 }, // ManufactureDate
+      { wch: 12 }, // QDSX
+      { wch: 18 }, // Kết Quả Kiểm Tra
+      { wch: 15 }, // Người kiểm tra
+      { wch: 15 }, // Tổng số lượng SP
+      { wch: 15 }, // Item No/SKU
+      { wch: 12 }, // SL/Thùng
+      { wch: 12 }, // Ngành
+      { wch: 12 }, // Tổ
+    ];
+    worksheet["!cols"] = columnWidths;
+
+    //  5. Tạo workbook và xuất file
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pallet Details");
+
+    // Tạo tên file với timestamp
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, -5);
+    const fileName = `Pallet_Export_${timestamp}.xlsx`;
+
+    // Xuất file
+    XLSX.writeFile(workbook, fileName);
+
+    console.log(` Exported to ${fileName}`);
   }
 
   onClose(): void {
@@ -166,35 +361,44 @@ export class PalletDetailDialogComponent implements OnInit {
       : this.singlePalletData;
 
     if (!sourceData) {
+      console.error("Không tìm thấy source data cho pallet");
       return;
     }
 
     const printData: PrintPalletData = {
-      khachHang: "Lowes-YK",
+      //  Data từ pallet đã tạo
+      khachHang: sourceData.khachHang ?? "N/A",
       serialPallet: item.maPallet,
       tenSanPham: sourceData.tenSanPham,
-      poNumber: "PO-2025-001",
-      itemNoSku: sourceData.noSKU || "00039458_V4",
-      nganh: "Ngành",
-      led2: "LED2",
-      soQdsx: "002252",
-      to: "Tổ",
-      lpl2: "LPL2",
-      ngaySanXuat: "2025-11-25",
-      dateCode: "0725",
+      poNumber: sourceData.poNumber ?? "",
+      itemNoSku: sourceData.noSKU ?? "",
+      dateCode: sourceData.dateCode ?? "",
+      soQdsx: sourceData.qdsx ?? "",
+      ngaySanXuat: new Date(sourceData.createdAt).toLocaleDateString("vi-VN"),
+      nguoiKiemTra: sourceData.nguoiKiemTra ?? "",
+      ketQuaKiemTra: sourceData.ketQuaKiemTra ?? "<Empty>",
+
+      // Data từ item hiện tại
       soLuongCaiDatPallet: item.tongSoThung,
-      thuTuGiaPallet: 1,
-      soLuongBaoNgoaiThungGiaPallet: `${item.tienDoScan} / ${item.tongSoThung}`,
-      slThung: 300,
-      nguoiKiemTra: "Tùng",
-      ketQuaKiemTra: "<Empty>",
-      productCode: "LED121640-1p",
-      serialBox: "Example_Box_01",
-      qty: 300,
-      lot: "2ST1131300BA",
-      date: "2025-11-24",
+      soLuongBaoNgoaiThungGiaPallet: `${item.tienDoScan ?? 0} / ${item.tongSoThung}`,
+
+      // Data cố định (nếu cần có thể truyền từ parent qua dialog data)
+      nganh: "LED2",
+      led2: "LED2",
+      to: "LPL2",
+      lpl2: "LPL2",
+      thuTuGiaPallet: item.stt,
+      slThung: item.tongSoThung * sourceData.tongPallet,
+
+      // Data từ Box items (để trống nếu chưa có)
+      productCode: "",
+      serialBox: "",
+      qty: 0,
+      lot: "",
+      date: new Date().toISOString().split("T")[0],
     };
 
+    console.log(" Print data:", printData);
     this.openPrintDialog(printData);
   }
 
@@ -266,43 +470,43 @@ export class PalletDetailDialogComponent implements OnInit {
     });
   }
 
-  private generatePalletBoxItems(): void {
+  private loadPalletBoxItems(): void {
     this.palletBoxItems = [];
     let globalStt = 1;
 
     this.palletSources.forEach((source, sourceIndex) => {
-      const item: PalletBoxItem = {
-        stt: globalStt++,
-        maPallet: source.serialPallet,
-        qrCode: source.serialPallet,
-        tienDoScan: 0,
-        tongSoThung: source.tongSoThung ?? 0,
-        sucChua: `${source.tongSoThung ?? 0} thùng`,
-        parentPalletIndex: sourceIndex,
-        tenSanPham: source.tenSanPham,
-        noSKU: source.noSKU,
-      };
-      this.palletBoxItems.push(item);
+      //  Nếu có subItems thì dùng subItems
+      if (source.subItems && source.subItems.length > 0) {
+        source.subItems.forEach((subItem) => {
+          this.palletBoxItems.push({
+            ...subItem,
+            stt: globalStt++,
+            parentPalletIndex: sourceIndex,
+            tenSanPham: source.tenSanPham,
+            noSKU: source.noSKU,
+          });
+        });
+      } else {
+        //  Fallback: Generate nếu không có subItems (backward compatibility)
+        const item: PalletBoxItem = {
+          stt: globalStt++,
+          maPallet: source.serialPallet,
+          qrCode: source.serialPallet,
+          tienDoScan: 0,
+          tongSoThung: source.tongSoThung ?? 0,
+          sucChua: `${source.tongSoThung ?? 0} thùng`,
+          parentPalletIndex: sourceIndex,
+          tenSanPham: source.tenSanPham,
+          noSKU: source.noSKU,
+        };
+        this.palletBoxItems.push(item);
+      }
     });
 
     this.totalItems = this.palletBoxItems.length;
-  }
 
-  private generatePalletCode(sourceIndex: number, palletIndex: number): string {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    if (this.isMultipleMode) {
-      // Multiple mode: prefix with source index
-      const sequence = String(palletIndex).padStart(4, "0");
-      return `P${year}${month}${day}${String(sourceIndex + 1).padStart(2, "0")}${sequence}`;
-    } else {
-      // Single mode: simple sequence
-      const sequence = String(palletIndex).padStart(4, "0");
-      return `P${year}${month}${day}${sequence}`;
-    }
+    console.log(" Loaded palletBoxItems:", this.palletBoxItems.length);
+    console.log(" Data:", this.palletBoxItems);
   }
 
   private updatePaginatedItems(): void {

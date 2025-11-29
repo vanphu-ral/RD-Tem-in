@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpResponse } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { environment } from "app/environments/environment";
 
@@ -92,6 +92,16 @@ export class PlanningWorkOrderService {
         woId: woId ?? "",
       },
     });
+  }
+
+  //chi tiet
+  findWarehouseNoteWithChildren(
+    maLenhSanXuatId: number,
+  ): Observable<HttpResponse<any>> {
+    return this.http.get<any>(
+      `${this.baseUrl}/warehouse-note-infos/${maLenhSanXuatId}/with-children`,
+      { observe: "response" },
+    );
   }
 
   //tạo đơn chính

@@ -56,6 +56,23 @@ interface ProductionOrder {
   loaiSanPham: string;
   woId?: string;
 }
+
+export interface WarehouseNoteInfo {
+  id: number;
+  ma_lenh_san_xuat: string;
+  sap_code: string;
+  sap_name: string;
+  work_order_code: string;
+  version: string;
+  storage_code: string;
+  total_quantity: number;
+  create_by: string;
+  entry_time: string;
+  trang_thai: string;
+  group_name: string;
+  branch: string;
+  product_type: string;
+}
 export interface ReelData {
   reelID: string;
   partNumber: string;
@@ -92,6 +109,7 @@ interface BoxItem {
   maSanPham: string;
   lotNumber: string;
   vendor: string;
+  version: string;
   tenSanPham: string;
   soLuongThung: number;
   soLuongSp: number;
@@ -124,14 +142,22 @@ export interface PalletItem {
   trangThaiIn: boolean;
   serialPallet: string;
   subItems: PalletBoxItem[];
+  tienDoScan?: number;
 }
 export interface PalletBoxItem {
   stt: number;
   maPallet: string;
   tongSoThung: number;
   qrCode?: string;
+  tienDoScan?: number;
+  sucChua?: string;
 }
-
+export interface WarehouseNoteResponse {
+  warehouse_note_info: WarehouseNoteInfo;
+  warehouse_note_info_details: any[];
+  serial_box_pallet_mappings: any[];
+  pallet_infor_details: any[];
+}
 @Component({
   selector: "jhi-lenh-san-xuat-detail",
   templateUrl: "./add-new-lenh-san-xuat.component.html",
@@ -140,7 +166,7 @@ export interface PalletBoxItem {
 })
 export class AddNewLenhSanXuatComponent implements OnInit {
   woId = "";
-  maLenhSanXuatId = 0;
+  maLenhSanXuatId?: number;
 
   displayedColumns: string[] = [
     "maLenhSanXuat",
@@ -254,7 +280,13 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   showThungTab = false;
   showTemBtpTab = false;
   showPalletTab = false;
+  lenhSanXuat: any;
+  isThanhPham: boolean = false;
 
+  warehouseNoteInfo!: WarehouseNoteInfo; // hoặc interface cụ thể
+  details: any[] = [];
+  mappings: any[] = [];
+  pallets: any[] = [];
   //log
   constructor(
     private dialog: MatDialog,
@@ -263,16 +295,89 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     private snackBar: MatSnackBar,
     private accountService: AccountService,
     private router: Router,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
     this.selectedTabIndex = 0;
     this.isMobile = window.innerWidth < 768;
-    this.maLenhSanXuatId = 10;
+
+    const id = this.route.snapshot.params["id"];
+    if (id) {
+      this.route.data.subscribe((data) => {
+        const response = data["lenhSanXuat"] as WarehouseNoteResponse;
+        if (response) {
+          this.warehouseNoteInfo = response.warehouse_note_info;
+          this.details = (response.warehouse_note_info_details ??
+            []) as ReelData[];
+          this.mappings = response.serial_box_pallet_mappings ?? [];
+          this.pallets = (response.pallet_infor_details ?? []) as PalletItem[];
+
+          this.maLenhSanXuatId = this.warehouseNoteInfo.id;
+
+          this.productionOrders = [
+            {
+              maLenhSanXuat: this.warehouseNoteInfo.ma_lenh_san_xuat,
+              maSAP: this.warehouseNoteInfo.sap_code,
+              tenHangHoa: this.warehouseNoteInfo.sap_name,
+              maWO: this.warehouseNoteInfo.work_order_code,
+              version: this.warehouseNoteInfo.version,
+              maKhoNhap: this.warehouseNoteInfo.storage_code,
+              tongSoLuong: this.warehouseNoteInfo.total_quantity,
+              trangThai: this.warehouseNoteInfo.trang_thai,
+              loaiSanPham: this.warehouseNoteInfo.product_type,
+              nganh: this.warehouseNoteInfo.branch,
+              to: this.warehouseNoteInfo.group_name,
+              woId: this.warehouseNoteInfo.work_order_code,
+            },
+          ];
+          this.isThanhPham =
+            this.productionOrders[0]?.loaiSanPham === "Thành phẩm";
+
+          if (this.details && this.details.length > 0) {
+            if (this.warehouseNoteInfo.product_type === "Thành phẩm") {
+              this.boxItems = this.mapDetailsToBoxItems(this.details);
+            } else if (
+              this.warehouseNoteInfo.product_type === "Bán thành phẩm"
+            ) {
+              this.reelDataList = this.mapDetailsToReelData(this.details);
+            }
+          }
+
+          if (this.pallets && this.pallets.length > 0) {
+            this.palletItems = this.mapPalletsToPalletItems(this.pallets);
+          }
+
+          const loai = this.productionOrders[0]?.loaiSanPham;
+          if (loai === "Thành phẩm") {
+            this.showThungTab = true;
+            this.showPalletTab = true;
+            this.showTemBtpTab = false;
+          } else if (loai === "Bán thành phẩm") {
+            this.showTemBtpTab = true;
+            this.showPalletTab = true;
+            this.showThungTab = false;
+          }
+        }
+      });
+    } else {
+      this.productionOrders = [];
+    }
 
     window.addEventListener("resize", () => {
       this.isMobile = window.innerWidth < 768;
     });
+  }
+
+  //gui phe duyet
+  onApprove(): void {
+    if (this.isThanhPham) {
+      // Xử lý cho Thành phẩmD
+      this.sendWmsApproval();
+    } else {
+      // xử lý cho Bán thành phẩm
+      this.sendApproval();
+    }
   }
 
   //get data
@@ -483,6 +588,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         tongSlSp: pallet.tongSlSp,
         tongSoThung: pallet.tongSoThung,
         serialPallet: pallet.serialPallet,
+        //  THÊM CÁC FIELD CẦN CHO PRINT
+        khachHang: pallet.khachHang,
+        poNumber: pallet.poNumber,
+        dateCode: pallet.dateCode,
+        qdsx: pallet.qdsx,
+        nguoiKiemTra: pallet.nguoiKiemTra,
+        ketQuaKiemTra: pallet.ketQuaKiemTra,
+        subItems: pallet.subItems || [],
       },
     };
 
@@ -515,6 +628,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       soLuongTrongThung: box.soLuongTrongThung,
       kho: box.kho,
       serialBox: box.serialBox,
+      subItems: box.subItems || [], //  THÊM DÒNG NÀY
     };
 
     const dialogRef = this.dialog.open(DetailBoxDialogComponent, {
@@ -534,17 +648,31 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   openPackagePalletDialog(): void {
-    // Chuyển đổi tất cả pallets thành PalletDetailData
-    const allPallets: PalletDetailData[] = this.palletItems.map((pallet) => ({
-      stt: pallet.stt,
-      tenSanPham: pallet.tenSanPham,
-      noSKU: pallet.noSKU,
-      createdAt: pallet.createdAt,
-      tongPallet: pallet.tongPallet,
-      tongSlSp: pallet.tongSlSp,
-      tongSoThung: pallet.tongSoThung,
-      serialPallet: pallet.serialPallet,
-    }));
+    // Flatten tất cả pallet con từ palletItems
+    const allPallets: PalletDetailData[] = this.palletItems.reduce(
+      (acc: PalletDetailData[], pallet: PalletItem) => {
+        const subData = pallet.subItems.map(
+          (sub: PalletBoxItem, index: number) => ({
+            stt: index + 1,
+            tenSanPham: pallet.tenSanPham,
+            noSKU: pallet.noSKU,
+            createdAt: pallet.createdAt,
+            tongPallet: 1,
+            tongSlSp: sub.tongSoThung ?? 0,
+            tongSoThung: sub.tongSoThung ?? 0,
+            serialPallet: sub.maPallet,
+            khachHang: pallet.khachHang,
+            poNumber: pallet.poNumber,
+            dateCode: pallet.dateCode,
+            qdsx: pallet.qdsx,
+            nguoiKiemTra: pallet.nguoiKiemTra,
+            ketQuaKiemTra: pallet.ketQuaKiemTra,
+          }),
+        );
+        return acc.concat(subData);
+      },
+      [],
+    );
 
     const dialogData: MultiPalletDialogData = {
       mode: "multiple",
@@ -552,7 +680,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     };
 
     const dialogRef = this.dialog.open(PalletDetailDialogComponent, {
-      width: "100vw",
+      width: "1200px",
       maxWidth: "100vw",
       maxHeight: "900px",
       data: dialogData,
@@ -703,7 +831,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
           // this.loadProductionOrders();
 
-          this.router.navigate([`${newId}/add-new`]);
+          this.router.navigate([`/lenh-san-xuat/${newId}/add-new`]);
         },
         error: (err) => {
           console.error("Lỗi khi lưu:", err);
@@ -721,64 +849,161 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const currentUser = this.accountService.isAuthenticated()
       ? this.accountService["userIdentity"]?.login
       : "unknown";
+    const version = this.productionOrders[0]?.version ?? "1.0";
+    const loaiSanPham = this.productionOrders[0]?.loaiSanPham;
 
-    const pallet_infor_detail = this.palletItems.map((p) => ({
-      id: null,
-      serial_pallet: p.serialPallet,
-      ma_lenh_san_xuat_id: maLenhSanXuatId,
-      quantity_per_box: null,
-      note: null,
-      num_box_per_pallet: null,
-      customer_name: p.khachHang ?? null,
-      po_number: p.poNumber ?? null,
-      date_code: p.dateCode ?? null,
-      item_no_sku: p.noSKU ?? null,
-      qdsx_no: p.qdsx ?? null,
-      production_date: p.createdAt ?? null,
-      inspector_name: p.nguoiKiemTra ?? null,
-      inspection_result: p.ketQuaKiemTra ?? null,
-      scan_progress: 100,
-      num_box_actual: p.tongSoThung,
-      updated_at: new Date().toISOString(),
-      updated_by: currentUser,
-    }));
+    // Tạo Set serial đã tồn tại
+    const existingPalletSerials: Set<string> = new Set<string>();
+    for (let i = 0; i < (this.pallets?.length ?? 0); i++) {
+      const serial = this.getPalletSerialSafe(this.pallets![i]);
+      if (serial) {
+        existingPalletSerials.add(serial);
+      }
+    }
 
-    const warehouse_note_info_detail = this.boxItems.map((b) => ({
-      id: null,
-      reel_id: b.lotNumber,
-      part_number: b.maSanPham,
-      vendor: b.vendor,
-      lot: b.lotNumber,
-      user_data1: "",
-      user_data2: "",
-      user_data3: "",
-      user_data4: "",
-      user_data5: "",
-      initial_quantity: b.soLuongSp,
-      msd_level: "MSL3",
-      msd_initial_floor_time: "",
-      msd_bag_seal_date: new Date().toISOString().split("T")[0],
-      market_usage: null,
-      quantity_override: b.soLuongSp,
-      shelf_time: "",
-      sp_material_name: b.tenSanPham,
-      warning_limit: "",
-      maximum_limit: "",
-      comments: b.ghiChu,
-      warmup_time: "",
-      storage_unit: "BOX",
-      sub_storage_unit: "",
-      location_override: "",
-      expiration_date: "",
-      manufacturing_date: "",
-      part_class: "",
-      sap_code: b.maSanPham,
-      ma_lenh_san_xuat_id: maLenhSanXuatId,
-      lenh_san_xuat_id: null,
-      trang_thai: "ACTIVE",
-      checked: 1,
-    }));
+    const existingBoxSerials: Set<string> = new Set<string>();
+    for (let i = 0; i < (this.details?.length ?? 0); i++) {
+      const serial = this.getBoxSerialSafe(this.details![i]);
+      if (serial) {
+        existingBoxSerials.add(serial);
+      }
+    }
 
+    // Pallet payload
+    const pallet_infor_detail: any[] = [];
+    for (const p of this.palletItems) {
+      for (const sub of p.subItems) {
+        if (!existingPalletSerials.has(sub.maPallet)) {
+          pallet_infor_detail.push({
+            id: null,
+            serial_pallet: sub.maPallet,
+            ma_lenh_san_xuat_id: maLenhSanXuatId,
+            customer_name: p.khachHang ?? null,
+            po_number: p.poNumber ?? null,
+            date_code: p.dateCode ?? null,
+            item_no_sku: p.noSKU ?? null,
+            qdsx_no: p.qdsx ?? null,
+            production_date: p.createdAt ?? null,
+            inspector_name: p.nguoiKiemTra ?? null,
+            inspection_result: p.ketQuaKiemTra ?? null,
+            scan_progress: sub.tienDoScan ?? 0,
+            num_box_actual: sub.tongSoThung,
+            updated_at: new Date().toISOString(),
+            updated_by: currentUser,
+          });
+        }
+      }
+    }
+
+    // Box/Tem payload
+    let warehouse_note_info_detail: any[] = [];
+
+    if (loaiSanPham === "Thành phẩm") {
+      // Thành phẩm: flatten boxItems
+      for (const b of this.boxItems) {
+        if (!b.subItems || b.subItems.length === 0) {
+          if (!existingBoxSerials.has(b.serialBox)) {
+            warehouse_note_info_detail.push({
+              id: null,
+              reel_id: b.serialBox,
+              part_number: `${b.maSanPham}V_${version}`,
+              vendor: b.vendor,
+              lot: b.lotNumber,
+              user_data1: "",
+              user_data2: "",
+              user_data3: "",
+              user_data4: "",
+              user_data5: "",
+              initial_quantity: b.soLuongSp,
+              msd_level: "1",
+              msd_initial_floor_time: "",
+              msd_bag_seal_date: new Date().toISOString().split("T")[0],
+              sp_material_name: b.tenSanPham,
+              comments: b.ghiChu,
+              storage_unit: "RD",
+              sap_code: b.maSanPham,
+              ma_lenh_san_xuat_id: maLenhSanXuatId,
+              trang_thai: "ACTIVE",
+              checked: 1,
+            });
+          }
+          continue;
+        }
+
+        for (const sub of b.subItems) {
+          if (!existingBoxSerials.has(sub.maThung)) {
+            warehouse_note_info_detail.push({
+              id: null,
+              reel_id: sub.maThung,
+              part_number: `${b.maSanPham}V_${version}`,
+              vendor: b.vendor,
+              lot: b.lotNumber,
+              initial_quantity: sub.soLuong,
+              msd_level: "1",
+              msd_bag_seal_date: new Date().toISOString().split("T")[0],
+              sp_material_name: b.tenSanPham,
+              comments: b.ghiChu,
+              storage_unit: "RD",
+              sap_code: b.maSanPham,
+              ma_lenh_san_xuat_id: maLenhSanXuatId,
+              trang_thai: "ACTIVE",
+              checked: 1,
+            });
+          }
+        }
+      }
+    } else if (loaiSanPham === "Bán thành phẩm") {
+      const reelMap = new Map<string, any>();
+
+      for (const reel of this.reelDataList) {
+        const key = reel.reelID;
+        if (reelMap.has(key)) {
+          // Nếu đã có reelID thì cộng dồn số lượng
+          const existing = reelMap.get(key);
+          existing.initial_quantity += reel.initialQuantity ?? 0;
+
+          // Nếu cần cộng thêm userData1 (nếu là số)
+          const existingUserData1 = parseInt(existing.user_data1 || "0", 10);
+          const newUserData1 = parseInt(reel.userData1 || "0", 10);
+          existing.user_data1 = (existingUserData1 + newUserData1).toString();
+        } else {
+          // Nếu chưa có thì tạo mới record
+          reelMap.set(key, {
+            id: null,
+            reel_id: reel.reelID,
+            part_number: `${reel.sapCode}V_${version}`,
+            vendor: reel.vendor ?? "",
+            lot: reel.lot ?? "",
+            user_data1: reel.userData1 ?? "",
+            user_data2: reel.userData2 ?? "",
+            user_data3: reel.userData3 ?? "",
+            user_data4: reel.userData4 ?? "",
+            user_data5: reel.userData5 ?? "",
+            initial_quantity: reel.initialQuantity ?? 0,
+            msd_level: reel.msdLevel ?? "1",
+            msd_initial_floor_time: reel.msdInitialFloorTime ?? "",
+            msd_bag_seal_date: reel.msdBagSealDate ?? "",
+            sp_material_name: reel.spMaterialName ?? "",
+            comments: reel.comments ?? "",
+            storage_unit: reel.storageUnit ?? "RD",
+            sub_storage_unit: reel.subStorageUnit ?? "",
+            location_override: reel.locationOverride ?? "",
+            expiration_date: reel.expirationDate ?? "",
+            manufacturing_date: reel.manufacturingDate ?? "",
+            part_class: reel.partClass ?? "",
+            sap_code: reel.sapCode ?? "",
+            ma_lenh_san_xuat_id: maLenhSanXuatId,
+            lenh_san_xuat_id: null,
+            trang_thai: reel.trangThai ?? "ACTIVE",
+            checked: 1,
+          });
+        }
+      }
+
+      warehouse_note_info_detail = Array.from(reelMap.values());
+    }
+
+    // Payload tổng
     const payload = {
       pallet_infor_detail,
       warehouse_note_info_detail,
@@ -800,10 +1025,110 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     });
   }
 
+  //xuất csv bán thành phẩm
+  public exportTemBtpCsv(): void {
+    // 1. Khai báo header theo đúng thứ tự bạn muốn
+    const headers = [
+      "ReelID",
+      "PartNumber",
+      "Vendor",
+      "Lot",
+      "UserData1",
+      "UserData2",
+      "UserData3",
+      "UserData4",
+      "UserData5",
+      "InitialQuantity",
+      "MSDLevel",
+      "MSDInitialFloorTime",
+      "MSDBagSealDate",
+      "MarketUsage",
+      "QuantityOverride",
+      "ShelfTime",
+      "SPMaterialName",
+      "WarningLimit",
+      "MaximumLimit",
+      "Comments",
+      "WarmupTime",
+      "StorageUnit",
+      "SubStorageUnit",
+      "LocationOverride",
+      "ExpirationDate",
+      "ManufacturingDate",
+      "Partclass",
+      "SAPCode",
+    ];
+
+    // 2. Map reelDataList thành rows
+    const rows = this.reelDataList.map((item: ReelData) => [
+      item.reelID,
+      item.partNumber,
+      item.vendor,
+      item.lot,
+      item.userData1,
+      item.userData2,
+      item.userData3,
+      item.userData4,
+      item.userData5,
+      item.initialQuantity,
+      "",
+      "",
+      "",
+      "",
+      "1",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      item.storageUnit,
+      "",
+      "",
+      item.expirationDate?.replace(/-/g, "") ?? "",
+      item.manufacturingDate?.replace(/-/g, "") ?? "",
+      "",
+      item.sapCode,
+    ]);
+
+    // 3. Ghép header + rows thành CSV string
+    const csvRows = [headers, ...rows]
+      .map((row) => row.map((cell) => cell ?? "").join(","))
+      .join("\n");
+
+    const csvContent = "\ufeff" + csvRows;
+
+    // 4. Xuất file CSV
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, -5);
+    link.download = `TemBTP_${timestamp}.csv`;
+    link.click();
+
+    this.snackBar.open("Xuất CSV thành công", "Đóng", {
+      duration: 3000,
+    });
+  }
+  // Helper: đọc serial pallet từ cả PalletItem (serialPallet) lẫn raw API (serial_pallet)
+  private getPalletSerialSafe(p: any): string | undefined {
+    const s = p?.serialPallet ?? p?.serial_pallet;
+    return typeof s === "string" && s.length ? s : undefined;
+  }
+
+  // Helper: đọc serial box từ cả ReelData (reelID) lẫn raw API (reel_id)
+  private getBoxSerialSafe(d: any): string | undefined {
+    const s = d?.reelID ?? d?.reel_id;
+    return typeof s === "string" && s.length ? s : undefined;
+  }
   private handlePackageComplete(result: any): void {
-    console.log("Pallet:", result.pallet);
-    console.log("Số thùng đã scan:", result.soThungDaScan);
-    console.log("Danh sách thùng:", result.scannedBoxes);
+    // console.log("Pallet:", result.pallet);
+    // console.log("Số thùng đã scan:", result.soThungDaScan);
+    // console.log("Danh sách thùng:", result.scannedBoxes);
 
     // Update pallet status in database
     // Update box status to "packaged"
@@ -821,42 +1146,33 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
   // map mã ngành tổ
   private resolveCodesFromHierarchy(
-    workshops: WorkshopHierarchy[],
-    branchRaw?: string,
-    teamRaw?: string,
+    workshops: any[],
+    branchCodeRaw?: string,
+    teamCodeRaw?: string,
   ): { xuong?: string; nganh?: string; to?: string } {
-    // Tìm branch theo branch_code hoặc theo tên gần đúng
     for (const ws of workshops) {
       for (const br of ws.branchs) {
-        const branchMatched =
-          br.branch_code === branchRaw ||
-          br.branch_name?.toLowerCase() === branchRaw?.toLowerCase();
-        if (branchMatched) {
-          let teamCode: string | undefined = undefined;
-
-          if (teamRaw) {
+        if (br.branch_code === branchCodeRaw) {
+          // tìm đúng ngành
+          let toCode: string | undefined;
+          if (teamCodeRaw) {
             const team = br.production_teams.find(
-              (t: {
-                production_team_code: string;
-                production_team_name: string;
-              }) =>
-                t.production_team_code === teamRaw ||
-                t.production_team_name?.toLowerCase() ===
-                  teamRaw?.toLowerCase(),
+              (t: any) =>
+                t.production_team_name === teamCodeRaw ||
+                t.production_team_code === teamCodeRaw,
             );
-            teamCode = team?.production_team_code;
+            if (team) {
+              toCode = team.production_team_code;
+            }
           }
-
           return {
-            xuong: ws.workshop_code, // VD: '01'
-            nganh: br.branch_code, // VD: 'DTTD' hoặc 'TBCS'
-            to: teamCode, // VD: 'Tổ SMT'
+            xuong: ws.workshop_code, // ví dụ "01"
+            nganh: br.branch_code, // ví dụ "TBCS"
+            to: toCode, // ví dụ "SMT"
           };
         }
       }
     }
-
-    // Không match được → giữ undefined để sau generateBoxCode không nhảy '00' mặc định
     return {};
   }
 
@@ -882,25 +1198,29 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           maSanPham = `LED${order.productCode}`;
         }
 
-        // Tạo subItems cho từng thùng
+        const baseIndex = this.boxItems.length + 1;
+        const xuong = prodOrder?.xuong ?? "01";
+        const nganh = prodOrder?.nganh ?? "01";
+        const to = prodOrder?.to ?? "";
+
+        // Tạo subItems với serial unique cho từng thùng
         const subItems: BoxSubItem[] = [];
         for (let i = 1; i <= data.soLuongThung; i++) {
+          const boxIndex = baseIndex + (i - 1);
+          const maThung = this.generateBoxCode(boxIndex, xuong, nganh, to);
+
           subItems.push({
             stt: i,
-            maThung: this.generateBoxCode(
-              i,
-              prodOrder?.xuong ?? "01",
-              prodOrder?.nganh ?? "00",
-              prodOrder?.to ?? "",
-            ),
+            maThung: maThung,
             soLuong: data.soLuongTrongThung,
           });
         }
 
         const newBox: BoxItem = {
-          stt: this.boxItems.length + 1,
+          stt: baseIndex,
           maSanPham,
           lotNumber: order.lotNumber,
+          version: order.bomVersion,
           vendor: order.productOrderId,
           tenSanPham: order.productName,
           soLuongThung: data.soLuongThung,
@@ -909,20 +1229,12 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           ghiChu: order.note ?? "",
           kho: "RD",
           trangThaiIn: false,
-          serialBox: this.generateBoxCode(
-            this.boxItems.length + 1,
-            prodOrder?.xuong ?? "01",
-            prodOrder?.nganh ?? "00",
-            prodOrder?.to ?? "",
-          ),
+          serialBox: this.generateBoxCode(baseIndex, xuong, nganh, to),
           subItems,
         };
 
         this.boxItems = [...this.boxItems, newBox];
 
-        console.log(
-          `Đã tạo Box với ${data.soLuongThung} thùng, tổng số lượng: ${tongSoLuongSp}`,
-        );
         this.updateProductionOrderTotal();
         this.goToBoxTab();
       },
@@ -969,7 +1281,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
       return;
     }
-
+    const version = this.productionOrders[0]?.version ?? "";
     const now = new Date();
     let counter = this.reelDataList.length + 1;
 
@@ -994,7 +1306,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         // Nếu reelID chưa có thì tạo mới
         const reelData: ReelData = {
           reelID,
-          partNumber: "",
+          partNumber: `${productionOrder.maSAP}V_${version}`,
           vendor: productionOrder.maLenhSanXuat || "",
           lot: productionOrder.maWO || "",
           userData5: productionOrder.maLenhSanXuat || "",
@@ -1003,9 +1315,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           trangThai: "Active",
           storageUnit: "",
           comments: "",
-          userData1: data.soLuongTrongThung.toString(),
-          userData2: "",
-          userData3: productionOrder.tenHangHoa || "",
+          userData1: "NO",
+          userData2: "NO",
+          userData3: "NO",
           userData4: productionOrder.maSAP || "",
           msdLevel: "1",
           msdInitialFloorTime: "",
@@ -1054,14 +1366,17 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   private handlePalletCreation(data: PalletFormData): void {
     const index = this.palletItems.length + 1;
 
-    // Tạo danh sách pallet con
+    //  Tạo danh sách pallet con với đầy đủ thông tin
     const subItems: PalletBoxItem[] = [];
     for (let i = 1; i <= data.soLuongPallet; i++) {
+      const palletCode = this.generatePalletCode(index, i);
       subItems.push({
         stt: i,
-        maPallet: this.generatePalletCode(index, i),
+        maPallet: palletCode,
         tongSoThung: data.soLuongThungTrongPallet,
-        qrCode: this.generatePalletCode(index, i),
+        qrCode: palletCode,
+        tienDoScan: 0,
+        sucChua: `${data.soLuongThungTrongPallet} thùng`,
       });
     }
 
@@ -1080,11 +1395,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       nguoiKiemTra: data.nguoiKiemTra,
       ketQuaKiemTra: data.ketQuaKiemTra,
       trangThaiIn: false,
-      serialPallet: this.generatePalletCode(index, 0),
+      serialPallet: this.generatePalletCode(index, 1),
       subItems,
     };
 
     this.palletItems = [...this.palletItems, newPallet];
+
+    console.log(" Đã tạo Pallet với", data.soLuongPallet, "pallet con");
+    console.log(" SubItems:", subItems);
+
     this.goToPalletTab();
   }
 
@@ -1120,5 +1439,170 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const counterStr = String(counter).padStart(5, "0"); // 00001
 
     return `${year}${month}${day}${hours}${minutes}${sapCodeLast2}${counterStr}`;
+  }
+
+  //map data detail
+  private mapDetailsToBoxItems(details: any[]): BoxItem[] {
+    console.log(" mapDetailsToBoxItems - Input:", details);
+
+    //  Group theo: sapCode + lot + vendor + sp_material_name
+    const grouped: { [key: string]: BoxItem } = {};
+
+    for (const d of details) {
+      //  Parse qty an toàn
+      const qty =
+        typeof d.initial_quantity === "number"
+          ? d.initial_quantity
+          : Number(d.initial_quantity) || 0;
+
+      //  Key group theo thông tin sản phẩm
+      const key = `${d.sap_code || ""}|${d.lot || ""}|${d.vendor || ""}|${d.sp_material_name || ""}`;
+
+      if (!grouped[key]) {
+        //  Tạo BoxItem cha mới
+        grouped[key] = {
+          stt: Object.keys(grouped).length + 1,
+          maSanPham: d.sap_code || "", //  Lấy từ sap_code
+          lotNumber: d.lot || "",
+          vendor: d.vendor || "",
+          version: this.productionOrders[0]?.version ?? "",
+          tenSanPham: d.sp_material_name || "", //  Lấy từ sp_material_name
+          soLuongThung: 0, // Sẽ tính = số subItems
+          soLuongSp: 0, // Sẽ tính = tổng qty
+          soLuongTrongThung: 0, // Sẽ tính = trung bình
+          ghiChu: d.comments ?? "",
+          kho: d.storage_unit ?? "RD",
+          trangThaiIn: false,
+          serialBox: "", // Box cha không có serial riêng
+          subItems: [],
+        };
+      }
+
+      //  Thêm box con vào subItems
+      grouped[key].subItems.push({
+        stt: grouped[key].subItems.length + 1,
+        maThung: d.reel_id || "", //  Serial từ reel_id
+        soLuong: qty,
+      });
+
+      //  Cập nhật tổng số
+      grouped[key].soLuongThung = grouped[key].subItems.length;
+      grouped[key].soLuongSp += qty;
+
+      //  Tính số lượng trung bình trong 1 thùng
+      grouped[key].soLuongTrongThung = Math.round(
+        grouped[key].soLuongSp / grouped[key].soLuongThung,
+      );
+    }
+
+    const result = Object.values(grouped);
+
+    console.log(" mapDetailsToBoxItems - Output:", result);
+    console.log(" Total BoxItems:", result.length);
+    result.forEach((box, idx) => {
+      console.log(` BoxItem ${idx + 1}:`, {
+        maSanPham: box.maSanPham,
+        tenSanPham: box.tenSanPham,
+        soLuongThung: box.soLuongThung,
+        soLuongSp: box.soLuongSp,
+        soLuongTrongThung: box.soLuongTrongThung,
+        subItemsCount: box.subItems.length,
+        subItems: box.subItems,
+      });
+    });
+
+    return result;
+  }
+  //  THÊM HÀM MAP CHO PALLET ITEMS
+  private mapPalletsToPalletItems(palletDetails: any[]): PalletItem[] {
+    const grouped: { [key: string]: PalletItem } = {};
+
+    for (const detail of palletDetails) {
+      // Tạo key nhóm theo các thông tin chung của pallet cha
+      const key = `${detail.customer_name}|${detail.po_number}|${detail.date_code}|${detail.qdsx_no}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          stt: Object.keys(grouped).length + 1,
+          tenSanPham: this.productionOrders[0]?.tenHangHoa ?? "",
+          noSKU: detail.item_no_sku ?? "",
+          createdAt: detail.production_date ?? "",
+          tongPallet: 0,
+          tongSlSp: 0,
+          tongSoThung: 0,
+          khachHang: detail.customer_name ?? "",
+          poNumber: detail.po_number ?? "",
+          dateCode: detail.date_code ?? "",
+          qdsx: detail.qdsx_no ?? "",
+          nguoiKiemTra: detail.inspector_name ?? "",
+          ketQuaKiemTra: detail.inspection_result ?? "",
+          trangThaiIn: false,
+          serialPallet: "", // pallet cha không cần serial
+          subItems: [],
+          tienDoScan: 0,
+        };
+      }
+
+      // Thêm pallet con vào subItems
+      grouped[key].subItems.push({
+        stt: grouped[key].subItems.length + 1,
+        maPallet: detail.serial_pallet,
+        tongSoThung: detail.num_box_actual ?? 0,
+        qrCode: detail.serial_pallet,
+        tienDoScan: detail.scan_progress ?? 0,
+        sucChua: `${detail.num_box_actual ?? 0} thùng`,
+      });
+
+      // Cập nhật tổng số liệu
+      grouped[key].tongPallet++;
+      grouped[key].tongSoThung += detail.num_box_actual ?? 0;
+      grouped[key].tongSlSp += detail.num_box_actual ?? 0;
+    }
+
+    return Object.values(grouped);
+  }
+
+  //  THÊM HÀM MAP CHO REEL DATA (Tem BTP)
+  private mapDetailsToReelData(details: any[]): ReelData[] {
+    return details.map((detail) => ({
+      reelID: detail.reel_id || "",
+      partNumber: detail.part_number || "",
+      vendor: detail.vendor || "",
+      lot: detail.lot || "",
+      userData1: detail.user_data1 || "",
+      userData2: detail.user_data2 || "",
+      userData3: detail.user_data3 || "",
+      userData4: detail.user_data4 || "",
+      userData5: detail.user_data5 || "",
+      initialQuantity: detail.initial_quantity || 0,
+      msdLevel: detail.msd_level || "MSL3",
+      msdInitialFloorTime: detail.msd_initial_floor_time || "",
+      msdBagSealDate: detail.msd_bag_seal_date || "",
+      marketUsage: detail.market_usage || "",
+      quantityOverride: detail.quantity_override || "",
+      shelfTime: detail.shelf_time || "",
+      spMaterialName: detail.sp_material_name || "",
+      warningLimit: detail.warning_limit || "",
+      maximumLimit: detail.maximum_limit || "",
+      comments: detail.comments || "",
+      warmupTime: detail.warmup_time || "",
+      storageUnit: detail.storage_unit || "",
+      subStorageUnit: detail.sub_storage_unit || "",
+      locationOverride: detail.location_override || "",
+      expirationDate: detail.expiration_date || "",
+      manufacturingDate: detail.manufacturing_date || "",
+      partClass: detail.part_class || "",
+      sapCode: detail.sap_code || "",
+      trangThai: detail.trang_thai || "Active",
+    }));
+  }
+
+  private sendWmsApproval(): void {
+    // logic gửi phê duyệt WMS
+    // Ví dụ gọi service hoặc hiển thị dialog xác nhận
+  }
+  private sendApproval(): void {
+    // logic gửi phê duyệt WMS
+    // Ví dụ gọi service hoặc hiển thị dialog xác nhận
   }
 }

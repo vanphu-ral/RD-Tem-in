@@ -718,6 +718,15 @@
               <tr mat-row *matRowDef="let row; columns: reelColumns"></tr>
             </table>
           </div>
+          <button
+            mat-raised-button
+            color="primary"
+            class="add-box-btn"
+            (click)="exportTemBtpCsv()"
+          >
+            <mat-icon>file_upload</mat-icon>
+            Xuất CSV
+          </button>
         </div>
       </mat-tab>
     </mat-tab-group>
@@ -741,10 +750,10 @@
         <mat-icon>add</mat-icon>
         Tạo Pallet mới
       </button>
-      <button mat-raised-button color="primary" class="add-box-btn">
+      <!-- <button mat-raised-button color="primary" class="add-box-btn">
         <mat-icon>print</mat-icon>
         In tất cả
-      </button>
+      </button> -->
       <button
         mat-raised-button
         color="accent"
@@ -760,7 +769,7 @@
     <button
       mat-raised-button
       color="primary"
-      (click)="saveCombined(maLenhSanXuatId)"
+      (click)="saveCombined(maLenhSanXuatId!)"
     >
       <mat-icon>save</mat-icon>
       Lưu
@@ -821,14 +830,14 @@
   </div>
 
   <div class="footer-button">
-    <button mat-raised-button color="basic">
+    <button mat-raised-button color="basic" [routerLink]="'/lenh-san-xuat'">
       <mat-icon>arrow_back</mat-icon>
       Trở lại
     </button>
 
-    <button mat-raised-button color="primary">
+    <button mat-raised-button color="primary" (click)="onApprove()">
       <mat-icon>check_circle_outline</mat-icon>
-      Gửi phê duyệt
+      {{ isThanhPham ? "Gửi phê duyệt WMS" : "Gửi phê duyệt" }}
     </button>
   </div>
 </div>
