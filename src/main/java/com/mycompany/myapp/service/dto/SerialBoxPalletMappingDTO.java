@@ -27,7 +27,7 @@ public class SerialBoxPalletMappingDTO implements Serializable {
 
     private Integer status;
 
-    private WarehouseStampInfoDTO maLenhSanXuat;
+    private Long maLenhSanXuatId;
 
     public Long getId() {
         return id;
@@ -77,12 +77,12 @@ public class SerialBoxPalletMappingDTO implements Serializable {
         this.status = status;
     }
 
-    public WarehouseStampInfoDTO getMaLenhSanXuat() {
-        return maLenhSanXuat;
+    public Long getMaLenhSanXuatId() {
+        return maLenhSanXuatId;
     }
 
-    public void setMaLenhSanXuat(WarehouseStampInfoDTO maLenhSanXuat) {
-        this.maLenhSanXuat = maLenhSanXuat;
+    public void setMaLenhSanXuatId(Long maLenhSanXuatId) {
+        this.maLenhSanXuatId = maLenhSanXuatId;
     }
 
     @Override
@@ -117,7 +117,7 @@ public class SerialBoxPalletMappingDTO implements Serializable {
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +
                 ", status=" + getStatus() +
-                ", maLenhSanXuat=" + getMaLenhSanXuat() +
+                ", maLenhSanXuatId=" + getMaLenhSanXuatId() +
                 "}";
     }
 }

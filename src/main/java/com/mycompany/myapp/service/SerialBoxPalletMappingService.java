@@ -9,6 +9,7 @@ import com.mycompany.myapp.service.dto.SerialBoxPalletMappingDTO;
 import com.mycompany.myapp.service.dto.SerialBoxPalletMappingInsertDTO;
 import com.mycompany.myapp.service.mapper.SerialBoxPalletMappingMapper;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,18 @@ public class SerialBoxPalletMappingService {
         );
         SerialBoxPalletMapping serialBoxPalletMapping =
             serialBoxPalletMappingMapper.toEntity(serialBoxPalletMappingDTO);
+        if (serialBoxPalletMappingDTO.getMaLenhSanXuatId() != null) {
+            WarehouseNoteInfo warehouseStampInfo =
+                partner3WarehouseStampInfoRepository
+                    .findById(serialBoxPalletMappingDTO.getMaLenhSanXuatId())
+                    .orElseThrow(() ->
+                        new RuntimeException(
+                            "WarehouseNoteInfo not found with id: " +
+                            serialBoxPalletMappingDTO.getMaLenhSanXuatId()
+                        )
+                    );
+            serialBoxPalletMapping.setMaLenhSanXuat(warehouseStampInfo);
+        }
         serialBoxPalletMapping = serialBoxPalletMappingRepository.save(
             serialBoxPalletMapping
         );
@@ -187,6 +200,27 @@ public class SerialBoxPalletMappingService {
         return serialBoxPalletMappingRepository
             .findById(id)
             .map(serialBoxPalletMappingMapper::toDto);
+    }
+
+    /**
+     * Get all serialBoxPalletMappings by serialPallet.
+     *
+     * @param serialPallet the serial pallet.
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<SerialBoxPalletMappingDTO> findBySerialPallet(
+        String serialPallet
+    ) {
+        LOG.debug(
+            "Request to get SerialBoxPalletMappings by serialPallet : {}",
+            serialPallet
+        );
+        return serialBoxPalletMappingRepository
+            .findBySerialPallet(serialPallet)
+            .stream()
+            .map(serialBoxPalletMappingMapper::toDto)
+            .collect(java.util.stream.Collectors.toList());
     }
 
     /**

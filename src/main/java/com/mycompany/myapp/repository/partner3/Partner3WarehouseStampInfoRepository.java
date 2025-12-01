@@ -19,4 +19,7 @@ public interface Partner3WarehouseStampInfoRepository
 
     @Query("SELECT w FROM WarehouseNoteInfo w WHERE w.approverBy = :approverBy")
     List<WarehouseNoteInfo> findByApproverBy(String approverBy);
+
+    @Query("SELECT w FROM WarehouseNoteInfo w WHERE w.trangThai != 'Bản nháp'")
+    List<WarehouseNoteInfo> findByTrangThaiNotDraft();
 }

@@ -4,7 +4,9 @@ import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -140,6 +142,27 @@ public class WarehouseStampInfoDetailService {
     }
 
     /**
+     * Get all warehouseStampInfoDetails by maLenhSanXuatId.
+     *
+     * @param maLenhSanXuatId the id of the WarehouseNoteInfo.
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<WarehouseStampInfoDetailDTO> findByMaLenhSanXuatId(
+        Long maLenhSanXuatId
+    ) {
+        LOG.debug(
+            "Request to get WarehouseNoteInfoDetails by maLenhSanXuatId : {}",
+            maLenhSanXuatId
+        );
+        return warehouseStampInfoDetailRepository
+            .findByMaLenhSanXuatId(maLenhSanXuatId)
+            .stream()
+            .map(warehouseStampInfoDetailMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    /**
      * Delete the warehouseStampInfoDetail by id.
      *
      * @param id the id of the entity.
@@ -147,6 +170,26 @@ public class WarehouseStampInfoDetailService {
     public void delete(Long id) {
         LOG.debug("Request to delete WarehouseNoteInfoDetail : {}", id);
         warehouseStampInfoDetailRepository.deleteById(id);
+    }
+
+    /**
+     * Batch delete warehouseStampInfoDetails by list of DTOs.
+     *
+     * @param warehouseStampInfoDetailDTOs the list of entities to delete.
+     */
+    public void batchDelete(
+        List<WarehouseStampInfoDetailDTO> warehouseStampInfoDetailDTOs
+    ) {
+        LOG.debug(
+            "Request to batch delete WarehouseStampInfoDetails : {}",
+            warehouseStampInfoDetailDTOs
+        );
+
+        for (WarehouseStampInfoDetailDTO dto : warehouseStampInfoDetailDTOs) {
+            if (dto.getId() != null) {
+                warehouseStampInfoDetailRepository.deleteById(dto.getId());
+            }
+        }
     }
 
     /**

@@ -13,17 +13,11 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface SerialBoxPalletMappingMapper
     extends EntityMapper<SerialBoxPalletMappingDTO, SerialBoxPalletMapping> {
-    @Mapping(
-        target = "maLenhSanXuat",
-        source = "maLenhSanXuat",
-        qualifiedByName = "warehouseStampInfoId"
-    )
+    @Mapping(target = "maLenhSanXuatId", source = "maLenhSanXuat.id")
     SerialBoxPalletMappingDTO toDto(SerialBoxPalletMapping s);
 
-    @Named("warehouseStampInfoId")
-    @BeanMapping(ignoreByDefault = true)
-    @Mapping(target = "id", source = "id")
-    WarehouseStampInfoDTO toDtoWarehouseStampInfoId(
-        WarehouseNoteInfo warehouseStampInfo
+    @Mapping(target = "maLenhSanXuat", ignore = true)
+    SerialBoxPalletMapping toEntity(
+        SerialBoxPalletMappingDTO serialBoxPalletMappingDTO
     );
 }

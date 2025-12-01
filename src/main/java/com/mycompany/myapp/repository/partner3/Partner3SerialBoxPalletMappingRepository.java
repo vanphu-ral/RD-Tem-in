@@ -21,4 +21,12 @@ public interface Partner3SerialBoxPalletMappingRepository
      * @return the list of SerialBoxPalletMapping
      */
     List<SerialBoxPalletMapping> findByMaLenhSanXuatId(Long maLenhSanXuatId);
+
+    /**
+     * Find all SerialBoxPalletMapping by serial_pallet.
+     *
+     * @param serialPallet the serial pallet
+     * @return the list of SerialBoxPalletMapping
+     */
+    List<SerialBoxPalletMapping> findBySerialPallet(String serialPallet);
 }

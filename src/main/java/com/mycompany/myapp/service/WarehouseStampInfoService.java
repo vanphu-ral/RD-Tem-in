@@ -225,6 +225,23 @@ public class WarehouseStampInfoService {
     }
 
     /**
+     * Get all warehouseStampInfos where trangThai is not 'Bản nháp'.
+     *
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<WarehouseStampInfoDTO> findByTrangThaiNotDraft() {
+        LOG.debug(
+            "Request to get WarehouseStampInfos where trangThai != 'Bản nháp'"
+        );
+        return warehouseStampInfoRepository
+            .findByTrangThaiNotDraft()
+            .stream()
+            .map(warehouseStampInfoMapper::toDto)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
      * Delete the warehouseStampInfo by id.
      *
      * @param id the id of the entity.

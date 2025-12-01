@@ -305,7 +305,7 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
-     * {@code GET  /warehouse-note-info-details/:id} : get the "id"
+     * {@code GET  /warehouse-note-info-details/detail/:id} : get the "id"
      * warehouseStampInfoDetail.
      *
      * @param id the id of the warehouseStampInfoDetailDTO to retrieve.
@@ -313,7 +313,7 @@ public class WarehouseStampInfoDetailResource {
      *         the warehouseStampInfoDetailDTO, or with status
      *         {@code 404 (Not Found)}.
      */
-    @GetMapping("/{id}")
+    @GetMapping("/detail/{id}")
     public ResponseEntity<
         WarehouseStampInfoDetailDTO
     > getWarehouseStampInfoDetail(@PathVariable("id") Long id) {
@@ -321,6 +321,31 @@ public class WarehouseStampInfoDetailResource {
         Optional<WarehouseStampInfoDetailDTO> warehouseStampInfoDetailDTO =
             warehouseStampInfoDetailService.findOne(id);
         return ResponseUtil.wrapOrNotFound(warehouseStampInfoDetailDTO);
+    }
+
+    /**
+     * {@code GET  /warehouse-note-info-details/:ma_lenh_san_xuat_id} : get all the
+     * warehouseStampInfoDetails by maLenhSanXuatId.
+     *
+     * @param maLenhSanXuatId the id of the WarehouseNoteInfo to retrieve details for.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of warehouseStampInfoDetails in body.
+     */
+    @GetMapping("/{ma_lenh_san_xuat_id}")
+    public ResponseEntity<
+        List<WarehouseStampInfoDetailDTO>
+    > getWarehouseNoteInfoDetailsByMaLenhSanXuatId(
+        @PathVariable("ma_lenh_san_xuat_id") Long maLenhSanXuatId
+    ) {
+        LOG.debug(
+            "REST request to get WarehouseNoteInfoDetails by maLenhSanXuatId : {}",
+            maLenhSanXuatId
+        );
+        List<WarehouseStampInfoDetailDTO> result =
+            warehouseStampInfoDetailService.findByMaLenhSanXuatId(
+                maLenhSanXuatId
+            );
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -343,6 +368,42 @@ public class WarehouseStampInfoDetailResource {
                     false,
                     ENTITY_NAME,
                     id.toString()
+                )
+            )
+            .build();
+    }
+
+    /**
+     * {@code DELETE  /warehouse-note-info-details} : batch delete warehouse stamp info
+     * details.
+     *
+     * @param warehouseStampInfoDetailDTOs the list of warehouseStampInfoDetailDTOs
+     *                                     to delete.
+     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
+     */
+    @DeleteMapping("")
+    public ResponseEntity<Void> batchDeleteWarehouseStampInfoDetails(
+        @RequestBody List<
+            WarehouseStampInfoDetailDTO
+        > warehouseStampInfoDetailDTOs
+    ) {
+        LOG.debug(
+            "REST request to batch delete WarehouseStampInfoDetails : {}",
+            warehouseStampInfoDetailDTOs
+        );
+
+        warehouseStampInfoDetailService.batchDelete(
+            warehouseStampInfoDetailDTOs
+        );
+
+        return ResponseEntity.noContent()
+            .headers(
+                HeaderUtil.createAlert(
+                    applicationName,
+                    "Batch delete completed successfully. Deleted " +
+                    warehouseStampInfoDetailDTOs.size() +
+                    " records.",
+                    ENTITY_NAME
                 )
             )
             .build();

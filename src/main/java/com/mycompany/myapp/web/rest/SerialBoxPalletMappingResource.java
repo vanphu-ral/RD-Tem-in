@@ -326,6 +326,28 @@ public class SerialBoxPalletMappingResource {
     }
 
     /**
+     * {@code GET  /serial-box-pallet-mappings/serial-pallet/:serialPallet} : get all serialBoxPalletMappings by serialPallet.
+     *
+     * @param serialPallet the serial pallet to retrieve mappings for.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the list of serialBoxPalletMappingDTOs.
+     */
+    @GetMapping("/serial-pallet/{serialPallet}")
+    public ResponseEntity<
+        List<SerialBoxPalletMappingDTO>
+    > getSerialBoxPalletMappingsBySerialPallet(
+        @PathVariable String serialPallet
+    ) {
+        LOG.debug(
+            "REST request to get SerialBoxPalletMappings by serialPallet : {}",
+            serialPallet
+        );
+        List<SerialBoxPalletMappingDTO> serialBoxPalletMappingDTOs =
+            serialBoxPalletMappingService.findBySerialPallet(serialPallet);
+        return ResponseEntity.ok().body(serialBoxPalletMappingDTOs);
+    }
+
+    /**
      * {@code DELETE  /serial-box-pallet-mappings/:id} : delete the "id"
      * serialBoxPalletMapping.
      *

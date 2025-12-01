@@ -76,6 +76,23 @@ public class Partner3WarehouseStampInfoService {
     }
 
     /**
+     * Get all warehouseStampInfos where trangThai is not 'Bản nháp'.
+     *
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<WarehouseStampInfoDTO> findByTrangThaiNotDraft() {
+        LOG.debug(
+            "Request to get WarehouseStampInfos where trangThai != 'Bản nháp'"
+        );
+        return partner3WarehouseStampInfoRepository
+            .findByTrangThaiNotDraft()
+            .stream()
+            .map(warehouseStampInfoMapper::toDto)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
      * Get one warehouseStampInfo by id.
      *
      * @param id the id of the entity.

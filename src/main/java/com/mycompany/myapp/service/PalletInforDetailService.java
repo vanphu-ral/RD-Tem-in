@@ -13,6 +13,7 @@ import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.PalletInforDetailMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,9 +154,15 @@ public class PalletInforDetailService {
     @Transactional(readOnly = true)
     public Optional<PalletInforDetailDTO> findOne(String id) {
         LOG.debug("Request to get PalletInforDetail : {}", id);
-        return palletInforDetailRepository
-            .findBySerialPallet(id)
-            .map(palletInforDetailMapper::toDto);
+        try {
+            Long entityId = Long.valueOf(id);
+            return palletInforDetailRepository
+                .findById(entityId)
+                .map(palletInforDetailMapper::toDto);
+        } catch (NumberFormatException e) {
+            LOG.warn("Invalid id format for findOne: {}", id);
+            return Optional.empty();
+        }
     }
 
     /**
@@ -165,9 +172,30 @@ public class PalletInforDetailService {
      */
     public void delete(String id) {
         LOG.debug("Request to delete PalletInforDetail : {}", id);
-        palletInforDetailRepository
-            .findBySerialPallet(id)
-            .ifPresent(palletInforDetailRepository::delete);
+        try {
+            Long entityId = Long.valueOf(id);
+            palletInforDetailRepository.deleteById(entityId);
+        } catch (NumberFormatException e) {
+            LOG.warn("Invalid id format for deletion: {}", id);
+        }
+    }
+
+    /**
+     * Batch delete palletInforDetails by list of DTOs.
+     *
+     * @param palletInforDetailDTOs the list of entities to delete.
+     */
+    public void batchDelete(List<PalletInforDetailDTO> palletInforDetailDTOs) {
+        LOG.debug(
+            "Request to batch delete PalletInforDetails : {}",
+            palletInforDetailDTOs
+        );
+
+        for (PalletInforDetailDTO dto : palletInforDetailDTOs) {
+            if (dto.getId() != null) {
+                palletInforDetailRepository.deleteById(dto.getId());
+            }
+        }
     }
 
     /**

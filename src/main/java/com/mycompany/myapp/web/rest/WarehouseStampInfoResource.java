@@ -302,6 +302,25 @@ public class WarehouseStampInfoResource {
     }
 
     /**
+     * {@code GET  /warehouse-note-infos/not-draft} : get all warehouseStampInfos
+     * where trangThai is not 'Bản nháp'.
+     *
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of warehouseStampInfos in body.
+     */
+    @GetMapping("/not-draft")
+    public ResponseEntity<
+        List<WarehouseStampInfoDTO>
+    > getWarehouseStampInfosNotDraft() {
+        LOG.debug(
+            "REST request to get WarehouseStampInfos where trangThai != 'Bản nháp'"
+        );
+        List<WarehouseStampInfoDTO> warehouseStampInfoDTOs =
+            partner3WarehouseStampInfoService.findByTrangThaiNotDraft();
+        return ResponseEntity.ok().body(warehouseStampInfoDTOs);
+    }
+
+    /**
      * {@code GET  /warehouse-note-infos/:id} : get the "id" warehouseStampInfo.
      *
      * @param id the id of the warehouseStampInfoDTO to retrieve.

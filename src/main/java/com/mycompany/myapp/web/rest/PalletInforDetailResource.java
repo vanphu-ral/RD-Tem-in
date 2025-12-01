@@ -203,26 +203,44 @@ public class PalletInforDetailResource {
             id,
             palletInforDetailDTO
         );
-        if (palletInforDetailDTO.getSerialPallet() == null) {
+        if (palletInforDetailDTO.getId() == null) {
             throw new BadRequestAlertException(
                 "Invalid id",
                 ENTITY_NAME,
                 "idnull"
             );
         }
-        if (!Objects.equals(id, palletInforDetailDTO.getSerialPallet())) {
+        try {
+            Long entityId = Long.valueOf(id);
+            if (!Objects.equals(entityId, palletInforDetailDTO.getId())) {
+                throw new BadRequestAlertException(
+                    "Invalid ID",
+                    ENTITY_NAME,
+                    "idinvalid"
+                );
+            }
+        } catch (NumberFormatException e) {
             throw new BadRequestAlertException(
-                "Invalid ID",
+                "Invalid ID format",
                 ENTITY_NAME,
                 "idinvalid"
             );
         }
 
-        if (!palletInforDetailRepository.findBySerialPallet(id).isPresent()) {
+        try {
+            Long entityId = Long.valueOf(id);
+            if (!palletInforDetailRepository.findById(entityId).isPresent()) {
+                throw new BadRequestAlertException(
+                    "Entity not found",
+                    ENTITY_NAME,
+                    "idnotfound"
+                );
+            }
+        } catch (NumberFormatException e) {
             throw new BadRequestAlertException(
-                "Entity not found",
+                "Invalid ID format",
                 ENTITY_NAME,
-                "idnotfound"
+                "idinvalid"
             );
         }
 
@@ -304,26 +322,44 @@ public class PalletInforDetailResource {
             id,
             palletInforDetailDTO
         );
-        if (palletInforDetailDTO.getSerialPallet() == null) {
+        if (palletInforDetailDTO.getId() == null) {
             throw new BadRequestAlertException(
                 "Invalid id",
                 ENTITY_NAME,
                 "idnull"
             );
         }
-        if (!Objects.equals(id, palletInforDetailDTO.getSerialPallet())) {
+        try {
+            Long entityId = Long.valueOf(id);
+            if (!Objects.equals(entityId, palletInforDetailDTO.getId())) {
+                throw new BadRequestAlertException(
+                    "Invalid ID",
+                    ENTITY_NAME,
+                    "idinvalid"
+                );
+            }
+        } catch (NumberFormatException e) {
             throw new BadRequestAlertException(
-                "Invalid ID",
+                "Invalid ID format",
                 ENTITY_NAME,
                 "idinvalid"
             );
         }
 
-        if (!palletInforDetailRepository.findBySerialPallet(id).isPresent()) {
+        try {
+            Long entityId = Long.valueOf(id);
+            if (!palletInforDetailRepository.findById(entityId).isPresent()) {
+                throw new BadRequestAlertException(
+                    "Entity not found",
+                    ENTITY_NAME,
+                    "idnotfound"
+                );
+            }
+        } catch (NumberFormatException e) {
             throw new BadRequestAlertException(
-                "Entity not found",
+                "Invalid ID format",
                 ENTITY_NAME,
-                "idnotfound"
+                "idinvalid"
             );
         }
 
@@ -400,6 +436,36 @@ public class PalletInforDetailResource {
                     false,
                     ENTITY_NAME,
                     id
+                )
+            )
+            .build();
+    }
+
+    /**
+     * {@code DELETE  /pallet-infor-details} : batch delete pallet information details.
+     *
+     * @param palletInforDetailDTOs the list of palletInforDetailDTOs to delete.
+     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
+     */
+    @DeleteMapping("")
+    public ResponseEntity<Void> batchDeletePalletInforDetails(
+        @RequestBody List<PalletInforDetailDTO> palletInforDetailDTOs
+    ) {
+        LOG.debug(
+            "REST request to batch delete PalletInforDetails : {}",
+            palletInforDetailDTOs
+        );
+
+        palletInforDetailService.batchDelete(palletInforDetailDTOs);
+
+        return ResponseEntity.noContent()
+            .headers(
+                HeaderUtil.createAlert(
+                    applicationName,
+                    "Batch delete completed successfully. Deleted " +
+                    palletInforDetailDTOs.size() +
+                    " records.",
+                    ENTITY_NAME
                 )
             )
             .build();
