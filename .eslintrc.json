@@ -40,10 +40,17 @@
       "error",
       {
         "extendDefaults": true,
-        "types": { "{}": false }
+        "types": {
+          "{}": false
+        }
       }
     ],
-    "@typescript-eslint/explicit-function-return-type": ["error", { "allowExpressions": true }],
+    "@typescript-eslint/explicit-function-return-type": [
+      "error",
+      {
+        "allowExpressions": true
+      }
+    ],
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/member-ordering": [
       "error",
@@ -82,7 +89,13 @@
     "@typescript-eslint/no-unnecessary-type-assertion": "off",
     "arrow-body-style": "error",
     "curly": "error",
-    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
     "guard-for-in": "error",
     "no-bitwise": "off",
     "no-caller": "error",
@@ -90,6 +103,7 @@
     "no-eval": "error",
     "no-labels": "error",
     "no-new": "off",
+    "no-unsafe-return": "off",
     "no-new-wrappers": "error",
     "object-shorthand": "off",
     "radix": "error",
