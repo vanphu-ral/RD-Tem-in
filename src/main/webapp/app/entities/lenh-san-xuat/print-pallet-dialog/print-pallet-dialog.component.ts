@@ -50,37 +50,55 @@ export interface PrintPalletData {
   styleUrls: ["./print-pallet-dialog.component.scss"],
 })
 export class PrintPalletDialogComponent implements OnInit {
-  qrCodeUrl1: string = "";
-  qrCodeUrl2: string = "";
+  // ===== SUPPORT MULTIPLE PALLETS =====
+  pallets: PrintPalletData[] = [];
+  isMultiMode = false;
 
   constructor(
     public dialogRef: MatDialogRef<PrintPalletDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: PrintPalletData,
+    @Inject(MAT_DIALOG_DATA) public data: PrintPalletData | PrintPalletData[],
   ) {}
 
   ngOnInit(): void {
-    this.generateQRCodes();
+    this.initializePallets();
+    this.debugPrintData();
   }
 
-  generateQRCodes(): void {
-    try {
-      // QR code từ Serial pallet
-      this.qrCodeUrl1 = this.data.serialPallet;
-
-      // QR code từ serial box (từ paginatedItems trong detail-box-dialog)
-      this.qrCodeUrl2 = this.data.serialBox;
-    } catch (error) {
-      console.error("Error generating QR codes:", error);
-      this.qrCodeUrl1 = "ERROR";
-      this.qrCodeUrl2 = "ERROR";
+  initializePallets(): void {
+    // Check if data is array or single object
+    if (Array.isArray(this.data)) {
+      this.pallets = this.data;
+      this.isMultiMode = true;
+      console.log(` Multi-mode: ${this.pallets.length} pallets`);
+    } else {
+      this.pallets = [this.data];
+      this.isMultiMode = false;
+      console.log(" Single-mode: 1 pallet");
     }
   }
 
+  debugPrintData(): void {
+    console.log("===  PRINT DIALOG DATA ===");
+    console.log("Mode:", this.isMultiMode ? "MULTI" : "SINGLE");
+    console.log("Total pallets:", this.pallets.length);
+
+    this.pallets.forEach((pallet, index) => {
+      console.log(`\nPallet ${index + 1}:`, {
+        serialPallet: pallet.serialPallet,
+        serialBox: pallet.serialBox,
+        soLuongSP: pallet.soLuongCaiDatPallet,
+        soThung: pallet.soLuongBaoNgoaiThungGiaPallet,
+      });
+    });
+  }
+
   onPrint(): void {
+    console.log(` Printing ${this.pallets.length} pallet(s)...`);
     window.print();
   }
 
   onClose(): void {
+    console.log(" Closing print dialog");
     this.dialogRef.close();
   }
 }

@@ -77,6 +77,7 @@ export interface PalletBoxItem {
   sucChua?: string;
   parentPalletIndex?: number;
   tenSanPham?: string;
+  lotNumber?: string;
   noSKU?: string;
   scannedBoxes?: string[];
 }
@@ -380,30 +381,48 @@ export class PalletDetailDialogComponent implements OnInit {
       return;
     }
 
-    // Tính tổng số sản phẩm trong pallet này bằng cách cộng tất cả thùng thuộc pallet
-    const tongSoSanPhamTrongPallet: number =
-      item.scannedBoxes?.reduce((sum: number, serial: string) => {
-        const box: BoxDetailData | undefined = this.boxItems.find(
-          (b: BoxDetailData) => b.serialBox === serial,
-        );
-        return sum + (box?.soLuongSp ?? 0);
-      }, 0) ?? 0;
+    console.log("=== DEBUG onPrint ===");
+    console.log("item.scannedBoxes:", item.scannedBoxes);
+    console.log("sourceData.boxItems:", sourceData.boxItems);
 
-    const firstBoxSerial: string | undefined = item.scannedBoxes?.[0];
-    const firstBox: BoxDetailData | undefined = this.boxItems.find(
-      (b: BoxDetailData) => b.serialBox === firstBoxSerial,
-    );
-    const soLuongSanPhamTrongMotThung: number = firstBox?.soLuongSp ?? 0;
+    // ===== FIX: Tính tổng số sản phẩm ĐÚNG =====
+    let tongSoSanPhamTrongPallet = 0;
+    let soLuongSanPhamTrongMotThung = 0;
+    let firstBoxSerial = "";
+    let lotNumber = "";
 
-    // Số thùng đã scan / Tổng số thùng
-    const tienDoThung = `${item.tienDoScan ?? 0}/${item.tongSoThung}`;
+    if (item.scannedBoxes && item.scannedBoxes.length > 0) {
+      item.scannedBoxes.forEach((scannedSerial, index) => {
+        const trimmedSerial = scannedSerial.trim();
 
-    console.log(" Print calculations:", {
-      soLuongSanPhamTrongMotThung,
-      tongSoSanPhamTrongPallet,
-      tienDoThung,
-      tongSoThungPallet: item.tongSoThung,
-    });
+        for (const box of (sourceData.boxItems as BoxDetailData[]) ?? []) {
+          if (box.serialBox === trimmedSerial) {
+            tongSoSanPhamTrongPallet += box.soLuongSp || 0;
+            if (index === 0) {
+              soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
+              firstBoxSerial = box.serialBox;
+              lotNumber = box.lotNumber || "";
+            }
+            break;
+          }
+
+          const subItem = box.subItems?.find(
+            (sub) => sub.maThung === trimmedSerial,
+          );
+          if (subItem) {
+            tongSoSanPhamTrongPallet += subItem.soLuong || 0;
+            if (index === 0) {
+              soLuongSanPhamTrongMotThung = subItem.soLuong || 0;
+              firstBoxSerial = subItem.maThung;
+              lotNumber = box.lotNumber || "";
+            }
+            break;
+          }
+        }
+      });
+    }
+
+    const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.tongSoThung}`;
 
     const printData: PrintPalletData = {
       khachHang: sourceData.khachHang ?? "N/A",
@@ -415,42 +434,129 @@ export class PalletDetailDialogComponent implements OnInit {
       soQdsx: sourceData.qdsx ?? "",
       ngaySanXuat: new Date(sourceData.createdAt).toLocaleDateString("vi-VN"),
       nguoiKiemTra: sourceData.nguoiKiemTra ?? "",
-      ketQuaKiemTra: sourceData.ketQuaKiemTra ?? "<Empty>",
+      ketQuaKiemTra: sourceData.ketQuaKiemTra ?? "",
 
       nganh: sourceData.branch ?? "",
       led2: sourceData.branch ?? "",
       to: sourceData.team ?? "",
       lpl2: sourceData.team ?? "",
 
-      // === SỐ LƯỢNG ===
       soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
       thuTuGiaPallet: item.stt,
       soLuongBaoNgoaiThungGiaPallet: tienDoThung,
       slThung: soLuongSanPhamTrongMotThung,
 
-      // === THÔNG TIN BOX ===
-      productCode:
-        this.boxItems && this.boxItems.length > 0
-          ? `LED${this.boxItems[0].maSanPham}`
-          : `LED${item.tenSanPham ?? sourceData.tenSanPham}`,
-
-      serialBox:
-        item.scannedBoxes && item.scannedBoxes.length > 0
-          ? item.scannedBoxes[0]
-          : item.maPallet,
-
+      productCode: sourceData.tenSanPham,
+      serialBox: firstBoxSerial || item.maPallet,
       qty: soLuongSanPhamTrongMotThung,
-      lot:
-        this.boxItems && this.boxItems.length > 0
-          ? this.boxItems[0].lotNumber
-          : (sourceData.serialPallet ?? item.maPallet),
-
+      lot: lotNumber || item.maPallet,
       date: new Date().toLocaleDateString("vi-VN"),
       scannedBoxes: item.scannedBoxes,
     };
 
-    console.log(" Print data:", printData);
+    console.log("=== Print single pallet ===", printData);
+
+    // Truyền 1 phiếu dưới dạng object (không phải array)
     this.openPrintDialog(printData);
+  }
+
+  onPrintAll(): void {
+    console.log(" Printing all pallets...");
+
+    // Lấy tất cả pallet items
+    const allPrintData: PrintPalletData[] = [];
+
+    this.palletBoxItems.forEach((item) => {
+      const sourceData = this.isMultipleMode
+        ? this.palletSources[item.parentPalletIndex ?? 0]
+        : this.singlePalletData;
+
+      if (!sourceData) {
+        console.warn("Skipping item - no source data");
+        return;
+      }
+
+      // Tính toán số lượng (copy logic từ onPrint)
+      let tongSoSanPhamTrongPallet = 0;
+      let soLuongSanPhamTrongMotThung = 0;
+      let firstBoxSerial = "";
+      let lotNumber = "";
+
+      if (item.scannedBoxes && item.scannedBoxes.length > 0) {
+        item.scannedBoxes.forEach((scannedSerial, index) => {
+          const trimmedSerial = scannedSerial.trim();
+
+          for (const box of (sourceData.boxItems as BoxDetailData[]) ?? []) {
+            if (box.serialBox === trimmedSerial) {
+              tongSoSanPhamTrongPallet += box.soLuongSp || 0;
+              if (index === 0) {
+                soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
+                firstBoxSerial = box.serialBox;
+                lotNumber = box.lotNumber || "";
+              }
+              break;
+            }
+
+            const subItem = box.subItems?.find(
+              (sub) => sub.maThung === trimmedSerial,
+            );
+            if (subItem) {
+              tongSoSanPhamTrongPallet += subItem.soLuong || 0;
+              if (index === 0) {
+                soLuongSanPhamTrongMotThung = subItem.soLuong || 0;
+                firstBoxSerial = subItem.maThung;
+                lotNumber = box.lotNumber || "";
+              }
+              break;
+            }
+          }
+        });
+      }
+
+      const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.tongSoThung}`;
+
+      const printData: PrintPalletData = {
+        khachHang: sourceData.khachHang ?? "N/A",
+        serialPallet: item.maPallet,
+        tenSanPham: sourceData.tenSanPham,
+        poNumber: sourceData.poNumber ?? "",
+        itemNoSku: sourceData.noSKU ?? "",
+        dateCode: sourceData.dateCode ?? "",
+        soQdsx: sourceData.qdsx ?? "",
+        ngaySanXuat: new Date(sourceData.createdAt).toLocaleDateString("vi-VN"),
+        nguoiKiemTra: sourceData.nguoiKiemTra ?? "",
+        ketQuaKiemTra: sourceData.ketQuaKiemTra ?? "",
+
+        nganh: sourceData.branch ?? "",
+        led2: sourceData.branch ?? "",
+        to: sourceData.team ?? "",
+        lpl2: sourceData.team ?? "",
+
+        soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
+        thuTuGiaPallet: item.stt,
+        soLuongBaoNgoaiThungGiaPallet: tienDoThung,
+        slThung: soLuongSanPhamTrongMotThung,
+
+        productCode: sourceData.tenSanPham,
+        serialBox: firstBoxSerial || item.maPallet,
+        qty: soLuongSanPhamTrongMotThung,
+        lot: lotNumber || item.maPallet,
+        date: new Date().toLocaleDateString("vi-VN"),
+        scannedBoxes: item.scannedBoxes,
+      };
+
+      allPrintData.push(printData);
+    });
+
+    console.log(` Total pallets to print: ${allPrintData.length}`);
+
+    if (allPrintData.length === 0) {
+      alert("Không có pallet nào để in!");
+      return;
+    }
+
+    // Mở dialog với NHIỀU phiếu
+    this.openPrintDialog(allPrintData);
   }
 
   openScanDialog(item: PalletBoxItem): void {
@@ -515,7 +621,7 @@ export class PalletDetailDialogComponent implements OnInit {
   private hasMode(data: any): data is MultiPalletDialogData {
     return "mode" in data;
   }
-  private openPrintDialog(data: PrintPalletData): void {
+  private openPrintDialog(data: PrintPalletData | PrintPalletData[]): void {
     this.dialog.open(PrintPalletDialogComponent, {
       width: "100vw",
       height: "100vh",

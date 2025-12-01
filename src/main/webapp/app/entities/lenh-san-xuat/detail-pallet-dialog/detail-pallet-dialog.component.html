@@ -18,6 +18,10 @@
   <div class="dialog-content">
     <!-- Export button -->
     <div class="action-bar">
+      <button mat-raised-button (click)="onPrintAll()" class="export-button">
+        <mat-icon>print</mat-icon>
+        In tất cả
+      </button>
       <button mat-raised-button (click)="onExport()" class="export-button">
         <mat-icon>download</mat-icon>
         Xuất file
