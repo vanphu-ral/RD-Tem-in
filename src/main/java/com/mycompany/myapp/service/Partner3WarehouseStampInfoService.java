@@ -114,6 +114,25 @@ public class Partner3WarehouseStampInfoService {
     }
 
     /**
+     * Get the total quantity from all warehouseStampInfos where trangThai is not 'Bản nháp'.
+     *
+     * @return the total quantity.
+     */
+    @Transactional(readOnly = true)
+    public Integer getTotalQuantity() {
+        LOG.debug("Request to get total quantity from WarehouseStampInfos");
+        return partner3WarehouseStampInfoRepository
+            .findByTrangThaiNotDraft()
+            .stream()
+            .mapToInt(warehouseNoteInfo ->
+                warehouseNoteInfo.getTotalQuantity() != null
+                    ? warehouseNoteInfo.getTotalQuantity()
+                    : 0
+            )
+            .sum();
+    }
+
+    /**
      * Update a warehouseStampInfo.
      *
      * @param warehouseStampInfoDTO the entity to update.

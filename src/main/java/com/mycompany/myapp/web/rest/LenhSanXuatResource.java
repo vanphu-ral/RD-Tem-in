@@ -2,6 +2,7 @@ package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.domain.LenhSanXuat;
 import com.mycompany.myapp.repository.LenhSanXuatRepository;
+import com.mycompany.myapp.service.Partner3WarehouseStampInfoService;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -33,7 +34,9 @@ import tech.jhipster.web.util.ResponseUtil;
 @Transactional
 public class LenhSanXuatResource {
 
-    private final Logger log = LoggerFactory.getLogger(LenhSanXuatResource.class);
+    private final Logger log = LoggerFactory.getLogger(
+        LenhSanXuatResource.class
+    );
 
     private static final String ENTITY_NAME = "lenhSanXuat";
 
@@ -42,8 +45,15 @@ public class LenhSanXuatResource {
 
     private final LenhSanXuatRepository lenhSanXuatRepository;
 
-    public LenhSanXuatResource(LenhSanXuatRepository lenhSanXuatRepository) {
+    private final Partner3WarehouseStampInfoService partner3WarehouseStampInfoService;
+
+    public LenhSanXuatResource(
+        LenhSanXuatRepository lenhSanXuatRepository,
+        Partner3WarehouseStampInfoService partner3WarehouseStampInfoService
+    ) {
         this.lenhSanXuatRepository = lenhSanXuatRepository;
+        this.partner3WarehouseStampInfoService =
+            partner3WarehouseStampInfoService;
     }
 
     /**
@@ -54,15 +64,29 @@ public class LenhSanXuatResource {
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("/lenh-san-xuats")
-    public ResponseEntity<LenhSanXuat> createLenhSanXuat(@Valid @RequestBody LenhSanXuat lenhSanXuat) throws URISyntaxException {
+    public ResponseEntity<LenhSanXuat> createLenhSanXuat(
+        @Valid @RequestBody LenhSanXuat lenhSanXuat
+    ) throws URISyntaxException {
         log.debug("REST request to save LenhSanXuat : {}", lenhSanXuat);
         if (lenhSanXuat.getId() != null) {
-            throw new BadRequestAlertException("A new lenhSanXuat cannot already have an ID", ENTITY_NAME, "idexists");
+            throw new BadRequestAlertException(
+                "A new lenhSanXuat cannot already have an ID",
+                ENTITY_NAME,
+                "idexists"
+            );
         }
         LenhSanXuat result = lenhSanXuatRepository.save(lenhSanXuat);
-        return ResponseEntity
-            .created(new URI("/api/lenh-san-xuats/" + result.getId()))
-            .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, ENTITY_NAME, result.getId().toString()))
+        return ResponseEntity.created(
+            new URI("/api/lenh-san-xuats/" + result.getId())
+        )
+            .headers(
+                HeaderUtil.createEntityCreationAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    result.getId().toString()
+                )
+            )
             .body(result);
     }
 
@@ -81,22 +105,44 @@ public class LenhSanXuatResource {
         @PathVariable(value = "id", required = false) final Long id,
         @Valid @RequestBody LenhSanXuat lenhSanXuat
     ) throws URISyntaxException {
-        log.debug("REST request to update LenhSanXuat : {}, {}", id, lenhSanXuat);
+        log.debug(
+            "REST request to update LenhSanXuat : {}, {}",
+            id,
+            lenhSanXuat
+        );
         if (lenhSanXuat.getId() == null) {
-            throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
+            throw new BadRequestAlertException(
+                "Invalid id",
+                ENTITY_NAME,
+                "idnull"
+            );
         }
         if (!Objects.equals(id, lenhSanXuat.getId())) {
-            throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
+            throw new BadRequestAlertException(
+                "Invalid ID",
+                ENTITY_NAME,
+                "idinvalid"
+            );
         }
 
         if (!lenhSanXuatRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw new BadRequestAlertException(
+                "Entity not found",
+                ENTITY_NAME,
+                "idnotfound"
+            );
         }
 
         LenhSanXuat result = lenhSanXuatRepository.save(lenhSanXuat);
-        return ResponseEntity
-            .ok()
-            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, lenhSanXuat.getId().toString()))
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createEntityUpdateAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    lenhSanXuat.getId().toString()
+                )
+            )
             .body(result);
     }
 
@@ -111,28 +157,49 @@ public class LenhSanXuatResource {
      * or with status {@code 500 (Internal Server Error)} if the lenhSanXuat couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
-    @PatchMapping(value = "/lenh-san-xuats/{id}", consumes = { "application/json", "application/merge-patch+json" })
+    @PatchMapping(
+        value = "/lenh-san-xuats/{id}",
+        consumes = { "application/json", "application/merge-patch+json" }
+    )
     public ResponseEntity<LenhSanXuat> partialUpdateLenhSanXuat(
         @PathVariable(value = "id", required = false) final Long id,
         @NotNull @RequestBody LenhSanXuat lenhSanXuat
     ) throws URISyntaxException {
-        log.debug("REST request to partial update LenhSanXuat partially : {}, {}", id, lenhSanXuat);
+        log.debug(
+            "REST request to partial update LenhSanXuat partially : {}, {}",
+            id,
+            lenhSanXuat
+        );
         if (lenhSanXuat.getId() == null) {
-            throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
+            throw new BadRequestAlertException(
+                "Invalid id",
+                ENTITY_NAME,
+                "idnull"
+            );
         }
         if (!Objects.equals(id, lenhSanXuat.getId())) {
-            throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
+            throw new BadRequestAlertException(
+                "Invalid ID",
+                ENTITY_NAME,
+                "idinvalid"
+            );
         }
 
         if (!lenhSanXuatRepository.existsById(id)) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+            throw new BadRequestAlertException(
+                "Entity not found",
+                ENTITY_NAME,
+                "idnotfound"
+            );
         }
 
         Optional<LenhSanXuat> result = lenhSanXuatRepository
             .findById(lenhSanXuat.getId())
             .map(existingLenhSanXuat -> {
                 if (lenhSanXuat.getMaLenhSanXuat() != null) {
-                    existingLenhSanXuat.setMaLenhSanXuat(lenhSanXuat.getMaLenhSanXuat());
+                    existingLenhSanXuat.setMaLenhSanXuat(
+                        lenhSanXuat.getMaLenhSanXuat()
+                    );
                 }
                 if (lenhSanXuat.getSapCode() != null) {
                     existingLenhSanXuat.setSapCode(lenhSanXuat.getSapCode());
@@ -141,25 +208,35 @@ public class LenhSanXuatResource {
                     existingLenhSanXuat.setSapName(lenhSanXuat.getSapName());
                 }
                 if (lenhSanXuat.getWorkOrderCode() != null) {
-                    existingLenhSanXuat.setWorkOrderCode(lenhSanXuat.getWorkOrderCode());
+                    existingLenhSanXuat.setWorkOrderCode(
+                        lenhSanXuat.getWorkOrderCode()
+                    );
                 }
                 if (lenhSanXuat.getVersion() != null) {
                     existingLenhSanXuat.setVersion(lenhSanXuat.getVersion());
                 }
                 if (lenhSanXuat.getStorageCode() != null) {
-                    existingLenhSanXuat.setStorageCode(lenhSanXuat.getStorageCode());
+                    existingLenhSanXuat.setStorageCode(
+                        lenhSanXuat.getStorageCode()
+                    );
                 }
                 if (lenhSanXuat.getTotalQuantity() != null) {
-                    existingLenhSanXuat.setTotalQuantity(lenhSanXuat.getTotalQuantity());
+                    existingLenhSanXuat.setTotalQuantity(
+                        lenhSanXuat.getTotalQuantity()
+                    );
                 }
                 if (lenhSanXuat.getCreateBy() != null) {
                     existingLenhSanXuat.setCreateBy(lenhSanXuat.getCreateBy());
                 }
                 if (lenhSanXuat.getEntryTime() != null) {
-                    existingLenhSanXuat.setEntryTime(lenhSanXuat.getEntryTime());
+                    existingLenhSanXuat.setEntryTime(
+                        lenhSanXuat.getEntryTime()
+                    );
                 }
                 if (lenhSanXuat.getTrangThai() != null) {
-                    existingLenhSanXuat.setTrangThai(lenhSanXuat.getTrangThai());
+                    existingLenhSanXuat.setTrangThai(
+                        lenhSanXuat.getTrangThai()
+                    );
                 }
                 if (lenhSanXuat.getComment() != null) {
                     existingLenhSanXuat.setComment(lenhSanXuat.getComment());
@@ -171,7 +248,12 @@ public class LenhSanXuatResource {
 
         return ResponseUtil.wrapOrNotFound(
             result,
-            HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, lenhSanXuat.getId().toString())
+            HeaderUtil.createEntityUpdateAlert(
+                applicationName,
+                false,
+                ENTITY_NAME,
+                lenhSanXuat.getId().toString()
+            )
         );
     }
 
@@ -182,10 +264,15 @@ public class LenhSanXuatResource {
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of lenhSanXuats in body.
      */
     @GetMapping("/lenh-san-xuats")
-    public ResponseEntity<List<LenhSanXuat>> getAllLenhSanXuats(@org.springdoc.api.annotations.ParameterObject Pageable pageable) {
+    public ResponseEntity<List<LenhSanXuat>> getAllLenhSanXuats(
+        @org.springdoc.api.annotations.ParameterObject Pageable pageable
+    ) {
         log.debug("REST request to get a page of LenhSanXuats");
         Page<LenhSanXuat> page = lenhSanXuatRepository.findAll(pageable);
-        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
+        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
+            ServletUriComponentsBuilder.fromCurrentRequest(),
+            page
+        );
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
 
@@ -203,6 +290,21 @@ public class LenhSanXuatResource {
     }
 
     /**
+     * {@code GET  /lenh-san-xuat/tong-so-luong} : get the total quantity from partner3 warehouse_note_info.
+     *
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the total quantity.
+     */
+    @GetMapping("/lenh-san-xuat/tong-so-luong")
+    public ResponseEntity<Integer> getTotalQuantity() {
+        log.debug(
+            "REST request to get total quantity from partner3 warehouse_note_info"
+        );
+        Integer totalQuantity =
+            partner3WarehouseStampInfoService.getTotalQuantity();
+        return ResponseEntity.ok(totalQuantity);
+    }
+
+    /**
      * {@code DELETE  /lenh-san-xuats/:id} : delete the "id" lenhSanXuat.
      *
      * @param id the id of the lenhSanXuat to delete.
@@ -212,9 +314,15 @@ public class LenhSanXuatResource {
     public ResponseEntity<Void> deleteLenhSanXuat(@PathVariable Long id) {
         log.debug("REST request to delete LenhSanXuat : {}", id);
         lenhSanXuatRepository.deleteById(id);
-        return ResponseEntity
-            .noContent()
-            .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString()))
+        return ResponseEntity.noContent()
+            .headers(
+                HeaderUtil.createEntityDeletionAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    id.toString()
+                )
+            )
             .build();
     }
 }

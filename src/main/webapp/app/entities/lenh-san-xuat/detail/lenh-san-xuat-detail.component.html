@@ -172,94 +172,66 @@
               </td>
 
               <td>
-                {{ data.reelID }}
+                {{ $any(data).id }}
               </td>
 
               <td>
-                {{ data.partNumber }}
+                {{ $any(data).sap_code }}
               </td>
               <td>
-                {{ data.vendor }}
+                {{ $any(data).create_by }}
               </td>
               <td>
-                {{ data.lot }}
+                {{ $any(data).work_order_code }}
               </td>
               <td>
-                {{ data.userData1 }}
+                {{ $any(data).sap_name }}
               </td>
               <td>
-                {{ data.userData2 }}
+                {{ $any(data).version }}
               </td>
               <td>
-                {{ data.userData3 }}
+                {{ $any(data).storage_code }}
               </td>
               <td>
-                {{ data.userData4 }}
+                {{ $any(data).group_name }}
               </td>
               <td>
-                {{ data.userData5 }}
+                {{ $any(data).total_quantity }}
               </td>
               <td>
-                {{ data.initialQuantity }}
+                {{ $any(data).total_quantity }}
               </td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
               <td>
-                {{ data.msdLevel }}
+                {{ $any(data).total_quantity }}
               </td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
               <td>
-                {{ data.msdInitialFloorTime }}
+                {{ $any(data).comment }}
               </td>
-              <td>
-                {{ data.msdBagSealDate }}
-              </td>
-              <td>
-                {{ data.marketUsage }}
-              </td>
-              <td>
-                {{ data.quantityOverride }}
-              </td>
-              <td>
-                {{ data.shelfTime }}
-              </td>
-              <td>
-                {{ data.spMaterialName }}
-              </td>
-              <td>
-                {{ data.warningLimit }}
-              </td>
-              <td>
-                {{ data.maximumLimit }}
-              </td>
-              <td>
-                {{ data.comments }}
-              </td>
-              <td>
-                {{ data.warmupTime }}
-              </td>
+              <td></td>
               <td>
                 <span>
-                  {{ data.storageUnit }}
+                  {{ $any(data).storage_code }}
                 </span>
               </td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
               <td>
-                {{ data.subStorageUnit }}
+                {{ $any(data).sap_code }}
               </td>
               <td>
-                {{ data.locationOverride }}
-              </td>
-              <td>
-                {{ data.expirationDate }}
-              </td>
-              <td>
-                {{ data.manufacturingDate }}
-              </td>
-              <td>
-                {{ data.partClass }}
-              </td>
-              <td>
-                {{ data.sapCode }}
-              </td>
-              <td>
-                {{ data.trangThai }}
+                {{ $any(data).trang_thai }}
               </td>
             </tr>
           </tbody>
