@@ -304,63 +304,94 @@
               </td>
 
               <td>
-                {{ $any(data).id }}
+                {{ $any(data).reel_id }}
               </td>
 
               <td>
-                {{ $any(data).sap_code }}
+                {{ $any(data).part_number }}
               </td>
               <td>
-                {{ $any(data).create_by }}
+                {{ $any(data).vendor }}
               </td>
               <td>
-                {{ $any(data).work_order_code }}
+                {{ $any(data).lot }}
               </td>
               <td>
-                {{ $any(data).sap_name }}
+                {{ $any(data).user_data1 }}
               </td>
               <td>
-                {{ $any(data).version }}
+                {{ $any(data).user_data2 }}
               </td>
               <td>
-                {{ $any(data).storage_code }}
+                {{ $any(data).user_data3 }}
               </td>
               <td>
-                {{ $any(data).group_name }}
+                {{ $any(data).user_data4 }}
               </td>
               <td>
                 <input
                   class="input-table"
                   type="text"
                   list="initialQuantity"
-                  [(ngModel)]="$any(data).total_quantity"
+                  [(ngModel)]="$any(data).user_data5"
                   [ngModelOptions]="{ standalone: true }"
                   (change)="changeQuantity()"
                 />
               </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
               <td>
-                {{ $any(data).total_quantity }}
+                {{ $any(data).initial_quantity }}
               </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
               <td>
-                {{ $any(data).comment }}
+                {{ $any(data).msd_level }}
               </td>
-              <td></td>
               <td>
-                {{ $any(data).storage_code }}
+                {{ $any(data).msd_initial_floor_time }}
               </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
+              <td>
+                {{ $any(data).msd_bag_seal_date }}
+              </td>
+              <td>
+                {{ $any(data).market_usage }}
+              </td>
+              <td>
+                {{ $any(data).quantity_override }}
+              </td>
+              <td>
+                {{ $any(data).shelf_time }}
+              </td>
+              <td>
+                {{ $any(data).sp_material_name }}
+              </td>
+              <td>
+                {{ $any(data).warning_limit }}
+              </td>
+              <td>
+                {{ $any(data).maximum_limit }}
+              </td>
+              <td>
+                {{ $any(data).comments }}
+              </td>
+              <td>
+                {{ $any(data).warmup_time }}
+              </td>
+              <td>
+                {{ $any(data).storage_unit }}
+              </td>
+              <td>
+                {{ $any(data).sub_storage_unit }}
+              </td>
+              <td>
+                {{ $any(data).location_override }}
+              </td>
+              <td>
+                {{ $any(data).expiration_date }}
+              </td>
+              <td>
+                {{ $any(data).manufacturing_date }}
+              </td>
+              <td>
+                {{ $any(data).part_class }}
+              </td>
               <td>
                 {{ $any(data).sap_code }}
               </td>
@@ -375,8 +406,8 @@
                   <option [ngValue]="" hidden>
                     {{ $any(data).trang_thai }}
                   </option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="INACTIVE">INACTIVE</option>
                   <option value="not list">not list</option>
                 </select>
               </td>
@@ -484,69 +515,100 @@
               </td>
 
               <td>
-                {{ $any(data).id }}
+                {{ $any(data).reel_id }}
               </td>
 
               <td>
-                {{ $any(data).sap_code }}
+                {{ $any(data).part_number }}
               </td>
               <td>
-                {{ $any(data).create_by }}
+                {{ $any(data).vendor }}
               </td>
               <td>
-                {{ $any(data).work_order_code }}
+                {{ $any(data).lot }}
               </td>
               <td>
-                {{ $any(data).sap_name }}
+                {{ $any(data).user_data1 }}
               </td>
               <td>
-                {{ $any(data).version }}
+                {{ $any(data).user_data2 }}
               </td>
               <td>
-                {{ $any(data).storage_code }}
+                {{ $any(data).user_data3 }}
               </td>
               <td>
-                {{ $any(data).group_name }}
+                {{ $any(data).user_data4 }}
               </td>
               <td>
                 <input
                   class="input-table"
                   type="text"
                   list="initialQuantity"
-                  [(ngModel)]="$any(data).total_quantity"
+                  [(ngModel)]="$any(data).user_data5"
                   [ngModelOptions]="{ standalone: true }"
                   (change)="changeQuantity()"
                 />
               </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
               <td>
-                {{ $any(data).total_quantity }}
+                {{ $any(data).initial_quantity }}
               </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
               <td>
-                {{ $any(data).comment }}
+                {{ $any(data).msd_level }}
               </td>
-              <td></td>
+              <td>
+                {{ $any(data).msd_initial_floor_time }}
+              </td>
+              <td>
+                {{ $any(data).msd_bag_seal_date }}
+              </td>
+              <td>
+                {{ $any(data).market_usage }}
+              </td>
+              <td>
+                {{ $any(data).quantity_override }}
+              </td>
+              <td>
+                {{ $any(data).shelf_time }}
+              </td>
+              <td>
+                {{ $any(data).sp_material_name }}
+              </td>
+              <td>
+                {{ $any(data).warning_limit }}
+              </td>
+              <td>
+                {{ $any(data).maximum_limit }}
+              </td>
+              <td>
+                {{ $any(data).comments }}
+              </td>
+              <td>
+                {{ $any(data).warmup_time }}
+              </td>
               <td>
                 <input
                   class="input-table"
                   type="text"
                   list="storageUnit"
-                  [(ngModel)]="$any(data).storage_code"
+                  [(ngModel)]="$any(data).storage_unit"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
+              <td>
+                {{ $any(data).sub_storage_unit }}
+              </td>
+              <td>
+                {{ $any(data).location_override }}
+              </td>
+              <td>
+                {{ $any(data).expiration_date }}
+              </td>
+              <td>
+                {{ $any(data).manufacturing_date }}
+              </td>
+              <td>
+                {{ $any(data).part_class }}
+              </td>
               <td>
                 {{ $any(data).sap_code }}
               </td>

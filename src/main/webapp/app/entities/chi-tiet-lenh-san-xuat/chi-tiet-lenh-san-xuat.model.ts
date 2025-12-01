@@ -3,52 +3,72 @@ import { ILenhSanXuat } from "app/entities/lenh-san-xuat/lenh-san-xuat.model";
 
 export interface IChiTietLenhSanXuat {
   id?: number;
-  maLenhSanXuat?: string;
+  reelID?: string;
+  partNumber?: string;
+  vendor?: string;
+  lot?: string;
+  userData1?: string;
+  userData2?: string;
+  userData3?: string;
+  userData4?: string;
+  userData5?: number;
+  initialQuantity?: number;
+  msdLevel?: string | null;
+  msdInitialFloorTime?: string | null;
+  msdBagSealDate?: string | null;
+  marketUsage?: string | null;
+  quantityOverride?: number;
+  shelfTime?: string | null;
+  spMaterialName?: string | null;
+  warningLimit?: string | null;
+  maximumLimit?: string | null;
+  comments?: string | null;
+  warmupTime?: string | null;
+  storageUnit?: string;
+  subStorageUnit?: string | null;
+  locationOverride?: string | null;
+  expirationDate?: string;
+  manufacturingDate?: string;
+  partClass?: string | null;
   sapCode?: string | null;
-  sapName?: string | null;
-  workOrderCode?: string | null;
-  version?: string | null;
-  storageCode?: string | null;
-  totalQuantity?: number | null;
-  createBy?: string | null;
-  entryTime?: dayjs.Dayjs | null;
-  timeUpdate?: dayjs.Dayjs | null;
   trangThai?: string | null;
-  comment?: string | null;
-  groupName?: string | null;
-  comment2?: string | null;
-  approverBy?: string | null;
-  branch?: string | null;
-  productType?: string | null;
-  deletedAt?: dayjs.Dayjs | null;
-  deletedBy?: string | null;
-  destinationWarehouse?: number | null;
+  checked?: number | null;
   lenhSanXuat?: ILenhSanXuat | null;
 }
 
 export class ChiTietLenhSanXuat implements IChiTietLenhSanXuat {
   constructor(
     public id?: number,
-    public maLenhSanXuat?: string,
+    public reelID?: string,
+    public partNumber?: string,
+    public vendor?: string,
+    public lot?: string,
+    public userData1?: string,
+    public userData2?: string,
+    public userData3?: string,
+    public userData4?: string,
+    public userData5?: number,
+    public initialQuantity?: number,
+    public msdLevel?: string | null,
+    public msdInitialFloorTime?: string | null,
+    public msdBagSealDate?: string | null,
+    public marketUsage?: string | null,
+    public quantityOverride?: number,
+    public shelfTime?: string | null,
+    public spMaterialName?: string | null,
+    public warningLimit?: string | null,
+    public maximumLimit?: string | null,
+    public comments?: string | null,
+    public warmupTime?: string | null,
+    public storageUnit?: string,
+    public subStorageUnit?: string | null,
+    public locationOverride?: string | null,
+    public expirationDate?: string,
+    public manufacturingDate?: string,
+    public partClass?: string | null,
     public sapCode?: string | null,
-    public sapName?: string | null,
-    public workOrderCode?: string | null,
-    public version?: string | null,
-    public storageCode?: string | null,
-    public totalQuantity?: number | null,
-    public createBy?: string | null,
-    public entryTime?: dayjs.Dayjs | null,
-    public timeUpdate?: dayjs.Dayjs | null,
     public trangThai?: string | null,
-    public comment?: string | null,
-    public groupName?: string | null,
-    public comment2?: string | null,
-    public approverBy?: string | null,
-    public branch?: string | null,
-    public productType?: string | null,
-    public deletedAt?: dayjs.Dayjs | null,
-    public deletedBy?: string | null,
-    public destinationWarehouse?: number | null,
+    public checked?: number | null,
     public lenhSanXuat?: ILenhSanXuat | null,
   ) {}
 }

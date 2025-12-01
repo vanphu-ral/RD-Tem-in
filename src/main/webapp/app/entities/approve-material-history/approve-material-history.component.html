@@ -518,7 +518,7 @@
                   >
                     <mat-label>Status</mat-label>
                     <mat-select
-                      [ngModel]="searchTerms['status']?.value || ''"
+                      [ngModel]="searchTerms['status'].value || ''"
                       (ngModelChange)="applyFilter('status', $event)"
                       style="font-size: 13px"
                     >
