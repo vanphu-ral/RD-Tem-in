@@ -67,11 +67,11 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     trangThai: "",
   };
   isAllChecked: boolean = false;
-  chiTietLenhSanXuats: IChiTietLenhSanXuat[] = [];
+  chiTietLenhSanXuats: any[] = [];
   //tạo danh sách lệnh sản xuất ở trạng thái active
-  chiTietLenhSanXuatActive: IChiTietLenhSanXuat[] = [];
+  chiTietLenhSanXuatActive: any[] = [];
   //tạo danh sách lệnh sản xuất không có trong danh sách
-  chiTietLenhSanXuatNotList: IChiTietLenhSanXuat[] = [];
+  chiTietLenhSanXuatNotList: any[] = [];
   // tạo biến lưu trữ giá trị scan
   @Input() scanResults = "";
   @Input() reelID = "";
@@ -81,7 +81,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   isExisted = false;
   //Đóng mở popup
   popupMove = false;
-  scanValue: IChiTietLenhSanXuat = {
+  scanValue: any = {
     id: 0,
     reelID: "null",
     partNumber: "null",
@@ -588,7 +588,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
     // Nếu không nằm trong danh sách thì xử lý luôn và dừng tiến trình
     if (this.isExisted === false) {
-      const item: IChiTietLenhSanXuat = {
+      const item: any = {
         id: 0,
         reelID: this.scanValue.reelID,
         partNumber: this.scanValue.partNumber,

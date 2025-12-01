@@ -29,12 +29,10 @@ import { PageEvent } from "@angular/material/paginator";
   standalone: false,
 })
 export class ChiTietLenhSanXuatComponent implements OnInit {
-  resourceUrlApprove = this.applicationConfigService.getEndpointFor(
-    "api/quan-ly-phe-duyet",
-  );
-  totalDataUrl = this.applicationConfigService.getEndpointFor(
-    "api/quan-ly-phe-duyet/totaldata",
-  );
+  resourceUrlApprove =
+    "http://192.168.10.99:8085/api/warehouse-note-infos/not-draft";
+  totalDataUrl =
+    "http://192.168.10.99:8085/api/warehouse-note-infos/not-draft/totaldata";
   searchUrlApprove =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuat");
   maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
@@ -130,8 +128,8 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     itemPerPage: this.itemPerPage,
     pageNumber: this.pageNumber,
   };
-  lenhSanXuats?: ILenhSanXuat[];
-  lenhSanXuatGoc?: ILenhSanXuat[];
+  lenhSanXuats?: any[];
+  lenhSanXuatGoc?: any[];
   listTongSoLuong: any[] = [];
   // khởi tạo danh sách gợi ý
   listOfMaLenhSanXuat: string[] = [];
@@ -141,7 +139,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   listOfVersion: string[] = [];
   chiTietLenhSanXuats?: IChiTietLenhSanXuat[];
 
-  chiTietLenhSanXuatSort?: IChiTietLenhSanXuat[] = [];
+  chiTietLenhSanXuatSort?: any[] = [];
 
   isLoading = false;
   totalItems = 0;
@@ -170,13 +168,13 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
       const trangThai = this.lenhSanXuats![i].trangThai;
 
       // Màu theo groupName (giữ tone gốc, làm dịu)
-      if (this.lenhSanXuats![i].groupName?.includes("TC01")) {
+      if (this.lenhSanXuats![i].group_name?.includes("TC01")) {
         groupElement.style.backgroundColor = "#FFE5B4"; // cam dịu từ #FF9900
         groupElement.style.border = "1px solid #E6C199";
-      } else if (this.lenhSanXuats![i].groupName?.includes("SMT01")) {
+      } else if (this.lenhSanXuats![i].group_name?.includes("SMT01")) {
         groupElement.style.backgroundColor = "#B3ECFF"; // xanh dương dịu từ #00CCFF
         groupElement.style.border = "1px solid #99D6F2";
-      } else if (this.lenhSanXuats![i].groupName?.includes("SMT02")) {
+      } else if (this.lenhSanXuats![i].group_name?.includes("SMT02")) {
         groupElement.style.backgroundColor = "#B2F2B2"; // xanh lá dịu từ #00CC00
         groupElement.style.border = "1px solid #99D699";
       }
@@ -325,7 +323,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
       });
   }
   getTotalData(): void {
-    this.http.post<any>(this.totalDataUrl, this.body).subscribe((res) => {
+    this.http.get<any>(this.totalDataUrl).subscribe((res) => {
       this.totalData = res;
       if (this.totalData < this.itemPerPage) {
         this.nextPageBtn = true;
@@ -375,7 +373,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     window.location.reload();
   }
   getLenhSanXuatList(): void {
-    this.http.post<any>(this.resourceUrlApprove, this.body).subscribe((res) => {
+    this.http.get<any>(this.resourceUrlApprove).subscribe((res) => {
       this.lenhSanXuats = res;
       // // console.log('tesst 1: ', this.pageNumber, res);
       setTimeout(() => {
@@ -384,7 +382,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
           .subscribe((res1) => {
             // console.log('tongsoluong', this.lenhSanXuats);
             for (let i = 0; i < this.lenhSanXuats!.length; i++) {
-              this.lenhSanXuats![i].totalQuantity = res1[i].tongSoLuong;
+              this.lenhSanXuats![i].total_quantity = res1[i].tongSoLuong;
             }
           });
         this.changeColor();

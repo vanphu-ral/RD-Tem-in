@@ -97,6 +97,12 @@ export class PlanningWorkOrderService {
   }
 
   //chi tiet
+  findWarehouseNote(id: number): Observable<HttpResponse<any>> {
+    return this.http.get<any>(`${this.baseUrl}/warehouse-note-infos/${id}`, {
+      observe: "response",
+    });
+  }
+
   findWarehouseNoteWithChildren(
     maLenhSanXuatId: number,
   ): Observable<HttpResponse<any>> {

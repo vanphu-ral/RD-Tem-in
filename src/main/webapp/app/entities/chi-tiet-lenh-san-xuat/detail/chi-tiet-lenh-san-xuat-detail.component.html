@@ -155,39 +155,39 @@
                   {{ i + 1 }}
                 </span>
               </td>
-              <td>{{ data.reelID }}</td>
-              <td>{{ data.partNumber }}</td>
-              <td>{{ data.vendor }}</td>
-              <td>{{ data.lot }}</td>
-              <td>{{ data.userData1 }}</td>
-              <td>{{ data.userData2 }}</td>
-              <td>{{ data.userData3 }}</td>
-              <td>{{ data.userData4 }}</td>
-              <td>{{ data.userData5 }}</td>
-              <td>{{ data.initialQuantity }}</td>
-              <td>{{ data.msdLevel }}</td>
-              <td>{{ data.msdInitialFloorTime }}</td>
-              <td>{{ data.msdBagSealDate }}</td>
-              <td>{{ data.marketUsage }}</td>
-              <td>{{ data.quantityOverride }}</td>
-              <td>{{ data.shelfTime }}</td>
-              <td>{{ data.spMaterialName }}</td>
-              <td>{{ data.warningLimit }}</td>
-              <td>{{ data.maximumLimit }}</td>
-              <td>{{ data.comments }}</td>
-              <td>{{ data.warmupTime }}</td>
+              <td>{{ $any(data).id }}</td>
+              <td>{{ $any(data).sap_code }}</td>
+              <td>{{ $any(data).create_by }}</td>
+              <td>{{ $any(data).work_order_code }}</td>
+              <td>{{ $any(data).sap_name }}</td>
+              <td>{{ $any(data).version }}</td>
+              <td>{{ $any(data).storage_code }}</td>
+              <td>{{ $any(data).group_name }}</td>
+              <td>{{ $any(data).total_quantity }}</td>
+              <td>{{ $any(data).total_quantity }}</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>{{ $any(data).total_quantity }}</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>{{ $any(data).comment }}</td>
+              <td></td>
               <td>
                 <span class="custom-width">
-                  {{ data.storageUnit }}
+                  {{ $any(data).storage_code }}
                 </span>
               </td>
-              <td>{{ data.subStorageUnit }}</td>
-              <td>{{ data.locationOverride }}</td>
-              <td>{{ data.expirationDate }}</td>
-              <td>{{ data.manufacturingDate }}</td>
-              <td>{{ data.partClass }}</td>
-              <td>{{ data.sapCode }}</td>
-              <td>{{ data.trangThai }}</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>{{ $any(data).sap_code }}</td>
+              <td>{{ $any(data).trang_thai }}</td>
             </tr>
           </tbody>
         </table>
