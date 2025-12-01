@@ -209,6 +209,72 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
+     * {@code PUT  /warehouse-note-info-details/update/:id} : Updates an existing
+     * warehouseStampInfoDetail (partner3 database compatible endpoint).
+     * This endpoint mirrors the logic of /api/chi-tiet-lenh-san-xuat/update/{id}
+     *
+     * @param id                          the id of the warehouseStampInfoDetailDTO
+     *                                    to update.
+     * @param warehouseStampInfoDetailDTO the warehouseStampInfoDetailDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated warehouseStampInfoDetailDTO,
+     *         or with status {@code 400 (Bad Request)} if the
+     *         warehouseStampInfoDetailDTO is not valid,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         warehouseStampInfoDetailDTO couldn't be updated.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PutMapping("/update/{id}")
+    public ResponseEntity<
+        WarehouseStampInfoDetailDTO
+    > updateWarehouseStampInfoDetailById(
+        @PathVariable(value = "id", required = false) final Long id,
+        @Valid @RequestBody WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
+    ) throws URISyntaxException {
+        LOG.debug(
+            "REST request to update WarehouseNoteInfoDetail by id : {}, {}",
+            id,
+            warehouseStampInfoDetailDTO
+        );
+        if (warehouseStampInfoDetailDTO.getId() == null) {
+            throw new BadRequestAlertException(
+                "Invalid id",
+                ENTITY_NAME,
+                "idnull"
+            );
+        }
+        if (!Objects.equals(id, warehouseStampInfoDetailDTO.getId())) {
+            throw new BadRequestAlertException(
+                "Invalid ID",
+                ENTITY_NAME,
+                "idinvalid"
+            );
+        }
+
+        if (!warehouseStampInfoDetailRepository.existsById(id)) {
+            throw new BadRequestAlertException(
+                "Entity not found",
+                ENTITY_NAME,
+                "idnotfound"
+            );
+        }
+
+        warehouseStampInfoDetailDTO = warehouseStampInfoDetailService.update(
+            warehouseStampInfoDetailDTO
+        );
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createEntityUpdateAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    warehouseStampInfoDetailDTO.getId().toString()
+                )
+            )
+            .body(warehouseStampInfoDetailDTO);
+    }
+
+    /**
      * {@code PATCH  /warehouse-note-info-details/:id} : Partial updates given
      * fields of an existing warehouseStampInfoDetail, field will ignore if it is
      * null

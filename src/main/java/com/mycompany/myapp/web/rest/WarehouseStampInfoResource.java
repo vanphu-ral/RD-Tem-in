@@ -168,6 +168,71 @@ public class WarehouseStampInfoResource {
     }
 
     /**
+     * {@code PUT  /warehouse-note-infos/partner3/:id} : Updates an existing
+     * warehouseStampInfo in partner3 database.
+     *
+     * @param id                    the id of the warehouseStampInfoDTO to save.
+     * @param warehouseStampInfoDTO the warehouseStampInfoDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated warehouseStampInfoDTO,
+     *         or with status {@code 400 (Bad Request)} if the warehouseStampInfoDTO
+     *         is not valid,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         warehouseStampInfoDTO couldn't be updated.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PutMapping("/partner3/{id}")
+    public ResponseEntity<
+        WarehouseStampInfoDTO
+    > updateWarehouseStampInfoPartner3(
+        @PathVariable(value = "id", required = false) final Long id,
+        @Valid @RequestBody WarehouseStampInfoDTO warehouseStampInfoDTO
+    ) throws URISyntaxException {
+        LOG.debug(
+            "REST request to update WarehouseNoteInfo in partner3 : {}, {}",
+            id,
+            warehouseStampInfoDTO
+        );
+        if (warehouseStampInfoDTO.getId() == null) {
+            throw new BadRequestAlertException(
+                "Invalid id",
+                ENTITY_NAME,
+                "idnull"
+            );
+        }
+        if (!Objects.equals(id, warehouseStampInfoDTO.getId())) {
+            throw new BadRequestAlertException(
+                "Invalid ID",
+                ENTITY_NAME,
+                "idinvalid"
+            );
+        }
+
+        // Check if entity exists in partner3 database
+        if (!partner3WarehouseStampInfoService.findOne(id).isPresent()) {
+            throw new BadRequestAlertException(
+                "Entity not found",
+                ENTITY_NAME,
+                "idnotfound"
+            );
+        }
+
+        warehouseStampInfoDTO = partner3WarehouseStampInfoService.update(
+            warehouseStampInfoDTO
+        );
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createEntityUpdateAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    warehouseStampInfoDTO.getId().toString()
+                )
+            )
+            .body(warehouseStampInfoDTO);
+    }
+
+    /**
      * {@code PATCH  /warehouse-note-infos/:id} : Partial updates given fields of
      * an existing warehouseStampInfo, field will ignore if it is null
      *
@@ -249,8 +314,18 @@ public class WarehouseStampInfoResource {
         @org.springdoc.api.annotations.ParameterObject Pageable pageable
     ) {
         LOG.debug("REST request to get a page of WarehouseStampInfos");
+        // Sort by timeUpdate descending to show newly updated records first
+        Pageable sortedPageable =
+            org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Direction.DESC,
+                    "timeUpdate"
+                )
+            );
         Page<WarehouseStampInfoDTO> page = warehouseStampInfoService.findAll(
-            pageable
+            sortedPageable
         );
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
             ServletUriComponentsBuilder.fromCurrentRequest(),

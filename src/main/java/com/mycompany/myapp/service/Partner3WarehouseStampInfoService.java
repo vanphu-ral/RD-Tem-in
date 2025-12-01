@@ -4,6 +4,7 @@ import com.mycompany.myapp.domain.WarehouseNoteInfo;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -89,6 +90,12 @@ public class Partner3WarehouseStampInfoService {
             .findByTrangThaiNotDraft()
             .stream()
             .map(warehouseStampInfoMapper::toDto)
+            .sorted(
+                Comparator.comparing(
+                    WarehouseStampInfoDTO::getTimeUpdate,
+                    Comparator.nullsLast(Comparator.reverseOrder())
+                )
+            )
             .collect(java.util.stream.Collectors.toList());
     }
 
@@ -104,5 +111,26 @@ public class Partner3WarehouseStampInfoService {
         return partner3WarehouseStampInfoRepository
             .findById(id)
             .map(warehouseStampInfoMapper::toDto);
+    }
+
+    /**
+     * Update a warehouseStampInfo.
+     *
+     * @param warehouseStampInfoDTO the entity to update.
+     * @return the persisted entity.
+     */
+    public WarehouseStampInfoDTO update(
+        WarehouseStampInfoDTO warehouseStampInfoDTO
+    ) {
+        LOG.debug(
+            "Request to update WarehouseNoteInfo : {}",
+            warehouseStampInfoDTO
+        );
+        WarehouseNoteInfo warehouseStampInfo =
+            warehouseStampInfoMapper.toEntity(warehouseStampInfoDTO);
+        warehouseStampInfo = partner3WarehouseStampInfoRepository.save(
+            warehouseStampInfo
+        );
+        return warehouseStampInfoMapper.toDto(warehouseStampInfo);
     }
 }
