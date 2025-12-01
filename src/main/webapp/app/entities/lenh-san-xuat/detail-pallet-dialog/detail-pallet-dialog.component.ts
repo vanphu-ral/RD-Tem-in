@@ -19,6 +19,9 @@ import {
 } from "../print-pallet-dialog/print-pallet-dialog.component";
 import { ScanPalletDialogComponent } from "../scan-pallet-dialog/scan-pallet-dialog.component";
 import * as XLSX from "xlsx";
+import { PlanningWorkOrderService } from "../service/planning-work-order.service";
+import { finalize } from "rxjs";
+import { BoxDetailData } from "../detail-box-dialog/detail-box-dialog.component";
 
 export interface PalletDetailData {
   stt: number;
@@ -125,6 +128,8 @@ export class PalletDetailDialogComponent implements OnInit {
   palletBoxItems: PalletBoxItem[] = [];
   paginatedItems: PalletBoxItem[] = [];
 
+  isLoadingProgress: { [maPallet: string]: boolean } = {};
+
   // Mode tracking
   isMultipleMode = false;
   palletSources: PalletDetailData[] = [];
@@ -133,7 +138,7 @@ export class PalletDetailDialogComponent implements OnInit {
   singlePalletData?: PalletDetailData;
 
   // Box data from parent component
-  boxItems: any[] = [];
+  boxItems: BoxDetailData[] = [];
 
   // Pagination
   pageSize = 10;
@@ -144,6 +149,7 @@ export class PalletDetailDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<PalletDetailDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: MultiPalletDialogData,
     private dialog: MatDialog,
+    private planningService: PlanningWorkOrderService,
   ) {}
 
   ngOnInit(): void {
@@ -374,8 +380,32 @@ export class PalletDetailDialogComponent implements OnInit {
       return;
     }
 
+    // Tính tổng số sản phẩm trong pallet này bằng cách cộng tất cả thùng thuộc pallet
+    const tongSoSanPhamTrongPallet: number =
+      item.scannedBoxes?.reduce((sum: number, serial: string) => {
+        const box: BoxDetailData | undefined = this.boxItems.find(
+          (b: BoxDetailData) => b.serialBox === serial,
+        );
+        return sum + (box?.soLuongSp ?? 0);
+      }, 0) ?? 0;
+
+    const firstBoxSerial: string | undefined = item.scannedBoxes?.[0];
+    const firstBox: BoxDetailData | undefined = this.boxItems.find(
+      (b: BoxDetailData) => b.serialBox === firstBoxSerial,
+    );
+    const soLuongSanPhamTrongMotThung: number = firstBox?.soLuongSp ?? 0;
+
+    // Số thùng đã scan / Tổng số thùng
+    const tienDoThung = `${item.tienDoScan ?? 0}/${item.tongSoThung}`;
+
+    console.log(" Print calculations:", {
+      soLuongSanPhamTrongMotThung,
+      tongSoSanPhamTrongPallet,
+      tienDoThung,
+      tongSoThungPallet: item.tongSoThung,
+    });
+
     const printData: PrintPalletData = {
-      //  Data từ pallet đã tạo
       khachHang: sourceData.khachHang ?? "N/A",
       serialPallet: item.maPallet,
       tenSanPham: sourceData.tenSanPham,
@@ -387,43 +417,34 @@ export class PalletDetailDialogComponent implements OnInit {
       nguoiKiemTra: sourceData.nguoiKiemTra ?? "",
       ketQuaKiemTra: sourceData.ketQuaKiemTra ?? "<Empty>",
 
-      // Data từ item hiện tại
-      soLuongCaiDatPallet: item.tongSoThung,
-      soLuongBaoNgoaiThungGiaPallet: `${item.tienDoScan ?? 0}`,
-
-      // Data cố định (nếu cần có thể truyền từ parent qua dialog data)
       nganh: sourceData.branch ?? "",
       led2: sourceData.branch ?? "",
       to: sourceData.team ?? "",
       lpl2: sourceData.team ?? "",
-      thuTuGiaPallet: item.stt,
-      slThung: item.tongSoThung * sourceData.tongPallet,
 
+      // === SỐ LƯỢNG ===
+      soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
+      thuTuGiaPallet: item.stt,
+      soLuongBaoNgoaiThungGiaPallet: tienDoThung,
+      slThung: soLuongSanPhamTrongMotThung,
+
+      // === THÔNG TIN BOX ===
       productCode:
         this.boxItems && this.boxItems.length > 0
           ? `LED${this.boxItems[0].maSanPham}`
           : `LED${item.tenSanPham ?? sourceData.tenSanPham}`,
+
       serialBox:
-        this.boxItems &&
-        this.boxItems.length > 0 &&
-        this.boxItems[0].subItems &&
-        this.boxItems[0].subItems.length > 0
-          ? this.boxItems[0].subItems[0].maThung
-          : this.boxItems && this.boxItems.length > 0
-            ? this.boxItems[0].serialBox
-            : item.scannedBoxes && item.scannedBoxes.length > 0
-              ? item.scannedBoxes[0]
-              : item.maPallet,
-      qty:
-        this.boxItems && this.boxItems.length > 0
-          ? this.boxItems[0].soLuongSp
-          : item.scannedBoxes
-            ? item.scannedBoxes.length
-            : (item.tienDoScan ?? 0),
+        item.scannedBoxes && item.scannedBoxes.length > 0
+          ? item.scannedBoxes[0]
+          : item.maPallet,
+
+      qty: soLuongSanPhamTrongMotThung,
       lot:
         this.boxItems && this.boxItems.length > 0
           ? this.boxItems[0].lotNumber
           : (sourceData.serialPallet ?? item.maPallet),
+
       date: new Date().toLocaleDateString("vi-VN"),
       scannedBoxes: item.scannedBoxes,
     };
@@ -450,7 +471,6 @@ export class PalletDetailDialogComponent implements OnInit {
       maLenhSanXuatId: sourceData.maLenhSanXuatId,
       validReelIds: sourceData.validReelIds,
     };
-    console.log("Opening scan dialog with data:", scanData);
 
     const dialogRef = this.dialog.open(ScanPalletDialogComponent, {
       width: "100vw",
@@ -463,15 +483,10 @@ export class PalletDetailDialogComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe((result) => {
-      if (result?.success) {
-        console.log("Completed scan:", result);
-        // Update progress
-        item.tienDoScan =
-          result.totalScanned || result.scannedBoxes?.length || 0;
-        // Store scanned box codes
-        item.scannedBoxes =
-          result.scannedBoxes?.map((box: { code: string }) => box.code) ?? [];
-        this.updatePaginatedItems();
+      console.log("Scan dialog closed, reloading progress from API...");
+
+      if (sourceData.maLenhSanXuatId) {
+        this.loadPalletProgress(item, sourceData.maLenhSanXuatId);
       }
     });
   }
@@ -516,25 +531,31 @@ export class PalletDetailDialogComponent implements OnInit {
     let globalStt = 1;
 
     this.palletSources.forEach((source, sourceIndex) => {
-      //  Nếu có subItems thì dùng subItems
       if (source.subItems && source.subItems.length > 0) {
         source.subItems.forEach((subItem) => {
-          this.palletBoxItems.push({
+          const item: PalletBoxItem = {
             ...subItem,
             stt: globalStt++,
             parentPalletIndex: sourceIndex,
             tenSanPham: source.tenSanPham,
             noSKU: source.noSKU,
             scannedBoxes: subItem.scannedBoxes ?? [],
-          });
+            tienDoScan: 0, // ← Khởi tạo = 0, sẽ load từ API
+          };
+
+          this.palletBoxItems.push(item);
+
+          // ===== QUAN TRỌNG: Load tiến độ từ API =====
+          if (source.maLenhSanXuatId) {
+            this.loadPalletProgress(item, source.maLenhSanXuatId);
+          }
         });
       } else {
-        //  Fallback: Generate nếu không có subItems (backward compatibility)
         const item: PalletBoxItem = {
           stt: globalStt++,
           maPallet: source.serialPallet,
           qrCode: source.serialPallet,
-          tienDoScan: 0,
+          tienDoScan: 0, // ← Khởi tạo = 0, sẽ load từ API
           tongSoThung: source.tongSoThung ?? 0,
           sucChua: `${source.tongSoThung ?? 0} thùng`,
           parentPalletIndex: sourceIndex,
@@ -542,19 +563,77 @@ export class PalletDetailDialogComponent implements OnInit {
           noSKU: source.noSKU,
           scannedBoxes: [],
         };
+
         this.palletBoxItems.push(item);
+
+        // ===== QUAN TRỌNG: Load tiến độ từ API =====
+        if (source.maLenhSanXuatId) {
+          this.loadPalletProgress(item, source.maLenhSanXuatId);
+        }
       }
     });
 
     this.totalItems = this.palletBoxItems.length;
-
     console.log(" Loaded palletBoxItems:", this.palletBoxItems.length);
-    console.log(" Data:", this.palletBoxItems);
+    console.log(" Loading progress from API for each pallet...");
   }
 
   private updatePaginatedItems(): void {
     const startIndex = this.pageIndex * this.pageSize;
     const endIndex = startIndex + this.pageSize;
     this.paginatedItems = this.palletBoxItems.slice(startIndex, endIndex);
+  }
+
+  private loadPalletProgress(
+    item: PalletBoxItem,
+    maLenhSanXuatId: number,
+  ): void {
+    if (!item.maPallet) {
+      console.warn(" Missing maPallet, cannot load progress");
+      return;
+    }
+
+    // Set loading state
+    this.isLoadingProgress[item.maPallet] = true;
+
+    // Gọi API lấy danh sách box đã scan cho pallet này
+    this.planningService
+      .getMappings(item.maPallet)
+      .pipe(
+        finalize(() => {
+          this.isLoadingProgress[item.maPallet] = false;
+          this.updatePaginatedItems(); // Refresh UI
+        }),
+      )
+      .subscribe({
+        next: (mappings) => {
+          // Lọc ra các box có status = 1 (success)
+          const successMappings = mappings.filter((m) => m.status === 1);
+
+          // Update tiến độ
+          item.tienDoScan = successMappings.length;
+          item.scannedBoxes = successMappings.map((m) => m.serial_box);
+
+          console.log(
+            ` Pallet ${item.maPallet}: ${item.tienDoScan}/${item.tongSoThung} thùng đã scan`,
+          );
+        },
+        error: (error) => {
+          // 404 = chưa có box nào được scan → OK
+          if (error.status === 404) {
+            console.log(
+              `📭 Pallet ${item.maPallet}: Chưa có box nào được scan`,
+            );
+            item.tienDoScan = 0;
+            item.scannedBoxes = [];
+          } else {
+            console.error(
+              `❌ Error loading progress for ${item.maPallet}:`,
+              error,
+            );
+            item.tienDoScan = 0;
+          }
+        },
+      });
   }
 }

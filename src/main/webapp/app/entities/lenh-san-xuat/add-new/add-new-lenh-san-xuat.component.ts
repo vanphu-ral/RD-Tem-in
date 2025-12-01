@@ -37,8 +37,10 @@ import { FormBuilder, FormGroup, Validators } from "@angular/forms";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { AccountService } from "app/core/auth/account.service";
 import { catchError, of, timeout } from "rxjs";
+import { LenhSanXuatService } from "../service/lenh-san-xuat.service";
 
 interface ProductionOrder {
+  id?: number;
   maLenhSanXuat: string;
   maSAP: string;
   tenHangHoa: string;
@@ -74,6 +76,7 @@ export interface WarehouseNoteInfo {
   product_type: string;
 }
 export interface ReelData {
+  id?: number;
   reelID: string;
   partNumber: string;
   vendor: string;
@@ -167,6 +170,9 @@ export interface WarehouseNoteResponse {
   standalone: false,
 })
 export class AddNewLenhSanXuatComponent implements OnInit {
+  resourceUrl1 = this.applicationConfigService.getEndpointFor(
+    "/api/chi-tiet-lenh-san-xuat/update",
+  );
   woId = "";
   maLenhSanXuatId?: number;
 
@@ -297,7 +303,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     private snackBar: MatSnackBar,
     private accountService: AccountService,
     private router: Router,
+    protected http: HttpClient,
     private route: ActivatedRoute,
+    protected applicationConfigService: ApplicationConfigService,
+    protected lenhSanXuatService: LenhSanXuatService,
   ) {}
 
   ngOnInit(): void {
@@ -339,10 +348,20 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           if (this.details && this.details.length > 0) {
             if (this.warehouseNoteInfo.product_type === "Thành phẩm") {
               this.boxItems = this.mapDetailsToBoxItems(this.details);
+              const total = this.boxItems.reduce(
+                (sum, b) => sum + (b.soLuongSp ?? 0),
+                0,
+              );
+              this.productionOrders[0].tongSoLuong = total;
             } else if (
               this.warehouseNoteInfo.product_type === "Bán thành phẩm"
             ) {
               this.reelDataList = this.mapDetailsToReelData(this.details);
+              const total = this.reelDataList.reduce(
+                (sum, r) => sum + (r.initialQuantity ?? 0),
+                0,
+              );
+              this.productionOrders[0].tongSoLuong = total;
             }
           }
 
@@ -843,6 +862,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     this.productionOrders.forEach((order) => {
       const payload: WarehouseNotePayload = {
+        id: order.id,
         ma_lenh_san_xuat: order.maLenhSanXuat,
         sap_code: order.maSAP,
         sap_name: order.tenHangHoa,
@@ -860,15 +880,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         destination_warehouse: 1,
       };
 
-      this.planningService.createWarehouseNote(payload).subscribe({
+      // Nếu có id thì gọi update, nếu chưa có thì gọi create
+      const request$ = order.id
+        ? this.planningService.updateWarehouseNote(order.id, payload)
+        : this.planningService.createWarehouseNote(payload);
+
+      request$.subscribe({
         next: (res) => {
-          const newId = res.id; // lấy id từ response
+          const newId = res.id ?? order.id;
           this.snackBar.open(`Lưu thành công!`, "Đóng", {
             duration: 3000,
             panelClass: ["snackbar-success"],
           });
-
-          // this.loadProductionOrders();
 
           this.router.navigate([`/lenh-san-xuat/${newId}/add-new`]);
         },
@@ -997,18 +1020,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       for (const reel of this.reelDataList) {
         const key = reel.reelID;
         if (reelMap.has(key)) {
-          // Nếu đã có reelID thì cộng dồn số lượng
           const existing = reelMap.get(key);
           existing.initial_quantity += reel.initialQuantity ?? 0;
-
-          // Nếu cần cộng thêm userData1 (nếu là số)
           const existingUserData1 = parseInt(existing.user_data1 || "0", 10);
           const newUserData1 = parseInt(reel.userData1 || "0", 10);
           existing.user_data1 = (existingUserData1 + newUserData1).toString();
         } else {
-          // Nếu chưa có thì tạo mới record
           reelMap.set(key, {
-            id: null,
+            id: reel.id ?? null,
             reel_id: reel.reelID,
             part_number: `${reel.sapCode}V_${version}`,
             vendor: reel.vendor ?? "",
@@ -1024,7 +1043,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             msd_bag_seal_date: reel.msdBagSealDate ?? "",
             sp_material_name: reel.spMaterialName ?? "",
             comments: reel.comments ?? "",
-            storage_unit: reel.storageUnit ?? "RD",
+            storage_unit: reel.storageUnit ?? "RD", // đã chỉnh sửa sẽ được update
             sub_storage_unit: reel.subStorageUnit ?? "",
             location_override: reel.locationOverride ?? "",
             expiration_date: reel.expirationDate ?? "",
@@ -1606,6 +1625,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   //  THÊM HÀM MAP CHO REEL DATA (Tem BTP)
   private mapDetailsToReelData(details: any[]): ReelData[] {
     return details.map((detail) => ({
+      id: detail.id,
       reelID: detail.reel_id || "",
       partNumber: detail.part_number || "",
       vendor: detail.vendor || "",
@@ -1643,7 +1663,58 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     // Ví dụ gọi service hoặc hiển thị dialog xác nhận
   }
   private sendApproval(): void {
-    // logic gửi phê duyệt WMS
-    // Ví dụ gọi service hoặc hiển thị dialog xác nhận
+    // Lấy trạng thái hiện tại từ productionOrders
+    const currentOrder = this.productionOrders[0];
+    if (!currentOrder) {
+      this.snackBar.open("Không có dữ liệu lệnh sản xuất", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Chỉ cho gửi nếu trạng thái là "Bản nháp"
+    if (currentOrder.trangThai !== "Bản nháp") {
+      this.snackBar.open("Chỉ có bản nháp mới được gửi phê duyệt", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Cập nhật trạng thái sang "Chờ duyệt"
+    currentOrder.trangThai = "Chờ duyệt";
+
+    // Gọi API update lệnh sản xuất
+    this.lenhSanXuatService.update(currentOrder).subscribe({
+      next: () => {
+        // Sau khi update lệnh sản xuất thành công, gọi API update chi tiết
+        this.http
+          .put<any>(
+            `${this.resourceUrl1}/${this.maLenhSanXuatId}`,
+            this.details,
+          )
+          .subscribe({
+            next: () => {
+              this.snackBar.open("Gửi phê duyệt thành công", "Đóng", {
+                duration: 3000,
+              });
+              this.router.navigate([`/lenh-san-xuat`]);
+            },
+            error: (err) => {
+              console.error("Lỗi khi cập nhật chi tiết lệnh sản xuất:", err);
+              this.snackBar.open(
+                "Không thể cập nhật chi tiết lệnh sản xuất",
+                "Đóng",
+                { duration: 4000 },
+              );
+            },
+          });
+      },
+      error: (err) => {
+        console.error("Lỗi khi cập nhật lệnh sản xuất:", err);
+        this.snackBar.open("Không thể cập nhật lệnh sản xuất", "Đóng", {
+          duration: 4000,
+        });
+      },
+    });
   }
 }
