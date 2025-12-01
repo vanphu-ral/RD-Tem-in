@@ -382,7 +382,7 @@
                   >
                     <mat-label>Status</mat-label>
                     <mat-select
-                      [ngModel]="searchTerms['status']?.value || ''"
+                      [ngModel]="searchTerms['status'].value || ''"
                       (ngModelChange)="applyFilter('status', $event)"
                       style="font-size: 13px"
                     >
@@ -441,7 +441,7 @@
                 <div class="detail_info">
                   <h5>Danh sách cập nhật chi tiết</h5>
                   <p>
-                    Số vật tư: {{ dataSoure_update_detail?.data?.length || 0 }}
+                    Số vật tư: {{ dataSoure_update_detail.data.length || 0 }}
                   </p>
                   <p>Tổng số lượng ban đầu: {{ totalInitialQuantity }}</p>
                   <p>

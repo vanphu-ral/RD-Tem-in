@@ -39,30 +39,13 @@ export class LenhSanXuatRoutingResolveService {
   // }
   resolve(
     route: ActivatedRouteSnapshot,
-  ): Observable<ILenhSanXuat> | Observable<never> {
+  ): Observable<WarehouseNoteResponse> | Observable<never> {
     const id = route.params["id"];
     if (id) {
-      return this.addNewService.findWarehouseNote(id).pipe(
-        mergeMap((res: HttpResponse<WarehouseNoteInfo>) => {
+      return this.addNewService.findWarehouseNoteWithChildren(+id).pipe(
+        mergeMap((res: HttpResponse<WarehouseNoteResponse>) => {
           if (res.body) {
-            const warehouseNote = res.body;
-            const lenhSanXuat = new LenhSanXuat();
-            lenhSanXuat.id = warehouseNote.id;
-            lenhSanXuat.maLenhSanXuat = warehouseNote.ma_lenh_san_xuat;
-            lenhSanXuat.sapCode = warehouseNote.sap_code;
-            lenhSanXuat.sapName = warehouseNote.sap_name;
-            lenhSanXuat.workOrderCode = warehouseNote.work_order_code;
-            lenhSanXuat.version = warehouseNote.version;
-            lenhSanXuat.storageCode = warehouseNote.storage_code;
-            lenhSanXuat.totalQuantity = warehouseNote.total_quantity;
-            lenhSanXuat.createBy = warehouseNote.create_by;
-            lenhSanXuat.entryTime = dayjs(warehouseNote.entry_time);
-            lenhSanXuat.timeUpdate = dayjs(warehouseNote.entry_time); // assuming same
-            lenhSanXuat.trangThai = warehouseNote.trang_thai;
-            lenhSanXuat.groupName = warehouseNote.group_name;
-            lenhSanXuat.branch = warehouseNote.branch;
-            lenhSanXuat.productType = warehouseNote.product_type;
-            return of(lenhSanXuat);
+            return of(res.body);
           } else {
             this.router.navigate(["404"]);
             return EMPTY;
@@ -70,6 +53,11 @@ export class LenhSanXuatRoutingResolveService {
         }),
       );
     }
-    return of(new LenhSanXuat());
+    return of({
+      warehouse_note_info: {} as WarehouseNoteInfo,
+      warehouse_note_info_details: [],
+      serial_box_pallet_mappings: [],
+      pallet_infor_details: [],
+    });
   }
 }
