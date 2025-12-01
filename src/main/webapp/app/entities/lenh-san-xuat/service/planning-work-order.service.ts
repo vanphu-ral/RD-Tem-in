@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { HttpClient, HttpResponse } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { environment } from "app/environments/environment";
+import { SerialBoxPalletMapping } from "../scan-pallet-dialog/scan-pallet-dialog.component";
 
 // Interface cho dữ liệu trả về từ API
 export interface PlanningWorkOrder {
@@ -25,6 +26,7 @@ export interface PlanningWorkOrder {
 }
 export interface WarehouseNotePayload {
   //tạo đơn chính
+  id?: number;
   ma_lenh_san_xuat: string;
   sap_code: string;
   sap_name: string;
@@ -109,6 +111,16 @@ export class PlanningWorkOrderService {
     return this.http.post(`${this.baseUrl}/warehouse-note-infos`, payload);
   }
 
+  updateWarehouseNote(
+    id: number,
+    payload: WarehouseNotePayload,
+  ): Observable<any> {
+    return this.http.post(
+      `${this.baseUrl}/warehouse-note-infos/${id}`,
+      payload,
+    );
+  }
+
   //save combine pallet / box
   saveCombined(maLenhSanXuatId: number, payload: any): Observable<any> {
     return this.http.post<any>(
@@ -121,6 +133,43 @@ export class PlanningWorkOrderService {
   getHierarchy(): Observable<WorkshopHierarchy[]> {
     return this.http.get<WorkshopHierarchy[]>(
       `${this.baseUrl}/workshops/hierarchy`,
+    );
+  }
+
+  //mapping box/pallet
+  sendMappingRequest(
+    maLenhSanXuatId: number,
+    serialBox: string,
+    serialPallet: string,
+    status: number,
+  ): Observable<any> {
+    const payload = {
+      serial_box: serialBox,
+      serial_pallet: serialPallet,
+      status,
+    };
+
+    return this.http.post(
+      `${this.baseUrl}/serial-box-pallet-mappings/ma-lenh-san-xuat/${maLenhSanXuatId}`,
+      payload,
+    );
+  }
+
+  //get mapping
+  getMappings(serial_pallet: string): Observable<SerialBoxPalletMapping[]> {
+    return this.http.get<SerialBoxPalletMapping[]>(
+      `${this.baseUrl}/serial-box-pallet-mappings/serial-pallet/${serial_pallet}`,
+    );
+  }
+
+  // Xóa mapping theo serialBox + serialPallet + mã lệnh sản xuất
+  removeMapping(
+    serialBox: string,
+    serialPallet: string,
+    maLenhSanXuatId: number,
+  ): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/serial-box/${serialBox}/serial-pallet/${serialPallet}/ma-lenh-san-xuat/${maLenhSanXuatId}`,
     );
   }
 }

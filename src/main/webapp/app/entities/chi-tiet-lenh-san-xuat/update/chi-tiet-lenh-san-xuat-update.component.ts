@@ -774,4 +774,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   closePopupMove(): void {
     this.popupMove = false;
   }
+  //upload
+  UploadPanacim(): void {
+    //code
+  }
 }
