@@ -28,7 +28,10 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     "/api/warehouse-stamp-info-details",
   );
   resourceUrlUpdate = this.applicationConfigService.getEndpointFor(
-    "/api/warehouse-note-info-details/update",
+    "/api/warehouse-note-info-details",
+  );
+  resourceUrlWarehouseNoteInfo = this.applicationConfigService.getEndpointFor(
+    "/api/warehouse-note-infos",
   );
   selectedAllResult?: boolean;
   selectedAll = 1;
@@ -401,52 +404,127 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   pheDuyetTem(): void {
     this.editForm.patchValue({
       trangThai: "Đã phê duyệt",
+      timeUpdate: dayjs().startOf("second").format(DATE_TIME_FORMAT),
     });
-    const lenhSanXuat = this.createFromForm();
-    this.lenhSanXuatService.update(lenhSanXuat).subscribe(() => {
-      this.http
-        .put<any>(
-          `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
-          this.chiTietLenhSanXuats,
-        )
-        .subscribe();
-      alert("Phê duyệt thành công");
-      this.previousState();
-    });
+
+    // Create DTO with only necessary fields to avoid data loss
+    const updateDTO = {
+      id: this.editForm.get(["id"])!.value,
+      maLenhSanXuat: this.editForm.get(["maLenhSanXuat"])!.value,
+      sapCode: this.editForm.get(["sapCode"])!.value,
+      sapName: this.editForm.get(["sapName"])!.value,
+      workOrderCode: this.editForm.get(["workOrderCode"])!.value,
+      version: this.editForm.get(["version"])!.value,
+      storageCode: this.editForm.get(["storageCode"])!.value,
+      totalQuantity: this.editForm.get(["totalQuantity"])!.value,
+      createBy: this.editForm.get(["createBy"])!.value,
+      entryTime: this.editForm.get(["entryTime"])!.value,
+      trangThai: this.editForm.get(["trangThai"])!.value,
+      comment: this.editForm.get(["comment"])!.value,
+      timeUpdate: dayjs().toISOString(),
+      groupName: this.editForm.get(["groupName"])!.value,
+      comment2: this.editForm.get(["comment2"])!.value,
+    };
+
+    // Update warehouse_note_info status
+    this.http
+      .put<any>(
+        `${this.resourceUrlWarehouseNoteInfo}/${updateDTO.id}`,
+        updateDTO,
+      )
+      .subscribe(() => {
+        // Update warehouse_note_info_details
+        this.http
+          .post<any>(this.resourceUrlUpdate, this.chiTietLenhSanXuats)
+          .subscribe(() => {
+            alert("Phê duyệt thành công");
+            this.previousState();
+          });
+      });
   }
 
   khoHuyStatus(): void {
     this.editForm.patchValue({
       trangThai: "Kho hủy",
+      timeUpdate: dayjs().startOf("second").format(DATE_TIME_FORMAT),
     });
-    const lenhSanXuat = this.createFromForm();
-    this.lenhSanXuatService.update(lenhSanXuat).subscribe(() => {
-      this.http
-        .put<any>(
-          `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
-          this.chiTietLenhSanXuats,
-        )
-        .subscribe();
-      alert("Kho hủy thành công");
-      this.previousState();
-    });
+
+    // Create DTO with only necessary fields to avoid data loss
+    const updateDTO = {
+      id: this.editForm.get(["id"])!.value,
+      maLenhSanXuat: this.editForm.get(["maLenhSanXuat"])!.value,
+      sapCode: this.editForm.get(["sapCode"])!.value,
+      sapName: this.editForm.get(["sapName"])!.value,
+      workOrderCode: this.editForm.get(["workOrderCode"])!.value,
+      version: this.editForm.get(["version"])!.value,
+      storageCode: this.editForm.get(["storageCode"])!.value,
+      totalQuantity: this.editForm.get(["totalQuantity"])!.value,
+      createBy: this.editForm.get(["createBy"])!.value,
+      entryTime: this.editForm.get(["entryTime"])!.value,
+      trangThai: this.editForm.get(["trangThai"])!.value,
+      comment: this.editForm.get(["comment"])!.value,
+      timeUpdate: dayjs().toISOString(),
+      groupName: this.editForm.get(["groupName"])!.value,
+      comment2: this.editForm.get(["comment2"])!.value,
+    };
+
+    // Update warehouse_note_info status
+    this.http
+      .put<any>(
+        `${this.resourceUrlWarehouseNoteInfo}/${updateDTO.id}`,
+        updateDTO,
+      )
+      .subscribe(() => {
+        // Update warehouse_note_info_details
+        this.http
+          .post<any>(this.resourceUrlUpdate, this.chiTietLenhSanXuats)
+          .subscribe(() => {
+            alert("Kho hủy thành công");
+            this.previousState();
+          });
+      });
   }
 
   khoTuChoiStatus(): void {
     this.editForm.patchValue({
       trangThai: "Từ chối",
+      timeUpdate: dayjs().startOf("second").format(DATE_TIME_FORMAT),
     });
-    const lenhSanXuat = this.createFromForm();
-    this.lenhSanXuatService.update(lenhSanXuat).subscribe(() => {
-      this.http
-        .put<any>(
-          `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
-          this.chiTietLenhSanXuats,
-        )
-        .subscribe();
-      alert("Từ chối thành công");
-      this.previousState();
-    });
+
+    // Create DTO with only necessary fields to avoid data loss
+    const updateDTO = {
+      id: this.editForm.get(["id"])!.value,
+      maLenhSanXuat: this.editForm.get(["maLenhSanXuat"])!.value,
+      sapCode: this.editForm.get(["sapCode"])!.value,
+      sapName: this.editForm.get(["sapName"])!.value,
+      workOrderCode: this.editForm.get(["workOrderCode"])!.value,
+      version: this.editForm.get(["version"])!.value,
+      storageCode: this.editForm.get(["storageCode"])!.value,
+      totalQuantity: this.editForm.get(["totalQuantity"])!.value,
+      createBy: this.editForm.get(["createBy"])!.value,
+      entryTime: this.editForm.get(["entryTime"])!.value,
+      trangThai: this.editForm.get(["trangThai"])!.value,
+      comment: this.editForm.get(["comment"])!.value,
+      timeUpdate: dayjs().toISOString(),
+      groupName: this.editForm.get(["groupName"])!.value,
+      comment2: this.editForm.get(["comment2"])!.value,
+    };
+
+    // Update warehouse_note_info status
+    this.http
+      .put<any>(
+        `${this.resourceUrlWarehouseNoteInfo}/${updateDTO.id}`,
+        updateDTO,
+      )
+      .subscribe(() => {
+        // Update warehouse_note_info_details
+        this.http
+          .post<any>(this.resourceUrlUpdate, this.chiTietLenhSanXuats)
+          .subscribe(() => {
+            alert("Từ chối thành công");
+            this.previousState();
+          });
+      });
   }
   //================================ chức năng scan mã kho panacim =========================================
   setStorageUnit(storageUnit: string): void {
@@ -456,19 +534,46 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
   save(): void {
     this.isSaving = true;
-    const lenhSanXuat = this.createFromForm();
-    if (lenhSanXuat.id !== undefined) {
-      this.subscribeToSaveResponse(this.lenhSanXuatService.update(lenhSanXuat));
+    this.editForm.patchValue({
+      timeUpdate: dayjs().startOf("second").format(DATE_TIME_FORMAT),
+    });
+
+    const id = this.editForm.get(["id"])!.value;
+    if (id !== undefined && id !== null) {
+      // Create DTO with only necessary fields to avoid data loss
+      const updateDTO = {
+        id: id,
+        maLenhSanXuat: this.editForm.get(["maLenhSanXuat"])!.value,
+        sapCode: this.editForm.get(["sapCode"])!.value,
+        sapName: this.editForm.get(["sapName"])!.value,
+        workOrderCode: this.editForm.get(["workOrderCode"])!.value,
+        version: this.editForm.get(["version"])!.value,
+        storageCode: this.editForm.get(["storageCode"])!.value,
+        totalQuantity: this.editForm.get(["totalQuantity"])!.value,
+        createBy: this.editForm.get(["createBy"])!.value,
+        entryTime: this.editForm.get(["entryTime"])!.value,
+        trangThai: this.editForm.get(["trangThai"])!.value,
+        comment: this.editForm.get(["comment"])!.value,
+        timeUpdate: dayjs().toISOString(),
+        groupName: this.editForm.get(["groupName"])!.value,
+        comment2: this.editForm.get(["comment2"])!.value,
+      };
+
+      // Update warehouse_note_info
       this.http
-        .put<any>(
-          `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
-          this.chiTietLenhSanXuats,
-        )
+        .put<any>(`${this.resourceUrlWarehouseNoteInfo}/${id}`, updateDTO)
         .subscribe(() => {
-          alert("cập nhật chi tiết lệnh sản xuất thành công!");
-          window.location.reload();
+          // Update warehouse_note_info_details
+          this.http
+            .post<any>(this.resourceUrlUpdate, this.chiTietLenhSanXuats)
+            .subscribe(() => {
+              this.isSaving = false;
+              alert("cập nhật chi tiết lệnh sản xuất thành công!");
+              window.location.reload();
+            });
         });
     } else {
+      const lenhSanXuat = this.createFromForm();
       this.subscribeToSaveResponse(this.lenhSanXuatService.create(lenhSanXuat));
     }
   }

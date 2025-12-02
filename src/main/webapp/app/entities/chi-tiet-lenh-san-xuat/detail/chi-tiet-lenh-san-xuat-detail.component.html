@@ -27,6 +27,16 @@
         <button class="btn export-btn exportCSV" (click)="exportCSV()">
           Export to csv
         </button>
+        <button
+          class="btn export-btn"
+          style="background-color: #2196f3; color: white"
+          (click)="exportCsvToFixedIP()"
+          [disabled]="isDisable"
+          title="Xuất CSV đến Panacim"
+        >
+          <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+          Xuất CSV đến Panacim
+        </button>
       </div>
     </div>
 

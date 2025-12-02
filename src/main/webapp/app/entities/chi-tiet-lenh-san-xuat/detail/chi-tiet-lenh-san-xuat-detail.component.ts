@@ -38,6 +38,7 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
   pageIndex = 0;
   predicate!: string;
   ascending!: boolean;
+  isDisable = false;
 
   fileName = "Chi-tiet-lenh-san-xuat";
 
@@ -235,6 +236,115 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
       ],
     };
     new ngxCsv(this.data, this.fileName, options);
+  }
+
+  exportCsvToFixedIP(): void {
+    if (!this.data || this.data.length === 0) {
+      alert("Không có dữ liệu để xuất CSV!");
+      return;
+    }
+
+    // Generate CSV content
+    const csvContent = this.generateCsvContentForServer();
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+    // Prepare form data
+    const formData = new FormData();
+    const fileName = `CSV_${this.lenhSanXuat?.maLenhSanXuat ?? "export"}_${new Date().toISOString().split("T")[0]}.csv`;
+    formData.append("file", blob, fileName);
+
+    // Use backend API endpoint
+    const apiEndpoint = "/api/csv-upload";
+
+    // Upload via backend API
+    this.http.post<any>(apiEndpoint, formData).subscribe({
+      next: (response) => {
+        if (response.success) {
+          alert(`Đã gửi ${this.data.length} bản ghi tới hệ thống thành công!`);
+          // Update status
+          this.lenhSanXuat!.trangThai = "Đã xuất csv đến server";
+          this.http.post<any>(this.resource1Url, this.lenhSanXuat).subscribe();
+        } else {
+          alert(`Lỗi: ${response.message}`);
+        }
+      },
+      error: (error) => {
+        console.error("Error uploading CSV:", error);
+        alert(
+          `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
+        );
+      },
+    });
+  }
+
+  generateCsvContentForServer(): string {
+    const headers = [
+      "ReelID",
+      "PartNumber",
+      "Vendor",
+      "Lot",
+      "UserData1",
+      "UserData2",
+      "UserData3",
+      "UserData4",
+      "UserData5",
+      "InitialQuantity",
+      "MSDLevel",
+      "MSDInitialFloorTime",
+      "MSDBagSealDate",
+      "MarketUsage",
+      "QuantityOverride",
+      "ShelfTime",
+      "SPMaterialName",
+      "WarningLimit",
+      "MaximumLimit",
+      "Comments",
+      "WarmupTime",
+      "StorageUnit",
+      "SubStorageUnit",
+      "LocationOverride",
+      "ExpirationDate",
+      "ManufacturingDate",
+      "Partclass",
+      "SAPCode",
+    ];
+
+    const rows = this.data.map((item) => [
+      item.reelID,
+      item.partNumber,
+      item.vendor,
+      item.lot,
+      item.userData1,
+      item.userData2,
+      item.userData3,
+      item.userData4,
+      item.userData5,
+      item.initialQuantity,
+      item.msdLevel ?? "",
+      item.msdInitialFloorTime ?? "",
+      item.msdBagSealDate ?? "",
+      item.marketUsage ?? "",
+      item.quantityOverride ?? "1",
+      item.shelfTime ?? "",
+      item.spMaterialName ?? "",
+      item.warningLimit ?? "",
+      item.maximumLimit ?? "",
+      item.comments ?? "",
+      item.warmupTime ?? "",
+      item.storageUnit,
+      item.subStorageUnit ?? "",
+      item.locationOverride ?? "",
+      item.expirationDate?.replace(/-/g, "") ?? "",
+      item.manufacturingDate?.replace(/-/g, "") ?? "",
+      item.partClass ?? "",
+      item.sapCode,
+    ]);
+
+    const csvRows = [headers, ...rows]
+      .map((row) => row.map((cell) => cell ?? "").join(","))
+      .join("\n");
+
+    return "\ufeff" + csvRows;
   }
 
   exportToExcel(): void {
