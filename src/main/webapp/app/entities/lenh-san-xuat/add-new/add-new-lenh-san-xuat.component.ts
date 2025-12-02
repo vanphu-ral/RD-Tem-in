@@ -2144,8 +2144,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
   private loadMaKhoNhapOptionsTP(): void {
     this.planningService.getAreas().subscribe({
-      next: (areas: any[]) => {
-        this.maKhoNhapOptionsTP = areas.map((a) => ({
+      next: (res: any) => {
+        const areas = res.data ?? [];
+        this.maKhoNhapOptionsTP = areas.map((a: any) => ({
           value: a.code,
           label: `${a.code} - ${a.name}`,
         }));
