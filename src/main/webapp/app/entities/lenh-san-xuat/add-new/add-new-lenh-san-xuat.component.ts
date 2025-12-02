@@ -134,6 +134,7 @@ export interface BoxSubItem {
 }
 export interface PalletItem {
   stt: number;
+  maLenhSanXuatId?: number;
   tenSanPham: string;
   noSKU: string;
   createdAt: string;
@@ -357,6 +358,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
           this.productionOrders = [
             {
+              id: this.warehouseNoteInfo.id,
               maLenhSanXuat: this.warehouseNoteInfo.ma_lenh_san_xuat,
               maSAP: this.warehouseNoteInfo.sap_code,
               tenHangHoa: this.warehouseNoteInfo.sap_name,
@@ -403,6 +405,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             this.showThungTab = true;
             this.showPalletTab = true;
             this.showTemBtpTab = false;
+            this.loadMaKhoNhapOptionsTP();
           } else if (loai === "Bán thành phẩm") {
             this.showTemBtpTab = true;
             this.showPalletTab = true;
@@ -968,6 +971,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             ketQuaKiemTra: pallet.ketQuaKiemTra,
             branch: pallet.nganh,
             team: pallet.to,
+            maLenhSanXuatId: pallet.maLenhSanXuatId,
+            // ← Khởi tạo empty
+            tienDoScan: 0,
+            scannedBoxes: [],
           }),
         );
         return acc.concat(subData);
@@ -975,26 +982,39 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       [],
     );
 
-    const dialogData: MultiPalletDialogData = {
-      mode: "multiple",
-      multipleData: allPallets,
-      boxItems: this.boxItems, // Add box data for print dialog
-    };
-
-    const dialogRef = this.dialog.open(PalletDetailDialogComponent, {
-      width: "1200px",
-      maxWidth: "100vw",
-      maxHeight: "900px",
-      data: dialogData,
-      disableClose: true,
-      autoFocus: true,
+    // ===== LOADING INDICATOR =====
+    this.snackBar.open("Đang tải tiến độ scan...", "", {
+      duration: 0, // Không tự đóng
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        console.log("Package completed:", result);
-        this.handlePackageComplete(result);
-      }
+    // ===== ĐỢI LOAD XONG MỚI MỞ DIALOG =====
+    this.loadAllPalletProgressAsync(allPallets).then(() => {
+      // Đóng loading snackbar
+      this.snackBar.dismiss();
+
+      console.log(" Đã load xong tiến độ, mở dialog:", allPallets);
+
+      const dialogData: MultiPalletDialogData = {
+        mode: "multiple",
+        multipleData: allPallets,
+        boxItems: this.boxItems,
+      };
+
+      const dialogRef = this.dialog.open(PalletDetailDialogComponent, {
+        width: "1200px",
+        maxWidth: "100vw",
+        maxHeight: "900px",
+        data: dialogData,
+        disableClose: true,
+        autoFocus: true,
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          console.log("Package completed:", result);
+          this.handlePackageComplete(result);
+        }
+      });
     });
   }
 
@@ -2170,6 +2190,52 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       panelClass: "print-dialog-fullscreen",
       data: data, // Truyền array
       disableClose: false,
+    });
+  }
+  //load tien do trong package
+  private loadAllPalletProgressAsync(
+    allPallets: PalletDetailData[],
+  ): Promise<void> {
+    const promises = allPallets.map((pallet) => {
+      if (!pallet.serialPallet) {
+        return Promise.resolve(); // Skip nếu không có serial
+      }
+
+      return new Promise<void>((resolve) => {
+        this.planningService.getMappings(pallet.serialPallet).subscribe({
+          next: (mappings) => {
+            const successMappings = mappings.filter((m) => m.status === 1);
+
+            // ← CẬP NHẬT VÀO PALLET OBJECT
+            pallet.tienDoScan = successMappings.length;
+            pallet.scannedBoxes = successMappings.map((m) => m.serial_box);
+
+            console.log(
+              ` Pallet ${pallet.serialPallet}: ${pallet.tienDoScan}/${pallet.tongSoThung} đã scan`,
+            );
+
+            resolve();
+          },
+          error: (err) => {
+            if (err.status === 404) {
+              // 404 = chưa scan → OK
+              pallet.tienDoScan = 0;
+              pallet.scannedBoxes = [];
+              console.log(` Pallet ${pallet.serialPallet}: chưa scan`);
+            } else {
+              console.error(` Error loading ${pallet.serialPallet}:`, err);
+              pallet.tienDoScan = 0;
+              pallet.scannedBoxes = [];
+            }
+            resolve(); // Vẫn resolve để không block
+          },
+        });
+      });
+    });
+
+    // Đợi TẤT CẢ promises hoàn thành
+    return Promise.all(promises).then(() => {
+      console.log(" Đã load xong tiến độ cho", allPallets.length, "pallet");
     });
   }
 }
