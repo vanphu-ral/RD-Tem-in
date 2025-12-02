@@ -16,7 +16,7 @@ services:
     # If you want to expose these ports outside your dev PC,
     # remove the "127.0.0.1:" prefix
     ports:
-      - 127.0.0.1:9040:9040
+      - 127.0.0.1:8085:8085
   jhipster-mssql:
     image: mcr.microsoft.com/mssql/server:2019-CU15-ubuntu-20.04
     # volumes are not supported on macOS

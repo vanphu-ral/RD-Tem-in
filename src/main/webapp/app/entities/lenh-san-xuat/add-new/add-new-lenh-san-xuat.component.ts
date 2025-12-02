@@ -1151,7 +1151,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
       request$.subscribe({
         next: (res) => {
-          const newId = res.id ?? order.id;
+          // ===== FIX: Extract ID from nested warehouse_note_info object =====
+          const newId = res.warehouse_note_info?.id ?? res.id ?? order.id;
+
+          console.log("📦 Full response:", res);
+          console.log("✅ Extracted ID:", newId);
+
+          // Update maLenhSanXuatId and order.id
+          this.maLenhSanXuatId = newId;
+          order.id = newId;
+
+          console.log("✅ maLenhSanXuatId updated to:", this.maLenhSanXuatId);
+
           this.snackBar.open(`Lưu thành công!`, "Đóng", {
             duration: 3000,
             panelClass: ["snackbar-success"],
@@ -1172,6 +1183,19 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   //lưu dữ liệu box và pallet
   saveCombined(maLenhSanXuatId: number): void {
+    // Validate maLenhSanXuatId
+    if (!maLenhSanXuatId || maLenhSanXuatId === undefined) {
+      this.snackBar.open(
+        "Lỗi: Chưa có ID lệnh sản xuất. Vui lòng lưu lệnh sản xuất trước.",
+        "Đóng",
+        {
+          duration: 4000,
+          panelClass: ["snackbar-error"],
+        },
+      );
+      return;
+    }
+
     const currentUser = this.accountService.isAuthenticated()
       ? this.accountService["userIdentity"]?.login
       : "unknown";

@@ -4,7 +4,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
 
-    <changeSet id="20251127043950-1" author="jhipster">
+    <!-- <changeSet id="20251127043950-1" author="jhipster">
         <sql>
             DROP TABLE IF EXISTS warehouse_note_info CASCADE;
             DROP TABLE IF EXISTS pallet_infor_detail CASCADE;
@@ -159,6 +159,6 @@
 
             ALTER TABLE "serial_box_pallet_mapping" ADD FOREIGN KEY ("ma_lenh_san_xuat_id") REFERENCES "warehouse_note_info" ("id");
         </sql>
-    </changeSet>
+    </changeSet> -->
 
 </databaseChangeLog>

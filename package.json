@@ -88,7 +88,7 @@
     "webapp:test:nolint": "cypress run"
   },
   "config": {
-    "backend_port": "9040",
+    "backend_port": "8085",
     "default_environment": "prod",
     "packaging": "jar"
   },

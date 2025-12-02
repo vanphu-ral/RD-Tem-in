@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
@@ -14,58 +15,75 @@ public class WarehouseStampInfoDTO implements Serializable {
     private Long id;
 
     @Size(max = 30)
+    @JsonProperty("ma_lenh_san_xuat")
     private String maLenhSanXuat;
 
     @Size(max = 50)
+    @JsonProperty("sap_code")
     private String sapCode;
 
     @Size(max = 150)
+    @JsonProperty("sap_name")
     private String sapName;
 
     @Size(max = 50)
+    @JsonProperty("work_order_code")
     private String workOrderCode;
 
     @Size(max = 50)
     private String version;
 
     @Size(max = 50)
+    @JsonProperty("storage_code")
     private String storageCode;
 
+    @JsonProperty("total_quantity")
     private Integer totalQuantity;
 
     @Size(max = 50)
+    @JsonProperty("create_by")
     private String createBy;
 
+    @JsonProperty("entry_time")
     private Instant entryTime;
 
     @Size(max = 50)
+    @JsonProperty("trang_thai")
     private String trangThai;
 
     @Size(max = 150)
     private String comment;
 
+    @JsonProperty("time_update")
     private Instant timeUpdate;
 
     @Size(max = 20)
+    @JsonProperty("group_name")
     private String groupName;
 
     @Size(max = 255)
+    @JsonProperty("comment_2")
     private String comment2;
 
     @Size(max = 50)
+    @JsonProperty("approver_by")
     private String approverBy;
 
     @Size(max = 50)
     private String branch;
 
     @Size(max = 50)
+    @JsonProperty("product_type")
     private String productType;
 
+    @JsonProperty("deleted_at")
     private Instant deletedAt;
 
     @Size(max = 50)
+    @JsonProperty("deleted_by")
     private String deletedBy;
 
+    @JsonProperty("destination_warehouse")
     private Integer destinationWarehouse;
 
     public Long getId() {

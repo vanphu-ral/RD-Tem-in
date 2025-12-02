@@ -69,26 +69,50 @@ public class WarehouseNoteInfoResource {
     public ResponseEntity<
         WarehouseNoteInfoWithChildrenDTO
     > createWarehouseNoteInfo(
-        @RequestBody WarehouseNoteInfoWithChildrenDTO warehouseNoteInfoWithChildrenDTO
+        @RequestBody WarehouseStampInfoDTO warehouseStampInfoDTO
     ) throws URISyntaxException {
         log.debug(
             "REST request to save WarehouseNoteInfo : {}",
-            warehouseNoteInfoWithChildrenDTO
+            warehouseStampInfoDTO
         );
-        if (
-            warehouseNoteInfoWithChildrenDTO.getWarehouseNoteInfo().getId() !=
-            null
-        ) {
+
+        if (warehouseStampInfoDTO == null) {
+            throw new BadRequestAlertException(
+                "warehouseNoteInfo is required",
+                ENTITY_NAME,
+                "missing"
+            );
+        }
+
+        if (warehouseStampInfoDTO.getId() != null) {
             throw new BadRequestAlertException(
                 "A new warehouseNoteInfo cannot already have an ID",
                 ENTITY_NAME,
                 "idexists"
             );
         }
+
+        // Wrap the flat DTO into the nested structure
+        WarehouseNoteInfoWithChildrenDTO warehouseNoteInfoWithChildrenDTO =
+            new WarehouseNoteInfoWithChildrenDTO();
+        warehouseNoteInfoWithChildrenDTO.setWarehouseNoteInfo(
+            warehouseStampInfoDTO
+        );
+
         WarehouseNoteInfoWithChildrenDTO result =
             partner3WarehouseStampInfoService.create(
                 warehouseNoteInfoWithChildrenDTO
             );
+
+        // Null check before accessing nested properties
+        if (result.getWarehouseNoteInfo() == null) {
+            throw new BadRequestAlertException(
+                "Failed to create warehouseNoteInfo",
+                ENTITY_NAME,
+                "createfailed"
+            );
+        }
+
         return ResponseEntity.created(
             new URI(
                 "/api/warehouse-note-infos/" +
