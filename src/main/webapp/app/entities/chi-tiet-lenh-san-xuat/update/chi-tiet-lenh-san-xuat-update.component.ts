@@ -172,17 +172,29 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
     this.activatedRoute.data.subscribe(({ lenhSanXuat }) => {
       console.log("[DEBUG UPDATE] Route data received:", lenhSanXuat);
+      console.log(
+        "[DEBUG UPDATE] lenhSanXuat keys:",
+        lenhSanXuat ? Object.keys(lenhSanXuat) : "null",
+      );
 
       // Check if we received data from the resolver with warehouse_note_info structure
       if (!lenhSanXuat || !lenhSanXuat.warehouse_note_info) {
         console.error("[ERROR UPDATE] Invalid data structure from resolver");
-        // alert('Lỗi: Không tìm thấy dữ liệu lệnh sản xuất. Vui lòng kiểm tra lại đường dẫn.');
+        alert(
+          "Lỗi: Không tìm thấy dữ liệu lệnh sản xuất. Vui lòng kiểm tra lại đường dẫn.",
+        );
         return;
       }
 
       const warehouseNoteInfo = lenhSanXuat.warehouse_note_info;
       const warehouseNoteInfoDetails =
         lenhSanXuat.warehouse_note_info_details || [];
+
+      console.log("[DEBUG UPDATE] warehouseNoteInfo:", warehouseNoteInfo);
+      console.log(
+        "[DEBUG UPDATE] warehouseNoteInfoDetails count:",
+        warehouseNoteInfoDetails.length,
+      );
 
       const today = dayjs().startOf("second");
 
@@ -197,13 +209,17 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         storageCode: warehouseNoteInfo.storage_code,
         totalQuantity: warehouseNoteInfo.total_quantity,
         createBy: warehouseNoteInfo.create_by,
-        entryTime: warehouseNoteInfo.entry_time,
+        entryTime: warehouseNoteInfo.entry_time
+          ? dayjs(warehouseNoteInfo.entry_time)
+          : undefined,
         timeUpdate: today,
         trangThai: warehouseNoteInfo.trang_thai,
         comment: warehouseNoteInfo.comment,
         groupName: warehouseNoteInfo.group_name,
         comment2: warehouseNoteInfo.comment2,
       };
+
+      console.log("[DEBUG UPDATE] mappedLenhSanXuat:", mappedLenhSanXuat);
 
       this.changeStatus.id = mappedLenhSanXuat.id!;
       this.changeStatus.totalQuantity = String(
@@ -213,6 +229,11 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       // Update form with mapped data
       this.updateForm(mappedLenhSanXuat);
 
+      console.log(
+        "[DEBUG UPDATE] Form values after updateForm:",
+        this.editForm.value,
+      );
+
       // Use warehouse_note_info_details directly
       this.chiTietLenhSanXuats = warehouseNoteInfoDetails;
 
@@ -221,6 +242,11 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         (a) => a.trang_thai === "ACTIVE",
       );
       this.itemPerPage = this.chiTietLenhSanXuatActive.length;
+
+      console.log(
+        "[DEBUG UPDATE] chiTietLenhSanXuatActive count:",
+        this.chiTietLenhSanXuatActive.length,
+      );
 
       // sắp xếp danh sách
       this.chiTietLenhSanXuatActive.sort(function (a, b) {
@@ -238,6 +264,11 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       //lấy danh sách chi tiết lsx không có trong danh sách
       this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
         (a) => a.trang_thai === "not list",
+      );
+
+      console.log(
+        "[DEBUG UPDATE] chiTietLenhSanXuatNotList count:",
+        this.chiTietLenhSanXuatNotList.length,
       );
 
       // this.loadRelationshipsOptions();
