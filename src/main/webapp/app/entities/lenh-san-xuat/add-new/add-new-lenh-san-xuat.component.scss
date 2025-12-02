@@ -439,396 +439,371 @@
   display: none;
 }
 
+// ==========================================
+// MOBILE RESPONSIVE - VERSION MỚI HOÀN TOÀN
+// Chỉ cần THAY THẾ phần @media screen and (max-width: 768px) CŨ
+// ==========================================
+
 @media screen and (max-width: 768px) {
+  // ===== FIX MAIN CONTAINER - CHO PHÉP SCROLL =====
   .main-content {
     padding: 8px;
-    height: 100vh;
-    overflow-y: auto;
+    min-height: 100vh;
+    height: auto !important; // Quan trọng: cho phép content tự giãn
+    overflow-y: scroll !important; // Bắt buộc scroll
     overflow-x: hidden;
   }
 
-  // Override Angular Material table styles
-  ::ng-deep {
-    .mat-mdc-table {
-      display: block !important;
-      border: none !important;
-    }
-
-    .mat-mdc-header-row,
-    .mat-header-row {
-      display: none !important;
-    }
-
-    .mat-mdc-row,
-    .mat-row {
-      display: block !important;
-      border: none !important;
-      height: auto !important;
-    }
-
-    .mat-mdc-cell,
-    .mat-cell {
-      display: flex !important;
-      border: none !important;
-    }
-
-    .mat-mdc-header-cell,
-    .mat-header-cell {
-      display: none !important;
-    }
-  }
-
-  // ===== HEADER =====
+  // ===== HEADER COMPACT =====
   .header {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 8px;
+    margin-bottom: 10px;
 
+    h2,
     h3 {
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 15px;
       margin: 0;
     }
   }
 
-  // ===== SEARCH FORM =====
+  // ===== FORM SEARCH RESPONSIVE =====
   .submit-search-sap {
     width: 100%;
+    height: auto !important;
     display: flex;
-    gap: 8px;
-    height: auto;
-    align-items: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px;
 
-    .sap-input {
+    .mat-mdc-form-field {
       flex: 1;
-      min-width: 0;
+      height: 36px !important;
     }
 
     .search-button {
+      height: 36px !important;
+      min-width: 70px;
+      padding: 0 10px;
       flex-shrink: 0;
-      height: 40px;
-      min-width: 80px;
-      padding: 0 12px;
-
-      mat-icon {
-        margin-right: 4px;
-      }
     }
   }
 
   // ===== TABLE CONTAINER =====
   .table-container {
     padding: 8px;
-    border-radius: 6px;
-    margin-bottom: 12px;
-    max-height: none;
-    overflow: visible;
+    margin-bottom: 10px;
+    max-height: none !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  // ===== PRODUCTION TABLE - COMPACT CARD =====
+  // ===== PRODUCTION TABLE - SCROLL NGANG =====
   .production-table {
-    display: block !important;
-    box-shadow: none;
-    font-size: 12px;
+    min-width: 600px; // Đảm bảo có scroll ngang
+    font-size: 10px;
 
-    thead {
-      display: none !important;
-    }
-
-    tbody {
-      display: block !important;
-    }
-
-    tr {
-      display: block !important;
-      margin-bottom: 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      background: white;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
-
-      &:hover {
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
-      }
+    th {
+      padding: 6px 4px;
+      font-size: 9px;
+      min-width: 50px;
+      white-space: nowrap;
     }
 
     td {
-      display: flex !important;
-      align-items: center;
-      padding: 10px 12px !important;
-      border: none !important;
-      border-bottom: 1px solid #f5f5f5 !important;
-      text-align: left !important;
-      max-width: 100% !important;
-      min-height: 36px;
-      gap: 8px;
+      padding: 4px;
+      font-size: 10px;
+      white-space: nowrap;
 
-      &:first-child {
-        background: #f8f9fa;
-        font-weight: 600;
-      }
-
-      &:last-child {
-        border-bottom: none !important;
-      }
-
-      &::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #555;
-        min-width: 100px;
-        font-size: 11px;
-        flex-shrink: 0;
-      }
-
-      // Content wrapper
-      > * {
-        flex: 1;
-        min-width: 0;
-      }
-
-      // Mat-select trong table
       mat-form-field {
-        width: 100%;
+        width: auto;
+        min-width: 80px;
 
         ::ng-deep {
-          .mat-mdc-form-field-wrapper {
-            padding-bottom: 0;
+          .mat-mdc-form-field {
+            height: 28px !important;
           }
 
           .mat-mdc-text-field-wrapper {
-            padding: 4px 8px;
+            padding: 2px 4px;
+          }
+
+          .mat-mdc-form-field-subscript-wrapper {
+            display: none;
           }
         }
       }
     }
   }
 
-  // ===== ACTION BUTTONS IN TABLE =====
+  // ===== ACTION BUTTONS =====
   .action-buttons {
-    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
 
     button {
-      width: 100%;
-      height: 40px;
-      font-size: 13px;
+      height: 36px;
+      font-size: 11px;
+      padding: 0 12px;
     }
   }
 
-  // ===== TABS WRAPPER =====
+  // ===== TABS WRAPPER - FIX SCROLL =====
   .tabs-wrapper {
     padding: 0;
-    margin-bottom: 80px; // Space for FAB menu
-    border-radius: 8px;
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    margin-bottom: 75px !important; // Space cho FAB
+    border-radius: 6px;
+    overflow: visible !important; // Quan trọng
+    flex: none !important; // Không dùng flex
+    height: auto !important;
   }
 
-  // ===== TABS =====
+  // ===== TABS - COMPACT ICONS =====
   .management-tabs {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    height: auto;
 
     ::ng-deep {
-      .mat-mdc-tab-label-container {
-        max-width: 100%;
-        background: #f8f9fa;
+      .mat-mdc-tab-header {
+        border-bottom: 1px solid #e0e0e0;
       }
 
       .mat-mdc-tab-labels {
         justify-content: space-around;
+        background: #fafafa;
       }
 
       .mat-mdc-tab-label {
-        padding: 8px 4px;
-        min-width: 0;
-        flex: 1;
-        opacity: 0.7;
+        min-width: 0 !important;
+        padding: 6px 8px !important;
+        opacity: 0.6;
 
         &.mat-mdc-tab-label-active {
           opacity: 1;
         }
-
-        .tab-icon {
-          margin: 0 0 4px 0;
-          font-size: 20px;
-          display: block;
-        }
-
-        .mdc-tab__text-label {
-          font-size: 10px;
-          line-height: 1.2;
-          display: block;
-        }
       }
 
+      .tab-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        margin: 0 0 2px 0 !important;
+      }
+
+      .mdc-tab__text-label {
+        font-size: 9px !important;
+        line-height: 1.1;
+      }
+
+      // Fix scroll trong tab
       .mat-mdc-tab-body-wrapper {
-        flex: 1;
-        overflow: hidden;
-      }
-
-      .mat-mdc-tab-body {
-        overflow: hidden !important;
+        overflow: visible !important;
       }
 
       .mat-mdc-tab-body-content {
-        overflow: hidden !important;
-        height: 100%;
+        overflow: visible !important;
       }
     }
   }
 
   // ===== TAB CONTENT =====
   .tab-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
     padding: 8px;
+    overflow: visible !important;
+    height: auto !important;
   }
 
-  // ===== ITEMS TABLE CONTAINER =====
+  // ===== ITEMS TABLE CONTAINER - CHO PHÉP SCROLL =====
   .items-table-container {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    margin-top: 0;
-    padding-right: 4px;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    margin-top: 8px;
+    padding-bottom: 50px; // Space cho buttons
+    -webkit-overflow-scrolling: touch;
 
+    // Custom scrollbar
     &::-webkit-scrollbar {
-      width: 4px;
+      height: 6px;
     }
 
     &::-webkit-scrollbar-track {
-      background: #f1f1f1;
+      background: #f0f0f0;
+      border-radius: 3px;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: #ccc;
-      border-radius: 2px;
+      background: #bbb;
+      border-radius: 3px;
+
+      &:hover {
+        background: #999;
+      }
     }
   }
 
-  // ===== ITEMS TABLE - COMPACT CARD =====
+  // ===== BOX TABLE - THU NHỎ NHƯNG GIỮ CẤU TRÚC =====
   .items-table {
-    display: block !important;
     width: 100% !important;
-    box-shadow: none;
-    margin-bottom: 50px;
+    min-width: 800px; // Đảm bảo scroll ngang
+    font-size: 10px;
 
-    thead {
-      display: none !important;
-    }
-
-    tbody {
-      display: block !important;
-    }
-
-    tr {
-      display: block !important;
-      margin-bottom: 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      background: white;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
+    th {
+      padding: 6px 4px;
+      font-size: 9px;
+      min-width: 60px;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     td {
-      display: flex !important;
-      align-items: center;
-      padding: 8px 12px !important;
-      border: none !important;
-      border-bottom: 1px solid #f5f5f5 !important;
-      text-align: left !important;
-      max-width: 100% !important;
-      gap: 8px;
-      font-size: 12px;
+      padding: 4px;
+      font-size: 10px;
+      white-space: nowrap;
 
-      &:first-child {
-        background: #f0f7ff;
-      }
+      // Button actions
+      button.mat-mdc-icon-button {
+        width: 30px !important;
+        height: 30px !important;
+        padding: 0 !important;
 
-      &:last-child {
-        border-bottom: none !important;
-        justify-content: center;
-        padding: 12px !important;
-        background: #fafafa;
-
-        button {
-          margin: 0 4px;
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
         }
       }
 
-      &::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #666;
-        min-width: 90px;
-        font-size: 10px;
-        text-transform: uppercase;
-        flex-shrink: 0;
-      }
-
-      // Hide label for action column
-      &[data-label=""]::before,
-      &[data-label="Tuỳ chọn"]::before {
-        display: none;
-      }
-
-      // Content area
-      > *:not(button) {
-        flex: 1;
-        min-width: 0;
-        text-align: right;
-      }
-
-      // Mat-form-field
+      // Input fields
       mat-form-field {
-        width: 100%;
+        width: auto;
+        min-width: 70px;
 
         ::ng-deep {
-          .mat-mdc-form-field-wrapper {
-            padding-bottom: 0;
+          .mat-mdc-form-field {
+            height: 28px !important;
+          }
+
+          .mat-mdc-text-field-wrapper {
+            padding: 2px 4px;
+          }
+
+          .mat-mdc-form-field-subscript-wrapper {
+            display: none;
           }
         }
       }
     }
   }
 
-  // ===== TEM BTP TABLE =====
+  // ===== PALLET TABLE - TƯƠNG TỰ BOX =====
+  // Dùng chung style với .items-table
+
+  // ===== TEM BTP TABLE - NHIỀU CỘT HƠN =====
   .tem-btp-table {
-    td::before {
-      min-width: 100px;
+    min-width: 1200px !important; // Rộng hơn vì nhiều cột
+    font-size: 9px;
+
+    th {
+      padding: 6px 3px;
+      font-size: 8px;
+      min-width: 50px;
+
+      // Header actions đặc biệt
+      .header-actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 3px;
+        margin-top: 4px;
+
+        mat-form-field {
+          width: 60px !important;
+          height: 24px !important;
+
+          ::ng-deep {
+            .mat-mdc-text-field-wrapper {
+              padding: 1px 3px;
+            }
+
+            input {
+              font-size: 9px;
+            }
+          }
+        }
+
+        .header-actions-btn {
+          width: 28px !important;
+          height: 28px !important;
+          min-width: 28px !important;
+          padding: 0 !important;
+          margin: 0 !important;
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+        }
+      }
+    }
+
+    td {
+      padding: 4px 3px;
       font-size: 9px;
+
+      mat-form-field {
+        width: 100%;
+        min-width: 60px;
+
+        ::ng-deep {
+          .mat-mdc-form-field {
+            height: 26px !important;
+          }
+
+          input {
+            font-size: 9px;
+          }
+        }
+      }
     }
   }
 
-  // ===== SCROLL CONTAINER =====
+  // ===== SCROLL CONTAINER - TEM BTP =====
   .scroll-container {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    max-height: none;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    max-height: 60vh;
+    -webkit-overflow-scrolling: touch;
   }
 
   // ===== STATUS BADGE =====
   .status-badge {
-    min-width: 60px;
-    padding: 4px 8px;
-    font-size: 10px;
-    border-radius: 4px;
+    min-width: 45px;
+    padding: 2px 5px;
+    font-size: 8px;
     white-space: nowrap;
   }
 
-  // ===== HIDE DESKTOP BUTTONS =====
+  // ===== COMPACT FIELD GLOBAL =====
+  .compact-field {
+    ::ng-deep {
+      .mat-mdc-form-field {
+        height: 28px !important;
+      }
+
+      .mat-mdc-text-field-wrapper {
+        padding: 2px 4px;
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+      }
+    }
+  }
+
+  // ===== ẨN DESKTOP BUTTONS =====
   .pakage-button.desktop-only {
     display: none !important;
   }
@@ -842,11 +817,10 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    z-index: 998;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
-    backdrop-filter: blur(2px);
+    transition: opacity 0.25s ease;
 
     &.active {
       opacity: 1;
@@ -854,32 +828,41 @@
     }
   }
 
-  // ===== FAB MENU =====
+  // ===== FAB MENU - FLOATING =====
   .pakage-button.mobile-fab {
     display: flex !important;
     position: fixed;
-    bottom: 80px;
-    right: 16px;
-    z-index: 1000;
+    bottom: 70px;
+    right: 12px;
+    z-index: 999;
     flex-direction: column-reverse;
     align-items: flex-end;
-    gap: 12px;
+    gap: 10px;
 
     button {
-      width: 56px;
-      height: 56px;
-      min-width: 56px;
+      width: 52px;
+      height: 52px;
+      min-width: 52px !important;
       border-radius: 50%;
       padding: 0;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin: 0;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
       mat-icon {
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
         margin: 0;
+      }
+
+      // Ẩn text label
+      ::ng-deep .mdc-button__label {
+        display: none;
       }
     }
 
-    // Main FAB button
+    // Main FAB
     > button:first-child {
       width: 56px;
       height: 56px;
@@ -887,18 +870,20 @@
 
       mat-icon {
         font-size: 24px;
-        transition: transform 0.3s ease;
+        width: 24px;
+        height: 24px;
+        transition: transform 0.25s ease;
       }
     }
 
-    // Action buttons
+    // Hidden action buttons
     > button:not(:first-child) {
       opacity: 0;
-      transform: scale(0.8) translateY(8px);
+      transform: scale(0.7) translateY(10px);
       pointer-events: none;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    // Open state
     &.open {
       > button:first-child mat-icon {
         transform: rotate(45deg);
@@ -913,12 +898,15 @@
       > button:nth-child(2) {
         transition-delay: 0.05s;
       }
+
       > button:nth-child(3) {
         transition-delay: 0.08s;
       }
+
       > button:nth-child(4) {
         transition-delay: 0.11s;
       }
+
       > button:nth-child(5) {
         transition-delay: 0.14s;
       }
@@ -927,17 +915,18 @@
 
   // ===== TAB BOTTOM ACTIONS =====
   .tab-bottom-actions {
-    margin-top: 8px;
     padding: 8px;
+    margin-top: 8px;
     border-top: 1px solid #e0e0e0;
 
     button {
       width: 100%;
-      height: 40px;
+      height: 38px;
+      font-size: 12px;
     }
   }
 
-  // ===== FOOTER BUTTONS =====
+  // ===== FOOTER BUTTONS - FIXED BOTTOM =====
   .footer-button {
     position: fixed;
     bottom: 0;
@@ -945,58 +934,30 @@
     right: 0;
     display: flex;
     gap: 8px;
-    padding: 12px;
-    background: white;
-    border-top: 1px solid #e0e0e0;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    background: #fff;
+    border-top: 1px solid #ddd;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
     z-index: 100;
 
     button {
       flex: 1;
-      height: 44px;
-      font-size: 13px;
+      height: 42px;
+      font-size: 12px;
 
       mat-icon {
-        margin-right: 4px;
         font-size: 18px;
-      }
-    }
-  }
-
-  // ===== HEADER ACTIONS =====
-  .header-actions {
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-
-    mat-form-field {
-      max-width: 100px;
-    }
-
-    &-btn {
-      width: 36px;
-      height: 36px;
-      min-width: 36px;
-      margin: 0;
-    }
-  }
-
-  // ===== COMPACT FIELD =====
-  .compact-field {
-    ::ng-deep {
-      .mat-mdc-text-field-wrapper {
-        padding: 2px 8px;
-      }
-
-      .mat-mdc-form-field-subscript-wrapper {
-        display: none;
+        width: 18px;
+        height: 18px;
+        margin-right: 4px;
       }
     }
   }
 
   // ===== LOADING BAR =====
   mat-progress-bar {
-    margin-bottom: 8px;
+    height: 3px !important;
+    margin-bottom: 6px;
   }
 }
 
@@ -1006,55 +967,69 @@
     padding: 6px;
   }
 
+  .header h2,
   .header h3 {
     font-size: 14px;
   }
 
-  .production-table,
-  .items-table {
-    td {
-      padding: 8px 10px !important;
-      font-size: 11px;
+  .production-table {
+    min-width: 500px;
+    font-size: 9px;
 
-      &::before {
-        min-width: 85px;
-        font-size: 9px;
-      }
+    th,
+    td {
+      padding: 4px 2px;
+      font-size: 8px;
+    }
+  }
+
+  .items-table {
+    min-width: 700px;
+    font-size: 9px;
+
+    th,
+    td {
+      padding: 4px 2px;
+      font-size: 9px;
+    }
+  }
+
+  .tem-btp-table {
+    min-width: 1000px;
+    font-size: 8px;
+
+    th,
+    td {
+      padding: 3px 2px;
+      font-size: 8px;
     }
   }
 
   .pakage-button.mobile-fab {
-    right: 12px;
-    bottom: 70px;
+    right: 8px;
+    bottom: 65px;
 
     button {
-      width: 48px;
-      height: 48px;
-      min-width: 48px;
+      width: 46px;
+      height: 46px;
+
+      mat-icon {
+        font-size: 20px;
+      }
     }
 
     > button:first-child {
-      width: 52px;
-      height: 52px;
+      width: 50px;
+      height: 50px;
     }
-  }
-
-  .status-badge {
-    min-width: 55px;
-    padding: 3px 6px;
-    font-size: 9px;
   }
 
   .footer-button {
     padding: 8px;
 
     button {
-      height: 40px;
-      font-size: 12px;
-
-      mat-icon {
-        font-size: 16px;
-      }
+      height: 38px;
+      font-size: 11px;
     }
   }
 }
@@ -1062,18 +1037,10 @@
 // ===== LANDSCAPE MODE =====
 @media screen and (max-width: 768px) and (orientation: landscape) {
   .tabs-wrapper {
-    margin-bottom: 60px;
+    margin-bottom: 65px !important;
   }
 
   .pakage-button.mobile-fab {
     bottom: 60px;
-  }
-
-  .footer-button {
-    padding: 8px 12px;
-
-    button {
-      height: 40px;
-    }
   }
 }
