@@ -1,6 +1,7 @@
 package com.mycompany.myapp.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.io.Serializable;
 import java.util.List;
 
