@@ -15,6 +15,9 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatButtonModule } from "@angular/material/button";
 import { MatIconModule } from "@angular/material/icon";
+import { AccountService } from "app/core/auth/account.service";
+import { MatOptionModule } from "@angular/material/core";
+import { MatSelectModule } from "@angular/material/select";
 
 export interface DialogData {
   type: "box" | "pallet";
@@ -41,6 +44,7 @@ export interface PalletFormData {
   qdsx: string;
   nguoiKiemTra: string;
   ketQuaKiemTra: string;
+  note: string;
   soLuongThungTrongPallet: number;
   soLuongPallet: number;
 }
@@ -61,6 +65,8 @@ export interface DialogResult {
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatOptionModule,
+    MatSelectModule,
   ],
   templateUrl: "./create-dialog.component.html",
   styleUrls: ["./create-dialog.component.scss"],
@@ -73,6 +79,7 @@ export class CreateDialogComponent {
     private fb: FormBuilder,
     public dialogRef: MatDialogRef<CreateDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: DialogData,
+    private accountService: AccountService,
   ) {
     this.isBoxType = data.type === "box";
     this.form = this.createForm();
@@ -91,6 +98,9 @@ export class CreateDialogComponent {
     }
   }
   private createForm(): FormGroup {
+    const currentUser = this.accountService.isAuthenticated()
+      ? this.accountService["userIdentity"]?.login
+      : "unknown";
     if (this.isBoxType) {
       return this.fb.group({
         maSanPham: [this.data.maSanPham ?? "", Validators.required],
@@ -104,8 +114,9 @@ export class CreateDialogComponent {
         poNumber: [""],
         dateCode: [""],
         qdsx: [""],
-        nguoiKiemTra: [""],
-        ketQuaKiemTra: [""],
+        nguoiKiemTra: [currentUser],
+        ketQuaKiemTra: ["Đạt"],
+        note: [""],
         soLuongThungTrongPallet: [1, [Validators.required, Validators.min(1)]],
         soLuongPallet: [1, [Validators.required, Validators.min(1)]],
         noSKU: [""],

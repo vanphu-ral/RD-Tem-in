@@ -78,29 +78,31 @@
         <td mat-cell data-label="Mã kho nhập" *matCellDef="let element">
           <mat-form-field appearance="outline" class="compact-field">
             <mat-select [(value)]="element.maKhoNhap">
-              <mat-option value="">--</mat-option>
-              <mat-option value="01">01 - Kho linh kiện điện tử</mat-option>
-              <mat-option value="02">02 - Kho vật tư LED</mat-option>
-              <mat-option value="03">03 - Kho vật tư TBCS</mat-option>
-              <mat-option value="04">04 - Kho vật tư CLC</mat-option>
-              <mat-option value="05">05 - Kho ngành ĐTTĐ</mat-option>
-              <mat-option value="06">06 - Kho ngành LRSP LED 1</mat-option>
-              <mat-option value="07">07 - Kho ngành SMART</mat-option>
-              <mat-option value="08">08 - Kho ngành LED2</mat-option>
-              <mat-option value="10">10 - Kho cơ khí xưởng</mat-option>
-              <mat-option value="11">11 - Kho ngành CNPT</mat-option>
-              <mat-option value="12">12 - Kho vật tư Smart</mat-option>
-              <mat-option value="13">13 - Kho ngành CNPT 2</mat-option>
-              <mat-option value="14">14 - Kho chị Hòa 2</mat-option>
-              <mat-option value="15">15 - Kho Pilot TTRD</mat-option>
-              <mat-option value="17">17 - Kho vật tư SKD</mat-option>
-              <mat-option value="18">18 - Kho trung tâm RD</mat-option>
-              <mat-option value="19">19 - Kho LKDT thủ công</mat-option>
-              <mat-option value="20">20 - Kho xuất khẩu</mat-option>
+              <!-- Nếu là Bán thành phẩm -->
+              <ng-container
+                *ngIf="element.loaiSanPham === 'Bán thành phẩm'; else tpOptions"
+              >
+                <mat-option
+                  *ngFor="let opt of maKhoNhapOptionsBTP"
+                  [value]="opt.value"
+                >
+                  {{ opt.label }}
+                </mat-option>
+              </ng-container>
+              <!-- Nếu là Thành phẩm -->
+              <ng-template #tpOptions>
+                <mat-option
+                  *ngFor="let opt of maKhoNhapOptionsTP"
+                  [value]="opt.value"
+                >
+                  {{ opt.label }}
+                </mat-option>
+              </ng-template>
             </mat-select>
           </mat-form-field>
         </td>
       </ng-container>
+
       <ng-container matColumnDef="nganh">
         <th mat-header-cell *matHeaderCellDef>Ngành</th>
         <td mat-cell *matCellDef="let element">{{ element.nganh }}</td>
@@ -750,10 +752,15 @@
         <mat-icon>add</mat-icon>
         Tạo Pallet mới
       </button>
-      <!-- <button mat-raised-button color="primary" class="add-box-btn">
+      <button
+        mat-raised-button
+        color="primary"
+        class="add-box-btn"
+        (click)="printAllPallets()"
+      >
         <mat-icon>print</mat-icon>
         In tất cả
-      </button> -->
+      </button>
       <!-- <button
         mat-raised-button
         color="accent"
@@ -811,7 +818,7 @@
       mat-fab
       color="primary"
       class="add-box-btn"
-      (click)="printAll(); toggleFabMenu()"
+      (click)="printAllPallets(); toggleFabMenu()"
       matTooltip="In tất cả"
       matTooltipPosition="left"
     >

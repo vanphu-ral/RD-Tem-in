@@ -77,6 +77,7 @@ export interface PlanningWorkOrderResponse {
 })
 export class PlanningWorkOrderService {
   private apiUrl = "http://192.168.68.81:8080/api/planningworkorder";
+  private WMSUrl = "https://192.168.68.77:9030";
 
   private baseUrl = environment.baseInTemApiUrl;
 
@@ -122,7 +123,7 @@ export class PlanningWorkOrderService {
     payload: WarehouseNotePayload,
   ): Observable<any> {
     return this.http.post(
-      `${this.baseUrl}/warehouse-note-infos/${id}`,
+      `${this.baseUrl}/warehouse-note-infos/${id}/with-children`,
       payload,
     );
   }
@@ -176,6 +177,19 @@ export class PlanningWorkOrderService {
   ): Observable<void> {
     return this.http.delete<void>(
       `${this.baseUrl}/serial-box/${serialBox}/serial-pallet/${serialPallet}/ma-lenh-san-xuat/${maLenhSanXuatId}`,
+    );
+  }
+
+  //send WMS
+  //lay ma kho area
+  getAreas(): Observable<WorkshopHierarchy[]> {
+    return this.http.get<WorkshopHierarchy[]>(`${this.WMSUrl}/api/areas`);
+  }
+
+  sendWmsApproval(payload: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.WMSUrl}/api/import-requirements`,
+      payload,
     );
   }
 }

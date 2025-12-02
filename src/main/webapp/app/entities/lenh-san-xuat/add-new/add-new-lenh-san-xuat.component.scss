@@ -439,13 +439,12 @@
   display: none;
 }
 
-// ==========================================
-// MOBILE RESPONSIVE STYLES
-// ==========================================
-
 @media screen and (max-width: 768px) {
   .main-content {
-    padding: 10px;
+    padding: 8px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   // Override Angular Material table styles
@@ -458,9 +457,6 @@
     .mat-mdc-header-row,
     .mat-header-row {
       display: none !important;
-      height: 0 !important;
-      min-height: 0 !important;
-      visibility: hidden !important;
     }
 
     .mat-mdc-row,
@@ -474,64 +470,67 @@
     .mat-cell {
       display: flex !important;
       border: none !important;
-      padding: 0 !important;
     }
 
     .mat-mdc-header-cell,
     .mat-header-cell {
       display: none !important;
     }
-
-    // Fix table container
-    .mat-mdc-table-sticky,
-    .mat-table-sticky {
-      position: static !important;
-    }
   }
 
-  // HEADER
+  // ===== HEADER =====
   .header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 15px;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 12px;
 
-    h2 {
-      font-size: 18px;
+    h3 {
+      font-size: 16px;
       font-weight: 600;
+      margin: 0;
     }
   }
 
-  // SEARCH FORM
+  // ===== SEARCH FORM =====
   .submit-search-sap {
     width: 100%;
     display: flex;
-    flex-direction: column;
     gap: 8px;
     height: auto;
+    align-items: flex-end;
 
-    .mat-mdc-form-field {
-      width: 100%;
+    .sap-input {
+      flex: 1;
+      min-width: 0;
     }
 
     .search-button {
-      width: 100%;
-      height: 44px;
-      font-size: 14px;
+      flex-shrink: 0;
+      height: 40px;
+      min-width: 80px;
+      padding: 0 12px;
+
+      mat-icon {
+        margin-right: 4px;
+      }
     }
   }
 
-  // TABLE CONTAINER
+  // ===== TABLE CONTAINER =====
   .table-container {
-    padding: 10px;
+    padding: 8px;
     border-radius: 6px;
+    margin-bottom: 12px;
+    max-height: none;
+    overflow: visible;
   }
 
-  // PRODUCTION TABLE - CARD VIEW
+  // ===== PRODUCTION TABLE - COMPACT CARD =====
   .production-table {
     display: block !important;
     box-shadow: none;
-    border-radius: 0;
+    font-size: 12px;
 
     thead {
       display: none !important;
@@ -543,122 +542,186 @@
 
     tr {
       display: block !important;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
-      // padding: 15px;
       background: white;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
 
       &:hover {
-        transform: none;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
       }
     }
 
     td {
       display: flex !important;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: 10px 0 !important;
+      align-items: center;
+      padding: 10px 12px !important;
       border: none !important;
-      border-bottom: 1px solid #f0f0f0 !important;
+      border-bottom: 1px solid #f5f5f5 !important;
       text-align: left !important;
       max-width: 100% !important;
-      min-height: 40px;
-      gap: 10px;
+      min-height: 36px;
+      gap: 8px;
+
+      &:first-child {
+        background: #f8f9fa;
+        font-weight: 600;
+      }
 
       &:last-child {
         border-bottom: none !important;
-        padding-bottom: 0 !important;
       }
 
       &::before {
         content: attr(data-label);
         font-weight: 600;
-        color: #0276ff;
-        min-width: 120px;
+        color: #555;
+        min-width: 100px;
         font-size: 11px;
-        text-transform: uppercase;
         flex-shrink: 0;
-        line-height: 1.4;
-        padding-top: 2px;
       }
 
-      // Content area
+      // Content wrapper
       > * {
         flex: 1;
-        text-align: right;
+        min-width: 0;
       }
 
-      // Xử lý mat-select trong mobile
+      // Mat-select trong table
       mat-form-field {
         width: 100%;
-        max-width: 100%;
 
-        ::ng-deep .mat-mdc-form-field-wrapper {
-          padding-bottom: 0;
+        ::ng-deep {
+          .mat-mdc-form-field-wrapper {
+            padding-bottom: 0;
+          }
+
+          .mat-mdc-text-field-wrapper {
+            padding: 4px 8px;
+          }
+        }
+      }
+    }
+  }
+
+  // ===== ACTION BUTTONS IN TABLE =====
+  .action-buttons {
+    margin-top: 12px;
+
+    button {
+      width: 100%;
+      height: 40px;
+      font-size: 13px;
+    }
+  }
+
+  // ===== TABS WRAPPER =====
+  .tabs-wrapper {
+    padding: 0;
+    margin-bottom: 80px; // Space for FAB menu
+    border-radius: 8px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  // ===== TABS =====
+  .management-tabs {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    ::ng-deep {
+      .mat-mdc-tab-label-container {
+        max-width: 100%;
+        background: #f8f9fa;
+      }
+
+      .mat-mdc-tab-labels {
+        justify-content: space-around;
+      }
+
+      .mat-mdc-tab-label {
+        padding: 8px 4px;
+        min-width: 0;
+        flex: 1;
+        opacity: 0.7;
+
+        &.mat-mdc-tab-label-active {
+          opacity: 1;
+        }
+
+        .tab-icon {
+          margin: 0 0 4px 0;
+          font-size: 20px;
+          display: block;
+        }
+
+        .mdc-tab__text-label {
+          font-size: 10px;
+          line-height: 1.2;
+          display: block;
         }
       }
 
-      // Xử lý text content
-      &:not(:has(mat-form-field)) {
-        align-items: center;
+      .mat-mdc-tab-body-wrapper {
+        flex: 1;
+        overflow: hidden;
+      }
+
+      .mat-mdc-tab-body {
+        overflow: hidden !important;
+      }
+
+      .mat-mdc-tab-body-content {
+        overflow: hidden !important;
+        height: 100%;
       }
     }
   }
 
-  // TABS
-  .tabs-wrapper {
-    padding: 5px;
-    margin-bottom: 10px;
-  }
-
-  .management-tabs {
-    ::ng-deep .mat-mdc-tab-label-container {
-      max-width: 100%;
-    }
-
-    ::ng-deep .mat-mdc-tab-labels {
-      justify-content: space-between;
-    }
-
-    ::ng-deep .mat-mdc-tab-label {
-      padding: 8px 4px;
-      min-width: 0;
-      flex: 1;
-
-      .tab-icon {
-        margin-right: 0;
-        margin-bottom: 2px;
-        font-size: 18px;
-      }
-
-      .mdc-tab__text-label {
-        font-size: 10px;
-        white-space: nowrap;
-        display: block;
-      }
-    }
-  }
-
+  // ===== TAB CONTENT =====
   .tab-content {
-    height: auto;
-    min-height: 200px;
-    max-height: calc(100vh - 350px);
-    overflow-y: auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 8px;
   }
 
-  // ITEMS TABLE - CARD VIEW
+  // ===== ITEMS TABLE CONTAINER =====
   .items-table-container {
-    margin-top: 10px;
-    overflow-x: visible;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-top: 0;
+    padding-right: 4px;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 2px;
+    }
   }
 
+  // ===== ITEMS TABLE - COMPACT CARD =====
   .items-table {
     display: block !important;
+    width: 100% !important;
     box-shadow: none;
-    border-radius: 0;
+    margin-bottom: 50px;
 
     thead {
       display: none !important;
@@ -670,29 +733,34 @@
 
     tr {
       display: block !important;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
-      padding: 12px;
       background: white;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
     }
 
     td {
       display: flex !important;
-      justify-content: space-between;
       align-items: center;
-      padding: 8px 0 !important;
+      padding: 8px 12px !important;
       border: none !important;
       border-bottom: 1px solid #f5f5f5 !important;
       text-align: left !important;
       max-width: 100% !important;
-      line-height: 1.5;
+      gap: 8px;
+      font-size: 12px;
+
+      &:first-child {
+        background: #f0f7ff;
+      }
 
       &:last-child {
         border-bottom: none !important;
         justify-content: center;
-        padding: 12px 0 0 0 !important;
+        padding: 12px !important;
+        background: #fafafa;
 
         button {
           margin: 0 4px;
@@ -702,132 +770,95 @@
       &::before {
         content: attr(data-label);
         font-weight: 600;
-        color: #0276ff;
-        min-width: 100px;
+        color: #666;
+        min-width: 90px;
         font-size: 10px;
         text-transform: uppercase;
         flex-shrink: 0;
-        line-height: 1.4;
       }
 
-      // Ẩn label cho cột action
-      &[data-label="Tuỳ chọn"]::before,
-      &[data-label=""]::before {
+      // Hide label for action column
+      &[data-label=""]::before,
+      &[data-label="Tuỳ chọn"]::before {
         display: none;
       }
 
       // Content area
       > *:not(button) {
         flex: 1;
+        min-width: 0;
         text-align: right;
       }
 
-      // Xử lý mat-form-field trong card
+      // Mat-form-field
       mat-form-field {
         width: 100%;
-        max-width: 100%;
 
-        ::ng-deep .mat-mdc-form-field-wrapper {
-          padding-bottom: 0;
+        ::ng-deep {
+          .mat-mdc-form-field-wrapper {
+            padding-bottom: 0;
+          }
         }
-      }
-
-      // Status badge
-      .status-badge {
-        margin-left: auto;
       }
     }
   }
 
-  // TEM BTP TABLE
+  // ===== TEM BTP TABLE =====
   .tem-btp-table {
-    display: block !important;
-    box-shadow: none;
-
-    ::ng-deep .mat-mdc-header-row {
-      display: none !important;
-    }
-
-    tbody {
-      display: block !important;
-    }
-
-    tr {
-      display: block !important;
-      margin-bottom: 15px;
-      padding: 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      background: white;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    }
-
-    td {
-      display: flex !important;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0 !important;
-      border: none !important;
-      border-bottom: 1px solid #f5f5f5 !important;
-      text-align: left !important;
-      max-width: 100% !important;
-
-      &:last-child {
-        border-bottom: none !important;
-      }
-
-      &::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #0276ff;
-        min-width: 110px;
-        font-size: 10px;
-        text-transform: uppercase;
-        flex-shrink: 0;
-        line-height: 1.4;
-      }
-
-      // Content area
-      > *:not(button) {
-        flex: 1;
-        text-align: right;
-      }
-
-      mat-form-field {
-        width: 100%;
-        max-width: 100%;
-
-        ::ng-deep .mat-mdc-form-field-wrapper {
-          padding-bottom: 0;
-        }
-      }
+    td::before {
+      min-width: 100px;
+      font-size: 9px;
     }
   }
 
-  // ACTION BUTTONS trong tabs - Giữ lại nhưng điều chỉnh
-  .action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 15px;
-    text-align: center;
-
-    button {
-      width: 100%;
-      height: 44px;
-    }
+  // ===== SCROLL CONTAINER =====
+  .scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: none;
   }
 
-  // ẨN DESKTOP PAKAGE BUTTONS
+  // ===== STATUS BADGE =====
+  .status-badge {
+    min-width: 60px;
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  // ===== HIDE DESKTOP BUTTONS =====
   .pakage-button.desktop-only {
     display: none !important;
   }
 
-  // HIỂN THỊ FAB MENU
+  // ===== FAB BACKDROP =====
+  .fab-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(2px);
+
+    &.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+  }
+
+  // ===== FAB MENU =====
   .pakage-button.mobile-fab {
     display: flex !important;
     position: fixed;
-    bottom: 20px;
+    bottom: 80px;
     right: 16px;
     z-index: 1000;
     flex-direction: column-reverse;
@@ -837,206 +868,212 @@
     button {
       width: 56px;
       height: 56px;
-      min-width: 49px;
+      min-width: 56px;
       border-radius: 50%;
       padding: 0;
-      margin: 0;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-      &:active {
-        transform: scale(0.92);
-      }
 
       mat-icon {
         margin: 0;
-        transition: transform 0.3s ease;
-      }
-
-      ::ng-deep .mdc-button__label {
-        display: none;
       }
     }
 
-    // Main FAB
-    button:first-child {
-      width: 64px;
-      height: 64px;
+    // Main FAB button
+    > button:first-child {
+      width: 56px;
+      height: 56px;
       background: #9c27b0 !important;
 
       mat-icon {
-        font-size: 28px;
-        width: 28px;
-        height: 28px;
+        font-size: 24px;
+        transition: transform 0.3s ease;
       }
     }
 
-    // Secondary buttons
-    button:not(:first-child) {
+    // Action buttons
+    > button:not(:first-child) {
       opacity: 0;
-      transform: scale(0) translateY(20px);
+      transform: scale(0.8) translateY(8px);
       pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    // Open state
     &.open {
-      button:first-child mat-icon {
-        transform: rotate(180deg);
+      > button:first-child mat-icon {
+        transform: rotate(45deg);
       }
 
-      button:not(:first-child) {
+      > button:not(:first-child) {
         opacity: 1;
         transform: scale(1) translateY(0);
         pointer-events: all;
       }
 
-      button:nth-child(2) {
+      > button:nth-child(2) {
         transition-delay: 0.05s;
       }
-
-      button:nth-child(3) {
-        transition-delay: 0.1s;
+      > button:nth-child(3) {
+        transition-delay: 0.08s;
       }
-
-      button:nth-child(4) {
-        transition-delay: 0.15s;
+      > button:nth-child(4) {
+        transition-delay: 0.11s;
       }
-
-      button:nth-child(5) {
-        transition-delay: 0.2s;
+      > button:nth-child(5) {
+        transition-delay: 0.14s;
       }
     }
   }
 
-  // FAB BACKDROP
-  .fab-backdrop {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-
-    &.active {
-      opacity: 1;
-      pointer-events: all;
-    }
-  }
-
-  // FOOTER BUTTONS
-  .footer-button {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 15px;
-    padding-bottom: 20px;
+  // ===== TAB BOTTOM ACTIONS =====
+  .tab-bottom-actions {
+    margin-top: 8px;
+    padding: 8px;
+    border-top: 1px solid #e0e0e0;
 
     button {
       width: 100%;
-      height: 44px;
-    }
-  }
-
-  // STATUS BADGE
-  .status-badge {
-    min-width: 65px;
-    padding: 3px 8px;
-    font-size: 11px;
-  }
-
-  // COMPACT FIELD
-  .compact-field {
-    ::ng-deep .mat-mdc-text-field-wrapper {
-      padding: 0 4px;
-    }
-  }
-
-  // SCROLL CONTAINER
-  .scroll-container {
-    max-height: 400px;
-  }
-
-  // HEADER ACTIONS
-  .header-actions {
-    flex-direction: column;
-    width: 100%;
-    align-items: stretch;
-
-    &-btn {
-      width: 100%;
       height: 40px;
-      margin: 5px 0 0 0;
     }
+  }
+
+  // ===== FOOTER BUTTONS =====
+  .footer-button {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+
+    button {
+      flex: 1;
+      height: 44px;
+      font-size: 13px;
+
+      mat-icon {
+        margin-right: 4px;
+        font-size: 18px;
+      }
+    }
+  }
+
+  // ===== HEADER ACTIONS =====
+  .header-actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
 
     mat-form-field {
-      width: 100%;
+      max-width: 100px;
+    }
+
+    &-btn {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      margin: 0;
     }
   }
 
-  // TOOLTIPS
-  ::ng-deep .mat-mdc-tooltip {
-    font-size: 12px;
-    padding: 6px 10px;
+  // ===== COMPACT FIELD =====
+  .compact-field {
+    ::ng-deep {
+      .mat-mdc-text-field-wrapper {
+        padding: 2px 8px;
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+      }
+    }
+  }
+
+  // ===== LOADING BAR =====
+  mat-progress-bar {
+    margin-bottom: 8px;
   }
 }
 
-// EXTRA SMALL MOBILE
+// ===== EXTRA SMALL DEVICES =====
 @media screen and (max-width: 480px) {
   .main-content {
-    padding: 8px;
+    padding: 6px;
   }
 
-  .header h2 {
-    font-size: 16px;
+  .header h3 {
+    font-size: 14px;
   }
 
-  .table-container,
-  .tabs-wrapper {
-    padding: 8px;
-  }
+  .production-table,
+  .items-table {
+    td {
+      padding: 8px 10px !important;
+      font-size: 11px;
 
-  .management-tabs {
-    ::ng-deep .mat-mdc-tab-label {
-      padding: 6px 2px !important;
-
-      .tab-icon {
-        font-size: 16px !important;
+      &::before {
+        min-width: 85px;
+        font-size: 9px;
       }
+    }
+  }
 
-      .mdc-tab__text-label {
-        font-size: 9px !important;
-      }
+  .pakage-button.mobile-fab {
+    right: 12px;
+    bottom: 70px;
+
+    button {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+    }
+
+    > button:first-child {
+      width: 52px;
+      height: 52px;
     }
   }
 
   .status-badge {
     min-width: 55px;
-    padding: 2px 6px;
-    font-size: 10px;
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .footer-button {
+    padding: 8px;
+
+    button {
+      height: 40px;
+      font-size: 12px;
+
+      mat-icon {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+// ===== LANDSCAPE MODE =====
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  .tabs-wrapper {
+    margin-bottom: 60px;
   }
 
   .pakage-button.mobile-fab {
-    bottom: 16px;
-    right: 12px;
+    bottom: 60px;
+  }
+
+  .footer-button {
+    padding: 8px 12px;
 
     button {
-      width: 48px;
-      height: 48px;
-    }
-
-    button:first-child {
-      width: 56px;
-      height: 56px;
-
-      mat-icon {
-        font-size: 24px;
-      }
+      height: 40px;
     }
   }
 }
