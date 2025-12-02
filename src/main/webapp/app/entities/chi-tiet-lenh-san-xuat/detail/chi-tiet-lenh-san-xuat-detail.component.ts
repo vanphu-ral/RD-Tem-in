@@ -83,20 +83,44 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.activatedRoute.data.subscribe(({ lenhSanXuat }) => {
-      this.lenhSanXuat = lenhSanXuat;
+      console.log("[DEBUG] Route data received:", lenhSanXuat);
+
+      // Check if we received data from the resolver with warehouse_note_info structure
+      if (lenhSanXuat && lenhSanXuat.warehouse_note_info) {
+        const warehouseNoteInfo = lenhSanXuat.warehouse_note_info;
+        const warehouseNoteInfoDetails =
+          lenhSanXuat.warehouse_note_info_details || [];
+
+        // Map warehouse_note_info to lenhSanXuat structure
+        this.lenhSanXuat = {
+          id: warehouseNoteInfo.id,
+          maLenhSanXuat: warehouseNoteInfo.ma_lenh_san_xuat,
+          sapCode: warehouseNoteInfo.sap_code,
+          sapName: warehouseNoteInfo.sap_name,
+          workOrderCode: warehouseNoteInfo.work_order_code,
+          version: warehouseNoteInfo.version,
+          storageCode: warehouseNoteInfo.storage_code,
+          totalQuantity: warehouseNoteInfo.total_quantity,
+          createBy: warehouseNoteInfo.create_by,
+          entryTime: warehouseNoteInfo.entry_time,
+          timeUpdate: warehouseNoteInfo.time_update,
+          trangThai: warehouseNoteInfo.trang_thai,
+          comment: warehouseNoteInfo.comment,
+          groupName: warehouseNoteInfo.group_name,
+          comment2: warehouseNoteInfo.comment2,
+        };
+
+        // Use warehouse_note_info_details directly
+        this.chiTietLenhSanXuats = warehouseNoteInfoDetails;
+        this.chiTietLenhSanXuatExport = this.chiTietLenhSanXuats.filter(
+          (a) => (a as any).trang_thai === "ACTIVE",
+        );
+        this.dataExport(this.chiTietLenhSanXuatExport);
+      } else {
+        console.error("[ERROR] Invalid data structure from resolver");
+        // alert('Lỗi: Không tìm thấy dữ liệu lệnh sản xuất. Vui lòng kiểm tra lại đường dẫn.');
+      }
     });
-    if (this.lenhSanXuat?.id) {
-      // Use new service method to get warehouse stamp info details
-      this.chiTietLenhSanXuatService
-        .getWarehouseStampInfoDetailsByMaLenhSanXuatId(this.lenhSanXuat.id)
-        .subscribe((res) => {
-          this.chiTietLenhSanXuats = res;
-          this.chiTietLenhSanXuatExport = this.chiTietLenhSanXuats.filter(
-            (a) => (a as any).trang_thai === "ACTIVE",
-          );
-          this.dataExport(this.chiTietLenhSanXuatExport);
-        });
-    }
   }
   onPageChange(event: PageEvent): void {
     this.pageIndex = event.pageIndex;

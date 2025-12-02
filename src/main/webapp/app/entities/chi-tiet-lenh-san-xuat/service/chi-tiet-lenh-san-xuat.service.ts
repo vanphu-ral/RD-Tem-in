@@ -27,6 +27,9 @@ export class ChiTietLenhSanXuatService {
   );
   protected lenhSanXuatUrl =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuats");
+  protected warehouseNoteInfoUrl = this.applicationConfigService.getEndpointFor(
+    "api/warehouse-note-infos",
+  );
   protected warehouseStampInfoDetailUrl =
     this.applicationConfigService.getEndpointFor(
       "api/warehouse-stamp-info-details",
@@ -82,6 +85,30 @@ export class ChiTietLenhSanXuatService {
     return this.http.get<ILenhSanXuat>(`${this.resourceUrl1}/${id}`, {
       observe: "response",
     });
+  }
+
+  /**
+   * Get warehouse note info by id using /api/warehouse-note-infos/{id}
+   * @param id - The id of the warehouse note info
+   * @returns Observable of the warehouse note info
+   */
+  getWarehouseNoteInfoById(id: number): Observable<HttpResponse<any>> {
+    return this.http.get<any>(`${this.warehouseNoteInfoUrl}/${id}`, {
+      observe: "response",
+    });
+  }
+
+  /**
+   * Get warehouse note info details by ma_lenh_san_xuat_id using /api/warehouse-stamp-info-details/{ma_lenh_san_xuat_id}
+   * @param maLenhSanXuatId - The ma_lenh_san_xuat_id to filter by
+   * @returns Observable of the list of warehouse note info details
+   */
+  getWarehouseNoteInfoDetailsByMaLenhSanXuatId(
+    maLenhSanXuatId: number,
+  ): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.warehouseStampInfoDetailUrl}/${maLenhSanXuatId}`,
+    );
   }
 
   /**

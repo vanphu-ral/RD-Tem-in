@@ -171,43 +171,75 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     });
 
     this.activatedRoute.data.subscribe(({ lenhSanXuat }) => {
-      // // console.log('test: ');
+      console.log("[DEBUG UPDATE] Route data received:", lenhSanXuat);
+
+      // Check if we received data from the resolver with warehouse_note_info structure
+      if (!lenhSanXuat || !lenhSanXuat.warehouse_note_info) {
+        console.error("[ERROR UPDATE] Invalid data structure from resolver");
+        // alert('Lỗi: Không tìm thấy dữ liệu lệnh sản xuất. Vui lòng kiểm tra lại đường dẫn.');
+        return;
+      }
+
+      const warehouseNoteInfo = lenhSanXuat.warehouse_note_info;
+      const warehouseNoteInfoDetails =
+        lenhSanXuat.warehouse_note_info_details || [];
 
       const today = dayjs().startOf("second");
-      lenhSanXuat.timeUpdate = today;
 
-      this.changeStatus.id = lenhSanXuat.id;
-      this.changeStatus.totalQuantity = lenhSanXuat.totalQuantity;
-      // // console.log(this.changeStatus);
-      // Use new service method to get warehouse stamp info details
-      this.chiTietLenhSanXuatService
-        .getWarehouseStampInfoDetailsByMaLenhSanXuatId(lenhSanXuat.id as number)
-        .subscribe((res) => {
-          this.chiTietLenhSanXuats = res;
-          // // console.log('chi tiet: ', this.chiTietLenhSanXuats);
-          //lấy danh sách chi tiết lsx ở trạng thái active
-          this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-            (a) => a.trang_thai === "ACTIVE",
-          );
-          this.itemPerPage = this.chiTietLenhSanXuatActive.length;
-          // sắp xếp danh sách
-          this.chiTietLenhSanXuatActive.sort(function (a, b) {
-            if (
-              a.checked !== undefined &&
-              a.checked !== null &&
-              b.checked !== undefined &&
-              b.checked !== null
-            ) {
-              return a.checked - b.checked;
-            }
-            return 0;
-          });
-          //lấy danh sách chi tiết lsx không có trong danh sách
-          this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
-            (a) => a.trang_thai === "not list",
-          );
-        });
-      this.updateForm(lenhSanXuat);
+      // Map warehouse_note_info to lenhSanXuat structure
+      const mappedLenhSanXuat: ILenhSanXuat = {
+        id: warehouseNoteInfo.id,
+        maLenhSanXuat: warehouseNoteInfo.ma_lenh_san_xuat,
+        sapCode: warehouseNoteInfo.sap_code,
+        sapName: warehouseNoteInfo.sap_name,
+        workOrderCode: warehouseNoteInfo.work_order_code,
+        version: warehouseNoteInfo.version,
+        storageCode: warehouseNoteInfo.storage_code,
+        totalQuantity: warehouseNoteInfo.total_quantity,
+        createBy: warehouseNoteInfo.create_by,
+        entryTime: warehouseNoteInfo.entry_time,
+        timeUpdate: today,
+        trangThai: warehouseNoteInfo.trang_thai,
+        comment: warehouseNoteInfo.comment,
+        groupName: warehouseNoteInfo.group_name,
+        comment2: warehouseNoteInfo.comment2,
+      };
+
+      this.changeStatus.id = mappedLenhSanXuat.id!;
+      this.changeStatus.totalQuantity = String(
+        mappedLenhSanXuat.totalQuantity ?? 0,
+      );
+
+      // Update form with mapped data
+      this.updateForm(mappedLenhSanXuat);
+
+      // Use warehouse_note_info_details directly
+      this.chiTietLenhSanXuats = warehouseNoteInfoDetails;
+
+      //lấy danh sách chi tiết lsx ở trạng thái active
+      this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
+        (a) => a.trang_thai === "ACTIVE",
+      );
+      this.itemPerPage = this.chiTietLenhSanXuatActive.length;
+
+      // sắp xếp danh sách
+      this.chiTietLenhSanXuatActive.sort(function (a, b) {
+        if (
+          a.checked !== undefined &&
+          a.checked !== null &&
+          b.checked !== undefined &&
+          b.checked !== null
+        ) {
+          return a.checked - b.checked;
+        }
+        return 0;
+      });
+
+      //lấy danh sách chi tiết lsx không có trong danh sách
+      this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
+        (a) => a.trang_thai === "not list",
+      );
+
       // this.loadRelationshipsOptions();
       setTimeout(() => {
         const input = document.getElementById("scan");
