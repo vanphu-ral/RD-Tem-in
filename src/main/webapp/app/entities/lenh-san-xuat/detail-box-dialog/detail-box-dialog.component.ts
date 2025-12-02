@@ -1,4 +1,11 @@
-import { Component, Inject, OnInit } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  Inject,
+  OnInit,
+  QueryList,
+  ViewChildren,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
   MatDialogModule,
@@ -10,6 +17,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatIconModule } from "@angular/material/icon";
 import { MatPaginatorModule, PageEvent } from "@angular/material/paginator";
 import { QRCodeComponent } from "angularx-qrcode";
+import jsPDF from "jspdf";
 
 export interface BoxDetailData {
   stt: number;
@@ -55,6 +63,8 @@ export interface BoxSubItem {
 export class DetailBoxDialogComponent implements OnInit {
   displayedColumns: string[] = ["stt", "maThung", "maThungCode", "soLuong"];
 
+  @ViewChildren("qrWrap", { read: ElementRef }) qrWraps!: QueryList<ElementRef>;
+
   infoCards: BoxInfoCard[] = [];
   boxSubItems: BoxSubItem[] = [];
   paginatedItems: BoxSubItem[] = [];
@@ -96,6 +106,60 @@ export class DetailBoxDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
+  exportQRCodesPdfCurrentPage(): void {
+    const items = this.paginatedItems;
+    if (!items.length) {
+      return;
+    }
+
+    const doc = new jsPDF({
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait",
+    });
+    const pageWidth = 210,
+      pageHeight = 297,
+      margin = 10;
+    const cols = 5,
+      gap = 6;
+    const contentWidth = pageWidth - margin * 2;
+    const qrSize = (contentWidth - gap * (cols - 1)) / cols;
+    const rowHeight = qrSize + 8;
+
+    let x = margin,
+      y = margin;
+
+    for (let i = 0; i < items.length; i++) {
+      const dataUrl = this.getDataUrlFromRenderedImg(i);
+      if (!dataUrl) {
+        console.warn("Không tìm thấy img QR cho item index", i);
+        continue;
+      }
+
+      if (y + qrSize + margin > pageHeight) {
+        doc.addPage();
+        x = margin;
+        y = margin;
+      }
+
+      doc.addImage(dataUrl, "PNG", x, y, qrSize, qrSize);
+
+      // label
+      const label = items[i].maThung ?? "";
+      doc.setFontSize(8);
+      const textX = x + Math.max(0, (qrSize - doc.getTextWidth(label)) / 2);
+      doc.text(label, textX, y + qrSize + 4);
+
+      x += qrSize + gap;
+      if (i % cols === cols - 1) {
+        x = margin;
+        y += rowHeight;
+      }
+    }
+
+    doc.save(`qr-boxes-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
   private initializeInfoCards(): void {
     this.infoCards = [
       { label: "Lot Number", value: this.data.lotNumber },
@@ -131,5 +195,20 @@ export class DetailBoxDialogComponent implements OnInit {
     const startIndex = this.pageIndex * this.pageSize;
     const endIndex = startIndex + this.pageSize;
     this.paginatedItems = this.boxSubItems.slice(startIndex, endIndex);
+  }
+
+  private getDataUrlFromRenderedImg(indexInPage: number): string | null {
+    const wraps = this.qrWraps.toArray();
+    const wrap = wraps[indexInPage];
+    if (!wrap) {
+      return null;
+    }
+    const img = wrap.nativeElement.querySelector(
+      "img",
+    ) as HTMLImageElement | null;
+    if (img && img.src && img.src.startsWith("data:")) {
+      return img.src;
+    }
+    return null;
   }
 }

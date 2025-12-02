@@ -4,7 +4,6 @@
   overflow-x: hidden;
 }
 
-// Dialog Header (Not printed)
 .dialog-header {
   display: flex;
   justify-content: space-between;
@@ -42,26 +41,31 @@
   }
 }
 
-// Print Content Container
+// ===== SCREEN MODE: Preview =====
 .print-content {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
+  gap: 30px;
   padding: 40px 20px;
-  min-height: calc(100vh - 73px);
+  align-items: center;
 }
 
-// A5 Portrait Card (Phiếu dọc)
+.print-page {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
 .pallet-card {
-  width: 148mm; // A5 width (portrait)
-  height: 210mm; // A5 height (portrait)
+  width: 148mm;
+  height: 210mm;
   background: white;
   padding: 10mm;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  position: relative;
   border: 1px solid #000;
 }
 
@@ -85,12 +89,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-
-    .qr-image {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
   }
 
   .title-wrapper {
@@ -191,12 +189,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-
-    .qr-image {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
   }
 
   .product-info {
@@ -226,100 +218,97 @@
   }
 }
 
-// ===== PRINT STYLES - 2 phiếu A5 dọc trên 1 tờ A4 ngang =====
+// ===== PRINT MODE =====
 @media print {
-  // Hide UI elements
+  html,
   body {
     margin: 0 !important;
     padding: 0 !important;
-    overflow: hidden !important;
-  }
-
-  html {
-    overflow: hidden !important;
+    width: 297mm !important;
+    height: 210mm !important;
   }
 
   .dialog-wrapper {
-    background: white;
-    overflow: hidden !important;
+    background: white !important;
   }
 
   .no-print {
     display: none !important;
   }
 
+  // ===== PRINT CONTENT: MỖI PAGE 1 TRANG =====
   .print-content {
+    display: block !important;
     padding: 0 !important;
-    min-height: auto;
-    display: block;
-    overflow: hidden !important;
-    margin: 0;
+    margin: 0 !important;
   }
 
-  // ===== KEY: Phiếu A5 dọc, 2 phiếu nằm ngang cạnh nhau =====
+  // ===== MỖI PRINT-PAGE LÀ 1 TRANG A4 NGANG =====
+  .print-page {
+    width: 297mm !important;
+    height: 210mm !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  // ===== TRANG CUỐI KHÔNG BREAK =====
+  .print-page:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  // ===== MỖI PHIẾU A5 =====
   .pallet-card {
-    width: 148mm; // A5 width (giữ nguyên dọc)
-    height: 210mm; // A5 height (giữ nguyên dọc)
-    box-shadow: none;
-    margin: 0;
-    padding: 10mm;
-    border: 2px solid #000;
-    box-sizing: border-box;
-    overflow: hidden;
-
-    // 2 phiếu nằm ngang cạnh nhau
-    float: left; // Phiếu 1 bên trái, phiếu 2 bên phải
-    page-break-inside: avoid; // Không cắt ngang phiếu
+    width: 148.5mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    box-shadow: none !important;
+    border: 2px solid #000 !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
-  // Sau 2 phiếu thì xuống trang mới
-  .pallet-card:nth-child(2n) {
-    page-break-after: always;
-  }
-
-  // ===== Page A4 Landscape để chứa 2 A5 Portrait =====
+  // ===== @PAGE A4 LANDSCAPE =====
   @page {
-    size: A4 landscape; // A4 ngang (297mm x 210mm)
-    margin: 0; // Không margin
+    size: A4 landscape !important;
+    margin: 0 !important;
   }
 
-  // Force exact colors
+  // Force colors
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
   }
 
-  // Table styling
-  .info-table {
-    .label-cell {
-      background: #f0f0f0 !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-
-    tr,
-    td {
-      border-color: #000 !important;
-    }
+  .info-table .label-cell {
+    background: #f0f0f0 !important;
   }
 
-  // QR Code styling
   .qr-code-wrapper {
     background: white !important;
     border: 2px solid #000 !important;
-  }
 
-  // Borders
-  .top-section,
-  .bottom-section {
-    border-color: #000 !important;
+    canvas,
+    img {
+      display: block !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+    }
   }
 
   // Hide scrollbars
   ::-webkit-scrollbar {
     display: none !important;
-    width: 0 !important;
-    height: 0 !important;
   }
 
   * {
@@ -328,46 +317,21 @@
   }
 }
 
-// ===== RESPONSIVE - Preview only (không ảnh hưởng print) =====
+// Responsive preview
 @media screen and (max-width: 1200px) {
-  .print-content {
-    padding: 20px 10px;
-  }
-
-  .pallet-card {
+  .print-page {
     transform: scale(0.8);
     transform-origin: top center;
   }
 }
 
 @media screen and (max-width: 768px) {
+  .print-page {
+    flex-direction: column;
+    align-items: center;
+  }
+
   .pallet-card {
     transform: scale(0.65);
-    transform-origin: top center;
   }
-}
-
-@media screen and (max-width: 480px) {
-  .pallet-card {
-    transform: scale(0.45);
-  }
-}
-
-// Hide scrollbar in preview
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
 }

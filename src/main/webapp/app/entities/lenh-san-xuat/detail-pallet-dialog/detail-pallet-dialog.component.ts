@@ -36,6 +36,7 @@ export interface PalletDetailData {
   poNumber?: string;
   dateCode?: string;
   qdsx?: string;
+  note: string;
   nguoiKiemTra?: string;
   ketQuaKiemTra?: string;
   subItems?: PalletBoxItem[];
@@ -445,6 +446,7 @@ export class PalletDetailDialogComponent implements OnInit {
       thuTuGiaPallet: item.stt,
       soLuongBaoNgoaiThungGiaPallet: tienDoThung,
       slThung: soLuongSanPhamTrongMotThung,
+      note: "",
 
       productCode: sourceData.tenSanPham,
       serialBox: firstBoxSerial || item.maPallet,
@@ -461,35 +463,36 @@ export class PalletDetailDialogComponent implements OnInit {
   }
 
   onPrintAll(): void {
-    console.log(" Printing all pallets...");
-
-    // Lấy tất cả pallet items
     const allPrintData: PrintPalletData[] = [];
 
-    this.palletBoxItems.forEach((item) => {
+    this.palletBoxItems.forEach((item, index) => {
+      console.log(
+        `Processing pallet ${index + 1}/${this.palletBoxItems.length}`,
+      );
+
       const sourceData = this.isMultipleMode
         ? this.palletSources[item.parentPalletIndex ?? 0]
         : this.singlePalletData;
 
       if (!sourceData) {
-        console.warn("Skipping item - no source data");
+        console.warn(`Skipping item ${index + 1} - no source data`);
         return;
       }
 
-      // Tính toán số lượng (copy logic từ onPrint)
+      // ===== TÍNH TOÁN SỐ LƯỢNG =====
       let tongSoSanPhamTrongPallet = 0;
       let soLuongSanPhamTrongMotThung = 0;
       let firstBoxSerial = "";
       let lotNumber = "";
 
       if (item.scannedBoxes && item.scannedBoxes.length > 0) {
-        item.scannedBoxes.forEach((scannedSerial, index) => {
+        item.scannedBoxes.forEach((scannedSerial, boxIndex) => {
           const trimmedSerial = scannedSerial.trim();
 
           for (const box of (sourceData.boxItems as BoxDetailData[]) ?? []) {
             if (box.serialBox === trimmedSerial) {
               tongSoSanPhamTrongPallet += box.soLuongSp || 0;
-              if (index === 0) {
+              if (boxIndex === 0) {
                 soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
                 firstBoxSerial = box.serialBox;
                 lotNumber = box.lotNumber || "";
@@ -502,7 +505,7 @@ export class PalletDetailDialogComponent implements OnInit {
             );
             if (subItem) {
               tongSoSanPhamTrongPallet += subItem.soLuong || 0;
-              if (index === 0) {
+              if (boxIndex === 0) {
                 soLuongSanPhamTrongMotThung = subItem.soLuong || 0;
                 firstBoxSerial = subItem.maThung;
                 lotNumber = box.lotNumber || "";
@@ -536,6 +539,7 @@ export class PalletDetailDialogComponent implements OnInit {
         thuTuGiaPallet: item.stt,
         soLuongBaoNgoaiThungGiaPallet: tienDoThung,
         slThung: soLuongSanPhamTrongMotThung,
+        note: "",
 
         productCode: sourceData.tenSanPham,
         serialBox: firstBoxSerial || item.maPallet,
@@ -545,17 +549,28 @@ export class PalletDetailDialogComponent implements OnInit {
         scannedBoxes: item.scannedBoxes,
       };
 
+      console.log(
+        `Added print data for pallet ${index + 1}:`,
+        printData.serialPallet,
+      );
       allPrintData.push(printData);
     });
 
-    console.log(` Total pallets to print: ${allPrintData.length}`);
+    console.log(`Total print data created: ${allPrintData.length}`);
+    console.log(`Expected pages: ${Math.ceil(allPrintData.length / 2)}`);
 
     if (allPrintData.length === 0) {
+      console.error("No print data generated!");
       alert("Không có pallet nào để in!");
       return;
     }
 
-    // Mở dialog với NHIỀU phiếu
+    // ===== MỞ DIALOG VỚI ARRAY =====
+    console.log(
+      "Opening print dialog with array of",
+      allPrintData.length,
+      "items",
+    );
     this.openPrintDialog(allPrintData);
   }
 
@@ -734,7 +749,7 @@ export class PalletDetailDialogComponent implements OnInit {
             item.scannedBoxes = [];
           } else {
             console.error(
-              `❌ Error loading progress for ${item.maPallet}:`,
+              `Error loading progress for ${item.maPallet}:`,
               error,
             );
             item.tienDoScan = 0;

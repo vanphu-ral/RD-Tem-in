@@ -139,6 +139,7 @@ export class PackagePalletDialogComponent implements OnInit {
       slThung: 300,
       nguoiKiemTra: "Tùng",
       ketQuaKiemTra: "<Empty>",
+      note: "",
       productCode: "LED121640-1p",
       serialBox: "Example_Box_01",
       qty: 300,
