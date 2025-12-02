@@ -29,12 +29,13 @@ export class LenhSanXuatComponent implements OnInit {
   testUrl = `${environment.baseInTemApiUrl}/warehouse-note-infos`;
   resourceUrl =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuat");
-  totalDataUrl = this.applicationConfigService.getEndpointFor(
-    "api/lenh-san-xuat/totalData",
-  );
-  maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
-    "api/lenhsx/ma-lenh-san-xuat",
-  );
+  // totalDataUrl = this.applicationConfigService.getEndpointFor(
+  //   "api/lenh-san-xuat/totalData",
+  // );
+
+  // maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
+  //   "api/lenhsx/ma-lenh-san-xuat",
+  // );
   versionResourceUrl =
     this.applicationConfigService.getEndpointFor("api/lenhsx/version");
   sapCodetResourceUrl = this.applicationConfigService.getEndpointFor(
@@ -203,7 +204,7 @@ export class LenhSanXuatComponent implements OnInit {
     this.mappingBodySearchAndPagination();
     setTimeout(() => {
       this.getLenhSanXuatList();
-      this.getTotalData();
+      // this.getTotalData();
     }, 100);
   }
   // Thay đổi background color ứng với mỗi trạng thái
@@ -260,19 +261,19 @@ export class LenhSanXuatComponent implements OnInit {
     }
   }
 
-  getTotalData(): void {
-    this.http.post<any>(this.totalDataUrl, this.body).subscribe((res) => {
-      this.totalData = res;
-      if (this.totalData < this.itemPerPage) {
-        this.nextPageBtn = true;
-        this.lastPageBtn = true;
-      } else {
-        this.nextPageBtn = false;
-        this.lastPageBtn = false;
-      }
-      // console.log('total data', res, Math.floor(this.totalData / this.itemPerPage));
-    });
-  }
+  // getTotalData(): void {
+  //   this.http.post<any>(this.totalDataUrl, this.body).subscribe((res) => {
+  //     this.totalData = res;
+  //     if (this.totalData < this.itemPerPage) {
+  //       this.nextPageBtn = true;
+  //       this.lastPageBtn = true;
+  //     } else {
+  //       this.nextPageBtn = false;
+  //       this.lastPageBtn = false;
+  //     }
+  //     // console.log('total data', res, Math.floor(this.totalData / this.itemPerPage));
+  //   });
+  // }
   loadPage(page?: number, dontNavigate?: boolean): void {
     this.isLoading = true;
     const pageToLoad: number = page ?? this.page ?? 1;
@@ -312,7 +313,7 @@ export class LenhSanXuatComponent implements OnInit {
       this.pageNumber = this.body.pageNumber;
       this.trangThai = this.body.trangThai;
       console.log("have result!");
-      this.getTotalData();
+      // this.getTotalData();
       this.getLenhSanXuatList();
       if (this.pageNumber > 1) {
         this.backPageBtn = false;
@@ -320,7 +321,7 @@ export class LenhSanXuatComponent implements OnInit {
       }
     } else {
       console.log("no result");
-      this.getTotalData();
+      // this.getTotalData();
       this.getLenhSanXuatList();
     }
     // this.createListOfMaLenhSanXuat();
@@ -370,12 +371,12 @@ export class LenhSanXuatComponent implements OnInit {
     return item.id!;
   }
   //============================ api lấy danh sách gợi tý từ Backend =====================
-  createListOfMaLenhSanXuat(): void {
-    this.http.get<any>(this.maLenhSanXuatResourceUrl).subscribe((res) => {
-      this.listOfMaLenhSanXuat = res;
-      // // console.log(res);
-    });
-  }
+  // createListOfMaLenhSanXuat(): void {
+  //   this.http.get<any>(this.maLenhSanXuatResourceUrl).subscribe((res) => {
+  //     this.listOfMaLenhSanXuat = res;
+  //     // // console.log(res);
+  //   });
+  // }
   createListOfSapCode(): void {
     this.http.get<any>(this.sapCodetResourceUrl).subscribe((res) => {
       this.listOfSapCode = res;
