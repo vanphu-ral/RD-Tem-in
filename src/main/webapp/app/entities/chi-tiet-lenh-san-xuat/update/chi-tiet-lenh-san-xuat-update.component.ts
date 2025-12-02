@@ -25,7 +25,7 @@ import { PageEvent } from "@angular/material/paginator";
 })
 export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   resourceUrl = this.applicationConfigService.getEndpointFor(
-    "/api/warehouse-note-info-details",
+    "/api/warehouse-stamp-info-details",
   );
   resourceUrlUpdate = this.applicationConfigService.getEndpointFor(
     "/api/warehouse-note-info-details/update",
@@ -179,8 +179,9 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       this.changeStatus.id = lenhSanXuat.id;
       this.changeStatus.totalQuantity = lenhSanXuat.totalQuantity;
       // // console.log(this.changeStatus);
-      this.http
-        .get<any>(`${this.resourceUrl}/${lenhSanXuat.id as number}`)
+      // Use new service method to get warehouse stamp info details
+      this.chiTietLenhSanXuatService
+        .getWarehouseStampInfoDetailsByMaLenhSanXuatId(lenhSanXuat.id as number)
         .subscribe((res) => {
           this.chiTietLenhSanXuats = res;
           // // console.log('chi tiet: ', this.chiTietLenhSanXuats);

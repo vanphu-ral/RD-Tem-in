@@ -32,7 +32,7 @@ import tech.jhipster.web.util.ResponseUtil;
  * {@link com.mycompany.myapp.domain.WarehouseNoteInfo}.
  */
 @RestController
-@RequestMapping("/api/warehouse-note-infos")
+@RequestMapping("/api/warehouse-stamp-infos")
 public class WarehouseStampInfoResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(
@@ -91,7 +91,7 @@ public class WarehouseStampInfoResource {
         );
         return ResponseEntity.created(
             new URI(
-                "/api/warehouse-note-infos/" + warehouseStampInfoDTO.getId()
+                "/api/warehouse-stamp-infos/" + warehouseStampInfoDTO.getId()
             )
         )
             .headers(

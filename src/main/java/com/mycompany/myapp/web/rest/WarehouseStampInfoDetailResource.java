@@ -30,7 +30,7 @@ import tech.jhipster.web.util.ResponseUtil;
  * {@link com.mycompany.myapp.domain.WarehouseNoteInfoDetail}.
  */
 @RestController
-@RequestMapping("/api/warehouse-note-info-details")
+@RequestMapping("/api/warehouse-stamp-info-details")
 public class WarehouseStampInfoDetailResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(
@@ -88,7 +88,7 @@ public class WarehouseStampInfoDetailResource {
         );
         return ResponseEntity.created(
             new URI(
-                "/api/warehouse-note-info-details/" +
+                "/api/warehouse-stamp-info-details/" +
                 warehouseStampInfoDetailDTO.getId()
             )
         )
@@ -393,7 +393,8 @@ public class WarehouseStampInfoDetailResource {
      * {@code GET  /warehouse-note-info-details/:ma_lenh_san_xuat_id} : get all the
      * warehouseStampInfoDetails by maLenhSanXuatId.
      *
-     * @param maLenhSanXuatId the id of the WarehouseNoteInfo to retrieve details for.
+     * @param maLenhSanXuatId the id of the WarehouseNoteInfo to retrieve details
+     *                        for.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
      *         of warehouseStampInfoDetails in body.
      */
@@ -440,7 +441,8 @@ public class WarehouseStampInfoDetailResource {
     }
 
     /**
-     * {@code DELETE  /warehouse-note-info-details} : batch delete warehouse stamp info
+     * {@code DELETE  /warehouse-note-info-details} : batch delete warehouse stamp
+     * info
      * details.
      *
      * @param warehouseStampInfoDetailDTOs the list of warehouseStampInfoDetailDTOs

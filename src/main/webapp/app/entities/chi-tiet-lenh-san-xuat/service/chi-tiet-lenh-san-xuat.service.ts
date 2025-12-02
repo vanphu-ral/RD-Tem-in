@@ -25,6 +25,12 @@ export class ChiTietLenhSanXuatService {
   protected resourceUrl1 = this.applicationConfigService.getEndpointFor(
     "api/warehouse-note-infos",
   );
+  protected lenhSanXuatUrl =
+    this.applicationConfigService.getEndpointFor("api/lenh-san-xuats");
+  protected warehouseStampInfoDetailUrl =
+    this.applicationConfigService.getEndpointFor(
+      "api/warehouse-stamp-info-details",
+    );
 
   constructor(
     protected http: HttpClient,
@@ -76,6 +82,30 @@ export class ChiTietLenhSanXuatService {
     return this.http.get<ILenhSanXuat>(`${this.resourceUrl1}/${id}`, {
       observe: "response",
     });
+  }
+
+  /**
+   * Get lenh san xuat by id using new API endpoint
+   * @param id - The id of the lenh san xuat
+   * @returns Observable of the lenh san xuat
+   */
+  getLenhSanXuatById(id: number): Observable<HttpResponse<ILenhSanXuat>> {
+    return this.http.get<ILenhSanXuat>(`${this.lenhSanXuatUrl}/${id}`, {
+      observe: "response",
+    });
+  }
+
+  /**
+   * Get warehouse stamp info details by ma_lenh_san_xuat_id using new API endpoint
+   * @param maLenhSanXuatId - The ma_lenh_san_xuat_id to filter by
+   * @returns Observable of the list of warehouse stamp info details
+   */
+  getWarehouseStampInfoDetailsByMaLenhSanXuatId(
+    maLenhSanXuatId: number,
+  ): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.warehouseStampInfoDetailUrl}/${maLenhSanXuatId}`,
+    );
   }
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);

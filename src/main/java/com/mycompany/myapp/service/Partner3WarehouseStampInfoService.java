@@ -1,8 +1,13 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.domain.WarehouseNoteInfo;
+import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
+import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
+import com.mycompany.myapp.service.dto.WarehouseNoteInfoWithChildrenDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
+import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
+import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
 import java.util.Comparator;
 import java.util.List;
@@ -27,15 +32,24 @@ public class Partner3WarehouseStampInfoService {
 
     private final Partner3WarehouseStampInfoRepository partner3WarehouseStampInfoRepository;
 
+    private final Partner3WarehouseStampInfoDetailRepository partner3WarehouseStampInfoDetailRepository;
+
     private final WarehouseStampInfoMapper warehouseStampInfoMapper;
+
+    private final WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper;
 
     public Partner3WarehouseStampInfoService(
         Partner3WarehouseStampInfoRepository partner3WarehouseStampInfoRepository,
-        WarehouseStampInfoMapper warehouseStampInfoMapper
+        Partner3WarehouseStampInfoDetailRepository partner3WarehouseStampInfoDetailRepository,
+        WarehouseStampInfoMapper warehouseStampInfoMapper,
+        WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper
     ) {
         this.partner3WarehouseStampInfoRepository =
             partner3WarehouseStampInfoRepository;
+        this.partner3WarehouseStampInfoDetailRepository =
+            partner3WarehouseStampInfoDetailRepository;
         this.warehouseStampInfoMapper = warehouseStampInfoMapper;
+        this.warehouseStampInfoDetailMapper = warehouseStampInfoDetailMapper;
     }
 
     /**
@@ -114,7 +128,8 @@ public class Partner3WarehouseStampInfoService {
     }
 
     /**
-     * Get the total quantity from all warehouseStampInfos where trangThai is not 'Bản nháp'.
+     * Get the total quantity from all warehouseStampInfos where trangThai is not
+     * 'Bản nháp'.
      *
      * @return the total quantity.
      */
@@ -151,5 +166,48 @@ public class Partner3WarehouseStampInfoService {
             warehouseStampInfo
         );
         return warehouseStampInfoMapper.toDto(warehouseStampInfo);
+    }
+
+    /**
+     * Create a warehouseStampInfo with children.
+     *
+     * @param warehouseNoteInfoWithChildrenDTO the DTO with info and details.
+     * @return the persisted DTO.
+     */
+    public WarehouseNoteInfoWithChildrenDTO create(
+        WarehouseNoteInfoWithChildrenDTO warehouseNoteInfoWithChildrenDTO
+    ) {
+        LOG.debug(
+            "Request to create WarehouseNoteInfo with children : {}",
+            warehouseNoteInfoWithChildrenDTO
+        );
+
+        // Save the main WarehouseNoteInfo
+        WarehouseNoteInfo warehouseNoteInfo = warehouseStampInfoMapper.toEntity(
+            warehouseNoteInfoWithChildrenDTO.getWarehouseNoteInfo()
+        );
+        warehouseNoteInfo = partner3WarehouseStampInfoRepository.save(
+            warehouseNoteInfo
+        );
+
+        // Save the details
+        if (
+            warehouseNoteInfoWithChildrenDTO.getWarehouseNoteInfoDetails() !=
+            null
+        ) {
+            for (WarehouseStampInfoDetailDTO detailDTO : warehouseNoteInfoWithChildrenDTO.getWarehouseNoteInfoDetails()) {
+                WarehouseNoteInfoDetail detail =
+                    warehouseStampInfoDetailMapper.toEntity(detailDTO);
+                detail.setmaLenhSanXuatId(warehouseNoteInfo.getId());
+                partner3WarehouseStampInfoDetailRepository.save(detail);
+            }
+        }
+
+        // Return the DTO with the saved info
+        WarehouseStampInfoDTO savedInfoDTO = warehouseStampInfoMapper.toDto(
+            warehouseNoteInfo
+        );
+        warehouseNoteInfoWithChildrenDTO.setWarehouseNoteInfo(savedInfoDTO);
+        return warehouseNoteInfoWithChildrenDTO;
     }
 }

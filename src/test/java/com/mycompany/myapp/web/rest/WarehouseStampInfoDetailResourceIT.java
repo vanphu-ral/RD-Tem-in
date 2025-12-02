@@ -130,7 +130,7 @@ class WarehouseStampInfoDetailResourceIT {
     private static final Integer UPDATED_CHECKED = 2;
 
     private static final String ENTITY_API_URL =
-        "/api/warehouse-note-info-details";
+        "/api/warehouse-stamp-info-details";
     private static final String ENTITY_API_URL_ID = ENTITY_API_URL + "/{id}";
 
     private static Random random = new Random();

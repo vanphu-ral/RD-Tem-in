@@ -8,6 +8,7 @@ import { ActivatedRoute } from "@angular/router";
 import * as XLSX from "xlsx";
 
 import { IChiTietLenhSanXuat } from "../chi-tiet-lenh-san-xuat.model";
+import { ChiTietLenhSanXuatService } from "../service/chi-tiet-lenh-san-xuat.service";
 import { PageEvent } from "@angular/material/paginator";
 
 @Component({
@@ -18,7 +19,7 @@ import { PageEvent } from "@angular/material/paginator";
 })
 export class ChiTietLenhSanXuatDetailComponent implements OnInit {
   resourceUrl = this.applicationConfigService.getEndpointFor(
-    "/api/warehouse-note-info-details",
+    "/api/warehouse-stamp-info-details",
   );
   resource1Url = this.applicationConfigService.getEndpointFor(
     "/api/quan-ly-phe-duyet/trang-thai",
@@ -77,6 +78,7 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
     protected activatedRoute: ActivatedRoute,
     protected applicationConfigService: ApplicationConfigService,
     protected http: HttpClient,
+    protected chiTietLenhSanXuatService: ChiTietLenhSanXuatService,
   ) {}
 
   ngOnInit(): void {
@@ -84,8 +86,9 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
       this.lenhSanXuat = lenhSanXuat;
     });
     if (this.lenhSanXuat?.id) {
-      this.http
-        .get<any>(`${this.resourceUrl}/${this.lenhSanXuat.id}`)
+      // Use new service method to get warehouse stamp info details
+      this.chiTietLenhSanXuatService
+        .getWarehouseStampInfoDetailsByMaLenhSanXuatId(this.lenhSanXuat.id)
         .subscribe((res) => {
           this.chiTietLenhSanXuats = res;
           this.chiTietLenhSanXuatExport = this.chiTietLenhSanXuats.filter(
