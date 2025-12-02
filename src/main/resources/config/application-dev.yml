@@ -152,7 +152,7 @@ partner3:
         enabled: true
 
 server:
-  port: 8085
+  port: 9040
 
 # ===================================================================
 # JHipster specific properties
