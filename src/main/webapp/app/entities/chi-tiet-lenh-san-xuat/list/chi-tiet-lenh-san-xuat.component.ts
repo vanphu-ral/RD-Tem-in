@@ -35,9 +35,9 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     "http://192.168.10.99:8085/api/warehouse-note-infos/not-draft/totaldata";
   searchUrlApprove =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuat");
-  maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
-    "api/lenhsx/ma-lenh-san-xuat",
-  );
+  // maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
+  //   "api/lenhsx/ma-lenh-san-xuat",
+  // );
   versionResourceUrl =
     this.applicationConfigService.getEndpointFor("api/lenhsx/version");
   sapCodetResourceUrl = this.applicationConfigService.getEndpointFor(
@@ -363,7 +363,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
       this.getTotalData();
       this.getLenhSanXuatList();
     }
-    this.createListOfMaLenhSanXuat();
+    // this.createListOfMaLenhSanXuat();
     this.createListOfSapCode();
     this.createListOfSapName();
     this.createListOfVersion();
@@ -410,12 +410,12 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     });
   }
   //============================ api lấy danh sách gợi tý từ Backend =====================
-  createListOfMaLenhSanXuat(): void {
-    this.http.get<any>(this.maLenhSanXuatResourceUrl).subscribe((res) => {
-      this.listOfMaLenhSanXuat = res;
-      // // console.log(res);
-    });
-  }
+  // createListOfMaLenhSanXuat(): void {
+  //   this.http.get<any>(this.maLenhSanXuatResourceUrl).subscribe((res) => {
+  //     this.listOfMaLenhSanXuat = res;
+  //     // // console.log(res);
+  //   });
+  // }
   createListOfSapCode(): void {
     this.http.get<any>(this.sapCodetResourceUrl).subscribe((res) => {
       this.listOfSapCode = res;
