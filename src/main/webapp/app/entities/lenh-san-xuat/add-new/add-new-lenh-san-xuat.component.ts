@@ -1154,14 +1154,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           // ===== FIX: Extract ID from nested warehouse_note_info object =====
           const newId = res.warehouse_note_info?.id ?? res.id ?? order.id;
 
-          console.log("📦 Full response:", res);
-          console.log("✅ Extracted ID:", newId);
+          console.log(" Full response:", res);
+          console.log(" Extracted ID:", newId);
 
           // Update maLenhSanXuatId and order.id
           this.maLenhSanXuatId = newId;
           order.id = newId;
 
-          console.log("✅ maLenhSanXuatId updated to:", this.maLenhSanXuatId);
+          console.log("maLenhSanXuatId updated to:", this.maLenhSanXuatId);
 
           this.snackBar.open(`Lưu thành công!`, "Đóng", {
             duration: 3000,
@@ -2132,7 +2132,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   private sendApproval(): void {
-    // Lấy trạng thái hiện tại từ productionOrders
+    const currentUser = this.accountService.isAuthenticated()
+      ? this.accountService["userIdentity"]?.login
+      : "unknown";
+
     const currentOrder = this.productionOrders[0];
     if (!currentOrder) {
       this.snackBar.open("Không có dữ liệu lệnh sản xuất", "Đóng", {
@@ -2152,40 +2155,57 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     // Cập nhật trạng thái sang "Chờ duyệt"
     currentOrder.trangThai = "Chờ duyệt";
 
-    // Gọi API update lệnh sản xuất
-    this.lenhSanXuatService.update(this.warehouseNoteInfo).subscribe({
-      next: () => {
-        // Sau khi update lệnh sản xuất thành công, gọi API update chi tiết
-        this.http
-          .put<any>(
-            `${this.resourceUrl1}/${this.maLenhSanXuatId}`,
-            this.details,
-          )
-          .subscribe({
-            next: () => {
-              this.snackBar.open("Gửi phê duyệt thành công", "Đóng", {
-                duration: 3000,
-              });
-              this.router.navigate([`/lenh-san-xuat`]);
-            },
-            error: (err) => {
-              console.error("Lỗi khi cập nhật chi tiết lệnh sản xuất:", err);
-              this.snackBar.open(
-                "Không thể cập nhật chi tiết lệnh sản xuất",
-                "Đóng",
-                { duration: 4000 },
-              );
-            },
+    const payload: WarehouseNotePayload = {
+      id: currentOrder.id,
+      ma_lenh_san_xuat: currentOrder.maLenhSanXuat,
+      sap_code: currentOrder.maSAP,
+      sap_name: currentOrder.tenHangHoa,
+      work_order_code: currentOrder.maWO,
+      version: currentOrder.version,
+      storage_code: currentOrder.maKhoNhap,
+      total_quantity: currentOrder.tongSoLuong,
+      create_by: currentUser ?? "",
+      trang_thai: "Chờ duyệt", // ép trạng thái
+      group_name: currentOrder.to,
+      comment_2: "",
+      approver_by: "",
+      branch: currentOrder.nganh,
+      product_type: currentOrder.loaiSanPham,
+      destination_warehouse: 1,
+    };
+
+    if (!currentOrder.id) {
+      this.snackBar.open("Lỗi: Không có ID lệnh sản xuất", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    this.planningService
+      .updateWarehouseNote(currentOrder.id, payload)
+      .subscribe({
+        next: (res) => {
+          const newId =
+            res.warehouse_note_info?.id ?? res.id ?? currentOrder.id;
+          this.maLenhSanXuatId = newId;
+          currentOrder.id = newId;
+
+          this.snackBar.open("Gửi phê duyệt thành công", "Đóng", {
+            duration: 3000,
+            panelClass: ["snackbar-success"],
           });
-      },
-      error: (err) => {
-        console.error("Lỗi khi cập nhật lệnh sản xuất:", err);
-        this.snackBar.open("Không thể cập nhật lệnh sản xuất", "Đóng", {
-          duration: 4000,
-        });
-      },
-    });
+          this.router.navigate([`/lenh-san-xuat`]);
+        },
+        error: (err) => {
+          console.error("Lỗi khi cập nhật trạng thái:", err);
+          this.snackBar.open("Không thể gửi phê duyệt", "Đóng", {
+            duration: 4000,
+            panelClass: ["snackbar-error"],
+          });
+        },
+      });
   }
+
   private loadMaKhoNhapOptionsTP(): void {
     this.planningService.getAreas().subscribe({
       next: (res: any) => {
