@@ -752,7 +752,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           // ===== SỐ LƯỢNG - FIX LOGIC =====
           soLuongCaiDatPallet: soLuongCaiDatPallet, // Tổng SP trong pallet này (thực tế hoặc dự kiến)
           thuTuGiaPallet: palletSub.stt, // Thứ tự pallet (1, 2, 3...)
-          soLuongBaoNgoaiThungGiaPallet: tienDoThung, // "3/10" (đã scan / dự kiến)
+          soLuongBaoNgoaiThungGiaPallet: scannedBoxes.length.toString(), // "3/10" (đã scan / dự kiến)
           slThung: soLuongSpTrong1Thung, // SL SP trong 1 thùng (thực tế hoặc ước lượng)
 
           // Note
