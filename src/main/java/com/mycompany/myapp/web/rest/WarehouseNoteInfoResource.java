@@ -391,4 +391,22 @@ public class WarehouseNoteInfoResource {
             partner3WarehouseStampInfoService.findByTrangThaiNotDraft();
         return ResponseEntity.ok().body(warehouseStampInfoDTOs);
     }
+
+    /**
+     * {@code GET  /warehouse-note-infos/not-draft/totaldata} : get the total
+     * quantity of warehouseNoteInfos
+     * where trangThai is not 'Bản nháp'.
+     *
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the total
+     *         quantity.
+     */
+    @GetMapping("/warehouse-note-infos/not-draft/totaldata")
+    public ResponseEntity<Integer> getWarehouseNoteInfosNotDraftTotalData() {
+        log.debug(
+            "REST request to get total quantity of WarehouseNoteInfos where trangThai != 'Bản nháp'"
+        );
+        Integer totalQuantity =
+            partner3WarehouseStampInfoService.getTotalQuantity();
+        return ResponseEntity.ok().body(totalQuantity);
+    }
 }

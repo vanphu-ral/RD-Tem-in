@@ -396,24 +396,6 @@ public class WarehouseStampInfoResource {
     }
 
     /**
-     * {@code GET  /not-draft/totaldata} : get the total quantity of
-     * warehouseStampInfos
-     * where trangThai is not 'Bản nháp'.
-     *
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the total
-     *         quantity.
-     */
-    @GetMapping("/not-draft/totaldata")
-    public ResponseEntity<Integer> getWarehouseStampInfosNotDraftTotalData() {
-        LOG.debug(
-            "REST request to get total quantity of WarehouseStampInfos where trangThai != 'Bản nháp'"
-        );
-        Integer totalQuantity =
-            partner3WarehouseStampInfoService.getTotalQuantity();
-        return ResponseEntity.ok().body(totalQuantity);
-    }
-
-    /**
      * {@code GET  /warehouse-note-infos/:id} : get the "id" warehouseStampInfo.
      *
      * @param id the id of the warehouseStampInfoDTO to retrieve.

@@ -7,7 +7,7 @@ info:
 servers:
   - url: http://localhost:8085/api
     description: Development server
-  - url: https://localhost:8085/api
+  - url: https://localhost:9040/api
     description: Development server with TLS Profile
 paths: {}
 components:

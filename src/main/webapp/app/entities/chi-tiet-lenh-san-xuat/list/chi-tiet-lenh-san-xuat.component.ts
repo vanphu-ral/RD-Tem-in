@@ -30,9 +30,9 @@ import { PageEvent } from "@angular/material/paginator";
 })
 export class ChiTietLenhSanXuatComponent implements OnInit {
   resourceUrlApprove =
-    "http://192.168.10.99:8085/api/warehouse-stamp-infos/not-draft";
+    "http://192.168.10.99:8085/api/warehouse-note-infos/not-draft";
   totalDataUrl =
-    "http://192.168.10.99:8085/api/warehouse-stamp-infos/not-draft/totaldata";
+    "http://192.168.10.99:8085/api/warehouse-note-infos/not-draft/totaldata";
   searchUrlApprove =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuat");
   // maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
