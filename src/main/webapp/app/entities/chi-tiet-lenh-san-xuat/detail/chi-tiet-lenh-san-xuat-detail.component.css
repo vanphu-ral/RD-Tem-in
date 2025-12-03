@@ -373,7 +373,6 @@ input[type="checkbox"] {
    ============================================ */
 .custom-width {
   display: inline-block;
-  min-width: 100px;
   word-wrap: break-word;
   white-space: normal;
 }
@@ -732,5 +731,5 @@ a.export:visited {
 
 .custom-width {
   display: inline-block;
-  width: 10rem;
+  width: 5rem;
 }

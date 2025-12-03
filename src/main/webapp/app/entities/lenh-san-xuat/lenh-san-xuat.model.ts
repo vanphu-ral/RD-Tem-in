@@ -7,6 +7,7 @@ export interface ILenhSanXuat {
   sapCode?: string | null;
   sapName?: string | null;
   workOrderCode?: string | null;
+  product_type?: string | null;
   version?: string | null;
   storageCode?: string | null;
   totalQuantity?: number | null;
@@ -34,6 +35,7 @@ export class LenhSanXuat implements ILenhSanXuat {
     public sapName?: string | null,
     public workOrderCode?: string | null,
     public version?: string | null,
+    product_type?: string | null,
     public storageCode?: string | null,
     public totalQuantity?: number | null,
     public createBy?: string | null,
