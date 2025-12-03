@@ -10,6 +10,10 @@ import { PageEvent } from "@angular/material/paginator";
 import { MatTabGroup, MatTab } from "@angular/material/tabs";
 import { DataSource } from "@angular/cdk/collections";
 import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from "../confirm-dialog/confirm-dialog.component";
+import {
   CreateDialogComponent,
   DialogData,
   DialogResult,
@@ -569,22 +573,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     const allPrintData: PrintPalletData[] = [];
 
-    // ===== LẤY SỐ LƯỢNG SP TRONG 1 THÙNG =====
-    let soLuongSpTrong1Thung = 0;
-
-    if (this.warehouseNoteInfo?.product_type === "Thành phẩm") {
-      // Lấy từ boxItems đầu tiên
-      if (this.boxItems.length > 0) {
-        soLuongSpTrong1Thung = this.boxItems[0].soLuongTrongThung || 0;
-      }
-    } else if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
-      // Lấy từ reelDataList đầu tiên
-      if (this.reelDataList.length > 0) {
-        soLuongSpTrong1Thung = this.reelDataList[0].initialQuantity || 0;
-      }
-    }
-
-    console.log(` Số lượng SP trong 1 thùng: ${soLuongSpTrong1Thung}`);
+    console.log("Starting print preparation...");
 
     // ===== DUYỆT QUA TẤT CẢ PALLET GROUPS =====
     this.palletItems.forEach((palletGroup, groupIndex) => {
@@ -599,6 +588,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         // ===== TÌM CÁC THÙNG ĐÃ SCAN CHO PALLET NÀY =====
         const scannedBoxes: string[] = [];
         let tongSoSanPhamDaScan = 0;
+        let soLuongSpTrong1ThungThucTe = 0; // Số lượng SP trong thùng đầu tiên đã scan
 
         if (this.mappings && this.mappings.length > 0) {
           const palletMappings = this.mappings.filter(
@@ -611,49 +601,101 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             }
           });
 
-          // ===== TÍNH SỐ LƯỢNG SP ĐÃ SCAN =====
-          scannedBoxes.forEach((scannedSerial) => {
-            // Tìm trong boxItems
-            for (const box of this.boxItems) {
-              if (box.serialBox === scannedSerial) {
-                tongSoSanPhamDaScan += box.soLuongSp || 0;
-                break;
-              }
+          console.log(`  Found ${scannedBoxes.length} scanned boxes`);
 
-              const subItem = box.subItems?.find(
-                (sub) => sub.maThung === scannedSerial,
-              );
-              if (subItem) {
-                tongSoSanPhamDaScan += subItem.soLuong || 0;
-                break;
+          // ===== TÍNH SỐ LƯỢNG SP ĐÃ SCAN =====
+          scannedBoxes.forEach((scannedSerial, boxIndex) => {
+            const trimmedSerial = scannedSerial.trim();
+            let foundQty = 0;
+
+            // Tìm trong boxItems (Thành phẩm)
+            if (this.warehouseNoteInfo?.product_type === "Thành phẩm") {
+              for (const box of this.boxItems) {
+                // Check serial box cha
+                if (box.serialBox === trimmedSerial) {
+                  foundQty = box.soLuongSp || 0;
+                  tongSoSanPhamDaScan += foundQty;
+
+                  // Lưu số lượng SP của thùng đầu tiên
+                  if (boxIndex === 0) {
+                    soLuongSpTrong1ThungThucTe = foundQty;
+                  }
+                  break;
+                }
+
+                // Check trong subItems
+                const subItem = box.subItems?.find(
+                  (sub) => sub.maThung === trimmedSerial,
+                );
+                if (subItem) {
+                  foundQty = subItem.soLuong || 0;
+                  tongSoSanPhamDaScan += foundQty;
+
+                  // Lưu số lượng SP của thùng đầu tiên
+                  if (boxIndex === 0) {
+                    soLuongSpTrong1ThungThucTe = foundQty;
+                  }
+                  break;
+                }
               }
             }
 
-            // Tìm trong reelDataList
-            if (this.reelDataList) {
+            // Tìm trong reelDataList (Bán thành phẩm)
+            if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
               const reel = this.reelDataList.find(
-                (r) => r.reelID === scannedSerial,
+                (r) => r.reelID === trimmedSerial,
               );
               if (reel) {
-                tongSoSanPhamDaScan += reel.initialQuantity || 0;
+                foundQty = reel.initialQuantity || 0;
+                tongSoSanPhamDaScan += foundQty;
+
+                // Lưu số lượng SP của thùng đầu tiên
+                if (boxIndex === 0) {
+                  soLuongSpTrong1ThungThucTe = foundQty;
+                }
               }
             }
+
+            console.log(
+              `    Box ${boxIndex + 1}: ${trimmedSerial} → ${foundQty} SP`,
+            );
           });
         }
 
-        // ===== TÍNH SỐ LƯỢNG DỰ KIẾN (THEO KẾ HOẠCH) =====
-        const soThungDuKien = palletSub.tongSoThung; // Số thùng dự kiến trong pallet
+        // ===== TÍNH SỐ LƯỢNG DỰ KIẾN (KHI CHƯA SCAN) =====
+        const soThungDuKien = palletSub.tongSoThung; // Số thùng dự kiến trong pallet này
+
+        // ===== LẤY SỐ LƯỢNG SP TRONG 1 THÙNG =====
+        let soLuongSpTrong1Thung = 0;
+
+        if (scannedBoxes.length > 0) {
+          // Nếu đã scan → dùng số lượng thực tế từ thùng đầu tiên đã scan
+          soLuongSpTrong1Thung = soLuongSpTrong1ThungThucTe;
+        } else {
+          // Nếu chưa scan → ước lượng từ dữ liệu hiện có
+          if (this.warehouseNoteInfo?.product_type === "Thành phẩm") {
+            if (this.boxItems.length > 0) {
+              soLuongSpTrong1Thung = this.boxItems[0].soLuongTrongThung || 0;
+            }
+          } else if (
+            this.warehouseNoteInfo?.product_type === "Bán thành phẩm"
+          ) {
+            if (this.reelDataList.length > 0) {
+              soLuongSpTrong1Thung = this.reelDataList[0].initialQuantity || 0;
+            }
+          }
+        }
+
+        // Tổng số SP dự kiến nếu scan đủ
         const tongSoSpDuKien = soThungDuKien * soLuongSpTrong1Thung;
 
         // ===== QUYẾT ĐỊNH HIỂN THỊ SỐ LƯỢNG NÀO =====
-        // Nếu đã scan → hiển thị số thực tế
-        // Nếu chưa scan → hiển thị số dự kiến
         const soLuongCaiDatPallet =
           scannedBoxes.length > 0 ? tongSoSanPhamDaScan : tongSoSpDuKien;
 
         const tienDoThung = `${scannedBoxes.length}/${soThungDuKien}`;
 
-        // ===== LẤY THÔNG TIN THÙNG ĐẦU TIÊN (CHO QR CODE DƯỚI) =====
+        // ===== LẤY THÔNG TIN THÙNG ĐẦU TIÊN =====
         let firstBoxSerial = "";
         let lotNumber = "";
 
@@ -668,6 +710,16 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             ) {
               lotNumber = box.lotNumber || "";
               break;
+            }
+          }
+
+          // Nếu không tìm thấy trong boxItems, tìm trong reelDataList
+          if (!lotNumber && this.reelDataList) {
+            const reel = this.reelDataList.find(
+              (r) => r.reelID === firstBoxSerial,
+            );
+            if (reel) {
+              lotNumber = reel.lot || "";
             }
           }
         } else {
@@ -697,14 +749,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           to: palletGroup.to ?? this.productionOrders[0]?.to ?? "",
           lpl2: palletGroup.to ?? this.productionOrders[0]?.to ?? "",
 
-          // ===== SỐ LƯỢNG - LOGIC ĐÚNG =====
-          soLuongCaiDatPallet: soLuongCaiDatPallet, // Tổng SP (thực tế hoặc dự kiến)
+          // ===== SỐ LƯỢNG - FIX LOGIC =====
+          soLuongCaiDatPallet: soLuongCaiDatPallet, // Tổng SP trong pallet này (thực tế hoặc dự kiến)
           thuTuGiaPallet: palletSub.stt, // Thứ tự pallet (1, 2, 3...)
           soLuongBaoNgoaiThungGiaPallet: tienDoThung, // "3/10" (đã scan / dự kiến)
-          slThung: soLuongSpTrong1Thung, // SL SP trong 1 thùng
+          slThung: soLuongSpTrong1Thung, // SL SP trong 1 thùng (thực tế hoặc ước lượng)
 
-          // ===== NOTE - FIX =====
-          note: palletGroup.note ?? "", // ← THÊM NOTE
+          // Note
+          note: palletGroup.note ?? "",
 
           // QR Code dưới
           productCode: palletGroup.tenSanPham,
@@ -717,7 +769,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           scannedBoxes: scannedBoxes,
         };
 
-        console.log("Created print data:", {
+        console.log(`  Print data for pallet ${palletSub.maPallet}:`, {
           serialPallet: printData.serialPallet,
           soLuongCaiDatPallet: printData.soLuongCaiDatPallet,
           soLuongBaoNgoaiThungGiaPallet:
@@ -738,6 +790,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
       return;
     }
+
+    console.log(`Prepared ${allPrintData.length} print data items`);
 
     // ===== MỞ PRINT DIALOG =====
     this.openPrintDialogFromAddNew(allPrintData);
@@ -1188,22 +1242,36 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   deleteBox(index: number): void {
     const box = this.boxItems[index];
 
-    // Kiểm tra nếu box có id (đã lưu vào DB)
-    if (box.id) {
-      // Hiển thị confirm dialog
-      const confirmDelete = confirm(
-        `Bạn có chắc muốn xóa thùng "${box.maSanPham}"?`,
-      );
+    // ===== MỞ CONFIRM DIALOG =====
+    const dialogData: ConfirmDialogData = {
+      title: "Xác nhận xóa thùng",
+      message: `Bạn có chắc muốn xóa thùng "${box.maSanPham}" với ${box.subItems.length} thùng con?\n\nHành động này không thể hoàn tác!`,
+      confirmText: "Xóa",
+      cancelText: "Hủy",
+      type: "danger",
+    };
 
-      if (!confirmDelete) {
-        return;
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: "500px",
+      data: dialogData,
+      disableClose: false,
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return; // User clicked "Hủy"
       }
 
-      // Gọi API xóa tất cả subItems trong DB
-      const deletePromises: Promise<void>[] = [];
+      // ===== USER CONFIRMED → PROCEED WITH DELETE =====
 
-      box.subItems.forEach((subItem) => {
-        if (subItem.id) {
+      // Check nếu có subItems với ID (đã lưu DB)
+      const subItemsWithId = box.subItems.filter((sub) => sub.id);
+
+      if (subItemsWithId.length > 0) {
+        // ===== XÓA TRONG DB =====
+        const deletePromises: Promise<void>[] = [];
+
+        subItemsWithId.forEach((subItem) => {
           const promise = new Promise<void>((resolve, reject) => {
             this.planningService.deleteBoxDetail(subItem.id!).subscribe({
               next: () => {
@@ -1217,188 +1285,174 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             });
           });
           deletePromises.push(promise);
-        }
-      });
-
-      // Đợi tất cả API xóa hoàn thành
-      Promise.all(deletePromises)
-        .then(() => {
-          // Xóa khỏi FE sau khi xóa DB thành công
-          this.boxItems = this.boxItems.filter((_, i) => i !== index);
-
-          // Cập nhật lại STT
-          this.boxItems = this.boxItems.map((b, idx) => ({
-            ...b,
-            stt: idx + 1,
-          }));
-
-          // Cập nhật tổng số lượng
-          this.updateProductionOrderTotal();
-
-          this.snackBar.open("Đã xóa thùng khỏi cơ sở dữ liệu", "Đóng", {
-            duration: 3000,
-            panelClass: ["snackbar-success"],
-          });
-        })
-        .catch((err) => {
-          console.error("Lỗi khi xóa box:", err);
-          this.snackBar.open("Lỗi khi xóa thùng khỏi cơ sở dữ liệu", "Đóng", {
-            duration: 4000,
-            panelClass: ["snackbar-error"],
-          });
         });
-    } else {
-      // Box chưa lưu DB → xóa trực tiếp trên FE
-      this.boxItems = this.boxItems.filter((_, i) => i !== index);
 
-      // Cập nhật lại STT
-      this.boxItems = this.boxItems.map((b, idx) => ({
-        ...b,
-        stt: idx + 1,
-      }));
+        // Đợi tất cả API xóa hoàn thành
+        Promise.all(deletePromises)
+          .then(() => {
+            // Xóa khỏi FE sau khi xóa DB thành công
+            this.removeBoxFromFE(index);
 
-      // Cập nhật tổng số lượng
-      this.updateProductionOrderTotal();
+            this.snackBar.open("Đã xóa thùng khỏi cơ sở dữ liệu", "Đóng", {
+              duration: 3000,
+              panelClass: ["snackbar-success"],
+            });
+          })
+          .catch((err) => {
+            console.error("Lỗi khi xóa box:", err);
+            this.snackBar.open("Lỗi khi xóa thùng khỏi cơ sở dữ liệu", "Đóng", {
+              duration: 4000,
+              panelClass: ["snackbar-error"],
+            });
+          });
+      } else {
+        // ===== CHƯA LƯU DB → XÓA TRỰC TIẾP FE =====
+        this.removeBoxFromFE(index);
 
-      this.snackBar.open("Đã xóa thùng", "Đóng", {
-        duration: 2000,
-      });
-    }
+        this.snackBar.open("Đã xóa thùng", "Đóng", {
+          duration: 2000,
+        });
+      }
+    });
   }
 
   // Xóa Pallet
   deletePallet(palletItem: PalletItem, subIndex?: number): void {
-    // Nếu có subIndex → xóa pallet con cụ thể
+    // ===== CASE 1: XÓA PALLET CON CỤ THỂ =====
     if (subIndex !== undefined) {
       const palletSub = palletItem.subItems[subIndex];
 
-      if (palletSub.id) {
-        // Pallet con đã lưu DB → gọi API
-        const confirmDelete = confirm(
-          `Bạn có chắc muốn xóa pallet "${palletSub.maPallet}"?`,
-        );
+      // ===== MỞ CONFIRM DIALOG =====
+      const dialogData: ConfirmDialogData = {
+        title: "Xác nhận xóa pallet",
+        message: `Bạn có chắc muốn xóa pallet "${palletSub.maPallet}"?\n\nHành động này không thể hoàn tác!`,
+        confirmText: "Xóa",
+        cancelText: "Hủy",
+        type: "danger",
+      };
 
-        if (!confirmDelete) {
+      const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+        width: "500px",
+        data: dialogData,
+      });
+
+      dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+        if (!confirmed) {
           return;
         }
 
-        this.planningService.deletePalletDetail(palletSub.id).subscribe({
-          next: () => {
-            // Xóa khỏi FE
-            palletItem.subItems = palletItem.subItems.filter(
-              (_, i) => i !== subIndex,
-            );
+        // ===== USER CONFIRMED =====
+        if (palletSub.id) {
+          // Đã lưu DB → gọi API
+          this.planningService.deletePalletDetail(palletSub.id).subscribe({
+            next: () => {
+              this.removePalletSubFromFE(palletItem, subIndex);
 
-            // Cập nhật lại STT
-            palletItem.subItems = palletItem.subItems.map((sub, idx) => ({
-              ...sub,
-              stt: idx + 1,
-            }));
-
-            // Cập nhật tổng pallet
-            palletItem.tongPallet = palletItem.subItems.length;
-
-            // Nếu không còn pallet con nào → xóa luôn palletItem cha
-            if (palletItem.subItems.length === 0) {
-              this.palletItems = this.palletItems.filter(
-                (p) => p !== palletItem,
+              this.snackBar.open("Đã xóa pallet khỏi cơ sở dữ liệu", "Đóng", {
+                duration: 3000,
+                panelClass: ["snackbar-success"],
+              });
+            },
+            error: (err) => {
+              console.error("Lỗi xóa pallet:", err);
+              this.snackBar.open(
+                "Lỗi khi xóa pallet khỏi cơ sở dữ liệu",
+                "Đóng",
+                {
+                  duration: 4000,
+                  panelClass: ["snackbar-error"],
+                },
               );
-            }
-
-            this.snackBar.open("Đã xóa pallet khỏi cơ sở dữ liệu", "Đóng", {
-              duration: 3000,
-              panelClass: ["snackbar-success"],
-            });
-          },
-          error: (err) => {
-            console.error("Lỗi xóa pallet:", err);
-            this.snackBar.open(
-              "Lỗi khi xóa pallet khỏi cơ sở dữ liệu",
-              "Đóng",
-              {
-                duration: 4000,
-                panelClass: ["snackbar-error"],
-              },
-            );
-          },
-        });
-      } else {
-        // Pallet con chưa lưu DB → xóa trực tiếp FE
-        palletItem.subItems = palletItem.subItems.filter(
-          (_, i) => i !== subIndex,
-        );
-
-        // Cập nhật lại STT
-        palletItem.subItems = palletItem.subItems.map((sub, idx) => ({
-          ...sub,
-          stt: idx + 1,
-        }));
-
-        // Cập nhật tổng pallet
-        palletItem.tongPallet = palletItem.subItems.length;
-
-        // Nếu không còn pallet con nào → xóa luôn palletItem cha
-        if (palletItem.subItems.length === 0) {
-          this.palletItems = this.palletItems.filter((p) => p !== palletItem);
-        }
-
-        this.snackBar.open("Đã xóa pallet", "Đóng", {
-          duration: 2000,
-        });
-      }
-    } else {
-      // Xóa toàn bộ palletItem (tất cả pallet con)
-      const confirmDelete = confirm(
-        `Bạn có chắc muốn xóa tất cả ${palletItem.subItems.length} pallet?`,
-      );
-
-      if (!confirmDelete) {
-        return;
-      }
-
-      const deletePromises: Promise<void>[] = [];
-
-      palletItem.subItems.forEach((sub) => {
-        if (sub.id) {
-          const promise = new Promise<void>((resolve, reject) => {
-            this.planningService.deletePalletDetail(sub.id!).subscribe({
-              next: () => {
-                console.log(`Đã xóa pallet detail ID ${sub.id} khỏi DB`);
-                resolve();
-              },
-              error: (err) => {
-                console.error(`Lỗi xóa pallet detail ID ${sub.id}:`, err);
-                reject(err);
-              },
-            });
+            },
           });
-          deletePromises.push(promise);
+        } else {
+          // Chưa lưu DB → xóa trực tiếp FE
+          this.removePalletSubFromFE(palletItem, subIndex);
+
+          this.snackBar.open("Đã xóa pallet", "Đóng", {
+            duration: 2000,
+          });
         }
       });
+    }
+    // ===== CASE 2: XÓA TOÀN BỘ PALLET GROUP =====
+    else {
+      const dialogData: ConfirmDialogData = {
+        title: "Xác nhận xóa tất cả pallet",
+        message: `Bạn có chắc muốn xóa tất cả ${palletItem.subItems.length} pallet?\n\nHành động này không thể hoàn tác!`,
+        confirmText: "Xóa tất cả",
+        cancelText: "Hủy",
+        type: "danger",
+      };
 
-      Promise.all(deletePromises)
-        .then(() => {
-          // Xóa khỏi FE
-          this.palletItems = this.palletItems.filter((p) => p !== palletItem);
+      const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+        width: "500px",
+        data: dialogData,
+      });
 
-          this.snackBar.open(
-            "Đã xóa tất cả pallet khỏi cơ sở dữ liệu",
-            "Đóng",
-            {
-              duration: 3000,
-              panelClass: ["snackbar-success"],
-            },
-          );
-        })
-        .catch((err) => {
-          console.error("Lỗi khi xóa pallet:", err);
-          this.snackBar.open("Lỗi khi xóa pallet khỏi cơ sở dữ liệu", "Đóng", {
-            duration: 4000,
-            panelClass: ["snackbar-error"],
-          });
+      dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          return;
+        }
+
+        // ===== XÓA TẤT CẢ PALLET CON =====
+        const deletePromises: Promise<void>[] = [];
+
+        palletItem.subItems.forEach((sub) => {
+          if (sub.id) {
+            const promise = new Promise<void>((resolve, reject) => {
+              this.planningService.deletePalletDetail(sub.id!).subscribe({
+                next: () => {
+                  console.log(`Đã xóa pallet detail ID ${sub.id} khỏi DB`);
+                  resolve();
+                },
+                error: (err) => {
+                  console.error(`Lỗi xóa pallet detail ID ${sub.id}:`, err);
+                  reject(err);
+                },
+              });
+            });
+            deletePromises.push(promise);
+          }
         });
+
+        if (deletePromises.length > 0) {
+          Promise.all(deletePromises)
+            .then(() => {
+              this.removePalletGroupFromFE(palletItem);
+
+              this.snackBar.open(
+                "Đã xóa tất cả pallet khỏi cơ sở dữ liệu",
+                "Đóng",
+                {
+                  duration: 3000,
+                  panelClass: ["snackbar-success"],
+                },
+              );
+            })
+            .catch((err) => {
+              console.error("Lỗi khi xóa pallet:", err);
+              this.snackBar.open(
+                "Lỗi khi xóa pallet khỏi cơ sở dữ liệu",
+                "Đóng",
+                {
+                  duration: 4000,
+                  panelClass: ["snackbar-error"],
+                },
+              );
+            });
+        } else {
+          // Tất cả chưa lưu DB → xóa trực tiếp
+          this.removePalletGroupFromFE(palletItem);
+
+          this.snackBar.open("Đã xóa tất cả pallet", "Đóng", {
+            duration: 2000,
+          });
+        }
+      });
     }
   }
+
   //lưu dữ liệu box và pallet
   saveCombined(maLenhSanXuatId: number): void {
     // Validate maLenhSanXuatId
@@ -2032,6 +2086,47 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     return `P${year}${month}${day}${hours}${minutes}${seconds}${sequence}`;
   }
 
+  private removeBoxFromFE(index: number): void {
+    this.boxItems = this.boxItems.filter((_, i) => i !== index);
+
+    // Cập nhật lại STT
+    this.boxItems = this.boxItems.map((b, idx) => ({
+      ...b,
+      stt: idx + 1,
+    }));
+
+    // Cập nhật tổng số lượng
+    this.updateProductionOrderTotal();
+
+    console.log(`Đã xóa thùng tại index ${index} khỏi FE`);
+  }
+
+  private removePalletSubFromFE(
+    palletItem: PalletItem,
+    subIndex: number,
+  ): void {
+    palletItem.subItems = palletItem.subItems.filter((_, i) => i !== subIndex);
+
+    // Cập nhật lại STT
+    palletItem.subItems = palletItem.subItems.map((sub, idx) => ({
+      ...sub,
+      stt: idx + 1,
+    }));
+
+    // Cập nhật tổng pallet
+    palletItem.tongPallet = palletItem.subItems.length;
+
+    // Nếu không còn pallet con nào → xóa luôn palletItem cha
+    if (palletItem.subItems.length === 0) {
+      this.palletItems = this.palletItems.filter((p) => p !== palletItem);
+    }
+
+    console.log(`Đã xóa pallet con tại index ${subIndex} khỏi FE`);
+  }
+  private removePalletGroupFromFE(palletItem: PalletItem): void {
+    this.palletItems = this.palletItems.filter((p) => p !== palletItem);
+    console.log(`Đã xóa pallet group khỏi FE`);
+  }
   //generate realID
   private generateReelID(date: Date, sapCode: string, counter: number): string {
     // Format: YYMMDDHHMMXX00001
