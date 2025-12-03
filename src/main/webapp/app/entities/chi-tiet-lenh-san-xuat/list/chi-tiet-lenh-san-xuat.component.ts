@@ -375,20 +375,12 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   getLenhSanXuatList(): void {
     this.http.get<any>(this.resourceUrlApprove).subscribe((res) => {
       this.lenhSanXuats = res;
-      // // console.log('tesst 1: ', this.pageNumber, res);
-      setTimeout(() => {
-        this.http
-          .post<any>(this.getLenhSanXuatTongSoLuongUrl, this.lenhSanXuats)
-          .subscribe((res1) => {
-            // console.log('tongsoluong', this.lenhSanXuats);
-            for (let i = 0; i < this.lenhSanXuats!.length; i++) {
-              this.lenhSanXuats![i].total_quantity = res1[i].tongSoLuong;
-            }
-          });
-        this.changeColor();
-        // Lưu lại key word tìm kiếm
-        sessionStorage.setItem("tem-in-search-body", JSON.stringify(this.body));
-      }, 500);
+
+      // Sau khi load danh sách thì đổi màu hiển thị
+      this.changeColor();
+
+      // Lưu lại key word tìm kiếm
+      sessionStorage.setItem("tem-in-search-body", JSON.stringify(this.body));
     });
   }
 

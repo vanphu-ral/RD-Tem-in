@@ -155,46 +155,82 @@ export class LenhSanXuatComponent implements OnInit {
     this.body.trangThai = this.trangThai;
     // console.log('body: ', this.body);
   }
+  // nextPage(): void {
+  //   this.pageNumber++;
+  //   this.mappingBodySearchAndPagination();
+  //   this.backPageBtn = false;
+  //   this.firstPageBtn = false;
+  //   if (this.pageNumber === Math.floor(this.totalData / this.itemPerPage) + 1) {
+  //     this.nextPageBtn = true;
+  //     this.lastPageBtn = true;
+  //   }
+  //   this.getLenhSanXuatList();
+  // }
+  // lastPage(): void {
+  //   this.pageNumber = Math.floor(this.totalData / this.itemPerPage) + 1;
+  //   this.mappingBodySearchAndPagination();
+  //   this.backPageBtn = false;
+  //   this.firstPageBtn = false;
+  //   this.lastPageBtn = true;
+  //   this.nextPageBtn = true;
+  //   this.getLenhSanXuatList();
+  // }
+  // backPage(): void {
+  //   this.pageNumber--;
+  //   this.mappingBodySearchAndPagination();
+  //   this.nextPageBtn = false;
+  //   this.lastPageBtn = false;
+  //   if (this.pageNumber === 1) {
+  //     this.backPageBtn = true;
+  //     this.firstPageBtn = true;
+  //   }
+  //   this.getLenhSanXuatList();
+  // }
+  // firstPage(): void {
+  //   this.pageNumber = 1;
+  //   this.mappingBodySearchAndPagination();
+  //   this.nextPageBtn = false;
+  //   this.lastPageBtn = false;
+  //   this.backPageBtn = true;
+  //   this.firstPageBtn = true;
+  //   this.getLenhSanXuatList();
+  // }
   nextPage(): void {
-    this.pageNumber++;
-    this.mappingBodySearchAndPagination();
     this.backPageBtn = false;
     this.firstPageBtn = false;
-    if (this.pageNumber === Math.floor(this.totalData / this.itemPerPage) + 1) {
-      this.nextPageBtn = true;
-      this.lastPageBtn = true;
+    if (this.pageNumber * this.itemPerPage < this.totalItems) {
+      this.pageNumber++;
+      this.getLenhSanXuatList();
     }
-    this.getLenhSanXuatList();
   }
-  lastPage(): void {
-    this.pageNumber = Math.floor(this.totalData / this.itemPerPage) + 1;
-    this.mappingBodySearchAndPagination();
-    this.backPageBtn = false;
-    this.firstPageBtn = false;
-    this.lastPageBtn = true;
-    this.nextPageBtn = true;
-    this.getLenhSanXuatList();
-  }
+
   backPage(): void {
-    this.pageNumber--;
-    this.mappingBodySearchAndPagination();
     this.nextPageBtn = false;
     this.lastPageBtn = false;
-    if (this.pageNumber === 1) {
-      this.backPageBtn = true;
-      this.firstPageBtn = true;
+    if (this.pageNumber > 1) {
+      this.pageNumber--;
+      this.getLenhSanXuatList();
     }
-    this.getLenhSanXuatList();
   }
+
   firstPage(): void {
     this.pageNumber = 1;
-    this.mappingBodySearchAndPagination();
     this.nextPageBtn = false;
     this.lastPageBtn = false;
     this.backPageBtn = true;
     this.firstPageBtn = true;
     this.getLenhSanXuatList();
   }
+
+  lastPage(): void {
+    this.pageNumber = Math.ceil(this.totalItems / this.itemPerPage);
+    this.backPageBtn = false;
+    this.firstPageBtn = false;
+    this.lastPageBtn = true;
+    this.nextPageBtn = true;
+    this.getLenhSanXuatList();
+  }
+
   onPageChange(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
@@ -343,7 +379,7 @@ export class LenhSanXuatComponent implements OnInit {
   // }
   getLenhSanXuatList(): void {
     this.http.get<any[]>(this.testUrl).subscribe((res) => {
-      this.lenhSanXuats = res.map((item) => ({
+      const allData = res.map((item) => ({
         id: item.id,
         maLenhSanXuat: item.ma_lenh_san_xuat,
         sapCode: item.sap_code,
@@ -362,6 +398,12 @@ export class LenhSanXuatComponent implements OnInit {
         branch: item.branch,
         productType: item.product_type,
       }));
+
+      this.totalItems = allData.length;
+
+      const startIndex = (this.pageNumber - 1) * this.itemPerPage;
+      const endIndex = startIndex + this.itemPerPage;
+      this.lenhSanXuats = allData.slice(startIndex, endIndex);
     });
   }
   reloadPage(): void {
