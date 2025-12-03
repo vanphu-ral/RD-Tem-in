@@ -45,7 +45,7 @@ describe("ConfigurationComponent", () => {
           name: "server.ports",
           properties: {
             "local.server.port": {
-              value: "8085",
+              value: "9040",
             },
           },
         },
