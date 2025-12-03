@@ -51,6 +51,7 @@ export class LenhSanXuatComponent implements OnInit {
   formSearch = this.formBuilder.group({
     maLenhSanXuat: "",
     sapCode: "",
+    product_type: "",
     sapName: "",
     workOrderCode: "",
     version: "",
@@ -83,6 +84,7 @@ export class LenhSanXuatComponent implements OnInit {
   @Input() pageNumber = 1;
   @Input() maLenhSanXuat = "";
   @Input() version = "";
+  @Input() product_type = "";
   @Input() sapCode = "";
   @Input() sapName = "";
   @Input() workOrderCode = "";
@@ -98,6 +100,7 @@ export class LenhSanXuatComponent implements OnInit {
     sapCode: string;
     sapName: string;
     workOrderCode: string;
+    product_type: string;
     version: string;
     storageCode: string;
     createBy: string;
@@ -111,6 +114,7 @@ export class LenhSanXuatComponent implements OnInit {
     sapCode: "",
     sapName: "",
     workOrderCode: "",
+    product_type: "",
     version: "",
     storageCode: "",
     createBy: "",
@@ -145,6 +149,7 @@ export class LenhSanXuatComponent implements OnInit {
     this.body.sapCode = this.sapCode;
     this.body.sapName = this.sapName;
     this.body.workOrderCode = this.workOrderCode;
+    this.body.product_type = this.product_type;
     this.body.version = this.version;
     this.body.storageCode = this.storageCode;
     this.body.createBy = this.createBy;
@@ -246,22 +251,24 @@ export class LenhSanXuatComponent implements OnInit {
   // Thay đổi background color ứng với mỗi trạng thái
   changeColor(): void {
     for (let i = 0; i < this.lenhSanXuats!.length; i++) {
-      const item = this.lenhSanXuats![i].id!.toString();
+      const element = document.getElementById(i.toString());
+      if (!element) {
+        continue;
+      }
 
       // Màu theo groupName
-      if (this.lenhSanXuats![i].groupName?.includes("TC01") === true) {
-        document.getElementById(item)!.style.backgroundColor = "#FFD8A8";
-        document.getElementById(item)!.style.border = "1px solid #E6B98C";
-      } else if (this.lenhSanXuats![i].groupName?.includes("SMT01") === true) {
-        document.getElementById(item)!.style.backgroundColor = "#A5D8FF";
-        document.getElementById(item)!.style.border = "1px solid #7FBCE6";
-      } else if (this.lenhSanXuats![i].groupName?.includes("SMT02") === true) {
-        document.getElementById(item)!.style.backgroundColor = "#B2F2BB";
-        document.getElementById(item)!.style.border = "1px solid #8BD9A0";
+      if (this.lenhSanXuats![i].product_type?.includes("TC01")) {
+        element.style.backgroundColor = "#FFD8A8";
+        element.style.border = "1px solid #E6B98C";
+      } else if (this.lenhSanXuats![i].groupName?.includes("Thành phẩm")) {
+        element.style.backgroundColor = "#A5D8FF";
+        element.style.border = "1px solid #7FBCE6";
+      } else if (this.lenhSanXuats![i].groupName?.includes("Bán thành phẩm")) {
+        element.style.backgroundColor = "#B2F2BB";
+        element.style.border = "1px solid #8BD9A0";
       }
 
       // Màu theo trạng thái
-      const element = document.getElementById(i.toString())!;
       switch (this.lenhSanXuats![i].trangThai) {
         case "Chờ duyệt":
           element.style.backgroundColor = "#FFF3BF";
@@ -294,6 +301,24 @@ export class LenhSanXuatComponent implements OnInit {
           element.style.border = "1px solid #E6C957";
           break;
       }
+    }
+  }
+  getTrangThaiClass(trangThai: string): string {
+    switch (trangThai) {
+      case "Bản nháp":
+        return "badge-draft";
+      case "Chờ duyệt":
+        return "badge-pending";
+      case "Đã phê duyệt":
+        return "badge-approved";
+      case "Từ chối":
+        return "badge-rejected";
+      case "Kho hủy":
+        return "badge-cancelled";
+      case "Sản xuất hủy":
+        return "badge-production-cancelled";
+      default:
+        return "badge-default";
     }
   }
 
@@ -339,6 +364,7 @@ export class LenhSanXuatComponent implements OnInit {
       this.maLenhSanXuat = this.body.maLenhSanXuat;
       this.sapCode = this.body.sapCode;
       this.sapName = this.body.sapName;
+      this.product_type = this.body.product_type;
       this.workOrderCode = this.body.workOrderCode;
       this.version = this.body.version;
       this.storageCode = this.body.storageCode;
@@ -385,6 +411,7 @@ export class LenhSanXuatComponent implements OnInit {
         sapCode: item.sap_code,
         sapName: item.sap_name,
         workOrderCode: item.work_order_code,
+        product_type: item.product_type,
         version: item.version,
         storageCode: item.storage_code,
         totalQuantity: item.total_quantity,
@@ -404,6 +431,7 @@ export class LenhSanXuatComponent implements OnInit {
       const startIndex = (this.pageNumber - 1) * this.itemPerPage;
       const endIndex = startIndex + this.itemPerPage;
       this.lenhSanXuats = allData.slice(startIndex, endIndex);
+      this.changeColor();
     });
   }
   reloadPage(): void {

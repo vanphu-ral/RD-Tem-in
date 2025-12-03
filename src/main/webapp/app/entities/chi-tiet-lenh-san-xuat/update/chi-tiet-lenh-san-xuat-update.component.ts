@@ -242,7 +242,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
       //lấy danh sách chi tiết lsx ở trạng thái active
       this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-        (a) => a.trang_thai === "ACTIVE",
+        (a) => a.trang_thai === "Active",
       );
       this.itemPerPage = this.chiTietLenhSanXuatActive.length;
 
@@ -316,7 +316,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     if (this.selectedAllResult === true) {
       this.selectedAll = 1;
       for (let i = 0; i < this.chiTietLenhSanXuatActive.length; i++) {
-        if (this.chiTietLenhSanXuatActive[i].trang_thai === "ACTIVE") {
+        if (this.chiTietLenhSanXuatActive[i].trang_thai === "Active") {
           this.chiTietLenhSanXuatActive[i].checked = this.selectedAll;
         } else {
           this.chiTietLenhSanXuatActive[i].checked = 0;
@@ -339,7 +339,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   onCheckAll(): void {
     this.selectedAll = 1;
     for (let i = 0; i < this.chiTietLenhSanXuatActive.length; i++) {
-      if (this.chiTietLenhSanXuatActive[i].trang_thai === "ACTIVE") {
+      if (this.chiTietLenhSanXuatActive[i].trang_thai === "Active") {
         this.chiTietLenhSanXuatActive[i].checked = this.selectedAll;
       } else {
         this.chiTietLenhSanXuatActive[i].checked = 0;
@@ -388,7 +388,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   changeQuantity(): void {
     this.sum = 0;
     for (let i = 0; i < this.chiTietLenhSanXuats.length; i++) {
-      if (this.chiTietLenhSanXuats[i].trang_thai === "ACTIVE") {
+      if (this.chiTietLenhSanXuats[i].trang_thai === "Active") {
         const result = this.chiTietLenhSanXuats[i].initial_quantity;
         if (result) {
           this.sum += Number(result);
@@ -633,7 +633,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     for (let i = 0; i < this.chiTietLenhSanXuats.length; i++) {
       if (
         this.scanValue.reelID === this.chiTietLenhSanXuats[i].reel_id &&
-        this.chiTietLenhSanXuats[i].trang_thai === "ACTIVE"
+        this.chiTietLenhSanXuats[i].trang_thai === "Active"
       ) {
         this.isExisted = true;
         this.chiTietLenhSanXuats[i].checked = 1;
@@ -711,7 +711,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   }
   sortList(): void {
     this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-      (a) => a.trang_thai === "ACTIVE",
+      (a) => a.trang_thai === "Active",
     );
     this.chiTietLenhSanXuatActive.sort(function (a, b) {
       if (

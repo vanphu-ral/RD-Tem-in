@@ -166,6 +166,18 @@ export class PlanningWorkOrderService {
     );
   }
 
+  //xoá box
+  deleteBoxDetail(id: number): Observable<any> {
+    return this.http.delete(
+      `${this.baseUrl}/warehouse-note-info-details/${id}`,
+    );
+  }
+
+  //xoá pallet
+  deletePalletDetail(id: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/pallet-infor-details/${id}`);
+  }
+
   // Xóa mapping theo serialBox + serialPallet + mã lệnh sản xuất
   removeMapping(
     serialBox: string,

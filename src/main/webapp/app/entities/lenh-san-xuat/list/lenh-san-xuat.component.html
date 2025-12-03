@@ -122,6 +122,24 @@
             </th>
             <th
               scope="col"
+              jhiSortBy="product_type"
+              style="position: sticky; top: 0"
+            >
+              <span>Kiểu</span>
+              <select
+                class="form-control form-select"
+                [(ngModel)]="product_type"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="findFucntion()"
+                style="width: 5rem"
+              >
+                <option value=""></option>
+                <option value="Thành phẩm">Thành phẩm</option>
+                <option value="Bán thành phẩm">Bán thành phẩm</option>
+              </select>
+            </th>
+            <th
+              scope="col"
               jhiSortBy="workOrderCode"
               style="position: sticky; top: 0"
             >
@@ -338,6 +356,7 @@
                 {{ lenhSanXuat.groupName }}
               </div>
             </td>
+            <td>{{ lenhSanXuat.product_type }}</td>
             <td>{{ lenhSanXuat.workOrderCode }}</td>
             <td>{{ lenhSanXuat.version }}</td>
             <td>{{ lenhSanXuat.storageCode }}</td>
@@ -346,8 +365,14 @@
             <td>{{ lenhSanXuat.createBy }}</td>
             <td>{{ lenhSanXuat.entryTime | formatMediumDatetime }}</td>
             <td>{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</td>
-            <td style="align-content: center">
-              <div [id]="i" class="trang-thai">{{ lenhSanXuat.trangThai }}</div>
+            <td>
+              <span
+                [ngClass]="getTrangThaiClass(lenhSanXuat.trangThai ?? '')"
+                class="badge px-3 py-2"
+                [id]="i"
+              >
+                {{ lenhSanXuat.trangThai }}
+              </span>
             </td>
             <td>{{ lenhSanXuat.comment }}</td>
             <td class="text-end">

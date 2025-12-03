@@ -86,7 +86,7 @@ th[scope="col"] {
 }
 
 span {
-  margin-right: 10px;
+  /* margin-right: 10px; */
 }
 
 input {
@@ -253,6 +253,62 @@ ul.search-result {
     box-shadow: 0 -8px #076fe5;
     height: 40px;
   }
+}
+/* status color */
+.badge-draft {
+  background-color: #d0ebff;
+  color: #1c7ed6;
+  border: 1px solid #a5d4f2;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+.badge-pending {
+  background-color: #fff3bf;
+  color: #8a6d3b;
+  border: 1px solid #e6dca5;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+.badge-approved {
+  background-color: #c6f6d5;
+  color: #3f6d52;
+  border: 1px solid #a3d9b8;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+.badge-rejected {
+  background-color: #ffe066;
+  color: #7f5f00;
+  border: 1px solid #e6c957;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+.badge-cancelled {
+  background-color: #fa5252;
+  color: #ffffff;
+  border: 1px solid #e04444;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+.badge-production-cancelled {
+  background-color: #ff6b6b;
+  color: #ffffff;
+  border: 1px solid #e65c5c;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+.badge-default {
+  background-color: #dee2e6;
+  color: #495057;
+  border: 1px solid #ced4da;
+  border-radius: 15px;
+  font-size: 12px;
 }
 
 /* Phan trang */

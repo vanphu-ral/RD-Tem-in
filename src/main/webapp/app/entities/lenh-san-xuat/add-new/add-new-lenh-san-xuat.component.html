@@ -256,10 +256,18 @@
                     mat-icon-button
                     color="primary"
                     (click)="openBoxDetailDialog(element)"
+                    matTooltip="Xem chi tiết"
+                    matTooltipPosition="above"
                   >
                     <mat-icon>visibility</mat-icon>
                   </button>
-                  <button mat-icon-button color="warn" (click)="deleteBox(i)">
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="deleteBox(i)"
+                    matTooltip="Xoá"
+                    matTooltipPosition="above"
+                  >
                     <mat-icon>delete</mat-icon>
                   </button>
                 </td>
@@ -393,13 +401,21 @@
                     mat-icon-button
                     color="primary"
                     (click)="openPalletDetailDialog(element)"
+                    matTooltip="Xem chi tiết"
+                    matTooltipPosition="above"
                   >
                     <mat-icon>visibility</mat-icon>
                   </button>
-                  <button mat-icon-button color="primary">
+                  <!-- <button mat-icon-button color="primary">
                     <mat-icon>system_update_alt</mat-icon>
-                  </button>
-                  <button mat-icon-button color="warn">
+                  </button> -->
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="deletePallet(element)"
+                    matTooltip="Xoá"
+                    matTooltipPosition="above"
+                  >
                     <mat-icon>delete</mat-icon>
                   </button>
                 </td>

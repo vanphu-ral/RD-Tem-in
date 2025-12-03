@@ -222,6 +222,7 @@
             <thead>
               <tr>
                 <th scope="col">STT</th>
+                <th scope="col"><span class="custom-width">Status</span></th>
                 <th scope="col"><span class="custom-width">Reel ID</span></th>
                 <th scope="col">
                   <span class="custom-width">Part Number</span>
@@ -273,7 +274,6 @@
                 <th scope="col">ManuFacturing Date</th>
                 <th scope="col">Part Class</th>
                 <th scope="col">Sap Code</th>
-                <th scope="col"><span class="custom-width">Status</span></th>
                 <th scope="col">
                   Checked
                   <div class="btn-flex">
@@ -301,6 +301,22 @@
             >
               <td>
                 {{ i + 1 }}
+              </td>
+              <td>
+                <select
+                  class="form-control form-select"
+                  [(ngModel)]="$any(data).trang_thai"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="changeQuantity()"
+                  style="width: 6rem"
+                >
+                  <option [ngValue]="" hidden>
+                    {{ $any(data).trang_thai }}
+                  </option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="INACTIVE">INACTIVE</option>
+                  <option value="not list">not list</option>
+                </select>
               </td>
 
               <td>
@@ -333,13 +349,13 @@
                   class="input-table"
                   type="text"
                   list="initialQuantity"
-                  [(ngModel)]="$any(data).user_data5"
+                  [(ngModel)]="$any(data).initial_quantity"
                   [ngModelOptions]="{ standalone: true }"
                   (change)="changeQuantity()"
                 />
               </td>
               <td>
-                {{ $any(data).initial_quantity }}
+                {{ $any(data).user_data5 }}
               </td>
               <td>
                 {{ $any(data).msd_level }}
@@ -395,22 +411,7 @@
               <td>
                 {{ $any(data).sap_code }}
               </td>
-              <td>
-                <select
-                  class="form-control form-select"
-                  [(ngModel)]="$any(data).trang_thai"
-                  [ngModelOptions]="{ standalone: true }"
-                  (change)="changeQuantity()"
-                  style="width: 6rem"
-                >
-                  <option [ngValue]="" hidden>
-                    {{ $any(data).trang_thai }}
-                  </option>
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                  <option value="not list">not list</option>
-                </select>
-              </td>
+
               <td>
                 <input
                   type="checkbox"
@@ -544,13 +545,13 @@
                   class="input-table"
                   type="text"
                   list="initialQuantity"
-                  [(ngModel)]="$any(data).user_data5"
+                  [(ngModel)]="$any(data).initial_quantity"
                   [ngModelOptions]="{ standalone: true }"
                   (change)="changeQuantity()"
                 />
               </td>
               <td>
-                {{ $any(data).initial_quantity }}
+                {{ $any(data).user_data5 }}
               </td>
               <td>
                 {{ $any(data).msd_level }}
