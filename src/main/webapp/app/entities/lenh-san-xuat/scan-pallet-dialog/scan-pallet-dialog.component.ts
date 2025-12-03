@@ -91,7 +91,7 @@ export interface SerialBoxPalletMapping {
 export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   @ViewChild("scanner") scanner!: ZXingScannerComponent;
   @ViewChild("scannerInput") scannerInput!: ElementRef<HTMLInputElement>;
-
+  scanMode: "zebra" | "camera" = "zebra";
   palletData: PalletData;
 
   // Scanner state
@@ -230,6 +230,9 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   toggleScanMode(): void {
     this.scanModeActive = !this.scanModeActive;
     if (this.scanModeActive) {
+      // ===== CHỈ BẬT CHẾ ĐỘ ZEBRA, KHÔNG BẬT CAMERA =====
+      this.scanMode = "zebra";
+      this.cameraActive = false; // Đảm bảo camera tắt
       setTimeout(() => this.focusScannerInput(), 100);
     }
   }
@@ -264,7 +267,10 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   // Mobile Camera
   startCamera(): void {
     try {
+      this.scanMode = "camera"; // Switch sang chế độ camera
+      this.scanModeActive = false; // Tắt chế độ Zebra
       this.cameraActive = true;
+      console.log("📷 Camera mode activated");
     } catch (error) {
       console.error("Error starting camera:", error);
       this.showScanResult("error", "Không thể mở camera");
@@ -277,11 +283,24 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
   stopCamera(): void {
     this.cameraActive = false;
+    this.scanMode = "zebra"; // Quay lại chế độ Zebra
     if (this.scanner) {
       this.scanner.reset();
     }
   }
-
+  switchToZebraMode(): void {
+    this.scanMode = "zebra";
+    this.cameraActive = false;
+    this.scanModeActive = true;
+    console.log("Switched to Zebra scanner mode");
+    setTimeout(() => this.focusScannerInput(), 100);
+  }
+  switchToCameraMode(): void {
+    this.scanMode = "camera";
+    this.scanModeActive = false;
+    this.startCamera();
+    console.log("Switched to Camera mode");
+  }
   switchCamera(): void {
     const currentIndex = this.availableCameras.findIndex(
       (d) => d.deviceId === this.selectedDevice?.deviceId,

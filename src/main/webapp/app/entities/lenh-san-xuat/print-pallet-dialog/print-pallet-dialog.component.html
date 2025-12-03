@@ -16,7 +16,13 @@
       </button>
     </div>
   </div>
-
+  <div class="progress-bar-wrapper" *ngIf="isLoadingPdf">
+    <mat-progress-bar
+      mode="determinate"
+      [value]="progressPdf"
+    ></mat-progress-bar>
+    <span class="progress-text">Đang xuất PDF: {{ progressPdf }}%</span>
+  </div>
   <!-- Print Content - Grouped by rows of 2 -->
   <div class="print-content">
     <!-- ===== LOOP QUA TỪNG TRANG (2 PHIẾU/TRANG) ===== -->

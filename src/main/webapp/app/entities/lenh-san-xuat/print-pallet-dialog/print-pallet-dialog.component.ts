@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, Inject, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
   MatDialogModule,
@@ -9,6 +9,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatIconModule } from "@angular/material/icon";
 import { QRCodeComponent } from "angularx-qrcode";
 import jsPDF from "jspdf";
+import { MatProgressBarModule } from "@angular/material/progress-bar";
 import html2canvas from "html2canvas";
 
 export interface PrintPalletData {
@@ -54,6 +55,7 @@ interface PrintPage {
     MatButtonModule,
     MatIconModule,
     QRCodeComponent,
+    MatProgressBarModule,
   ],
   templateUrl: "./print-pallet-dialog.component.html",
   styleUrls: ["./print-pallet-dialog.component.scss"],
@@ -63,10 +65,13 @@ export class PrintPalletDialogComponent implements OnInit {
   pages: PrintPage[] = []; // ===== THÊM PAGES ARRAY =====
   totalPages = 0;
   isMultiMode = false;
-
+  //loader
+  isLoadingPdf = false;
+  progressPdf = 0;
   constructor(
     public dialogRef: MatDialogRef<PrintPalletDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PrintPalletData | PrintPalletData[],
+    private cdr: ChangeDetectorRef,
   ) {
     console.log("📄 PrintPalletDialog constructor");
   }
@@ -163,32 +168,22 @@ export class PrintPalletDialogComponent implements OnInit {
   }
 
   onExportPdf(): void {
+    this.isLoadingPdf = true;
+    this.progressPdf = 0;
+
     const pages = Array.from(
       document.querySelectorAll(".print-page"),
     ) as HTMLElement[];
     if (pages.length === 0) {
       console.error("Không tìm thấy .print-page");
+      this.isLoadingPdf = false;
       return;
     }
 
     const pdf = new jsPDF("landscape", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth(); // 297mm
-    const pageHeight = pdf.internal.pageSize.getHeight(); // 210mm
-    const a5Width = 148.5; // mm
-    const a5Height = 210; // mm
-
-    // Tắt box-shadow để render canvas sắc nét (khôi phục sau)
-    const cleanupStyles: Array<() => void> = [];
-    const disableEffects = (el: HTMLElement): void => {
-      const prevBoxShadow: string = el.style.boxShadow;
-      const prevTransform: string = el.style.transform;
-      el.style.boxShadow = "none";
-      el.style.transform = "none";
-      cleanupStyles.push((): void => {
-        el.style.boxShadow = prevBoxShadow;
-        el.style.transform = prevTransform;
-      });
-    };
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const a5Width = 148.5;
+    const a5Height = 210;
 
     const renderPageToPdf = async (
       pageEl: HTMLElement,
@@ -197,64 +192,39 @@ export class PrintPalletDialogComponent implements OnInit {
       const cards = Array.from(
         pageEl.querySelectorAll(".pallet-card"),
       ) as HTMLElement[];
-
-      // Thêm trang mới (trang đầu tiên không cần addPage)
       if (!isFirst) {
         pdf.addPage("a4", "landscape");
       }
 
-      // Trường hợp 2 phiếu: chụp nguyên trang
       if (cards.length >= 2) {
-        disableEffects(pageEl);
         const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL("image/png");
+        const imgData = canvas.toDataURL("image/jpeg", 0.7);
         const imgPixelWidth = canvas.width;
         const imgPixelHeight = canvas.height;
         const imgMmWidth = pageWidth;
         const imgMmHeight = imgPixelHeight * (pageWidth / imgPixelWidth);
-        pdf.addImage(imgData, "PNG", 0, 0, imgMmWidth, imgMmHeight);
-        return;
-      }
-
-      // Trường hợp phiếu lẻ: chụp trực tiếp pallet-card và đặt đúng nửa A4
-      if (cards.length === 1) {
+        pdf.addImage(imgData, "JPEG", 0, 0, imgMmWidth, imgMmHeight);
+      } else if (cards.length === 1) {
         const card = cards[0];
-        disableEffects(card);
         const canvas = await html2canvas(card, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL("image/png");
-
-        // Chọn vị trí: trái hoặc phải. Ở đây đặt TRÁI, nếu muốn giữa thì x = (pageWidth - a5Width)/2
-        const xLeft = 0; // đặt bên trái
-        // const xCenter = (pageWidth - a5Width) / 2; // nếu muốn căn giữa
-        const yTop = 0;
-
-        pdf.addImage(imgData, "PNG", xLeft, yTop, a5Width, a5Height);
-        return;
+        const imgData = canvas.toDataURL("image/jpeg", 0.7);
+        pdf.addImage(imgData, "JPEG", 0, 0, a5Width, a5Height);
       }
-
-      // Nếu không có phiếu (bất thường), bỏ qua
-      console.warn("Trang không có pallet-card, bỏ qua.");
     };
 
     const generatePdf = async (): Promise<void> => {
-      // Đảm bảo font web đã sẵn sàng (nếu trình duyệt hỗ trợ)
-      if (
-        (document as any).fonts &&
-        typeof (document as any).fonts.ready !== "undefined"
-      ) {
-        await (document as any).fonts.ready;
-      }
-
       for (let i = 0; i < pages.length; i++) {
         await renderPageToPdf(pages[i], i === 0);
+        // cập nhật tiến độ sau mỗi trang
+        this.progressPdf = Math.round(((i + 1) / pages.length) * 100);
       }
 
-      // Khôi phục styles
-      cleanupStyles.forEach((fn: () => void): void => fn());
-
       pdf.save("phieu-thong-tin.pdf");
+      this.isLoadingPdf = false;
     };
 
-    void generatePdf();
+    void generatePdf().catch(() => {
+      this.isLoadingPdf = false;
+    });
   }
 }
