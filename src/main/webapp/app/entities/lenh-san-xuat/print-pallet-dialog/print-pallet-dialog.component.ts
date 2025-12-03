@@ -206,13 +206,17 @@ export class PrintPalletDialogComponent implements OnInit {
       // Trường hợp 2 phiếu: chụp nguyên trang
       if (cards.length >= 2) {
         disableEffects(pageEl);
-        const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL("image/png");
+        const canvas = await html2canvas(pageEl, {
+          scale: 1,
+          useCORS: true,
+          backgroundColor: "white",
+        });
+        const imgData = canvas.toDataURL("image/jpeg", 0.7);
         const imgPixelWidth = canvas.width;
         const imgPixelHeight = canvas.height;
         const imgMmWidth = pageWidth;
         const imgMmHeight = imgPixelHeight * (pageWidth / imgPixelWidth);
-        pdf.addImage(imgData, "PNG", 0, 0, imgMmWidth, imgMmHeight);
+        pdf.addImage(imgData, "JPEG", 0, 0, imgMmWidth, imgMmHeight);
         return;
       }
 
@@ -220,15 +224,19 @@ export class PrintPalletDialogComponent implements OnInit {
       if (cards.length === 1) {
         const card = cards[0];
         disableEffects(card);
-        const canvas = await html2canvas(card, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL("image/png");
+        const canvas = await html2canvas(card, {
+          scale: 1,
+          useCORS: true,
+          backgroundColor: "white",
+        });
+        const imgData = canvas.toDataURL("image/jpeg", 0.7);
 
         // Chọn vị trí: trái hoặc phải. Ở đây đặt TRÁI, nếu muốn giữa thì x = (pageWidth - a5Width)/2
         const xLeft = 0; // đặt bên trái
         // const xCenter = (pageWidth - a5Width) / 2; // nếu muốn căn giữa
         const yTop = 0;
 
-        pdf.addImage(imgData, "PNG", xLeft, yTop, a5Width, a5Height);
+        pdf.addImage(imgData, "JPEG", xLeft, yTop, a5Width, a5Height);
         return;
       }
 
