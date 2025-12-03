@@ -6,6 +6,7 @@ import { ILenhSanXuat } from "./../../lenh-san-xuat/lenh-san-xuat.model";
 import { Component, OnInit, ViewChild, ElementRef, Input } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import * as XLSX from "xlsx";
+import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 
 import { IChiTietLenhSanXuat } from "../chi-tiet-lenh-san-xuat.model";
 import { ChiTietLenhSanXuatService } from "../service/chi-tiet-lenh-san-xuat.service";
@@ -80,6 +81,7 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
     protected applicationConfigService: ApplicationConfigService,
     protected http: HttpClient,
     protected chiTietLenhSanXuatService: ChiTietLenhSanXuatService,
+    protected modalService: NgbModal,
   ) {}
 
   ngOnInit(): void {
@@ -355,6 +357,21 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
     XLSX.utils.book_append_sheet(wb, ws, "ChiTietSanXuatHangNgay");
     XLSX.writeFile(wb, `${this.fileName}.xlsx`);
   }
+  openConfirmModal(content: any): void {
+    this.modalService
+      .open(content, { ariaLabelledBy: "modal-basic-title" })
+      .result.then(
+        (result) => {
+          if (result === "confirm") {
+            this.exportCsvToFixedIP();
+          }
+        },
+        (reason) => {
+          // Modal dismissed
+        },
+      );
+  }
+
   panacimError(): void {
     this.lenhSanXuat!.trangThai = "Lỗi Panacim";
     this.http.post<any>(this.resource1Url, this.lenhSanXuat).subscribe(() => {

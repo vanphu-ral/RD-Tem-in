@@ -30,7 +30,7 @@
         <button
           class="btn export-btn"
           style="background-color: #2196f3; color: white"
-          (click)="exportCsvToFixedIP()"
+          (click)="openConfirmModal(confirmModal)"
           [disabled]="isDisable"
           title="Xuất CSV đến Panacim"
         >
@@ -212,4 +212,33 @@
       </button> -->
     </div>
   </div>
+
+  <!-- Confirmation Modal -->
+  <ng-template #confirmModal let-modal>
+    <div class="modal-header">
+      <h4 class="modal-title" id="modal-basic-title">Xác nhận xuất CSV</h4>
+    </div>
+    <div class="modal-body">
+      <p>Bạn có chắc chắn muốn xuất CSV đến Panacim?</p>
+      <p>
+        Số lượng bản ghi: <strong>{{ data.length }}</strong>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        (click)="modal.dismiss('cancel')"
+      >
+        Hủy
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="modal.close('confirm')"
+      >
+        Xác nhận
+      </button>
+    </div>
+  </ng-template>
 </div>
