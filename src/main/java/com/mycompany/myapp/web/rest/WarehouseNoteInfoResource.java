@@ -9,6 +9,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -155,6 +157,9 @@ public class WarehouseNoteInfoResource {
             warehouseStampInfoDTO
         );
         if (warehouseStampInfoDTO.getId() == null) {
+            warehouseStampInfoDTO.setId(id);
+        }
+        if (warehouseStampInfoDTO.getId() == null) {
             throw new BadRequestAlertException(
                 "Invalid id",
                 ENTITY_NAME,
@@ -182,6 +187,75 @@ public class WarehouseNoteInfoResource {
                 )
             )
             .body(result);
+    }
+
+    /**
+     * {@code PATCH  /warehouse-note-infos/:id} : Partial updates given fields of
+     * an existing warehouseNoteInfo, field will ignore if it is null
+     *
+     * @param id                    the id of the warehouseNoteInfoDTO to save.
+     * @param warehouseStampInfoDTO the warehouseNoteInfoDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated warehouseStampInfoDTO,
+     *         or with status {@code 400 (Bad Request)} if the warehouseStampInfoDTO
+     *         is not valid,
+     *         or with status {@code 404 (Not Found)} if the warehouseStampInfoDTO
+     *         is not found,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         warehouseStampInfoDTO couldn't be updated.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PatchMapping(
+        value = "/warehouse-note-infos/{id}",
+        consumes = { "application/json", "application/merge-patch+json" }
+    )
+    public ResponseEntity<WarehouseStampInfoDTO> partialUpdateWarehouseNoteInfo(
+        @PathVariable(value = "id", required = false) final Long id,
+        @NotNull @RequestBody WarehouseStampInfoDTO warehouseStampInfoDTO
+    ) throws URISyntaxException {
+        log.debug(
+            "REST request to partial update WarehouseNoteInfo partially : {}, {}",
+            id,
+            warehouseStampInfoDTO
+        );
+        if (warehouseStampInfoDTO.getId() == null) {
+            warehouseStampInfoDTO.setId(id);
+        }
+        if (warehouseStampInfoDTO.getId() == null) {
+            throw new BadRequestAlertException(
+                "Invalid id",
+                ENTITY_NAME,
+                "idnull"
+            );
+        }
+        if (!java.util.Objects.equals(id, warehouseStampInfoDTO.getId())) {
+            throw new BadRequestAlertException(
+                "Invalid ID",
+                ENTITY_NAME,
+                "idinvalid"
+            );
+        }
+
+        if (!partner3WarehouseStampInfoService.findOne(id).isPresent()) {
+            throw new BadRequestAlertException(
+                "Entity not found",
+                ENTITY_NAME,
+                "idnotfound"
+            );
+        }
+
+        Optional<WarehouseStampInfoDTO> result =
+            warehouseStampInfoService.partialUpdate(warehouseStampInfoDTO);
+
+        return ResponseUtil.wrapOrNotFound(
+            result,
+            HeaderUtil.createEntityUpdateAlert(
+                applicationName,
+                false,
+                ENTITY_NAME,
+                warehouseStampInfoDTO.getId().toString()
+            )
+        );
     }
 
     /**

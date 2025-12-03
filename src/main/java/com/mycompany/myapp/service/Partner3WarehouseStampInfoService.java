@@ -9,6 +9,7 @@ import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -160,6 +161,8 @@ public class Partner3WarehouseStampInfoService {
             "Request to update WarehouseNoteInfo : {}",
             warehouseStampInfoDTO
         );
+        // Set timeUpdate to now
+        warehouseStampInfoDTO.setTimeUpdate(Instant.now());
         WarehouseNoteInfo warehouseStampInfo =
             warehouseStampInfoMapper.toEntity(warehouseStampInfoDTO);
         warehouseStampInfo = partner3WarehouseStampInfoRepository.save(
@@ -181,6 +184,16 @@ public class Partner3WarehouseStampInfoService {
             "Request to create WarehouseNoteInfo with children : {}",
             warehouseNoteInfoWithChildrenDTO
         );
+
+        // Set default timestamps if not provided
+        WarehouseStampInfoDTO dto =
+            warehouseNoteInfoWithChildrenDTO.getWarehouseNoteInfo();
+        if (dto.getEntryTime() == null) {
+            dto.setEntryTime(Instant.now());
+        }
+        if (dto.getTimeUpdate() == null) {
+            dto.setTimeUpdate(Instant.now());
+        }
 
         // Save the main WarehouseNoteInfo
         WarehouseNoteInfo warehouseNoteInfo = warehouseStampInfoMapper.toEntity(
