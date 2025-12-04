@@ -406,7 +406,12 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           }
 
           if (this.pallets && this.pallets.length > 0) {
-            this.palletItems = this.mapPalletsToPalletItems(this.pallets);
+            this.palletItems = this.mapPalletsToPalletItems(this.pallets).map(
+              (p) => ({
+                ...p,
+                maLenhSanXuatId: this.maLenhSanXuatId,
+              }),
+            );
           }
 
           const loai = this.productionOrders[0]?.loaiSanPham;
@@ -1007,6 +1012,26 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   openPackagePalletDialog(): void {
+    // Prepare valid reel IDs (whitelist) from current data so package flow can pass it to scan dialog
+    const validReelIds: string[] = [];
+    if (this.warehouseNoteInfo?.product_type === "Thành phẩm") {
+      // collect all box serials (subItems.maThung)
+      this.boxItems.forEach((box) => {
+        (box.subItems || []).forEach((sub) => {
+          if (sub.maThung && sub.maThung.trim()) {
+            validReelIds.push(sub.maThung.trim());
+          }
+        });
+      });
+    } else if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
+      // collect reel IDs
+      this.reelDataList.forEach((r) => {
+        if (r.reelID && r.reelID.trim()) {
+          validReelIds.push(r.reelID.trim());
+        }
+      });
+    }
+
     // Flatten tất cả pallet con từ palletItems
     const allPallets: PalletDetailData[] = this.palletItems.reduce(
       (acc: PalletDetailData[], pallet: PalletItem) => {
@@ -1030,11 +1055,13 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             branch: pallet.nganh,
             team: pallet.to,
             maLenhSanXuatId: pallet.maLenhSanXuatId,
+            validReelIds: validReelIds,
             // ← Khởi tạo empty
             tienDoScan: 0,
             scannedBoxes: [],
           }),
         );
+        console.log("malenhsanxuatid", pallet.maLenhSanXuatId);
         return acc.concat(subData);
       },
       [],
@@ -2062,6 +2089,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       nganh: this.productionOrders[0]?.nganh ?? "",
       to: this.productionOrders[0]?.to ?? "",
       note: data.note,
+      maLenhSanXuatId: this.maLenhSanXuatId,
     };
 
     this.palletItems = [...this.palletItems, newPallet];
@@ -2405,14 +2433,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         wo_code: currentOrder.maWO || "",
         lot_number: lotNumber,
         production_date: formatDate(this.palletItems[0]?.createdAt || ""),
-        note: "",
+        note: this.palletItems[0].note ?? "",
         create_by: currentUser,
         branch: currentOrder.nganh ?? "",
         production_team: currentOrder.to ?? "",
         production_decision_number: this.palletItems[0]?.qdsx || "",
         item_no_sku: this.palletItems[0]?.noSKU || "",
-        approver: "RD000001", // Có thể config hoặc lấy động
-        destination_warehouse: 1,
+        approver: currentUser,
+        destination_warehouse: this.productionOrders[0].maKhoNhap,
         pallet_note_creation_session_id: this.maLenhSanXuatId ?? 1,
       },
       detail: detail,

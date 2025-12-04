@@ -338,14 +338,14 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   // ===== UPDATED: Validation với check từ BE =====
   validateAndAddBox(code: string): void {
     if (this.isProcessing) {
-      console.log("⏳ Still processing, please wait...");
+      console.log("Still processing, please wait...");
       return;
     }
 
     const trimmedCode = code.trim();
 
-    console.log("🔍 Validating code:", trimmedCode);
-    console.log("📊 Current stats:", {
+    console.log("Validating code:", trimmedCode);
+    console.log("Current stats:", {
       scannedCount: this.scannedCount,
       maxAllowed: this.palletData.soThung,
       validBoxesTotal: this.validBoxes.length,
@@ -354,7 +354,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
     // ===== CHECK 1: Đã đủ số lượng chưa? =====
     if (this.scannedCount >= this.palletData.soThung) {
-      console.log("❌ Limit reached");
+      console.log("Limit reached");
       this.addErrorBox(trimmedCode, "Vượt quá số lượng thùng tối đa");
       // Không gọi API nếu đã đủ số lượng
       return;
@@ -362,7 +362,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
     // ===== CHECK 2: Box đã được scan trong pallet này chưa? (Từ BE) =====
     if (this.existingScannedBoxes.has(trimmedCode)) {
-      console.log("❌ Box already scanned in this pallet (from BE)");
+      console.log("Box already scanned in this pallet (from BE)");
       this.addErrorBox(
         trimmedCode,
         "Mã thùng đã được scan vào pallet này trước đó",
@@ -373,7 +373,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
     // ===== CHECK 3: Box có trong danh sách đang scan hiện tại không? =====
     if (this.scannedBoxes.some((box) => box.code === trimmedCode)) {
-      console.log("❌ Duplicate in current session");
+      console.log("Duplicate in current session");
       this.addErrorBox(trimmedCode, "Mã thùng đã được scan trong phiên này");
       // KHÔNG gọi API
       return;
@@ -385,7 +385,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     );
 
     if (!isValid) {
-      console.log("❌ Code not in valid list");
+      console.log("Code not in valid list");
       this.addErrorBox(
         trimmedCode,
         "Mã thùng không hợp lệ hoặc không thuộc lệnh sản xuất này",
@@ -432,7 +432,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
           }
         },
         error: (error) => {
-          console.error("❌ Error saving mapping:", error);
+          console.error("Error saving mapping:", error);
 
           if (isSuccessCase) {
             this.showScanResult(
@@ -598,14 +598,28 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   }
 
   // Sounds
-  playSuccessSound(): void {
-    const audio = new Audio("assets/sounds/successed-295058.mp3");
-    audio.play().catch(() => {});
+  playSuccessSound(): any {
+    return new Promise<void>((resolve) => {
+      const audio = new Audio();
+      audio.src = "../../../content/images/successed-295058.mp3";
+      audio.load();
+      audio.play();
+      audio.onended = () => {
+        resolve();
+      };
+    });
   }
 
-  playErrorSound(): void {
-    const audio = new Audio("assets/sounds/beep_warning.mp3");
-    audio.play().catch(() => {});
+  playErrorSound(): any {
+    return new Promise<void>((resolve) => {
+      const audio = new Audio();
+      audio.src = "../../../content/images/beep_warning.mp3";
+      audio.load();
+      audio.play();
+      audio.onended = () => {
+        resolve();
+      };
+    });
   }
 
   // Test function (development only)
