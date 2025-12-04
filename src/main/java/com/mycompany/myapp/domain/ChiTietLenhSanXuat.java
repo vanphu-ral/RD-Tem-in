@@ -552,7 +552,8 @@ public class ChiTietLenhSanXuat implements Serializable {
         return this;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
+    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
+    // setters here
 
     @Override
     public boolean equals(Object o) {
@@ -567,7 +568,8 @@ public class ChiTietLenhSanXuat implements Serializable {
 
     @Override
     public int hashCode() {
-        // see https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
+        // see
+        // https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
         return getClass().hashCode();
     }
 
@@ -575,37 +577,37 @@ public class ChiTietLenhSanXuat implements Serializable {
     @Override
     public String toString() {
         return "ChiTietLenhSanXuat{" +
-            "id=" + getId() +
-            ", reelID=" + getReelID() +
-            ", partNumber='" + getPartNumber() + "'" +
-            ", vendor='" + getVendor() + "'" +
-            ", lot='" + getLot() + "'" +
-            ", userData1='" + getUserData1() + "'" +
-            ", userData2='" + getUserData2() + "'" +
-            ", userData3='" + getUserData3() + "'" +
-            ", userData4=" + getUserData4() +
-            ", userData5=" + getUserData5() +
-            ", initialQuantity=" + getInitialQuantity() +
-            ", msdLevel='" + getMsdLevel() + "'" +
-            ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
-            ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
-            ", marketUsage='" + getMarketUsage() + "'" +
-            ", quantityOverride=" + getQuantityOverride() +
-            ", shelfTime='" + getShelfTime() + "'" +
-            ", spMaterialName='" + getSpMaterialName() + "'" +
-            ", warningLimit='" + getWarningLimit() + "'" +
-            ", maximumLimit='" + getMaximumLimit() + "'" +
-            ", comments='" + getComments() + "'" +
-            ", warmupTime='" + getWarmupTime() + "'" +
-            ", storageUnit='" + getStorageUnit() + "'" +
-            ", subStorageUnit='" + getSubStorageUnit() + "'" +
-            ", locationOverride='" + getLocationOverride() + "'" +
-            ", expirationDate='" + getExpirationDate() + "'" +
-            ", manufacturingDate='" + getManufacturingDate() + "'" +
-            ", partClass='" + getPartClass() + "'" +
-            ", sapCode=" + getSapCode() +
-            ", trangThai='" + getTrangThai() + "'" +
-            ", checked=" + getChecked() +
-            "}";
+                "id=" + getId() +
+                ", reelID=" + getReelID() +
+                ", partNumber='" + getPartNumber() + "'" +
+                ", vendor='" + getVendor() + "'" +
+                ", lot='" + getLot() + "'" +
+                ", userData1='" + getUserData1() + "'" +
+                ", userData2='" + getUserData2() + "'" +
+                ", userData3='" + getUserData3() + "'" +
+                ", userData4=" + getUserData4() +
+                ", userData5=" + getUserData5() +
+                ", initialQuantity=" + getInitialQuantity() +
+                ", msdLevel='" + getMsdLevel() + "'" +
+                ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
+                ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
+                ", marketUsage='" + getMarketUsage() + "'" +
+                ", quantityOverride=" + getQuantityOverride() +
+                ", shelfTime='" + getShelfTime() + "'" +
+                ", spMaterialName='" + getSpMaterialName() + "'" +
+                ", warningLimit='" + getWarningLimit() + "'" +
+                ", maximumLimit='" + getMaximumLimit() + "'" +
+                ", comments='" + getComments() + "'" +
+                ", warmupTime='" + getWarmupTime() + "'" +
+                ", storageUnit='" + getStorageUnit() + "'" +
+                ", subStorageUnit='" + getSubStorageUnit() + "'" +
+                ", locationOverride='" + getLocationOverride() + "'" +
+                ", expirationDate='" + getExpirationDate() + "'" +
+                ", manufacturingDate='" + getManufacturingDate() + "'" +
+                ", partClass='" + getPartClass() + "'" +
+                ", sapCode=" + getSapCode() +
+                ", trangThai='" + getTrangThai() + "'" +
+                ", checked=" + getChecked() +
+                "}";
     }
 }

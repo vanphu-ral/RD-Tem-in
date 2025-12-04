@@ -24,7 +24,7 @@ public class LenhSanXuat implements Serializable {
     private Long id;
 
     @NotNull
-    @Column(name = "ma_lenh_san_xuat_id", nullable = false, unique = true)
+    @Column(name = "ma_lenh_san_xuat", nullable = false, unique = true)
     private String maLenhSanXuat;
 
     @Column(name = "sap_code")
