@@ -51,53 +51,55 @@
           </tr>
         </thead>
         <tbody>
-          <td>
-            <span>{{ lenhSanXuat.maLenhSanXuat }}</span>
-          </td>
+          <tr>
+            <td>
+              <span>{{ lenhSanXuat.maLenhSanXuat }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.sapCode }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.sapCode }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.sapName }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.sapName }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.workOrderCode }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.workOrderCode }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.version }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.version }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.storageCode }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.storageCode }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.totalQuantity }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.totalQuantity }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.createBy }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.createBy }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.entryTime | formatMediumDatetime }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.entryTime | formatMediumDatetime }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.trangThai }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.trangThai }}</span>
+            </td>
 
-          <td>
-            <span>{{ lenhSanXuat.comment }}</span>
-          </td>
+            <td>
+              <span>{{ lenhSanXuat.comment }}</span>
+            </td>
+          </tr>
         </tbody>
       </table>
       <br />
@@ -165,71 +167,123 @@
                 let i = index
               "
             >
+              <!-- STT -->
               <td>
-                <span>
-                  {{ i + 1 }}
-                </span>
+                <span>{{ i + 1 }}</span>
               </td>
-
+              <!-- Reel ID -->
               <td>
-                {{ $any(data).id }}
+                {{ $any(data).reel_id }}
               </td>
-
+              <!-- Part Number -->
+              <td>
+                {{ $any(data).part_number }}
+              </td>
+              <!-- Vendor -->
+              <td>
+                {{ $any(data).vendor }}
+              </td>
+              <!-- Lot -->
+              <td>
+                {{ $any(data).lot }}
+              </td>
+              <!-- User Data 1 -->
+              <td>
+                {{ $any(data).user_data1 }}
+              </td>
+              <!-- User Data 2 -->
+              <td>
+                {{ $any(data).user_data2 }}
+              </td>
+              <!-- User Data 3 -->
+              <td>
+                {{ $any(data).user_data3 }}
+              </td>
+              <!-- User Data 4 -->
+              <td>
+                {{ $any(data).user_data4 }}
+              </td>
+              <!-- User Data 5 -->
+              <td>
+                {{ $any(data).user_data5 }}
+              </td>
+              <!-- Initial Quantity -->
+              <td>
+                {{ $any(data).initial_quantity }}
+              </td>
+              <!-- MSD Level -->
+              <td>
+                {{ $any(data).msd_level }}
+              </td>
+              <!-- MSD Initial Floor Time -->
+              <td>
+                {{ $any(data).msd_initial_floor_time }}
+              </td>
+              <!-- MSD Bag Seal Date -->
+              <td>
+                {{ $any(data).msd_bag_seal_date }}
+              </td>
+              <!-- Market Usage -->
+              <td>
+                {{ $any(data).market_usage }}
+              </td>
+              <!-- Quantity Override -->
+              <td>
+                {{ $any(data).quantity_override }}
+              </td>
+              <!-- Shelf Time -->
+              <td>
+                {{ $any(data).shelf_time }}
+              </td>
+              <!-- SP Material Name -->
+              <td>
+                {{ $any(data).sp_material_name }}
+              </td>
+              <!-- Warning Limit -->
+              <td>
+                {{ $any(data).warning_limit }}
+              </td>
+              <!-- Maximum Limit -->
+              <td>
+                {{ $any(data).maximum_limit }}
+              </td>
+              <!-- Comments -->
+              <td>
+                {{ $any(data).comments }}
+              </td>
+              <!-- Warm Up Time -->
+              <td>
+                {{ $any(data).warmup_time }}
+              </td>
+              <!-- Storage Unit -->
+              <td>
+                {{ $any(data).storage_unit }}
+              </td>
+              <!-- Sub Storage Unit -->
+              <td>
+                {{ $any(data).sub_storage_unit }}
+              </td>
+              <!-- Location Override -->
+              <td>
+                {{ $any(data).location_override }}
+              </td>
+              <!-- Expiration Date -->
+              <td>
+                {{ $any(data).expiration_date }}
+              </td>
+              <!-- Manufacturing Date -->
+              <td>
+                {{ $any(data).manufacturing_date }}
+              </td>
+              <!-- Part Class -->
+              <td>
+                {{ $any(data).part_class }}
+              </td>
+              <!-- Sap Code -->
               <td>
                 {{ $any(data).sap_code }}
               </td>
-              <td>
-                {{ $any(data).create_by }}
-              </td>
-              <td>
-                {{ $any(data).work_order_code }}
-              </td>
-              <td>
-                {{ $any(data).sap_name }}
-              </td>
-              <td>
-                {{ $any(data).version }}
-              </td>
-              <td>
-                {{ $any(data).storage_code }}
-              </td>
-              <td>
-                {{ $any(data).group_name }}
-              </td>
-              <td>
-                {{ $any(data).total_quantity }}
-              </td>
-              <td>
-                {{ $any(data).total_quantity }}
-              </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td>
-                {{ $any(data).total_quantity }}
-              </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td>
-                {{ $any(data).comment }}
-              </td>
-              <td></td>
-              <td>
-                <span>
-                  {{ $any(data).storage_code }}
-                </span>
-              </td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td>
-                {{ $any(data).sap_code }}
-              </td>
+              <!-- Status -->
               <td>
                 {{ $any(data).trang_thai }}
               </td>
