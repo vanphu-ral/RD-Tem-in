@@ -446,9 +446,9 @@ export class PalletDetailDialogComponent implements OnInit {
 
       soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
       thuTuGiaPallet: item.stt,
-      soLuongBaoNgoaiThungGiaPallet: tienDoThung,
+      soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
       slThung: soLuongSanPhamTrongMotThung,
-      note: "",
+      note: sourceData.note ?? "",
 
       productCode: sourceData.tenSanPham,
       serialBox: firstBoxSerial || item.maPallet,
@@ -539,9 +539,9 @@ export class PalletDetailDialogComponent implements OnInit {
 
         soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
         thuTuGiaPallet: item.stt,
-        soLuongBaoNgoaiThungGiaPallet: tienDoThung,
+        soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
         slThung: soLuongSanPhamTrongMotThung,
-        note: "",
+        note: sourceData.note ?? "",
 
         productCode: sourceData.tenSanPham,
         serialBox: firstBoxSerial || item.maPallet,
