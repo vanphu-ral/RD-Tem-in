@@ -5,6 +5,7 @@ import {
   faCalendarDay,
   faTable,
   faInfoCircle,
+  faNoteSticky,
 } from "@fortawesome/free-solid-svg-icons";
 import { BehaviorSubject, Observable } from "rxjs";
 
@@ -29,6 +30,15 @@ export class NavbarService {
         { title: "Quản lý thiết bị", link: "/thiet-bi" },
         { title: "Quản lý kịch bản", link: "/kich-ban" },
         { title: "Sản xuất hàng ngày", link: "/san-xuat-hang-ngay" },
+      ],
+    },
+    {
+      title: "Quản lý serial và đóng gói",
+      active: false,
+      icon: faNoteSticky,
+      type: "dropdown",
+      submenus: [
+        { title: "Quản lý phiếu Pallet", link: "/warehouse-note-infos" },
       ],
     },
     {

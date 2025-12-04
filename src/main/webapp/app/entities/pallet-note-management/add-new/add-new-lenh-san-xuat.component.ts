@@ -1253,7 +1253,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             panelClass: ["snackbar-success"],
           });
 
-          this.router.navigate([`/lenh-san-xuat/${newId}/add-new`]);
+          this.router.navigate([`/warehouse-note-infos/${newId}/add-new`]);
         },
         error: (err) => {
           console.error("Lỗi khi lưu:", err);
@@ -2631,7 +2631,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             duration: 3000,
             panelClass: ["snackbar-success"],
           });
-          this.router.navigate([`/lenh-san-xuat`]);
+          this.router.navigate([`/warehouse-note-infos`]);
         },
         error: (err) => {
           console.error("Lỗi khi cập nhật trạng thái:", err);

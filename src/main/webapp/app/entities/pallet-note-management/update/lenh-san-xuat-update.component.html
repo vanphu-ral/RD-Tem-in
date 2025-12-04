@@ -1,0 +1,374 @@
+<div>
+  <div>
+    <form name="editForm" role="form" novalidate [formGroup]="editForm">
+      <h2
+        id="jhi-lenh-san-xuat-heading"
+        data-cy="LenhSanXuatCreateUpdateHeading"
+      >
+        Thông tin tem sản xuất
+      </h2>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">
+              <span>Mã lệnh sản xuất</span>
+            </th>
+            <th scope="col">
+              <span>Mã SAP</span>
+            </th>
+            <th scope="col">
+              <span>Tên hàng hoá</span>
+            </th>
+            <th scope="col">
+              <span>Mã WO</span>
+            </th>
+            <th scope="col">
+              <span>Version</span>
+            </th>
+            <th scope="col">
+              <span>Mã kho nhập</span>
+            </th>
+            <th scope="col">
+              <span>Tổng số lượng</span>
+            </th>
+            <th scope="col">
+              <span>Trạng thái</span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr data-cy="entityTable">
+            <td>
+              <input
+                class="form-control"
+                id="maLenhSanXuat"
+                list="maLenhSanXuat"
+                formControlName="maLenhSanXuat"
+              />
+            </td>
+            <td>
+              <input
+                class="form-control"
+                id="sapCode"
+                list="sapCode"
+                formControlName="sapCode"
+              />
+            </td>
+            <td>
+              <input
+                class="form-control"
+                id="sapName"
+                list="sapName"
+                formControlName="sapName"
+              />
+            </td>
+            <td>
+              <input
+                class="form-control"
+                id="workOrderCode"
+                list="workOrderCode"
+                formControlName="workOrderCode"
+              />
+            </td>
+            <td>
+              <input
+                class="form-control"
+                id="version"
+                list="version"
+                formControlName="version"
+              />
+            </td>
+            <td>
+              <!-- <input class="form-control" id="storageCode" list="storageCode" formControlName="storageCode" /> -->
+              <select
+                class="form-control form-select"
+                formControlName="storageCode"
+              >
+                <option value="01">01 - Kho linh kiện điện tử</option>
+                <option value="02">02 - Kho vật tư LED</option>
+                <option value="03">03 - Kho vật tư TBCS</option>
+                <option value="04">04 - Kho vật tư CLC</option>
+                <option value="05">05 - Kho ngành ĐTTĐ</option>
+                <option value="06">06 - Kho ngành LRSP LED 1</option>
+                <option value="07">07 - Kho ngành SMART</option>
+                <option value="08">08 - Kho ngành LED2</option>
+                <option value="10">10 - Kho cơ khí xưởng</option>
+                <option value="11">11 - Kho ngành CNPT</option>
+                <option value="12">12 - Kho vật tư Smart</option>
+                <option value="13">13 - Kho ngành CNPT 2</option>
+                <option value="14">14 - Kho chị Hòa 2</option>
+                <option value="15">15 - Kho Pilot TTRD</option>
+                <option value="17">17 - Kho vật tư SKD</option>
+                <option value="18">18 - Kho trung tâm RD</option>
+                <option value="19">19 - Kho LKDT thủ công</option>
+                <option value="20">20 - Kho xuất khẩu</option>
+              </select>
+            </td>
+            <td>
+              <input
+                class="form-control"
+                id="totalQuantity"
+                list="totalQuantity"
+                formControlName="totalQuantity"
+              />
+            </td>
+            <td>
+              <input
+                class="form-control"
+                id="trangThai"
+                list="trangThai"
+                formControlName="trangThai"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+          margin: 5px 0px;
+        "
+      >
+        <h2
+          id="jhi-lenh-san-xuat-heading"
+          data-cy="LenhSanXuatCreateUpdateHeading"
+        >
+          Thông tin chi tiết tem
+        </h2>
+        <div class="search-all">
+          <input
+            #searchInput
+            type="text"
+            [(ngModel)]="reelID"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Tìm kiếm"
+            list="reelID"
+          />
+        </div>
+      </div>
+
+      <div style="overflow-x: auto; width: 100%">
+        <table class="table" aria-describedby="page-heading">
+          <thead>
+            <tr>
+              <th scope="col"><span>STT</span></th>
+              <th scope="col">
+                <span class="custom-width">Reel ID</span>
+              </th>
+              <th scope="col"><span class="custom-width">Part Number</span></th>
+              <th scope="col"><span class="custom-width">Vendor</span></th>
+              <th scope="col"><span class="custom-width">LOT</span></th>
+              <th scope="col">User Data 1</th>
+              <th scope="col" style="width: 10rem">User Data 2</th>
+              <th scope="col" style="width: 10rem">User Data 3</th>
+              <th scope="col">User Data 4</th>
+              <th scope="col">User Data 5</th>
+              <th scope="col">Initial Quantity</th>
+              <th scope="col">MSD Level</th>
+              <th scope="col">MSD Initial Floor Time</th>
+              <th scope="col">MSD Bag Seal Date</th>
+              <th scope="col">Market Usage</th>
+              <th scope="col">Quantity Override</th>
+              <th scope="col">Shelf Time</th>
+              <th scope="col">SP Material Name</th>
+              <th scope="col">Warning Limit</th>
+              <th scope="col">Maximum Limit</th>
+              <th scope="col">Comments</th>
+              <th scope="col">Warm Up Time</th>
+              <th scope="col">
+                <div class="custom-search">
+                  <input
+                    class="inp-replace"
+                    type="text"
+                    [(ngModel)]="storageUnit"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                  <button class="btn-replace" (click)="changeAllStorageUnit()">
+                    <fa-icon icon="eye"></fa-icon>
+                  </button>
+                </div>
+                <span class="custom-width">Storage Unit</span>
+              </th>
+              <th scope="col">Sub Storage Unit</th>
+              <th scope="col">Location Override</th>
+              <th scope="col">Expiration Date</th>
+              <th scope="col">ManuFacturing Date</th>
+              <th scope="col">Part Class</th>
+              <th scope="col"><span class="custom-width">Sap Code</span></th>
+              <th scope="col"><span class="custom-width">Status</span></th>
+            </tr>
+          </thead>
+
+          <!-- <tr *ngFor="let data of chiTietLenhSanXuats | filter: reelID; let i = index; trackBy: trackId" class="editable-row"> -->
+          <tr
+            *ngFor="
+              let data of chiTietLenhSanXuats
+                | filter: reelID
+                | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+              let i = index;
+              trackBy: trackId
+            "
+            class="editable-row"
+          >
+            <td>
+              {{ i + 1 }}
+            </td>
+
+            <td>
+              {{ $any(data).id }}
+            </td>
+
+            <td>
+              {{ $any(data).sap_code }}
+            </td>
+            <td>
+              {{ $any(data).create_by }}
+            </td>
+            <td>
+              {{ $any(data).work_order_code }}
+            </td>
+            <td>
+              {{ $any(data).sap_name }}
+            </td>
+            <td>
+              {{ $any(data).version }}
+            </td>
+            <td>
+              {{ $any(data).storage_code }}
+            </td>
+            <td>
+              {{ $any(data).group_name }}
+            </td>
+            <td>
+              <input
+                class="input-table"
+                type="text"
+                list="initialQuantity"
+                style="background-color: #fff"
+                [(ngModel)]="$any(data).total_quantity"
+                [ngModelOptions]="{ standalone: true }"
+                (change)="changeQuantity()"
+              />
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>
+              {{ $any(data).total_quantity }}
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>
+              {{ $any(data).comment }}
+            </td>
+            <td></td>
+            <td>
+              <input
+                class="input-table"
+                type="text"
+                list="storageUnit"
+                [(ngModel)]="$any(data).storage_code"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>
+              {{ $any(data).sap_code }}
+            </td>
+            <td>
+              <select
+                class="form-control form-select"
+                [(ngModel)]="$any(data).trang_thai"
+                [ngModelOptions]="{ standalone: true }"
+                (change)="changeQuantity()"
+                style="width: 6rem"
+              >
+                <option [ngValue]="" hidden>{{ $any(data).trang_thai }}</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div *ngIf="chiTietLenhSanXuats && chiTietLenhSanXuats.length > 0">
+        <div
+          style="
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            width: 100%;
+          "
+        >
+          <select
+            class="form-select"
+            aria-label="Default select example"
+            [(ngModel)]="itemPerPage"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 5rem; margin-top: 1rem"
+          >
+            <option value="{{ chiTietLenhSanXuats.length }}">All</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+          <pagination-controls
+            (pageChange)="page = $event"
+            style="float: right"
+          ></pagination-controls>
+        </div>
+      </div>
+      <div style="margin-right: 3rem">
+        <button
+          type="submit"
+          id="save-entity"
+          class="btn btn-primary"
+          (click)="guiPheDuyet()"
+        >
+          <fa-icon icon="check"></fa-icon>&nbsp;<span>Gửi phê duyệt</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          [disabled]="editForm.invalid || isSaving"
+          class="btn btn-primary"
+          (click)="save()"
+        >
+          <fa-icon icon="save"></fa-icon>&nbsp;<span>Lưu</span>
+        </button>
+
+        <button
+          type="button"
+          id="cancel-save"
+          class="btn btn-secondary"
+          (click)="boPhanSanXuatHuy()"
+        >
+          <fa-icon icon="ban"></fa-icon>&nbsp;<span>Huỷ</span>
+        </button>
+
+        <button
+          type="button"
+          id="cancel-save"
+          data-cy="entityCreateCancelButton"
+          class="btn btn-info"
+          (click)="previousState()"
+        >
+          <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span>Trở lại</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

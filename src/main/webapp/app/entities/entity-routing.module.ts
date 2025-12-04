@@ -73,10 +73,10 @@ import { RouterModule } from "@angular/router";
           ),
       },
       {
-        path: "lenh-san-xuat",
-        data: { pageTitle: "Lệnh sản xuất" },
+        path: "warehouse-note-infos",
+        data: { pageTitle: "Quản lý phiếu Pallet" },
         loadChildren: () =>
-          import("./lenh-san-xuat/lenh-san-xuat.module").then(
+          import("./pallet-note-management/lenh-san-xuat.module").then(
             (m) => m.LenhSanXuatModule,
           ),
       },
@@ -152,6 +152,14 @@ import { RouterModule } from "@angular/router";
         loadChildren: () =>
           import("./generate-tem-in/generate-tem-in.module").then(
             (m) => m.GenerateTemInModule,
+          ),
+      },
+      {
+        path: "lenh-san-xuat",
+        data: { pageTitle: "Thông tin tem sản xuất" },
+        loadChildren: () =>
+          import("./lenh-san-xuat/lenh-san-xuat.module").then(
+            (m) => m.LenhSanXuatModule,
           ),
       },
       // {
