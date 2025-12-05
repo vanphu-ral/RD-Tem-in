@@ -493,7 +493,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             tongSoLuong: 0,
             trangThai: "Bản nháp",
             loaiSanPham:
-              item.productType === "1" ? "Thành phẩm" : "Bán thành phẩm",
+              item.productType === "1" || item.productType == null
+                ? "Thành phẩm"
+                : "Bán thành phẩm",
 
             // ===== LƯU DỮ LIỆU THÔ =====
             nganhRaw: item.branchCode, // "LR LED"
@@ -2346,7 +2348,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     for (const detail of palletDetails) {
       // Tạo key nhóm theo các thông tin chung của pallet cha
-      const key = `${detail.customer_name}|${detail.po_number}|${detail.date_code}|${detail.qdsx_no}`;
+      const key = detail.updated_at;
 
       if (!grouped[key]) {
         grouped[key] = {

@@ -482,13 +482,19 @@ export class PalletDetailDialogComponent implements OnInit {
       }
 
       // ===== TÍNH TOÁN SỐ LƯỢNG =====
+      const soThungDuKien = item.tongSoThung;
       let tongSoSanPhamTrongPallet = 0;
       let soLuongSanPhamTrongMotThung = 0;
       let firstBoxSerial = "";
       let lotNumber = "";
 
       if (item.scannedBoxes && item.scannedBoxes.length > 0) {
-        item.scannedBoxes.forEach((scannedSerial, boxIndex) => {
+        // loại bỏ trùng lặp để tránh cộng nhiều lần
+        const uniqueScanned = [...new Set(item.scannedBoxes)];
+        uniqueScanned.forEach((scannedSerial, boxIndex) => {
+          if (!scannedSerial || typeof scannedSerial !== "string") {
+            return;
+          }
           const trimmedSerial = scannedSerial.trim();
 
           for (const box of (sourceData.boxItems as BoxDetailData[]) ?? []) {
@@ -520,6 +526,19 @@ export class PalletDetailDialogComponent implements OnInit {
 
       const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.tongSoThung}`;
 
+      // ===== TÍNH SỐ LƯỢNG DỰ KIẾN (KHI CHƯA SCAN) =====
+      let soLuongSpTrong1Thung = 0;
+      if (item.scannedBoxes && item.scannedBoxes.length > 0) {
+        soLuongSpTrong1Thung = soLuongSanPhamTrongMotThung;
+      }
+      const tongSoSpDuKien = soThungDuKien * soLuongSpTrong1Thung;
+
+      // ===== QUYẾT ĐỊNH HIỂN THỊ SỐ LƯỢNG NÀO =====
+      const soLuongCaiDatPallet =
+        item.scannedBoxes && item.scannedBoxes.length > 0
+          ? tongSoSanPhamTrongPallet
+          : tongSoSpDuKien;
+
       const printData: PrintPalletData = {
         khachHang: sourceData.khachHang ?? "N/A",
         serialPallet: item.maPallet,
@@ -537,15 +556,15 @@ export class PalletDetailDialogComponent implements OnInit {
         to: sourceData.team ?? "",
         lpl2: sourceData.team ?? "",
 
-        soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
+        soLuongCaiDatPallet: soLuongCaiDatPallet,
         thuTuGiaPallet: item.stt,
         soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
-        slThung: soLuongSanPhamTrongMotThung,
+        slThung: soLuongSpTrong1Thung,
         note: sourceData.note ?? "",
 
         productCode: sourceData.tenSanPham,
         serialBox: firstBoxSerial || item.maPallet,
-        qty: soLuongSanPhamTrongMotThung,
+        qty: soLuongSpTrong1Thung,
         lot: lotNumber || item.maPallet,
         date: new Date().toLocaleDateString("vi-VN"),
         scannedBoxes: item.scannedBoxes,

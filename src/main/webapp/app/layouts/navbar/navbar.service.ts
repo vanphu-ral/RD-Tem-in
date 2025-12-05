@@ -33,7 +33,7 @@ export class NavbarService {
       ],
     },
     {
-      title: "Quản lý serial và đóng gói",
+      title: "Serial và đóng gói",
       active: false,
       icon: faNoteSticky,
       type: "dropdown",
