@@ -610,9 +610,7 @@ export class PalletDetailDialogComponent implements OnInit {
         // CÂP NHẬT PROGRESS VÀ SCANNED BOXES
         item.tienDoScan = result.progressPercent ?? 0;
         item.scannedBoxes =
-          (result.scannedBoxes as any[])?.map(
-            (box: any) => box.code as string,
-          ) ?? [];
+          result.scannedBoxes?.map((box: any) => box.code) ?? [];
 
         console.log(" Updated item:", {
           maPallet: item.maPallet,
