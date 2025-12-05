@@ -606,10 +606,39 @@ export class PalletDetailDialogComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe((result) => {
-      console.log("Scan dialog closed, reloading progress from API...");
+      if (result) {
+        // CÂP NHẬT PROGRESS VÀ SCANNED BOXES
+        item.tienDoScan = result.progressPercent ?? 0;
+        item.scannedBoxes =
+          result.scannedBoxes?.map((box: any) => box.code) ?? [];
 
-      if (sourceData.maLenhSanXuatId) {
-        this.loadPalletProgress(item, sourceData.maLenhSanXuatId);
+        console.log(" Updated item:", {
+          maPallet: item.maPallet,
+          tienDoScan: item.tienDoScan,
+          scannedBoxesCount: item.scannedBoxes?.length,
+        });
+
+        //  CẬP NHẬT LẠI SOURCE DATA
+        if (this.isMultipleMode && item.parentPalletIndex !== undefined) {
+          const source = this.palletSources[item.parentPalletIndex];
+          if (source.subItems) {
+            const subItemIndex = source.subItems.findIndex(
+              (sub) => sub.maPallet === item.maPallet,
+            );
+            if (subItemIndex > -1) {
+              source.subItems[subItemIndex].tienDoScan =
+                result.progressPercent ?? 0;
+              source.subItems[subItemIndex].scannedBoxes = item.scannedBoxes;
+            }
+          }
+        } else if (this.singlePalletData) {
+          this.singlePalletData.tienDoScan = result.progressPercent ?? 0;
+          this.singlePalletData.scannedBoxes = item.scannedBoxes;
+        }
+
+        if (sourceData.maLenhSanXuatId) {
+          this.loadPalletProgress(item, sourceData.maLenhSanXuatId);
+        }
       }
     });
   }

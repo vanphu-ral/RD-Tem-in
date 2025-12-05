@@ -224,7 +224,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     "noSKU",
     "createdAt",
     "tongPallet",
-    "tongSlSp",
+    // "tongSlSp",
     "tongSoThung",
     "khachHang",
     "poNumber",
