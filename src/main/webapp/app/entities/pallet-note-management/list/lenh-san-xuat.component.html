@@ -28,7 +28,7 @@
     <!-- <jhi-alert-error></jhi-alert-error> -->
 
     <!-- <div class="table-responsive" id="entities" *ngIf="lenhSanXuats && lenhSanXuats.length > 0"> -->
-    <div style="overflow: auto; height: 700px; width: 100%">
+    <div style="overflow: auto; height: 900px; width: 100%">
       <table class="table" aria-describedby="page-heading">
         <thead>
           <tr
@@ -449,9 +449,9 @@
         [(ngModel)]="itemPerPage"
         (change)="findFucntion()"
       >
-        <option value="10">10</option>
-        <option value="15">15</option>
         <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
       </select>
     </div>
 

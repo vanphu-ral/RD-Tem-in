@@ -80,7 +80,7 @@ export class LenhSanXuatComponent implements OnInit {
   lastPageBtn = false;
   backPageBtn = true;
   firstPageBtn = true;
-  @Input() itemPerPage = 10;
+  @Input() itemPerPage = 20;
   @Input() pageNumber = 1;
   @Input() maLenhSanXuat = "";
   @Input() version = "";
@@ -132,7 +132,7 @@ export class LenhSanXuatComponent implements OnInit {
   listOfWorkOrderCode: string[] = [];
   listOfVersion: string[] = [];
   resultSearchDateTime = [];
-  pageSize = 10;
+  pageSize = 20;
   pageIndex = 0;
 
   constructor(
@@ -274,6 +274,11 @@ export class LenhSanXuatComponent implements OnInit {
           element.style.backgroundColor = "#FFF3BF";
           element.style.color = "#8A6D3B";
           element.style.border = "1px solid #E6DCA5";
+          break;
+        case "Đã gửi WMS":
+          element.style.backgroundColor = "#C6F6D5";
+          element.style.color = "#3F6D52";
+          element.style.border = "1px solid #A3D9B8";
           break;
         case "Đã phê duyệt":
           element.style.backgroundColor = "#C6F6D5";
@@ -473,14 +478,16 @@ export class LenhSanXuatComponent implements OnInit {
   }
   delete(lenhSanXuat: ILenhSanXuat): void {
     const modalRef = this.modalService.open(LenhSanXuatDeleteDialogComponent, {
-      size: "lg",
+      size: "md",
       backdrop: "static",
     });
     modalRef.componentInstance.lenhSanXuat = lenhSanXuat;
     // unsubscribe not needed because closed completes on modal close
-    modalRef.closed.subscribe((reason) => {
-      if (reason === "deleted") {
-        this.loadPage();
+    modalRef.closed.subscribe((deletedId) => {
+      if (deletedId) {
+        this.lenhSanXuats =
+          this.lenhSanXuats?.filter((item) => item.id !== deletedId) ?? [];
+        this.totalItems--;
       }
     });
   }
