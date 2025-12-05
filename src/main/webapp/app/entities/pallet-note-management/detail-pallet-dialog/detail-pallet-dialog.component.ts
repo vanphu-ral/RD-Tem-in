@@ -482,19 +482,13 @@ export class PalletDetailDialogComponent implements OnInit {
       }
 
       // ===== TÍNH TOÁN SỐ LƯỢNG =====
-      const soThungDuKien = item.tongSoThung;
       let tongSoSanPhamTrongPallet = 0;
       let soLuongSanPhamTrongMotThung = 0;
       let firstBoxSerial = "";
       let lotNumber = "";
 
       if (item.scannedBoxes && item.scannedBoxes.length > 0) {
-        // loại bỏ trùng lặp để tránh cộng nhiều lần
-        const uniqueScanned = [...new Set(item.scannedBoxes)];
-        uniqueScanned.forEach((scannedSerial, boxIndex) => {
-          if (!scannedSerial || typeof scannedSerial !== "string") {
-            return;
-          }
+        item.scannedBoxes.forEach((scannedSerial, boxIndex) => {
           const trimmedSerial = scannedSerial.trim();
 
           for (const box of (sourceData.boxItems as BoxDetailData[]) ?? []) {
@@ -526,19 +520,6 @@ export class PalletDetailDialogComponent implements OnInit {
 
       const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.tongSoThung}`;
 
-      // ===== TÍNH SỐ LƯỢNG DỰ KIẾN (KHI CHƯA SCAN) =====
-      let soLuongSpTrong1Thung = 0;
-      if (item.scannedBoxes && item.scannedBoxes.length > 0) {
-        soLuongSpTrong1Thung = soLuongSanPhamTrongMotThung;
-      }
-      const tongSoSpDuKien = soThungDuKien * soLuongSpTrong1Thung;
-
-      // ===== QUYẾT ĐỊNH HIỂN THỊ SỐ LƯỢNG NÀO =====
-      const soLuongCaiDatPallet =
-        item.scannedBoxes && item.scannedBoxes.length > 0
-          ? tongSoSanPhamTrongPallet
-          : tongSoSpDuKien;
-
       const printData: PrintPalletData = {
         khachHang: sourceData.khachHang ?? "N/A",
         serialPallet: item.maPallet,
@@ -556,15 +537,15 @@ export class PalletDetailDialogComponent implements OnInit {
         to: sourceData.team ?? "",
         lpl2: sourceData.team ?? "",
 
-        soLuongCaiDatPallet: soLuongCaiDatPallet,
+        soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
         thuTuGiaPallet: item.stt,
         soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
-        slThung: soLuongSpTrong1Thung,
+        slThung: soLuongSanPhamTrongMotThung,
         note: sourceData.note ?? "",
 
         productCode: sourceData.tenSanPham,
         serialBox: firstBoxSerial || item.maPallet,
-        qty: soLuongSpTrong1Thung,
+        qty: soLuongSanPhamTrongMotThung,
         lot: lotNumber || item.maPallet,
         date: new Date().toLocaleDateString("vi-VN"),
         scannedBoxes: item.scannedBoxes,
@@ -624,7 +605,7 @@ export class PalletDetailDialogComponent implements OnInit {
       disableClose: true,
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         // CÂP NHẬT PROGRESS VÀ SCANNED BOXES
         item.tienDoScan = result.progressPercent ?? 0;

@@ -114,9 +114,13 @@ public class SerialBoxPalletMappingService {
         serialBoxPalletMapping.setSerialPallet(insertDTO.getSerialPallet());
         serialBoxPalletMapping.setStatus(insertDTO.getStatus());
         serialBoxPalletMapping.setUpdatedAt(Instant.now());
-        serialBoxPalletMapping.setUpdatedBy(
-            SecurityUtils.getCurrentUserLogin().orElse("system")
-        );
+        // Use updatedBy from payload if provided, otherwise use current user or
+        // "system"
+        String updatedBy = insertDTO.getUpdatedBy();
+        if (updatedBy == null || updatedBy.trim().isEmpty()) {
+            updatedBy = SecurityUtils.getCurrentUserLogin().orElse("system");
+        }
+        serialBoxPalletMapping.setUpdatedBy(updatedBy);
         serialBoxPalletMapping.setMaLenhSanXuat(warehouseStampInfo);
 
         serialBoxPalletMapping = serialBoxPalletMappingRepository.save(
@@ -218,6 +222,27 @@ public class SerialBoxPalletMappingService {
         );
         return serialBoxPalletMappingRepository
             .findBySerialPallet(serialPallet)
+            .stream()
+            .map(serialBoxPalletMappingMapper::toDto)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Get all serialBoxPalletMappings by maLenhSanXuatId.
+     *
+     * @param maLenhSanXuatId the id of maLenhSanXuat.
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<SerialBoxPalletMappingDTO> findByMaLenhSanXuatId(
+        Long maLenhSanXuatId
+    ) {
+        LOG.debug(
+            "Request to get SerialBoxPalletMappings by maLenhSanXuatId : {}",
+            maLenhSanXuatId
+        );
+        return serialBoxPalletMappingRepository
+            .findByMaLenhSanXuatId(maLenhSanXuatId)
             .stream()
             .map(serialBoxPalletMappingMapper::toDto)
             .collect(java.util.stream.Collectors.toList());

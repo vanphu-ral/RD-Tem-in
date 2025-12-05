@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import javax.validation.constraints.*;
 
@@ -10,13 +11,18 @@ public class SerialBoxPalletMappingInsertDTO implements Serializable {
 
     @Size(max = 50)
     @NotNull
+    @JsonProperty("serial_box")
     private String serialBox;
 
     @Size(max = 50)
     @NotNull
+    @JsonProperty("serial_pallet")
     private String serialPallet;
 
     private Integer status;
+
+    @JsonProperty("updated_by")
+    private String updatedBy;
 
     public String getSerialBox() {
         return serialBox;
@@ -42,6 +48,14 @@ public class SerialBoxPalletMappingInsertDTO implements Serializable {
         this.status = status;
     }
 
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
     @Override
     public String toString() {
         return (
@@ -54,6 +68,9 @@ public class SerialBoxPalletMappingInsertDTO implements Serializable {
             '\'' +
             ", status=" +
             status +
+            ", updatedBy='" +
+            updatedBy +
+            '\'' +
             '}'
         );
     }

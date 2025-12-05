@@ -166,6 +166,15 @@ export class PlanningWorkOrderService {
     );
   }
 
+  //get mappings by maLenhSanXuatId
+  getMappingsByMaLenhSanXuatId(
+    maLenhSanXuatId: number,
+  ): Observable<SerialBoxPalletMapping[]> {
+    return this.http.get<SerialBoxPalletMapping[]>(
+      `${this.baseUrl}/serial-box-pallet-mappings/ma-lenh-san-xuat/${maLenhSanXuatId}`,
+    );
+  }
+
   //xoá box
   deleteBoxDetail(id: number): Observable<any> {
     return this.http.delete(

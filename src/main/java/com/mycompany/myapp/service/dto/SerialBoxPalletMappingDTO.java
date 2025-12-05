@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
@@ -15,9 +16,11 @@ public class SerialBoxPalletMappingDTO implements Serializable {
     private Long id;
 
     @Size(max = 50)
+    @JsonProperty("serial_box")
     private String serialBox;
 
     @Size(max = 50)
+    @JsonProperty("serial_pallet")
     private String serialPallet;
 
     private Instant updatedAt;

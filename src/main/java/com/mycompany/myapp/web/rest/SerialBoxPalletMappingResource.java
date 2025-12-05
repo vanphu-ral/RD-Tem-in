@@ -105,11 +105,12 @@ public class SerialBoxPalletMappingResource {
     }
 
     /**
-     * {@code POST  /serial-box-pallet-mappings/ma-lenh-san-xuat/{maLenhSanXuatId}} : Create a new
+     * {@code POST /serial-box-pallet-mappings/ma-lenh-san-xuat/{maLenhSanXuatId}} :
+     * Create a new
      * serialBoxPalletMapping with maLenhSanXuat.
      *
      * @param maLenhSanXuatId the id of maLenhSanXuat.
-     * @param insertDTO the insert data.
+     * @param insertDTO       the insert data.
      * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
      *         body the new serialBoxPalletMappingDTO.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
@@ -326,7 +327,8 @@ public class SerialBoxPalletMappingResource {
     }
 
     /**
-     * {@code GET  /serial-box-pallet-mappings/serial-pallet/:serialPallet} : get all serialBoxPalletMappings by serialPallet.
+     * {@code GET  /serial-box-pallet-mappings/serial-pallet/:serialPallet} : get
+     * all serialBoxPalletMappings by serialPallet.
      *
      * @param serialPallet the serial pallet to retrieve mappings for.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
@@ -344,6 +346,31 @@ public class SerialBoxPalletMappingResource {
         );
         List<SerialBoxPalletMappingDTO> serialBoxPalletMappingDTOs =
             serialBoxPalletMappingService.findBySerialPallet(serialPallet);
+        return ResponseEntity.ok().body(serialBoxPalletMappingDTOs);
+    }
+
+    /**
+     * {@code GET  /serial-box-pallet-mappings/ma-lenh-san-xuat/:maLenhSanXuatId} :
+     * get all serialBoxPalletMappings by maLenhSanXuatId.
+     *
+     * @param maLenhSanXuatId the id of maLenhSanXuat to retrieve mappings for.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the list of serialBoxPalletMappingDTOs.
+     */
+    @GetMapping("/ma-lenh-san-xuat/{maLenhSanXuatId}")
+    public ResponseEntity<
+        List<SerialBoxPalletMappingDTO>
+    > getSerialBoxPalletMappingsByMaLenhSanXuatId(
+        @PathVariable Long maLenhSanXuatId
+    ) {
+        LOG.debug(
+            "REST request to get SerialBoxPalletMappings by maLenhSanXuatId : {}",
+            maLenhSanXuatId
+        );
+        List<SerialBoxPalletMappingDTO> serialBoxPalletMappingDTOs =
+            serialBoxPalletMappingService.findByMaLenhSanXuatId(
+                maLenhSanXuatId
+            );
         return ResponseEntity.ok().body(serialBoxPalletMappingDTOs);
     }
 
