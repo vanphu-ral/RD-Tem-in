@@ -605,12 +605,14 @@ export class PalletDetailDialogComponent implements OnInit {
       disableClose: true,
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
+    dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
         // CÂP NHẬT PROGRESS VÀ SCANNED BOXES
         item.tienDoScan = result.progressPercent ?? 0;
         item.scannedBoxes =
-          result.scannedBoxes?.map((box: any) => box.code) ?? [];
+          (result.scannedBoxes as any[])?.map(
+            (box: any) => box.code as string,
+          ) ?? [];
 
         console.log(" Updated item:", {
           maPallet: item.maPallet,
