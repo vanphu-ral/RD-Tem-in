@@ -15,27 +15,17 @@
       </h2>
       <div class="headling-btn">
         <button
-          class="btn export-btn export-excel"
+          class="export-btn export-excel"
           style="background-color: red"
           (click)="panacimError()"
         >
           Báo lỗi panacim
         </button>
-        <button class="btn export-btn export-excel" (click)="exportToExcel()">
+        <button class="export-btn export-excel" (click)="exportToExcel()">
           Export to excel
         </button>
-        <button class="btn export-btn exportCSV" (click)="exportCSV()">
+        <button class="export-btn exportCSV" (click)="exportCSV()">
           Export to csv
-        </button>
-        <button
-          class="btn export-btn"
-          style="background-color: #2196f3; color: white"
-          (click)="openConfirmModal(confirmModal)"
-          [disabled]="isDisable"
-          title="Xuất CSV đến Panacim"
-        >
-          <i class="fa fa-cloud-upload" aria-hidden="true"></i>
-          Xuất CSV đến Panacim
         </button>
       </div>
     </div>
@@ -165,39 +155,39 @@
                   {{ i + 1 }}
                 </span>
               </td>
-              <td>{{ $any(data).reel_id }}</td>
-              <td>{{ $any(data).part_number }}</td>
-              <td>{{ $any(data).vendor }}</td>
-              <td>{{ $any(data).lot }}</td>
-              <td>{{ $any(data).user_data1 }}</td>
-              <td>{{ $any(data).user_data2 }}</td>
-              <td>{{ $any(data).user_data3 }}</td>
-              <td>{{ $any(data).user_data4 }}</td>
-              <td>{{ $any(data).user_data5 }}</td>
-              <td>{{ $any(data).initial_quantity }}</td>
-              <td>{{ $any(data).msd_level }}</td>
-              <td>{{ $any(data).msd_initial_floor_time }}</td>
-              <td>{{ $any(data).msd_bag_seal_date }}</td>
-              <td>{{ $any(data).market_usage }}</td>
-              <td>{{ $any(data).quantity_override }}</td>
-              <td>{{ $any(data).shelf_time }}</td>
-              <td>{{ $any(data).sp_material_name }}</td>
-              <td>{{ $any(data).warning_limit }}</td>
-              <td>{{ $any(data).maximum_limit }}</td>
-              <td>{{ $any(data).comments }}</td>
-              <td>{{ $any(data).warmup_time }}</td>
+              <td>{{ data.reelID }}</td>
+              <td>{{ data.partNumber }}</td>
+              <td>{{ data.vendor }}</td>
+              <td>{{ data.lot }}</td>
+              <td>{{ data.userData1 }}</td>
+              <td>{{ data.userData2 }}</td>
+              <td>{{ data.userData3 }}</td>
+              <td>{{ data.userData4 }}</td>
+              <td>{{ data.userData5 }}</td>
+              <td>{{ data.initialQuantity }}</td>
+              <td>{{ data.msdLevel }}</td>
+              <td>{{ data.msdInitialFloorTime }}</td>
+              <td>{{ data.msdBagSealDate }}</td>
+              <td>{{ data.marketUsage }}</td>
+              <td>{{ data.quantityOverride }}</td>
+              <td>{{ data.shelfTime }}</td>
+              <td>{{ data.spMaterialName }}</td>
+              <td>{{ data.warningLimit }}</td>
+              <td>{{ data.maximumLimit }}</td>
+              <td>{{ data.comments }}</td>
+              <td>{{ data.warmupTime }}</td>
               <td>
                 <span class="custom-width">
-                  {{ $any(data).storage_unit }}
+                  {{ data.storageUnit }}
                 </span>
               </td>
-              <td>{{ $any(data).sub_storage_unit }}</td>
-              <td>{{ $any(data).location_override }}</td>
-              <td>{{ $any(data).expiration_date }}</td>
-              <td>{{ $any(data).manufacturing_date }}</td>
-              <td>{{ $any(data).part_class }}</td>
-              <td>{{ $any(data).sap_code }}</td>
-              <td>{{ $any(data).trang_thai }}</td>
+              <td>{{ data.subStorageUnit }}</td>
+              <td>{{ data.locationOverride }}</td>
+              <td>{{ data.expirationDate }}</td>
+              <td>{{ data.manufacturingDate }}</td>
+              <td>{{ data.partClass }}</td>
+              <td>{{ data.sapCode }}</td>
+              <td>{{ data.trangThai }}</td>
             </tr>
           </tbody>
         </table>
@@ -212,33 +202,4 @@
       </button> -->
     </div>
   </div>
-
-  <!-- Confirmation Modal -->
-  <ng-template #confirmModal let-modal>
-    <div class="modal-header">
-      <h4 class="modal-title" id="modal-basic-title">Xác nhận xuất CSV</h4>
-    </div>
-    <div class="modal-body">
-      <p>Bạn có chắc chắn muốn xuất CSV đến Panacim?</p>
-      <p>
-        Số lượng bản ghi: <strong>{{ data.length }}</strong>
-      </p>
-    </div>
-    <div class="modal-footer">
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        (click)="modal.dismiss('cancel')"
-      >
-        Hủy
-      </button>
-      <button
-        type="button"
-        class="btn btn-primary"
-        (click)="modal.close('confirm')"
-      >
-        Xác nhận
-      </button>
-    </div>
-  </ng-template>
 </div>

@@ -11,8 +11,8 @@ import {
   IChiTietLenhSanXuat,
   ChiTietLenhSanXuat,
 } from "../chi-tiet-lenh-san-xuat.model";
-import { ILenhSanXuat } from "app/entities/pallet-note-management/lenh-san-xuat.model";
-import { LenhSanXuatService } from "app/entities/pallet-note-management/service/lenh-san-xuat.service";
+import { ILenhSanXuat } from "app/entities/lenh-san-xuat/lenh-san-xuat.model";
+import { LenhSanXuatService } from "app/entities/lenh-san-xuat/service/lenh-san-xuat.service";
 
 import { ChiTietLenhSanXuatUpdateComponent } from "./chi-tiet-lenh-san-xuat-update.component";
 import { SessionStorageService } from "ngx-webstorage";

@@ -222,7 +222,6 @@
             <thead>
               <tr>
                 <th scope="col">STT</th>
-                <th scope="col"><span class="custom-width">Status</span></th>
                 <th scope="col"><span class="custom-width">Reel ID</span></th>
                 <th scope="col">
                   <span class="custom-width">Part Number</span>
@@ -274,6 +273,7 @@
                 <th scope="col">ManuFacturing Date</th>
                 <th scope="col">Part Class</th>
                 <th scope="col">Sap Code</th>
+                <th scope="col"><span class="custom-width">Status</span></th>
                 <th scope="col">
                   Checked
                   <div class="btn-flex">
@@ -302,122 +302,119 @@
               <td>
                 {{ i + 1 }}
               </td>
+
               <td>
-                <select
-                  class="form-control form-select"
-                  [(ngModel)]="$any(data).trang_thai"
-                  [ngModelOptions]="{ standalone: true }"
-                  (change)="changeQuantity()"
-                  style="width: 6rem"
-                >
-                  <option [ngValue]="" hidden>
-                    {{ $any(data).trang_thai }}
-                  </option>
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                  <option value="not list">not list</option>
-                </select>
+                {{ data.reelID }}
               </td>
 
               <td>
-                {{ $any(data).reel_id }}
-              </td>
-
-              <td>
-                {{ $any(data).part_number }}
+                {{ data.partNumber }}
               </td>
               <td>
-                {{ $any(data).vendor }}
+                {{ data.vendor }}
               </td>
               <td>
-                {{ $any(data).lot }}
+                {{ data.lot }}
               </td>
               <td>
-                {{ $any(data).user_data1 }}
+                {{ data.userData1 }}
               </td>
               <td>
-                {{ $any(data).user_data2 }}
+                {{ data.userData2 }}
               </td>
               <td>
-                {{ $any(data).user_data3 }}
+                {{ data.userData3 }}
               </td>
               <td>
-                {{ $any(data).user_data4 }}
+                {{ data.userData4 }}
+              </td>
+              <td>
+                {{ data.userData5 }}
               </td>
               <td>
                 <input
                   class="input-table"
                   type="text"
                   list="initialQuantity"
-                  [(ngModel)]="$any(data).initial_quantity"
+                  [(ngModel)]="data.initialQuantity"
                   [ngModelOptions]="{ standalone: true }"
                   (change)="changeQuantity()"
                 />
               </td>
               <td>
-                {{ $any(data).user_data5 }}
+                {{ data.msdLevel }}
               </td>
               <td>
-                {{ $any(data).msd_level }}
+                {{ data.msdInitialFloorTime }}
               </td>
               <td>
-                {{ $any(data).msd_initial_floor_time }}
+                {{ data.msdBagSealDate }}
               </td>
               <td>
-                {{ $any(data).msd_bag_seal_date }}
+                {{ data.marketUsage }}
               </td>
               <td>
-                {{ $any(data).market_usage }}
+                {{ data.quantityOverride }}
               </td>
               <td>
-                {{ $any(data).quantity_override }}
+                {{ data.shelfTime }}
               </td>
               <td>
-                {{ $any(data).shelf_time }}
+                {{ data.spMaterialName }}
               </td>
               <td>
-                {{ $any(data).sp_material_name }}
+                {{ data.warningLimit }}
               </td>
               <td>
-                {{ $any(data).warning_limit }}
+                {{ data.maximumLimit }}
               </td>
               <td>
-                {{ $any(data).maximum_limit }}
+                {{ data.comments }}
               </td>
               <td>
-                {{ $any(data).comments }}
+                {{ data.warmupTime }}
               </td>
               <td>
-                {{ $any(data).warmup_time }}
+                {{ data.storageUnit }}
               </td>
               <td>
-                {{ $any(data).storage_unit }}
+                {{ data.subStorageUnit }}
               </td>
               <td>
-                {{ $any(data).sub_storage_unit }}
+                {{ data.locationOverride }}
               </td>
               <td>
-                {{ $any(data).location_override }}
+                {{ data.expirationDate }}
               </td>
               <td>
-                {{ $any(data).expiration_date }}
+                {{ data.manufacturingDate }}
               </td>
               <td>
-                {{ $any(data).manufacturing_date }}
+                {{ data.partClass }}
               </td>
               <td>
-                {{ $any(data).part_class }}
+                {{ data.sapCode }}
               </td>
               <td>
-                {{ $any(data).sap_code }}
+                <select
+                  class="form-control form-select"
+                  [(ngModel)]="data.trangThai"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="changeQuantity()"
+                  style="width: 6rem"
+                >
+                  <option [ngValue]="" hidden>{{ data.trangThai }}</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="not list">not list</option>
+                </select>
               </td>
-
               <td>
                 <input
                   type="checkbox"
-                  [(ngModel)]="$any(data).checked"
+                  [(ngModel)]="data.checked"
                   [ngModelOptions]="{ standalone: true }"
-                  (change)="onSelected(i, !!$any(data).checked)"
+                  (change)="onSelected(i, !!data.checked)"
                 />
               </td>
             </tr>
@@ -516,110 +513,110 @@
               </td>
 
               <td>
-                {{ $any(data).reel_id }}
+                {{ data.reelID }}
               </td>
 
               <td>
-                {{ $any(data).part_number }}
+                {{ data.partNumber }}
               </td>
               <td>
-                {{ $any(data).vendor }}
+                {{ data.vendor }}
               </td>
               <td>
-                {{ $any(data).lot }}
+                {{ data.lot }}
               </td>
               <td>
-                {{ $any(data).user_data1 }}
+                {{ data.userData1 }}
               </td>
               <td>
-                {{ $any(data).user_data2 }}
+                {{ data.userData2 }}
               </td>
               <td>
-                {{ $any(data).user_data3 }}
+                {{ data.userData3 }}
               </td>
               <td>
-                {{ $any(data).user_data4 }}
+                {{ data.userData4 }}
+              </td>
+              <td>
+                {{ data.userData5 }}
               </td>
               <td>
                 <input
                   class="input-table"
                   type="text"
                   list="initialQuantity"
-                  [(ngModel)]="$any(data).initial_quantity"
+                  [(ngModel)]="data.initialQuantity"
                   [ngModelOptions]="{ standalone: true }"
                   (change)="changeQuantity()"
                 />
               </td>
               <td>
-                {{ $any(data).user_data5 }}
+                {{ data.msdLevel }}
               </td>
               <td>
-                {{ $any(data).msd_level }}
+                {{ data.msdInitialFloorTime }}
               </td>
               <td>
-                {{ $any(data).msd_initial_floor_time }}
+                {{ data.msdBagSealDate }}
               </td>
               <td>
-                {{ $any(data).msd_bag_seal_date }}
+                {{ data.marketUsage }}
               </td>
               <td>
-                {{ $any(data).market_usage }}
+                {{ data.quantityOverride }}
               </td>
               <td>
-                {{ $any(data).quantity_override }}
+                {{ data.shelfTime }}
               </td>
               <td>
-                {{ $any(data).shelf_time }}
+                {{ data.spMaterialName }}
               </td>
               <td>
-                {{ $any(data).sp_material_name }}
+                {{ data.warningLimit }}
               </td>
               <td>
-                {{ $any(data).warning_limit }}
+                {{ data.maximumLimit }}
               </td>
               <td>
-                {{ $any(data).maximum_limit }}
+                {{ data.comments }}
               </td>
               <td>
-                {{ $any(data).comments }}
-              </td>
-              <td>
-                {{ $any(data).warmup_time }}
+                {{ data.warmupTime }}
               </td>
               <td>
                 <input
                   class="input-table"
                   type="text"
                   list="storageUnit"
-                  [(ngModel)]="$any(data).storage_unit"
+                  [(ngModel)]="data.storageUnit"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </td>
               <td>
-                {{ $any(data).sub_storage_unit }}
+                {{ data.subStorageUnit }}
               </td>
               <td>
-                {{ $any(data).location_override }}
+                {{ data.locationOverride }}
               </td>
               <td>
-                {{ $any(data).expiration_date }}
+                {{ data.expirationDate }}
               </td>
               <td>
-                {{ $any(data).manufacturing_date }}
+                {{ data.manufacturingDate }}
               </td>
               <td>
-                {{ $any(data).part_class }}
+                {{ data.partClass }}
               </td>
               <td>
-                {{ $any(data).sap_code }}
+                {{ data.sapCode }}
               </td>
               <td>
-                {{ $any(data).trang_thai }}
+                {{ data.trangThai }}
               </td>
               <td>
                 <input
                   type="checkbox"
-                  [(ngModel)]="$any(data).checked"
+                  [(ngModel)]="data.checked"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </td>
@@ -721,7 +718,7 @@
         <input
           type="text"
           id="reelID"
-          placeholder="24061110271904002"
+          placeholder="24061110271900002"
           style="width: 230px; height: 30px"
           [(ngModel)]="reelID"
           [ngModelOptions]="{ standalone: true }"
@@ -793,10 +790,6 @@
     </table>
   </div>
   <div class="btn-margin">
-    <button mat-raised-button color="primary" (click)="UploadPanacim()">
-      <mat-icon>publish</mat-icon>
-      Đẩy tem vào Panacim
-    </button>
     <button class="btn-primary" style="margin-top: 12px" (click)="updateInfo()">
       Lưu
     </button>

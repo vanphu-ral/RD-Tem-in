@@ -1,5 +1,5 @@
 import dayjs from "dayjs/esm";
-import { ILenhSanXuat } from "app/entities/pallet-note-management/lenh-san-xuat.model";
+import { ILenhSanXuat } from "app/entities/lenh-san-xuat/lenh-san-xuat.model";
 import { UntypedFormBuilder } from "@angular/forms";
 import { ApplicationConfigService } from "app/core/config/application-config.service";
 import { Component, OnInit, Input } from "@angular/core";
@@ -29,15 +29,17 @@ import { PageEvent } from "@angular/material/paginator";
   standalone: false,
 })
 export class ChiTietLenhSanXuatComponent implements OnInit {
-  resourceUrlApprove =
-    "http://192.168.10.99:9040/api/warehouse-note-infos/not-draft";
-  totalDataUrl =
-    "http://192.168.10.99:9040/api/warehouse-note-infos/not-draft/totaldata";
+  resourceUrlApprove = this.applicationConfigService.getEndpointFor(
+    "api/quan-ly-phe-duyet",
+  );
+  totalDataUrl = this.applicationConfigService.getEndpointFor(
+    "api/quan-ly-phe-duyet/totaldata",
+  );
   searchUrlApprove =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuat");
-  // maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
-  //   "api/lenhsx/ma-lenh-san-xuat",
-  // );
+  maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
+    "api/lenhsx/ma-lenh-san-xuat",
+  );
   versionResourceUrl =
     this.applicationConfigService.getEndpointFor("api/lenhsx/version");
   sapCodetResourceUrl = this.applicationConfigService.getEndpointFor(
@@ -128,8 +130,8 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     itemPerPage: this.itemPerPage,
     pageNumber: this.pageNumber,
   };
-  lenhSanXuats?: any[];
-  lenhSanXuatGoc?: any[];
+  lenhSanXuats?: ILenhSanXuat[];
+  lenhSanXuatGoc?: ILenhSanXuat[];
   listTongSoLuong: any[] = [];
   // khởi tạo danh sách gợi ý
   listOfMaLenhSanXuat: string[] = [];
@@ -139,7 +141,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   listOfVersion: string[] = [];
   chiTietLenhSanXuats?: IChiTietLenhSanXuat[];
 
-  chiTietLenhSanXuatSort?: any[] = [];
+  chiTietLenhSanXuatSort?: IChiTietLenhSanXuat[] = [];
 
   isLoading = false;
   totalItems = 0;
@@ -168,13 +170,13 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
       const trangThai = this.lenhSanXuats![i].trangThai;
 
       // Màu theo groupName (giữ tone gốc, làm dịu)
-      if (this.lenhSanXuats![i].group_name?.includes("TC01")) {
+      if (this.lenhSanXuats![i].groupName?.includes("TC01")) {
         groupElement.style.backgroundColor = "#FFE5B4"; // cam dịu từ #FF9900
         groupElement.style.border = "1px solid #E6C199";
-      } else if (this.lenhSanXuats![i].group_name?.includes("SMT01")) {
+      } else if (this.lenhSanXuats![i].groupName?.includes("SMT01")) {
         groupElement.style.backgroundColor = "#B3ECFF"; // xanh dương dịu từ #00CCFF
         groupElement.style.border = "1px solid #99D6F2";
-      } else if (this.lenhSanXuats![i].group_name?.includes("SMT02")) {
+      } else if (this.lenhSanXuats![i].groupName?.includes("SMT02")) {
         groupElement.style.backgroundColor = "#B2F2B2"; // xanh lá dịu từ #00CC00
         groupElement.style.border = "1px solid #99D699";
       }
@@ -323,7 +325,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
       });
   }
   getTotalData(): void {
-    this.http.get<any>(this.totalDataUrl).subscribe((res) => {
+    this.http.post<any>(this.totalDataUrl, this.body).subscribe((res) => {
       this.totalData = res;
       if (this.totalData < this.itemPerPage) {
         this.nextPageBtn = true;
@@ -363,7 +365,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
       this.getTotalData();
       this.getLenhSanXuatList();
     }
-    // this.createListOfMaLenhSanXuat();
+    this.createListOfMaLenhSanXuat();
     this.createListOfSapCode();
     this.createListOfSapName();
     this.createListOfVersion();
@@ -373,14 +375,22 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     window.location.reload();
   }
   getLenhSanXuatList(): void {
-    this.http.get<any>(this.resourceUrlApprove).subscribe((res) => {
+    this.http.post<any>(this.resourceUrlApprove, this.body).subscribe((res) => {
       this.lenhSanXuats = res;
-
-      // Sau khi load danh sách thì đổi màu hiển thị
-      this.changeColor();
-
-      // Lưu lại key word tìm kiếm
-      sessionStorage.setItem("tem-in-search-body", JSON.stringify(this.body));
+      // // console.log('tesst 1: ', this.pageNumber, res);
+      setTimeout(() => {
+        this.http
+          .post<any>(this.getLenhSanXuatTongSoLuongUrl, this.lenhSanXuats)
+          .subscribe((res1) => {
+            // console.log('tongsoluong', this.lenhSanXuats);
+            for (let i = 0; i < this.lenhSanXuats!.length; i++) {
+              this.lenhSanXuats![i].totalQuantity = res1[i].tongSoLuong;
+            }
+          });
+        this.changeColor();
+        // Lưu lại key word tìm kiếm
+        sessionStorage.setItem("tem-in-search-body", JSON.stringify(this.body));
+      }, 500);
     });
   }
 
@@ -402,12 +412,12 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     });
   }
   //============================ api lấy danh sách gợi tý từ Backend =====================
-  // createListOfMaLenhSanXuat(): void {
-  //   this.http.get<any>(this.maLenhSanXuatResourceUrl).subscribe((res) => {
-  //     this.listOfMaLenhSanXuat = res;
-  //     // // console.log(res);
-  //   });
-  // }
+  createListOfMaLenhSanXuat(): void {
+    this.http.get<any>(this.maLenhSanXuatResourceUrl).subscribe((res) => {
+      this.listOfMaLenhSanXuat = res;
+      // // console.log(res);
+    });
+  }
   createListOfSapCode(): void {
     this.http.get<any>(this.sapCodetResourceUrl).subscribe((res) => {
       this.listOfSapCode = res;

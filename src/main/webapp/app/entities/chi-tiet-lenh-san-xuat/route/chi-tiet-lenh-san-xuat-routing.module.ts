@@ -1,4 +1,4 @@
-import { LenhSanXuatRoutingResolveService } from "./../../pallet-note-management/route/lenh-san-xuat-routing-resolve.service";
+import { LenhSanXuatRoutingResolveService } from "./../../lenh-san-xuat/route/lenh-san-xuat-routing-resolve.service";
 import { NgModule } from "@angular/core";
 import { RouterModule, Routes } from "@angular/router";
 

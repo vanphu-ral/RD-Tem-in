@@ -12,8 +12,8 @@ import { ChiTietLenhSanXuatService } from "../service/chi-tiet-lenh-san-xuat.ser
 import {
   ILenhSanXuat,
   LenhSanXuat,
-} from "app/entities/pallet-note-management/lenh-san-xuat.model";
-import { LenhSanXuatService } from "app/entities/pallet-note-management/service/lenh-san-xuat.service";
+} from "app/entities/lenh-san-xuat/lenh-san-xuat.model";
+import { LenhSanXuatService } from "app/entities/lenh-san-xuat/service/lenh-san-xuat.service";
 import { AccountService } from "app/core/auth/account.service";
 import { Account } from "app/core/auth/account.model";
 import { PageEvent } from "@angular/material/paginator";
@@ -25,13 +25,10 @@ import { PageEvent } from "@angular/material/paginator";
 })
 export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   resourceUrl = this.applicationConfigService.getEndpointFor(
-    "/api/warehouse-stamp-info-details",
+    "/api/chi-tiet-lenh-san-xuat",
   );
   resourceUrlUpdate = this.applicationConfigService.getEndpointFor(
-    "/api/warehouse-note-info-details",
-  );
-  resourceUrlWarehouseNoteInfo = this.applicationConfigService.getEndpointFor(
-    "/api/warehouse-note-infos",
+    "/api/chi-tiet-lenh-san-xuat/update",
   );
   selectedAllResult?: boolean;
   selectedAll = 1;
@@ -70,11 +67,11 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     trangThai: "",
   };
   isAllChecked: boolean = false;
-  chiTietLenhSanXuats: any[] = [];
+  chiTietLenhSanXuats: IChiTietLenhSanXuat[] = [];
   //tạo danh sách lệnh sản xuất ở trạng thái active
-  chiTietLenhSanXuatActive: any[] = [];
+  chiTietLenhSanXuatActive: IChiTietLenhSanXuat[] = [];
   //tạo danh sách lệnh sản xuất không có trong danh sách
-  chiTietLenhSanXuatNotList: any[] = [];
+  chiTietLenhSanXuatNotList: IChiTietLenhSanXuat[] = [];
   // tạo biến lưu trữ giá trị scan
   @Input() scanResults = "";
   @Input() reelID = "";
@@ -84,7 +81,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   isExisted = false;
   //Đóng mở popup
   popupMove = false;
-  scanValue: any = {
+  scanValue: IChiTietLenhSanXuat = {
     id: 0,
     reelID: "null",
     partNumber: "null",
@@ -174,106 +171,42 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     });
 
     this.activatedRoute.data.subscribe(({ lenhSanXuat }) => {
-      console.log("[DEBUG UPDATE] Route data received:", lenhSanXuat);
-      console.log(
-        "[DEBUG UPDATE] lenhSanXuat keys:",
-        lenhSanXuat ? Object.keys(lenhSanXuat) : "null",
-      );
-
-      // Check if we received data from the resolver with warehouse_note_info structure
-      if (!lenhSanXuat || !lenhSanXuat.warehouse_note_info) {
-        console.error("[ERROR UPDATE] Invalid data structure from resolver");
-        alert(
-          "Lỗi: Không tìm thấy dữ liệu lệnh sản xuất. Vui lòng kiểm tra lại đường dẫn.",
-        );
-        return;
-      }
-
-      const warehouseNoteInfo = lenhSanXuat.warehouse_note_info;
-      const warehouseNoteInfoDetails =
-        lenhSanXuat.warehouse_note_info_details || [];
-
-      console.log("[DEBUG UPDATE] warehouseNoteInfo:", warehouseNoteInfo);
-      console.log(
-        "[DEBUG UPDATE] warehouseNoteInfoDetails count:",
-        warehouseNoteInfoDetails.length,
-      );
+      // // console.log('test: ');
 
       const today = dayjs().startOf("second");
+      lenhSanXuat.timeUpdate = today;
 
-      // Map warehouse_note_info to lenhSanXuat structure
-      const mappedLenhSanXuat: ILenhSanXuat = {
-        id: warehouseNoteInfo.id,
-        maLenhSanXuat: warehouseNoteInfo.ma_lenh_san_xuat,
-        sapCode: warehouseNoteInfo.sap_code,
-        sapName: warehouseNoteInfo.sap_name,
-        workOrderCode: warehouseNoteInfo.work_order_code,
-        version: warehouseNoteInfo.version,
-        storageCode: warehouseNoteInfo.storage_code,
-        totalQuantity: warehouseNoteInfo.total_quantity,
-        createBy: warehouseNoteInfo.create_by,
-        entryTime: warehouseNoteInfo.entry_time
-          ? dayjs(warehouseNoteInfo.entry_time)
-          : undefined,
-        timeUpdate: today,
-        trangThai: warehouseNoteInfo.trang_thai,
-        comment: warehouseNoteInfo.comment,
-        groupName: warehouseNoteInfo.group_name,
-        comment2: warehouseNoteInfo.comment2,
-      };
-
-      console.log("[DEBUG UPDATE] mappedLenhSanXuat:", mappedLenhSanXuat);
-
-      this.changeStatus.id = mappedLenhSanXuat.id!;
-      this.changeStatus.totalQuantity = String(
-        mappedLenhSanXuat.totalQuantity ?? 0,
-      );
-
-      // Update form with mapped data
-      this.updateForm(mappedLenhSanXuat);
-
-      console.log(
-        "[DEBUG UPDATE] Form values after updateForm:",
-        this.editForm.value,
-      );
-
-      // Use warehouse_note_info_details directly
-      this.chiTietLenhSanXuats = warehouseNoteInfoDetails;
-
-      //lấy danh sách chi tiết lsx ở trạng thái active
-      this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-        (a) => a.trang_thai === "Active",
-      );
-      this.itemPerPage = this.chiTietLenhSanXuatActive.length;
-
-      console.log(
-        "[DEBUG UPDATE] chiTietLenhSanXuatActive count:",
-        this.chiTietLenhSanXuatActive.length,
-      );
-
-      // sắp xếp danh sách
-      this.chiTietLenhSanXuatActive.sort(function (a, b) {
-        if (
-          a.checked !== undefined &&
-          a.checked !== null &&
-          b.checked !== undefined &&
-          b.checked !== null
-        ) {
-          return a.checked - b.checked;
-        }
-        return 0;
-      });
-
-      //lấy danh sách chi tiết lsx không có trong danh sách
-      this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
-        (a) => a.trang_thai === "not list",
-      );
-
-      console.log(
-        "[DEBUG UPDATE] chiTietLenhSanXuatNotList count:",
-        this.chiTietLenhSanXuatNotList.length,
-      );
-
+      this.changeStatus.id = lenhSanXuat.id;
+      this.changeStatus.totalQuantity = lenhSanXuat.totalQuantity;
+      // // console.log(this.changeStatus);
+      this.http
+        .get<any>(`${this.resourceUrl}/${lenhSanXuat.id as number}`)
+        .subscribe((res) => {
+          this.chiTietLenhSanXuats = res;
+          // // console.log('chi tiet: ', this.chiTietLenhSanXuats);
+          //lấy danh sách chi tiết lsx ở trạng thái active
+          this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
+            (a) => a.trangThai === "Active",
+          );
+          this.itemPerPage = this.chiTietLenhSanXuatActive.length;
+          // sắp xếp danh sách
+          this.chiTietLenhSanXuatActive.sort(function (a, b) {
+            if (
+              a.checked !== undefined &&
+              a.checked !== null &&
+              b.checked !== undefined &&
+              b.checked !== null
+            ) {
+              return a.checked - b.checked;
+            }
+            return 0;
+          });
+          //lấy danh sách chi tiết lsx không có trong danh sách
+          this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
+            (a) => a.trangThai === "not list",
+          );
+        });
+      this.updateForm(lenhSanXuat);
       // this.loadRelationshipsOptions();
       setTimeout(() => {
         const input = document.getElementById("scan");
@@ -316,7 +249,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     if (this.selectedAllResult === true) {
       this.selectedAll = 1;
       for (let i = 0; i < this.chiTietLenhSanXuatActive.length; i++) {
-        if (this.chiTietLenhSanXuatActive[i].trang_thai === "Active") {
+        if (this.chiTietLenhSanXuatActive[i].trangThai === "Active") {
           this.chiTietLenhSanXuatActive[i].checked = this.selectedAll;
         } else {
           this.chiTietLenhSanXuatActive[i].checked = 0;
@@ -339,7 +272,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   onCheckAll(): void {
     this.selectedAll = 1;
     for (let i = 0; i < this.chiTietLenhSanXuatActive.length; i++) {
-      if (this.chiTietLenhSanXuatActive[i].trang_thai === "Active") {
+      if (this.chiTietLenhSanXuatActive[i].trangThai === "Active") {
         this.chiTietLenhSanXuatActive[i].checked = this.selectedAll;
       } else {
         this.chiTietLenhSanXuatActive[i].checked = 0;
@@ -388,8 +321,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   changeQuantity(): void {
     this.sum = 0;
     for (let i = 0; i < this.chiTietLenhSanXuats.length; i++) {
-      if (this.chiTietLenhSanXuats[i].trang_thai === "Active") {
-        const result = this.chiTietLenhSanXuats[i].initial_quantity;
+      if (this.chiTietLenhSanXuats[i].trangThai === "Active") {
+        const result = this.chiTietLenhSanXuats[i].initialQuantity;
         if (result) {
           this.sum += Number(result);
         }
@@ -402,39 +335,54 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
   // ================================  các button ======================================================
   pheDuyetTem(): void {
-    const id = this.editForm.get(["id"])!.value;
-    this.http
-      .patch(`${this.resourceUrlWarehouseNoteInfo}/${id}`, {
-        trang_thai: "Đã Phê duyệt",
-      })
-      .subscribe(() => {
-        alert("Phê duyệt thành công");
-        this.previousState();
-      });
+    this.editForm.patchValue({
+      trangThai: "Đã phê duyệt",
+    });
+    const lenhSanXuat = this.createFromForm();
+    this.lenhSanXuatService.update(lenhSanXuat).subscribe(() => {
+      this.http
+        .put<any>(
+          `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
+          this.chiTietLenhSanXuats,
+        )
+        .subscribe();
+      alert("Phê duyệt thành công");
+      this.previousState();
+    });
   }
 
   khoHuyStatus(): void {
-    const id = this.editForm.get(["id"])!.value;
-    this.http
-      .patch(`${this.resourceUrlWarehouseNoteInfo}/${id}`, {
-        trang_thai: "Kho hủy",
-      })
-      .subscribe(() => {
-        alert("Kho hủy thành công");
-        this.previousState();
-      });
+    this.editForm.patchValue({
+      trangThai: "Kho hủy",
+    });
+    const lenhSanXuat = this.createFromForm();
+    this.lenhSanXuatService.update(lenhSanXuat).subscribe(() => {
+      this.http
+        .put<any>(
+          `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
+          this.chiTietLenhSanXuats,
+        )
+        .subscribe();
+      alert("Kho hủy thành công");
+      this.previousState();
+    });
   }
 
   khoTuChoiStatus(): void {
-    const id = this.editForm.get(["id"])!.value;
-    this.http
-      .patch(`${this.resourceUrlWarehouseNoteInfo}/${id}`, {
-        trang_thai: "Từ chối",
-      })
-      .subscribe(() => {
-        alert("Từ chối thành công");
-        this.previousState();
-      });
+    this.editForm.patchValue({
+      trangThai: "Từ chối",
+    });
+    const lenhSanXuat = this.createFromForm();
+    this.lenhSanXuatService.update(lenhSanXuat).subscribe(() => {
+      this.http
+        .put<any>(
+          `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
+          this.chiTietLenhSanXuats,
+        )
+        .subscribe();
+      alert("Từ chối thành công");
+      this.previousState();
+    });
   }
   //================================ chức năng scan mã kho panacim =========================================
   setStorageUnit(storageUnit: string): void {
@@ -444,46 +392,19 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
   save(): void {
     this.isSaving = true;
-    this.editForm.patchValue({
-      timeUpdate: dayjs().startOf("second").format(DATE_TIME_FORMAT),
-    });
-
-    const id = this.editForm.get(["id"])!.value;
-    if (id !== undefined && id !== null) {
-      // Create DTO with only necessary fields to avoid data loss
-      const updateDTO = {
-        id: id,
-        maLenhSanXuat: this.editForm.get(["maLenhSanXuat"])!.value,
-        sapCode: this.editForm.get(["sapCode"])!.value,
-        sapName: this.editForm.get(["sapName"])!.value,
-        workOrderCode: this.editForm.get(["workOrderCode"])!.value,
-        version: this.editForm.get(["version"])!.value,
-        storageCode: this.editForm.get(["storageCode"])!.value,
-        totalQuantity: this.editForm.get(["totalQuantity"])!.value,
-        createBy: this.editForm.get(["createBy"])!.value,
-        entryTime: this.editForm.get(["entryTime"])!.value,
-        trangThai: this.editForm.get(["trangThai"])!.value,
-        comment: this.editForm.get(["comment"])!.value,
-        timeUpdate: dayjs().toISOString(),
-        groupName: this.editForm.get(["groupName"])!.value,
-        comment2: this.editForm.get(["comment2"])!.value,
-      };
-
-      // Update warehouse_note_info
+    const lenhSanXuat = this.createFromForm();
+    if (lenhSanXuat.id !== undefined) {
+      this.subscribeToSaveResponse(this.lenhSanXuatService.update(lenhSanXuat));
       this.http
-        .put<any>(`${this.resourceUrlWarehouseNoteInfo}/${id}`, updateDTO)
+        .put<any>(
+          `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
+          this.chiTietLenhSanXuats,
+        )
         .subscribe(() => {
-          // Update warehouse_note_info_details
-          this.http
-            .post<any>(this.resourceUrlUpdate, this.chiTietLenhSanXuats)
-            .subscribe(() => {
-              this.isSaving = false;
-              alert("cập nhật chi tiết lệnh sản xuất thành công!");
-              window.location.reload();
-            });
+          alert("cập nhật chi tiết lệnh sản xuất thành công!");
+          window.location.reload();
         });
     } else {
-      const lenhSanXuat = this.createFromForm();
       this.subscribeToSaveResponse(this.lenhSanXuatService.create(lenhSanXuat));
     }
   }
@@ -632,8 +553,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     this.isExisted = false;
     for (let i = 0; i < this.chiTietLenhSanXuats.length; i++) {
       if (
-        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reel_id &&
-        this.chiTietLenhSanXuats[i].trang_thai === "Active"
+        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reelID &&
+        this.chiTietLenhSanXuats[i].trangThai === "Active"
       ) {
         this.isExisted = true;
         this.chiTietLenhSanXuats[i].checked = 1;
@@ -645,8 +566,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         await this.playAlertSoundSuccess();
         return; // Dừng tiến trình nếu đã xử lý
       } else if (
-        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reel_id &&
-        this.chiTietLenhSanXuats[i].trang_thai === "INACTIVE"
+        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reelID &&
+        this.chiTietLenhSanXuats[i].trangThai === "Inactive"
       ) {
         this.isExisted = true;
         this.chiTietLenhSanXuats[i].checked = 1;
@@ -654,8 +575,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         await this.playAlertSound();
         return;
       } else if (
-        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reel_id &&
-        this.chiTietLenhSanXuats[i].trang_thai === "not list"
+        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reelID &&
+        this.chiTietLenhSanXuats[i].trangThai === "not list"
       ) {
         this.isExisted = true;
         this.chiTietLenhSanXuats[i].checked = 1;
@@ -667,7 +588,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
     // Nếu không nằm trong danh sách thì xử lý luôn và dừng tiến trình
     if (this.isExisted === false) {
-      const item: any = {
+      const item: IChiTietLenhSanXuat = {
         id: 0,
         reelID: this.scanValue.reelID,
         partNumber: this.scanValue.partNumber,
@@ -711,7 +632,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   }
   sortList(): void {
     this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-      (a) => a.trang_thai === "Active",
+      (a) => a.trangThai === "Active",
     );
     this.chiTietLenhSanXuatActive.sort(function (a, b) {
       if (
@@ -726,7 +647,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     });
     // cập nhật lại danh sách chi tiết lsx không có trong danh sách
     this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
-      (a) => a.trang_thai === "not list",
+      (a) => a.trangThai === "not list",
     );
     this.scanResults = "";
   }
@@ -823,7 +744,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     let result = false;
     const reelID = this.reelID.substring(0, 17);
     for (let i = 0; i < this.chiTietLenhSanXuatActive.length; i++) {
-      if (reelID === this.chiTietLenhSanXuatActive[i].reel_id) {
+      if (reelID === this.chiTietLenhSanXuatActive[i].reelID) {
         this.reelID = reelID;
         this.index = i;
         document.getElementById("storageUnit")!.focus();
@@ -852,9 +773,5 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   }
   closePopupMove(): void {
     this.popupMove = false;
-  }
-  //upload
-  UploadPanacim(): void {
-    //code
   }
 }

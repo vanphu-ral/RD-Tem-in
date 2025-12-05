@@ -139,7 +139,7 @@
     </div>
   </h2>
 
-  <!-- <jhi-alert-error></jhi-alert-error> -->
+  <jhi-alert-error></jhi-alert-error>
 
   <!-- <div class="alert" id="no-result" *ngIf="lenhSanXuats?.length === 0">
     <div class="loader">
@@ -445,37 +445,37 @@
             <a>{{ i + 1 }}</a>
           </td>
           <td *ngIf="disableMaLenhSanXuat === true">
-            {{ lenhSanXuat.ma_lenh_san_xuat }}
+            {{ lenhSanXuat.maLenhSanXuat }}
           </td>
-          <td *ngIf="disableSapCode === true">{{ lenhSanXuat.sap_code }}</td>
-          <td *ngIf="disableSapName === true">{{ lenhSanXuat.sap_name }}</td>
+          <td *ngIf="disableSapCode === true">{{ lenhSanXuat.sapCode }}</td>
+          <td *ngIf="disableSapName === true">{{ lenhSanXuat.sapName }}</td>
           <td *ngIf="disableGroup === true">
             <div [id]="lenhSanXuat.id" class="trang-thai">
-              {{ lenhSanXuat.group_name }}
+              {{ lenhSanXuat.groupName }}
             </div>
           </td>
           <td *ngIf="disableWorkOrderCode === true">
-            {{ lenhSanXuat.work_order_code }}
+            {{ lenhSanXuat.workOrderCode }}
           </td>
           <td *ngIf="disableVersion === true">{{ lenhSanXuat.version }}</td>
           <td *ngIf="disableStorageCode === true">
-            {{ lenhSanXuat.storage_code }}
+            {{ lenhSanXuat.storageCode }}
           </td>
           <td *ngIf="disableTotalQuantity === true">
-            {{ lenhSanXuat.total_quantity }}
+            {{ lenhSanXuat.totalQuantity }}
           </td>
           <td *ngIf="disableDetailQuantity === true">
             {{ lenhSanXuat.comment2 }}
           </td>
-          <td *ngIf="disableCreateBy === true">{{ lenhSanXuat.create_by }}</td>
+          <td *ngIf="disableCreateBy === true">{{ lenhSanXuat.createBy }}</td>
           <td *ngIf="disableEntryTime === true">
-            {{ lenhSanXuat.entry_time | formatMediumDatetime }}
+            {{ lenhSanXuat.entryTime | formatMediumDatetime }}
           </td>
           <td *ngIf="disableUpdateTime === true">
-            {{ lenhSanXuat.time_update | formatMediumDatetime }}
+            {{ lenhSanXuat.timeUpdate | formatMediumDatetime }}
           </td>
           <td *ngIf="disableTrangThai === true">
-            <div [id]="i" class="trang-thai">{{ lenhSanXuat.trang_thai }}</div>
+            <div [id]="i" class="trang-thai">{{ lenhSanXuat.trangThai }}</div>
           </td>
           <td *ngIf="disableComment === true">{{ lenhSanXuat.comment }}</td>
 
@@ -502,8 +502,8 @@
 
               <button
                 *ngIf="
-                  lenhSanXuat.trang_thai === 'Chờ duyệt' ||
-                  lenhSanXuat.trang_thai === 'Đã phê duyệt'
+                  lenhSanXuat.trangThai === 'Chờ duyệt' ||
+                  lenhSanXuat.trangThai === 'Đã phê duyệt'
                 "
                 type="submit"
                 [routerLink]="[

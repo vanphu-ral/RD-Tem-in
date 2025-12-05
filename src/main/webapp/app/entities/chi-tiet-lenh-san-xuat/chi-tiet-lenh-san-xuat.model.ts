@@ -1,5 +1,5 @@
 import dayjs from "dayjs/esm";
-import { ILenhSanXuat } from "app/entities/pallet-note-management/lenh-san-xuat.model";
+import { ILenhSanXuat } from "app/entities/lenh-san-xuat/lenh-san-xuat.model";
 
 export interface IChiTietLenhSanXuat {
   id?: number;

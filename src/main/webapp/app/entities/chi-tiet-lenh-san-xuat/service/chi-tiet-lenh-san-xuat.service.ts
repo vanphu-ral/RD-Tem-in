@@ -1,4 +1,4 @@
-import { ILenhSanXuat } from "app/entities/pallet-note-management/lenh-san-xuat.model";
+import { ILenhSanXuat } from "app/entities/lenh-san-xuat/lenh-san-xuat.model";
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpResponse } from "@angular/common/http";
 import { Observable } from "rxjs";
@@ -20,20 +20,10 @@ export type EntityArrayResponseType = HttpResponse<IChiTietLenhSanXuat[]>;
 @Injectable({ providedIn: "root" })
 export class ChiTietLenhSanXuatService {
   protected resourceUrl = this.applicationConfigService.getEndpointFor(
-    "api/warehouse-note-info-details",
+    "api/chi-tiet-lenh-san-xuats",
   );
-  protected resourceUrl1 = this.applicationConfigService.getEndpointFor(
-    "api/warehouse-note-infos",
-  );
-  protected lenhSanXuatUrl =
+  protected resourceUrl1 =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuats");
-  protected warehouseNoteInfoUrl = this.applicationConfigService.getEndpointFor(
-    "api/warehouse-note-infos",
-  );
-  protected warehouseStampInfoDetailUrl =
-    this.applicationConfigService.getEndpointFor(
-      "api/warehouse-stamp-info-details",
-    );
 
   constructor(
     protected http: HttpClient,
@@ -85,54 +75,6 @@ export class ChiTietLenhSanXuatService {
     return this.http.get<ILenhSanXuat>(`${this.resourceUrl1}/${id}`, {
       observe: "response",
     });
-  }
-
-  /**
-   * Get warehouse note info by id using /api/warehouse-note-infos/{id}
-   * @param id - The id of the warehouse note info
-   * @returns Observable of the warehouse note info
-   */
-  getWarehouseNoteInfoById(id: number): Observable<HttpResponse<any>> {
-    return this.http.get<any>(`${this.warehouseNoteInfoUrl}/${id}`, {
-      observe: "response",
-    });
-  }
-
-  /**
-   * Get warehouse note info details by ma_lenh_san_xuat_id using /api/warehouse-stamp-info-details/{ma_lenh_san_xuat_id}
-   * @param maLenhSanXuatId - The ma_lenh_san_xuat_id to filter by
-   * @returns Observable of the list of warehouse note info details
-   */
-  getWarehouseNoteInfoDetailsByMaLenhSanXuatId(
-    maLenhSanXuatId: number,
-  ): Observable<any[]> {
-    return this.http.get<any[]>(
-      `${this.warehouseStampInfoDetailUrl}/${maLenhSanXuatId}`,
-    );
-  }
-
-  /**
-   * Get lenh san xuat by id using new API endpoint
-   * @param id - The id of the lenh san xuat
-   * @returns Observable of the lenh san xuat
-   */
-  getLenhSanXuatById(id: number): Observable<HttpResponse<ILenhSanXuat>> {
-    return this.http.get<ILenhSanXuat>(`${this.lenhSanXuatUrl}/${id}`, {
-      observe: "response",
-    });
-  }
-
-  /**
-   * Get warehouse stamp info details by ma_lenh_san_xuat_id using new API endpoint
-   * @param maLenhSanXuatId - The ma_lenh_san_xuat_id to filter by
-   * @returns Observable of the list of warehouse stamp info details
-   */
-  getWarehouseStampInfoDetailsByMaLenhSanXuatId(
-    maLenhSanXuatId: number,
-  ): Observable<any[]> {
-    return this.http.get<any[]>(
-      `${this.warehouseStampInfoDetailUrl}/${maLenhSanXuatId}`,
-    );
   }
   query(req?: any): Observable<EntityArrayResponseType> {
     const options = createRequestOption(req);
