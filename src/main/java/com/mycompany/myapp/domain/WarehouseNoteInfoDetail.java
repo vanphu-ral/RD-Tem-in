@@ -2,6 +2,7 @@ package com.mycompany.myapp.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
+import java.time.Instant;
 import javax.persistence.*;
 import javax.validation.constraints.*;
 
@@ -142,6 +143,9 @@ public class WarehouseNoteInfoDetail implements Serializable {
 
     @Column(name = "checked")
     private Integer checked;
+
+    @Column(name = "created_at")
+    private Instant createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
@@ -588,6 +592,19 @@ public class WarehouseNoteInfoDetail implements Serializable {
         this.checked = checked;
     }
 
+    public Instant getCreatedAt() {
+        return this.createdAt;
+    }
+
+    public WarehouseNoteInfoDetail createdAt(Instant createdAt) {
+        this.setCreatedAt(createdAt);
+        return this;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public WarehouseNoteInfo getMaLenhSanXuat() {
         return this.maLenhSanXuat;
     }
@@ -663,6 +680,7 @@ public class WarehouseNoteInfoDetail implements Serializable {
                 ", lenhSanXuatId=" + getLenhSanXuatId() +
                 ", trangThai='" + getTrangThai() + "'" +
                 ", checked=" + getChecked() +
+                ", createdAt='" + getCreatedAt() + "'" +
                 "}";
     }
 }

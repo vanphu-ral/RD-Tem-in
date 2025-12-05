@@ -4,6 +4,7 @@ import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -52,6 +53,12 @@ public class WarehouseStampInfoDetailService {
             "Request to save WarehouseNoteInfoDetail : {}",
             warehouseStampInfoDetailDTO
         );
+
+        // Set created_at timestamp for new records
+        if (warehouseStampInfoDetailDTO.getCreatedAt() == null) {
+            warehouseStampInfoDetailDTO.setCreatedAt(Instant.now());
+        }
+
         WarehouseNoteInfoDetail warehouseStampInfoDetail =
             warehouseStampInfoDetailMapper.toEntity(
                 warehouseStampInfoDetailDTO
@@ -329,6 +336,9 @@ public class WarehouseStampInfoDetailService {
                 }
                 if (dto.getChecked() != null) {
                     existingDetail.setChecked(dto.getChecked());
+                }
+                if (dto.getCreatedAt() != null) {
+                    existingDetail.setCreatedAt(dto.getCreatedAt());
                 }
 
                 // Save the updated entity

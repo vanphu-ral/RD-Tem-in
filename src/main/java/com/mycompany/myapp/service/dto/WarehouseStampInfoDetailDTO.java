@@ -1,6 +1,7 @@
 package com.mycompany.myapp.service.dto;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.Objects;
 import javax.validation.constraints.*;
 
@@ -103,6 +104,8 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
     private String trangThai;
 
     private Integer checked;
+
+    private Instant createdAt;
 
     public Long getId() {
         return id;
@@ -368,6 +371,14 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
         this.checked = checked;
     }
 
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -427,6 +438,7 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
                 ", lenhSanXuatId=" + getLenhSanXuatId() +
                 ", trangThai='" + getTrangThai() + "'" +
                 ", checked=" + getChecked() +
+                ", createdAt='" + getCreatedAt() + "'" +
                 "}";
     }
 }

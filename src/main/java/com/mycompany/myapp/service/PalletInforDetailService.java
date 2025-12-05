@@ -266,6 +266,11 @@ public class PalletInforDetailService {
                 // Set ma_lenh_san_xuat_id from path parameter
                 warehouseDTO.setMaLenhSanXuatId(maLenhSanXuatId);
 
+                // Set created_at timestamp for new records
+                if (warehouseDTO.getCreatedAt() == null) {
+                    warehouseDTO.setCreatedAt(Instant.now());
+                }
+
                 WarehouseNoteInfoDetail warehouseEntity =
                     warehouseStampInfoDetailMapper.toEntity(warehouseDTO);
                 warehouseEntity = warehouseStampInfoDetailRepository.save(
