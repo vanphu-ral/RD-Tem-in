@@ -5,7 +5,7 @@
 >
   <div class="modal-header">
     <h4 class="modal-title" data-cy="lenhSanXuatDeleteDialogHeading">
-      Confirm delete operation
+      Xác nhận xoá
     </h4>
 
     <button
@@ -22,9 +22,7 @@
   <div class="modal-body">
     <jhi-alert-error></jhi-alert-error>
 
-    <p id="jhi-delete-lenhSanXuat-heading">
-      Are you sure you want to delete this Lenh San Xuat?
-    </p>
+    <p id="jhi-delete-lenhSanXuat-heading">Bạn có chắc muốn xoá lệnh này?</p>
   </div>
 
   <div class="modal-footer">
@@ -34,7 +32,7 @@
       data-dismiss="modal"
       (click)="cancel()"
     >
-      <fa-icon icon="ban"></fa-icon>&nbsp;<span>Cancel</span>
+      <fa-icon icon="ban"></fa-icon>&nbsp;<span>Huỷ</span>
     </button>
 
     <button
@@ -43,7 +41,7 @@
       type="submit"
       class="btn btn-danger"
     >
-      <fa-icon icon="times"></fa-icon>&nbsp;<span>Delete</span>
+      <fa-icon icon="times"></fa-icon>&nbsp;<span>Xoá</span>
     </button>
   </div>
 </form>

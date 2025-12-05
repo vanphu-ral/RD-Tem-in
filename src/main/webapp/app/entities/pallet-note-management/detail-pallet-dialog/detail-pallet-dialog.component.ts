@@ -398,25 +398,27 @@ export class PalletDetailDialogComponent implements OnInit {
       item.scannedBoxes.forEach((scannedSerial, index) => {
         const trimmedSerial = scannedSerial.trim();
 
-        for (const box of (sourceData.boxItems as BoxDetailData[]) ?? []) {
-          if (box.serialBox === trimmedSerial) {
-            tongSoSanPhamTrongPallet += box.soLuongSp || 0;
-            if (index === 0) {
-              soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
-              firstBoxSerial = box.serialBox;
-              lotNumber = box.lotNumber || "";
-            }
-            break;
-          }
-
+        for (const box of sourceData.boxItems ?? []) {
+          // Ưu tiên check subItems trước
           const subItem = box.subItems?.find(
-            (sub) => sub.maThung === trimmedSerial,
+            (sub: { maThung: string }) => sub.maThung === trimmedSerial,
           );
           if (subItem) {
             tongSoSanPhamTrongPallet += subItem.soLuong || 0;
             if (index === 0) {
               soLuongSanPhamTrongMotThung = subItem.soLuong || 0;
               firstBoxSerial = subItem.maThung;
+              lotNumber = box.lotNumber || "";
+            }
+            break;
+          }
+
+          // Nếu không phải subItem thì mới check box cha
+          if (box.serialBox === trimmedSerial) {
+            tongSoSanPhamTrongPallet += box.soLuongSp || 0;
+            if (index === 0) {
+              soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
+              firstBoxSerial = box.serialBox;
               lotNumber = box.lotNumber || "";
             }
             break;
@@ -559,7 +561,7 @@ export class PalletDetailDialogComponent implements OnInit {
         soLuongCaiDatPallet: soLuongCaiDatPallet,
         thuTuGiaPallet: item.stt,
         soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
-        slThung: soLuongSpTrong1Thung,
+        slThung: soLuongSanPhamTrongMotThung,
         note: sourceData.note ?? "",
 
         productCode: sourceData.tenSanPham,

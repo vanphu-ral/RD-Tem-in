@@ -1743,6 +1743,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             this.details.push(b);
           }
         });
+        this.saveWarehouseNotes();
 
         this.snackBar.open(
           `Lưu thành công: ${pallet_infor_detail.length} pallet, ${warehouse_note_info_detail.length} thùng/tem`,
@@ -2287,7 +2288,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           : Number(d.initial_quantity) || 0;
 
       //  Key group theo thông tin sản phẩm
-      const key = `${d.sap_code || ""}|${d.lot || ""}|${d.vendor || ""}|${d.sp_material_name || ""}`;
+      const key = d.created_at;
 
       if (!grouped[key]) {
         //  Tạo BoxItem cha mới
