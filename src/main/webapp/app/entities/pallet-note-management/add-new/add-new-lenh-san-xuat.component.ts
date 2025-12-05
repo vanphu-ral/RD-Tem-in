@@ -1036,7 +1036,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     // Flatten tất cả pallet con từ palletItems
     const allPallets: PalletDetailData[] = this.palletItems.reduce(
-      (acc: PalletDetailData[], pallet: PalletItem) => {
+      (acc: PalletDetailData[], pallet: PalletItem, parentIndex: number) => {
         const subData = pallet.subItems.map(
           (sub: PalletBoxItem, index: number) => ({
             stt: index + 1,
@@ -1044,7 +1044,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             noSKU: pallet.noSKU,
             createdAt: pallet.createdAt,
             tongPallet: 1,
-            tongSlSp: sub.tongSoThung ?? 0,
+            // Đừng nhồi số thùng vào tongSlSp; nếu không dùng, set 0 cho an toàn
+            tongSlSp: 0,
             tongSoThung: sub.tongSoThung ?? 0,
             serialPallet: sub.maPallet,
             khachHang: pallet.khachHang,
@@ -1054,16 +1055,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             note: pallet.note,
             nguoiKiemTra: pallet.nguoiKiemTra,
             ketQuaKiemTra: pallet.ketQuaKiemTra,
-            branch: pallet.nganh,
-            team: pallet.to,
+            branch: pallet.nganh ?? this.productionOrders[0]?.nganh ?? "",
+            team: pallet.to ?? this.productionOrders[0]?.to ?? "",
             maLenhSanXuatId: pallet.maLenhSanXuatId,
             validReelIds: validReelIds,
-            // ← Khởi tạo empty
             tienDoScan: 0,
             scannedBoxes: [],
+
+            // Quan trọng: cung cấp index của pallet cha để onPrintAll lấy đúng source
+            parentPalletIndex: parentIndex,
+            boxItems: this.boxItems,
           }),
         );
-        console.log("malenhsanxuatid", pallet.maLenhSanXuatId);
         return acc.concat(subData);
       },
       [],
@@ -2689,9 +2692,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           next: (mappings) => {
             const successMappings = mappings.filter((m) => m.status === 1);
 
-            // ← CẬP NHẬT VÀO PALLET OBJECT
-            pallet.tienDoScan = successMappings.length;
-            pallet.scannedBoxes = successMappings.map((m) => m.serial_box);
+            // Chuẩn hóa scannedBoxes: chỉ lấy string hợp lệ, trim và loại trùng
+            const scanned = successMappings
+              .map((m) =>
+                typeof m.serial_box === "string" ? m.serial_box.trim() : "",
+              )
+              .filter((s) => !!s); // bỏ rỗng/null
+
+            pallet.tienDoScan = scanned.length;
+            pallet.scannedBoxes = [...new Set(scanned)]; // loại trùng
 
             console.log(
               ` Pallet ${pallet.serialPallet}: ${pallet.tienDoScan}/${pallet.tongSoThung} đã scan`,
