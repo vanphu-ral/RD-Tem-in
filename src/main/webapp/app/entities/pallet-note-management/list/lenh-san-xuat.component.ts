@@ -428,8 +428,8 @@ export class LenhSanXuatComponent implements OnInit {
       }));
 
       // ===== LỌC THEO ĐIỀU KIỆN TÌM KIẾM =====
-      allData = allData.filter((item) => {
-        return (
+      allData = allData.filter(
+        (item) =>
           (!this.sapName ||
             item.sapName?.toLowerCase().includes(this.sapName.toLowerCase())) &&
           (!this.sapCode ||
@@ -455,9 +455,8 @@ export class LenhSanXuatComponent implements OnInit {
           (!this.trangThai ||
             item.trangThai
               ?.toLowerCase()
-              .includes(this.trangThai.toLowerCase()))
-        );
-      });
+              .includes(this.trangThai.toLowerCase())),
+      );
 
       // ===== PHÂN TRANG =====
       this.totalItems = allData.length;

@@ -454,7 +454,7 @@ export class PalletDetailDialogComponent implements OnInit {
 
       productCode: sourceData.tenSanPham,
       serialBox: firstBoxSerial || item.maPallet,
-      qty: sourceData.tongSlSp,
+      qty: tongSoSanPhamTrongPallet,
       lot: lotNumber || item.maPallet,
       date: new Date().toLocaleDateString("vi-VN"),
       scannedBoxes: item.scannedBoxes,
@@ -549,7 +549,7 @@ export class PalletDetailDialogComponent implements OnInit {
 
         productCode: sourceData.tenSanPham,
         serialBox: firstBoxSerial || item.maPallet,
-        qty: sourceData.tongSlSp,
+        qty: tongSoSanPhamTrongPallet,
         lot: lotNumber || item.maPallet,
         date: new Date().toLocaleDateString("vi-VN"),
         scannedBoxes: item.scannedBoxes,

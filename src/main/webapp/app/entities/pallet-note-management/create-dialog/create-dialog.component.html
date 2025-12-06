@@ -58,7 +58,7 @@
                 *ngIf="form.get('soLuongTrongThung')?.hasError('pattern')"
               >
                 <span style="color: red"
-                  >Chỉ được nhập số nguyên, không thập phân</span
+                  >Chỉ nhập số nguyên từ 1 đến 99999, không thập phân</span
                 >
               </mat-error>
               <mat-error *ngIf="form.get('soLuongTrongThung')?.hasError('max')">
@@ -73,9 +73,31 @@
           </div>
 
           <div class="form-field half-width">
-            <label class="field-label">Số lượng thùng</label>
+            <label
+              class="field-label"
+              [ngClass]="{
+                'error-label':
+                  form.get('soLuongThung')?.invalid &&
+                  form.get('soLuongThung')?.touched,
+              }"
+              >Số lượng thùng</label
+            >
             <mat-form-field appearance="outline" class="full-width">
               <input matInput type="number" formControlName="soLuongThung" />
+              <mat-error *ngIf="form.get('soLuongThung')?.hasError('required')">
+                <span style="color: red">Bắt buộc nhập số lượng</span>
+              </mat-error>
+              <mat-error *ngIf="form.get('soLuongThung')?.hasError('pattern')">
+                <span style="color: red"
+                  >Chỉ nhập số nguyên từ 1 đến 99999</span
+                >
+              </mat-error>
+              <mat-error *ngIf="form.get('soLuongThung')?.hasError('max')">
+                <span style="color: red">Không vượt quá 5 chữ số</span>
+              </mat-error>
+              <mat-error *ngIf="form.get('soLuongThung')?.hasError('min')">
+                <span style="color: red">Phải lớn hơn 0</span>
+              </mat-error>
             </mat-form-field>
           </div>
         </div>
@@ -160,15 +182,36 @@
             </mat-form-field>
           </div>
           <div class="form-field half-width">
-            <label class="field-label"
-              >Quy cách đóng gói, SLSP trong 1 thùng</label
+            <label
+              class="field-label"
+              [ngClass]="{
+                'error-label':
+                  form.get('qtyPerBox')?.invalid &&
+                  form.get('qtyPerBox')?.touched,
+              }"
+              >Quy cách đóng gói, SL SP trong 1 thùng</label
             >
             <mat-form-field appearance="outline" class="full-width">
               <input
                 matInput
+                type="number"
                 formControlName="qtyPerBox"
-                placeholder="Số lượnn trong 1 thùng..."
+                placeholder="Số lượng trong 1 thùng..."
               />
+              <mat-error *ngIf="form.get('qtyPerBox')?.hasError('required')">
+                <span style="color: red">Bắt buộc nhập số lượng</span>
+              </mat-error>
+              <mat-error *ngIf="form.get('qtyPerBox')?.hasError('pattern')">
+                <span style="color: red"
+                  >Chỉ nhập số nguyên từ 1 đến 99999</span
+                >
+              </mat-error>
+              <mat-error *ngIf="form.get('qtyPerBox')?.hasError('max')">
+                <span style="color: red">Không vượt quá 5 chữ số</span>
+              </mat-error>
+              <mat-error *ngIf="form.get('qtyPerBox')?.hasError('min')">
+                <span style="color: red">Phải lớn hơn 0</span>
+              </mat-error>
             </mat-form-field>
           </div>
         </div>
@@ -199,20 +242,80 @@
         <ng-container *ngIf="!isBoxType">
           <div class="summary-row">
             <div class="summary-item">
-              <label class="field-label">Số lượng thùng trong pallet</label>
+              <label
+                class="field-label"
+                [ngClass]="{
+                  'error-label':
+                    form.get('soLuongThungTrongPallet')?.invalid &&
+                    form.get('soLuongThungTrongPallet')?.touched,
+                }"
+                >Số lượng thùng trong pallet</label
+              >
               <mat-form-field appearance="outline" class="summary-input">
                 <input
                   matInput
                   type="number"
                   formControlName="soLuongThungTrongPallet"
                 />
+                <mat-error
+                  *ngIf="
+                    form.get('soLuongThungTrongPallet')?.hasError('required')
+                  "
+                >
+                  <span style="color: red">Bắt buộc nhập số lượng</span>
+                </mat-error>
+                <mat-error
+                  *ngIf="
+                    form.get('soLuongThungTrongPallet')?.hasError('pattern')
+                  "
+                >
+                  <span style="color: red"
+                    >Chỉ nhập số nguyên từ 1 đến 99999</span
+                  >
+                </mat-error>
+                <mat-error
+                  *ngIf="form.get('soLuongThungTrongPallet')?.hasError('max')"
+                >
+                  <span style="color: red">Không vượt quá 5 chữ số</span>
+                </mat-error>
+                <mat-error
+                  *ngIf="form.get('soLuongThungTrongPallet')?.hasError('min')"
+                >
+                  <span style="color: red">Phải lớn hơn 0</span>
+                </mat-error>
               </mat-form-field>
             </div>
 
             <div class="summary-item">
-              <label class="field-label">Tổng số pallet tạo</label>
+              <label
+                class="field-label"
+                [ngClass]="{
+                  'error-label':
+                    form.get('soLuongPallet')?.invalid &&
+                    form.get('soLuongPallet')?.touched,
+                }"
+                >Tổng số pallet tạo</label
+              >
               <mat-form-field appearance="outline" class="summary-input">
                 <input matInput type="number" formControlName="soLuongPallet" />
+                <mat-error
+                  *ngIf="form.get('soLuongPallet')?.hasError('required')"
+                >
+                  <span style="color: red">Bắt buộc nhập số lượng</span>
+                </mat-error>
+                <mat-error
+                  *ngIf="form.get('soLuongPallet')?.hasError('pattern')"
+                >
+                  <span style="color: red"
+                    >Chỉ nhập số nguyên từ 1 đến 99999</span
+                  >
+                </mat-error>
+                <mat-error *ngIf="form.get('soLuongPallet')?.hasError('max')">
+                  <span style="color: red">Không vượt quá 5 chữ số</span>
+                </mat-error>
+                <mat-error *ngIf="form.get('soLuongPallet')?.hasError('min')">
+                  <span style="color: red">Phải lớn hơn 0</span>
+                </mat-error>
               </mat-form-field>
             </div>
           </div>

@@ -102,6 +102,7 @@ export class CreateDialogComponent {
     const currentUser = this.accountService.isAuthenticated()
       ? this.accountService["userIdentity"]?.login
       : "unknown";
+
     if (this.isBoxType) {
       return this.fb.group({
         maSanPham: [this.data.maSanPham ?? "", Validators.required],
@@ -110,8 +111,8 @@ export class CreateDialogComponent {
           [
             Validators.required,
             Validators.min(1),
-            Validators.max(10000),
-            Validators.pattern(/^[0-9]+$/),
+            Validators.max(99999),
+            Validators.pattern(/^[1-9][0-9]{0,4}$/),
           ],
         ],
         soLuongThung: [
@@ -119,8 +120,8 @@ export class CreateDialogComponent {
           [
             Validators.required,
             Validators.min(1),
-            Validators.max(10000),
-            Validators.pattern(/^[0-9]+$/),
+            Validators.max(99999),
+            Validators.pattern(/^[1-9][0-9]{0,4}$/),
           ],
         ],
       });
@@ -134,9 +135,33 @@ export class CreateDialogComponent {
         nguoiKiemTra: [currentUser],
         ketQuaKiemTra: ["Đạt"],
         note: [""],
-        qtyPerBox: [0],
-        soLuongThungTrongPallet: [1, [Validators.required, Validators.min(1)]],
-        soLuongPallet: [1, [Validators.required, Validators.min(1)]],
+        qtyPerBox: [
+          1,
+          [
+            Validators.required,
+            Validators.min(1),
+            Validators.max(99999),
+            Validators.pattern(/^[1-9][0-9]{0,4}$/),
+          ],
+        ],
+        soLuongThungTrongPallet: [
+          1,
+          [
+            Validators.required,
+            Validators.min(1),
+            Validators.max(99999),
+            Validators.pattern(/^[1-9][0-9]{0,4}$/),
+          ],
+        ],
+        soLuongPallet: [
+          1,
+          [
+            Validators.required,
+            Validators.min(1),
+            Validators.max(99999),
+            Validators.pattern(/^[1-9][0-9]{0,4}$/),
+          ],
+        ],
         noSKU: [""],
       });
     }

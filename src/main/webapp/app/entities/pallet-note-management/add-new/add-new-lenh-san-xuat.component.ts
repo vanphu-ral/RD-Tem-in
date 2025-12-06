@@ -780,7 +780,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             note: palletGroup.note ?? "",
             productCode: palletGroup.tenSanPham,
             serialBox: firstBoxSerial,
-            qty: palletGroup.tongSlSp,
+            qty: soLuongCaiDatPallet,
             lot: lotNumber,
             date: new Date().toLocaleDateString("vi-VN"),
             scannedBoxes: scannedBoxes,
@@ -1051,7 +1051,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             createdAt: pallet.createdAt,
             tongPallet: 1,
             // Đừng nhồi số thùng vào tongSlSp; nếu không dùng, set 0 cho an toàn
-            tongSlSp: 0,
+            tongSlSp: pallet.tongSlSp,
             tongSoThung: sub.tongSoThung ?? 0,
             serialPallet: sub.maPallet,
             khachHang: pallet.khachHang,
@@ -2368,7 +2368,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           noSKU: detail.item_no_sku ?? "",
           createdAt: detail.production_date ?? "",
           tongPallet: 0,
-          tongSlSp: 0,
+          tongSlSp: detail.quantity_per_box,
           tongSoThung: 0,
           khachHang: detail.customer_name ?? "",
           poNumber: detail.po_number ?? "",
@@ -2396,9 +2396,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
 
       // Cập nhật tổng số liệu
-      grouped[key].tongPallet++;
-      grouped[key].tongSoThung += detail.num_box_actual ?? 0;
-      grouped[key].tongSlSp += detail.num_box_actual ?? 0;
+      // grouped[key].tongPallet++;
+      // grouped[key].tongSoThung += detail.num_box_actual ?? 0;
+      // grouped[key].tongSlSp += detail.quantity_per_box ?? 0;
     }
 
     return Object.values(grouped);
