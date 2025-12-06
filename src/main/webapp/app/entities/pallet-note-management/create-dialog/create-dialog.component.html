@@ -33,13 +33,42 @@
       <ng-container *ngIf="isBoxType">
         <div class="form-row">
           <div class="form-field half-width">
-            <label class="field-label">Số lượng SP trong 1 thùng</label>
+            <label
+              class="field-label"
+              [ngClass]="{
+                'error-label':
+                  form.get('soLuongTrongThung')?.invalid &&
+                  form.get('soLuongTrongThung')?.touched,
+              }"
+            >
+              Số lượng SP trong 1 pallet
+            </label>
             <mat-form-field appearance="outline" class="full-width">
               <input
                 matInput
                 type="number"
                 formControlName="soLuongTrongThung"
               />
+              <mat-error
+                *ngIf="form.get('soLuongTrongThung')?.hasError('required')"
+              >
+                <span style="color: red">Bắt buộc nhập số lượng</span>
+              </mat-error>
+              <mat-error
+                *ngIf="form.get('soLuongTrongThung')?.hasError('pattern')"
+              >
+                <span style="color: red"
+                  >Chỉ được nhập số nguyên, không thập phân</span
+                >
+              </mat-error>
+              <mat-error *ngIf="form.get('soLuongTrongThung')?.hasError('max')">
+                <span style="color: red"
+                  >Số quá lớn, vượt giới hạn cho phép</span
+                >
+              </mat-error>
+              <mat-error *ngIf="form.get('soLuongTrongThung')?.hasError('min')">
+                <span style="color: red">Phải lớn hơn 0</span>
+              </mat-error>
             </mat-form-field>
           </div>
 
@@ -128,6 +157,18 @@
             <label class="field-label">No/SKU</label>
             <mat-form-field appearance="outline" class="full-width">
               <input matInput formControlName="noSKU" placeholder="No/SKU..." />
+            </mat-form-field>
+          </div>
+          <div class="form-field half-width">
+            <label class="field-label"
+              >Quy cách đóng gói, SLSP trong 1 thùng</label
+            >
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                formControlName="qtyPerBox"
+                placeholder="Số lượnn trong 1 thùng..."
+              />
             </mat-form-field>
           </div>
         </div>

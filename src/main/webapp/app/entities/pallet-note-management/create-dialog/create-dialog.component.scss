@@ -3,7 +3,10 @@
   max-width: 90vw;
   background: white;
 }
-
+.error-label {
+  color: red;
+  font-weight: bold;
+}
 .dialog-header {
   display: flex;
   justify-content: space-between;

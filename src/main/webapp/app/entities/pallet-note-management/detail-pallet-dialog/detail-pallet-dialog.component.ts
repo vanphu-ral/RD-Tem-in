@@ -449,12 +449,12 @@ export class PalletDetailDialogComponent implements OnInit {
       soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
       thuTuGiaPallet: item.stt,
       soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
-      slThung: soLuongSanPhamTrongMotThung,
+      slThung: sourceData.tongSlSp,
       note: sourceData.note ?? "",
 
       productCode: sourceData.tenSanPham,
       serialBox: firstBoxSerial || item.maPallet,
-      qty: soLuongSanPhamTrongMotThung,
+      qty: sourceData.tongSlSp,
       lot: lotNumber || item.maPallet,
       date: new Date().toLocaleDateString("vi-VN"),
       scannedBoxes: item.scannedBoxes,
@@ -483,35 +483,20 @@ export class PalletDetailDialogComponent implements OnInit {
         return;
       }
 
-      // ===== TÍNH TOÁN SỐ LƯỢNG =====
-      const soThungDuKien = item.tongSoThung;
+      // ===== TÍNH TOÁN SỐ LƯỢNG GIỐNG HỆT onPrint =====
       let tongSoSanPhamTrongPallet = 0;
       let soLuongSanPhamTrongMotThung = 0;
       let firstBoxSerial = "";
       let lotNumber = "";
 
       if (item.scannedBoxes && item.scannedBoxes.length > 0) {
-        // loại bỏ trùng lặp để tránh cộng nhiều lần
-        const uniqueScanned = [...new Set(item.scannedBoxes)];
-        uniqueScanned.forEach((scannedSerial, boxIndex) => {
-          if (!scannedSerial || typeof scannedSerial !== "string") {
-            return;
-          }
+        item.scannedBoxes.forEach((scannedSerial, boxIndex) => {
           const trimmedSerial = scannedSerial.trim();
 
-          for (const box of (sourceData.boxItems as BoxDetailData[]) ?? []) {
-            if (box.serialBox === trimmedSerial) {
-              tongSoSanPhamTrongPallet += box.soLuongSp || 0;
-              if (boxIndex === 0) {
-                soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
-                firstBoxSerial = box.serialBox;
-                lotNumber = box.lotNumber || "";
-              }
-              break;
-            }
-
+          for (const box of sourceData.boxItems ?? []) {
+            // Ưu tiên check subItems trước
             const subItem = box.subItems?.find(
-              (sub) => sub.maThung === trimmedSerial,
+              (sub: { maThung: string }) => sub.maThung === trimmedSerial,
             );
             if (subItem) {
               tongSoSanPhamTrongPallet += subItem.soLuong || 0;
@@ -522,24 +507,22 @@ export class PalletDetailDialogComponent implements OnInit {
               }
               break;
             }
+
+            // Nếu không phải subItem thì check box cha
+            if (box.serialBox === trimmedSerial) {
+              tongSoSanPhamTrongPallet += box.soLuongSp || 0;
+              if (boxIndex === 0) {
+                soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
+                firstBoxSerial = box.serialBox;
+                lotNumber = box.lotNumber || "";
+              }
+              break;
+            }
           }
         });
       }
 
       const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.tongSoThung}`;
-
-      // ===== TÍNH SỐ LƯỢNG DỰ KIẾN (KHI CHƯA SCAN) =====
-      let soLuongSpTrong1Thung = 0;
-      if (item.scannedBoxes && item.scannedBoxes.length > 0) {
-        soLuongSpTrong1Thung = soLuongSanPhamTrongMotThung;
-      }
-      const tongSoSpDuKien = soThungDuKien * soLuongSpTrong1Thung;
-
-      // ===== QUYẾT ĐỊNH HIỂN THỊ SỐ LƯỢNG NÀO =====
-      const soLuongCaiDatPallet =
-        item.scannedBoxes && item.scannedBoxes.length > 0
-          ? tongSoSanPhamTrongPallet
-          : tongSoSpDuKien;
 
       const printData: PrintPalletData = {
         khachHang: sourceData.khachHang ?? "N/A",
@@ -558,15 +541,15 @@ export class PalletDetailDialogComponent implements OnInit {
         to: sourceData.team ?? "",
         lpl2: sourceData.team ?? "",
 
-        soLuongCaiDatPallet: soLuongCaiDatPallet,
+        soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
         thuTuGiaPallet: item.stt,
         soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
-        slThung: soLuongSanPhamTrongMotThung,
+        slThung: sourceData.tongSlSp,
         note: sourceData.note ?? "",
 
         productCode: sourceData.tenSanPham,
         serialBox: firstBoxSerial || item.maPallet,
-        qty: soLuongSpTrong1Thung,
+        qty: sourceData.tongSlSp,
         lot: lotNumber || item.maPallet,
         date: new Date().toLocaleDateString("vi-VN"),
         scannedBoxes: item.scannedBoxes,
@@ -580,7 +563,6 @@ export class PalletDetailDialogComponent implements OnInit {
     });
 
     console.log(`Total print data created: ${allPrintData.length}`);
-    console.log(`Expected pages: ${Math.ceil(allPrintData.length / 2)}`);
 
     if (allPrintData.length === 0) {
       console.error("No print data generated!");
