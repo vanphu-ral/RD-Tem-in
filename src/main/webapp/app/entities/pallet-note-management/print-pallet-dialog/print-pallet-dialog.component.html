@@ -64,7 +64,9 @@
             </tr>
             <tr>
               <td class="label-cell">PO Number</td>
-              <td class="value-cell" colspan="3">{{ page.left.poNumber }}</td>
+              <td class="value-cell po-number" colspan="3">
+                {{ page.left.poNumber }}
+              </td>
             </tr>
             <tr>
               <td class="label-cell">Item No/SKU</td>
@@ -97,9 +99,10 @@
             <tr>
               <td class="label-cell">Số lượng<br />(sản phẩm/pallet)</td>
               <td class="value-cell">{{ page.left.soLuongCaiDatPallet }}</td>
+
               <td class="split-cell" colspan="2">
-                <span class="sub-label">Thứ tự giá pallet:</span>
-                <span class="sub-value">{{ page.left.thuTuGiaPallet }}</span>
+                <span class="sub-label">SL sản phẩm/Thùng:</span>
+                <span class="sub-value">{{ page.left.slThung }}</span>
               </td>
             </tr>
             <tr>
@@ -108,8 +111,8 @@
                 {{ page.left.soLuongBaoNgoaiThungGiaPallet }}
               </td>
               <td class="split-cell" colspan="2">
-                <span class="sub-label">SL sản phẩm/Thùng:</span>
-                <span class="sub-value">{{ page.left.slThung }}</span>
+                <span class="sub-label">Thứ tự giá pallet:</span>
+                <span class="sub-value">{{ page.left.thuTuGiaPallet }}</span>
               </td>
             </tr>
             <tr>
@@ -202,7 +205,9 @@
             </tr>
             <tr>
               <td class="label-cell">PO Number</td>
-              <td class="value-cell" colspan="3">{{ page.right.poNumber }}</td>
+              <td class="value-cell po-number" colspan="3">
+                {{ page.right.poNumber }}
+              </td>
             </tr>
             <tr>
               <td class="label-cell">Item No/SKU</td>

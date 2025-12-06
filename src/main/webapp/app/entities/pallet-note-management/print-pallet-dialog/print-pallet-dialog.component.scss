@@ -3,17 +3,26 @@
   min-height: 100vh;
   overflow-x: hidden;
 }
+
 .progress-bar-wrapper {
   width: 100%;
   padding: 4px 12px;
-  background: #f5f5f5; /* nền nhẹ để phân cách với header */
+  background: #f5f5f5;
+  /* nền nhẹ để phân cách với header */
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
+.po-number {
+  padding: 0 2mm !important;
+  font-size: 20px;
+  font-weight: bold !important;
+}
+
 .progress-bar-wrapper mat-progress-bar {
-  flex: 1; /* chiếm hết chiều ngang */
+  flex: 1;
+  /* chiếm hết chiều ngang */
 }
 
 .progress-text {
