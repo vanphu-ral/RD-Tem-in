@@ -257,17 +257,13 @@ export class LenhSanXuatComponent implements OnInit {
       }
 
       // Màu theo groupName
-      if (this.lenhSanXuats![i].product_type?.includes("TC01")) {
-        element.style.backgroundColor = "#FFD8A8";
-        element.style.border = "1px solid #E6B98C";
-      } else if (this.lenhSanXuats![i].groupName?.includes("Thành phẩm")) {
+      if (this.lenhSanXuats![i].product_type?.includes("Bán thành phẩm")) {
         element.style.backgroundColor = "#A5D8FF";
         element.style.border = "1px solid #7FBCE6";
-      } else if (this.lenhSanXuats![i].groupName?.includes("Bán thành phẩm")) {
+      } else if (this.lenhSanXuats![i].product_type?.includes("Thành phẩm")) {
         element.style.backgroundColor = "#B2F2BB";
         element.style.border = "1px solid #8BD9A0";
       }
-
       // Màu theo trạng thái
       switch (this.lenhSanXuats![i].trangThai) {
         case "Chờ duyệt":
@@ -276,9 +272,9 @@ export class LenhSanXuatComponent implements OnInit {
           element.style.border = "1px solid #E6DCA5";
           break;
         case "Đã gửi WMS":
-          element.style.backgroundColor = "#C6F6D5";
-          element.style.color = "#3F6D52";
-          element.style.border = "1px solid #A3D9B8";
+          element.style.backgroundColor = "#A5D8FF";
+          element.style.color = "#1C7ED6";
+          element.style.border = "1px solid #7FBCE6";
           break;
         case "Đã phê duyệt":
           element.style.backgroundColor = "#C6F6D5";
@@ -297,7 +293,7 @@ export class LenhSanXuatComponent implements OnInit {
           break;
         case "Bản nháp":
           element.style.backgroundColor = "#D0EBFF";
-          element.style.color = "#1C7ED6";
+          element.style.color = "#777777ff";
           element.style.border = "1px solid #A5D4F2";
           break;
         case "Từ chối":
@@ -410,7 +406,7 @@ export class LenhSanXuatComponent implements OnInit {
   // }
   getLenhSanXuatList(): void {
     this.http.get<any[]>(this.testUrl).subscribe((res) => {
-      const allData = res.map((item) => ({
+      let allData = res.map((item) => ({
         id: item.id,
         maLenhSanXuat: item.ma_lenh_san_xuat,
         sapCode: item.sap_code,
@@ -431,11 +427,44 @@ export class LenhSanXuatComponent implements OnInit {
         productType: item.product_type,
       }));
 
-      this.totalItems = allData.length;
+      // ===== LỌC THEO ĐIỀU KIỆN TÌM KIẾM =====
+      allData = allData.filter((item) => {
+        return (
+          (!this.sapName ||
+            item.sapName?.toLowerCase().includes(this.sapName.toLowerCase())) &&
+          (!this.sapCode ||
+            item.sapCode?.toLowerCase().includes(this.sapCode.toLowerCase())) &&
+          (!this.maLenhSanXuat ||
+            item.maLenhSanXuat
+              ?.toLowerCase()
+              .includes(this.maLenhSanXuat.toLowerCase())) &&
+          (!this.version ||
+            item.version?.toLowerCase().includes(this.version.toLowerCase())) &&
+          (!this.product_type ||
+            item.product_type
+              ?.toLowerCase()
+              .includes(this.product_type.toLowerCase())) &&
+          (!this.storageCode ||
+            item.storageCode
+              ?.toLowerCase()
+              .includes(this.storageCode.toLowerCase())) &&
+          (!this.createBy ||
+            item.createBy
+              ?.toLowerCase()
+              .includes(this.createBy.toLowerCase())) &&
+          (!this.trangThai ||
+            item.trangThai
+              ?.toLowerCase()
+              .includes(this.trangThai.toLowerCase()))
+        );
+      });
 
+      // ===== PHÂN TRANG =====
+      this.totalItems = allData.length;
       const startIndex = (this.pageNumber - 1) * this.itemPerPage;
       const endIndex = startIndex + this.itemPerPage;
       this.lenhSanXuats = allData.slice(startIndex, endIndex);
+
       this.changeColor();
     });
   }
