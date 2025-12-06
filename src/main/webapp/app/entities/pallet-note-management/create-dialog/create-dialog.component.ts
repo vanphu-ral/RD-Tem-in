@@ -45,6 +45,7 @@ export interface PalletFormData {
   nguoiKiemTra: string;
   ketQuaKiemTra: string;
   note: string;
+  qtyPerBox: number;
   soLuongThungTrongPallet: number;
   soLuongPallet: number;
 }
@@ -104,8 +105,24 @@ export class CreateDialogComponent {
     if (this.isBoxType) {
       return this.fb.group({
         maSanPham: [this.data.maSanPham ?? "", Validators.required],
-        soLuongTrongThung: [24, [Validators.required, Validators.min(1)]],
-        soLuongThung: [1, [Validators.required, Validators.min(1)]],
+        soLuongTrongThung: [
+          24,
+          [
+            Validators.required,
+            Validators.min(1),
+            Validators.max(10000),
+            Validators.pattern(/^[0-9]+$/),
+          ],
+        ],
+        soLuongThung: [
+          1,
+          [
+            Validators.required,
+            Validators.min(1),
+            Validators.max(10000),
+            Validators.pattern(/^[0-9]+$/),
+          ],
+        ],
       });
     } else {
       return this.fb.group({
@@ -117,6 +134,7 @@ export class CreateDialogComponent {
         nguoiKiemTra: [currentUser],
         ketQuaKiemTra: ["Đạt"],
         note: [""],
+        qtyPerBox: [0],
         soLuongThungTrongPallet: [1, [Validators.required, Validators.min(1)]],
         soLuongPallet: [1, [Validators.required, Validators.min(1)]],
         noSKU: [""],
