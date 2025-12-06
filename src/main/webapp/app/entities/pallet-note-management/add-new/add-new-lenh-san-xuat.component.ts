@@ -56,6 +56,7 @@ interface ProductionOrder {
   maWO: string;
   version: string;
   maKhoNhap: string;
+  lotNumber?: string;
   nganhRaw?: string; // branchCode từ search (raw)
   toRaw?: string; // groupCode từ search (raw)
   // các mã sau khi map từ hierarchy
@@ -82,6 +83,7 @@ export interface WarehouseNoteInfo {
   trang_thai: string;
   group_name: string;
   branch: string;
+  lotNumber?: string;
   product_type: string;
 }
 export interface ReelData {
@@ -383,6 +385,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               nganh: this.warehouseNoteInfo.branch,
               to: this.warehouseNoteInfo.group_name,
               woId: this.warehouseNoteInfo.work_order_code,
+              lotNumber: this.warehouseNoteInfo.lotNumber,
             },
           ];
           this.isThanhPham =
@@ -499,6 +502,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               item.productType === "1" || item.productType == null
                 ? "Thành phẩm"
                 : "Bán thành phẩm",
+            lotNumber: item.lotNumber,
 
             // ===== LƯU DỮ LIỆU THÔ =====
             nganhRaw: item.branchCode, // "LR LED"
@@ -1219,8 +1223,19 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const currentUser = this.accountService.isAuthenticated()
       ? this.accountService["userIdentity"]?.login
       : "unknown";
-
+    let comment2 = "";
     this.productionOrders.forEach((order) => {
+      if (
+        order.loaiSanPham === "Bán thành phẩm" &&
+        this.reelDataList.length > 0
+      ) {
+        // Lấy comments từ reel đầu tiên (hoặc merge tất cả nếu cần)
+        const allComments = this.reelDataList
+          .map((r) => r.comments)
+          .filter((c) => c && c.trim() !== "")
+          .join("; ");
+        comment2 = allComments || "";
+      }
       const payload: WarehouseNotePayload = {
         id: order.id,
         ma_lenh_san_xuat: order.maLenhSanXuat,
@@ -1233,7 +1248,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         create_by: currentUser ?? "",
         trang_thai: order.trangThai,
         group_name: order.to,
-        comment_2: "",
+        comment_2: comment2,
         approver_by: currentUser ?? "",
         branch: order.nganh,
         product_type: order.loaiSanPham,
@@ -1656,9 +1671,12 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         if (reelMap.has(key)) {
           const existing = reelMap.get(key);
           existing.initial_quantity += reel.initialQuantity ?? 0;
-          const existingUserData1 = parseInt(existing.user_data1 || "0", 10);
-          const newUserData1 = parseInt(reel.userData1 || "0", 10);
-          existing.user_data1 = (existingUserData1 + newUserData1).toString();
+          if (reel.userData1) {
+            existing.user_data_1 = reel.userData1;
+          }
+          if (reel.comments) {
+            existing.comments = reel.comments;
+          }
         } else {
           reelMap.set(key, {
             id: null, // Luôn null cho record mới
@@ -1666,11 +1684,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             part_number: `${reel.sapCode}V_${version}`,
             vendor: reel.vendor ?? "",
             lot: reel.lot ?? "",
-            user_data1: reel.userData1 ?? "",
-            user_data2: reel.userData2 ?? "",
-            user_data3: reel.userData3 ?? "",
-            user_data4: reel.userData4 ?? "",
-            user_data5: reel.userData5 ?? "",
+            user_data_1: reel.userData1 ?? "",
+            user_data_2: reel.userData2 ?? "",
+            user_data_3: reel.userData3 ?? "",
+            user_data_4: reel.userData4 ?? "",
+            user_data_5: reel.userData5 ?? "",
             initial_quantity: reel.initialQuantity ?? 0,
             msd_level: reel.msdLevel ?? "1",
             msd_initial_floor_time: reel.msdInitialFloorTime ?? "",
@@ -2066,7 +2084,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   // Xử lý tạo tem BTP
-  private handleTemBTPCreation(data: BoxFormData, woId: string): void {
+  private async handleTemBTPCreation(
+    data: BoxFormData,
+    woId: string,
+  ): Promise<void> {
     if (this.productionOrders.length === 0) {
       this.snackBar.open("Chưa có thông tin lệnh sản xuất!", "Đóng", {
         duration: 3000,
@@ -2078,40 +2099,48 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const version = this.productionOrders[0]?.version ?? "";
     const now = new Date();
     let counter = this.reelDataList.length + 1;
+    let lotNumber = "";
+    try {
+      const res: any = await this.planningService.search(woId).toPromise();
+      lotNumber = res?.lotNumber ?? ""; // giả sử API trả về trường lotNumber
+    } catch (error) {
+      console.error("Error fetching lotNumber:", error);
+      lotNumber = "";
+    }
 
     const productionOrder =
       this.productionOrders.find((po) => po.maWO === woId) ??
       this.productionOrders[0];
 
+    // Tính tổng số lượng SAU KHI tạo xong tất cả thùng
+    const totalQuantityAfterCreation =
+      this.reelDataList.reduce((sum, r) => sum + r.initialQuantity, 0) +
+      data.soLuongThung * data.soLuongTrongThung;
+
     for (let i = 0; i < data.soLuongThung; i++) {
       const reelID = this.generateReelID(now, productionOrder.maSAP, counter);
 
-      //  check reelID trùng
       const existing = this.reelDataList.find((r) => r.reelID === reelID);
 
       if (existing) {
-        // Nếu reelID đã tồn tại thì cộng thêm số lượng
         existing.initialQuantity += data.soLuongTrongThung;
-        existing.userData1 = (
-          parseInt(existing.userData1, 10) + data.soLuongTrongThung
-        ).toString();
+        existing.userData1 = totalQuantityAfterCreation.toString(); // Dùng giá trị tính trước
         console.log(`Cộng dồn vào reelID ${reelID}:`, existing);
       } else {
-        // Nếu reelID chưa có thì tạo mới
         const reelData: ReelData = {
           reelID,
           partNumber: `${productionOrder.maSAP}V_${version}`,
           vendor: productionOrder.maLenhSanXuat || "",
-          lot: productionOrder.maWO || "",
+          lot: lotNumber,
           userData5: productionOrder.maLenhSanXuat || "",
           initialQuantity: data.soLuongTrongThung,
           sapCode: productionOrder.maSAP || "",
           trangThai: "Active",
           storageUnit: "",
-          comments: "",
-          userData1: "NO",
-          userData2: "NO",
-          userData3: "NO",
+          comments: data.comments ?? "",
+          userData1: totalQuantityAfterCreation.toString(), // Dùng giá trị tính trước
+          userData2: data.rank ?? "",
+          userData3: productionOrder.tenHangHoa,
           userData4: productionOrder.maSAP || "",
           msdLevel: "1",
           msdInitialFloorTime: "",
@@ -2143,6 +2172,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       counter++;
     }
 
+    // Cập nhật tổng số lượng sau khi tạo xong
+    this.updateProductionOrderTotalBTP();
+
     console.log("Final reelDataList:", this.reelDataList);
     console.log(`Đã tạo ${this.reelDataList.length} reel items cho Tem BTP`);
     this.goToCreateTemTab();
@@ -2150,6 +2182,16 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   private updateProductionOrderTotal(): void {
     const total = this.boxItems.reduce((sum, box) => sum + box.soLuongSp, 0);
+
+    if (this.productionOrders.length > 0) {
+      this.productionOrders[0].tongSoLuong = total;
+    }
+  }
+  private updateProductionOrderTotalBTP(): void {
+    const total = this.reelDataList.reduce(
+      (sum, box) => sum + box.initialQuantity,
+      0,
+    );
 
     if (this.productionOrders.length > 0) {
       this.productionOrders[0].tongSoLuong = total;
@@ -2412,11 +2454,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       partNumber: detail.part_number || "",
       vendor: detail.vendor || "",
       lot: detail.lot || "",
-      userData1: detail.user_data1 || "",
-      userData2: detail.user_data2 || "",
-      userData3: detail.user_data3 || "",
-      userData4: detail.user_data4 || "",
-      userData5: detail.user_data5 || "",
+      userData1: detail.user_data_1 || "",
+      userData2: detail.user_data_2 || "",
+      userData3: detail.user_data_3 || "",
+      userData4: detail.user_data_4 || "",
+      userData5: detail.user_data_5 || "",
       initialQuantity: detail.initial_quantity || 0,
       msdLevel: detail.msd_level || "MSL3",
       msdInitialFloorTime: detail.msd_initial_floor_time || "",

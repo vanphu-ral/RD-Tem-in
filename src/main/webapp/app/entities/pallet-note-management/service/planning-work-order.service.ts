@@ -122,7 +122,10 @@ export class PlanningWorkOrderService {
     id: number,
     payload: WarehouseNotePayload,
   ): Observable<any> {
-    return this.http.put(`${this.baseUrl}/warehouse-note-infos/${id}`, payload);
+    return this.http.patch(
+      `${this.baseUrl}/warehouse-note-infos/${id}`,
+      payload,
+    );
   }
 
   //save combine pallet / box

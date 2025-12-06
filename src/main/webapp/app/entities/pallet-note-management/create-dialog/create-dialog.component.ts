@@ -33,6 +33,11 @@ export interface BoxFormData {
   maSanPham: string;
   soLuongTrongThung: number;
   soLuongThung: number;
+  comments?: string;
+  TPNK?: string;
+  rank?: string;
+  mfg?: string;
+  note?: string;
 }
 
 export interface PalletFormData {
@@ -104,7 +109,7 @@ export class CreateDialogComponent {
       : "unknown";
 
     if (this.isBoxType) {
-      return this.fb.group({
+      const formGroup = this.fb.group({
         maSanPham: [this.data.maSanPham ?? "", Validators.required],
         soLuongTrongThung: [
           24,
@@ -124,7 +129,33 @@ export class CreateDialogComponent {
             Validators.pattern(/^[1-9][0-9]{0,4}$/),
           ],
         ],
-      });
+      }) as FormGroup;
+
+      // Nếu là Bán thành phẩm thì thêm trường đặc thù
+      if (this.data.loaiSanPham === "Bán thành phẩm") {
+        formGroup.addControl(
+          "TPNK",
+          this.fb.control("", [Validators.maxLength(50)]),
+        );
+        formGroup.addControl(
+          "rank",
+          this.fb.control("", [Validators.maxLength(50)]),
+        );
+        formGroup.addControl(
+          "mfg",
+          this.fb.control("", [Validators.maxLength(50)]),
+        );
+        formGroup.addControl(
+          "note",
+          this.fb.control("", [Validators.maxLength(200)]),
+        );
+        formGroup.addControl(
+          "comments",
+          this.fb.control("", [Validators.maxLength(200)]),
+        );
+      }
+
+      return formGroup;
     } else {
       return this.fb.group({
         tenSanPham: [this.data.tenSanPham ?? "", Validators.required],

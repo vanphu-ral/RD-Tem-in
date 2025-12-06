@@ -102,6 +102,87 @@
           </div>
         </div>
       </ng-container>
+      <ng-container *ngIf="isBoxType && data.loaiSanPham === 'Bán thành phẩm'">
+        <div class="form-row">
+          <div class="form-field half-width">
+            <label
+              class="field-label"
+              [ngClass]="{
+                'error-label':
+                  form.get('extraFieldBTP')?.invalid &&
+                  form.get('extraFieldBTP')?.touched,
+              }"
+            >
+              TP/NK
+            </label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="TPNK" placeholder="TP/NK..." />
+            </mat-form-field>
+          </div>
+          <div class="form-field half-width">
+            <label
+              class="field-label"
+              [ngClass]="{
+                'error-label':
+                  form.get('extraFieldBTP')?.invalid &&
+                  form.get('extraFieldBTP')?.touched,
+              }"
+            >
+              Rank
+            </label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                formControlName="rank"
+                placeholder="Nhập rank..."
+              />
+            </mat-form-field>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label
+              class="field-label"
+              [ngClass]="{
+                'error-label':
+                  form.get('extraFieldBTP')?.invalid &&
+                  form.get('extraFieldBTP')?.touched,
+              }"
+            >
+              MFG
+            </label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="mfg" placeholder="Nhập MFG..." />
+            </mat-form-field>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label class="field-label">Note</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <textarea
+                matInput
+                formControlName="note"
+                placeholder="Nhập ghi chú..."
+                rows="2"
+              ></textarea>
+            </mat-form-field>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label class="field-label">Comments</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <textarea
+                matInput
+                formControlName="comments"
+                placeholder="Comments..."
+                rows="2"
+              ></textarea>
+            </mat-form-field>
+          </div>
+        </div>
+      </ng-container>
 
       <!-- Form fields for Pallet type -->
       <ng-container *ngIf="!isBoxType">
