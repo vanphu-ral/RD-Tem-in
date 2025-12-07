@@ -28,7 +28,7 @@
     <!-- <jhi-alert-error></jhi-alert-error> -->
 
     <!-- <div class="table-responsive" id="entities" *ngIf="lenhSanXuats && lenhSanXuats.length > 0"> -->
-    <div style="overflow: auto; height: 900px; width: 100%">
+    <div style="overflow: auto; height: 850px; width: 100%">
       <table class="table" aria-describedby="page-heading">
         <thead>
           <tr
@@ -351,12 +351,24 @@
             <td>{{ lenhSanXuat.maLenhSanXuat }}</td>
             <td>{{ lenhSanXuat.sapCode }}</td>
             <td>{{ lenhSanXuat.sapName }}</td>
-            <td style="align-content: center">
-              <div [id]="lenhSanXuat.id" class="trang-thai">
+            <td>
+              <div
+                style="display: flex; justify-content: center"
+                [id]="lenhSanXuat.id"
+                class="trang-thai"
+              >
                 {{ lenhSanXuat.groupName }}
               </div>
             </td>
-            <td>{{ lenhSanXuat.product_type }}</td>
+            <td>
+              <span
+                style="display: flex; justify-content: center"
+                [ngClass]="getProductTypeClass(lenhSanXuat.product_type ?? '')"
+                class="badge px-3 py-2"
+              >
+                {{ lenhSanXuat.product_type }}
+              </span>
+            </td>
             <td>{{ lenhSanXuat.workOrderCode }}</td>
             <td>{{ lenhSanXuat.version }}</td>
             <td>{{ lenhSanXuat.storageCode }}</td>
@@ -367,6 +379,7 @@
             <td>{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</td>
             <td>
               <span
+                style="display: flex; justify-content: center"
                 [ngClass]="getTrangThaiClass(lenhSanXuat.trangThai ?? '')"
                 class="badge px-3 py-2"
                 [id]="i"

@@ -70,8 +70,8 @@ export class LenhSanXuatComponent implements OnInit {
   ascending!: boolean;
   ngbPaginationPage = 1;
 
-  maxResultToShow = 10;
-  showingResults = 10;
+  maxResultToShow = 20;
+  showingResults = 20;
   currentPage = 1;
   startIndex = 0;
   // thông tin phân trang
@@ -292,9 +292,9 @@ export class LenhSanXuatComponent implements OnInit {
           element.style.border = "1px solid #E04444";
           break;
         case "Bản nháp":
-          element.style.backgroundColor = "#D0EBFF";
+          element.style.backgroundColor = "#deecf7ff";
           element.style.color = "#777777ff";
-          element.style.border = "1px solid #A5D4F2";
+          element.style.border = "1px solid #b0b6b9ff";
           break;
         case "Từ chối":
           element.style.backgroundColor = "#FFE066";
@@ -318,6 +318,17 @@ export class LenhSanXuatComponent implements OnInit {
         return "badge-cancelled";
       case "Sản xuất hủy":
         return "badge-production-cancelled";
+      default:
+        return "badge-default";
+    }
+  }
+
+  getProductTypeClass(productType: string): string {
+    switch (productType) {
+      case "Thành phẩm":
+        return "badge-finished-product";
+      case "Bán thành phẩm":
+        return "badge-semi-finished-product";
       default:
         return "badge-default";
     }
