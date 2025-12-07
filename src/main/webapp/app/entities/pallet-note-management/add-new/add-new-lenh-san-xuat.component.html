@@ -9,6 +9,7 @@
           formControlName="woId"
           placeholder="Nhập lệnh sx..."
           (keydown.enter)="onApply()"
+          (input)="removeSpaces()"
         />
         <mat-error
           *ngIf="

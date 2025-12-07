@@ -50,7 +50,9 @@
           <tbody>
             <tr>
               <td class="label-cell">Khách hàng</td>
-              <td class="value-cell" colspan="3">{{ page.left.khachHang }}</td>
+              <td class="value-cell text-bold" colspan="3">
+                {{ page.left.khachHang }}
+              </td>
             </tr>
             <tr>
               <td class="label-cell">Serial pallet</td>
@@ -68,61 +70,74 @@
                 {{ page.left.poNumber }}
               </td>
             </tr>
+            <!-- ROW: Item No/SKU | Ngành -->
             <tr>
               <td class="label-cell">Item No/SKU</td>
               <td class="value-cell">{{ page.left.itemNoSku }}</td>
-              <td class="split-cell">
-                <span class="sub-label">Ngành:</span>
-              </td>
-              <td class="split-cell">
-                <span class="sub-value">{{ page.left.led2 }}</span>
+              <td class="split-cell" colspan="2">
+                <div class="split-content">
+                  <span class="sub-label">Ngành:</span>
+                  <span class="sub-value">{{ page.left.led2 }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Số QDSX | Tổ -->
             <tr>
               <td class="label-cell">Số QDSX</td>
               <td class="value-cell">{{ page.left.soQdsx }}</td>
-              <td class="split-cell">
-                <span class="sub-label">Tổ:</span>
-              </td>
-              <td class="split-cell">
-                <span class="sub-value">{{ page.left.to }}</span>
+              <td class="split-cell" colspan="2">
+                <div class="split-content">
+                  <span class="sub-label">Tổ:</span>
+                  <span class="sub-value">{{ page.left.to }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Ngày sản xuất | Date Code -->
             <tr>
               <td class="label-cell">Ngày sản xuất</td>
               <td class="value-cell">{{ page.left.ngaySanXuat }}</td>
               <td class="split-cell" colspan="2">
-                <span class="sub-label">Date Code:</span>
-                <span class="sub-value">{{ page.left.dateCode }}</span>
+                <div class="split-content">
+                  <span class="sub-label">Date Code:</span>
+                  <span class="sub-value">{{ page.left.dateCode }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Số lượng (sản phẩm/pallet) | SL sản phẩm/Thùng -->
             <tr>
               <td class="label-cell">Số lượng<br />(sản phẩm/pallet)</td>
               <td class="value-cell text-bold">
                 {{ page.left.soLuongCaiDatPallet }}
               </td>
-
               <td class="split-cell" colspan="2">
-                <span class="sub-label">SL sản phẩm/Thùng:</span>
-                <span class="sub-value">{{ page.left.slThung }}</span>
+                <div class="split-content">
+                  <span class="sub-label">SL SP/Thùng:</span>
+                  <span class="sub-value">{{ page.left.slThung }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Số lượng (thùng/pallet) | Thứ tự giá pallet -->
             <tr>
               <td class="label-cell">Số lượng<br />(thùng/pallet)</td>
               <td class="value-cell text-bold">
                 {{ page.left.soLuongBaoNgoaiThungGiaPallet }}
               </td>
               <td class="split-cell" colspan="2">
-                <span class="sub-label">Thứ tự giá pallet:</span>
-                <span class="sub-value">{{ page.left.thuTuGiaPallet }}</span>
+                <div class="split-content">
+                  <span class="sub-label">Thứ tự giá:</span>
+                  <span class="sub-value">{{ page.left.thuTuGiaPallet }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Người kiểm tra | Kết quả kiểm tra -->
             <tr>
               <td class="label-cell">Người kiểm tra</td>
               <td class="value-cell">{{ page.left.nguoiKiemTra }}</td>
               <td class="split-cell" colspan="2">
-                <span class="sub-label">Kết quả kiểm tra:</span>
-                <span class="sub-value">{{ page.left.ketQuaKiemTra }}</span>
+                <div class="split-content">
+                  <span class="sub-label">KQ kiểm tra:</span>
+                  <span class="sub-value">{{ page.left.ketQuaKiemTra }}</span>
+                </div>
               </td>
             </tr>
             <tr>
@@ -193,7 +208,9 @@
           <tbody>
             <tr>
               <td class="label-cell">Khách hàng</td>
-              <td class="value-cell" colspan="3">{{ page.right.khachHang }}</td>
+              <td class="value-cell text-bold" colspan="3">
+                {{ page.right.khachHang }}
+              </td>
             </tr>
             <tr>
               <td class="label-cell">Serial pallet</td>
@@ -213,61 +230,74 @@
                 {{ page.right.poNumber }}
               </td>
             </tr>
+            <!-- ROW: Item No/SKU | Ngành -->
             <tr>
               <td class="label-cell">Item No/SKU</td>
               <td class="value-cell">{{ page.right.itemNoSku }}</td>
-              <td class="split-cell">
-                <span class="sub-label">Ngành:</span>
-              </td>
-              <td class="split-cell">
-                <span class="sub-value">{{ page.right.led2 }}</span>
+              <td class="split-cell" colspan="2">
+                <div class="split-content">
+                  <span class="sub-label">Ngành:</span>
+                  <span class="sub-value">{{ page.right.led2 }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Số QDSX | Tổ -->
             <tr>
               <td class="label-cell">Số QDSX</td>
               <td class="value-cell">{{ page.right.soQdsx }}</td>
-              <td class="split-cell">
-                <span class="sub-label">Tổ:</span>
-              </td>
-              <td class="split-cell">
-                <span class="sub-value">{{ page.right.to }}</span>
+              <td class="split-cell" colspan="2">
+                <div class="split-content">
+                  <span class="sub-label">Tổ:</span>
+                  <span class="sub-value">{{ page.right.to }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Ngày sản xuất | Date Code -->
             <tr>
               <td class="label-cell">Ngày sản xuất</td>
               <td class="value-cell">{{ page.right.ngaySanXuat }}</td>
               <td class="split-cell" colspan="2">
-                <span class="sub-label">Date Code:</span>
-                <span class="sub-value">{{ page.right.dateCode }}</span>
+                <div class="split-content">
+                  <span class="sub-label">Date Code:</span>
+                  <span class="sub-value">{{ page.right.dateCode }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Số lượng (sản phẩm/pallet) | SL sản phẩm/Thùng -->
             <tr>
               <td class="label-cell">Số lượng<br />(sản phẩm/pallet)</td>
               <td class="value-cell text-bold">
                 {{ page.right.soLuongCaiDatPallet }}
               </td>
               <td class="split-cell" colspan="2">
-                <span class="sub-label">SL sản phẩm/Thùng:</span>
-                <span class="sub-value">{{ page.right.slThung }}</span>
+                <div class="split-content">
+                  <span class="sub-label">SL SP/Thùng:</span>
+                  <span class="sub-value">{{ page.right.slThung }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Số lượng (thùng/pallet) | Thứ tự giá pallet -->
             <tr>
               <td class="label-cell">Số lượng<br />(thùng/pallet)</td>
               <td class="value-cell text-bold">
                 {{ page.right.soLuongBaoNgoaiThungGiaPallet }}
               </td>
-
               <td class="split-cell" colspan="2">
-                <span class="sub-label">Thứ tự giá pallet:</span>
-                <span class="sub-value">{{ page.right.thuTuGiaPallet }}</span>
+                <div class="split-content">
+                  <span class="sub-label">Thứ tự giá:</span>
+                  <span class="sub-value">{{ page.right.thuTuGiaPallet }}</span>
+                </div>
               </td>
             </tr>
+            <!-- ROW: Người kiểm tra | Kết quả kiểm tra -->
             <tr>
               <td class="label-cell">Người kiểm tra</td>
               <td class="value-cell">{{ page.right.nguoiKiemTra }}</td>
               <td class="split-cell" colspan="2">
-                <span class="sub-label">Kết quả kiểm tra:</span>
-                <span class="sub-value">{{ page.right.ketQuaKiemTra }}</span>
+                <div class="split-content">
+                  <span class="sub-label">KQ kiểm tra:</span>
+                  <span class="sub-value">{{ page.right.ketQuaKiemTra }}</span>
+                </div>
               </td>
             </tr>
             <tr>

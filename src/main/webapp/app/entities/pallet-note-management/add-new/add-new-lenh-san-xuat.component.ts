@@ -453,6 +453,13 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.sendApproval();
     }
   }
+  removeSpaces(): void {
+    const control = this.form.get("woId");
+    if (control) {
+      const value = control.value ?? ""; // tránh null
+      control.setValue(value.replace(/\s/g, ""), { emitEvent: false });
+    }
+  }
 
   //get data
   onApply(): void {
