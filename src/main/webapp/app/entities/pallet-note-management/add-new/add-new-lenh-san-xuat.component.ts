@@ -117,6 +117,7 @@ export interface ReelData {
   partClass: string;
   sapCode: string;
   trangThai: string;
+  TPNK?: string;
 }
 interface BoxItem {
   stt: number;
@@ -1506,6 +1507,63 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     }
   }
 
+  //export excel realdata
+  exportExcelReelData(): void {
+    if (!this.reelDataList || this.reelDataList.length === 0) {
+      this.snackBar.open("Không có dữ liệu để xuất Excel", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Header cố định theo yêu cầu
+    const headers = [
+      "NumberOfPlanning",
+      "ItemCode",
+      "ProductName",
+      "SapWo",
+      "Version",
+      "TimeRecieved",
+      "ReelID",
+      "PartNumber",
+      "Vendor",
+      "QuantityOfPackage",
+      "MFGDate",
+      "ProductionShilt",
+      "OpName",
+      "Comments",
+    ];
+
+    // Map dữ liệu theo đúng cột, không lấy thêm trường nào khác
+    const rows = this.reelDataList.map((r) => [
+      r.userData1 ?? "", // NumberOfPlanning
+      r.userData4 ?? "", // ItemCode
+      r.userData3 ?? "", // ProductName
+      r.userData5 ?? "", // SapWo
+      this.productionOrders[0]?.version ?? "", // Version
+      r.manufacturingDate ?? "", // TimeRecieved
+      r.reelID, // ReelID
+      r.partNumber, // PartNumber
+      r.vendor ?? "", // Vendor
+      r.initialQuantity, // QuantityOfPackage
+      r.manufacturingDate ?? "", // MFGDate
+      this.productionOrders[0]?.to ?? "", // ProductionShilt
+      r.TPNK ?? "", // OpName (TPNK bạn đã nhập)
+      r.comments ?? "", // Comments
+    ]);
+
+    // Tạo worksheet từ AOA: chỉ có headers + rows
+    const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([
+      headers,
+      ...rows,
+    ]);
+    const workbook: XLSX.WorkBook = {
+      Sheets: { ReelData: worksheet },
+      SheetNames: ["ReelData"],
+    };
+
+    XLSX.writeFile(workbook, "ReelData.xlsx");
+  }
   //lưu dữ liệu box và pallet
   saveCombined(maLenhSanXuatId: number): void {
     // Validate maLenhSanXuatId
@@ -2102,7 +2160,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     let lotNumber = "";
     try {
       const res: any = await this.planningService.search(woId).toPromise();
-      lotNumber = res?.lotNumber ?? ""; // giả sử API trả về trường lotNumber
+
+      const item =
+        res?.content?.find((c: any) => c.woId === woId) ?? res?.content?.[0];
+
+      lotNumber = item?.lotNumber ?? "";
     } catch (error) {
       console.error("Error fetching lotNumber:", error);
       lotNumber = "";
@@ -2142,6 +2204,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           userData2: data.rank ?? "",
           userData3: productionOrder.tenHangHoa,
           userData4: productionOrder.maSAP || "",
+          TPNK: data.TPNK ?? "",
           msdLevel: "1",
           msdInitialFloorTime: "",
           spMaterialName: "",

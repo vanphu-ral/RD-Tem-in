@@ -736,15 +736,26 @@
               <tr mat-row *matRowDef="let row; columns: reelColumns"></tr>
             </table>
           </div>
-          <button
-            mat-raised-button
-            color="primary"
-            class="add-box-btn"
-            (click)="exportTemBtpCsv()"
-          >
-            <mat-icon>file_upload</mat-icon>
-            Xuất CSV
-          </button>
+          <div class="btp-group-btn">
+            <button
+              mat-raised-button
+              color="primary"
+              class="add-box-btn"
+              (click)="exportTemBtpCsv()"
+            >
+              <mat-icon>save_alt</mat-icon>
+              Xuất CSV
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              class="add-box-btn"
+              (click)="exportExcelReelData()"
+            >
+              <mat-icon>text_snippet</mat-icon>
+              Xuất Excel
+            </button>
+          </div>
         </div>
       </mat-tab>
     </mat-tab-group>
