@@ -47,6 +47,7 @@ export class LenhSanXuatComponent implements OnInit {
   workOrderCodeResourceUrl = this.applicationConfigService.getEndpointFor(
     "api/lenhsx/work-order-code",
   );
+  totalPages = 0;
 
   formSearch = this.formBuilder.group({
     maLenhSanXuat: "",
@@ -201,17 +202,13 @@ export class LenhSanXuatComponent implements OnInit {
   //   this.getLenhSanXuatList();
   // }
   nextPage(): void {
-    this.backPageBtn = false;
-    this.firstPageBtn = false;
-    if (this.pageNumber * this.itemPerPage < this.totalItems) {
+    if (this.pageNumber < this.totalPages) {
       this.pageNumber++;
       this.getLenhSanXuatList();
     }
   }
 
   backPage(): void {
-    this.nextPageBtn = false;
-    this.lastPageBtn = false;
     if (this.pageNumber > 1) {
       this.pageNumber--;
       this.getLenhSanXuatList();
@@ -219,34 +216,28 @@ export class LenhSanXuatComponent implements OnInit {
   }
 
   firstPage(): void {
-    this.pageNumber = 1;
-    this.nextPageBtn = false;
-    this.lastPageBtn = false;
-    this.backPageBtn = true;
-    this.firstPageBtn = true;
-    this.getLenhSanXuatList();
+    if (this.pageNumber !== 1) {
+      this.pageNumber = 1;
+      this.getLenhSanXuatList();
+    }
   }
 
   lastPage(): void {
-    this.pageNumber = Math.ceil(this.totalItems / this.itemPerPage);
-    this.backPageBtn = false;
-    this.firstPageBtn = false;
-    this.lastPageBtn = true;
-    this.nextPageBtn = true;
+    if (this.totalPages > 0 && this.pageNumber !== this.totalPages) {
+      this.pageNumber = this.totalPages;
+      this.getLenhSanXuatList();
+    }
+  }
+
+  findFucntion(): void {
+    this.pageNumber = 1;
     this.getLenhSanXuatList();
   }
 
-  onPageChange(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.loadPage();
-  }
-  findFucntion(): void {
-    this.mappingBodySearchAndPagination();
-    setTimeout(() => {
-      this.getLenhSanXuatList();
-      // this.getTotalData();
-    }, 100);
+  // Đổi size thì về trang 1 và tải lại
+  onPageSizeChange(): void {
+    this.pageNumber = 1;
+    this.getLenhSanXuatList();
   }
   // Thay đổi background color ứng với mỗi trạng thái
   changeColor(): void {
@@ -416,8 +407,21 @@ export class LenhSanXuatComponent implements OnInit {
   //   });
   // }
   getLenhSanXuatList(): void {
-    this.http.get<any[]>(this.testUrl).subscribe((res) => {
-      let allData = res.map((item) => ({
+    const params = this.buildParams();
+
+    this.http.get<any>(this.testUrl, { params }).subscribe((res) => {
+      // Nếu BE trả về array trực tiếp
+      const content = Array.isArray(res)
+        ? res
+        : (res.content ?? res.items ?? res.data ?? []);
+
+      this.totalItems = Array.isArray(res)
+        ? res.length
+        : (res.totalElements ?? res.total ?? content.length);
+
+      this.totalPages = Math.ceil(this.totalItems / this.itemPerPage);
+
+      this.lenhSanXuats = content.map((item: any) => ({
         id: item.id,
         maLenhSanXuat: item.ma_lenh_san_xuat,
         sapCode: item.sap_code,
@@ -437,46 +441,36 @@ export class LenhSanXuatComponent implements OnInit {
         branch: item.branch,
         productType: item.product_type,
       }));
+      if (Array.isArray(res)) {
+        // Nếu số phần tử < size => trang cuối
+        if (content.length < this.itemPerPage) {
+          this.totalPages = this.pageNumber;
+        } else {
+          // giả định còn trang sau, tăng thêm 1
+          this.totalPages = this.pageNumber + 1;
+        }
+      } else {
+        this.totalItems = res.totalElements ?? content.length;
+        this.totalPages =
+          res.totalPages ?? Math.ceil(this.totalItems / this.itemPerPage);
+      }
+      if (!Array.isArray(res) && typeof res.number === "number") {
+        this.pageNumber = res.number + 1;
+      }
 
-      // ===== LỌC THEO ĐIỀU KIỆN TÌM KIẾM =====
-      allData = allData.filter(
-        (item) =>
-          (!this.sapName ||
-            item.sapName?.toLowerCase().includes(this.sapName.toLowerCase())) &&
-          (!this.sapCode ||
-            item.sapCode?.toLowerCase().includes(this.sapCode.toLowerCase())) &&
-          (!this.maLenhSanXuat ||
-            item.maLenhSanXuat
-              ?.toLowerCase()
-              .includes(this.maLenhSanXuat.toLowerCase())) &&
-          (!this.version ||
-            item.version?.toLowerCase().includes(this.version.toLowerCase())) &&
-          (!this.product_type ||
-            item.product_type
-              ?.toLowerCase()
-              .includes(this.product_type.toLowerCase())) &&
-          (!this.storageCode ||
-            item.storageCode
-              ?.toLowerCase()
-              .includes(this.storageCode.toLowerCase())) &&
-          (!this.createBy ||
-            item.createBy
-              ?.toLowerCase()
-              .includes(this.createBy.toLowerCase())) &&
-          (!this.trangThai ||
-            item.trangThai
-              ?.toLowerCase()
-              .includes(this.trangThai.toLowerCase())),
-      );
-
-      // ===== PHÂN TRANG =====
-      this.totalItems = allData.length;
-      const startIndex = (this.pageNumber - 1) * this.itemPerPage;
-      const endIndex = startIndex + this.itemPerPage;
-      this.lenhSanXuats = allData.slice(startIndex, endIndex);
-
+      this.updatePaginationButtons();
       this.changeColor();
     });
+  }
+
+  updatePaginationButtons(): void {
+    const isFirst = this.pageNumber <= 1;
+    const isLast = this.pageNumber >= this.totalPages;
+
+    this.firstPageBtn = isFirst;
+    this.backPageBtn = isFirst;
+    this.nextPageBtn = isLast;
+    this.lastPageBtn = isLast;
   }
   reloadPage(): void {
     window.location.reload();
@@ -597,5 +591,49 @@ export class LenhSanXuatComponent implements OnInit {
 
   onError(): void {
     this.ngbPaginationPage = this.page ?? 1;
+  }
+  private buildParams(): Record<string, string> {
+    const zeroBasedPage = (this.pageNumber - 1).toString();
+
+    const params: Record<string, string> = {
+      page: zeroBasedPage,
+      size: this.itemPerPage.toString(),
+    };
+
+    if (this.sapName) {
+      params.sapName = this.sapName;
+    }
+    if (this.sapCode) {
+      params.sapCode = this.sapCode;
+    }
+    if (this.maLenhSanXuat) {
+      params.maLenhSanXuat = this.maLenhSanXuat;
+    }
+    if (this.version) {
+      params.version = this.version;
+    }
+    if (this.product_type) {
+      params.product_type = this.product_type;
+    }
+    if (this.storageCode) {
+      params.storageCode = this.storageCode;
+    }
+    if (this.createBy) {
+      params.createBy = this.createBy;
+    }
+    if (this.trangThai) {
+      params.trangThai = this.trangThai;
+    }
+    if (this.entryTime) {
+      params.entryTime = this.entryTime;
+    }
+    if (this.timeUpdate) {
+      params.timeUpdate = this.timeUpdate;
+    }
+
+    // thêm log để kiểm tra params
+    console.log("buildParams result:", params);
+
+    return params;
   }
 }
