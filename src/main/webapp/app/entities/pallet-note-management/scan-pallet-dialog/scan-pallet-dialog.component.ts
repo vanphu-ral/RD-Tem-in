@@ -34,6 +34,7 @@ interface PalletData {
   maPallet: string;
   tenSanPham: string;
   qrCode: string;
+  thungScan?: number;
   soThung: number;
   maLenhSanXuatId: number;
   validReelIds?: string[];
@@ -46,7 +47,6 @@ interface BoxScan {
   message?: string;
 }
 
-// Interface cho response từ BE
 export interface SerialBoxPalletMapping {
   id: number;
   ma_lenh_san_xuat_id: number;
@@ -94,33 +94,28 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   scanMode: "zebra" | "camera" = "zebra";
   palletData: PalletData;
 
-  // Scanner state
   scanModeActive = false;
   scannedCode = "";
   lastScanResult: { type: "success" | "error"; message: string } | null = null;
-  isProcessing = false; // Prevent multiple simultaneous scans
+  isProcessing = false;
 
-  // Mobile camera
   isMobile = false;
   cameraActive = false;
   availableCameras: MediaDeviceInfo[] = [];
   selectedDevice: MediaDeviceInfo | undefined = undefined;
 
-  // Boxes
   scannedBoxes: BoxScan[] = [];
   errorBoxes: BoxScan[] = [];
   allBoxes: BoxScan[] = [];
   validBoxes: string[] = [];
 
-  // NEW: Store boxes already scanned in this pallet (from BE)
   existingScannedBoxes: Set<string> = new Set();
   isLoadingHistory = false;
 
   selectedTabIndex = 0;
   scannedCount = 0;
 
-  // Test mode
-  isTestMode = true; // Set to false in production
+  isTestMode = true;
   formats: BarcodeFormat[] = [
     BarcodeFormat.QR_CODE,
     BarcodeFormat.CODE_128,
@@ -141,7 +136,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.checkIfMobile();
     this.initializeValidBoxes();
-    this.loadExistingScannedBoxes(); // Load boxes đã scan từ BE
+    this.loadExistingScannedBoxes();
 
     if (this.scanModeActive) {
       this.focusScannerInput();
@@ -167,14 +162,12 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     ) {
       this.validBoxes = this.palletData.validReelIds;
       console.log("Valid reel IDs loaded:", this.validBoxes);
-      console.log("Total valid boxes:", this.validBoxes.length);
     } else {
       console.warn("No valid reel IDs provided or empty array");
       this.validBoxes = [];
     }
   }
 
-  // ===== NEW: Load boxes đã scan từ BE =====
   loadExistingScannedBoxes(): void {
     if (!this.palletData.maPallet) {
       console.warn("Missing pallet info, cannot load existing scans");
@@ -188,8 +181,6 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => (this.isLoadingHistory = false)))
       .subscribe({
         next: (mappings) => {
-          console.log(" Existing scanned boxes loaded:", mappings);
-
           const successMappings = mappings.filter((m) => m.status === 1);
 
           this.existingScannedBoxes = new Set(
@@ -205,14 +196,9 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
           this.allBoxes = [...this.scannedBoxes];
           this.scannedCount = this.scannedBoxes.length;
 
-          console.log(
-            ` Loaded ${this.scannedCount} boxes already scanned in this pallet`,
-          );
-          console.log("Existing boxes:", Array.from(this.existingScannedBoxes));
+          console.log(`Loaded ${this.scannedCount} boxes already scanned`);
         },
         error: (error) => {
-          console.error("Error loading existing scanned boxes:", error);
-
           if (error.status === 404) {
             console.log("No existing scans found (404) - this is normal");
             this.existingScannedBoxes = new Set();
@@ -226,20 +212,47 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Desktop Scanner
+  // ===== TOGGLE ZEBRA MODE (CHỈ FOCUS INPUT) =====
   toggleScanMode(): void {
     this.scanModeActive = !this.scanModeActive;
+
     if (this.scanModeActive) {
-      // ===== CHỈ BẬT CHẾ ĐỘ ZEBRA, KHÔNG BẬT CAMERA =====
+      // Bật chế độ Zebra - CHỈ focus input
       this.scanMode = "zebra";
-      this.cameraActive = false; // Đảm bảo camera tắt
+      this.cameraActive = false; // Đảm bảo camera TẮT
+
+      console.log("✅ Zebra scanner activated - Input focused");
       setTimeout(() => this.focusScannerInput(), 100);
+    } else {
+      console.log("❌ Zebra scanner deactivated");
     }
   }
 
+  // ===== MỞ CAMERA (RIÊNG BIỆT) =====
+  startCamera(): void {
+    // TẮT chế độ Zebra trước
+    this.scanModeActive = false;
+
+    // BẬT camera mode
+    this.scanMode = "camera";
+    this.cameraActive = true;
+
+    console.log("📷 Camera started");
+  }
+
+  stopCamera(): void {
+    this.cameraActive = false;
+    this.scanMode = "zebra"; // Quay lại chế độ Zebra
+    if (this.scanner) {
+      this.scanner.reset();
+    }
+    console.log("📷 Camera stopped");
+  }
+
   focusScannerInput(): void {
-    if (this.scannerInput) {
+    if (this.scannerInput && this.scannerInput.nativeElement) {
       this.scannerInput.nativeElement.focus();
+      console.log("✅ Input focused");
     }
   }
 
@@ -253,54 +266,17 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     }
 
     const code = this.scannedCode.trim();
-    this.validateAndAddBox(code);
+    console.log("📥 Processing code:", code);
 
-    // Clear input
+    this.validateAndAddBox(code);
     this.scannedCode = "";
 
-    // Refocus for continuous scanning
+    // Refocus cho lần scan tiếp theo
     if (this.scanModeActive) {
       setTimeout(() => this.focusScannerInput(), 100);
     }
   }
 
-  // Mobile Camera
-  startCamera(): void {
-    try {
-      this.scanMode = "camera"; // Switch sang chế độ camera
-      this.scanModeActive = false; // Tắt chế độ Zebra
-      this.cameraActive = true;
-      console.log("📷 Camera mode activated");
-    } catch (error) {
-      console.error("Error starting camera:", error);
-      this.showScanResult("error", "Không thể mở camera");
-    }
-  }
-
-  pauseCamera(): void {
-    this.cameraActive = false;
-  }
-
-  stopCamera(): void {
-    this.cameraActive = false;
-    this.scanMode = "zebra"; // Quay lại chế độ Zebra
-    if (this.scanner) {
-      this.scanner.reset();
-    }
-  }
-  switchToZebraMode(): void {
-    this.scanMode = "zebra";
-    this.cameraActive = false;
-    this.scanModeActive = true;
-    console.log("Switched to Zebra scanner mode");
-    setTimeout(() => this.focusScannerInput(), 100);
-  }
-  switchToCameraMode(): void {
-    this.scanMode = "camera";
-    this.scanModeActive = false;
-    this.startCamera();
-    console.log("Switched to Camera mode");
-  }
   switchCamera(): void {
     const currentIndex = this.availableCameras.findIndex(
       (d) => d.deviceId === this.selectedDevice?.deviceId,
@@ -328,80 +304,60 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   onPermissionResponse(hasPermission: boolean): void {
     if (hasPermission) {
       console.log("Camera permission granted");
-      this.cameraActive = true;
     } else {
       console.warn("Camera permission denied");
       this.showScanResult("error", "Không có quyền truy cập camera");
+      this.cameraActive = false;
     }
   }
 
-  // ===== UPDATED: Validation với check từ BE =====
   validateAndAddBox(code: string): void {
     if (this.isProcessing) {
-      console.log("Still processing, please wait...");
       return;
     }
 
     const trimmedCode = code.trim();
 
-    console.log("Validating code:", trimmedCode);
-    console.log("Current stats:", {
-      scannedCount: this.scannedCount,
-      maxAllowed: this.palletData.soThung,
-      validBoxesTotal: this.validBoxes.length,
-      existingScannedTotal: this.existingScannedBoxes.size,
-    });
-
-    // ===== CHECK 1: Đã đủ số lượng chưa? =====
-    if (this.scannedCount >= this.palletData.soThung) {
-      console.log("Limit reached");
+    // Check 1: Đã đủ số lượng?
+    if (this.scannedCount >= (this.palletData?.thungScan ?? 0)) {
       this.addErrorBox(trimmedCode, "Vượt quá số lượng thùng tối đa");
-      // Không gọi API nếu đã đủ số lượng
       return;
     }
 
-    // ===== CHECK 2: Box đã được scan trong pallet này chưa? (Từ BE) =====
+    // Check 2: Đã scan trong pallet này?
     if (this.existingScannedBoxes.has(trimmedCode)) {
-      console.log("Box already scanned in this pallet (from BE)");
       this.addErrorBox(
         trimmedCode,
         "Mã thùng đã được scan vào pallet này trước đó",
       );
-      // KHÔNG gọi API vì đã có trong DB rồi
       return;
     }
 
-    // ===== CHECK 3: Box có trong danh sách đang scan hiện tại không? =====
+    // Check 3: Trùng trong session hiện tại?
     if (this.scannedBoxes.some((box) => box.code === trimmedCode)) {
-      console.log("Duplicate in current session");
       this.addErrorBox(trimmedCode, "Mã thùng đã được scan trong phiên này");
-      // KHÔNG gọi API
       return;
     }
 
-    // ===== CHECK 4: Box có hợp lệ không? (Có trong validBoxes) =====
+    // Check 4: Có hợp lệ không?
     const isValid = this.validBoxes.some(
       (validCode) => validCode.trim() === trimmedCode,
     );
 
     if (!isValid) {
-      console.log("Code not in valid list");
       this.addErrorBox(
         trimmedCode,
         "Mã thùng không hợp lệ hoặc không thuộc lệnh sản xuất này",
       );
-      // Gọi API với status = 0 (invalid)
       this.sendMappingRequest(trimmedCode, 0);
       return;
     }
 
-    // =====  VALID BOX - Gọi API =====
-    console.log(" Valid box, sending to API...");
+    // Valid box - gọi API
     this.isProcessing = true;
     this.sendMappingRequest(trimmedCode, 1, true);
   }
 
-  // ===== UPDATED: Send mapping with callback =====
   sendMappingRequest(
     serialBox: string,
     status: number,
@@ -423,17 +379,13 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (response) => {
-          console.log(" Mapping saved to BE:", response);
-
           if (isSuccessCase) {
-            // Thêm vào danh sách đã scan (local + BE)
             this.addSuccessBox(serialBox);
             this.existingScannedBoxes.add(serialBox.trim());
           }
         },
         error: (error) => {
           console.error("Error saving mapping:", error);
-
           if (isSuccessCase) {
             this.showScanResult(
               "error",
@@ -458,7 +410,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
     this.showScanResult(
       "success",
-      `Scan thành công! (${this.scannedCount}/${this.palletData.soThung})`,
+      `Scan thành công! (${this.scannedCount}/${this.palletData.thungScan})`,
     );
     this.playSuccessSound();
   }
@@ -485,62 +437,6 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     }, 3000);
   }
 
-  // ===== UPDATED: Remove box with API delete =====
-  removeBox(index: number): void {
-    const box = this.allBoxes[index];
-
-    if (box.status === "success") {
-      // Confirm before delete
-      if (!confirm(`Xác nhận xóa box "${box.code}" khỏi pallet?`)) {
-        return;
-      }
-
-      this.isProcessing = true;
-
-      // Call DELETE API
-      this.http
-        .delete(
-          `/api/serial-box-pallet-mappings/serial-box/${box.code}/serial-pallet/${this.palletData.maPallet}/ma-lenh-san-xuat/${this.palletData.maLenhSanXuatId}`,
-        )
-        .pipe(finalize(() => (this.isProcessing = false)))
-        .subscribe({
-          next: () => {
-            console.log(" Box deleted from BE");
-
-            // Remove from UI
-            const successIndex = this.scannedBoxes.findIndex(
-              (b) => b.code === box.code,
-            );
-            if (successIndex > -1) {
-              this.scannedBoxes.splice(successIndex, 1);
-              this.scannedCount--;
-            }
-
-            this.allBoxes.splice(index, 1);
-
-            // Remove from existingScannedBoxes
-            this.existingScannedBoxes.delete(box.code.trim());
-
-            this.showScanResult("success", "Đã xóa box khỏi pallet");
-          },
-          error: (error) => {
-            console.error("❌ Error deleting box:", error);
-            this.showScanResult(
-              "error",
-              "Không thể xóa box. Vui lòng thử lại.",
-            );
-          },
-        });
-    } else {
-      // Error box - just remove from UI
-      const errorIndex = this.errorBoxes.findIndex((b) => b.code === box.code);
-      if (errorIndex > -1) {
-        this.errorBoxes.splice(errorIndex, 1);
-      }
-      this.allBoxes.splice(index, 1);
-    }
-  }
-
   removeSuccessBox(index: number): void {
     const box = this.scannedBoxes[index];
 
@@ -559,7 +455,6 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => (this.isProcessing = false)))
       .subscribe({
         next: () => {
-          // Cập nhật UI sau khi xóa thành công
           this.scannedBoxes.splice(index, 1);
           this.scannedCount--;
 
@@ -569,7 +464,6 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
           }
 
           this.existingScannedBoxes.delete(box.code.trim());
-
           this.showScanResult("success", "Đã xóa box khỏi pallet");
         },
         error: (error) => {
@@ -589,51 +483,29 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Progress
   getProgressPercent(): number {
-    if (this.palletData.soThung === 0) {
+    if (this.palletData.thungScan === 0) {
       return 0;
     }
-    return Math.round((this.scannedCount / this.palletData.soThung) * 100);
+    return Math.round(
+      (this.scannedCount / (this.palletData?.thungScan ?? 0)) * 100,
+    );
   }
 
-  // Sounds
   playSuccessSound(): any {
-    return new Promise<void>((resolve) => {
-      const audio = new Audio();
-      audio.src = "../../../content/images/successed-295058.mp3";
-      audio.load();
-      audio.play();
-      audio.onended = () => {
-        resolve();
-      };
-    });
+    const audio = new Audio();
+    audio.src = "../../../content/images/successed-295058.mp3";
+    audio.load();
+    audio.play();
   }
 
   playErrorSound(): any {
-    return new Promise<void>((resolve) => {
-      const audio = new Audio();
-      audio.src = "../../../content/images/beep_warning.mp3";
-      audio.load();
-      audio.play();
-      audio.onended = () => {
-        resolve();
-      };
-    });
+    const audio = new Audio();
+    audio.src = "../../../content/images/beep_warning.mp3";
+    audio.load();
+    audio.play();
   }
 
-  // Test function (development only)
-  simulateScan(): void {
-    if (!this.isTestMode) {
-      return;
-    }
-
-    const testCode = `BOX-2024-${String(this.testCounter).padStart(5, "0")}`;
-    this.testCounter++;
-    this.validateAndAddBox(testCode);
-  }
-
-  // Complete
   onComplete(): void {
     if (this.scannedBoxes.length === 0) {
       this.showScanResult("error", "Chưa có box nào được scan");
@@ -641,12 +513,6 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     }
 
     this.stopCamera();
-
-    console.log("Completing scan with progress:", {
-      totalScanned: this.scannedCount,
-      progressPercent: this.getProgressPercent(),
-      scannedBoxes: this.scannedBoxes.length,
-    });
 
     this.dialogRef.close({
       success: true,
@@ -661,18 +527,11 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   onClose(): void {
     this.stopCamera();
 
-    console.log("Closing scan dialog with current progress:", {
-      totalScanned: this.scannedCount,
-      progressPercent: this.getProgressPercent(),
-      scannedBoxes: this.scannedBoxes.length,
-    });
-
-    // ===== QUAN TRỌNG: Luôn return progress khi đóng =====
     this.dialogRef.close({
-      success: false, // false vì chưa click "Hoàn thành"
+      success: false,
       totalScanned: this.scannedCount,
       progressPercent: this.getProgressPercent(),
-      scannedBoxes: this.scannedBoxes, // Trả về toàn bộ list
+      scannedBoxes: this.scannedBoxes,
     });
   }
 }

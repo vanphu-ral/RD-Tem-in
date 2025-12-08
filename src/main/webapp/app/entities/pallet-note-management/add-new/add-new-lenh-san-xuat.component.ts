@@ -152,6 +152,7 @@ export interface PalletItem {
   tongPallet: number;
   tongSlSp: number;
   tongSoThung: number;
+  thungScan?: number;
   khachHang: string;
   poNumber: string;
   dateCode: string;
@@ -171,6 +172,7 @@ export interface PalletBoxItem {
   id?: number;
   maPallet: string;
   tongSoThung: number;
+  thungScan?: number;
   qrCode?: string;
   tienDoScan?: number;
   sucChua?: string;
@@ -340,6 +342,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   mappings: any[] = [];
   pallets: any[] = [];
   isLoadingProgress: { [maPallet: string]: boolean } = {};
+
+  isDetail = false;
   //log
   constructor(
     private dialog: MatDialog,
@@ -357,9 +361,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   ngOnInit(): void {
     this.selectedTabIndex = 0;
     this.isMobile = window.innerWidth < 768;
+    this.isDetail = false;
 
     const id = this.route.snapshot.params["id"];
     if (id) {
+      this.isDetail = true;
       this.route.data.subscribe((data) => {
         const response = data["lenhSanXuat"] as WarehouseNoteResponse;
         if (response) {
@@ -506,10 +512,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             maKhoNhap: "",
             tongSoLuong: 0,
             trangThai: "Bản nháp",
-            loaiSanPham:
-              item.productType === "1" || item.productType == null
-                ? "Thành phẩm"
-                : "Bán thành phẩm",
+            // loaiSanPham:
+            //   item.productType === "1" || item.productType == null
+            //     ? "Thành phẩm"
+            //     : "Bán thành phẩm",
+            loaiSanPham: item.productType,
             lotNumber: item.lotNumber,
 
             // ===== LƯU DỮ LIỆU THÔ =====
@@ -964,6 +971,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         tongPallet: pallet.tongPallet,
         tongSlSp: pallet.tongSlSp,
         tongSoThung: pallet.tongSoThung,
+        thungScan: pallet.thungScan,
         serialPallet: pallet.serialPallet,
         //  THÊM CÁC FIELD CẦN CHO PRINT
         khachHang: pallet.khachHang,
@@ -1065,6 +1073,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             // Đừng nhồi số thùng vào tongSlSp; nếu không dùng, set 0 cho an toàn
             tongSlSp: pallet.tongSlSp,
             tongSoThung: sub.tongSoThung ?? 0,
+            thungScan: sub.thungScan ?? 1,
             serialPallet: sub.maPallet,
             khachHang: pallet.khachHang,
             poNumber: pallet.poNumber,
@@ -1233,6 +1242,13 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       : "unknown";
     let comment2 = "";
     this.productionOrders.forEach((order) => {
+      if (!order.maKhoNhap || order.maKhoNhap.trim() === "") {
+        this.snackBar.open("Vui lòng chọn mã kho nhập trước khi lưu!", "Đóng", {
+          duration: 4000,
+          panelClass: ["snackbar-error"],
+        });
+        return; // dừng luôn, không gọi API cho order này
+      }
       if (
         order.loaiSanPham === "Bán thành phẩm" &&
         this.reelDataList.length > 0
@@ -1641,6 +1657,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             inspection_result: p.ketQuaKiemTra ?? null,
             scan_progress: sub.tienDoScan ?? 0,
             num_box_actual: sub.tongSoThung,
+            num_box_config: sub.thungScan ?? 1,
             updated_at: new Date().toISOString(),
             updated_by: currentUser,
             note: p.note ?? null,
@@ -2279,10 +2296,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       subItems.push({
         stt: i,
         maPallet: palletCode,
-        tongSoThung: data.soLuongThungTrongPallet,
+        tongSoThung: data.soLuongThungThucTe,
+        thungScan: data.soLuongThungScan,
         qrCode: palletCode,
         tienDoScan: 0,
-        sucChua: `${data.soLuongThungTrongPallet} thùng`,
+        sucChua: `${data.soLuongThungThucTe} thùng`,
       });
     }
 
@@ -2293,7 +2311,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       createdAt: new Date().toISOString(),
       tongPallet: data.soLuongPallet,
       tongSlSp: data.qtyPerBox,
-      tongSoThung: data.soLuongThungTrongPallet,
+      tongSoThung: data.soLuongThungThucTe,
+      thungScan: data.soLuongThungScan,
       khachHang: data.khachHang,
       poNumber: data.poNumber,
       dateCode: data.dateCode,
@@ -2502,6 +2521,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         stt: grouped[key].subItems.length + 1,
         maPallet: detail.serial_pallet,
         tongSoThung: detail.num_box_actual ?? 0,
+        thungScan: detail.num_box_config ?? 1,
         qrCode: detail.serial_pallet,
         tienDoScan: detail.scan_progress ?? 0,
         sucChua: `${detail.num_box_actual ?? 0} thùng`,
@@ -2822,10 +2842,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             pallet.tienDoScan = scanned.length;
             pallet.scannedBoxes = [...new Set(scanned)]; // loại trùng
 
-            console.log(
-              ` Pallet ${pallet.serialPallet}: ${pallet.tienDoScan}/${pallet.tongSoThung} đã scan`,
-            );
-
             resolve();
           },
           error: (err) => {
@@ -2878,10 +2894,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           // Update tiến độ
           item.tienDoScan = successMappings.length;
           item.scannedBoxes = successMappings.map((m) => m.serial_box);
-
-          console.log(
-            ` Pallet ${item.maPallet}: ${item.tienDoScan}/${item.tongSoThung} thùng đã scan`,
-          );
         },
         error: (error) => {
           // 404 = chưa có box nào được scan → OK

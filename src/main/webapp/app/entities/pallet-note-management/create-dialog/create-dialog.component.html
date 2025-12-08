@@ -26,6 +26,9 @@
             placeholder="Tên sản phẩm"
             *ngIf="!isBoxType"
           />
+          <mat-error *ngIf="form.get('tenSanPham')?.hasError('notMatch')">
+            Tên sản phẩm không khớp với dữ liệu gốc
+          </mat-error>
         </mat-form-field>
       </div>
 
@@ -304,8 +307,38 @@
                 matInput
                 formControlName="note"
                 placeholder="Nhập ghi chú..."
-                rows="3"
+                rows="2"
               ></textarea>
+            </mat-form-field>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field half-width flex-input">
+            <label class="field-label">Số lượng thùng scan</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                type="number"
+                formControlName="soLuongThungScan"
+              />
+              <mat-error
+                *ngIf="form.get('soLuongThungScan')?.hasError('required')"
+              >
+                <span style="color: red">Bắt buộc nhập số lượng</span>
+              </mat-error>
+              <mat-error
+                *ngIf="form.get('soLuongThungScan')?.hasError('pattern')"
+              >
+                <span style="color: red"
+                  >Chỉ nhập số nguyên từ 1 đến 99999</span
+                >
+              </mat-error>
+              <mat-error *ngIf="form.get('soLuongThungScan')?.hasError('max')">
+                <span style="color: red">Không vượt quá 5 chữ số</span>
+              </mat-error>
+              <mat-error *ngIf="form.get('soLuongThungScan')?.hasError('min')">
+                <span style="color: red">Phải lớn hơn 0</span>
+              </mat-error>
             </mat-form-field>
           </div>
         </div>
@@ -327,40 +360,36 @@
                 class="field-label"
                 [ngClass]="{
                   'error-label':
-                    form.get('soLuongThungTrongPallet')?.invalid &&
-                    form.get('soLuongThungTrongPallet')?.touched,
+                    form.get('soLuongThungThucTe')?.invalid &&
+                    form.get('soLuongThungThucTe')?.touched,
                 }"
-                >Số lượng thùng trong pallet</label
+                >Số lượng thùng thực tế</label
               >
               <mat-form-field appearance="outline" class="summary-input">
                 <input
                   matInput
                   type="number"
-                  formControlName="soLuongThungTrongPallet"
+                  formControlName="soLuongThungThucTe"
                 />
                 <mat-error
-                  *ngIf="
-                    form.get('soLuongThungTrongPallet')?.hasError('required')
-                  "
+                  *ngIf="form.get('soLuongThungThucTe')?.hasError('required')"
                 >
                   <span style="color: red">Bắt buộc nhập số lượng</span>
                 </mat-error>
                 <mat-error
-                  *ngIf="
-                    form.get('soLuongThungTrongPallet')?.hasError('pattern')
-                  "
+                  *ngIf="form.get('soLuongThungThucTe')?.hasError('pattern')"
                 >
                   <span style="color: red"
                     >Chỉ nhập số nguyên từ 1 đến 99999</span
                   >
                 </mat-error>
                 <mat-error
-                  *ngIf="form.get('soLuongThungTrongPallet')?.hasError('max')"
+                  *ngIf="form.get('soLuongThungThucTe')?.hasError('max')"
                 >
                   <span style="color: red">Không vượt quá 5 chữ số</span>
                 </mat-error>
                 <mat-error
-                  *ngIf="form.get('soLuongThungTrongPallet')?.hasError('min')"
+                  *ngIf="form.get('soLuongThungThucTe')?.hasError('min')"
                 >
                   <span style="color: red">Phải lớn hơn 0</span>
                 </mat-error>

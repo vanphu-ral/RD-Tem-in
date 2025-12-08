@@ -37,6 +37,7 @@ export interface PalletDetailData {
   dateCode?: string;
   qdsx?: string;
   note: string;
+  thungScan?: number;
   nguoiKiemTra?: string;
   ketQuaKiemTra?: string;
   subItems?: PalletBoxItem[];
@@ -45,7 +46,7 @@ export interface PalletDetailData {
   boxItems?: any[]; // Box data for print dialog
   maLenhSanXuatId?: number; // Production order ID
   validReelIds?: string[]; // Valid reel IDs for this production order
-  tienDoScan?: any;
+  tienDoScan?: number;
   scannedBoxes?: any;
 }
 export interface PalletExcelRow {
@@ -80,6 +81,7 @@ export interface PalletBoxItem {
   sucChua?: string;
   parentPalletIndex?: number;
   tenSanPham?: string;
+  thungScan?: number;
   lotNumber?: string;
   noSKU?: string;
   scannedBoxes?: string[];
@@ -198,7 +200,7 @@ export class PalletDetailDialogComponent implements OnInit {
 
   getProgressPercentage(item: PalletBoxItem): number {
     const scanned = item.tienDoScan ?? 0;
-    return (scanned / item.tongSoThung) * 100;
+    return (scanned / item.thungScan!) * 100;
   }
 
   public onExport(): void {
@@ -427,7 +429,7 @@ export class PalletDetailDialogComponent implements OnInit {
       });
     }
 
-    const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.tongSoThung}`;
+    const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.thungScan}`;
 
     const printData: PrintPalletData = {
       khachHang: sourceData.khachHang ?? "N/A",
@@ -522,7 +524,7 @@ export class PalletDetailDialogComponent implements OnInit {
         });
       }
 
-      const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.tongSoThung}`;
+      const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.thungScan}`;
 
       const printData: PrintPalletData = {
         khachHang: sourceData.khachHang ?? "N/A",
@@ -593,6 +595,7 @@ export class PalletDetailDialogComponent implements OnInit {
       maPallet: item.maPallet,
       tenSanPham: sourceData.tenSanPham,
       qrCode: item.qrCode ?? item.maPallet,
+      thungScan: item.thungScan,
       soThung: item.tongSoThung,
       maLenhSanXuatId: sourceData.maLenhSanXuatId,
       validReelIds: sourceData.validReelIds,
@@ -742,19 +745,20 @@ export class PalletDetailDialogComponent implements OnInit {
         const hasBoxes =
           Array.isArray(source.scannedBoxes) && source.scannedBoxes.length > 0;
 
-        console.log(`  📋 Direct pallet:`, {
-          serialPallet: source.serialPallet,
-          hasTienDo,
-          tienDoScan: source.tienDoScan,
-          hasBoxes,
-          scannedBoxesCount: source.scannedBoxes?.length,
-        });
+        // console.log(`  📋 Direct pallet:`, {
+        //   serialPallet: source.serialPallet,
+        //   hasTienDo,
+        //   tienDoScan: source.tienDoScan,
+        //   hasBoxes,
+        //   scannedBoxesCount: source.scannedBoxes?.length,
+        // });
 
         const item: PalletBoxItem = {
           stt: globalStt++,
           maPallet: source.serialPallet,
           qrCode: source.serialPallet,
           tongSoThung: source.tongSoThung ?? 0,
+          thungScan: source.thungScan,
           sucChua: `${source.tongSoThung ?? 0} thùng`,
           parentPalletIndex: sourceIndex,
           tenSanPham: source.tenSanPham,
@@ -825,7 +829,7 @@ export class PalletDetailDialogComponent implements OnInit {
           item.scannedBoxes = successMappings.map((m) => m.serial_box);
 
           console.log(
-            ` Pallet ${item.maPallet}: ${item.tienDoScan}/${item.tongSoThung} thùng đã scan`,
+            ` Pallet ${item.maPallet}: ${item.tienDoScan}/${item.thungScan} thùng đã scan`,
           );
         },
         error: (error) => {
