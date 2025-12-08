@@ -2,6 +2,7 @@ package com.mycompany.myapp.repository.partner3;
 
 import com.mycompany.myapp.domain.SerialBoxPalletMapping;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.stereotype.Repository;
 
@@ -29,4 +30,12 @@ public interface Partner3SerialBoxPalletMappingRepository
      * @return the list of SerialBoxPalletMapping
      */
     List<SerialBoxPalletMapping> findBySerialPallet(String serialPallet);
+
+    /**
+     * Find SerialBoxPalletMapping by serial_box.
+     *
+     * @param serialBox the serial box (reelId)
+     * @return the SerialBoxPalletMapping if found
+     */
+    Optional<SerialBoxPalletMapping> findBySerialBox(String serialBox);
 }

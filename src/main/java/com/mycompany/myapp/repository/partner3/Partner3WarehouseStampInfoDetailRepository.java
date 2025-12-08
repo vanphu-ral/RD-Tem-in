@@ -2,6 +2,7 @@ package com.mycompany.myapp.repository.partner3;
 
 import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,6 +22,14 @@ public interface Partner3WarehouseStampInfoDetailRepository
      * @return the list of WarehouseNoteInfoDetail
      */
     List<WarehouseNoteInfoDetail> findByMaLenhSanXuatId(Long maLenhSanXuatId);
+
+    /**
+     * Find WarehouseNoteInfoDetail by reelId.
+     *
+     * @param reelId the reel ID to search for
+     * @return the WarehouseNoteInfoDetail if found
+     */
+    Optional<WarehouseNoteInfoDetail> findByReelId(String reelId);
 
     /**
      * Find the reel_id with max ID where reel_id starts with the given prefix.

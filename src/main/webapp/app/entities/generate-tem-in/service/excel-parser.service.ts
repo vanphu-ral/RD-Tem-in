@@ -46,7 +46,7 @@ const REQUIRED_COLUMNS = [
   "LOT\n(Định dang TEXT)\n20251025",
   "Số TEM\n(Định dang SỐ NGUYÊN)\n20",
   "InitialQuantity\n(Định dang SỐ NGUYÊN)\n3000",
-  "Vendor*\n(Định dang TEXT)\nV808500181",
+  "Vendor*\n(Định dang TEXT)\nV904000181",
   "Tên NCC\n(Định dang TEXT)\nZhejiang Yankon Mega Mega",
   "UserData1\n(Định dang TEXT)\nNO",
   "UserData2\n(Định dang TEXT)\nNO",
