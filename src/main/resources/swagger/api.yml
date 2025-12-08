@@ -5,9 +5,9 @@ info:
   title: "Jhipster"
   version: 0.0.1
 servers:
-  - url: http://localhost:9040/api
+  - url: http://localhost:8085/api
     description: Development server
-  - url: https://localhost:9040/api
+  - url: https://localhost:8085/api
     description: Development server with TLS Profile
 paths: {}
 components:

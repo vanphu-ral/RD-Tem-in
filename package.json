@@ -50,7 +50,7 @@
     "poste2e:cypress:coverage": "nyc report",
     "e2e:cypress:headed": "npm run e2e:cypress -- --headed",
     "e2e:dev": "concurrently -k -s first \"./mvnw\" \"npm run e2e\"",
-    "e2e:devserver": "concurrently -k -s first \"npm run backend:start\" \"npm start\" \"wait-on -t 180000 http-get://localhost:9040 && npm run e2e:headless -- -c baseUrl=http://localhost:9040\"",
+    "e2e:devserver": "concurrently -k -s first \"npm run backend:start\" \"npm start\" \"wait-on -t 180000 http-get://localhost:8085 && npm run e2e:headless -- -c baseUrl=http://localhost:8085\"",
     "pree2e:headless": "npm run ci:server:await",
     "e2e:headless": "npm run e2e:cypress --",
     "java:docker": "./mvnw -ntp verify -DskipTests -Pprod jib:dockerBuild",
@@ -88,7 +88,7 @@
     "webapp:test:nolint": "cypress run"
   },
   "config": {
-    "backend_port": "9040",
+    "backend_port": "8085",
     "default_environment": "prod",
     "packaging": "jar"
   },
