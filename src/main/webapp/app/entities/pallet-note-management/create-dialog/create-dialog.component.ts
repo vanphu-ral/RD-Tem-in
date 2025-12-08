@@ -7,6 +7,7 @@ import {
   ReactiveFormsModule,
   AbstractControl,
   ValidationErrors,
+  ValidatorFn,
 } from "@angular/forms";
 import {
   MatDialogModule,
@@ -92,7 +93,12 @@ export class CreateDialogComponent {
   ) {
     this.isBoxType = data.type === "box";
     this.form = this.createForm();
+
+    // Debug log để kiểm tra
+    console.log("🔍 Dialog Data:", this.data);
+    console.log("🔍 Expected tenSanPham:", this.data.tenSanPham);
   }
+
   onCancel(): void {
     this.dialogRef.close();
   }
@@ -105,7 +111,17 @@ export class CreateDialogComponent {
       };
       this.dialogRef.close(result);
     } else {
+      // Mark all as touched để hiển thị lỗi
       this.form.markAllAsTouched();
+
+      // Debug log để xem lỗi validation
+      console.log("Form invalid:", this.form.errors);
+      Object.keys(this.form.controls).forEach((key) => {
+        const control = this.form.get(key);
+        if (control?.invalid) {
+          console.log(`Field "${key}" errors:`, control.errors);
+        }
+      });
     }
   }
 
@@ -115,8 +131,15 @@ export class CreateDialogComponent {
       : "unknown";
 
     if (this.isBoxType) {
+      const expectedMaSanPham = this.data.maSanPham ?? "";
       const formGroup = this.fb.group({
-        maSanPham: [this.data.maSanPham ?? "", Validators.required],
+        maSanPham: [
+          expectedMaSanPham, // Set initial value
+          [
+            Validators.required,
+            this.matchTenSanPhamValidator(expectedMaSanPham),
+          ],
+        ],
         soLuongTrongThung: [
           24,
           [
@@ -163,12 +186,15 @@ export class CreateDialogComponent {
 
       return formGroup;
     } else {
+      // ===== PALLET FORM =====
+      const expectedTenSanPham = this.data.tenSanPham ?? "";
+
       return this.fb.group({
         tenSanPham: [
-          this.data.tenSanPham ?? "",
+          expectedTenSanPham, // Set initial value
           [
             Validators.required,
-            this.matchTenSanPhamValidator(this.data.tenSanPham ?? ""),
+            this.matchTenSanPhamValidator(expectedTenSanPham),
           ],
         ],
         khachHang: [""],
@@ -227,6 +253,7 @@ export class CreateDialogComponent {
     }
     return "Tạo pallet";
   }
+
   get icon(): string {
     if (this.isBoxType) {
       return this.data.loaiSanPham === "Thành phẩm" ? "view_in_ar" : "qr_code";
@@ -246,12 +273,30 @@ export class CreateDialogComponent {
       return soLuongThungTrongPallet * soLuongPallet;
     }
   }
-  private matchTenSanPhamValidator(expectedValue: string) {
+
+  /**
+   * Custom validator để kiểm tra tên sản phẩm khớp với giá trị ban đầu
+   */
+  private matchTenSanPhamValidator(expectedValue: string): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
+      // Nếu chưa có giá trị, bỏ qua (để required validator xử lý)
       if (!control.value) {
-        return null; // để required xử lý riêng
+        return null;
       }
-      return control.value === expectedValue ? null : { notMatch: true };
+
+      // Trim whitespace để tránh lỗi do khoảng trắng
+      const currentValue = String(control.value).trim();
+      const expected = String(expectedValue).trim();
+      // So sánh chính xác
+      if (currentValue !== expected) {
+        return {
+          notMatch: true,
+          expectedValue: expected,
+          currentValue: currentValue,
+        };
+      }
+
+      return null;
     };
   }
 }

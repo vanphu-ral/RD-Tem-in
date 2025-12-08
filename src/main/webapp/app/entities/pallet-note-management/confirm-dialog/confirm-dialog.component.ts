@@ -58,6 +58,8 @@ export interface ConfirmDialogData {
       .confirm-dialog {
         min-width: 400px;
         max-width: 600px;
+        width: 100%; // cho phép co giãn theo màn hình
+        box-sizing: border-box;
       }
 
       .dialog-header {
@@ -112,6 +114,56 @@ export interface ConfirmDialogData {
         gap: 12px;
         padding: 16px 24px;
         border-top: 1px solid #e0e0e0;
+      }
+      @media screen and (max-width: 768px) {
+        .confirm-dialog {
+          min-width: auto;
+          max-width: 100%; // chiếm 100% chiều ngang màn hình
+          width: 100%;
+        }
+
+        .dialog-header {
+          padding: 16px;
+          h2 {
+            font-size: 18px;
+          }
+          mat-icon {
+            font-size: 28px;
+          }
+        }
+
+        .dialog-content {
+          padding: 16px;
+          p {
+            font-size: 14px;
+          }
+        }
+
+        .dialog-actions {
+          flex-direction: column; // nút xuống hàng
+          align-items: stretch;
+          gap: 8px;
+          padding: 12px 16px;
+          button {
+            width: 100%;
+          }
+        }
+      }
+
+      /* Mobile nhỏ hơn 480px */
+      @media screen and (max-width: 480px) {
+        .confirm-dialog {
+          max-width: 100%;
+          width: 100%;
+        }
+
+        .dialog-header h2 {
+          font-size: 16px;
+        }
+
+        .dialog-content p {
+          font-size: 13px;
+        }
       }
     `,
   ],
