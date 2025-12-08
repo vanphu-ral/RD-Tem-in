@@ -859,6 +859,9 @@
     align-items: flex-end;
     gap: 10px;
 
+    // ===== FIX: Chỉ cho main button có thể tương tác khi đóng =====
+    pointer-events: none; // Container không tương tác được
+
     button {
       width: 50px;
       height: 50px;
@@ -868,6 +871,7 @@
       margin: 0;
       box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none; // Mặc định tất cả button không tương tác
 
       mat-icon {
         font-size: 22px;
@@ -882,11 +886,12 @@
       }
     }
 
-    // Main FAB
+    // Main FAB - CHỈ BUTTON NÀY LUÔN TƯƠNG TÁC ĐƯỢC
     > button:first-child {
       width: 56px;
       height: 56px;
       background: #9c27b0 !important;
+      pointer-events: all; // ===== FIX: Main button luôn tương tác được =====
 
       mat-icon {
         font-size: 24px;
@@ -898,21 +903,29 @@
 
     // Hidden action buttons
     > button:not(:first-child) {
+      position: absolute;
+      bottom: 0;
+      right: 0;
       opacity: 0;
       transform: scale(0.7) translateY(10px);
-      pointer-events: none;
+      pointer-events: none; // Không tương tác khi đóng
+      visibility: hidden; // ===== FIX: Ẩn hoàn toàn khỏi accessibility tree =====
     }
 
     // Open state
     &.open {
+      pointer-events: all; // ===== FIX: Container có thể tương tác khi mở =====
+
       > button:first-child mat-icon {
         transform: rotate(45deg);
       }
 
       > button:not(:first-child) {
+        position: static;
         opacity: 1;
         transform: scale(1) translateY(0);
-        pointer-events: all;
+        pointer-events: all; // ===== FIX: Các button con có thể tương tác =====
+        visibility: visible; // ===== FIX: Hiển thị lại =====
       }
 
       > button:nth-child(2) {

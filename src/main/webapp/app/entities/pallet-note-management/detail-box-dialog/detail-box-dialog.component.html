@@ -46,8 +46,8 @@
       </button>
     </div>
 
-    <!-- Table -->
-    <div class="table-container">
+    <!-- Table view (desktop) -->
+    <div class="table-container" *ngIf="!isMobile">
       <table mat-table [dataSource]="paginatedItems" class="box-table">
         <!-- STT Column -->
         <ng-container matColumnDef="stt">
@@ -58,29 +58,20 @@
         <ng-container matColumnDef="maThung">
           <th mat-header-cell *matHeaderCellDef>QR thùng</th>
           <td mat-cell *matCellDef="let element">
-            <div class="qr-code-container" #qrWrap>
-              <div class="qr-code-placeholder">
-                <qrcode
-                  [qrdata]="element.maThung"
-                  [width]="80"
-                  [errorCorrectionLevel]="'M'"
-                  elementType="img"
-                >
-                </qrcode>
-              </div>
-            </div>
+            <qrcode
+              [qrdata]="element.maThung"
+              [width]="80"
+              [errorCorrectionLevel]="'M'"
+              elementType="img"
+            ></qrcode>
           </td>
         </ng-container>
 
-        <!-- Mã thùng Column -->
         <ng-container matColumnDef="maThungCode">
           <th mat-header-cell *matHeaderCellDef>Mã thùng</th>
-          <td mat-cell *matCellDef="let element" class="box-code">
-            {{ element.maThung }}
-          </td>
+          <td mat-cell *matCellDef="let element">{{ element.maThung }}</td>
         </ng-container>
 
-        <!-- Số lượng Column -->
         <ng-container matColumnDef="soLuong">
           <th mat-header-cell *matHeaderCellDef>Số lượng</th>
           <td mat-cell *matCellDef="let element">{{ element.soLuong }}</td>
@@ -89,6 +80,29 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
+    </div>
+
+    <!-- Card view (mobile) -->
+    <div class="cards-container" *ngIf="isMobile">
+      <div class="box-card" *ngFor="let element of paginatedItems">
+        <div class="card-header">
+          <span class="card-stt">#{{ element.stt }}</span>
+        </div>
+        <div class="card-body">
+          <div class="qr-code">
+            <qrcode
+              [qrdata]="element.maThung"
+              [width]="100"
+              [errorCorrectionLevel]="'M'"
+              elementType="img"
+            ></qrcode>
+          </div>
+          <div class="card-info">
+            <div><strong>Mã thùng:</strong> {{ element.maThung }}</div>
+            <div><strong>Số lượng:</strong> {{ element.soLuong }}</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Pagination -->

@@ -62,7 +62,7 @@ export interface BoxSubItem {
 })
 export class DetailBoxDialogComponent implements OnInit {
   displayedColumns: string[] = ["stt", "maThung", "maThungCode", "soLuong"];
-
+  isMobile = false;
   @ViewChildren("qrWrap", { read: ElementRef }) qrWraps!: QueryList<ElementRef>;
 
   infoCards: BoxInfoCard[] = [];
@@ -82,6 +82,10 @@ export class DetailBoxDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.isMobile = window.innerWidth <= 768;
+    window.addEventListener("resize", () => {
+      this.isMobile = window.innerWidth <= 768;
+    });
     this.initializeInfoCards();
     this.loadBoxSubItems();
     this.calculateSummary();

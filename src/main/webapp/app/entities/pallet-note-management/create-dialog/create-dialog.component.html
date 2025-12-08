@@ -20,14 +20,42 @@
             placeholder="Mã sản phẩm"
             *ngIf="isBoxType"
           />
+          <mat-error
+            *ngIf="!isBoxType && form.get('tenSanPham')?.hasError('required')"
+          >
+            <span style="color: red">Tên sản phẩm là bắt buộc</span>
+          </mat-error>
+          <mat-error
+            *ngIf="!isBoxType && form.get('tenSanPham')?.hasError('notMatch')"
+          >
+            <span style="color: red">
+              Tên sản phẩm không khớp với dữ liệu gốc. Yêu cầu: "{{
+                form.get("maSanPham")?.errors?.["notMatch"]?.expectedValue ||
+                  data.tenSanPham
+              }}"
+            </span>
+          </mat-error>
           <input
             matInput
             formControlName="tenSanPham"
             placeholder="Tên sản phẩm"
             *ngIf="!isBoxType"
           />
-          <mat-error *ngIf="form.get('tenSanPham')?.hasError('notMatch')">
-            Tên sản phẩm không khớp với dữ liệu gốc
+          <!-- Error messages for tenSanPham -->
+          <mat-error
+            *ngIf="!isBoxType && form.get('tenSanPham')?.hasError('required')"
+          >
+            <span style="color: red">Tên sản phẩm là bắt buộc</span>
+          </mat-error>
+          <mat-error
+            *ngIf="!isBoxType && form.get('tenSanPham')?.hasError('notMatch')"
+          >
+            <span style="color: red">
+              Tên sản phẩm không khớp với dữ liệu gốc. Yêu cầu: "{{
+                form.get("tenSanPham")?.errors?.["notMatch"]?.expectedValue ||
+                  data.tenSanPham
+              }}"
+            </span>
           </mat-error>
         </mat-form-field>
       </div>
@@ -439,11 +467,11 @@
       <mat-icon>close</mat-icon>
       Hủy
     </button>
-    <!-- <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="!form.valid" class="submit-button"> -->
     <button
       mat-raised-button
       color="primary"
       (click)="onSubmit()"
+      [disabled]="!form.valid"
       class="submit-button"
     >
       <mat-icon>check</mat-icon>
