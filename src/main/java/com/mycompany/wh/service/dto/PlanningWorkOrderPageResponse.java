@@ -1,4 +1,4 @@
-package com.mycompany.whh.service.dto;
+package com.mycompany.wh.service.dto;
 
 import java.util.List;
 

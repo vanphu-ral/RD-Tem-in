@@ -14,15 +14,21 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
 import tech.jhipster.config.DefaultProfileUtil;
 import tech.jhipster.config.JHipsterConstants;
 
 @SpringBootApplication
-@EnableConfigurationProperties({ LiquibaseProperties.class, ApplicationProperties.class })
+@ComponentScan("com.mycompany")
+@EnableConfigurationProperties(
+    { LiquibaseProperties.class, ApplicationProperties.class }
+)
 public class JhipsterApp {
 
-    private static final Logger log = LoggerFactory.getLogger(JhipsterApp.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        JhipsterApp.class
+    );
 
     private final Environment env;
 
@@ -33,27 +39,37 @@ public class JhipsterApp {
     /**
      * Initializes Jhipster.
      * <p>
-     * Spring profiles can be configured with a program argument --spring.profiles.active=your-active-profile
+     * Spring profiles can be configured with a program argument
+     * --spring.profiles.active=your-active-profile
      * <p>
-     * You can find more information on how profiles work with JHipster on <a href="https://www.jhipster.tech/profiles/">https://www.jhipster.tech/profiles/</a>.
+     * You can find more information on how profiles work with JHipster on <a href=
+     * "https://www.jhipster.tech/profiles/">https://www.jhipster.tech/profiles/</a>.
      */
     @PostConstruct
     public void initApplication() {
-        Collection<String> activeProfiles = Arrays.asList(env.getActiveProfiles());
+        Collection<String> activeProfiles = Arrays.asList(
+            env.getActiveProfiles()
+        );
         if (
-            activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_DEVELOPMENT) &&
+            activeProfiles.contains(
+                JHipsterConstants.SPRING_PROFILE_DEVELOPMENT
+            ) &&
             activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_PRODUCTION)
         ) {
             log.error(
-                "You have misconfigured your application! It should not run " + "with both the 'dev' and 'prod' profiles at the same time."
+                "You have misconfigured your application! It should not run " +
+                "with both the 'dev' and 'prod' profiles at the same time."
             );
         }
         if (
-            activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_DEVELOPMENT) &&
+            activeProfiles.contains(
+                JHipsterConstants.SPRING_PROFILE_DEVELOPMENT
+            ) &&
             activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_CLOUD)
         ) {
             log.error(
-                "You have misconfigured your application! It should not " + "run with both the 'dev' and 'cloud' profiles at the same time."
+                "You have misconfigured your application! It should not " +
+                "run with both the 'dev' and 'cloud' profiles at the same time."
             );
         }
     }
@@ -71,17 +87,24 @@ public class JhipsterApp {
     }
 
     private static void logApplicationStartup(Environment env) {
-        String protocol = Optional.ofNullable(env.getProperty("server.ssl.key-store")).map(key -> "https").orElse("http");
+        String protocol = Optional.ofNullable(
+            env.getProperty("server.ssl.key-store")
+        )
+            .map(key -> "https")
+            .orElse("http");
         String serverPort = env.getProperty("server.port");
-        String contextPath = Optional
-            .ofNullable(env.getProperty("server.servlet.context-path"))
+        String contextPath = Optional.ofNullable(
+            env.getProperty("server.servlet.context-path")
+        )
             .filter(StringUtils::isNotBlank)
             .orElse("/");
         String hostAddress = "localhost";
         try {
             hostAddress = InetAddress.getLocalHost().getHostAddress();
         } catch (UnknownHostException e) {
-            log.warn("The host name could not be determined, using `localhost` as fallback");
+            log.warn(
+                "The host name could not be determined, using `localhost` as fallback"
+            );
         }
         log.info(
             "\n----------------------------------------------------------\n\t" +
@@ -97,7 +120,9 @@ public class JhipsterApp {
             hostAddress,
             serverPort,
             contextPath,
-            env.getActiveProfiles().length == 0 ? env.getDefaultProfiles() : env.getActiveProfiles()
+            env.getActiveProfiles().length == 0
+                ? env.getDefaultProfiles()
+                : env.getActiveProfiles()
         );
     }
 }

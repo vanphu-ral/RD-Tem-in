@@ -361,6 +361,7 @@
         <alterSequence sequenceName="sequence_generator"/>
     </changeSet> -->
     <include file="config/liquibase/changelog/20251127043950_updated_schema.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20251208020138_add_num_box_config_to_pallet_infor_detail.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->

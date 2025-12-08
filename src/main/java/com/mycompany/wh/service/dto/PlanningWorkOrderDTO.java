@@ -1,5 +1,6 @@
-package com.mycompany.whh.service.dto;
+package com.mycompany.wh.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 
 /**
@@ -102,10 +103,12 @@ public class PlanningWorkOrderDTO {
         this.planningWorkOrderId = planningWorkOrderId;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public LocalDateTime getLatestTimeCreateDnlnvl() {
         return latestTimeCreateDnlnvl;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public void setLatestTimeCreateDnlnvl(
         LocalDateTime latestTimeCreateDnlnvl
     ) {
@@ -192,10 +195,12 @@ public class PlanningWorkOrderDTO {
         this.note = note;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public LocalDateTime getCreateTime() {
         return createTime;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
     }
@@ -256,10 +261,12 @@ public class PlanningWorkOrderDTO {
         this.scadaUserGroup = scadaUserGroup;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public LocalDateTime getLastUpdateTime() {
         return lastUpdateTime;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public void setLastUpdateTime(LocalDateTime lastUpdateTime) {
         this.lastUpdateTime = lastUpdateTime;
     }
@@ -312,10 +319,12 @@ public class PlanningWorkOrderDTO {
         this.classify = classify;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public LocalDateTime getEndTime() {
         return endTime;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
     }
@@ -376,10 +385,12 @@ public class PlanningWorkOrderDTO {
         this.productId = productId;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public LocalDateTime getStartTime() {
         return startTime;
     }
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss.S")
     public void setStartTime(LocalDateTime startTime) {
         this.startTime = startTime;
     }

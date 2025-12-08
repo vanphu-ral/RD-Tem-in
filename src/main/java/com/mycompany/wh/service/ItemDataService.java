@@ -1,10 +1,12 @@
-package com.mycompany.whh.service;
+package com.mycompany.wh.service;
 
-import com.mycompany.whh.domain.ItemData;
-import com.mycompany.whh.repository.ItemDataRepository;
-import com.mycompany.whh.service.dto.PlanningWorkOrderDTO;
-import com.mycompany.whh.service.dto.PlanningWorkOrderPageResponse;
+import com.mycompany.wh.domain.ItemData;
+import com.mycompany.wh.repository.ItemDataRepository;
+import com.mycompany.wh.service.dto.PlanningWorkOrderDTO;
+import com.mycompany.wh.service.dto.PlanningWorkOrderPageResponse;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +26,7 @@ public class ItemDataService {
     );
 
     private static final String EXTERNAL_API_URL =
-        "http://192.168.68.81:8080/api/planningworkorder";
+        "http://192.168.68.81:8080/api/planningworkorder?woId={code}";
 
     private final ItemDataRepository itemDataRepository;
 
@@ -48,10 +50,11 @@ public class ItemDataService {
     }
 
     /**
-     * Get enriched planning work orders by calling external API and enriching with ItemData.
+     * Get enriched planning work orders by calling external API, filtering by woId,
+     * and enriching with ItemData.
      *
-     * @param code the code parameter (not used in current implementation).
-     * @return the enriched page response.
+     * @param code the woId to filter by.
+     * @return the filtered and enriched page response.
      */
     public PlanningWorkOrderPageResponse getEnrichedPlanningWorkOrders(
         String code
@@ -62,10 +65,11 @@ public class ItemDataService {
         );
 
         try {
-            // Call external API
+            // Call external API with woId parameter
             PlanningWorkOrderPageResponse response = restTemplate.getForObject(
                 EXTERNAL_API_URL,
-                PlanningWorkOrderPageResponse.class
+                PlanningWorkOrderPageResponse.class,
+                code
             );
 
             if (response != null && response.getContent() != null) {
@@ -76,9 +80,9 @@ public class ItemDataService {
                             workOrder.getProductCode()
                         );
                         if (itemData.isPresent()) {
-                            // Replace productType with U_IGroupName from ItemData
+                            // Replace productType with Itm_Gr_Name from ItemData
                             workOrder.setProductType(
-                                itemData.get().getuIGroupName()
+                                itemData.get().getItmGrName()
                             );
                         }
                     }

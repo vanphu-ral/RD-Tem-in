@@ -1,4 +1,4 @@
-package com.mycompany.whh.domain;
+package com.mycompany.wh.domain;
 
 import java.io.Serializable;
 import javax.persistence.*;
@@ -63,7 +63,8 @@ public class ItemData implements Serializable {
     @Column(name = "U_ProductGroup", length = 50, nullable = false)
     private String uProductGroup;
 
-    // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove
+    // jhipster-needle-entity-add-field - JHipster will add fields here, do not
+    // remove
 
     public Long getId() {
         return id;
@@ -216,7 +217,8 @@ public class ItemData implements Serializable {
         this.uProductGroup = uProductGroup;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here, do not remove
+    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
+    // setters here, do not remove
 
     @Override
     public boolean equals(Object o) {
@@ -238,18 +240,18 @@ public class ItemData implements Serializable {
     @Override
     public String toString() {
         return "ItemData{" +
-            "id=" + getId() +
-            ", itemCode='" + getItemCode() + "'" +
-            ", itemName='" + getItemName() + "'" +
-            ", itmsGrpCod='" + getItmsGrpCod() + "'" +
-            ", itmGrName='" + getItmGrName() + "'" +
-            ", uIGroup='" + getuIGroup() + "'" +
-            ", uIGroupName='" + getuIGroupName() + "'" +
-            ", uSUBGR='" + getuSUBGR() + "'" +
-            ", uSUBGRName='" + getuSUBGRName() + "'" +
-            ", uShortName='" + getuShortName() + "'" +
-            ", uProductBranch='" + getuProductBranch() + "'" +
-            ", uProductGroup='" + getuProductGroup() + "'" +
-            "}";
+                "id=" + getId() +
+                ", itemCode='" + getItemCode() + "'" +
+                ", itemName='" + getItemName() + "'" +
+                ", itmsGrpCod='" + getItmsGrpCod() + "'" +
+                ", itmGrName='" + getItmGrName() + "'" +
+                ", uIGroup='" + getuIGroup() + "'" +
+                ", uIGroupName='" + getuIGroupName() + "'" +
+                ", uSUBGR='" + getuSUBGR() + "'" +
+                ", uSUBGRName='" + getuSUBGRName() + "'" +
+                ", uShortName='" + getuShortName() + "'" +
+                ", uProductBranch='" + getuProductBranch() + "'" +
+                ", uProductGroup='" + getuProductGroup() + "'" +
+                "}";
     }
 }

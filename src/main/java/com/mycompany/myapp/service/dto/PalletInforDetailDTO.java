@@ -54,6 +54,8 @@ public class PalletInforDetailDTO implements Serializable {
 
     private Integer numBoxActual;
 
+    private Integer numBoxConfig;
+
     private Instant updatedAt;
 
     @Size(max = 50)
@@ -219,6 +221,16 @@ public class PalletInforDetailDTO implements Serializable {
         this.numBoxActual = numBoxActual;
     }
 
+    @JsonProperty("num_box_config")
+    public Integer getNumBoxConfig() {
+        return numBoxConfig;
+    }
+
+    @JsonProperty("num_box_config")
+    public void setNumBoxConfig(Integer numBoxConfig) {
+        this.numBoxConfig = numBoxConfig;
+    }
+
     @JsonProperty("updated_at")
     public Instant getUpdatedAt() {
         return updatedAt;
@@ -280,6 +292,7 @@ public class PalletInforDetailDTO implements Serializable {
                 ", inspectionResult='" + getInspectionResult() + "'" +
                 ", scanProgress=" + getScanProgress() +
                 ", numBoxActual=" + getNumBoxActual() +
+                ", numBoxConfig=" + getNumBoxConfig() +
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +
                 "}";

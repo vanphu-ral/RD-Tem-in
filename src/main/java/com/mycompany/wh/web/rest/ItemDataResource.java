@@ -1,8 +1,8 @@
-package com.mycompany.whh.web.rest;
+package com.mycompany.wh.web.rest;
 
-import com.mycompany.whh.domain.ItemData;
-import com.mycompany.whh.service.ItemDataService;
-import com.mycompany.whh.service.dto.PlanningWorkOrderPageResponse;
+import com.mycompany.wh.domain.ItemData;
+import com.mycompany.wh.service.ItemDataService;
+import com.mycompany.wh.service.dto.PlanningWorkOrderPageResponse;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,8 @@ public class ItemDataResource {
     }
 
     /**
-     * {@code GET  /item-data/planning-work-orders/:code} : get enriched planning work orders.
+     * {@code GET  /item-data/planning-work-orders/:code} : get enriched planning
+     * work orders.
      *
      * @param code the code parameter.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body

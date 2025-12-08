@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableJpaRepositories(
     transactionManagerRef = "partner4TransactionManager",
     entityManagerFactoryRef = "partner4EntityManagerFactory",
-    basePackages = "com.mycompany.whh.repository"
+    basePackages = "com.mycompany.wh.repository"
 )
 public class Partner4DatabaseConfiguration {
 
@@ -51,7 +51,7 @@ public class Partner4DatabaseConfiguration {
 
         LocalContainerEntityManagerFactoryBean emf = builder
             .dataSource(partner4DataSource())
-            .packages("com.mycompany.whh.domain")
+            .packages("com.mycompany.wh.domain")
             .persistenceUnit("partner4")
             .build();
         emf.setJpaProperties(properties);

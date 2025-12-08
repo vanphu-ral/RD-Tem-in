@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -63,7 +64,8 @@ public class WebConfigurer
      */
     @Override
     public void customize(WebServerFactory server) {
-        // When running in an IDE or with ./mvnw spring-boot:run, set location of the static web assets.
+        // When running in an IDE or with ./mvnw spring-boot:run, set location of the
+        // static web assets.
         setLocationForStaticAssets(server);
     }
 
@@ -114,5 +116,10 @@ public class WebConfigurer
             source.registerCorsConfiguration("/graphql", config);
         }
         return new CorsFilter(source);
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

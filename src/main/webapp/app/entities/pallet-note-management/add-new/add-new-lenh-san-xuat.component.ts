@@ -165,6 +165,7 @@ export interface PalletItem {
   nganh?: string;
   note: string;
   to?: string;
+  numBoxConfig?: number;
 }
 export interface PalletBoxItem {
   stt: number;
@@ -1641,6 +1642,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             inspection_result: p.ketQuaKiemTra ?? null,
             scan_progress: sub.tienDoScan ?? 0,
             num_box_actual: sub.tongSoThung,
+            num_box_config: sub.tongSoThung ?? 0, // Default to actual boxes
             updated_at: new Date().toISOString(),
             updated_by: currentUser,
             note: p.note ?? null,
@@ -2493,6 +2495,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           serialPallet: "", // pallet cha không cần serial
           subItems: [],
           tienDoScan: 0,
+          numBoxConfig: detail.num_box_config ?? 0,
         };
       }
 

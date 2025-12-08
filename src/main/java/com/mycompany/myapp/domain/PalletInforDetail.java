@@ -75,6 +75,9 @@ public class PalletInforDetail implements Serializable {
     @Column(name = "num_box_actual")
     private Integer numBoxActual;
 
+    @Column(name = "num_box_config")
+    private Integer numBoxConfig;
+
     @Column(name = "updated_at")
     private Instant updatedAt;
 
@@ -292,6 +295,19 @@ public class PalletInforDetail implements Serializable {
         this.numBoxActual = numBoxActual;
     }
 
+    public Integer getNumBoxConfig() {
+        return this.numBoxConfig;
+    }
+
+    public PalletInforDetail numBoxConfig(Integer numBoxConfig) {
+        this.setNumBoxConfig(numBoxConfig);
+        return this;
+    }
+
+    public void setNumBoxConfig(Integer numBoxConfig) {
+        this.numBoxConfig = numBoxConfig;
+    }
+
     public Instant getUpdatedAt() {
         return this.updatedAt;
     }
@@ -362,6 +378,7 @@ public class PalletInforDetail implements Serializable {
                 ", inspectionResult='" + getInspectionResult() + "'" +
                 ", scanProgress=" + getScanProgress() +
                 ", numBoxActual=" + getNumBoxActual() +
+                ", numBoxConfig=" + getNumBoxConfig() +
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +
                 "}";
