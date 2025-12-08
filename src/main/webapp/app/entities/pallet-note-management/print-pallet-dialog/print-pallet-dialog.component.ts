@@ -11,6 +11,10 @@ import { QRCodeComponent } from "angularx-qrcode";
 import jsPDF from "jspdf";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import html2canvas from "html2canvas";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatInputModule } from "@angular/material/input";
+import { MatSelectModule } from "@angular/material/select";
+import { FormsModule } from "@angular/forms";
 
 export interface PrintPalletData {
   khachHang: string;
@@ -40,10 +44,10 @@ export interface PrintPalletData {
   scannedBoxes?: string[];
 }
 
-// ===== INTERFACE CHO MỖI TRANG (2 PHIẾU) =====
+// ===== INTERFACE CHO MỖI TRANG (2 PHIẾU HOẶC 1 PHIẾU) =====
 interface PrintPage {
   left: PrintPalletData;
-  right?: PrintPalletData; // Optional cho trang lẻ
+  right?: PrintPalletData; // Optional cho trang lẻ hoặc A5 mode
 }
 
 @Component({
@@ -54,31 +58,41 @@ interface PrintPage {
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
+    MatFormFieldModule,
+    MatSelectModule,
     QRCodeComponent,
+    MatInputModule,
     MatProgressBarModule,
+    FormsModule,
   ],
   templateUrl: "./print-pallet-dialog.component.html",
   styleUrls: ["./print-pallet-dialog.component.scss"],
 })
 export class PrintPalletDialogComponent implements OnInit {
   pallets: PrintPalletData[] = [];
-  pages: PrintPage[] = []; // ===== THÊM PAGES ARRAY =====
+  pages: PrintPage[] = [];
   totalPages = 0;
+  displayPages: PrintPage[] = [];
   isMultiMode = false;
-  //loader
+
+  // ===== PAPER SIZE SELECTION =====
+  paperSize: "A4" | "A5" = "A4";
+
+  // Loader
   isLoadingPdf = false;
   progressPdf = 0;
+
   constructor(
     public dialogRef: MatDialogRef<PrintPalletDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PrintPalletData | PrintPalletData[],
     private cdr: ChangeDetectorRef,
   ) {
-    console.log("📄 PrintPalletDialog constructor");
+    console.log("PrintPalletDialog constructor");
   }
 
   ngOnInit(): void {
     this.initializePallets();
-    this.createPages(); // ===== TẠO PAGES STRUCTURE =====
+    this.createPages();
 
     // ===== CHỜ QR CODE RENDER =====
     setTimeout(() => {
@@ -90,11 +104,11 @@ export class PrintPalletDialogComponent implements OnInit {
     if (Array.isArray(this.data)) {
       this.pallets = this.data;
       this.isMultiMode = true;
-      console.log(` Multi-mode: ${this.pallets.length} pallets`);
+      console.log(`Multi-mode: ${this.pallets.length} pallets`);
     } else {
       this.pallets = [this.data];
       this.isMultiMode = false;
-      console.log(" Single-mode: 1 pallet");
+      console.log("Single-mode: 1 pallet");
     }
 
     if (this.pallets.length === 0) {
@@ -102,23 +116,35 @@ export class PrintPalletDialogComponent implements OnInit {
     }
   }
 
-  // ===== TẠO PAGES: MỖI PAGE CÓ 2 PHIẾU (LEFT + RIGHT) =====
+  // ===== TẠO PAGES DỰA TRÊN PAPER SIZE =====
   createPages(): void {
     this.pages = [];
 
-    for (let i = 0; i < this.pallets.length; i += 2) {
-      const page: PrintPage = {
-        left: this.pallets[i],
-        right: this.pallets[i + 1] || undefined, // undefined nếu là phiếu lẻ
-      };
-
-      this.pages.push(page);
+    if (this.paperSize === "A4") {
+      // A4 mode: 2 phiếu/trang
+      for (let i = 0; i < this.pallets.length; i += 2) {
+        const page: PrintPage = {
+          left: this.pallets[i],
+          right: this.pallets[i + 1] || undefined,
+        };
+        this.pages.push(page);
+      }
+    } else {
+      // A5 mode: 1 phiếu/trang
+      for (let i = 0; i < this.pallets.length; i++) {
+        const page: PrintPage = {
+          left: this.pallets[i],
+          right: undefined, // Không có phiếu bên phải trong A5 mode
+        };
+        this.pages.push(page);
+      }
     }
 
     this.totalPages = this.pages.length;
+    this.displayPages = [...this.pages];
 
     console.log(
-      ` Created ${this.totalPages} pages from ${this.pallets.length} pallets`,
+      `Created ${this.totalPages} pages (${this.paperSize}) from ${this.pallets.length} pallets`,
     );
     this.pages.forEach((page, idx) => {
       console.log(
@@ -127,15 +153,23 @@ export class PrintPalletDialogComponent implements OnInit {
     });
   }
 
+  // ===== HANDLE PAPER SIZE CHANGE =====
+  onPaperSizeChange(): void {
+    console.log(`Paper size changed to: ${this.paperSize}`);
+    this.createPages();
+    this.cdr.detectChanges();
+  }
+
   debugPrintData(): void {
-    console.log("\n=====  PRINT DIALOG DATA =====");
+    console.log("\n===== PRINT DIALOG DATA =====");
     console.log(`Mode: ${this.isMultiMode ? "MULTI" : "SINGLE"}`);
+    console.log(`Paper Size: ${this.paperSize}`);
     console.log(`Total pallets: ${this.pallets.length}`);
     console.log(`Total pages: ${this.totalPages}`);
     console.log("=====================================");
 
     this.pages.forEach((page, pageIndex) => {
-      console.log(` Page ${pageIndex + 1}/${this.totalPages}:`);
+      console.log(`Page ${pageIndex + 1}/${this.totalPages}:`);
       console.log(
         `  LEFT: ${page.left.serialPallet} (${page.left.soLuongCaiDatPallet} SP)`,
       );
@@ -152,18 +186,31 @@ export class PrintPalletDialogComponent implements OnInit {
   }
 
   onPrint(): void {
-    console.log(` Printing ${this.pallets.length} pallet(s)...`);
-    console.log(` Total pages: ${this.totalPages}`);
+    console.log(`Printing ${this.pallets.length} pallet(s)...`);
+    console.log(`Paper size: ${this.paperSize}`);
+    console.log(`Total pages: ${this.totalPages}`);
+
+    // Apply body class for print styling
+    if (this.paperSize === "A5") {
+      document.body.classList.add("print-a5-mode");
+    } else {
+      document.body.classList.remove("print-a5-mode");
+    }
 
     // ===== CHỜ ĐẢM BẢO TẤT CẢ QR CODE ĐÃ RENDER =====
     setTimeout(() => {
-      console.log(" Opening print dialog...");
+      console.log("Opening print dialog...");
       window.print();
-    }, 800); // Tăng lên 800ms để chắc chắn
+
+      // Clean up after print
+      setTimeout(() => {
+        document.body.classList.remove("print-a5-mode");
+      }, 100);
+    }, 800);
   }
 
   onClose(): void {
-    console.log(" Closing print dialog");
+    console.log("Closing print dialog");
     this.dialogRef.close();
   }
 
@@ -174,16 +221,25 @@ export class PrintPalletDialogComponent implements OnInit {
     const pages = Array.from(
       document.querySelectorAll(".print-page"),
     ) as HTMLElement[];
+
     if (pages.length === 0) {
       console.error("Không tìm thấy .print-page");
       this.isLoadingPdf = false;
       return;
     }
 
-    const pdf = new jsPDF("landscape", "mm", "a4");
+    // ===== XÁC ĐỊNH FORMAT DỰA TRÊN PAPER SIZE =====
+    const isA5 = this.paperSize === "A5";
+    const pdfOrientation = isA5 ? "portrait" : "landscape";
+    const pdfFormat = isA5 ? [148, 210] : [297, 210]; // [width, height] in mm
+
+    const pdf = new jsPDF(pdfOrientation as any, "mm", pdfFormat as any);
     const pageWidth = pdf.internal.pageSize.getWidth();
-    const a5Width = 148.5;
-    const a5Height = 210;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    console.log(
+      `Exporting to PDF (${this.paperSize}): ${pageWidth}x${pageHeight}mm`,
+    );
 
     const renderPageToPdf = async (
       pageEl: HTMLElement,
@@ -192,39 +248,55 @@ export class PrintPalletDialogComponent implements OnInit {
       const cards = Array.from(
         pageEl.querySelectorAll(".pallet-card"),
       ) as HTMLElement[];
+
       if (!isFirst) {
-        pdf.addPage("a4", "landscape");
+        pdf.addPage(pdfFormat as any, pdfOrientation as any);
       }
 
-      if (cards.length >= 2) {
-        const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL("image/jpeg", 0.7);
-        const imgPixelWidth = canvas.width;
-        const imgPixelHeight = canvas.height;
-        const imgMmWidth = pageWidth;
-        const imgMmHeight = imgPixelHeight * (pageWidth / imgPixelWidth);
-        pdf.addImage(imgData, "JPEG", 0, 0, imgMmWidth, imgMmHeight);
-      } else if (cards.length === 1) {
-        const card = cards[0];
-        const canvas = await html2canvas(card, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL("image/jpeg", 0.7);
-        pdf.addImage(imgData, "JPEG", 0, 0, a5Width, a5Height);
+      if (isA5) {
+        // A5 mode: chỉ render 1 card
+        if (cards.length >= 1) {
+          const card = cards[0];
+          const canvas = await html2canvas(card, { scale: 2, useCORS: true });
+          const imgData = canvas.toDataURL("image/jpeg", 0.8);
+          pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
+        }
+      } else {
+        // A4 mode: render cả trang (2 cards)
+        if (cards.length >= 1) {
+          const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true });
+          const imgData = canvas.toDataURL("image/jpeg", 0.8);
+          const imgPixelWidth = canvas.width;
+          const imgPixelHeight = canvas.height;
+          const imgMmWidth = pageWidth;
+          const imgMmHeight = imgPixelHeight * (pageWidth / imgPixelWidth);
+          pdf.addImage(imgData, "JPEG", 0, 0, imgMmWidth, imgMmHeight);
+        }
       }
     };
 
     const generatePdf = async (): Promise<void> => {
       for (let i = 0; i < pages.length; i++) {
         await renderPageToPdf(pages[i], i === 0);
-        // cập nhật tiến độ sau mỗi trang
+        // Cập nhật tiến độ sau mỗi trang
         this.progressPdf = Math.round(((i + 1) / pages.length) * 100);
+        this.cdr.detectChanges();
       }
 
-      pdf.save("phieu-thong-tin.pdf");
+      const fileName = `phieu-thong-tin-${this.paperSize}-${Date.now()}.pdf`;
+      pdf.save(fileName);
+      console.log(`PDF saved: ${fileName}`);
+
       this.isLoadingPdf = false;
+      this.progressPdf = 0;
+      this.cdr.detectChanges();
     };
 
-    void generatePdf().catch(() => {
+    void generatePdf().catch((error) => {
+      console.error("Error generating PDF:", error);
       this.isLoadingPdf = false;
+      this.progressPdf = 0;
+      this.cdr.detectChanges();
     });
   }
 }

@@ -3,6 +3,18 @@
   <div class="dialog-header no-print">
     <h2>Print Preview - {{ pallets.length }} phiếu ({{ totalPages }} trang)</h2>
     <div class="header-actions">
+      <!-- Paper Size Selector -->
+      <mat-form-field appearance="outline" class="paper-size-selector">
+        <mat-label>Kích thước</mat-label>
+        <mat-select
+          [(value)]="paperSize"
+          (selectionChange)="onPaperSizeChange()"
+        >
+          <mat-option value="A4">A4 (2 phiếu/trang)</mat-option>
+          <mat-option value="A5">A5 (1 phiếu/trang)</mat-option>
+        </mat-select>
+      </mat-form-field>
+
       <button mat-raised-button color="accent" (click)="onExportPdf()">
         <mat-icon>picture_as_pdf</mat-icon>
         Xuất PDF
@@ -24,10 +36,13 @@
     <span class="progress-text">Đang xuất PDF: {{ progressPdf }}%</span>
   </div>
   <!-- Print Content - Grouped by rows of 2 -->
-  <div class="print-content">
-    <!-- ===== LOOP QUA TỪNG TRANG (2 PHIẾU/TRANG) ===== -->
-    <div class="print-page" *ngFor="let page of pages; let pageIndex = index">
-      <!-- ===== PHIẾU BÊN TRÁI ===== -->
+  <div class="print-content" [class.a5-mode]="paperSize === 'A5'">
+    <!-- ===== LOOP QUA TỪNG TRANG ===== -->
+    <div
+      class="print-page"
+      *ngFor="let page of displayPages; let pageIndex = index"
+    >
+      <!-- ===== PHIẾU BÊN TRÁI (hoặc duy nhất nếu A5) ===== -->
       <div class="pallet-card" *ngIf="page.left">
         <!-- Top Section with QR Code and Title -->
         <div class="top-section">
@@ -185,8 +200,8 @@
         </div>
       </div>
 
-      <!-- ===== PHIẾU BÊN PHẢI (nếu có) ===== -->
-      <div class="pallet-card" *ngIf="page.right">
+      <!-- ===== PHIẾU BÊN PHẢI (chỉ hiện khi A4 mode) ===== -->
+      <div class="pallet-card" *ngIf="page.right && paperSize === 'A4'">
         <!-- Top Section -->
         <div class="top-section">
           <div class="qr-code-wrapper">

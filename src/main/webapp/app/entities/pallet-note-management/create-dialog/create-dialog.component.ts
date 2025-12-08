@@ -5,6 +5,8 @@ import {
   FormGroup,
   Validators,
   ReactiveFormsModule,
+  AbstractControl,
+  ValidationErrors,
 } from "@angular/forms";
 import {
   MatDialogModule,
@@ -51,8 +53,9 @@ export interface PalletFormData {
   ketQuaKiemTra: string;
   note: string;
   qtyPerBox: number;
-  soLuongThungTrongPallet: number;
+  soLuongThungScan: number;
   soLuongPallet: number;
+  soLuongThungThucTe: number;
 }
 
 export interface DialogResult {
@@ -101,8 +104,11 @@ export class CreateDialogComponent {
         data: this.form.value,
       };
       this.dialogRef.close(result);
+    } else {
+      this.form.markAllAsTouched();
     }
   }
+
   private createForm(): FormGroup {
     const currentUser = this.accountService.isAuthenticated()
       ? this.accountService["userIdentity"]?.login
@@ -158,7 +164,13 @@ export class CreateDialogComponent {
       return formGroup;
     } else {
       return this.fb.group({
-        tenSanPham: [this.data.tenSanPham ?? "", Validators.required],
+        tenSanPham: [
+          this.data.tenSanPham ?? "",
+          [
+            Validators.required,
+            this.matchTenSanPhamValidator(this.data.tenSanPham ?? ""),
+          ],
+        ],
         khachHang: [""],
         poNumber: [""],
         dateCode: [""],
@@ -175,7 +187,16 @@ export class CreateDialogComponent {
             Validators.pattern(/^[1-9][0-9]{0,4}$/),
           ],
         ],
-        soLuongThungTrongPallet: [
+        soLuongThungScan: [
+          1,
+          [
+            Validators.required,
+            Validators.min(1),
+            Validators.max(99999),
+            Validators.pattern(/^[1-9][0-9]{0,4}$/),
+          ],
+        ],
+        soLuongThungThucTe: [
           1,
           [
             Validators.required,
@@ -220,9 +241,17 @@ export class CreateDialogComponent {
       return soLuongTrongThung * soLuongThung;
     } else {
       const soLuongThungTrongPallet =
-        this.form.get("soLuongThungTrongPallet")?.value ?? 0;
+        this.form.get("soLuongThungThucTe")?.value ?? 0;
       const soLuongPallet = this.form.get("soLuongPallet")?.value ?? 0;
       return soLuongThungTrongPallet * soLuongPallet;
     }
+  }
+  private matchTenSanPhamValidator(expectedValue: string) {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) {
+        return null; // để required xử lý riêng
+      }
+      return control.value === expectedValue ? null : { notMatch: true };
+    };
   }
 }

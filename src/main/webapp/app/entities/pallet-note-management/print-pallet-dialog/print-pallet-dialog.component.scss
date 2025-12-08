@@ -61,6 +61,23 @@
     gap: 12px;
     align-items: center;
 
+    // Paper Size Selector styling
+    .paper-size-selector {
+      width: 200px;
+
+      ::ng-deep .mat-mdc-text-field-wrapper {
+        background-color: white;
+      }
+
+      ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+      }
+
+      ::ng-deep .mdc-notched-outline__notch {
+        border-right: none;
+      }
+    }
+
     button {
       display: flex;
       align-items: center;
@@ -82,6 +99,13 @@
   gap: 30px;
   padding: 40px 20px;
   align-items: center;
+
+  // A5 Mode - Center single card
+  &.a5-mode {
+    .print-page {
+      justify-content: center;
+    }
+  }
 }
 
 .print-page {
@@ -265,8 +289,6 @@
   body {
     margin: 0 !important;
     padding: 0 !important;
-    width: 297mm !important;
-    height: 210mm !important;
   }
 
   .dialog-wrapper {
@@ -283,6 +305,7 @@
     margin: 0 !important;
   }
 
+  // ===== A4 MODE (Default) =====
   .print-page {
     width: 297mm !important;
     height: 210mm !important;
@@ -314,11 +337,37 @@
     break-inside: avoid !important;
   }
 
+  // ===== A5 MODE =====
+  .print-content.a5-mode {
+    .print-page {
+      width: 148mm !important;
+      height: 210mm !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+
+    .pallet-card {
+      width: 148mm !important;
+      height: 210mm !important;
+    }
+  }
+
+  // ===== @PAGE - Dynamic based on mode =====
   @page {
     size: A4 landscape !important;
     margin: 0 !important;
   }
 
+  // A5 mode override
+  .a5-mode {
+    @page {
+      size: A5 portrait !important;
+      margin: 0 !important;
+    }
+  }
+
+  // Force colors
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -341,6 +390,7 @@
     }
   }
 
+  // Hide scrollbars
   ::-webkit-scrollbar {
     display: none !important;
   }
@@ -360,6 +410,21 @@
 }
 
 @media screen and (max-width: 768px) {
+  .dialog-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+
+    .header-actions {
+      flex-wrap: wrap;
+      justify-content: center;
+
+      .paper-size-selector {
+        width: 100%;
+      }
+    }
+  }
+
   .print-page {
     flex-direction: column;
     align-items: center;

@@ -13,7 +13,7 @@
       <span class="progress-count">
         <span class="current">{{ scannedCount }}</span>
         <span class="separator">/</span>
-        <span class="total">{{ palletData.soThung }}</span>
+        <span class="total">{{ palletData.thungScan }}</span>
       </span>
     </div>
   </div>
@@ -31,6 +31,8 @@
       </div>
       <p class="qr-label">MÃ PALLET</p>
       <p class="qr-code">{{ palletData.maPallet }}</p>
+
+      <!-- Nút toggle Zebra scanner -->
       <button
         mat-raised-button
         [color]="scanModeActive ? null : 'primary'"
@@ -42,15 +44,6 @@
         }}</mat-icon>
         {{ scanModeActive ? "Đang scan..." : "Nhấn để kích hoạt Scan" }}
       </button>
-
-      <!-- <button mat-stroked-button class="simulate-btn" (click)="simulateScan()">
-                <mat-icon>refresh</mat-icon>
-                Giả lập Scan
-            </button>
-            <button mat-stroked-button color="warn" class="test-btn" *ngIf="isTestMode" (click)="simulateScan()">
-                <mat-icon>bug_report</mat-icon>
-                Giả lập Scan
-            </button> -->
     </div>
 
     <!-- Right Column: All other sections -->
@@ -70,9 +63,59 @@
           />
         </div>
 
-        <!-- Mobile: Camera Scanner -->
+        <!-- Mobile: Zebra Scanner + Camera Scanner -->
         <div class="mobile-scanner" *ngIf="isMobile">
-          <div class="camera-container" [class.active]="cameraActive">
+          <!-- Hidden Input cho Zebra scanner -->
+          <input
+            #scannerInput
+            type="text"
+            class="hidden-input"
+            [(ngModel)]="scannedCode"
+            (keyup.enter)="processScannedCode()"
+            placeholder="Zebra scanner input..."
+            [disabled]="!scanModeActive"
+            style="position: absolute; left: -9999px; width: 1px; height: 1px"
+          />
+
+          <!-- ===== THÊM: BUTTONS CONTROL ===== -->
+          <div class="scan-mode-buttons">
+            <!-- Nút kích hoạt Zebra Scanner -->
+            <button
+              mat-raised-button
+              [color]="
+                scanModeActive && scanMode === 'zebra' ? 'primary' : null
+              "
+              (click)="toggleScanMode()"
+              class="mode-btn"
+            >
+              <mat-icon>qr_code_scanner</mat-icon>
+              {{
+                scanModeActive && scanMode === "zebra"
+                  ? "Đang scan Zebra..."
+                  : "Kích hoạt Zebra Scanner"
+              }}
+            </button>
+
+            <!-- Nút mở Camera -->
+            <button
+              mat-raised-button
+              [color]="cameraActive ? 'accent' : null"
+              (click)="cameraActive ? stopCamera() : startCamera()"
+              class="mode-btn"
+            >
+              <mat-icon>{{
+                cameraActive ? "videocam_off" : "videocam"
+              }}</mat-icon>
+              {{ cameraActive ? "Tắt Camera" : "Mở Camera" }}
+            </button>
+          </div>
+
+          <!-- Camera Container (CHỈ hiện khi camera active) -->
+          <div
+            class="camera-container"
+            *ngIf="cameraActive"
+            [class.active]="cameraActive"
+          >
             <!-- Camera Preview -->
             <zxing-scanner
               *ngIf="cameraActive"
@@ -86,20 +129,8 @@
             >
             </zxing-scanner>
 
-            <!-- Camera Placeholder -->
-            <div class="camera-placeholder" *ngIf="!cameraActive">
-              <button
-                mat-fab
-                color="primary"
-                (click)="startCamera()"
-                class="start-camera-btn"
-              >
-                <mat-icon>videocam</mat-icon>
-              </button>
-            </div>
-
             <!-- Camera Overlay -->
-            <div class="camera-overlay" *ngIf="cameraActive">
+            <div class="camera-overlay">
               <div class="scan-frame">
                 <div class="corner top-left"></div>
                 <div class="corner top-right"></div>
@@ -109,7 +140,7 @@
             </div>
 
             <!-- Camera Controls -->
-            <div class="camera-controls" *ngIf="cameraActive">
+            <div class="camera-controls">
               <button mat-mini-fab class="control-btn" (click)="stopCamera()">
                 <mat-icon>close</mat-icon>
               </button>
@@ -124,15 +155,14 @@
             </div>
           </div>
 
-          <!-- Manual Input Toggle -->
-          <button
-            mat-stroked-button
-            class="manual-input-toggle"
-            (click)="toggleScanMode()"
+          <!-- Zebra Mode Indicator -->
+          <div
+            class="zebra-mode-indicator"
+            *ngIf="scanModeActive && scanMode === 'zebra'"
           >
-            <mat-icon>keyboard</mat-icon>
-            Nhấn để kích hoạt Scan
-          </button>
+            <mat-icon>qr_code_scanner</mat-icon>
+            <span>Zebra Scanner đang hoạt động - Sẵn sàng nhận mã...</span>
+          </div>
         </div>
 
         <!-- Scan Result Feedback -->
@@ -148,8 +178,6 @@
           <span>{{ lastScanResult.message }}</span>
         </div>
       </div>
-
-      <!-- Action Buttons Row -->
 
       <!-- Progress Bar -->
       <div class="progress-section">
@@ -187,7 +215,7 @@
         </div>
       </div>
 
-      <!-- Tabs: / Success / Error -->
+      <!-- Tabs: Success / Error -->
       <div class="scan-sections">
         <!-- Vùng bên trái: Scan Thành Công -->
         <div class="scan-section success-section">
@@ -246,7 +274,6 @@
         </div>
       </div>
     </div>
-    <!-- End Right Column -->
   </div>
 
   <!-- Footer Actions -->

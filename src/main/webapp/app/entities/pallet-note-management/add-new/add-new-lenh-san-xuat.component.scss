@@ -48,14 +48,14 @@
 }
 
 .table-container {
-  background: white;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
+  // background: white;
+  // border-radius: 8px;
+  // padding: 10px;
+  // margin-bottom: 10px;
+  // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  // flex-shrink: 0;
   max-height: 200px;
-  // overflow: auto;
+  position: relative;
 }
 
 .production-table {
@@ -161,10 +161,25 @@
     padding: 0 8px;
   }
 }
-
+.table-wrapper {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
 .action-buttons {
-  margin-top: 15px;
-  text-align: right;
+  display: flex;
+  justify-content: flex-end; /* đẩy nút sang phải */
+  position: sticky;
+  bottom: 0;
+  right: 0;
+  background: white; /* tránh bị che */
+  padding: 10px;
 }
 
 .tabs-wrapper {
@@ -845,9 +860,9 @@
     gap: 10px;
 
     button {
-      width: 52px;
-      height: 52px;
-      min-width: 52px !important;
+      width: 50px;
+      height: 50px;
+      min-width: 50px !important;
       border-radius: 50%;
       padding: 0;
       margin: 0;
@@ -921,7 +936,7 @@
   // ===== TAB BOTTOM ACTIONS =====
   .tab-bottom-actions {
     padding: 8px;
-    margin-top: 8px;
+    margin-bottom: 3rem;
     border-top: 1px solid #e0e0e0;
 
     button {
