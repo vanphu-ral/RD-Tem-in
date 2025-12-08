@@ -76,7 +76,8 @@ export interface PlanningWorkOrderResponse {
   providedIn: "root",
 })
 export class PlanningWorkOrderService {
-  private apiUrl = "http://192.168.68.81:8080/api/planningworkorder";
+  private apiUrl =
+    "http://192.168.10.99:8085/api/item-data/planning-work-orders";
   private WMSUrl = "https://192.168.68.77:9030";
 
   private baseUrl = environment.baseInTemApiUrl;
@@ -90,11 +91,7 @@ export class PlanningWorkOrderService {
 
   // Lọc theo sapWoId và productCode
   search(woId?: string): Observable<PlanningWorkOrderResponse> {
-    return this.http.get<PlanningWorkOrderResponse>(this.apiUrl, {
-      params: {
-        woId: woId ?? "",
-      },
-    });
+    return this.http.get<PlanningWorkOrderResponse>(`${this.apiUrl}/${woId}`);
   }
 
   //chi tiet
