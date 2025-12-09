@@ -84,6 +84,14 @@ public class ItemDataService {
                             workOrder.setProductType(
                                 itemData.get().getItmGrName()
                             );
+                            // Check if productType is "Thành phẩm" and prepend "LED" to productCode
+                            if (
+                                "Thành phẩm".equals(workOrder.getProductType())
+                            ) {
+                                workOrder.setProductCode(
+                                    "LED" + workOrder.getProductCode()
+                                );
+                            }
                         }
                     }
                 }

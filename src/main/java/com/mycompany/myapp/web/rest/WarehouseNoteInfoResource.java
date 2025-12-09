@@ -409,4 +409,27 @@ public class WarehouseNoteInfoResource {
             partner3WarehouseStampInfoService.getTotalQuantity();
         return ResponseEntity.ok().body(totalQuantity);
     }
+
+    /**
+     * {@code GET /warehouse-note-infos/work-order-code/{workOrderCode}} : get all
+     * warehouseNoteInfos by workOrderCode.
+     *
+     * @param workOrderCode the workOrderCode to filter by.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of warehouseNoteInfos in body.
+     */
+    @GetMapping("/warehouse-note-infos/work-order-code/{workOrderCode}")
+    public ResponseEntity<
+        List<WarehouseStampInfoDTO>
+    > getWarehouseNoteInfosByWorkOrderCode(@PathVariable String workOrderCode) {
+        log.debug(
+            "REST request to get WarehouseNoteInfos by workOrderCode : {}",
+            workOrderCode
+        );
+        List<WarehouseStampInfoDTO> warehouseStampInfoDTOs =
+            partner3WarehouseStampInfoService.findByWorkOrderCode(
+                workOrderCode
+            );
+        return ResponseEntity.ok().body(warehouseStampInfoDTOs);
+    }
 }

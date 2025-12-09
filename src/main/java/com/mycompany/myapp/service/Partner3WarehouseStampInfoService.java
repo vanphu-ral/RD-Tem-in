@@ -172,6 +172,27 @@ public class Partner3WarehouseStampInfoService {
     }
 
     /**
+     * Get all warehouseStampInfos by workOrderCode.
+     *
+     * @param workOrderCode the workOrderCode to filter by.
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<WarehouseStampInfoDTO> findByWorkOrderCode(
+        String workOrderCode
+    ) {
+        LOG.debug(
+            "Request to get WarehouseStampInfos by workOrderCode : {}",
+            workOrderCode
+        );
+        return partner3WarehouseStampInfoRepository
+            .findByWorkOrderCode(workOrderCode)
+            .stream()
+            .map(warehouseStampInfoMapper::toDto)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
      * Create a warehouseStampInfo with children.
      *
      * @param warehouseNoteInfoWithChildrenDTO the DTO with info and details.
