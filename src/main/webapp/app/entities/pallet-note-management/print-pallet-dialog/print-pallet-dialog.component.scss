@@ -110,8 +110,8 @@
 
 .print-page {
   display: flex;
-  gap: 20px;
-  justify-content: center;
+  gap: 0;
+  justify-content: flex-start; /* <<< Đã sửa: phiếu lẻ nằm bên TRÁI */
   align-items: flex-start;
 }
 
@@ -285,93 +285,58 @@
 
 // ===== PRINT MODE =====
 @media print {
-  html,
+  @page {
+    margin: 0 !important;
+  }
+
+  /* Không cần override CDK nữa vì dùng new window */
   body {
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  .dialog-wrapper {
-    background: white !important;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-
   .print-content {
     display: block !important;
     padding: 0 !important;
-    margin: 0 !important;
   }
 
-  // ===== A4 MODE (Default) =====
   .print-page {
-    width: 297mm !important;
-    height: 210mm !important;
     display: flex !important;
-    flex-direction: row !important;
     gap: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
     page-break-after: always !important;
-    break-after: page !important;
     page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    width: 297mm !important; /* A4 landscape */
+    height: 210mm !important;
   }
 
   .print-page:last-child {
     page-break-after: avoid !important;
-    break-after: avoid !important;
   }
 
   .pallet-card {
     width: 148.5mm !important;
     height: 210mm !important;
-    margin: 0 !important;
     padding: 8mm !important;
-    box-shadow: none !important;
     border: 2px solid #000 !important;
-    box-sizing: border-box !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
   }
 
-  // ===== A5 MODE =====
-  .print-content.a5-mode {
-    .print-page {
-      width: 148mm !important;
-      height: 210mm !important;
-      display: flex !important;
-      justify-content: center !important;
-      align-items: center !important;
-    }
-
-    .pallet-card {
-      width: 148mm !important;
-      height: 210mm !important;
-    }
+  /* A5 mode */
+  .print-content.a5-mode .print-page {
+    width: 148mm !important;
+    height: 210mm !important;
+    justify-content: center !important;
   }
 
-  // ===== @PAGE - Dynamic based on mode =====
-  @page {
-    size: A4 landscape !important;
-    margin: 0 !important;
+  .print-content.a5-mode .pallet-card {
+    width: 148mm !important;
   }
 
-  // A5 mode override
-  .a5-mode {
-    @page {
-      size: A5 portrait !important;
-      margin: 0 !important;
-    }
-  }
-
-  // Force colors
+  /* Force màu in */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    color-adjust: exact !important;
   }
 
   .info-table .label-cell {
@@ -381,23 +346,6 @@
   .qr-code-wrapper {
     background: white !important;
     border: 2px solid #000 !important;
-
-    canvas,
-    img {
-      display: block !important;
-      max-width: 100% !important;
-      max-height: 100% !important;
-    }
-  }
-
-  // Hide scrollbars
-  ::-webkit-scrollbar {
-    display: none !important;
-  }
-
-  * {
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
   }
 }
 

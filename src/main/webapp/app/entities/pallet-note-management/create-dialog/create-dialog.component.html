@@ -347,24 +347,28 @@
               <input
                 matInput
                 type="number"
-                formControlName="soLuongThungScan"
+                formControlName="soLuongThungThucTe"
               />
               <mat-error
-                *ngIf="form.get('soLuongThungScan')?.hasError('required')"
+                *ngIf="form.get('soLuongThungThucTe')?.hasError('required')"
               >
                 <span style="color: red">Bắt buộc nhập số lượng</span>
               </mat-error>
               <mat-error
-                *ngIf="form.get('soLuongThungScan')?.hasError('pattern')"
+                *ngIf="form.get('soLuongThungThucTe')?.hasError('pattern')"
               >
                 <span style="color: red"
                   >Chỉ nhập số nguyên từ 1 đến 99999</span
                 >
               </mat-error>
-              <mat-error *ngIf="form.get('soLuongThungScan')?.hasError('max')">
+              <mat-error
+                *ngIf="form.get('soLuongThungThucTe')?.hasError('max')"
+              >
                 <span style="color: red">Không vượt quá 5 chữ số</span>
               </mat-error>
-              <mat-error *ngIf="form.get('soLuongThungScan')?.hasError('min')">
+              <mat-error
+                *ngIf="form.get('soLuongThungThucTe')?.hasError('min')"
+              >
                 <span style="color: red">Phải lớn hơn 0</span>
               </mat-error>
             </mat-form-field>
@@ -388,8 +392,8 @@
                 class="field-label"
                 [ngClass]="{
                   'error-label':
-                    form.get('soLuongThungThucTe')?.invalid &&
-                    form.get('soLuongThungThucTe')?.touched,
+                    form.get('soLuongThungScan')?.invalid &&
+                    form.get('soLuongThungScan')?.touched,
                 }"
                 >Số lượng thùng thực tế</label
               >
@@ -397,27 +401,27 @@
                 <input
                   matInput
                   type="number"
-                  formControlName="soLuongThungThucTe"
+                  formControlName="soLuongThungScan"
                 />
                 <mat-error
-                  *ngIf="form.get('soLuongThungThucTe')?.hasError('required')"
+                  *ngIf="form.get('soLuongThungScan')?.hasError('required')"
                 >
                   <span style="color: red">Bắt buộc nhập số lượng</span>
                 </mat-error>
                 <mat-error
-                  *ngIf="form.get('soLuongThungThucTe')?.hasError('pattern')"
+                  *ngIf="form.get('soLuongThungScan')?.hasError('pattern')"
                 >
                   <span style="color: red"
                     >Chỉ nhập số nguyên từ 1 đến 99999</span
                   >
                 </mat-error>
                 <mat-error
-                  *ngIf="form.get('soLuongThungThucTe')?.hasError('max')"
+                  *ngIf="form.get('soLuongThungScan')?.hasError('max')"
                 >
                   <span style="color: red">Không vượt quá 5 chữ số</span>
                 </mat-error>
                 <mat-error
-                  *ngIf="form.get('soLuongThungThucTe')?.hasError('min')"
+                  *ngIf="form.get('soLuongThungScan')?.hasError('min')"
                 >
                   <span style="color: red">Phải lớn hơn 0</span>
                 </mat-error>
