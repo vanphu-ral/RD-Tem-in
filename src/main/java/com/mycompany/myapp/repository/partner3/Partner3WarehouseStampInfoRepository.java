@@ -33,7 +33,7 @@ public interface Partner3WarehouseStampInfoRepository
     Page<WarehouseNoteInfo> findAll(Pageable pageable);
 
     @Query(
-        "SELECT w FROM WarehouseNoteInfo w WHERE w.workOrderCode = :workOrderCode"
+        "SELECT w FROM WarehouseNoteInfo w WHERE w.workOrderCode = :workOrderCode AND w.deletedBy IS NULL"
     )
     List<WarehouseNoteInfo> findByWorkOrderCode(
         @Param("workOrderCode") String workOrderCode
