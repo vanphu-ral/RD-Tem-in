@@ -85,6 +85,9 @@ public class PalletInforDetail implements Serializable {
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
+    @Column(name = "wms_send_status")
+    private Boolean wmsSendStatus;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -334,6 +337,19 @@ public class PalletInforDetail implements Serializable {
         this.updatedBy = updatedBy;
     }
 
+    public Boolean getWmsSendStatus() {
+        return this.wmsSendStatus;
+    }
+
+    public PalletInforDetail wmsSendStatus(Boolean wmsSendStatus) {
+        this.setWmsSendStatus(wmsSendStatus);
+        return this;
+    }
+
+    public void setWmsSendStatus(Boolean wmsSendStatus) {
+        this.wmsSendStatus = wmsSendStatus;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
     // setters here
 
@@ -381,6 +397,7 @@ public class PalletInforDetail implements Serializable {
                 ", numBoxConfig=" + getNumBoxConfig() +
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +
+                ", wmsSendStatus=" + getWmsSendStatus() +
                 "}";
     }
 }

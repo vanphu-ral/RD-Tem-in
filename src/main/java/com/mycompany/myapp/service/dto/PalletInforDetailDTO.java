@@ -61,6 +61,8 @@ public class PalletInforDetailDTO implements Serializable {
     @Size(max = 50)
     private String updatedBy;
 
+    private Boolean wmsSendStatus;
+
     @JsonProperty("id")
     public Long getId() {
         return id;
@@ -251,6 +253,16 @@ public class PalletInforDetailDTO implements Serializable {
         this.updatedBy = updatedBy;
     }
 
+    @JsonProperty("wms_send_status")
+    public Boolean getWmsSendStatus() {
+        return wmsSendStatus;
+    }
+
+    @JsonProperty("wms_send_status")
+    public void setWmsSendStatus(Boolean wmsSendStatus) {
+        this.wmsSendStatus = wmsSendStatus;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -295,6 +307,7 @@ public class PalletInforDetailDTO implements Serializable {
                 ", numBoxConfig=" + getNumBoxConfig() +
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +
+                ", wmsSendStatus=" + getWmsSendStatus() +
                 "}";
     }
 }

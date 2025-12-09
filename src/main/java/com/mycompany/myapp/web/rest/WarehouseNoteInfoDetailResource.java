@@ -377,6 +377,11 @@ public class WarehouseNoteInfoDetailResource {
                             warehouseNoteInfoDetail.getChecked()
                         );
                     }
+                    if (warehouseNoteInfoDetail.getWmsSendStatus() != null) {
+                        existingWarehouseNoteInfoDetail.setWmsSendStatus(
+                            warehouseNoteInfoDetail.getWmsSendStatus()
+                        );
+                    }
 
                     return existingWarehouseNoteInfoDetail;
                 })

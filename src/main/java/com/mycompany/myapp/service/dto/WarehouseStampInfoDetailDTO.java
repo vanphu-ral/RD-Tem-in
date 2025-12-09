@@ -108,6 +108,8 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
 
     private Instant createdAt;
 
+    private Boolean wmsSendStatus;
+
     @JsonProperty("id")
     public Long getId() {
         return id;
@@ -448,6 +450,16 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
         this.createdAt = createdAt;
     }
 
+    @JsonProperty("wms_send_status")
+    public Boolean getWmsSendStatus() {
+        return wmsSendStatus;
+    }
+
+    @JsonProperty("wms_send_status")
+    public void setWmsSendStatus(Boolean wmsSendStatus) {
+        this.wmsSendStatus = wmsSendStatus;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -508,6 +520,7 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
                 ", trangThai='" + getTrangThai() + "'" +
                 ", checked=" + getChecked() +
                 ", createdAt='" + getCreatedAt() + "'" +
+                ", wmsSendStatus=" + getWmsSendStatus() +
                 "}";
     }
 }

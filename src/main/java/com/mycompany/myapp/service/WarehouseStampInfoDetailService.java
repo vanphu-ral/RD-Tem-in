@@ -340,6 +340,9 @@ public class WarehouseStampInfoDetailService {
                 if (dto.getCreatedAt() != null) {
                     existingDetail.setCreatedAt(dto.getCreatedAt());
                 }
+                if (dto.getWmsSendStatus() != null) {
+                    existingDetail.setWmsSendStatus(dto.getWmsSendStatus());
+                }
 
                 // Save the updated entity
                 WarehouseNoteInfoDetail savedDetail =

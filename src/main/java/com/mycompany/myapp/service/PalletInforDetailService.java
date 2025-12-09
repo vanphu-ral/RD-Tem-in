@@ -368,6 +368,9 @@ public class PalletInforDetailService {
                 if (dto.getUpdatedBy() != null) {
                     existingPallet.setUpdatedBy(dto.getUpdatedBy());
                 }
+                if (dto.getWmsSendStatus() != null) {
+                    existingPallet.setWmsSendStatus(dto.getWmsSendStatus());
+                }
 
                 // Always update the timestamp
                 existingPallet.setUpdatedAt(Instant.now());

@@ -147,6 +147,9 @@ public class WarehouseNoteInfoDetail implements Serializable {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @Column(name = "wms_send_status")
+    private Boolean wmsSendStatus;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
         name = "ma_lenh_san_xuat_id",
@@ -605,6 +608,19 @@ public class WarehouseNoteInfoDetail implements Serializable {
         this.createdAt = createdAt;
     }
 
+    public Boolean getWmsSendStatus() {
+        return this.wmsSendStatus;
+    }
+
+    public WarehouseNoteInfoDetail wmsSendStatus(Boolean wmsSendStatus) {
+        this.setWmsSendStatus(wmsSendStatus);
+        return this;
+    }
+
+    public void setWmsSendStatus(Boolean wmsSendStatus) {
+        this.wmsSendStatus = wmsSendStatus;
+    }
+
     public WarehouseNoteInfo getMaLenhSanXuat() {
         return this.maLenhSanXuat;
     }
@@ -681,6 +697,7 @@ public class WarehouseNoteInfoDetail implements Serializable {
                 ", trangThai='" + getTrangThai() + "'" +
                 ", checked=" + getChecked() +
                 ", createdAt='" + getCreatedAt() + "'" +
+                ", wmsSendStatus=" + getWmsSendStatus() +
                 "}";
     }
 }
