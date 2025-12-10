@@ -88,6 +88,9 @@ public class PalletInforDetail implements Serializable {
     @Column(name = "wms_send_status")
     private Boolean wmsSendStatus;
 
+    @Column(name = "print_status")
+    private Boolean printStatus;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -348,6 +351,19 @@ public class PalletInforDetail implements Serializable {
 
     public void setWmsSendStatus(Boolean wmsSendStatus) {
         this.wmsSendStatus = wmsSendStatus;
+    }
+
+    public Boolean getPrintStatus() {
+        return this.printStatus;
+    }
+
+    public PalletInforDetail printStatus(Boolean printStatus) {
+        this.setPrintStatus(printStatus);
+        return this;
+    }
+
+    public void setPrintStatus(Boolean printStatus) {
+        this.printStatus = printStatus;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and

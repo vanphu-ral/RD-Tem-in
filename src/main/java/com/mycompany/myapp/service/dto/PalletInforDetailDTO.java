@@ -63,6 +63,8 @@ public class PalletInforDetailDTO implements Serializable {
 
     private Boolean wmsSendStatus;
 
+    private Boolean printStatus;
+
     @JsonProperty("id")
     public Long getId() {
         return id;
@@ -261,6 +263,16 @@ public class PalletInforDetailDTO implements Serializable {
     @JsonProperty("wms_send_status")
     public void setWmsSendStatus(Boolean wmsSendStatus) {
         this.wmsSendStatus = wmsSendStatus;
+    }
+
+    @JsonProperty("print_status")
+    public Boolean getPrintStatus() {
+        return printStatus;
+    }
+
+    @JsonProperty("print_status")
+    public void setPrintStatus(Boolean printStatus) {
+        this.printStatus = printStatus;
     }
 
     @Override
