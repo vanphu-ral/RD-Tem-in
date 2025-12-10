@@ -24,6 +24,7 @@ import { finalize } from "rxjs";
 import { BoxDetailData } from "../detail-box-dialog/detail-box-dialog.component";
 
 export interface PalletDetailData {
+  id?: number;
   stt: number;
   tenSanPham: string;
   noSKU: string;

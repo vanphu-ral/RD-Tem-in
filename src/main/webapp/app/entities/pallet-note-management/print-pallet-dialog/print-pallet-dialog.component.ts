@@ -15,6 +15,9 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatSelectModule } from "@angular/material/select";
 import { FormsModule } from "@angular/forms";
+import { PalletDialogItem } from "../wms-approve-dialog/wms-approve-dialog.component";
+import { firstValueFrom } from "rxjs";
+import { PlanningWorkOrderService } from "../service/planning-work-order.service";
 
 export interface PrintPalletData {
   khachHang: string;
@@ -81,6 +84,7 @@ export class PrintPalletDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<PrintPalletDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PrintPalletData | PrintPalletData[],
     private cdr: ChangeDetectorRef,
+    private planningService: PlanningWorkOrderService,
   ) {
     console.log("PrintPalletDialog constructor");
   }
@@ -584,5 +588,15 @@ export class PrintPalletDialogComponent implements OnInit {
       this.progressPdf = 0;
       this.cdr.detectChanges();
     });
+  }
+  private buildPrintStatusPayload(
+    selectedPallets: PalletDialogItem[],
+    currentUser: string,
+  ): Array<{ id: number; print_status: boolean; updated_by: string }> {
+    return selectedPallets.map((p) => ({
+      id: p.id,
+      print_status: true,
+      updated_by: currentUser ?? "system",
+    }));
   }
 }

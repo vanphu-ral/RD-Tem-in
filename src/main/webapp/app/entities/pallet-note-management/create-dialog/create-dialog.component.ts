@@ -158,6 +158,7 @@ export class CreateDialogComponent {
             Validators.pattern(/^[1-9][0-9]{0,4}$/),
           ],
         ],
+        note: [""],
       }) as FormGroup;
 
       // Nếu là Bán thành phẩm thì thêm trường đặc thù

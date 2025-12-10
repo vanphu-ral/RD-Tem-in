@@ -166,6 +166,57 @@
         </ng-template>
 
         <div class="tab-content">
+          <!-- Thùng tab: đặt ngay trong <div class="tab-content"> của tab Thùng -->
+          <div class="summary-cards" role="region" aria-label="Tổng hợp Thùng">
+            <div class="summary-card">
+              <div class="summary-card__icon">
+                <mat-icon>list_alt</mat-icon>
+              </div>
+              <div class="summary-card__body">
+                <div class="summary-card__label">Số lần tạo</div>
+                <div class="summary-card__value">
+                  {{ boxSummaryContext.totalRows }}
+                </div>
+                <div class="summary-card__meta">Dòng hiển thị trong bảng</div>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-card__icon">
+                <mat-icon>inventory_2</mat-icon>
+              </div>
+              <div class="summary-card__body">
+                <div class="summary-card__label">Tổng thùng</div>
+                <div class="summary-card__value">
+                  {{ boxSummaryContext.totalBoxes }}
+                </div>
+                <div class="summary-card__meta">Số thùng tổng cộng</div>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-card__icon">
+                <mat-icon>shopping_cart</mat-icon>
+              </div>
+              <div class="summary-card__body">
+                <div class="summary-card__label">Tổng sản phẩm</div>
+                <div class="summary-card__value">
+                  {{ boxSummaryContext.totalItems }}
+                </div>
+                <div class="summary-card__meta">Tổng số sản phẩm</div>
+              </div>
+            </div>
+
+            <!-- <div class="summary-card">
+              <div class="summary-card__icon"><mat-icon>grain</mat-icon></div>
+              <div class="summary-card__body">
+                <div class="summary-card__label">Tổng số lot</div>
+                <div class="summary-card__value">{{ boxSummaryContext.totalLots }}</div>
+                <div class="summary-card__meta">Số lot khác nhau</div>
+              </div>
+            </div> -->
+          </div>
+
           <div class="items-table-container">
             <mat-progress-bar
               *ngIf="loadingBox"
@@ -238,7 +289,7 @@
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="trangThaiIn">
+              <!-- <ng-container matColumnDef="trangThaiIn">
                 <th mat-header-cell *matHeaderCellDef>Trạng thái in</th>
                 <td mat-cell data-label="TT in" *matCellDef="let element">
                   <span
@@ -248,7 +299,7 @@
                     {{ element.trangThaiIn ? "Đã in" : "Chưa in" }}
                   </span>
                 </td>
-              </ng-container>
+              </ng-container> -->
 
               <ng-container matColumnDef="tuyChon">
                 <th mat-header-cell *matHeaderCellDef>Tuỳ chọn</th>
@@ -292,6 +343,55 @@
         </ng-template>
 
         <div class="tab-content">
+          <div class="summary-cards" role="region" aria-label="Tổng hợp Pallet">
+            <div class="summary-card">
+              <div class="summary-card__icon">
+                <mat-icon>list_alt</mat-icon>
+              </div>
+              <div class="summary-card__body">
+                <div class="summary-card__label">Số lần tạo</div>
+                <div class="summary-card__value">
+                  {{ palletSummaryContext.totalRows }}
+                </div>
+                <div class="summary-card__meta">Dòng hiển thị trong bảng</div>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-card__icon"><mat-icon>layers</mat-icon></div>
+              <div class="summary-card__body">
+                <div class="summary-card__label">Tổng pallet</div>
+                <div class="summary-card__value">
+                  {{ palletSummaryContext.totalPallets }}
+                </div>
+                <div class="summary-card__meta">Số pallet tổng cộng</div>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-card__icon">
+                <mat-icon>shopping_cart</mat-icon>
+              </div>
+              <div class="summary-card__body">
+                <div class="summary-card__label">Tổng số thùng</div>
+                <div class="summary-card__value">
+                  {{ palletSummaryContext.totalItems }}
+                </div>
+                <div class="summary-card__meta">Tổng số thùng</div>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-card__icon"><mat-icon>grain</mat-icon></div>
+              <div class="summary-card__body">
+                <div class="summary-card__label">Tổng số PO</div>
+                <div class="summary-card__value">
+                  {{ palletSummaryContext.totalPO }}
+                </div>
+                <div class="summary-card__meta">Số PO khác nhau</div>
+              </div>
+            </div>
+          </div>
           <div class="items-table-container">
             <table mat-table [dataSource]="palletItems" class="items-table">
               <ng-container matColumnDef="stt">
@@ -320,7 +420,7 @@
               <ng-container matColumnDef="createdAt">
                 <th mat-header-cell *matHeaderCellDef>Thời gian tạo</th>
                 <td mat-cell data-label="Thời gian" *matCellDef="let element">
-                  {{ element.createdAt }}
+                  {{ element.createdAt | date: "yyyy-MM-dd HH:mm:ss" }}
                 </td>
               </ng-container>
 
@@ -384,6 +484,12 @@
                 <th mat-header-cell *matHeaderCellDef>Tổng số thùng</th>
                 <td mat-cell data-label="Tổng thùng" *matCellDef="let element">
                   {{ element.tongSoThung }}
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="note">
+                <th mat-header-cell *matHeaderCellDef>Ghi chú</th>
+                <td mat-cell data-label="Ghi chú" *matCellDef="let element">
+                  {{ element.note }}
                 </td>
               </ng-container>
 

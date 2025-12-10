@@ -1,0 +1,421 @@
+<div class="dialog-container">
+  <!-- Header -->
+  <div class="dialog-header">
+    <div class="title-section">
+      <mat-icon class="title-icon">check_circle_outline</mat-icon>
+      <h2>Gửi phê duyệt WMS</h2>
+    </div>
+    <div class="title-section">
+      <h2>{{ productName }}</h2>
+    </div>
+    <button mat-icon-button (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+  @if (isLoading) {
+    <div class="loading-overlay">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Đang gửi phê duyệt...</p>
+    </div>
+  }
+
+  <!-- Content -->
+  <div class="dialog-content custom-scrollbar">
+    <div class="desktop-only">
+      <div class="section-card pending-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="status-dot"></span>
+            <span
+              >Danh sách Pallet CHƯA gửi ({{ pendingPallets().length }})</span
+            >
+          </div>
+          <div class="button-header">
+            <button
+              mat-flat-button
+              [color]="scanMode ? 'accent' : 'primary'"
+              (click)="toggleScan()"
+            >
+              <mat-icon>qr_code_scanner</mat-icon>
+              {{ scanMode ? "Stop scan" : "Scan mode" }}
+            </button>
+          </div>
+
+          <input
+            #scanInput
+            type="text"
+            autocomplete="off"
+            class="visually-hidden"
+            (keydown.enter)="onScanEnter($any($event))"
+          />
+        </div>
+
+        <div class="table-container">
+          @if (pendingPallets().length > 0) {
+            <table mat-table [dataSource]="pendingPallets()" class="w-full">
+              <!-- Checkbox Column -->
+              <!-- Checkbox Column -->
+              <ng-container matColumnDef="select">
+                <th mat-header-cell *matHeaderCellDef>
+                  <mat-checkbox
+                    (change)="$event ? toggleAllRows() : null"
+                    [checked]="isAllSelected()"
+                    [indeterminate]="selection.hasValue() && !isAllSelected()"
+                    color="primary"
+                  >
+                  </mat-checkbox>
+                </th>
+                <td mat-cell *matCellDef="let row">
+                  <!-- dùng change handler để kiểm soát toggle và tránh toggle khi disabled -->
+                  <mat-checkbox
+                    (click)="$event.stopPropagation()"
+                    (change)="onRowCheckboxChange($event, row)"
+                    [checked]="selection.isSelected(row)"
+                    [disabled]="!isProgressFull(row)"
+                    color="primary"
+                  >
+                  </mat-checkbox>
+                </td>
+              </ng-container>
+
+              <!-- STT Column -->
+              <ng-container matColumnDef="stt">
+                <th mat-header-cell *matHeaderCellDef>STT</th>
+                <td mat-cell *matCellDef="let i = index">{{ i + 1 }}</td>
+              </ng-container>
+
+              <!-- QR Column -->
+              <ng-container matColumnDef="qr">
+                <th mat-header-cell *matHeaderCellDef>Mã QR</th>
+                <td mat-cell *matCellDef="let row">
+                  <div class="qr-cell">
+                    <qrcode
+                      [qrdata]="row.palletCode?.trim() ?? ''"
+                      [width]="80"
+                      [errorCorrectionLevel]="'M'"
+                    ></qrcode>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Info Column -->
+              <ng-container matColumnDef="info">
+                <th mat-header-cell *matHeaderCellDef>Serials Pallet</th>
+                <td mat-cell *matCellDef="let row">
+                  <div class="pallet-code-value">{{ row.palletCode }}</div>
+                </td>
+              </ng-container>
+
+              <!-- Progress Column -->
+              <ng-container matColumnDef="progress">
+                <th mat-header-cell *matHeaderCellDef>Tiến độ Scan</th>
+                <td mat-cell *matCellDef="let row" class="progress-cell">
+                  <div class="progress-text">{{ row.scanProgress }}</div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill"></div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Capacity Column -->
+              <ng-container matColumnDef="capacity">
+                <th mat-header-cell *matHeaderCellDef>Số lượng thùng</th>
+                <td mat-cell *matCellDef="let row">{{ row.capacity }}</td>
+              </ng-container>
+              <ng-container matColumnDef="sentBoxes">
+                <th mat-header-cell *matHeaderCellDef>Thùng đã gửi</th>
+                <td mat-cell *matCellDef="let row">
+                  {{ row.totalBoxesCount }}
+                  <!-- {{ row.sentBoxesCount }} / {{ row.totalBoxesCount }} ({{ row.sentBoxesPercent }}%) -->
+                </td>
+              </ng-container>
+
+              <tr
+                mat-header-row
+                *matHeaderRowDef="displayedColumnsPending; sticky: true"
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: displayedColumnsPending"
+              ></tr>
+            </table>
+          } @else {
+            <div class="empty-state">Không có pallet nào chưa gửi.</div>
+          }
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="section-divider">
+        <mat-icon>arrow_forward</mat-icon>
+      </div>
+
+      <!-- SECTION 2: Sent Pallets -->
+      <div class="section-card sent-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="status-dot success"></span>
+            <span>Danh sách Pallet ĐÃ gửi ({{ sentPallets().length }})</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          @if (sentPallets().length > 0) {
+            <table mat-table [dataSource]="sentPallets()" class="w-full">
+              <!-- (Columns repeated for Sent table without checkboxes) -->
+              <ng-container matColumnDef="stt">
+                <th mat-header-cell *matHeaderCellDef>STT</th>
+                <td mat-cell *matCellDef="let i = index">{{ i + 1 }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="qr">
+                <th mat-header-cell *matHeaderCellDef>Mã QR</th>
+                <td mat-cell *matCellDef="let row">
+                  <div class="qr-cell">
+                    <qrcode
+                      [qrdata]="row.palletCode?.trim() ?? ''"
+                      [width]="80"
+                      [errorCorrectionLevel]="'M'"
+                    ></qrcode>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="info">
+                <th mat-header-cell *matHeaderCellDef>Thông tin Pallet</th>
+                <td mat-cell *matCellDef="let row">
+                  <div class="pallet-code-value">{{ row.palletCode }}</div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="progress">
+                <th mat-header-cell *matHeaderCellDef>Tiến độ Scan</th>
+                <td mat-cell *matCellDef="let row" class="progress-cell">
+                  <div class="progress-text">{{ row.scanProgress }}</div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill"></div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="capacity">
+                <th mat-header-cell *matHeaderCellDef>Số lượng thùng</th>
+                <td mat-cell *matCellDef="let row">{{ row.capacity }}</td>
+              </ng-container>
+
+              <tr
+                mat-header-row
+                *matHeaderRowDef="displayedColumnsSent; sticky: true"
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: displayedColumnsSent"
+              ></tr>
+            </table>
+          } @else {
+            <div class="empty-state">Chưa có pallet nào được gửi.</div>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="mobile-only">
+      <!-- Tab Navigation -->
+      <mat-tab-group class="mobile-tabs" [(selectedIndex)]="mobileTabIndex">
+        <!-- Tab 1: Chưa gửi -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">pending</mat-icon>
+            <span>Chưa gửi</span>
+            <span class="badge badge-pending">{{
+              pendingPallets().length
+            }}</span>
+          </ng-template>
+
+          <div class="mobile-tab-content">
+            <!-- Header Actions -->
+            <div class="mobile-actions">
+              <button
+                mat-flat-button
+                [color]="scanMode ? 'accent' : 'primary'"
+                (click)="toggleScan()"
+                class="mobile-scan-btn"
+              >
+                <mat-icon>qr_code_scanner</mat-icon>
+                {{ scanMode ? "Stop" : "Scan" }}
+              </button>
+
+              <!-- @if (selection.hasValue()) {
+              <button mat-flat-button class="mobile-send-btn" (click)="sendApproval()">
+                <mat-icon>send</mat-icon>
+                Gửi ({{ selection.selected.length }})
+              </button>
+              } -->
+            </div>
+
+            <!-- Scan Indicator -->
+            @if (scanMode) {
+              <div class="mobile-scan-indicator">
+                <mat-icon class="blink">qr_code_scanner</mat-icon>
+                <span>Đang quét mã QR...</span>
+              </div>
+            }
+
+            <!-- Pallet Cards -->
+            <div class="mobile-cards-container">
+              @if (pendingPallets().length > 0) {
+                @for (
+                  pallet of pendingPallets();
+                  track pallet.palletCode;
+                  let i = $index
+                ) {
+                  <div
+                    class="mobile-pallet-card"
+                    [class.selected]="selection.isSelected(pallet)"
+                    (click)="selection.toggle(pallet)"
+                  >
+                    <div class="card-header">
+                      <mat-checkbox
+                        [checked]="selection.isSelected(pallet)"
+                        (click)="$event.stopPropagation()"
+                        (change)="$event ? selection.toggle(pallet) : null"
+                        color="primary"
+                      >
+                      </mat-checkbox>
+                      <span class="card-stt">#{{ i + 1 }}</span>
+                    </div>
+
+                    <div class="card-body">
+                      <div class="card-qr-section">
+                        <div class="qr-cell">
+                          <qrcode
+                            [qrdata]="pallet.palletCode?.trim() ?? ''"
+                            [width]="80"
+                            [errorCorrectionLevel]="'M'"
+                          >
+                          </qrcode>
+                        </div>
+                        <div class="qr-info">
+                          <div class="qr-label">Mã Pallet</div>
+                          <div class="qr-code">{{ pallet.palletCode }}</div>
+                        </div>
+                      </div>
+
+                      <div class="card-info-row">
+                        <span class="info-label">Tiến độ scan:</span>
+                        <span class="info-value">{{
+                          pallet.scanProgress
+                        }}</span>
+                      </div>
+
+                      <div class="mobile-progress-bar">
+                        <div
+                          class="progress-fill"
+                          [style.width]="
+                            computeProgressWidth(pallet.scanProgress)
+                          "
+                        ></div>
+                      </div>
+
+                      <div class="card-info-row">
+                        <span class="info-label">Số lượng thùng:</span>
+                        <span class="info-value">{{ pallet.capacity }}</span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              } @else {
+                <div class="mobile-empty-state">
+                  <mat-icon>inbox</mat-icon>
+                  <p>Không có pallet chưa gửi</p>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Tab 2: Đã gửi -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">check_circle</mat-icon>
+            <span>Đã gửi</span>
+            <span class="badge badge-sent">{{ sentPallets().length }}</span>
+          </ng-template>
+
+          <div class="mobile-tab-content">
+            <!-- Pallet Cards -->
+            <div class="mobile-cards-container">
+              @if (sentPallets().length > 0) {
+                @for (
+                  pallet of sentPallets();
+                  track pallet.palletCode;
+                  let i = $index
+                ) {
+                  <div class="mobile-pallet-card sent">
+                    <div class="card-header">
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                      <span class="card-stt">#{{ i + 1 }}</span>
+                    </div>
+
+                    <div class="card-body">
+                      <div class="card-qr-section">
+                        <div class="qr-cell">
+                          <qrcode
+                            [qrdata]="pallet.palletCode?.trim() ?? ''"
+                            [width]="80"
+                            [errorCorrectionLevel]="'M'"
+                          >
+                          </qrcode>
+                        </div>
+                        <div class="qr-info">
+                          <div class="qr-label">Mã Pallet</div>
+                          <div class="qr-code">{{ pallet.palletCode }}</div>
+                        </div>
+                      </div>
+
+                      <div class="card-info-row">
+                        <span class="info-label">Tiến độ scan:</span>
+                        <span class="info-value">{{
+                          pallet.scanProgress
+                        }}</span>
+                      </div>
+
+                      <div class="mobile-progress-bar">
+                        <div
+                          class="progress-fill"
+                          [style.width]="
+                            computeProgressWidth(pallet.scanProgress)
+                          "
+                        ></div>
+                      </div>
+
+                      <div class="card-info-row">
+                        <span class="info-label">Số lượng thùng:</span>
+                        <span class="info-value">{{ pallet.capacity }}</span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              } @else {
+                <div class="mobile-empty-state">
+                  <mat-icon>inbox</mat-icon>
+                  <p>Chưa có pallet nào được gửi</p>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="dialog-footer">
+    <button mat-stroked-button (click)="close()">Đóng</button>
+    @if (selection.hasValue()) {
+      <button mat-flat-button class="send-wms-btn" (click)="sendApproval()">
+        <mat-icon>send</mat-icon>
+        Gửi {{ selection.selected.length }} Pallet
+      </button>
+    }
+  </div>
+</div>

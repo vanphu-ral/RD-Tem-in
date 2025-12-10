@@ -132,6 +132,19 @@
             </mat-form-field>
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label class="field-label">Ghi chú</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <textarea
+                matInput
+                formControlName="note"
+                placeholder="Nhập ghi chú..."
+                rows="2"
+              ></textarea>
+            </mat-form-field>
+          </div>
+        </div>
       </ng-container>
       <ng-container *ngIf="isBoxType && data.loaiSanPham === 'Bán thành phẩm'">
         <div class="form-row">
