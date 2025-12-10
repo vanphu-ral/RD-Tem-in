@@ -1,20 +1,26 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.domain.PalletInforDetail;
+import com.mycompany.myapp.domain.SerialBoxPalletMapping;
 import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
 import com.mycompany.myapp.repository.PalletInforDetailRepository;
 import com.mycompany.myapp.repository.WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.repository.partner3.Partner3PalletInforDetailRepository;
+import com.mycompany.myapp.repository.partner3.Partner3SerialBoxPalletMappingRepository;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.service.dto.CombinedPalletWarehouseDTO;
+import com.mycompany.myapp.service.dto.ListPalletInfoResponseDTO;
 import com.mycompany.myapp.service.dto.MaxSerialResponseDTO;
 import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
+import com.mycompany.myapp.service.dto.PalletWithBoxesDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.PalletInforDetailMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -46,13 +52,16 @@ public class PalletInforDetailService {
 
     private final WarehouseStampInfoDetailRepository mainWarehouseRepository;
 
+    private final Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository;
+
     public PalletInforDetailService(
         Partner3PalletInforDetailRepository palletInforDetailRepository,
         PalletInforDetailMapper palletInforDetailMapper,
         Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository,
         WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper,
         PalletInforDetailRepository mainPalletRepository,
-        WarehouseStampInfoDetailRepository mainWarehouseRepository
+        WarehouseStampInfoDetailRepository mainWarehouseRepository,
+        Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository
     ) {
         this.palletInforDetailRepository = palletInforDetailRepository;
         this.palletInforDetailMapper = palletInforDetailMapper;
@@ -61,6 +70,8 @@ public class PalletInforDetailService {
         this.warehouseStampInfoDetailMapper = warehouseStampInfoDetailMapper;
         this.mainPalletRepository = mainPalletRepository;
         this.mainWarehouseRepository = mainWarehouseRepository;
+        this.serialBoxPalletMappingRepository =
+            serialBoxPalletMappingRepository;
     }
 
     /**
@@ -408,5 +419,65 @@ public class PalletInforDetailService {
             warehouseStampInfoDetailRepository.findMaxReelIdStartingWith("B");
 
         return new MaxSerialResponseDTO(maxSerialPallet, maxSerialBox);
+    }
+
+    /**
+     * Get list of pallets with their associated boxes by work order code.
+     * Filters warehouse notes that are not deleted (deleted_by IS NULL).
+     *
+     * @param workOrderCode the work order code
+     * @return the response containing list of pallets with boxes
+     */
+    @Transactional(readOnly = true)
+    public ListPalletInfoResponseDTO getListPalletInfoDetailByWorkOrderCode(
+        String workOrderCode
+    ) {
+        LOG.debug(
+            "Request to get pallet info detail by work order code: {}",
+            workOrderCode
+        );
+
+        // Get all pallets for the work order code (from non-deleted warehouse notes)
+        List<PalletInforDetail> pallets =
+            palletInforDetailRepository.findByWorkOrderCode(workOrderCode);
+
+        // Build the response with pallets and their boxes
+        List<PalletWithBoxesDTO> palletWithBoxesList = pallets
+            .stream()
+            .map(pallet -> {
+                // Convert pallet to DTO
+                PalletInforDetailDTO palletDTO = palletInforDetailMapper.toDto(
+                    pallet
+                );
+
+                // Get all box mappings for this pallet
+                List<SerialBoxPalletMapping> mappings =
+                    serialBoxPalletMappingRepository.findBySerialPallet(
+                        pallet.getSerialPallet()
+                    );
+
+                // Get the serial_box values from mappings
+                List<String> serialBoxes = mappings
+                    .stream()
+                    .map(SerialBoxPalletMapping::getSerialBox)
+                    .collect(Collectors.toList());
+
+                // Get box details from warehouse_note_info_detail using reel_id (serial_box)
+                List<WarehouseStampInfoDetailDTO> boxList = new ArrayList<>();
+                for (String serialBox : serialBoxes) {
+                    warehouseStampInfoDetailRepository
+                        .findByReelId(serialBox)
+                        .ifPresent(box ->
+                            boxList.add(
+                                warehouseStampInfoDetailMapper.toDto(box)
+                            )
+                        );
+                }
+
+                return new PalletWithBoxesDTO(palletDTO, boxList);
+            })
+            .collect(Collectors.toList());
+
+        return new ListPalletInfoResponseDTO(palletWithBoxesList);
     }
 }

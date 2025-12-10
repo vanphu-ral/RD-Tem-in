@@ -26,6 +26,25 @@ public interface Partner3PalletInforDetailRepository
     List<PalletInforDetail> findByMaLenhSanXuatId(Long maLenhSanXuatId);
 
     /**
+     * Find all PalletInforDetail by work order code.
+     * This method finds pallets from warehouse notes that match the work order code
+     * and are not deleted (deleted_by IS NULL).
+     *
+     * @param workOrderCode the work order code
+     * @return the list of PalletInforDetail
+     */
+    @Query(
+        "SELECT p FROM PalletInforDetail p " +
+        "WHERE p.maLenhSanXuatId IN (" +
+        "  SELECT w.id FROM WarehouseNoteInfo w " +
+        "  WHERE w.workOrderCode = :workOrderCode AND w.deletedBy IS NULL" +
+        ")"
+    )
+    List<PalletInforDetail> findByWorkOrderCode(
+        @Param("workOrderCode") String workOrderCode
+    );
+
+    /**
      * Find the serial_pallet with the max ID.
      *
      * @param prefix the prefix (not used, kept for compatibility)

@@ -1,7 +1,9 @@
 package com.mycompany.myapp.web.rest;
 
+import com.mycompany.myapp.service.PalletInforDetailService;
 import com.mycompany.myapp.service.Partner3WarehouseStampInfoService;
 import com.mycompany.myapp.service.WarehouseStampInfoService;
+import com.mycompany.myapp.service.dto.ListPalletInfoResponseDTO;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoWithChildrenDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
@@ -46,14 +48,17 @@ public class WarehouseNoteInfoResource {
 
     private final Partner3WarehouseStampInfoService partner3WarehouseStampInfoService;
     private final WarehouseStampInfoService warehouseStampInfoService;
+    private final PalletInforDetailService palletInforDetailService;
 
     public WarehouseNoteInfoResource(
         Partner3WarehouseStampInfoService partner3WarehouseStampInfoService,
-        WarehouseStampInfoService warehouseStampInfoService
+        WarehouseStampInfoService warehouseStampInfoService,
+        PalletInforDetailService palletInforDetailService
     ) {
         this.partner3WarehouseStampInfoService =
             partner3WarehouseStampInfoService;
         this.warehouseStampInfoService = warehouseStampInfoService;
+        this.palletInforDetailService = palletInforDetailService;
     }
 
     /**
@@ -431,5 +436,32 @@ public class WarehouseNoteInfoResource {
                 workOrderCode
             );
         return ResponseEntity.ok().body(warehouseStampInfoDTOs);
+    }
+
+    /**
+     * {@code GET /warehouse-note-infos/list-pallet-info-detail/{workOrderCode}} :
+     * get
+     * list of pallets with their associated boxes by workOrderCode.
+     * Filters warehouse notes that are not deleted (deleted_by IS NULL).
+     *
+     * @param workOrderCode the workOrderCode to filter by.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the
+     *         response containing list of pallets with boxes.
+     */
+    @GetMapping("/warehouse-note-infos/list-pallet-info-detail/{workOrderCode}")
+    public ResponseEntity<
+        ListPalletInfoResponseDTO
+    > getListPalletInfoDetailByWorkOrderCode(
+        @PathVariable String workOrderCode
+    ) {
+        log.debug(
+            "REST request to get list of pallet info detail by workOrderCode : {}",
+            workOrderCode
+        );
+        ListPalletInfoResponseDTO response =
+            palletInforDetailService.getListPalletInfoDetailByWorkOrderCode(
+                workOrderCode
+            );
+        return ResponseEntity.ok().body(response);
     }
 }

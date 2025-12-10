@@ -31,7 +31,6 @@ public class WarehouseNoteInfoWithChildrenDTO implements Serializable {
         WarehouseStampInfoDTO warehouseNoteInfo,
         List<WarehouseStampInfoDetailDTO> warehouseNoteInfoDetails,
         List<SerialBoxPalletMappingDTO> serialBoxPalletMappings,
-        List<GenTemConfigDTO> genNoteConfigs,
         List<PalletInforDetailDTO> palletInforDetails
     ) {
         this.warehouseNoteInfo = warehouseNoteInfo;

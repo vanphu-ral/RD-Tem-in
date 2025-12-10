@@ -289,14 +289,6 @@ public class WarehouseStampInfoService {
                         .map(serialBoxPalletMappingMapper::toDto)
                         .collect(Collectors.toList());
 
-                // Fetch and map gen_note_config
-                List<GenTemConfig> genConfigs =
-                    genTemConfigRepository.findByMaLenhSanXuatId(id);
-                List<GenTemConfigDTO> genConfigDTOs = genConfigs
-                    .stream()
-                    .map(genTemConfigMapper::toDto)
-                    .collect(Collectors.toList());
-
                 // Fetch and map pallet_infor_detail
                 List<PalletInforDetail> palletDetails =
                     palletInforDetailRepository.findByMaLenhSanXuatId(id);
@@ -310,7 +302,6 @@ public class WarehouseStampInfoService {
                     parentDTO,
                     detailDTOs,
                     serialMappingDTOs,
-                    genConfigDTOs,
                     palletDetailDTOs
                 );
             });
