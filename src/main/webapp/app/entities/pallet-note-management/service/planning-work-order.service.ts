@@ -41,6 +41,7 @@ export interface WarehouseNotePayload {
   comment_2?: string;
   approver_by?: string;
   branch?: string;
+  lot_number?: string;
   product_type: string;
   destination_warehouse: number;
 }

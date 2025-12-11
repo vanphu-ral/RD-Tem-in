@@ -129,7 +129,7 @@ export class CreateDialogComponent {
     const currentUser = this.accountService.isAuthenticated()
       ? this.accountService["userIdentity"]?.login
       : "unknown";
-
+    const defaults = (this.data as any).defaults as PalletFormData | undefined;
     if (this.isBoxType) {
       const expectedMaSanPham = this.data.maSanPham ?? "";
       const formGroup = this.fb.group({
@@ -198,15 +198,15 @@ export class CreateDialogComponent {
             this.matchTenSanPhamValidator(expectedTenSanPham),
           ],
         ],
-        khachHang: [""],
-        poNumber: [""],
-        dateCode: [""],
-        qdsx: [""],
-        nguoiKiemTra: [currentUser],
-        ketQuaKiemTra: ["Đạt"],
-        note: [""],
+        khachHang: [defaults?.khachHang ?? ""],
+        poNumber: [defaults?.poNumber ?? ""],
+        dateCode: [defaults?.dateCode ?? ""],
+        qdsx: [defaults?.qdsx ?? ""],
+        nguoiKiemTra: [defaults?.nguoiKiemTra ?? currentUser],
+        ketQuaKiemTra: [defaults?.ketQuaKiemTra ?? "Đạt"],
+        note: [defaults?.note ?? ""],
         qtyPerBox: [
-          1,
+          defaults?.qtyPerBox ?? 1,
           [
             Validators.required,
             Validators.min(1),
@@ -215,7 +215,7 @@ export class CreateDialogComponent {
           ],
         ],
         soLuongThungScan: [
-          1,
+          defaults?.soLuongThungScan ?? 1,
           [
             Validators.required,
             Validators.min(1),
@@ -224,7 +224,7 @@ export class CreateDialogComponent {
           ],
         ],
         soLuongThungThucTe: [
-          1,
+          defaults?.soLuongThungThucTe ?? 1,
           [
             Validators.required,
             Validators.min(1),
@@ -233,7 +233,7 @@ export class CreateDialogComponent {
           ],
         ],
         soLuongPallet: [
-          1,
+          defaults?.soLuongPallet ?? 1,
           [
             Validators.required,
             Validators.min(1),
@@ -241,7 +241,7 @@ export class CreateDialogComponent {
             Validators.pattern(/^[1-9][0-9]{0,4}$/),
           ],
         ],
-        noSKU: [""],
+        noSKU: [defaults?.noSKU ?? ""],
       });
     }
   }

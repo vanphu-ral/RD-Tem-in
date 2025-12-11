@@ -75,8 +75,11 @@ interface ProductionOrder {
   toRaw?: string; // groupCode từ search (raw)
   // các mã sau khi map từ hierarchy
   xuong?: string; // workshop_code (VD: '01')
+  xuongId?: string; // workshop id (VD: '1')
   nganh?: string; // branch_code (VD: 'DTTD')
+  nganhId?: string; // branch id (VD: '5')
   to?: string;
+  toId?: string; // team id (VD: '1')
   tongSoLuong: number;
   trangThai: string;
   loaiSanPham: string;
@@ -97,7 +100,7 @@ export interface WarehouseNoteInfo {
   trang_thai: string;
   group_name: string;
   branch: string;
-  lotNumber?: string;
+  lot_number?: string;
   product_type: string;
 }
 export interface ReelData {
@@ -380,8 +383,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   mappings: any[] = [];
   pallets: any[] = [];
   isLoadingProgress: { [maPallet: string]: boolean } = {};
-
+  lastPalletForm: PalletFormData | null = null;
   isDetail = false;
+  private hierarchyCache: any[] = [];
   //log
   constructor(
     private dialog: MatDialog,
@@ -396,10 +400,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     protected lenhSanXuatService: LenhSanXuatService,
   ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.selectedTabIndex = 0;
     this.isMobile = window.innerWidth < 768;
     this.isDetail = false;
+    await this.loadHierarchyCache();
 
     const id = this.route.snapshot.params["id"];
     if (id) {
@@ -407,78 +412,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.route.data.subscribe((data) => {
         const response = data["lenhSanXuat"] as WarehouseNoteResponse;
         if (response) {
-          this.warehouseNoteInfo = response.warehouse_note_info;
-          this.details = (response.warehouse_note_info_details ??
-            []) as ReelData[];
-          this.mappings = response.serial_box_pallet_mappings ?? [];
-          this.pallets = (response.pallet_infor_details ?? []) as PalletItem[];
-
-          this.maLenhSanXuatId = this.warehouseNoteInfo.id;
-
-          this.productionOrders = [
-            {
-              id: this.warehouseNoteInfo.id,
-              maLenhSanXuat: this.warehouseNoteInfo.ma_lenh_san_xuat,
-              maSAP: this.warehouseNoteInfo.sap_code,
-              tenHangHoa: this.warehouseNoteInfo.sap_name,
-              maWO: this.warehouseNoteInfo.work_order_code,
-              version: this.warehouseNoteInfo.version,
-              maKhoNhap: this.warehouseNoteInfo.storage_code,
-              tongSoLuong: this.warehouseNoteInfo.total_quantity,
-              trangThai: this.warehouseNoteInfo.trang_thai,
-              loaiSanPham: this.warehouseNoteInfo.product_type,
-              nganh: this.warehouseNoteInfo.branch,
-              to: this.warehouseNoteInfo.group_name,
-              woId: this.warehouseNoteInfo.work_order_code,
-              lotNumber: this.warehouseNoteInfo.lotNumber,
-            },
-          ];
-          this.isThanhPham =
-            this.productionOrders[0]?.loaiSanPham === "Thành phẩm";
-
-          if (this.details && this.details.length > 0) {
-            if (this.warehouseNoteInfo.product_type === "Thành phẩm") {
-              this.boxItems = this.mapDetailsToBoxItems(this.details);
-              const total = this.boxItems.reduce(
-                (sum, b) => sum + (b.soLuongSp ?? 0),
-                0,
-              );
-              this.productionOrders[0].tongSoLuong = total;
-              this.computeBoxSummary();
-            } else if (
-              this.warehouseNoteInfo.product_type === "Bán thành phẩm"
-            ) {
-              this.reelDataList = this.mapDetailsToReelData(this.details);
-              const total = this.reelDataList.reduce(
-                (sum, r) => sum + (r.initialQuantity ?? 0),
-                0,
-              );
-              this.productionOrders[0].tongSoLuong = total;
-            }
-          }
-
-          if (this.pallets && this.pallets.length > 0) {
-            this.palletItems = this.mapPalletsToPalletItems(this.pallets).map(
-              (p) => ({
-                ...p,
-                maLenhSanXuatId: this.maLenhSanXuatId,
-              }),
-            );
-            this.computePalletSummary();
-          }
-
-          const loai = this.productionOrders[0]?.loaiSanPham;
-          if (loai === "Thành phẩm") {
-            this.showThungTab = true;
-            this.showPalletTab = true;
-            this.showTemBtpTab = false;
-            this.loadMaKhoNhapOptionsTP();
-            this.computePalletSummary();
-          } else if (loai === "Bán thành phẩm") {
-            this.showTemBtpTab = true;
-            this.showPalletTab = true;
-            this.showThungTab = false;
-          }
+          console.log(
+            "[ngOnInit] Got warehouse note response, calling handleExistingWarehouseNote",
+          );
+          this.handleExistingWarehouseNote(response);
         }
       });
     } else {
@@ -1221,9 +1158,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   // Mở dialog tạo pallet
   openCreatePalletDialog(): void {
-    const dialogData: DialogData = {
+    const dialogData: DialogData & { defaults?: PalletFormData } = {
       type: "pallet",
       tenSanPham: this.productionOrders[0]?.tenHangHoa,
+      defaults: this.lastPalletForm ?? undefined,
     };
 
     const dialogRef = this.dialog.open(CreateDialogComponent, {
@@ -1238,9 +1176,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       if (result && result.type === "pallet") {
         const palletData = result.data as PalletFormData;
         this.handlePalletCreation(palletData);
+        this.lastPalletForm = palletData; // lưu cho lần mở sau
       }
     });
   }
+
   //detail pallet
   openPalletDetailDialog(pallet: PalletItem): void {
     // Extract valid reel IDs from box items (the actual box serials)
@@ -1586,6 +1526,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         create_by: currentUser ?? "",
         trang_thai: order.trangThai,
         group_name: order.to,
+        lot_number: order.lotNumber,
         comment_2: comment2,
         approver_by: currentUser ?? "",
         branch: order.nganh,
@@ -1992,7 +1933,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         }
       }
     }
-
+    if (this.lastPalletForm) {
+      this.persistPalletDefaults(this.lastPalletForm);
+    }
     // Box/Tem payload - CHỈ lưu box/tem CHƯA tồn tại
     let warehouse_note_info_detail: any[] = [];
 
@@ -2326,191 +2269,360 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   // map mã ngành tổ
   private resolveCodesFromHierarchy(
     workshops: any[],
-    branchCodeRaw?: string,
-    teamCodeRaw?: string,
-  ): { xuong?: string; nganh?: string; to?: string } {
-    console.log(" Searching for:", {
-      branchCodeRaw,
-      teamCodeRaw,
+    branchInput?: string,
+    teamInput?: string,
+  ): {
+    xuong?: string;
+    xuongId?: string;
+    nganh?: string;
+    nganhId?: string;
+    to?: string;
+    toId?: string;
+  } {
+    const normalize = (s?: string): string =>
+      (s ?? "").toString().trim().toUpperCase().replace(/\s+/g, " ");
+
+    const normalizeCompact = (s?: string): string =>
+      (s ?? "").toString().trim().toUpperCase().replace(/\s+/g, "");
+
+    const stripTeamPrefix = (s?: string): string =>
+      (s ?? "")
+        .toString()
+        .trim()
+        .replace(/^(TỔ|TO)\s+/i, "")
+        .replace(/\s+/g, " ");
+
+    console.log("[resolveCodesFromHierarchy] raw inputs:", {
+      branchInput,
+      teamInput,
     });
 
-    // ===== DUYỆT QUA TẤT CẢ WORKSHOP =====
+    if (!workshops || workshops.length === 0) {
+      console.warn("[resolveCodesFromHierarchy] No workshops data available");
+      return {
+        xuong: "01",
+        xuongId: "01",
+        nganh: branchInput ?? "",
+        nganhId: "01",
+        to: teamInput ?? "",
+        toId: "01",
+      };
+    }
+
+    const branchNorm = normalize(branchInput);
+    const branchNormCompact = normalizeCompact(branchInput);
+    const teamNorm = normalize(stripTeamPrefix(teamInput));
+    const teamNormCompact = normalizeCompact(stripTeamPrefix(teamInput));
+
+    console.log("[resolveCodesFromHierarchy] normalized:", {
+      branchNorm,
+      branchNormCompact,
+      teamNorm,
+      teamNormCompact,
+    });
+
     for (const ws of workshops) {
-      console.log("Checking workshop:", ws.workshop_code);
+      console.log(
+        "Workshop:",
+        ws.workShopName,
+        "| code:",
+        ws.workshopCode,
+        "| id:",
+        ws.id,
+      );
+
+      if (!ws.branchs || ws.branchs.length === 0) {
+        continue;
+      }
 
       for (const br of ws.branchs) {
-        console.log("Checking branch:", br.branch_code, "vs", branchCodeRaw);
+        const brCode = (br.branchCode ?? "").toString().trim();
+        const brName = (br.branchName ?? "").toString().trim();
 
-        // ===== SO SÁNH BRANCH CODE (trim để tránh lỗi space) =====
-        if (br.branch_code?.trim() === branchCodeRaw?.trim()) {
-          console.log("Found matching branch!");
+        const brCodeNorm = normalize(brCode);
+        const brCodeCompact = normalizeCompact(brCode);
+        const brNameNorm = normalize(brName);
+        const brNameCompact = normalizeCompact(brName);
 
-          let toCode: string | undefined;
+        console.log("Checking branch:", {
+          brCode,
+          brName,
+          brCodeNorm,
+          brNameNorm,
+        });
 
-          // ===== TÌM TỔ TRONG BRANCH NÀY =====
-          if (teamCodeRaw) {
-            console.log(" Searching for team:", teamCodeRaw);
-            console.log(" Available teams:", br.production_teams);
+        const branchMatched =
+          (branchNorm &&
+            (brCodeNorm === branchNorm || brNameNorm === branchNorm)) ||
+          (branchNormCompact &&
+            (brCodeCompact === branchNormCompact ||
+              brNameCompact === branchNormCompact)) ||
+          (branchNorm &&
+            (brCodeNorm.includes(branchNorm) ||
+              brNameNorm.includes(branchNorm))) ||
+          (branchNormCompact &&
+            (brCodeCompact.includes(branchNormCompact) ||
+              brNameCompact.includes(branchNormCompact)));
 
-            const team = br.production_teams?.find((t: any) => {
-              const nameMatch =
-                t.production_team_name?.trim() === teamCodeRaw?.trim();
-              const codeMatch =
-                t.production_team_code?.trim() === teamCodeRaw?.trim();
+        if (!branchMatched) {
+          continue;
+        }
 
-              console.log("Team check:", {
-                teamName: t.production_team_name,
-                teamCode: t.production_team_code,
-                nameMatch,
-                codeMatch,
-              });
+        console.log("[resolveCodesFromHierarchy] Found branch match:", {
+          brCode,
+          brName,
+        });
 
-              return nameMatch || codeMatch;
-            });
+        const xuong = ws.workshopCode ?? "01";
+        const xuongId = String(ws.id ?? "01").padStart(2, "0");
+        const nganh = br.branchCode ?? br.branchName ?? branchInput ?? "";
+        const nganhId = String(br.id ?? "01").padStart(2, "0");
 
-            if (team) {
-              toCode = team.production_team_code;
-              console.log("Found matching team:", toCode);
-            } else {
-              console.log("Team not found, using raw value");
-              toCode = teamCodeRaw; // Fallback: dùng giá trị thô
+        let toCode: string | undefined;
+        let toId: string | undefined;
+
+        if (
+          br.productionTeams &&
+          br.productionTeams.length > 0 &&
+          (teamNorm || teamNormCompact)
+        ) {
+          for (const team of br.productionTeams) {
+            const tCode = (team.productionTeamCode ?? "").toString().trim();
+            const tName = (team.productionTeamName ?? "").toString().trim();
+
+            const tCodeNorm = normalize(tCode);
+            const tCodeCompact = normalizeCompact(tCode);
+            const tNameNorm = normalize(tName);
+            const tNameCompact = normalizeCompact(tName);
+
+            const teamMatched =
+              (teamNorm &&
+                (tCodeNorm === teamNorm || tNameNorm === teamNorm)) ||
+              (teamNormCompact &&
+                (tCodeCompact === teamNormCompact ||
+                  tNameCompact === teamNormCompact)) ||
+              (teamNorm &&
+                (tCodeNorm.includes(teamNorm) ||
+                  tNameNorm.includes(teamNorm))) ||
+              (teamNormCompact &&
+                (tCodeCompact.includes(teamNormCompact) ||
+                  tNameCompact.includes(teamNormCompact)));
+
+            console.log("Checking team:", { tCode, tName, teamMatched });
+
+            if (teamMatched) {
+              toCode = tCode || tName;
+              toId = String(team.id ?? "01").padStart(2, "0");
+              break;
             }
           }
-
-          // ===== RETURN KẾT QUẢ =====
-          const result = {
-            xuong: ws.workshop_code,
-            nganh: br.branch_code,
-            to: toCode ?? teamCodeRaw,
-          };
-
-          console.log("Returning:", result);
-          return result;
         }
+
+        if (!toId) {
+          toCode = stripTeamPrefix(teamInput) ?? "";
+          toId = "01";
+          console.log(
+            "[resolveCodesFromHierarchy] Team not found, fallback to:",
+            { toCode, toId },
+          );
+        }
+
+        const result = {
+          xuong,
+          xuongId,
+          nganh,
+          nganhId,
+          to: (toCode ?? "").toString().replace(/\s+/g, ""),
+          toId,
+        };
+
+        console.log("[resolveCodesFromHierarchy] result:", result);
+        return result;
       }
     }
 
-    console.log(" No match found in hierarchy, using raw values");
-
+    console.log(
+      "[resolveCodesFromHierarchy] No match found, returning defaults",
+    );
     return {
-      xuong: undefined,
-      nganh: branchCodeRaw,
-      to: teamCodeRaw,
+      xuong: "01",
+      xuongId: "01",
+      nganh: branchInput ?? "",
+      nganhId: "01",
+      to: (stripTeamPrefix(teamInput) ?? "").replace(/\s+/g, ""),
+      toId: "01",
     };
   }
 
   // Xử lý tạo thùng
   private handleBoxCreation(data: BoxFormData, woId: string): void {
     this.loadingBox = true;
-    console.log("[handleBoxCreation] start", { woId, form: data });
+    console.log("[handleBoxCreation] start (use warehouse_note_info)", {
+      woId,
+      form: data,
+    });
 
-    this.planningService.search(woId).subscribe({
-      next: (res) => {
-        const order = res.content[0];
-        if (!order) {
-          console.warn("[handleBoxCreation] no order found for woId", woId);
-          this.loadingBox = false;
-          return;
+    // Tìm production order đã lưu (được load từ warehouse_note_info)
+    const prodOrder = this.productionOrders.find(
+      (po) =>
+        po.maLenhSanXuat === woId || po.maWO === woId || po.id === Number(woId),
+    );
+
+    if (!prodOrder) {
+      console.warn(
+        "[handleBoxCreation] No production order found in memory for woId",
+        woId,
+      );
+      this.snackBar.open(
+        "Không tìm thấy lệnh sản xuất trong dữ liệu đã load",
+        "Đóng",
+        { duration: 3000 },
+      );
+      this.loadingBox = false;
+      return;
+    }
+
+    try {
+      const tongSoLuongSp = data.soLuongTrongThung * data.soLuongThung;
+      const baseIndex = this.boxItems.length + 1;
+
+      // Lấy id đã map (ưu tiên xuongId/nganhId/toId). Nếu thiếu, cố resolve từ hierarchyCache.
+      let xuongId = prodOrder.xuongId ?? "";
+      let nganhId = prodOrder.nganhId ?? "";
+      let toId = prodOrder.toId ?? "";
+
+      // Nếu thiếu bất kỳ id nào, cố resolve từ hierarchyCache bằng nganhRaw / toRaw / branch/group
+      // Thay thế đoạn hiện tại bằng logic này
+      const pickId = (
+        current?: string,
+        mappedValue?: string,
+        fallback = "01",
+      ): string => {
+        // Nếu current là chuỗi có nội dung -> dùng current
+        if (current && current.toString().trim() !== "") {
+          return current.toString().trim();
         }
+        // Nếu mappedValue có nội dung -> dùng mappedValue
+        if (mappedValue && mappedValue.toString().trim() !== "") {
+          return mappedValue.toString().trim();
+        }
+        // fallback
+        return fallback;
+      };
 
-        const tongSoLuongSp = data.soLuongTrongThung * data.soLuongThung;
-        const prodOrder = this.productionOrders.find(
-          (po) => po.maLenhSanXuat === woId,
+      if (
+        (!xuongId || !nganhId || !toId) &&
+        this.hierarchyCache &&
+        this.hierarchyCache.length > 0
+      ) {
+        const branchInput =
+          prodOrder.nganhRaw ??
+          prodOrder.nganh ??
+          this.warehouseNoteInfo?.branch ??
+          this.warehouseNoteInfo?.group_name ??
+          "";
+        const teamInput = prodOrder.toRaw ?? prodOrder.to ?? "";
+        const mapped = this.resolveCodesFromHierarchy(
+          this.hierarchyCache,
+          branchInput,
+          teamInput,
         );
 
-        let maSanPham = order.productCode;
-        if (prodOrder?.loaiSanPham === "Thành phẩm") {
-          maSanPham = `LED${order.productCode}`;
-        }
+        xuongId = pickId(xuongId, mapped.xuongId, "01");
+        nganhId = pickId(nganhId, mapped.nganhId, "01");
+        toId = pickId(toId, mapped.toId, "01");
 
-        const baseIndex = this.boxItems.length + 1;
-        const xuong = prodOrder?.xuong ?? "01";
-        const nganh = prodOrder?.nganh ?? "01";
-        const to = prodOrder?.to ?? "";
-        const now = new Date().toISOString();
-        const selectedStorage = prodOrder?.maKhoNhap ?? "RD";
-
-        console.log("[handleBoxCreation] timestamp for this creation:", now);
-        console.log("[handleBoxCreation] baseIndex/xuong/nganh/to", {
-          baseIndex,
-          xuong,
-          nganh,
-          to,
+        console.log("[handleBoxCreation] resolved ids from cache:", {
+          xuongId,
+          nganhId,
+          toId,
+          mapped,
         });
+      }
 
-        // Tạo subItems với serial unique cho từng thùng
-        const subItems: BoxSubItem[] = [];
-        for (let i = 1; i <= data.soLuongThung; i++) {
-          const boxIndex = baseIndex + (i - 1);
-          const maThung = this.generateBoxCode(boxIndex, xuong, nganh, to);
+      // Sau khi có giá trị cuối cùng, chuẩn hóa thành 2 chữ số
+      xuongId = String(xuongId ?? "01")
+        .trim()
+        .padStart(2, "0");
+      nganhId = String(nganhId ?? "01")
+        .trim()
+        .padStart(2, "0");
+      toId = String(toId ?? "01")
+        .trim()
+        .padStart(2, "0");
 
-          const subItem: BoxSubItem = {
-            stt: i,
-            maThung,
-            soLuong: data.soLuongTrongThung,
-            note: data.note,
-            createdAt: now,
-          };
+      console.log("[handleBoxCreation] IDs for box generation (final):", {
+        baseIndex,
+        xuongId,
+        nganhId,
+        toId,
+        prodOrder: {
+          xuong: prodOrder.xuong,
+          nganh: prodOrder.nganh,
+          to: prodOrder.to,
+          nganhRaw: prodOrder.nganhRaw,
+          toRaw: prodOrder.toRaw,
+        },
+      });
 
-          subItems.push(subItem);
-        }
+      const now = new Date().toISOString();
+      const selectedStorage = prodOrder.maKhoNhap ?? "RD";
 
-        console.log("[handleBoxCreation] created subItems:", subItems);
+      // Tạo subItems với serial unique cho từng thùng
+      const subItems: BoxSubItem[] = [];
+      for (let i = 1; i <= data.soLuongThung; i++) {
+        const boxIndex = baseIndex + (i - 1);
+        const maThung = this.generateBoxCode(boxIndex, xuongId, nganhId, toId);
 
-        const newBox: BoxItem = {
-          stt: baseIndex,
-          maSanPham,
-          lotNumber: order.lotNumber,
-          version: order.bomVersion,
-          vendor: order.productOrderId,
-          tenSanPham: order.productName,
-          soLuongThung: data.soLuongThung,
-          soLuongSp: tongSoLuongSp,
-          soLuongTrongThung: data.soLuongTrongThung,
-          ghiChu: data.note ?? "",
-          kho: selectedStorage,
-          trangThaiIn: false,
-          serialBox: this.generateBoxCode(baseIndex, xuong, nganh, to),
-          subItems,
+        const subItem: BoxSubItem = {
+          stt: i,
+          maThung,
+          soLuong: data.soLuongTrongThung,
+          note: data.note,
           createdAt: now,
         };
 
-        console.log("[handleBoxCreation] newBox to push:", newBox);
+        subItems.push(subItem);
+      }
 
-        this.boxItems = [...this.boxItems, newBox];
+      console.log("[handleBoxCreation] created subItems:", subItems);
 
-        console.log(
-          "[handleBoxCreation] boxItems after push (count):",
-          this.boxItems.length,
-        );
-        this.boxItems.forEach((b, idx) => {
-          console.log(
-            `  boxItems[${idx}] createdAt:`,
-            b.createdAt,
-            "serialBox:",
-            b.serialBox,
-          );
-        });
+      const newBox: BoxItem = {
+        stt: baseIndex,
+        maSanPham: prodOrder.maSAP ?? prodOrder.maLenhSanXuat ?? "",
+        lotNumber: prodOrder.lotNumber ?? "",
+        version: prodOrder.version ?? "",
+        vendor: "", // nếu cần gán vendor từ prodOrder, thêm ở đây
+        tenSanPham: prodOrder.tenHangHoa ?? "",
+        soLuongThung: data.soLuongThung,
+        soLuongSp: tongSoLuongSp,
+        soLuongTrongThung: data.soLuongTrongThung,
+        ghiChu: data.note ?? "",
+        kho: selectedStorage,
+        trangThaiIn: false,
+        serialBox: this.generateBoxCode(baseIndex, xuongId, nganhId, toId),
+        subItems,
+        createdAt: now,
+      };
 
-        this.updateProductionOrderTotal();
-        this.goToBoxTab();
-      },
-      error: (err) => {
-        console.error("[handleBoxCreation] planningService.search error", err);
-        this.loadingBox = false;
-      },
-      complete: () => {
-        this.loadingBox = false;
-        console.log("[handleBoxCreation] complete, loadingBox set false");
-      },
-    });
+      console.log("[handleBoxCreation] newBox to push:", newBox);
+
+      this.boxItems = [...this.boxItems, newBox];
+      this.updateProductionOrderTotal();
+      this.goToBoxTab();
+    } catch (err) {
+      console.error("[handleBoxCreation] error", err);
+      this.snackBar.open("Lỗi khi tạo thùng", "Đóng", { duration: 3000 });
+    } finally {
+      this.loadingBox = false;
+    }
   }
 
   private generateBoxCode(
     index: number,
-    xuong?: string,
-    nganh?: string,
-    to?: string,
+    xuongId?: string,
+    nganhId?: string,
+    toId?: string,
   ): string {
     const date = new Date();
     const year = date.getFullYear();
@@ -2521,12 +2633,25 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const seconds = String(date.getSeconds()).padStart(2, "0");
     const sequence = String(index).padStart(4, "0");
 
-    // Chỉ thêm phần mã khi có dữ liệu, tránh nhét '00' sai
-    const xuongPart = xuong ? xuong : "01"; // default xưởng nếu cần
-    const nganhPart = nganh ? nganh : ""; // để trống nếu chưa map
-    const toPart = to ? to : "";
+    // safePad có kiểu trả về rõ ràng : string
+    const safePad = (s?: string): string =>
+      s && s.toString().trim() !== ""
+        ? s.toString().trim().padStart(2, "0")
+        : "01";
 
-    return `B${xuongPart}${nganhPart}${toPart}${year}${month}${day}${hours}${minutes}${seconds}${sequence}`;
+    const xuongPart = safePad(xuongId);
+    const nganhPart = safePad(nganhId);
+    const toPart = safePad(toId);
+
+    const boxCode = `B${xuongPart}${nganhPart}${toPart}${year}${month}${day}${hours}${minutes}${sequence}`;
+
+    console.log("[generateBoxCode] Generated:", {
+      input: { index, xuongId, nganhId, toId },
+      parts: { xuongPart, nganhPart, toPart },
+      result: boxCode,
+    });
+
+    return boxCode;
   }
 
   // Xử lý tạo tem BTP
@@ -2799,7 +2924,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         grouped[key] = {
           stt: Object.keys(grouped).length + 1,
           maSanPham: d.sap_code || "", //  Lấy từ sap_code
-          lotNumber: d.lot || "",
+          lotNumber: d.lot_number || "",
           vendor: d.vendor || "",
           version: this.productionOrders[0]?.version ?? "",
           tenSanPham: d.sp_material_name || "", //  Lấy từ sp_material_name
@@ -3349,7 +3474,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         nganh: this.warehouseNoteInfo.branch,
         to: this.warehouseNoteInfo.group_name,
         woId: this.warehouseNoteInfo.work_order_code,
-        lotNumber: this.warehouseNoteInfo.lotNumber,
+        lotNumber: this.warehouseNoteInfo.lot_number,
       },
     ];
 
@@ -3437,66 +3562,114 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
       this.maLenhSanXuatId = this.warehouseNoteInfo.id;
 
-      this.productionOrders = [
-        {
-          id: this.warehouseNoteInfo.id,
-          maLenhSanXuat: this.warehouseNoteInfo.ma_lenh_san_xuat,
-          maSAP: this.warehouseNoteInfo.sap_code,
-          tenHangHoa: this.warehouseNoteInfo.sap_name,
-          maWO: this.warehouseNoteInfo.work_order_code,
-          version: this.warehouseNoteInfo.version,
-          maKhoNhap: this.warehouseNoteInfo.storage_code,
-          tongSoLuong: this.warehouseNoteInfo.total_quantity,
-          trangThai: this.warehouseNoteInfo.trang_thai,
-          loaiSanPham: this.warehouseNoteInfo.product_type,
-          nganh: this.warehouseNoteInfo.branch,
-          to: this.warehouseNoteInfo.group_name,
-          woId: this.warehouseNoteInfo.work_order_code,
-          lotNumber: this.warehouseNoteInfo.lotNumber,
-        },
-      ];
+      // Lấy tên ngành và tổ từ warehouse_note_info
+      const branchCode = this.warehouseNoteInfo.branch?.trim();
+      const groupCode = this.warehouseNoteInfo.group_name?.trim();
 
-      this.isThanhPham = this.productionOrders[0]?.loaiSanPham === "Thành phẩm";
+      console.log("[handleExistingWarehouseNote] Branch & Group from API:", {
+        branchCode,
+        groupCode,
+      });
 
-      if (this.details && this.details.length > 0) {
-        if (this.warehouseNoteInfo.product_type === "Thành phẩm") {
-          this.boxItems = this.mapDetailsToBoxItems(this.details);
-          const total = this.boxItems.reduce(
-            (sum, b) => sum + (b.soLuongSp ?? 0),
-            0,
-          );
-          this.productionOrders[0].tongSoLuong = total;
-          this.computeBoxSummary();
-        } else if (this.warehouseNoteInfo.product_type === "Bán thành phẩm") {
-          this.reelDataList = this.mapDetailsToReelData(this.details);
-          const total = this.reelDataList.reduce(
-            (sum, r) => sum + (r.initialQuantity ?? 0),
-            0,
-          );
-          this.productionOrders[0].tongSoLuong = total;
-        }
-      }
-
-      if (this.pallets && this.pallets.length > 0) {
-        this.palletItems = this.mapPalletsToPalletItems(this.pallets).map(
-          (p) => ({
-            ...p,
-            maLenhSanXuatId: this.maLenhSanXuatId,
-          }),
+      // Hàm xử lý mapping
+      const processMapping = (workshops: any[]): void => {
+        const mapped = this.resolveCodesFromHierarchy(
+          workshops,
+          branchCode,
+          groupCode,
         );
-        this.computePalletSummary();
-      }
 
-      const loai = this.productionOrders[0]?.loaiSanPham;
-      if (loai === "Thành phẩm") {
-        this.showThungTab = true;
-        this.showPalletTab = true;
-        this.showTemBtpTab = false;
-        this.loadMaKhoNhapOptionsTP();
-      } else if (loai === "Bán thành phẩm") {
-        this.showTemBtpTab = true;
-        this.showPalletTab = true;
-        this.showThungTab = false;
+        console.log("[handleExistingWarehouseNote] Mapped codes:", mapped);
+
+        this.productionOrders = [
+          {
+            id: this.warehouseNoteInfo.id,
+            maLenhSanXuat: this.warehouseNoteInfo.ma_lenh_san_xuat,
+            maSAP: this.warehouseNoteInfo.sap_code,
+            tenHangHoa: this.warehouseNoteInfo.sap_name,
+            maWO: this.warehouseNoteInfo.work_order_code,
+            version: this.warehouseNoteInfo.version,
+            maKhoNhap: this.warehouseNoteInfo.storage_code,
+            tongSoLuong: this.warehouseNoteInfo.total_quantity,
+            trangThai: this.warehouseNoteInfo.trang_thai,
+            loaiSanPham: this.warehouseNoteInfo.product_type,
+            xuong: mapped.xuong,
+            xuongId: mapped.xuongId,
+            nganh: mapped.nganh,
+            nganhId: mapped.nganhId,
+            to: mapped.to,
+            toId: mapped.toId,
+            woId: this.warehouseNoteInfo.work_order_code,
+            lotNumber: this.warehouseNoteInfo.lot_number,
+          },
+        ];
+
+        console.log(
+          "[handleExistingWarehouseNote] Final productionOrders:",
+          this.productionOrders[0],
+        );
+
+        this.isThanhPham =
+          this.productionOrders[0]?.loaiSanPham === "Thành phẩm";
+
+        if (this.details && this.details.length > 0) {
+          if (this.warehouseNoteInfo.product_type === "Thành phẩm") {
+            this.boxItems = this.mapDetailsToBoxItems(this.details);
+            const total = this.boxItems.reduce(
+              (sum, b) => sum + (b.soLuongSp ?? 0),
+              0,
+            );
+            this.productionOrders[0].tongSoLuong = total;
+            this.computeBoxSummary();
+          } else if (this.warehouseNoteInfo.product_type === "Bán thành phẩm") {
+            this.reelDataList = this.mapDetailsToReelData(this.details);
+            const total = this.reelDataList.reduce(
+              (sum, r) => sum + (r.initialQuantity ?? 0),
+              0,
+            );
+            this.productionOrders[0].tongSoLuong = total;
+          }
+        }
+
+        if (this.pallets && this.pallets.length > 0) {
+          this.palletItems = this.mapPalletsToPalletItems(this.pallets).map(
+            (p) => ({
+              ...p,
+              maLenhSanXuatId: this.maLenhSanXuatId,
+            }),
+          );
+          this.computePalletSummary();
+        }
+
+        const loai = this.productionOrders[0]?.loaiSanPham;
+        if (loai === "Thành phẩm") {
+          this.showThungTab = true;
+          this.showPalletTab = true;
+          this.showTemBtpTab = false;
+          this.loadMaKhoNhapOptionsTP();
+        } else if (loai === "Bán thành phẩm") {
+          this.showTemBtpTab = true;
+          this.showPalletTab = true;
+          this.showThungTab = false;
+        }
+      };
+      if (this.hierarchyCache.length > 0) {
+        console.log("Using hierarchy cache");
+        processMapping(this.hierarchyCache);
+      } else {
+        console.log("Loading hierarchy from API");
+        this.planningService
+          .getHierarchy()
+          .pipe(
+            catchError((err) => {
+              console.error("Lỗi lấy hierarchy:", err);
+              return of([]);
+            }),
+          )
+          .subscribe((workshops) => {
+            this.hierarchyCache = workshops; // Cache for next time
+            processMapping(workshops);
+          });
       }
     }
   }
@@ -3517,51 +3690,75 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       nganhRaw: item.branchCode ?? "",
       toRaw: item.groupCode ?? "",
       xuong: "",
+      xuongId: "",
       nganh: "",
+      nganhId: "",
       to: "",
+      toId: "",
     }));
 
-    this.planningService
-      .getHierarchy()
-      .pipe(
-        catchError((err) => {
-          console.error("Lỗi lấy hierarchy:", err);
-          this.snackBar.open(
-            "Không lấy được thông tin xưởng/ngành/tổ",
-            "Đóng",
-            { duration: 3000 },
-          );
-          return of([] as any);
-        }),
-      )
-      .subscribe((workshops) => {
-        this.productionOrders = this.productionOrders.map((order) => {
-          const mapped = this.resolveCodesFromHierarchy(
-            workshops,
-            order.nganhRaw,
-            order.toRaw,
-          );
-          return {
-            ...order,
-            xuong: mapped.xuong ?? order.xuong,
-            nganh: mapped.nganh ?? order.nganh,
-            to: mapped.to ?? order.to,
-          };
-        });
-
-        const loai = this.productionOrders[0]?.loaiSanPham;
-        if (loai === "Thành phẩm") {
-          this.showThungTab = true;
-          this.showPalletTab = true;
-          this.showTemBtpTab = false;
-          this.loadMaKhoNhapOptionsTP();
-        } else if (loai === "Bán thành phẩm") {
-          this.showTemBtpTab = true;
-          this.showPalletTab = true;
-          this.showThungTab = false;
-        }
-        this.loading = false;
+    // Hàm xử lý mapping
+    const processMapping = (workshops: any[]): void => {
+      this.productionOrders = this.productionOrders.map((order) => {
+        const mapped = this.resolveCodesFromHierarchy(
+          workshops,
+          order.nganhRaw,
+          order.toRaw,
+        );
+        return {
+          ...order,
+          xuong: mapped.xuong ?? order.xuong,
+          xuongId: mapped.xuongId ?? order.xuongId,
+          nganh: mapped.nganh ?? order.nganh,
+          nganhId: mapped.nganhId ?? order.nganhId,
+          to: mapped.to ?? order.to,
+          toId: mapped.toId ?? order.toId,
+        };
       });
+
+      console.log(
+        "[handleNewProductionOrder] Final productionOrders:",
+        this.productionOrders[0],
+      );
+
+      const loai = this.productionOrders[0]?.loaiSanPham;
+      if (loai === "Thành phẩm") {
+        this.showThungTab = true;
+        this.showPalletTab = true;
+        this.showTemBtpTab = false;
+        this.loadMaKhoNhapOptionsTP();
+      } else if (loai === "Bán thành phẩm") {
+        this.showTemBtpTab = true;
+        this.showPalletTab = true;
+        this.showThungTab = false;
+      }
+      this.loading = false;
+    };
+
+    // Sử dụng cache nếu có, không thì gọi API
+    if (this.hierarchyCache.length > 0) {
+      console.log("Using hierarchy cache");
+      processMapping(this.hierarchyCache);
+    } else {
+      console.log("Loading hierarchy from API");
+      this.planningService
+        .getHierarchy()
+        .pipe(
+          catchError((err) => {
+            console.error("Lỗi lấy hierarchy:", err);
+            this.snackBar.open(
+              "Không lấy được thông tin xưởng/ngành/tổ",
+              "Đóng",
+              { duration: 3000 },
+            );
+            return of([]);
+          }),
+        )
+        .subscribe((workshops) => {
+          this.hierarchyCache = workshops; // Cache for next time
+          processMapping(workshops);
+        });
+    }
   }
   private async refreshPalletItemsBeforePrint(): Promise<void> {
     console.log("Refreshing pallet items before print...");
@@ -3593,5 +3790,50 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     await Promise.all(promises);
     console.log("All pallet items refreshed");
+  }
+  private loadHierarchyCache(): Promise<void> {
+    return new Promise((resolve) => {
+      this.planningService
+        .getHierarchy()
+        .pipe(
+          catchError((err) => {
+            console.error("Lỗi load hierarchy cache:", err);
+            return of([]);
+          }),
+        )
+        .subscribe(
+          (workshops) => {
+            this.hierarchyCache = workshops || [];
+            console.log("Hierarchy cache loaded:", this.hierarchyCache);
+            resolve();
+          },
+          () => {
+            // đảm bảo resolve trong mọi trường hợp
+            resolve();
+          },
+        );
+    });
+  }
+  // gọi sau khi lưu pallet thành công
+  private persistPalletDefaults(formValue: PalletFormData): void {
+    const defaults = {
+      khachHang: formValue.khachHang ?? "",
+      poNumber: formValue.poNumber ?? "",
+      dateCode: formValue.dateCode ?? "",
+      qdsx: formValue.qdsx ?? "",
+      nguoiKiemTra: formValue.nguoiKiemTra ?? "",
+      ketQuaKiemTra: formValue.ketQuaKiemTra ?? "Đạt",
+      qtyPerBox: formValue.qtyPerBox ?? 1,
+      soLuongThungScan: formValue.soLuongThungScan ?? 1,
+      soLuongThungThucTe: formValue.soLuongThungThucTe ?? 1,
+      soLuongPallet: formValue.soLuongPallet ?? 1,
+      noSKU: formValue.noSKU ?? "",
+      savedAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem("palletFormDefaults", JSON.stringify(defaults));
+    } catch (e) {
+      console.warn("Cannot save pallet defaults", e);
+    }
   }
 }
