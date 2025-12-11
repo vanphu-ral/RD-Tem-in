@@ -78,7 +78,9 @@ export interface PlanningWorkOrderResponse {
 export class PlanningWorkOrderService {
   private apiUrl =
     "http://192.168.10.99:9040/api/item-data/planning-work-orders";
-  private WMSUrl = "https://192.168.10.99:9030";
+  private WMSUrl = "http://192.168.10.99:9030";
+  private apiCheckIdentifyWo =
+    "http://192.168.10.99:9040/api/warehouse-note-infos/work-order-code";
 
   private baseUrl = environment.baseInTemApiUrl;
 
@@ -206,8 +208,38 @@ export class PlanningWorkOrderService {
 
   sendWmsApproval(payload: any): Observable<any> {
     return this.http.post<any>(
-      `${this.WMSUrl}/api/import-requirements`,
+      `${this.WMSUrl}/api/import-requirements/wms`,
       payload,
     );
+  }
+  //check identify
+  checkIdentifyWo(woId: string): Observable<any[]> {
+    // endpoint trả mảng ([]) nếu chưa tồn tại, hoặc mảng có object nếu đã tồn tại
+    return this.http.get<any[]>(
+      `${this.apiCheckIdentifyWo}/${encodeURIComponent(woId)}`,
+    );
+  }
+
+  //update status wms
+  updatePalletWmsStatus(
+    payload: Array<{
+      id: string | number;
+      wms_send_status: boolean;
+      updated_by: string;
+    }>,
+  ): Observable<any> {
+    return this.http.put(`${this.baseUrl}/pallet-infor-details`, payload);
+  }
+
+  //cập nhật trạng thái in
+  updatePalletPrintStatus(
+    payload: Array<{
+      id: number;
+      print_status: boolean;
+      updated_by: string;
+    }>,
+  ): Observable<any> {
+    const url = `${this.baseUrl}/pallet-infor-details`;
+    return this.http.put(url, payload);
   }
 }

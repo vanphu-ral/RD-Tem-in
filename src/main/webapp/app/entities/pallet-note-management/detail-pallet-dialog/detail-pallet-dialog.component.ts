@@ -24,6 +24,7 @@ import { finalize } from "rxjs";
 import { BoxDetailData } from "../detail-box-dialog/detail-box-dialog.component";
 
 export interface PalletDetailData {
+  id?: number;
   stt: number;
   tenSanPham: string;
   noSKU: string;
@@ -48,6 +49,7 @@ export interface PalletDetailData {
   validReelIds?: string[]; // Valid reel IDs for this production order
   tienDoScan?: number;
   scannedBoxes?: any;
+  printStatus?: boolean;
 }
 export interface PalletExcelRow {
   productionLine: string; // Production Line
@@ -432,6 +434,7 @@ export class PalletDetailDialogComponent implements OnInit {
     const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.thungScan}`;
 
     const printData: PrintPalletData = {
+      id: sourceData.id,
       khachHang: sourceData.khachHang ?? "N/A",
       serialPallet: item.maPallet,
       tenSanPham: sourceData.tenSanPham,
@@ -460,6 +463,7 @@ export class PalletDetailDialogComponent implements OnInit {
       lot: lotNumber || item.maPallet,
       date: new Date().toLocaleDateString("vi-VN"),
       scannedBoxes: item.scannedBoxes,
+      printStatus: sourceData.printStatus,
     };
 
     console.log("=== Print single pallet ===", printData);
@@ -527,6 +531,7 @@ export class PalletDetailDialogComponent implements OnInit {
       const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.thungScan}`;
 
       const printData: PrintPalletData = {
+        id: sourceData.id,
         khachHang: sourceData.khachHang ?? "N/A",
         serialPallet: item.maPallet,
         tenSanPham: sourceData.tenSanPham,
@@ -555,6 +560,7 @@ export class PalletDetailDialogComponent implements OnInit {
         lot: lotNumber || item.maPallet,
         date: new Date().toLocaleDateString("vi-VN"),
         scannedBoxes: item.scannedBoxes,
+        printStatus: sourceData.printStatus,
       };
 
       console.log(

@@ -1,0 +1,714 @@
+$primary-color: #2d74b6;
+$bg-color: #f3f4f6;
+$border-color: #e5e7eb;
+
+/* Layout chính */
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 90vh;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Header / Footer giữ nguyên kích thước */
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid $border-color;
+  background: white;
+
+  .title-section {
+    display: flex;
+    align-items: center;
+    color: $primary-color;
+
+    .title-icon {
+      margin-right: 8px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+  }
+}
+
+/* Nội dung chính: chia 2 vùng có thể cuộn độc lập */
+.dialog-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  padding: 16px;
+  background-color: #f9fafb;
+  overflow: hidden; /* ẩn overflow ở container, cho từng section cuộn */
+}
+.section-divider {
+  align-self: center;
+}
+/* Mỗi section-card sẽ có header cố định và body cuộn */
+.section-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  /* Chiều rộng: mỗi cột chiếm 50% - thay đổi flex nếu muốn tỉ lệ khác */
+  flex: 1 1 50%;
+  min-width: 280px; /* tránh quá nhỏ */
+  max-height: calc(90vh - 160px);
+
+  .section-header {
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid $border-color;
+    background: transparent;
+    // position: sticky;
+    // top: 0;
+    // z-index: 2;
+
+    .section-title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  /* Phần chứa bảng sẽ cuộn độc lập */
+  .table-container {
+    overflow: auto;
+    padding: 12px;
+    /* đảm bảo phần table không vượt quá vùng section */
+    flex: 1 1 auto;
+  }
+
+  &.pending-section {
+    flex: 1 1 50%;
+    .section-header {
+      background-color: #fff7ed;
+      border-bottom: 1px solid #ffedd5;
+
+      .status-dot {
+        background-color: #f97316;
+      }
+      .section-title {
+        color: #c2410c;
+      }
+    }
+  }
+
+  &.sent-section {
+    flex: 1 1 50%;
+    .section-header {
+      background-color: #f0fdf4;
+      border-bottom: 1px solid #dcfce7;
+
+      .status-dot {
+        background-color: #22c55e;
+      }
+      .section-title {
+        color: #15803d;
+      }
+    }
+  }
+}
+
+/* Table styling */
+.table-container {
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th.mat-header-cell {
+      background-color: #f9fafb;
+      color: #6b7280;
+      font-weight: 700;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 8px;
+      white-space: nowrap;
+    }
+
+    td.mat-cell {
+      font-size: 0.875rem;
+      color: #374151;
+      text-align: center;
+      padding: 8px;
+      border-bottom: 1px solid $bg-color;
+      white-space: nowrap;
+    }
+
+    tr.mat-row:hover {
+      background-color: #eff6ff;
+    }
+  }
+}
+
+/* Small visual tweaks */
+.qr-icon {
+  font-size: 28px;
+  color: #1f2937;
+}
+.pallet-code-label {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+.pallet-code-value {
+  font-weight: 500;
+}
+
+/* Progress bar: width được set inline từ component computeProgressWidth */
+.progress-cell {
+  width: 25%;
+  .progress-text {
+    font-size: 0.75rem;
+    color: #4b5563;
+    margin-bottom: 6px;
+  }
+  .progress-bar-bg {
+    width: 50%;
+    height: 6px;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+    .progress-bar-fill {
+      height: 100%;
+      background-color: $primary-color;
+      border-radius: 9999px;
+      transition: width 240ms ease;
+    }
+  }
+}
+
+/* Buttons */
+.button-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.send-wms-btn {
+  background-color: #22c55e;
+  color: #fff;
+}
+
+/* Footer */
+.dialog-footer {
+  padding: 12px 16px;
+  background-color: #f9fafb;
+  border-top: 1px solid $border-color;
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+}
+
+/* Hidden input for scanner */
+.visually-hidden {
+  position: absolute !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: 16px;
+
+  p {
+    font-size: 16px;
+    font-weight: 600;
+    color: $primary-color;
+    margin: 0;
+  }
+}
+.qr-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+qrcode {
+  display: block;
+}
+
+// ==================== DESKTOP / MOBILE TOGGLE ====================
+.desktop-only {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .dialog-container {
+    border-radius: 0;
+    max-height: 100vh;
+    height: 100vh;
+  }
+
+  .dialog-header {
+    padding: 10px 12px;
+    h2 {
+      font-size: 0.95rem;
+    }
+  }
+
+  .dialog-content {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* Stack sections vertically and cho phép mỗi section chiếm tối đa 45vh */
+  .section-card {
+    max-height: 45vh;
+    min-height: 100px;
+    .section-header {
+      padding: 8px 10px;
+    }
+    .table-container {
+      padding: 8px;
+    }
+  }
+
+  /* Giảm padding trong table, ẩn cột ít quan trọng trên mobile */
+  .table-container {
+    table {
+      th.mat-header-cell,
+      td.mat-cell {
+        padding: 6px;
+        font-size: 0.78rem;
+      }
+      /* Ẩn cột capacity trên mobile để tiết kiệm không gian (nếu cần) */
+      td.mat-cell:nth-child(6),
+      th.mat-header-cell:nth-child(6) {
+        display: none;
+      }
+      /* Ẩn icon QR lớn để tiết kiệm không gian */
+      .qr-icon {
+        display: none;
+      }
+    }
+  }
+
+  .dialog-footer {
+    padding: 10px 12px;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .dialog-content {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+// ==================== MOBILE TABS ====================
+.mobile-tabs {
+  height: 100%;
+
+  ::ng-deep {
+    .mat-mdc-tab-group {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mat-mdc-tab-header {
+      background: white;
+      border-bottom: 1px solid $border-color;
+    }
+
+    .mat-mdc-tab-labels {
+      justify-content: space-around;
+    }
+
+    .mat-mdc-tab-label {
+      min-width: 0;
+      padding: 0 16px;
+      opacity: 1;
+
+      &.mdc-tab--active {
+        .tab-icon {
+          color: $primary-color;
+        }
+        .badge {
+          opacity: 1;
+        }
+      }
+    }
+
+    .mat-mdc-tab-body-wrapper {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .mat-mdc-tab-body-content {
+      height: 100%;
+      overflow: auto;
+    }
+  }
+
+  .tab-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    color: #6b7280;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 4px;
+
+    &.badge-pending {
+      background: #f97316;
+      color: white;
+    }
+
+    &.badge-sent {
+      background: #22c55e;
+      color: white;
+    }
+  }
+}
+
+// ==================== MOBILE TAB CONTENT ====================
+.mobile-tab-content {
+  padding: 12px;
+  height: 100%;
+  overflow-y: auto;
+  background: #f9fafb;
+}
+
+// ==================== MOBILE ACTIONS ====================
+.mobile-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  .mobile-scan-btn,
+  .mobile-send-btn {
+    flex: 1;
+    font-weight: 600;
+    height: 40px;
+
+    mat-icon {
+      margin-right: 6px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .mobile-send-btn {
+    background-color: #22c55e;
+    color: white;
+  }
+}
+
+// ==================== MOBILE SCAN INDICATOR ====================
+.mobile-scan-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: slideDown 0.3s ease-out;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+
+    &.blink {
+      animation: blink 1.5s infinite;
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes blink {
+  0%,
+  50%,
+  100% {
+    opacity: 1;
+  }
+  25%,
+  75% {
+    opacity: 0.3;
+  }
+}
+
+// ==================== MOBILE PALLET CARDS ====================
+.mobile-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-pallet-card {
+  background: white;
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  padding: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  &.selected {
+    border-color: $primary-color;
+    background: #eff6ff;
+    box-shadow: 0 2px 8px rgba(45, 116, 182, 0.2);
+  }
+
+  &.sent {
+    background: #f0fdf4;
+    border-color: #22c55e;
+    opacity: 0.95;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
+
+    .card-stt {
+      font-size: 16px;
+      font-weight: 700;
+      color: $primary-color;
+    }
+
+    .check-icon {
+      color: #22c55e;
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-qr-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+
+    .qr-icon-mobile {
+      color: $primary-color;
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .qr-info {
+      flex: 1;
+      min-width: 0;
+
+      .qr-label {
+        font-size: 10px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 2px;
+      }
+
+      .qr-code {
+        font-family: "Courier New", monospace;
+        font-weight: 700;
+        font-size: 13px;
+        color: #1f2937;
+        word-break: break-all;
+      }
+    }
+  }
+
+  .card-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+
+    .info-label {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .info-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+  }
+
+  .mobile-progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin: 4px 0;
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, $primary-color 0%, #1e5a8e 100%);
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+    }
+  }
+}
+
+// ==================== MOBILE EMPTY STATE ====================
+.mobile-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+
+  mat-icon {
+    font-size: 56px;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  p {
+    font-size: 14px;
+    margin: 0;
+    text-align: center;
+  }
+}
+
+// ==================== MOBILE FOOTER ADJUSTMENTS ====================
+@media (max-width: 768px) {
+  .dialog-footer {
+    padding: 10px 12px;
+    gap: 10px;
+
+    button {
+      flex: 1;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  .dialog-header {
+    .title-section {
+      h2 {
+        font-size: 0.9rem;
+      }
+
+      .title-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+}
+
+// ==================== THÊM ANIMATION CHO STATUS DOT ====================
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+
+  &.success {
+    background-color: #22c55e;
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
