@@ -86,6 +86,9 @@ public class WarehouseStampInfoDTO implements Serializable {
     @JsonProperty("destination_warehouse")
     private Integer destinationWarehouse;
 
+    @JsonProperty("lot_number")
+    private String lotNumber;
+
     public Long getId() {
         return id;
     }
@@ -254,6 +257,14 @@ public class WarehouseStampInfoDTO implements Serializable {
         this.destinationWarehouse = destinationWarehouse;
     }
 
+    public String getLotNumber() {
+        return lotNumber;
+    }
+
+    public void setLotNumber(String lotNumber) {
+        this.lotNumber = lotNumber;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -300,6 +311,7 @@ public class WarehouseStampInfoDTO implements Serializable {
                 ", deletedAt='" + getDeletedAt() + "'" +
                 ", deletedBy='" + getDeletedBy() + "'" +
                 ", destinationWarehouse=" + getDestinationWarehouse() +
+                ", lotNumber='" + getLotNumber() + "'" +
                 "}";
     }
 }

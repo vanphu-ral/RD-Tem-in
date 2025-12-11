@@ -98,6 +98,9 @@ public class WarehouseNoteInfo implements Serializable {
     @Column(name = "destination_warehouse")
     private Integer destinationWarehouse;
 
+    @Column(name = "lot_number")
+    private String lotNumber;
+
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "maLenhSanXuat")
     @JsonIgnoreProperties(value = { "maLenhSanXuat" }, allowSetters = true)
     private Set<GenTemConfig> genTemConfigs = new HashSet<>();
@@ -387,6 +390,19 @@ public class WarehouseNoteInfo implements Serializable {
         this.destinationWarehouse = destinationWarehouse;
     }
 
+    public String getLotNumber() {
+        return this.lotNumber;
+    }
+
+    public WarehouseNoteInfo lotNumber(String lotNumber) {
+        this.setLotNumber(lotNumber);
+        return this;
+    }
+
+    public void setLotNumber(String lotNumber) {
+        this.lotNumber = lotNumber;
+    }
+
     public Set<GenTemConfig> getGenTemConfigs() {
         return this.genTemConfigs;
     }
@@ -544,6 +560,7 @@ public class WarehouseNoteInfo implements Serializable {
                 ", deletedAt='" + getDeletedAt() + "'" +
                 ", deletedBy='" + getDeletedBy() + "'" +
                 ", destinationWarehouse=" + getDestinationWarehouse() +
+                ", lotNumber='" + getLotNumber() + "'" +
                 "}";
     }
 }

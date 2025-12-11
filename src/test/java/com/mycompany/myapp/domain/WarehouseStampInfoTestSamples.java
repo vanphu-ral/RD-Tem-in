@@ -34,7 +34,8 @@ public class WarehouseStampInfoTestSamples {
             .branch("branch1")
             .productType("productType1")
             .deletedBy("deletedBy1")
-            .destinationWarehouse(1);
+            .destinationWarehouse(1)
+            .lotNumber("lotNumber1");
     }
 
     public static WarehouseNoteInfo getWarehouseStampInfoSample2() {
@@ -56,7 +57,8 @@ public class WarehouseStampInfoTestSamples {
             .branch("branch2")
             .productType("productType2")
             .deletedBy("deletedBy2")
-            .destinationWarehouse(2);
+            .destinationWarehouse(2)
+            .lotNumber("lotNumber2");
     }
 
     public static WarehouseNoteInfo getWarehouseStampInfoRandomSampleGenerator() {
@@ -78,6 +80,7 @@ public class WarehouseStampInfoTestSamples {
             .branch(UUID.randomUUID().toString())
             .productType(UUID.randomUUID().toString())
             .deletedBy(UUID.randomUUID().toString())
-            .destinationWarehouse(intCount.incrementAndGet());
+            .destinationWarehouse(intCount.incrementAndGet())
+            .lotNumber(UUID.randomUUID().toString());
     }
 }

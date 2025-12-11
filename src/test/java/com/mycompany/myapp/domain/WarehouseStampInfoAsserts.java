@@ -162,6 +162,11 @@ public class WarehouseStampInfoAsserts {
                 assertThat(a.getDestinationWarehouse())
                     .as("check destinationWarehouse")
                     .isEqualTo(expected.getDestinationWarehouse())
+            )
+            .satisfies(a ->
+                assertThat(a.getLotNumber())
+                    .as("check lotNumber")
+                    .isEqualTo(expected.getLotNumber())
             );
     }
 
