@@ -366,13 +366,13 @@ export class WmsApproveDialogComponent implements OnInit {
   // ==================== CLOSE ====================
 
   close(): void {
-    const result = {
-      sentPallets: this.sentPallets(),
-      unsentPallets: this.pendingPallets(),
-      allPallets: this.pallets(),
-    };
+    // const result = {
+    //   sentPallets: this.sentPallets(),
+    //   unsentPallets: this.pendingPallets(),
+    //   allPallets: this.pallets(),
+    // };
 
-    this.dialogRef.close(result);
+    this.dialogRef.close();
   }
 
   onRowCheckboxChange(event: MatCheckboxChange, row: PalletDialogItem): void {
@@ -926,7 +926,7 @@ export class WmsApproveDialogComponent implements OnInit {
     const boxDetailBySerial = new Map<string, any>();
     if (Array.isArray(boxDetails)) {
       for (const bd of boxDetails) {
-        // bd.reel_id hoặc bd.serial_box tùy tên trường; ở bạn là reel_id
+        // bd.reel_id hoặc bd.serial_box tùy tên trường
         const serial = (bd.reel_id ?? bd.serial_box ?? "").toString();
         if (serial) {
           boxDetailBySerial.set(serial, bd);

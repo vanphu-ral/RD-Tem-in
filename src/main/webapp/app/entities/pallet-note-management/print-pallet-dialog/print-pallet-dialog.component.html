@@ -43,7 +43,20 @@
       *ngFor="let page of displayPages; let pageIndex = index"
     >
       <!-- ===== PHIẾU BÊN TRÁI (hoặc duy nhất nếu A5) ===== -->
-      <div class="pallet-card" *ngIf="page.left">
+      <div
+        class="pallet-card"
+        [id]="page.left.id ?? page.left.serialPallet"
+        *ngIf="page.left"
+      >
+        <div
+          class="watermark-overlay"
+          *ngIf="shouldShowWatermark(page.left)"
+          [class.watermark-not-scanned]="
+            isNotScanned(page.left) && !page.left.printStatus
+          "
+        >
+          <span class="watermark-text">{{ getWatermarkText(page.left) }}</span>
+        </div>
         <!-- Top Section with QR Code and Title -->
         <div class="top-section">
           <div class="qr-code-wrapper">
@@ -201,7 +214,20 @@
       </div>
 
       <!-- ===== PHIẾU BÊN PHẢI (chỉ hiện khi A4 mode) ===== -->
-      <div class="pallet-card" *ngIf="page.right && paperSize === 'A4'">
+      <div
+        class="pallet-card"
+        [id]="page.right.id ?? page.right.serialPallet"
+        *ngIf="page.right && paperSize === 'A4'"
+      >
+        <div
+          class="watermark-overlay"
+          *ngIf="shouldShowWatermark(page.right)"
+          [class.watermark-not-scanned]="
+            isNotScanned(page.right) && !page.right.printStatus
+          "
+        >
+          <span class="watermark-text">{{ getWatermarkText(page.right) }}</span>
+        </div>
         <!-- Top Section -->
         <div class="top-section">
           <div class="qr-code-wrapper">

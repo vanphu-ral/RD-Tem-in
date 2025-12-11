@@ -4,6 +4,7 @@ import {
   MatDialogModule,
   MatDialogRef,
   MAT_DIALOG_DATA,
+  MatDialog,
 } from "@angular/material/dialog";
 import { MatButtonModule } from "@angular/material/button";
 import { MatIconModule } from "@angular/material/icon";
@@ -18,8 +19,15 @@ import { FormsModule } from "@angular/forms";
 import { PalletDialogItem } from "../wms-approve-dialog/wms-approve-dialog.component";
 import { firstValueFrom } from "rxjs";
 import { PlanningWorkOrderService } from "../service/planning-work-order.service";
+import { MatSnackBar } from "@angular/material/snack-bar";
+import { AccountService } from "app/core/auth/account.service";
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from "../confirm-dialog/confirm-dialog.component";
 
 export interface PrintPalletData {
+  id?: number;
   khachHang: string;
   serialPallet: string;
   tenSanPham: string;
@@ -45,6 +53,7 @@ export interface PrintPalletData {
   lot: string;
   date: string;
   scannedBoxes?: string[];
+  printStatus?: boolean;
 }
 
 interface PrintPage {
@@ -79,12 +88,16 @@ export class PrintPalletDialogComponent implements OnInit {
   paperSize: "A4" | "A5" = "A4";
   isLoadingPdf = false;
   progressPdf = 0;
+  unprintedPages: PrintPage[] = [];
 
   constructor(
     public dialogRef: MatDialogRef<PrintPalletDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PrintPalletData | PrintPalletData[],
     private cdr: ChangeDetectorRef,
     private planningService: PlanningWorkOrderService,
+    private snackBar: MatSnackBar,
+    private accountService: AccountService,
+    private dialog: MatDialog,
   ) {
     console.log("PrintPalletDialog constructor");
   }
@@ -157,17 +170,72 @@ export class PrintPalletDialogComponent implements OnInit {
     console.log(`Total pages: ${this.totalPages}`);
     console.log("=====================================\n");
   }
+  isNotScanned(pallet: PrintPalletData): boolean {
+    return pallet.serialPallet === pallet.serialBox;
+  }
+  getWatermarkText(pallet: PrintPalletData): string {
+    if (pallet.printStatus) {
+      return "ĐÃ IN";
+    }
+    if (this.isNotScanned(pallet)) {
+      return "CHƯA SCAN";
+    }
+    return "";
+  }
 
+  shouldShowWatermark(pallet: PrintPalletData): boolean {
+    return pallet.printStatus === true || this.isNotScanned(pallet);
+  }
   /**
    * ===== PRINT WITH QR CODE CONVERSION =====
    * Đợi QR render xong → Convert canvas to image TRƯỚC KHI clone
    */
   async onPrint(): Promise<void> {
+    const unprintedPallets = this.pallets.filter(
+      (p) => !p.printStatus && !this.isNotScanned(p),
+    );
+
+    if (unprintedPallets.length === 0) {
+      this.snackBar.open(
+        "Không có phiếu nào cần in!(Các phiếu đã in hoặc chưa scan sẽ không được in)",
+        "Đóng",
+        { duration: 3000 },
+      );
+      return;
+    }
+
+    // Tạo pages tạm thời chỉ với phiếu chưa in
+    const tempPages: PrintPage[] = [];
+    if (this.paperSize === "A4") {
+      for (let i = 0; i < unprintedPallets.length; i += 2) {
+        tempPages.push({
+          left: unprintedPallets[i],
+          right: unprintedPallets[i + 1] || undefined,
+        });
+      }
+    } else {
+      for (let i = 0; i < unprintedPallets.length; i++) {
+        tempPages.push({
+          left: unprintedPallets[i],
+          right: undefined,
+        });
+      }
+    }
+
+    // Lưu displayPages gốc
+    const originalPages = this.displayPages;
+
+    // Thay thế tạm thời bằng pages chưa in
+    this.displayPages = tempPages;
+    this.cdr.detectChanges();
+
+    // Đợi render
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // ===== BƯỚC 2: CONVERT TẤT CẢ CANVAS → IMAGE TRƯỚC KHI CLONE =====
     const printArea = document.querySelector(".print-content") as HTMLElement;
     if (!printArea) {
+      this.displayPages = originalPages;
+      this.cdr.detectChanges();
       return;
     }
 
@@ -209,7 +277,7 @@ export class PrintPalletDialogComponent implements OnInit {
       tempImages.push(img);
     });
 
-    // ===== BƯỚC 3: CHỜ IMG LOAD XONG =====
+    // Chờ IMG load xong
     await Promise.all(
       tempImages.map((img) => {
         if (img.complete) {
@@ -222,7 +290,7 @@ export class PrintPalletDialogComponent implements OnInit {
       }),
     );
 
-    // ===== BƯỚC 4: CLONE SAU KHI ĐÃ CÓ IMAGE =====
+    // Clone sau khi đã có image
     const clone = printArea.cloneNode(true) as HTMLElement;
     const palletCards = Array.from(
       clone.querySelectorAll(".pallet-card"),
@@ -234,12 +302,17 @@ export class PrintPalletDialogComponent implements OnInit {
       clone.innerHTML = pagesHtml;
     }
 
-    // ===== BƯỚC 5: RESTORE CANVAS (để không ảnh hưởng preview) =====
+    // Restore canvas
     imageDataList.forEach(({ canvas, parent }, index) => {
       const img = tempImages[index];
       parent.replaceChild(canvas, img);
     });
-    // ===== BƯỚC 6: COLLECT STYLES =====
+
+    // Khôi phục displayPages gốc ngay sau khi clone xong
+    this.displayPages = originalPages;
+    this.cdr.detectChanges();
+
+    // Collect styles
     let styles = "";
     for (const sheet of Array.from(document.styleSheets)) {
       try {
@@ -253,7 +326,7 @@ export class PrintPalletDialogComponent implements OnInit {
       }
     }
 
-    // ===== BƯỚC 7: TẠO PRINT HTML =====
+    // Tạo print HTML
     const isA5 = this.paperSize === "A5";
     const printHTML = `
       <!DOCTYPE html>
@@ -498,6 +571,43 @@ export class PrintPalletDialogComponent implements OnInit {
       printWindow.document.write(printHTML);
       printWindow.document.close();
       console.log("Print window opened successfully");
+
+      // Khi popup đóng thì gửi message về app chính
+      printWindow.onunload = () => {
+        window.postMessage({ type: "PRINT_DONE" }, window.location.origin);
+      };
+
+      // Lắng nghe message trong app chính
+      const handler = (event: MessageEvent): void => {
+        if (event.origin !== window.location.origin) {
+          return;
+        }
+        if (event.data?.type === "PRINT_DONE") {
+          const dialogData: ConfirmDialogData = {
+            title: "Bạn đã in chưa?",
+            message: "Chọn Xong để cập nhật trạng thái!",
+            confirmText: "Xong",
+            cancelText: "Hủy",
+            type: "info",
+          };
+
+          const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+            width: "500px",
+            data: dialogData,
+            disableClose: false,
+          });
+
+          dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+            if (confirmed) {
+              void this.updatePrintStatusAfterPrint(unprintedPallets);
+            }
+          });
+
+          // bỏ listener sau khi xử lý
+          window.removeEventListener("message", handler);
+        }
+      };
+      window.addEventListener("message", handler);
     } else {
       alert("Vui lòng cho phép popup để in!");
     }
@@ -512,14 +622,31 @@ export class PrintPalletDialogComponent implements OnInit {
     this.isLoadingPdf = true;
     this.progressPdf = 0;
 
-    const pages = Array.from(
-      document.querySelectorAll(".print-page"),
-    ) as HTMLElement[];
-
-    if (pages.length === 0) {
-      console.error("Không tìm thấy .print-page");
+    const unprintedPallets = this.pallets.filter(
+      (p) => !p.printStatus && !this.isNotScanned(p),
+    );
+    if (unprintedPallets.length === 0) {
+      this.snackBar.open(
+        "Không có phiếu nào cần xuất PDF! (Các phiếu đã in hoặc chưa scan sẽ không được xuất)",
+        "Đóng",
+        { duration: 3000 },
+      );
       this.isLoadingPdf = false;
       return;
+    }
+
+    const pdfPages: PrintPage[] = [];
+    if (this.paperSize === "A4") {
+      for (let i = 0; i < unprintedPallets.length; i += 2) {
+        pdfPages.push({
+          left: unprintedPallets[i],
+          right: unprintedPallets[i + 1],
+        });
+      }
+    } else {
+      for (let i = 0; i < unprintedPallets.length; i++) {
+        pdfPages.push({ left: unprintedPallets[i], right: undefined });
+      }
     }
 
     const isA5 = this.paperSize === "A5";
@@ -530,32 +657,32 @@ export class PrintPalletDialogComponent implements OnInit {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    console.log(
-      `Exporting to PDF (${this.paperSize}): ${pageWidth}x${pageHeight}mm`,
-    );
-
     const renderPageToPdf = async (
-      pageEl: HTMLElement,
+      page: PrintPage,
       isFirst: boolean,
     ): Promise<void> => {
-      const cards = Array.from(
-        pageEl.querySelectorAll(".pallet-card"),
-      ) as HTMLElement[];
-
       if (!isFirst) {
         pdf.addPage(pdfFormat as any, pdfOrientation as any);
       }
 
       if (isA5) {
-        if (cards.length >= 1) {
-          const card = cards[0];
-          const canvas = await html2canvas(card, { scale: 2, useCORS: true });
-          const imgData = canvas.toDataURL("image/jpeg", 0.8);
-          pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
+        if (page.left) {
+          const el = document.getElementById(`pallet-${page.left.id}`); // giả sử bạn set id cho card
+          if (el) {
+            const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL("image/jpeg", 0.8);
+            pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
+          }
         }
       } else {
-        if (cards.length >= 1) {
-          const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true });
+        // A4: render cả trang với 2 card
+        const container = document.getElementById(`print-page-${page.left.id}`);
+        // hoặc wrap 2 card vào 1 div có id riêng
+        if (container) {
+          const canvas = await html2canvas(container, {
+            scale: 2,
+            useCORS: true,
+          });
           const imgData = canvas.toDataURL("image/jpeg", 0.8);
           const imgPixelWidth = canvas.width;
           const imgPixelHeight = canvas.height;
@@ -567,36 +694,72 @@ export class PrintPalletDialogComponent implements OnInit {
     };
 
     const generatePdf = async (): Promise<void> => {
-      for (let i = 0; i < pages.length; i++) {
-        await renderPageToPdf(pages[i], i === 0);
-        this.progressPdf = Math.round(((i + 1) / pages.length) * 100);
+      for (let i = 0; i < pdfPages.length; i++) {
+        await renderPageToPdf(pdfPages[i], i === 0);
+        this.progressPdf = Math.round(((i + 1) / pdfPages.length) * 100);
         this.cdr.detectChanges();
       }
 
       const fileName = `phieu-thong-tin-${this.paperSize}-${Date.now()}.pdf`;
       pdf.save(fileName);
-      console.log(`PDF saved: ${fileName}`);
-
+      await this.updatePrintStatusAfterPrint(unprintedPallets);
       this.isLoadingPdf = false;
       this.progressPdf = 0;
       this.cdr.detectChanges();
     };
 
-    void generatePdf().catch((error) => {
-      console.error("Error generating PDF:", error);
+    void generatePdf().catch((err) => {
+      console.error("Error generating PDF:", err);
       this.isLoadingPdf = false;
       this.progressPdf = 0;
       this.cdr.detectChanges();
     });
   }
-  private buildPrintStatusPayload(
-    selectedPallets: PalletDialogItem[],
-    currentUser: string,
-  ): Array<{ id: number; print_status: boolean; updated_by: string }> {
-    return selectedPallets.map((p) => ({
-      id: p.id,
-      print_status: true,
-      updated_by: currentUser ?? "system",
-    }));
+
+  private async updatePrintStatusAfterPrint(
+    pallets: PrintPalletData[],
+  ): Promise<void> {
+    try {
+      const currentUser = this.accountService.isAuthenticated()
+        ? this.accountService["userIdentity"]?.login
+        : "unknown";
+      const payload = pallets
+        .filter((p) => p.id != null)
+        .map((p) => ({
+          id: p.id!,
+          print_status: true,
+          updated_by: currentUser ?? "unknown",
+        }));
+      const missingId = pallets.filter((p) => p.id == null);
+      if (missingId.length > 0) {
+        console.error("Pallet thiếu ID:", missingId);
+        throw new Error(
+          "Không thể cập nhật trạng thái in vì có pallet thiếu ID",
+        );
+      }
+
+      await firstValueFrom(
+        this.planningService.updatePalletPrintStatus(payload),
+      );
+
+      // Cập nhật printStatus trong local data
+      pallets.forEach((p) => {
+        p.printStatus = true;
+      });
+
+      console.log(`Updated print status for ${pallets.length} pallets`);
+      this.snackBar.open(
+        `Đã cập nhật trạng thái in cho ${pallets.length} phiếu`,
+        "Đóng",
+        {
+          duration: 2000,
+        },
+      );
+    } catch (error) {
+      console.error("Error updating print status:", error);
+      this.snackBar.open("Lỗi khi cập nhật trạng thái in", "Đóng", {
+        duration: 3000,
+      });
+    }
   }
 }

@@ -234,7 +234,7 @@ export class PlanningWorkOrderService {
   //cập nhật trạng thái in
   updatePalletPrintStatus(
     payload: Array<{
-      id: string | number;
+      id: number;
       print_status: boolean;
       updated_by: string;
     }>,

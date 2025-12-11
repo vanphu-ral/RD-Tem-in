@@ -1221,6 +1221,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           }
 
           const printData: PrintPalletData = {
+            id: palletGroup.id,
             khachHang: palletGroup.khachHang ?? "N/A",
             serialPallet: palletSub.maPallet,
             tenSanPham: palletGroup.tenSanPham,
@@ -1250,6 +1251,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             lot: lotNumber,
             date: new Date().toLocaleDateString("vi-VN"),
             scannedBoxes: scannedBoxes,
+            printStatus: palletGroup.trangThaiIn,
           };
 
           console.log("  Print data for pallet " + palletSub.maPallet + ":", {
@@ -1436,6 +1438,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         boxItems: this.boxItems,
         maLenhSanXuatId: this.maLenhSanXuatId,
         validReelIds: validReelIds,
+        printStatus: pallet.trangThaiIn,
       },
     };
 
@@ -1513,6 +1516,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       (acc: PalletDetailData[], pallet: PalletItem, parentIndex: number) => {
         const subData = pallet.subItems.map(
           (sub: PalletBoxItem, index: number) => ({
+            id: pallet.id,
             stt: index + 1,
             tenSanPham: pallet.tenSanPham,
             noSKU: pallet.noSKU,
@@ -1536,6 +1540,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             validReelIds: validReelIds,
             tienDoScan: 0,
             scannedBoxes: [],
+            printStatus: pallet.trangThaiIn,
 
             // Quan trọng: cung cấp index của pallet cha để onPrintAll lấy đúng source
             parentPalletIndex: parentIndex,
@@ -2994,6 +2999,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
       if (!grouped[key]) {
         grouped[key] = {
+          id: detail.id,
           stt: Object.keys(grouped).length + 1,
           tenSanPham: this.productionOrders[0]?.tenHangHoa ?? "",
           noSKU: detail.item_no_sku ?? "",
