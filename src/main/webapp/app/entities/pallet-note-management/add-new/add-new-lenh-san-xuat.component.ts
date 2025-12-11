@@ -41,7 +41,15 @@ import {
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { AccountService } from "app/core/auth/account.service";
-import { catchError, finalize, map, of, switchMap, timeout } from "rxjs";
+import {
+  catchError,
+  finalize,
+  map,
+  Observable,
+  of,
+  switchMap,
+  timeout,
+} from "rxjs";
 import { LenhSanXuatService } from "../service/lenh-san-xuat.service";
 import {
   PrintPalletData,
@@ -776,90 +784,81 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     this.loading = true;
     const { woId } = this.form.value;
 
-    // Bước 1: gọi API checkIdentifyWo trước
     this.planningService
       .checkIdentifyWo(woId!)
       .pipe(
         timeout(8000),
         catchError((err) => {
           console.error("Lỗi checkIdentifyWo hoặc timeout:", err);
-          // Nếu lỗi khi check, fallback tiếp tục gọi search
           this.snackBar.open(
             "Không kiểm tra được trạng thái lệnh, thử tìm lệnh SX",
             "Đóng",
-            {
-              duration: 3000,
-            },
+            { duration: 3000 },
           );
           return of([] as any[]);
         }),
         switchMap((checkRes: any[]) => {
-          // Nếu chưa có warehouse note (mảng rỗng) -> gọi search như cũ
-          if (!checkRes || checkRes.length === 0) {
-            return this.planningService.search(woId!).pipe(
-              timeout(10000),
-              catchError((err) => {
-                console.error("Lỗi search hoặc timeout:", err);
-                this.snackBar.open(
-                  "Không tìm thấy thông tin đơn sản xuất",
-                  "Đóng",
-                  { duration: 3000 },
-                );
-                // trả về empty response có content = []
-                return of({ content: [] } as PlanningWorkOrderResponse);
-              }),
+          // Nếu có dữ liệu từ checkIdentifyWo
+          if (checkRes && checkRes.length > 0) {
+            // Sắp xếp theo id giảm dần để lấy id mới nhất
+            const sortedRes = [...checkRes].sort((a, b) => {
+              const idA = a.id ?? a.warehouse_note_info?.id ?? 0;
+              const idB = b.id ?? b.warehouse_note_info?.id ?? 0;
+              return idB - idA;
+            });
+
+            const latestItem = sortedRes[0];
+            const latestId =
+              latestItem.id ?? latestItem.warehouse_note_info?.id ?? null;
+
+            if (!latestId) {
+              console.warn("Không tìm thấy id trong checkRes, fallback search");
+              return this.searchWorkOrder(woId!);
+            }
+
+            // Navigate đến URL mới với id mới nhất
+            this.router.navigate(
+              ["/warehouse-note-infos", latestId, "add-new"],
+              {
+                replaceUrl: true,
+              },
             );
-          }
 
-          // Nếu có kết quả check -> lấy id từ phần tử đầu và gọi API lấy chi tiết warehouse note
-          const existing = checkRes[0];
-          const id = existing.id ?? existing.warehouse_note_info?.id ?? null;
-
-          if (!id) {
-            // Nếu không có id, fallback gọi search
-            return this.planningService.search(woId!).pipe(
-              timeout(10000),
-              catchError((err) => {
-                console.error("Lỗi search fallback:", err);
-                this.snackBar.open(
-                  "Không tìm thấy thông tin đơn sản xuất",
-                  "Đóng",
-                  { duration: 3000 },
-                );
-                return of({ content: [] } as PlanningWorkOrderResponse);
-              }),
-            );
-          }
-
-          // Gọi API lấy chi tiết warehouse note theo id và bọc kết quả để downstream phân biệt
-          return this.planningService.findWarehouseNoteWithChildren(id).pipe(
-            map((detailRes) => ({
-              fromExisting: true,
-              detailRes,
-              existingId: id,
-            })),
-            catchError((err) => {
-              console.error("Lỗi getWarehouseNoteById:", err);
-              this.snackBar.open(
-                "Không lấy được chi tiết warehouse note",
-                "Đóng",
-                { duration: 3000 },
+            // Gọi API lấy chi tiết
+            return this.planningService
+              .findWarehouseNoteWithChildren(latestId)
+              .pipe(
+                map((detailRes) => ({
+                  type: "EXISTING" as const,
+                  data: detailRes,
+                  id: latestId,
+                })),
+                catchError((err) => {
+                  console.error("Lỗi getWarehouseNoteById:", err);
+                  this.snackBar.open(
+                    "Không lấy được chi tiết warehouse note",
+                    "Đóng",
+                    { duration: 3000 },
+                  );
+                  return of({ type: "ERROR" as const, data: null, id: null });
+                }),
               );
-              return of(null as any);
-            }),
-          );
+          }
+
+          // Nếu không có dữ liệu -> tạo mới
+          return this.searchWorkOrder(woId!);
         }),
       )
       .subscribe({
         next: (res) => {
-          // Trường hợp getWarehouseNoteById trả về wrapper { fromExisting, detailRes, existingId }
-          if (!res) {
+          if (!res || res.type === "ERROR") {
             this.loading = false;
             return;
           }
 
-          if ((res as any).fromExisting) {
-            const payload = (res as any).detailRes as WarehouseNoteResponse;
+          // Trường hợp load warehouse note đã tồn tại
+          if (res.type === "EXISTING") {
+            const payload = res.data as unknown as WarehouseNoteResponse;
             if (!payload) {
               this.snackBar.open("Không có dữ liệu chi tiết", "Đóng", {
                 duration: 3000,
@@ -868,165 +867,27 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               return;
             }
 
-            // Xử lý giống ngOnInit khi có response chi tiết
-            if (typeof this.handleLoadedWarehouseNoteResponse === "function") {
-              this.handleLoadedWarehouseNoteResponse(payload);
-            } else {
-              // Nếu không có helper, thực hiện xử lý tối thiểu giống ngOnInit
-              this.warehouseNoteInfo = payload.warehouse_note_info;
-              this.details = (payload.warehouse_note_info_details ??
-                []) as ReelData[];
-              this.mappings = payload.serial_box_pallet_mappings ?? [];
-              this.pallets = (payload.pallet_infor_details ??
-                []) as PalletItem[];
+            this.handleExistingWarehouseNote(payload);
+            this.loading = false;
+            return;
+          }
 
-              this.maLenhSanXuatId = this.warehouseNoteInfo.id;
-
-              this.productionOrders = [
-                {
-                  id: this.warehouseNoteInfo.id,
-                  maLenhSanXuat: this.warehouseNoteInfo.ma_lenh_san_xuat,
-                  maSAP: this.warehouseNoteInfo.sap_code,
-                  tenHangHoa: this.warehouseNoteInfo.sap_name,
-                  maWO: this.warehouseNoteInfo.work_order_code,
-                  version: this.warehouseNoteInfo.version,
-                  maKhoNhap: this.warehouseNoteInfo.storage_code,
-                  tongSoLuong: this.warehouseNoteInfo.total_quantity,
-                  trangThai: this.warehouseNoteInfo.trang_thai,
-                  loaiSanPham: this.warehouseNoteInfo.product_type,
-                  nganh: this.warehouseNoteInfo.branch,
-                  to: this.warehouseNoteInfo.group_name,
-                  woId: this.warehouseNoteInfo.work_order_code,
-                  lotNumber: this.warehouseNoteInfo.lotNumber,
-                },
-              ];
-
-              this.isThanhPham =
-                this.productionOrders[0]?.loaiSanPham === "Thành phẩm";
-
-              if (this.details && this.details.length > 0) {
-                if (this.warehouseNoteInfo.product_type === "Thành phẩm") {
-                  this.boxItems = this.mapDetailsToBoxItems(this.details);
-                  const total = this.boxItems.reduce(
-                    (sum, b) => sum + (b.soLuongSp ?? 0),
-                    0,
-                  );
-                  this.productionOrders[0].tongSoLuong = total;
-                  this.computeBoxSummary();
-                } else if (
-                  this.warehouseNoteInfo.product_type === "Bán thành phẩm"
-                ) {
-                  this.reelDataList = this.mapDetailsToReelData(this.details);
-                  const total = this.reelDataList.reduce(
-                    (sum, r) => sum + (r.initialQuantity ?? 0),
-                    0,
-                  );
-                  this.productionOrders[0].tongSoLuong = total;
-                }
-              }
-
-              if (this.pallets && this.pallets.length > 0) {
-                this.palletItems = this.mapPalletsToPalletItems(
-                  this.pallets,
-                ).map((p) => ({
-                  ...p,
-                  maLenhSanXuatId: this.maLenhSanXuatId,
-                }));
-                this.computePalletSummary();
-              }
-
-              const loai = this.productionOrders[0]?.loaiSanPham;
-              if (loai === "Thành phẩm") {
-                this.showThungTab = true;
-                this.showPalletTab = true;
-                this.showTemBtpTab = false;
-                this.loadMaKhoNhapOptionsTP();
-              } else if (loai === "Bán thành phẩm") {
-                this.showTemBtpTab = true;
-                this.showPalletTab = true;
-                this.showThungTab = false;
-              }
+          // Trường hợp tạo mới (NEW_ORDER)
+          if (res.type === "NEW_ORDER") {
+            // Kiểm tra res.data trước khi truyền vào
+            if (!res.data || res.data.length === 0) {
+              this.snackBar.open("Không có dữ liệu đơn sản xuất", "Đóng", {
+                duration: 3000,
+              });
+              this.loading = false;
+              return;
             }
 
-            this.loading = false;
-            return;
+            this.handleNewProductionOrder(res.data, woId!);
+            return; // loading sẽ được set false trong getHierarchy subscribe
           }
 
-          // Trường hợp search trả về PlanningWorkOrderResponse
-          const searchRes = res as PlanningWorkOrderResponse;
-          const items = searchRes?.content ?? [];
-          const filtered = items.filter((item) => item.woId === woId);
-
-          if (filtered.length === 0) {
-            this.snackBar.open(
-              "Không tìm thấy thông tin đơn sản xuất",
-              "Đóng",
-              { duration: 3000 },
-            );
-            this.loading = false;
-            return;
-          }
-
-          this.productionOrders = filtered.map((item) => ({
-            maLenhSanXuat: item.sapWoId ?? "",
-            maSAP: item.productCode ?? "",
-            tenHangHoa: item.productName ?? "",
-            maWO: item.woId ?? "",
-            version: item.bomVersion ?? "",
-            maKhoNhap: "",
-            tongSoLuong: 0,
-            trangThai: "Bản nháp",
-            loaiSanPham: item.productType ?? "",
-            lotNumber: item.lotNumber ?? "",
-            nganhRaw: item.branchCode ?? "",
-            toRaw: item.groupCode ?? "",
-            xuong: "",
-            nganh: "",
-            to: "",
-          }));
-
-          // gọi lấy hierarchy và map codes (giữ nguyên logic cũ)
-          this.planningService
-            .getHierarchy()
-            .pipe(
-              catchError((err) => {
-                console.error("Lỗi lấy hierarchy:", err);
-                this.snackBar.open(
-                  "Không lấy được thông tin xưởng/ngành/tổ",
-                  "Đóng",
-                  { duration: 3000 },
-                );
-                return of([] as any);
-              }),
-            )
-            .subscribe((workshops) => {
-              this.productionOrders = this.productionOrders.map((order) => {
-                const mapped = this.resolveCodesFromHierarchy(
-                  workshops,
-                  order.nganhRaw,
-                  order.toRaw,
-                );
-                return {
-                  ...order,
-                  xuong: mapped.xuong ?? order.xuong,
-                  nganh: mapped.nganh ?? order.nganh,
-                  to: mapped.to ?? order.to,
-                };
-              });
-
-              const loai = this.productionOrders[0]?.loaiSanPham;
-              if (loai === "Thành phẩm") {
-                this.showThungTab = true;
-                this.showPalletTab = true;
-                this.showTemBtpTab = false;
-                this.loadMaKhoNhapOptionsTP();
-              } else if (loai === "Bán thành phẩm") {
-                this.showTemBtpTab = true;
-                this.showPalletTab = true;
-                this.showThungTab = false;
-              }
-              this.loading = false;
-            });
+          this.loading = false;
         },
         error: (err) => {
           console.error("Unexpected error in onApply flow:", err);
@@ -3533,7 +3394,175 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.showThungTab = false;
     }
   }
+  private searchWorkOrder(woId: string): Observable<{
+    type: "ERROR" | "NEW_ORDER";
+    data: any[] | null;
+  }> {
+    return this.planningService.search(woId).pipe(
+      timeout(10000),
+      map((searchRes) => {
+        const items = searchRes?.content ?? [];
+        const filtered = items.filter((item) => item.woId === woId);
 
+        if (filtered.length === 0) {
+          this.snackBar.open("Không tìm thấy thông tin đơn sản xuất", "Đóng", {
+            duration: 3000,
+          });
+          return { type: "ERROR" as const, data: null };
+        }
+
+        return {
+          type: "NEW_ORDER" as const,
+          data: filtered,
+        };
+      }),
+      catchError((err) => {
+        console.error("Lỗi search hoặc timeout:", err);
+        this.snackBar.open("Không tìm thấy thông tin đơn sản xuất", "Đóng", {
+          duration: 3000,
+        });
+        return of({ type: "ERROR" as const, data: null });
+      }),
+    );
+  }
+  private handleExistingWarehouseNote(payload: WarehouseNoteResponse): void {
+    if (typeof this.handleLoadedWarehouseNoteResponse === "function") {
+      this.handleLoadedWarehouseNoteResponse(payload);
+    } else {
+      // Xử lý thủ công
+      this.warehouseNoteInfo = payload.warehouse_note_info;
+      this.details = (payload.warehouse_note_info_details ?? []) as ReelData[];
+      this.mappings = payload.serial_box_pallet_mappings ?? [];
+      this.pallets = (payload.pallet_infor_details ?? []) as PalletItem[];
+
+      this.maLenhSanXuatId = this.warehouseNoteInfo.id;
+
+      this.productionOrders = [
+        {
+          id: this.warehouseNoteInfo.id,
+          maLenhSanXuat: this.warehouseNoteInfo.ma_lenh_san_xuat,
+          maSAP: this.warehouseNoteInfo.sap_code,
+          tenHangHoa: this.warehouseNoteInfo.sap_name,
+          maWO: this.warehouseNoteInfo.work_order_code,
+          version: this.warehouseNoteInfo.version,
+          maKhoNhap: this.warehouseNoteInfo.storage_code,
+          tongSoLuong: this.warehouseNoteInfo.total_quantity,
+          trangThai: this.warehouseNoteInfo.trang_thai,
+          loaiSanPham: this.warehouseNoteInfo.product_type,
+          nganh: this.warehouseNoteInfo.branch,
+          to: this.warehouseNoteInfo.group_name,
+          woId: this.warehouseNoteInfo.work_order_code,
+          lotNumber: this.warehouseNoteInfo.lotNumber,
+        },
+      ];
+
+      this.isThanhPham = this.productionOrders[0]?.loaiSanPham === "Thành phẩm";
+
+      if (this.details && this.details.length > 0) {
+        if (this.warehouseNoteInfo.product_type === "Thành phẩm") {
+          this.boxItems = this.mapDetailsToBoxItems(this.details);
+          const total = this.boxItems.reduce(
+            (sum, b) => sum + (b.soLuongSp ?? 0),
+            0,
+          );
+          this.productionOrders[0].tongSoLuong = total;
+          this.computeBoxSummary();
+        } else if (this.warehouseNoteInfo.product_type === "Bán thành phẩm") {
+          this.reelDataList = this.mapDetailsToReelData(this.details);
+          const total = this.reelDataList.reduce(
+            (sum, r) => sum + (r.initialQuantity ?? 0),
+            0,
+          );
+          this.productionOrders[0].tongSoLuong = total;
+        }
+      }
+
+      if (this.pallets && this.pallets.length > 0) {
+        this.palletItems = this.mapPalletsToPalletItems(this.pallets).map(
+          (p) => ({
+            ...p,
+            maLenhSanXuatId: this.maLenhSanXuatId,
+          }),
+        );
+        this.computePalletSummary();
+      }
+
+      const loai = this.productionOrders[0]?.loaiSanPham;
+      if (loai === "Thành phẩm") {
+        this.showThungTab = true;
+        this.showPalletTab = true;
+        this.showTemBtpTab = false;
+        this.loadMaKhoNhapOptionsTP();
+      } else if (loai === "Bán thành phẩm") {
+        this.showTemBtpTab = true;
+        this.showPalletTab = true;
+        this.showThungTab = false;
+      }
+    }
+  }
+
+  // Helper method xử lý production order mới
+  private handleNewProductionOrder(filtered: any[], woId: string): void {
+    this.productionOrders = filtered.map((item) => ({
+      maLenhSanXuat: item.sapWoId ?? "",
+      maSAP: item.productCode ?? "",
+      tenHangHoa: item.productName ?? "",
+      maWO: item.woId ?? "",
+      version: item.bomVersion ?? "",
+      maKhoNhap: "",
+      tongSoLuong: 0,
+      trangThai: "Bản nháp",
+      loaiSanPham: item.productType ?? "",
+      lotNumber: item.lotNumber ?? "",
+      nganhRaw: item.branchCode ?? "",
+      toRaw: item.groupCode ?? "",
+      xuong: "",
+      nganh: "",
+      to: "",
+    }));
+
+    this.planningService
+      .getHierarchy()
+      .pipe(
+        catchError((err) => {
+          console.error("Lỗi lấy hierarchy:", err);
+          this.snackBar.open(
+            "Không lấy được thông tin xưởng/ngành/tổ",
+            "Đóng",
+            { duration: 3000 },
+          );
+          return of([] as any);
+        }),
+      )
+      .subscribe((workshops) => {
+        this.productionOrders = this.productionOrders.map((order) => {
+          const mapped = this.resolveCodesFromHierarchy(
+            workshops,
+            order.nganhRaw,
+            order.toRaw,
+          );
+          return {
+            ...order,
+            xuong: mapped.xuong ?? order.xuong,
+            nganh: mapped.nganh ?? order.nganh,
+            to: mapped.to ?? order.to,
+          };
+        });
+
+        const loai = this.productionOrders[0]?.loaiSanPham;
+        if (loai === "Thành phẩm") {
+          this.showThungTab = true;
+          this.showPalletTab = true;
+          this.showTemBtpTab = false;
+          this.loadMaKhoNhapOptionsTP();
+        } else if (loai === "Bán thành phẩm") {
+          this.showTemBtpTab = true;
+          this.showPalletTab = true;
+          this.showThungTab = false;
+        }
+        this.loading = false;
+      });
+  }
   private async refreshPalletItemsBeforePrint(): Promise<void> {
     console.log("Refreshing pallet items before print...");
 
