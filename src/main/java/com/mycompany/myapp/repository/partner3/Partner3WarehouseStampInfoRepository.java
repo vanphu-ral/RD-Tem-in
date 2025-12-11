@@ -15,7 +15,9 @@ import org.springframework.stereotype.Repository;
 @SuppressWarnings("unused")
 @Repository
 public interface Partner3WarehouseStampInfoRepository
-    extends JpaRepository<WarehouseNoteInfo, Long> {
+    extends
+        JpaRepository<WarehouseNoteInfo, Long>,
+        JpaSpecificationExecutor<WarehouseNoteInfo> {
     @Query("SELECT w FROM WarehouseNoteInfo w WHERE w.createBy = :createBy")
     List<WarehouseNoteInfo> findBycreateBy(@Param("createBy") String createBy);
 

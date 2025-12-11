@@ -9,6 +9,7 @@ import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import javax.validation.Valid;
@@ -288,17 +289,52 @@ public class WarehouseNoteInfoResource {
     }
 
     /**
-     * {@code GET  /warehouse-note-infos} : get all the warehouseNoteInfos.
+     * {@code GET  /warehouse-note-infos} : get all the warehouseNoteInfos with
+     * optional search filters.
      *
-     * @param pageable the pagination information.
+     * @param sapCode       the sapCode to filter by.
+     * @param sapName       the sapName to filter by.
+     * @param workOrderCode the workOrderCode to filter by.
+     * @param version       the version to filter by.
+     * @param storageCode   the storageCode to filter by.
+     * @param createBy      the createBy to filter by.
+     * @param entryTime     the entryTime to filter by.
+     * @param trangThai     the trangThai to filter by.
+     * @param comment       the comment to filter by.
+     * @param timeUpdate    the timeUpdate to filter by.
+     * @param groupName     the groupName to filter by.
+     * @param comment2      the comment2 to filter by.
+     * @param approverBy    the approverBy to filter by.
+     * @param branch        the branch to filter by.
+     * @param productType   the productType to filter by.
+     * @param lotNumber     the lotNumber to filter by.
+     * @param pageable      the pagination information.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
      *         of warehouseNoteInfos in body.
      */
     @GetMapping("/warehouse-note-infos")
     public ResponseEntity<List<WarehouseStampInfoDTO>> getAllWarehouseNoteInfos(
+        @RequestParam(required = false) String sapCode,
+        @RequestParam(required = false) String sapName,
+        @RequestParam(required = false) String workOrderCode,
+        @RequestParam(required = false) String version,
+        @RequestParam(required = false) String storageCode,
+        @RequestParam(required = false) String createBy,
+        @RequestParam(required = false) Instant entryTime,
+        @RequestParam(required = false) String trangThai,
+        @RequestParam(required = false) String comment,
+        @RequestParam(required = false) Instant timeUpdate,
+        @RequestParam(required = false) String groupName,
+        @RequestParam(required = false) String comment2,
+        @RequestParam(required = false) String approverBy,
+        @RequestParam(required = false) String branch,
+        @RequestParam(required = false) String productType,
+        @RequestParam(required = false) String lotNumber,
         @org.springdoc.api.annotations.ParameterObject Pageable pageable
     ) {
-        log.debug("REST request to get a page of WarehouseNoteInfos");
+        log.debug(
+            "REST request to get a page of WarehouseNoteInfos with filters"
+        );
         // Sort by timeUpdate descending to show newly updated records first
         Pageable sortedPageable =
             org.springframework.data.domain.PageRequest.of(
@@ -309,9 +345,26 @@ public class WarehouseNoteInfoResource {
                     "timeUpdate"
                 )
             );
-        Page<WarehouseStampInfoDTO> page = warehouseStampInfoService.findAll(
-            sortedPageable
-        );
+        Page<WarehouseStampInfoDTO> page =
+            partner3WarehouseStampInfoService.searchWarehouseNoteInfos(
+                sapCode,
+                sapName,
+                workOrderCode,
+                version,
+                storageCode,
+                createBy,
+                entryTime,
+                trangThai,
+                comment,
+                timeUpdate,
+                groupName,
+                comment2,
+                approverBy,
+                branch,
+                productType,
+                lotNumber,
+                sortedPageable
+            );
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
             ServletUriComponentsBuilder.fromCurrentRequest(),
             page

@@ -4,6 +4,7 @@ import com.mycompany.myapp.domain.WarehouseNoteInfo;
 import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
+import com.mycompany.myapp.repository.partner3.WarehouseNoteInfoSpecifications;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoWithChildrenDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
@@ -15,6 +16,9 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -243,5 +247,76 @@ public class Partner3WarehouseStampInfoService {
         );
         warehouseNoteInfoWithChildrenDTO.setWarehouseNoteInfo(savedInfoDTO);
         return warehouseNoteInfoWithChildrenDTO;
+    }
+
+    /**
+     * Search warehouseStampInfos with multiple optional filters.
+     *
+     * @param sapCode       the sapCode to filter by.
+     * @param sapName       the sapName to filter by.
+     * @param workOrderCode the workOrderCode to filter by.
+     * @param version       the version to filter by.
+     * @param storageCode   the storageCode to filter by.
+     * @param createBy      the createBy to filter by.
+     * @param entryTime     the entryTime to filter by.
+     * @param trangThai     the trangThai to filter by.
+     * @param comment       the comment to filter by.
+     * @param timeUpdate    the timeUpdate to filter by.
+     * @param groupName     the groupName to filter by.
+     * @param comment2      the comment2 to filter by.
+     * @param approverBy    the approverBy to filter by.
+     * @param branch        the branch to filter by.
+     * @param productType   the productType to filter by.
+     * @param lotNumber     the lotNumber to filter by.
+     * @param pageable      the pagination information.
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public Page<WarehouseStampInfoDTO> searchWarehouseNoteInfos(
+        String sapCode,
+        String sapName,
+        String workOrderCode,
+        String version,
+        String storageCode,
+        String createBy,
+        Instant entryTime,
+        String trangThai,
+        String comment,
+        Instant timeUpdate,
+        String groupName,
+        String comment2,
+        String approverBy,
+        String branch,
+        String productType,
+        String lotNumber,
+        Pageable pageable
+    ) {
+        LOG.debug("Request to search WarehouseStampInfos with filters");
+
+        Specification<WarehouseNoteInfo> spec = Specification.where(
+            WarehouseNoteInfoSpecifications.isNotDeleted()
+        )
+            .and(WarehouseNoteInfoSpecifications.hasSapCode(sapCode))
+            .and(WarehouseNoteInfoSpecifications.hasSapName(sapName))
+            .and(
+                WarehouseNoteInfoSpecifications.hasWorkOrderCode(workOrderCode)
+            )
+            .and(WarehouseNoteInfoSpecifications.hasVersion(version))
+            .and(WarehouseNoteInfoSpecifications.hasStorageCode(storageCode))
+            .and(WarehouseNoteInfoSpecifications.hasCreateBy(createBy))
+            .and(WarehouseNoteInfoSpecifications.hasEntryTime(entryTime))
+            .and(WarehouseNoteInfoSpecifications.hasTrangThai(trangThai))
+            .and(WarehouseNoteInfoSpecifications.hasComment(comment))
+            .and(WarehouseNoteInfoSpecifications.hasTimeUpdate(timeUpdate))
+            .and(WarehouseNoteInfoSpecifications.hasGroupName(groupName))
+            .and(WarehouseNoteInfoSpecifications.hasComment2(comment2))
+            .and(WarehouseNoteInfoSpecifications.hasApproverBy(approverBy))
+            .and(WarehouseNoteInfoSpecifications.hasBranch(branch))
+            .and(WarehouseNoteInfoSpecifications.hasProductType(productType))
+            .and(WarehouseNoteInfoSpecifications.hasLotNumber(lotNumber));
+
+        return partner3WarehouseStampInfoRepository
+            .findAll(spec, pageable)
+            .map(warehouseStampInfoMapper::toDto);
     }
 }
