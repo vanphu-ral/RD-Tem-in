@@ -3049,8 +3049,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       // Nếu bạn muốn gộp chỉ theo po_number, đổi thành: return normalize(detail.po_number);
       const updatedAt = normalize(detail.updated_at);
       const po = normalize(detail.po_number);
+      const qdsx = normalize(detail.qdsx_no);
+      const sku = normalize(detail.item_no_sku);
+      const customer = normalize(detail.customer_name);
+      const result = normalize(detail.inspection_result);
+      const note = normalize(detail.note);
+      const dateCode = normalize(detail.date_code);
       // Dùng dấu phân cách rõ ràng để tránh nhầm lẫn
-      return `${updatedAt}|${po}`;
+      return `${updatedAt}|${po}|${qdsx}|${sku}|${customer}|${result}|${note}|${dateCode}`;
     };
 
     const findLotBySerial = (serialRaw: any): string => {
