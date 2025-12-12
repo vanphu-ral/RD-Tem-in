@@ -1662,6 +1662,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             this.planningService.deleteBoxDetail(subItem.id!).subscribe({
               next: () => {
                 console.log(`Đã xóa box detail ID ${subItem.id} khỏi DB`);
+                this.computeBoxSummary();
                 resolve();
               },
               error: (err) => {
@@ -1678,6 +1679,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           .then(() => {
             // Xóa khỏi FE sau khi xóa DB thành công
             this.removeBoxFromFE(index);
+            this.computeBoxSummary();
+            this.saveWarehouseNotes();
 
             this.snackBar.open("Đã xóa thùng khỏi cơ sở dữ liệu", "Đóng", {
               duration: 3000,
@@ -1698,6 +1701,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         this.snackBar.open("Đã xóa thùng", "Đóng", {
           duration: 2000,
         });
+        this.computeBoxSummary();
+        this.saveWarehouseNotes();
       }
     });
   }
@@ -1733,6 +1738,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           this.planningService.deletePalletDetail(palletSub.id).subscribe({
             next: () => {
               this.removePalletSubFromFE(palletItem, subIndex);
+              this.computePalletSummary();
 
               this.snackBar.open("Đã xóa pallet khỏi cơ sở dữ liệu", "Đóng", {
                 duration: 3000,
@@ -1754,6 +1760,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         } else {
           // Chưa lưu DB → xóa trực tiếp FE
           this.removePalletSubFromFE(palletItem, subIndex);
+          this.computePalletSummary();
 
           this.snackBar.open("Đã xóa pallet", "Đóng", {
             duration: 2000,
@@ -1790,6 +1797,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               this.planningService.deletePalletDetail(sub.id!).subscribe({
                 next: () => {
                   console.log(`Đã xóa pallet detail ID ${sub.id} khỏi DB`);
+                  this.computePalletSummary();
                   resolve();
                 },
                 error: (err) => {
@@ -1806,6 +1814,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           Promise.all(deletePromises)
             .then(() => {
               this.removePalletGroupFromFE(palletItem);
+              this.computePalletSummary();
 
               this.snackBar.open(
                 "Đã xóa tất cả pallet khỏi cơ sở dữ liệu",
@@ -3028,12 +3037,28 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   //  THÊM HÀM MAP CHO PALLET ITEMS
   private mapPalletsToPalletItems(palletDetails: any[]): PalletItem[] {
     const grouped: { [key: string]: PalletItem } = {};
+
     const normalize = (v: any): string => {
       if (v === null || v === undefined) {
         return "";
       }
       return String(v).trim();
     };
+
+    const makeKey = (detail: any): string => {
+      // Nếu bạn muốn gộp chỉ theo po_number, đổi thành: return normalize(detail.po_number);
+      const updatedAt = normalize(detail.updated_at);
+      const po = normalize(detail.po_number);
+      const qdsx = normalize(detail.qdsx_no);
+      const sku = normalize(detail.item_no_sku);
+      const customer = normalize(detail.customer_name);
+      const result = normalize(detail.inspection_result);
+      const note = normalize(detail.note);
+      const dateCode = normalize(detail.date_code);
+      // Dùng dấu phân cách rõ ràng để tránh nhầm lẫn
+      return `${updatedAt}|${po}|${qdsx}|${sku}|${customer}|${result}|${note}|${dateCode}`;
+    };
+
     const findLotBySerial = (serialRaw: any): string => {
       const serial = normalize(serialRaw);
       if (!serial) {
@@ -3045,6 +3070,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         if (boxSerial && boxSerial === serial) {
           return normalize(box.lotNumber);
         }
+
         const sub = (box.subItems ?? []).find(
           (s: any) => normalize(s.maThung) === serial,
         );
@@ -3052,19 +3078,17 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           return normalize(box.lotNumber);
         }
       }
-
-      // nếu không tìm thấy, trả về rỗng (không fallback về boxItems[0])
       return "";
     };
+
     for (const detail of palletDetails) {
-      // Tạo key nhóm theo các thông tin chung của pallet cha
-      const key = detail.updated_at;
+      const key = makeKey(detail);
 
       if (!grouped[key]) {
         grouped[key] = {
           id: detail.id,
           stt: Object.keys(grouped).length + 1,
-          tenSanPham: this.productionOrders[0]?.tenHangHoa ?? "",
+          tenSanPham: this.productionOrders?.[0]?.tenHangHoa ?? "",
           noSKU: detail.item_no_sku ?? "",
           createdAt: detail.production_date ?? "",
           tongPallet: 0,
@@ -3078,38 +3102,43 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           ketQuaKiemTra: detail.inspection_result ?? "",
           trangThaiIn: detail.print_status,
           note: detail.note ?? "",
-          serialPallet: "", // pallet cha không cần serial
+          serialPallet: "",
           subItems: [],
           tienDoScan: 0,
           lotNumber: "",
         };
       }
+
       const serialPallet = normalize(detail.serial_pallet);
       const foundLot = findLotBySerial(serialPallet);
-      // Thêm pallet con vào subItems
-      grouped[key].subItems.push({
+
+      const subItem = {
         id: detail.id,
         stt: grouped[key].subItems.length + 1,
         maPallet: detail.serial_pallet,
-        tongSoThung: detail.num_box_actual ?? 0,
-        thungScan: detail.num_box_config ?? 1,
+        tongSoThung: Number(detail.num_box_actual ?? 0),
+        thungScan: Number(detail.num_box_config ?? 1),
         qrCode: detail.serial_pallet,
-        tienDoScan: detail.scan_progress ?? 0,
-        sucChua: `${detail.num_box_actual ?? 0} thùng`,
+        tienDoScan: Number(detail.scan_progress ?? 0),
+        sucChua: `${Number(detail.num_box_actual ?? 0)} thùng`,
         wmsSent: detail.wms_send_status,
         lotNumber: foundLot,
-      });
+      };
+
+      grouped[key].subItems.push(subItem);
+
       if (!grouped[key].lotNumber && foundLot) {
         grouped[key].lotNumber = foundLot;
       }
 
       // Cập nhật tổng số liệu
-      // grouped[key].subItems.push(subItem);
-
-      // Cập nhật tổng số liệu theo dữ liệu thực tế
       grouped[key].tongPallet = grouped[key].subItems.length;
-      grouped[key].tongSoThung += detail.num_box_actual ?? 0;
-      grouped[key].tongSlSp += detail.quantity_per_box ?? 0;
+      grouped[key].tongSoThung += Number(detail.num_box_actual ?? 0);
+      // Nếu quantity_per_box là số lượng SP trên 1 thùng, tổng SP phải cộng (num_box_actual * quantity_per_box)
+      const qtyPerBox = Number(
+        detail.quantity_per_box ?? detail.quantityPerBox ?? 0,
+      );
+      grouped[key].tongSlSp += Number(detail.num_box_actual ?? 0) * qtyPerBox;
     }
 
     return Object.values(grouped);
