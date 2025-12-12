@@ -192,7 +192,8 @@ export class PrintPalletDialogComponent implements OnInit {
    */
   async onPrint(): Promise<void> {
     const unprintedPallets = this.pallets.filter(
-      (p) => !p.printStatus && !this.isNotScanned(p),
+      // (p) => !p.printStatus && !this.isNotScanned(p),
+      (p) => !this.isNotScanned(p),
     );
 
     if (unprintedPallets.length === 0) {
@@ -623,7 +624,8 @@ export class PrintPalletDialogComponent implements OnInit {
     this.progressPdf = 0;
 
     const unprintedPallets = this.pallets.filter(
-      (p) => !p.printStatus && !this.isNotScanned(p),
+      // (p) => !p.printStatus && !this.isNotScanned(p),
+      (p) => !this.isNotScanned(p),
     );
 
     if (unprintedPallets.length === 0) {
