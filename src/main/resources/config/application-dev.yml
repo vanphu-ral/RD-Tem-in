@@ -100,7 +100,7 @@ partner3:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/PNM_DB
-    username: admin
+    username: postgres
     password: admin123
     hikari:
       poolName: HikariCP-Partner3

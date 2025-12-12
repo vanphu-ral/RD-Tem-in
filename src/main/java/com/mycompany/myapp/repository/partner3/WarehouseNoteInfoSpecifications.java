@@ -14,7 +14,10 @@ public class WarehouseNoteInfoSpecifications {
             if (sapCode == null || sapCode.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("sapCode"), sapCode);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("sapCode")),
+                "%" + sapCode.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -24,8 +27,8 @@ public class WarehouseNoteInfoSpecifications {
                 return criteriaBuilder.conjunction();
             }
             return criteriaBuilder.like(
-                root.get("sapName"),
-                "%" + sapName + "%"
+                criteriaBuilder.lower(root.get("sapName")),
+                "%" + sapName.trim().toLowerCase() + "%"
             );
         };
     }
@@ -37,9 +40,9 @@ public class WarehouseNoteInfoSpecifications {
             if (maLenhSanXuat == null || maLenhSanXuat.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(
-                root.get("maLenhSanXuat"),
-                maLenhSanXuat
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("maLenhSanXuat")),
+                "%" + maLenhSanXuat.trim().toLowerCase() + "%"
             );
         };
     }
@@ -52,8 +55,8 @@ public class WarehouseNoteInfoSpecifications {
                 return criteriaBuilder.conjunction();
             }
             return criteriaBuilder.like(
-                root.get("workOrderCode"),
-                "%" + workOrderCode + "%"
+                criteriaBuilder.lower(root.get("workOrderCode")),
+                "%" + workOrderCode.trim().toLowerCase() + "%"
             );
         };
     }
@@ -63,7 +66,10 @@ public class WarehouseNoteInfoSpecifications {
             if (version == null || version.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("version"), version);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("version")),
+                "%" + version.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -74,7 +80,10 @@ public class WarehouseNoteInfoSpecifications {
             if (storageCode == null || storageCode.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("storageCode"), storageCode);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("storageCode")),
+                "%" + storageCode.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -85,7 +94,10 @@ public class WarehouseNoteInfoSpecifications {
             if (createBy == null || createBy.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("createBy"), createBy);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("createBy")),
+                "%" + createBy.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -107,7 +119,10 @@ public class WarehouseNoteInfoSpecifications {
             if (trangThai == null || trangThai.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("trangThai"), trangThai);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("trangThai")),
+                "%" + trangThai.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -117,8 +132,8 @@ public class WarehouseNoteInfoSpecifications {
                 return criteriaBuilder.conjunction();
             }
             return criteriaBuilder.like(
-                root.get("comment"),
-                "%" + comment + "%"
+                criteriaBuilder.lower(root.get("comment")),
+                "%" + comment.trim().toLowerCase() + "%"
             );
         };
     }
@@ -141,7 +156,10 @@ public class WarehouseNoteInfoSpecifications {
             if (groupName == null || groupName.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("groupName"), groupName);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("groupName")),
+                "%" + groupName.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -153,8 +171,8 @@ public class WarehouseNoteInfoSpecifications {
                 return criteriaBuilder.conjunction();
             }
             return criteriaBuilder.like(
-                root.get("comment2"),
-                "%" + comment2 + "%"
+                criteriaBuilder.lower(root.get("comment2")),
+                "%" + comment2.trim().toLowerCase() + "%"
             );
         };
     }
@@ -166,7 +184,10 @@ public class WarehouseNoteInfoSpecifications {
             if (approverBy == null || approverBy.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("approverBy"), approverBy);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("approverBy")),
+                "%" + approverBy.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -175,7 +196,10 @@ public class WarehouseNoteInfoSpecifications {
             if (branch == null || branch.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("branch"), branch);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("branch")),
+                "%" + branch.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -186,7 +210,10 @@ public class WarehouseNoteInfoSpecifications {
             if (productType == null || productType.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("productType"), productType);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("productType")),
+                "%" + productType.trim().toLowerCase() + "%"
+            );
         };
     }
 
@@ -197,7 +224,10 @@ public class WarehouseNoteInfoSpecifications {
             if (lotNumber == null || lotNumber.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.equal(root.get("lotNumber"), lotNumber);
+            return criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("lotNumber")),
+                "%" + lotNumber.trim().toLowerCase() + "%"
+            );
         };
     }
 
