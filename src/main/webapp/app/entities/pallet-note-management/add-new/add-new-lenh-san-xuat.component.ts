@@ -689,11 +689,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     const POs = new Set<string>();
     items.forEach((p) => {
-      if (p.dateCode) {
-        POs.add(p.dateCode);
-      }
-      if (p.poNumber) {
-        POs.add(p.poNumber);
+      const po = (p.poNumber ?? "").toString().trim();
+      if (po) {
+        POs.add(po);
       }
     });
 
