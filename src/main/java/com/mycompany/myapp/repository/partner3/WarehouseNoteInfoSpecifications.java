@@ -30,6 +30,20 @@ public class WarehouseNoteInfoSpecifications {
         };
     }
 
+    public static Specification<WarehouseNoteInfo> hasMaLenhSanXuat(
+        String maLenhSanXuat
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            if (maLenhSanXuat == null || maLenhSanXuat.trim().isEmpty()) {
+                return criteriaBuilder.conjunction();
+            }
+            return criteriaBuilder.equal(
+                root.get("maLenhSanXuat"),
+                maLenhSanXuat
+            );
+        };
+    }
+
     public static Specification<WarehouseNoteInfo> hasWorkOrderCode(
         String workOrderCode
     ) {

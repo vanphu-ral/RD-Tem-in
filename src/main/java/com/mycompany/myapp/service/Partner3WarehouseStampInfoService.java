@@ -254,6 +254,7 @@ public class Partner3WarehouseStampInfoService {
      *
      * @param sapCode       the sapCode to filter by.
      * @param sapName       the sapName to filter by.
+     * @param maLenhSanXuat the maLenhSanXuat to filter by.
      * @param workOrderCode the workOrderCode to filter by.
      * @param version       the version to filter by.
      * @param storageCode   the storageCode to filter by.
@@ -275,6 +276,7 @@ public class Partner3WarehouseStampInfoService {
     public Page<WarehouseStampInfoDTO> searchWarehouseNoteInfos(
         String sapCode,
         String sapName,
+        String maLenhSanXuat,
         String workOrderCode,
         String version,
         String storageCode,
@@ -298,6 +300,9 @@ public class Partner3WarehouseStampInfoService {
         )
             .and(WarehouseNoteInfoSpecifications.hasSapCode(sapCode))
             .and(WarehouseNoteInfoSpecifications.hasSapName(sapName))
+            .and(
+                WarehouseNoteInfoSpecifications.hasMaLenhSanXuat(maLenhSanXuat)
+            )
             .and(
                 WarehouseNoteInfoSpecifications.hasWorkOrderCode(workOrderCode)
             )

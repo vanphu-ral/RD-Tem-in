@@ -294,6 +294,7 @@ public class WarehouseNoteInfoResource {
      *
      * @param sapCode       the sapCode to filter by.
      * @param sapName       the sapName to filter by.
+     * @param maLenhSanXuat the maLenhSanXuat to filter by.
      * @param workOrderCode the workOrderCode to filter by.
      * @param version       the version to filter by.
      * @param storageCode   the storageCode to filter by.
@@ -316,6 +317,7 @@ public class WarehouseNoteInfoResource {
     public ResponseEntity<List<WarehouseStampInfoDTO>> getAllWarehouseNoteInfos(
         @RequestParam(required = false) String sapCode,
         @RequestParam(required = false) String sapName,
+        @RequestParam(required = false) String maLenhSanXuat,
         @RequestParam(required = false) String workOrderCode,
         @RequestParam(required = false) String version,
         @RequestParam(required = false) String storageCode,
@@ -349,6 +351,7 @@ public class WarehouseNoteInfoResource {
             partner3WarehouseStampInfoService.searchWarehouseNoteInfos(
                 sapCode,
                 sapName,
+                maLenhSanXuat,
                 workOrderCode,
                 version,
                 storageCode,
