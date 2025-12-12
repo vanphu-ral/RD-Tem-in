@@ -106,6 +106,16 @@
       justify-content: center;
     }
   }
+  transform: translateZ(0);
+  will-change: transform;
+
+  // Tắt các hiệu ứng không cần thiết khi export
+  &.exporting-pdf {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
 }
 
 .print-page {
@@ -192,7 +202,6 @@
     }
   }
 }
-
 // Info Table
 .info-table {
   width: 100%;

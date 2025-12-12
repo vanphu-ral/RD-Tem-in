@@ -2,7 +2,12 @@ import dayjs from "dayjs/esm";
 import { UntypedFormBuilder } from "@angular/forms";
 import { ApplicationConfigService } from "app/core/config/application-config.service";
 import { Component, Input, OnInit } from "@angular/core";
-import { HttpHeaders, HttpResponse, HttpClient } from "@angular/common/http";
+import {
+  HttpHeaders,
+  HttpResponse,
+  HttpClient,
+  HttpParams,
+} from "@angular/common/http";
 import { ActivatedRoute, Router } from "@angular/router";
 import { combineLatest } from "rxjs";
 import { NgbModal, NgbDateStruct } from "@ng-bootstrap/ng-bootstrap";
@@ -408,58 +413,57 @@ export class LenhSanXuatComponent implements OnInit {
   // }
   getLenhSanXuatList(): void {
     const params = this.buildParams();
+    console.log("[getLenhSanXuatList] request params:", params.toString());
 
-    this.http.get<any>(this.testUrl, { params }).subscribe((res) => {
-      // Nếu BE trả về array trực tiếp
-      const content = Array.isArray(res)
-        ? res
-        : (res.content ?? res.items ?? res.data ?? []);
+    this.http.get<any>(this.testUrl, { params }).subscribe({
+      next: (res) => {
+        console.log("[getLenhSanXuatList] raw response:", res);
 
-      this.totalItems = Array.isArray(res)
-        ? res.length
-        : (res.totalElements ?? res.total ?? content.length);
+        const content = Array.isArray(res)
+          ? res
+          : (res.content ?? res.items ?? res.data ?? []);
+        this.lenhSanXuats = content.map((item: any) => ({
+          id: item.id,
+          maLenhSanXuat: item.ma_lenh_san_xuat ?? item.maLenhSanXuat,
+          sapCode: item.sap_code ?? item.sapCode,
+          sapName: item.sap_name ?? item.sapName,
+          workOrderCode: item.work_order_code ?? item.workOrderCode,
+          product_type: item.product_type ?? item.productType,
+          version: item.version,
+          storageCode: item.storage_code ?? item.storageCode,
+          totalQuantity: item.total_quantity ?? item.totalQuantity,
+          createBy: item.create_by ?? item.createBy,
+          entryTime: item.entry_time ?? item.entryTime,
+          timeUpdate: item.time_update ?? item.timeUpdate,
+          trangThai: item.trang_thai ?? item.trangThai,
+          groupName: item.group_name ?? item.groupName,
+          comment2: item.comment2,
+          comment: item.comment,
+          branch: item.branch,
+        }));
 
-      this.totalPages = Math.ceil(this.totalItems / this.itemPerPage);
-
-      this.lenhSanXuats = content.map((item: any) => ({
-        id: item.id,
-        maLenhSanXuat: item.ma_lenh_san_xuat,
-        sapCode: item.sap_code,
-        sapName: item.sap_name,
-        workOrderCode: item.work_order_code,
-        product_type: item.product_type,
-        version: item.version,
-        storageCode: item.storage_code,
-        totalQuantity: item.total_quantity,
-        createBy: item.create_by,
-        entryTime: item.entry_time,
-        timeUpdate: item.time_update,
-        trangThai: item.trang_thai,
-        groupName: item.group_name,
-        comment2: item.comment2,
-        comment: item.comment,
-        branch: item.branch,
-        productType: item.product_type,
-      }));
-      if (Array.isArray(res)) {
-        // Nếu số phần tử < size => trang cuối
-        if (content.length < this.itemPerPage) {
-          this.totalPages = this.pageNumber;
+        // paging
+        if (Array.isArray(res)) {
+          this.totalItems = content.length;
+          this.totalPages =
+            content.length < this.itemPerPage
+              ? this.pageNumber
+              : this.pageNumber + 1;
         } else {
-          // giả định còn trang sau, tăng thêm 1
-          this.totalPages = this.pageNumber + 1;
+          this.totalItems = res.totalElements ?? res.total ?? content.length;
+          this.totalPages =
+            res.totalPages ?? Math.ceil(this.totalItems / this.itemPerPage);
+          if (typeof res.number === "number") {
+            this.pageNumber = res.number + 1;
+          }
         }
-      } else {
-        this.totalItems = res.totalElements ?? content.length;
-        this.totalPages =
-          res.totalPages ?? Math.ceil(this.totalItems / this.itemPerPage);
-      }
-      if (!Array.isArray(res) && typeof res.number === "number") {
-        this.pageNumber = res.number + 1;
-      }
 
-      this.updatePaginationButtons();
-      this.changeColor();
+        this.updatePaginationButtons();
+        this.changeColor();
+      },
+      error: (err) => {
+        console.error("[getLenhSanXuatList] error", err);
+      },
     });
   }
 
@@ -592,48 +596,85 @@ export class LenhSanXuatComponent implements OnInit {
   onError(): void {
     this.ngbPaginationPage = this.page ?? 1;
   }
-  private buildParams(): Record<string, string> {
-    const zeroBasedPage = (this.pageNumber - 1).toString();
+  // private buildParams(): Record<string, string> {
+  //   const zeroBasedPage = (this.pageNumber - 1).toString();
 
-    const params: Record<string, string> = {
-      page: zeroBasedPage,
-      size: this.itemPerPage.toString(),
+  //   const params: Record<string, string> = {
+  //     page: zeroBasedPage,
+  //     size: this.itemPerPage.toString(),
+  //   };
+
+  //   if (this.sapName) {
+  //     params.sapName = this.sapName;
+  //   }
+  //   if (this.sapCode) {
+  //     params.sapCode = this.sapCode;
+  //   }
+  //   if (this.maLenhSanXuat) {
+  //     params.maLenhSanXuat = this.maLenhSanXuat;
+  //   }
+  //   if (this.version) {
+  //     params.version = this.version;
+  //   }
+  //   if (this.product_type) {
+  //     params.product_type = this.product_type;
+  //   }
+  //   if (this.storageCode) {
+  //     params.storageCode = this.storageCode;
+  //   }
+  //   if (this.createBy) {
+  //     params.createBy = this.createBy;
+  //   }
+  //   if (this.trangThai) {
+  //     params.trangThai = this.trangThai;
+  //   }
+  //   if (this.entryTime) {
+  //     params.entryTime = this.entryTime;
+  //   }
+  //   if (this.timeUpdate) {
+  //     params.timeUpdate = this.timeUpdate;
+  //   }
+
+  //   // thêm log để kiểm tra params
+  //   console.log("buildParams result:", params);
+
+  //   return params;
+  // }
+  private buildParams(): HttpParams {
+    const zeroBasedPage = Math.max(0, this.pageNumber - 1);
+
+    let params = new HttpParams()
+      .set("page", String(zeroBasedPage))
+      .set("size", String(this.itemPerPage));
+
+    const addIf = (key: string, value?: any): void => {
+      if (value === null || value === undefined) {
+        return;
+      }
+      const s = String(value).trim();
+      if (s !== "") {
+        params = params.set(key, s);
+      }
     };
 
-    if (this.sapName) {
-      params.sapName = this.sapName;
-    }
-    if (this.sapCode) {
-      params.sapCode = this.sapCode;
-    }
-    if (this.maLenhSanXuat) {
-      params.maLenhSanXuat = this.maLenhSanXuat;
-    }
-    if (this.version) {
-      params.version = this.version;
-    }
-    if (this.product_type) {
-      params.product_type = this.product_type;
-    }
-    if (this.storageCode) {
-      params.storageCode = this.storageCode;
-    }
-    if (this.createBy) {
-      params.createBy = this.createBy;
-    }
-    if (this.trangThai) {
-      params.trangThai = this.trangThai;
-    }
-    if (this.entryTime) {
-      params.entryTime = this.entryTime;
-    }
-    if (this.timeUpdate) {
-      params.timeUpdate = this.timeUpdate;
-    }
+    // Các trường lọc theo yêu cầu (map tên param theo API)
+    addIf("maLenhSanXuat", this.maLenhSanXuat);
+    addIf("sapCode", this.sapCode);
+    addIf("sapName", this.sapName);
+    addIf("workOrderCode", this.workOrderCode);
+    addIf("version", this.version);
+    addIf("storageCode", this.storageCode);
+    addIf("createBy", this.createBy);
+    addIf("trangThai", this.trangThai);
+    addIf("comment", (this as any).comment ?? "");
+    addIf("groupName", this.groupName);
+    addIf("comment2", (this as any).comment2 ?? "");
+    addIf("approverBy", (this as any).approverBy ?? "");
+    addIf("branch", (this as any).branch ?? "");
+    addIf("productType", (this as any).productType ?? this.product_type ?? "");
+    addIf("lotNumber", (this as any).lotNumber ?? "");
 
-    // thêm log để kiểm tra params
-    console.log("buildParams result:", params);
-
+    console.log("[buildParams] params:", params.toString());
     return params;
   }
 }

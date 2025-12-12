@@ -618,13 +618,14 @@ export class PrintPalletDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  onExportPdf(): void {
+  async onExportPdf(): Promise<void> {
     this.isLoadingPdf = true;
     this.progressPdf = 0;
 
     const unprintedPallets = this.pallets.filter(
       (p) => !p.printStatus && !this.isNotScanned(p),
     );
+
     if (unprintedPallets.length === 0) {
       this.snackBar.open(
         "Không có phiếu nào cần xuất PDF! (Các phiếu đã in hoặc chưa scan sẽ không được xuất)",
@@ -635,85 +636,152 @@ export class PrintPalletDialogComponent implements OnInit {
       return;
     }
 
-    const pdfPages: PrintPage[] = [];
+    // Tạo pages tạm thời chỉ với phiếu chưa in (giống như print)
+    const tempPages: PrintPage[] = [];
     if (this.paperSize === "A4") {
       for (let i = 0; i < unprintedPallets.length; i += 2) {
-        pdfPages.push({
+        tempPages.push({
           left: unprintedPallets[i],
-          right: unprintedPallets[i + 1],
+          right: unprintedPallets[i + 1] || undefined,
         });
       }
     } else {
       for (let i = 0; i < unprintedPallets.length; i++) {
-        pdfPages.push({ left: unprintedPallets[i], right: undefined });
+        tempPages.push({
+          left: unprintedPallets[i],
+          right: undefined,
+        });
       }
     }
 
-    const isA5 = this.paperSize === "A5";
-    const pdfOrientation = isA5 ? "portrait" : "landscape";
-    const pdfFormat = isA5 ? [148, 210] : [297, 210];
+    // Lưu displayPages gốc và thay thế tạm thời
+    const originalPages = this.displayPages;
+    this.displayPages = tempPages;
+    this.cdr.detectChanges();
 
-    const pdf = new jsPDF(pdfOrientation as any, "mm", pdfFormat as any);
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    // Đợi render xong
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await this.convertQRCodesToImages();
 
-    const renderPageToPdf = async (
-      page: PrintPage,
-      isFirst: boolean,
-    ): Promise<void> => {
-      if (!isFirst) {
-        pdf.addPage(pdfFormat as any, pdfOrientation as any);
-      }
+    const printContent = document.querySelector(".print-content");
+    printContent?.classList.add("exporting-pdf");
 
-      if (isA5) {
-        if (page.left) {
-          const el = document.getElementById(`pallet-${page.left.id}`); // giả sử bạn set id cho card
-          if (el) {
-            const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-            const imgData = canvas.toDataURL("image/jpeg", 0.8);
-            pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
-          }
+    try {
+      const isA5 = this.paperSize === "A5";
+      const pdfOrientation = isA5 ? "portrait" : "landscape";
+      const pdfFormat = isA5 ? [148, 210] : [297, 210];
+
+      const pdf = new jsPDF(pdfOrientation as any, "mm", pdfFormat as any);
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // Lấy tất cả các print-page elements từ DOM
+      const pageElements = Array.from(
+        document.querySelectorAll(".print-page"),
+      ) as HTMLElement[];
+
+      console.log(`Starting PDF export: ${pageElements.length} pages`);
+
+      // Render từng page
+      for (let i = 0; i < pageElements.length; i++) {
+        const pageEl = pageElements[i];
+
+        if (i > 0) {
+          pdf.addPage(pdfFormat as any, pdfOrientation as any);
         }
-      } else {
-        // A4: render cả trang với 2 card
-        const container = document.getElementById(`print-page-${page.left.id}`);
-        // hoặc wrap 2 card vào 1 div có id riêng
-        if (container) {
-          const canvas = await html2canvas(container, {
-            scale: 2,
-            useCORS: true,
-          });
-          const imgData = canvas.toDataURL("image/jpeg", 0.8);
+
+        // Tối ưu html2canvas với các options
+        const canvas = await html2canvas(pageEl, {
+          scale: 2, // Giảm từ 2 xuống 1.5 nếu cần tốc độ hơn (nhưng chất lượng giảm)
+          useCORS: true,
+          logging: false, // Tắt logging để tăng tốc
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+          imageTimeout: 0, // Không timeout cho images
+          removeContainer: true, // Xóa container tạm sau khi render
+        });
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.85); // Tăng từ 0.8 lên 0.85 cho quality tốt hơn
+
+        if (isA5) {
+          // A5: full page
+          pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
+        } else {
+          // A4: tính toán tỷ lệ
           const imgPixelWidth = canvas.width;
           const imgPixelHeight = canvas.height;
           const imgMmWidth = pageWidth;
           const imgMmHeight = imgPixelHeight * (pageWidth / imgPixelWidth);
           pdf.addImage(imgData, "JPEG", 0, 0, imgMmWidth, imgMmHeight);
         }
-      }
-    };
 
-    const generatePdf = async (): Promise<void> => {
-      for (let i = 0; i < pdfPages.length; i++) {
-        await renderPageToPdf(pdfPages[i], i === 0);
-        this.progressPdf = Math.round(((i + 1) / pdfPages.length) * 100);
+        // Cập nhật progress
+        this.progressPdf = Math.round(((i + 1) / pageElements.length) * 100);
         this.cdr.detectChanges();
+
+        // Giải phóng memory
+        canvas.remove();
       }
 
+      // Save PDF
       const fileName = `phieu-thong-tin-${this.paperSize}-${Date.now()}.pdf`;
       pdf.save(fileName);
-      await this.updatePrintStatusAfterPrint(unprintedPallets);
-      this.isLoadingPdf = false;
-      this.progressPdf = 0;
-      this.cdr.detectChanges();
-    };
+      console.log(`PDF saved: ${fileName}`);
 
-    void generatePdf().catch((err) => {
+      // Cập nhật print status
+      await this.updatePrintStatusAfterPrint(unprintedPallets);
+    } catch (err) {
       console.error("Error generating PDF:", err);
+      this.snackBar.open("Lỗi khi xuất PDF", "Đóng", { duration: 3000 });
+    } finally {
+      // Khôi phục displayPages gốc
+      this.displayPages = originalPages;
       this.isLoadingPdf = false;
       this.progressPdf = 0;
       this.cdr.detectChanges();
-    });
+      // printContent?.classList.remove("exporting-pdf");
+    }
+  }
+  private async convertQRCodesToImages(): Promise<void> {
+    const qrCanvases = Array.from(
+      document.querySelectorAll(".print-content canvas"),
+    ) as HTMLCanvasElement[];
+
+    for (const canvas of qrCanvases) {
+      try {
+        if (canvas.width === 0 || canvas.height === 0) {
+          continue;
+        }
+
+        const dataUrl = canvas.toDataURL("image/png");
+        const img = document.createElement("img");
+        img.src = dataUrl;
+        img.width = canvas.width;
+        img.height = canvas.height;
+        img.style.cssText = canvas.style.cssText;
+        img.className = canvas.className;
+
+        if (canvas.parentNode) {
+          canvas.parentNode.replaceChild(img, canvas);
+        }
+      } catch (err) {
+        console.error("QR conversion failed:", err);
+      }
+    }
+
+    // Đợi images load
+    const images = Array.from(document.querySelectorAll(".print-content img"));
+    await Promise.all(
+      images.map((img: any) => {
+        if (img.complete) {
+          return Promise.resolve();
+        }
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }),
+    );
   }
 
   private async updatePrintStatusAfterPrint(
