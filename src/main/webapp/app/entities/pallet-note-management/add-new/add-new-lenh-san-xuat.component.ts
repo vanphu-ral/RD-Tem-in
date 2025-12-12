@@ -1662,6 +1662,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             this.planningService.deleteBoxDetail(subItem.id!).subscribe({
               next: () => {
                 console.log(`Đã xóa box detail ID ${subItem.id} khỏi DB`);
+                this.computeBoxSummary();
                 resolve();
               },
               error: (err) => {
@@ -1678,6 +1679,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           .then(() => {
             // Xóa khỏi FE sau khi xóa DB thành công
             this.removeBoxFromFE(index);
+            this.computeBoxSummary();
+            this.saveWarehouseNotes();
 
             this.snackBar.open("Đã xóa thùng khỏi cơ sở dữ liệu", "Đóng", {
               duration: 3000,
@@ -1698,6 +1701,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         this.snackBar.open("Đã xóa thùng", "Đóng", {
           duration: 2000,
         });
+        this.computeBoxSummary();
+        this.saveWarehouseNotes();
       }
     });
   }
@@ -1733,6 +1738,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           this.planningService.deletePalletDetail(palletSub.id).subscribe({
             next: () => {
               this.removePalletSubFromFE(palletItem, subIndex);
+              this.computePalletSummary();
 
               this.snackBar.open("Đã xóa pallet khỏi cơ sở dữ liệu", "Đóng", {
                 duration: 3000,
@@ -1754,6 +1760,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         } else {
           // Chưa lưu DB → xóa trực tiếp FE
           this.removePalletSubFromFE(palletItem, subIndex);
+          this.computePalletSummary();
 
           this.snackBar.open("Đã xóa pallet", "Đóng", {
             duration: 2000,
@@ -1790,6 +1797,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               this.planningService.deletePalletDetail(sub.id!).subscribe({
                 next: () => {
                   console.log(`Đã xóa pallet detail ID ${sub.id} khỏi DB`);
+                  this.computePalletSummary();
                   resolve();
                 },
                 error: (err) => {
@@ -1806,6 +1814,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           Promise.all(deletePromises)
             .then(() => {
               this.removePalletGroupFromFE(palletItem);
+              this.computePalletSummary();
 
               this.snackBar.open(
                 "Đã xóa tất cả pallet khỏi cơ sở dữ liệu",

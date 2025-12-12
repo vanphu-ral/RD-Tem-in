@@ -250,6 +250,16 @@
                 Gửi ({{ selection.selected.length }})
               </button>
               } -->
+              <input
+                #scanInput
+                type="text"
+                autocomplete="off"
+                class="sr-only-focusable"
+                (keyup.enter)="onScanEnter($any($event))"
+                (input)="onScanInput($any($event))"
+                inputmode="text"
+                enterkeyhint="done"
+              />
             </div>
 
             <!-- Scan Indicator -->

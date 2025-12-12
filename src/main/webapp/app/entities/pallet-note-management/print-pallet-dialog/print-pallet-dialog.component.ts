@@ -388,7 +388,7 @@ export class PrintPalletDialogComponent implements OnInit {
           
           .pallet-card {
             width: 148.5mm !important;
-            height: 210mm !important;
+            height: 208mm !important;
             padding: 8mm !important;
             margin: 0 !important;
           }
@@ -449,7 +449,9 @@ export class PrintPalletDialogComponent implements OnInit {
             background: white !important;
             border: 2px solid #000 !important;
           }
-          
+          .watermark-overlay {
+            display: none !important;
+          }
           .qr-code-wrapper img {
             display: block !important;
             max-width: 100% !important;
@@ -623,10 +625,7 @@ export class PrintPalletDialogComponent implements OnInit {
     this.isLoadingPdf = true;
     this.progressPdf = 0;
 
-    const unprintedPallets = this.pallets.filter(
-      // (p) => !p.printStatus && !this.isNotScanned(p),
-      (p) => !this.isNotScanned(p),
-    );
+    const unprintedPallets = this.pallets.filter((p) => !this.isNotScanned(p));
 
     if (unprintedPallets.length === 0) {
       this.snackBar.open(
@@ -638,7 +637,7 @@ export class PrintPalletDialogComponent implements OnInit {
       return;
     }
 
-    // Tạo pages tạm thời chỉ với phiếu chưa in (giống như print)
+    // Tạo pages tạm thời
     const tempPages: PrintPage[] = [];
     if (this.paperSize === "A4") {
       for (let i = 0; i < unprintedPallets.length; i += 2) {
@@ -661,12 +660,40 @@ export class PrintPalletDialogComponent implements OnInit {
     this.displayPages = tempPages;
     this.cdr.detectChanges();
 
-    // Đợi render xong
+    // Đợi render xong và convert QR
     await new Promise((resolve) => setTimeout(resolve, 500));
     await this.convertQRCodesToImages();
 
     const printContent = document.querySelector(".print-content");
     printContent?.classList.add("exporting-pdf");
+
+    // Ẩn watermark-overlay trước khi chụp
+    const watermarkEls = Array.from(
+      document.querySelectorAll(".watermark-overlay"),
+    ) as HTMLElement[];
+    const watermarkOldDisplays: string[] = [];
+    watermarkEls.forEach((el, idx) => {
+      watermarkOldDisplays[idx] = el.style.display;
+      el.style.display = "none";
+    });
+
+    // helper: mm -> px (approx, dùng 96 DPI baseline và devicePixelRatio)
+    function mmToPx(mm: number): number {
+      return Math.round((mm / 25.4) * 96 * (window.devicePixelRatio || 1));
+    }
+
+    // Lấy các trang hiện tại
+    const pageElements = Array.from(
+      document.querySelectorAll(".print-page"),
+    ) as HTMLElement[];
+    const singleA4SingleTicket =
+      this.paperSize === "A4" && pageElements.length === 1;
+
+    // Lưu style đã thay đổi để khôi phục
+    const savedStyles: {
+      el: HTMLElement;
+      styles: Partial<CSSStyleDeclaration>;
+    }[] = [];
 
     try {
       const isA5 = this.paperSize === "A5";
@@ -677,14 +704,8 @@ export class PrintPalletDialogComponent implements OnInit {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // Lấy tất cả các print-page elements từ DOM
-      const pageElements = Array.from(
-        document.querySelectorAll(".print-page"),
-      ) as HTMLElement[];
-
       console.log(`Starting PDF export: ${pageElements.length} pages`);
 
-      // Render từng page
       for (let i = 0; i < pageElements.length; i++) {
         const pageEl = pageElements[i];
 
@@ -692,37 +713,129 @@ export class PrintPalletDialogComponent implements OnInit {
           pdf.addPage(pdfFormat as any, pdfOrientation as any);
         }
 
-        // Tối ưu html2canvas với các options
-        const canvas = await html2canvas(pageEl, {
-          scale: 2, // Giảm từ 2 xuống 1.5 nếu cần tốc độ hơn (nhưng chất lượng giảm)
-          useCORS: true,
-          logging: false, // Tắt logging để tăng tốc
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-          imageTimeout: 0, // Không timeout cho images
-          removeContainer: true, // Xóa container tạm sau khi render
-        });
+        // Nếu chỉ 1 phiếu trên A4: chụp riêng leftEl và vẽ ảnh chiếm nửa A4
+        if (singleA4SingleTicket) {
+          const leftEl = pageEl.querySelector(
+            ".print-left",
+          ) as HTMLElement | null;
+          const rightEl = pageEl.querySelector(
+            ".print-right",
+          ) as HTMLElement | null;
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.85); // Tăng từ 0.8 lên 0.85 cho quality tốt hơn
+          // Lưu style cũ
+          if (pageEl) {
+            savedStyles.push({
+              el: pageEl,
+              styles: { display: pageEl.style.display },
+            });
+          }
+          if (leftEl) {
+            savedStyles.push({
+              el: leftEl,
+              styles: {
+                width: leftEl.style.width,
+                boxSizing: leftEl.style.boxSizing,
+                transform: leftEl.style.transform,
+                margin: leftEl.style.margin,
+              },
+            });
+          }
+          if (rightEl) {
+            savedStyles.push({
+              el: rightEl,
+              styles: {
+                display: rightEl.style.display,
+                width: rightEl.style.width,
+              },
+            });
+          }
 
-        if (isA5) {
-          // A5: full page
-          pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
-        } else {
-          // A4: tính toán tỷ lệ
+          // Ẩn right để không ảnh hưởng layout
+          if (rightEl) {
+            rightEl.style.display = "none";
+            rightEl.style.width = "0";
+          }
+
+          // Ép width leftEl tương ứng nửa A4 (pixel) để html2canvas chụp đúng tỉ lệ
+          let targetEl: HTMLElement = pageEl;
+          if (leftEl) {
+            const drawWidthMm = pageWidth / 2; // nửa A4
+            leftEl.style.boxSizing = "border-box";
+            leftEl.style.width = `${mmToPx(drawWidthMm)}px`;
+            leftEl.style.maxWidth = "100%";
+            leftEl.style.margin = "0";
+            leftEl.style.transform = "none";
+            targetEl = leftEl;
+          }
+
+          // Chụp targetEl (leftEl nếu có)
+          const canvas = await html2canvas(targetEl, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true,
+            backgroundColor: "#ffffff",
+            imageTimeout: 0,
+            removeContainer: true,
+            windowWidth: document.documentElement.scrollWidth,
+            windowHeight: document.documentElement.scrollHeight,
+          });
+
+          const imgData = canvas.toDataURL("image/jpeg", 0.9);
+
+          // Vẽ ảnh vào PDF: width = nửa A4 (mm), height giữ tỉ lệ
           const imgPixelWidth = canvas.width;
           const imgPixelHeight = canvas.height;
-          const imgMmWidth = pageWidth;
-          const imgMmHeight = imgPixelHeight * (pageWidth / imgPixelWidth);
-          pdf.addImage(imgData, "JPEG", 0, 0, imgMmWidth, imgMmHeight);
+          const drawWidthMm = pageWidth / 2; // nửa A4
+          const drawHeightMm = imgPixelHeight * (drawWidthMm / imgPixelWidth);
+          const yOffset = Math.max(0, (pageHeight - drawHeightMm) / 2);
+
+          pdf.addImage(imgData, "JPEG", 0, yOffset, drawWidthMm, drawHeightMm);
+
+          // cleanup
+          canvas.remove();
+        } else {
+          // Trường hợp bình thường: chụp toàn pageEl
+          // (nếu pageEl có nội dung 2 phiếu, html2canvas sẽ chụp cả)
+          const originalWidth = pageEl.style.width;
+          const originalHeight = pageEl.style.height;
+
+          // (Không ép width toàn trang ở đây, để tránh scale không mong muốn)
+          const canvas = await html2canvas(pageEl, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true,
+            backgroundColor: "#ffffff",
+            imageTimeout: 0,
+            removeContainer: true,
+            windowWidth: document.documentElement.scrollWidth,
+            windowHeight: document.documentElement.scrollHeight,
+          });
+
+          // khôi phục style (nếu có thay đổi)
+          pageEl.style.width = originalWidth;
+          pageEl.style.height = originalHeight;
+
+          const imgData = canvas.toDataURL("image/jpeg", 0.85);
+
+          if (isA5) {
+            pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
+          } else {
+            // A4: scale theo chiều ngang toàn trang
+            const imgPixelWidth = canvas.width;
+            const imgPixelHeight = canvas.height;
+            const imgMmWidth = pageWidth;
+            const imgMmHeight = imgPixelHeight * (pageWidth / imgPixelWidth);
+            pdf.addImage(imgData, "JPEG", 0, 0, imgMmWidth, imgMmHeight);
+          }
+
+          canvas.remove();
         }
 
         // Cập nhật progress
         this.progressPdf = Math.round(((i + 1) / pageElements.length) * 100);
         this.cdr.detectChanges();
-
-        // Giải phóng memory
-        canvas.remove();
       }
 
       // Save PDF
@@ -736,14 +849,39 @@ export class PrintPalletDialogComponent implements OnInit {
       console.error("Error generating PDF:", err);
       this.snackBar.open("Lỗi khi xuất PDF", "Đóng", { duration: 3000 });
     } finally {
+      // Khôi phục watermark
+      watermarkEls.forEach((el, idx) => {
+        el.style.display = watermarkOldDisplays[idx] ?? "";
+      });
+
+      // Khôi phục các style đã lưu
+      for (const s of savedStyles) {
+        if (s.styles.width !== undefined) {
+          s.el.style.width = s.styles.width as string;
+        }
+        if (s.styles.display !== undefined) {
+          s.el.style.display = s.styles.display as string;
+        }
+        if (s.styles.transform !== undefined) {
+          s.el.style.transform = s.styles.transform as string;
+        }
+        if (s.styles.margin !== undefined) {
+          s.el.style.margin = s.styles.margin as string;
+        }
+        if (s.styles.boxSizing !== undefined) {
+          s.el.style.boxSizing = s.styles.boxSizing as string;
+        }
+      }
+
       // Khôi phục displayPages gốc
       this.displayPages = originalPages;
       this.isLoadingPdf = false;
       this.progressPdf = 0;
       this.cdr.detectChanges();
-      // printContent?.classList.remove("exporting-pdf");
+      printContent?.classList.remove("exporting-pdf");
     }
   }
+
   private async convertQRCodesToImages(): Promise<void> {
     const qrCanvases = Array.from(
       document.querySelectorAll(".print-content canvas"),

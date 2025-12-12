@@ -48,7 +48,7 @@
         [id]="page.left.id ?? page.left.serialPallet"
         *ngIf="page.left"
       >
-        <!-- <div
+        <div
           class="watermark-overlay"
           *ngIf="shouldShowWatermark(page.left)"
           [class.watermark-not-scanned]="
@@ -56,7 +56,7 @@
           "
         >
           <span class="watermark-text">{{ getWatermarkText(page.left) }}</span>
-        </div> -->
+        </div>
         <!-- Top Section with QR Code and Title -->
         <div class="top-section">
           <div class="qr-code-wrapper">
@@ -219,7 +219,7 @@
         [id]="page.right.id ?? page.right.serialPallet"
         *ngIf="page.right && paperSize === 'A4'"
       >
-        <!-- <div
+        <div
           class="watermark-overlay"
           *ngIf="shouldShowWatermark(page.right)"
           [class.watermark-not-scanned]="
@@ -227,7 +227,7 @@
           "
         >
           <span class="watermark-text">{{ getWatermarkText(page.right) }}</span>
-        </div> -->
+        </div>
         <!-- Top Section -->
         <div class="top-section">
           <div class="qr-code-wrapper">

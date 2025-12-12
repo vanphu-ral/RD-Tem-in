@@ -1,12 +1,15 @@
 import {
+  ChangeDetectorRef,
   Component,
   computed,
   ElementRef,
   HostListener,
   Inject,
   OnInit,
+  QueryList,
   signal,
   ViewChild,
+  ViewChildren,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import {
@@ -187,6 +190,9 @@ export class WmsApproveDialogComponent implements OnInit {
   scanMode = false;
 
   productName = "";
+  @ViewChildren("scanInput", { read: ElementRef }) scanInputRefs!: QueryList<
+    ElementRef<HTMLInputElement>
+  >;
   // Context data từ API
   private warehouseNoteInfo: any;
   private warehouseNoteInfoDetails: any;
@@ -204,14 +210,13 @@ export class WmsApproveDialogComponent implements OnInit {
   private boxDetailBySerial: Map<string, any> = new Map();
   private boxToPallet: Map<string, string> = new Map();
 
-  @ViewChild("scanInput") private scanInputRef?: ElementRef<HTMLInputElement>;
-
   constructor(
     public dialogRef: MatDialogRef<WmsApproveDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: WmsDialogData,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private planningService: PlanningWorkOrderService,
+    private cdr: ChangeDetectorRef,
   ) {
     if (data.warehouseNoteInfo) {
       this.warehouseNoteInfo = data.warehouseNoteInfo;
@@ -393,15 +398,69 @@ export class WmsApproveDialogComponent implements OnInit {
     this.scanMode = !this.scanMode;
 
     if (this.scanMode) {
-      setTimeout(() => {
-        const el = this.scanInputRef?.nativeElement;
+      // focus input visible (desktop hoặc mobile)
+      requestAnimationFrame(() => {
+        const refs = this.scanInputRefs?.toArray() ?? [];
+        // tìm input đang hiển thị
+        const visibleRef = refs.find((r) => this.isVisible(r.nativeElement));
+        const el = visibleRef?.nativeElement ?? refs[0]?.nativeElement;
         if (el) {
           el.value = "";
           el.focus();
+          try {
+            el.setSelectionRange(0, 0);
+          } catch (e) {
+            /* ignore */
+          }
+        } else {
+          console.warn("No visible scan input found");
+        }
+      });
+    } else {
+      // blur tất cả input
+      (this.scanInputRefs?.toArray() ?? []).forEach((r) => {
+        try {
+          r.nativeElement.blur();
+        } catch (e) {
+          /* ignore */
+        }
+      });
+    }
+  }
+
+  onScanInput(event: Event): void {
+    const inputEl = event.target as HTMLInputElement;
+    if (!inputEl) {
+      return;
+    }
+
+    const raw = inputEl.value ?? "";
+    // Nếu scanner paste xong và kèm newline, hoặc đủ độ dài, xử lý ngay
+    // Tùy bạn: kiểm tra pattern hoặc độ dài
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    // ví dụ: nếu scanner không gửi Enter, nhưng paste xong, bạn muốn xử lý tự động
+    // điều kiện xử lý: có newline hoặc độ dài >= N (tùy mã)
+    if (raw.includes("\n") || raw.includes("\r") || trimmed.length >= 6) {
+      // loại bỏ newline
+      const code = trimmed.replace(/[\r\n]+/g, "");
+      this.processScannedCode(code);
+      inputEl.value = "";
+      // giữ focus
+      setTimeout(() => {
+        if (this.scanMode) {
+          inputEl.focus();
+          try {
+            inputEl.setSelectionRange(0, 0);
+          } catch (e) {
+            // một số input/keyboard không hỗ trợ setSelectionRange
+            console.warn("setSelectionRange failed after input", e);
+          }
         }
       }, 50);
-    } else {
-      this.scanInputRef?.nativeElement.blur();
     }
   }
 
@@ -437,10 +496,15 @@ export class WmsApproveDialogComponent implements OnInit {
     this.selection.clear();
   }
   private processScannedCode(code: string): void {
-    const pending = this.pendingPallets();
-    const found = pending.find(
-      (p) =>
-        p.qrCode === code || p.palletCode === code || String(p.id) === code,
+    // Lấy mảng thực tế mà template đang hiển thị
+    const list = this.pendingPallets();
+
+    // Tìm object trong chính mảng đó (đảm bảo cùng reference với bảng)
+    const found = list.find(
+      (p: any) =>
+        p.qrCode === code ||
+        p.palletCode === code ||
+        String(p.id) === String(code),
     );
 
     if (!found) {
@@ -452,10 +516,13 @@ export class WmsApproveDialogComponent implements OnInit {
       return;
     }
 
+    // Select object từ mảng hiển thị (cùng reference) — sẽ tick checkbox
     if (!this.selection.isSelected(found)) {
       this.selection.select(found);
+      this.cdr.detectChanges(); // đảm bảo UI cập nhật ngay
     }
   }
+
   // ==================== API 1: UPDATE STATUS ====================
 
   private async updatePalletStatus(pallets: PalletDialogItem[]): Promise<void> {
@@ -977,6 +1044,22 @@ export class WmsApproveDialogComponent implements OnInit {
     }
 
     return { boxDetailBySerial, boxToPallet, palletAggregates };
+  }
+
+  private isVisible(el: HTMLElement | null): boolean {
+    if (!el) {
+      return false;
+    }
+    const style = window.getComputedStyle(el);
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      style.opacity === "0"
+    ) {
+      return false;
+    }
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
   }
 
   // ==================== EXTRACT LOT NUMBER ====================
