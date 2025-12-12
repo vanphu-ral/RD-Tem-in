@@ -186,6 +186,7 @@ export interface PalletItem {
   nganh?: string;
   note: string;
   to?: string;
+  lotNumber?: string;
   wmsSent?: boolean;
   status?: string;
 }
@@ -201,6 +202,7 @@ export interface PalletBoxItem {
   scannedBoxes?: string[];
   createdAt?: string;
   wmsSent?: boolean;
+  lotNumber?: string;
   status?: string;
 }
 export interface WarehouseNoteResponse {
@@ -983,41 +985,79 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           });
 
           // Lấy thông tin box đầu tiên
+          const normalize = (v: any): string =>
+            v === null || v === undefined ? "" : String(v).trim();
+
+          // Lấy thông tin box đầu tiên và tìm lotNumber (thay thế đoạn cũ)
           let firstBoxSerial = "";
-          let lotNumber = "";
+          let foundLot = "";
 
-          if (scannedBoxes.length > 0) {
-            firstBoxSerial = scannedBoxes[0];
+          // Nếu palletSub đã có lotNumber (được map trước đó), ưu tiên dùng nó
+          if (
+            palletSub.lotNumber &&
+            String(palletSub.lotNumber).trim() !== ""
+          ) {
+            foundLot = normalize(palletSub.lotNumber);
+            // Nếu palletSub.maPallet chưa set firstBoxSerial, set từ maPallet
+            firstBoxSerial = normalize(palletSub.maPallet);
+          } else {
+            // Nếu có scannedBoxes, lấy serial đầu tiên
+            if (scannedBoxes.length > 0) {
+              firstBoxSerial = normalize(scannedBoxes[0]);
+            } else {
+              firstBoxSerial = normalize(palletSub.maPallet);
+            }
 
-            // Tìm lot number
-            for (const box of this.boxItems) {
-              if (box.serialBox === firstBoxSerial) {
-                lotNumber = box.lotNumber || "";
-                break;
-              }
-
-              const subItem = box.subItems?.find(
-                (sub: any) => sub.maThung === firstBoxSerial,
+            // 1) thử lấy lot từ palletGroup.subItems (nếu subItems chứa lotNumber)
+            if (!foundLot && Array.isArray(palletGroup.subItems)) {
+              const subMatch = palletGroup.subItems.find(
+                (s: any) =>
+                  normalize(s.maPallet ?? s.maThung ?? s.maThung) ===
+                  firstBoxSerial,
               );
-              if (subItem) {
-                lotNumber = box.lotNumber || "";
-                break;
+              if (subMatch && subMatch.lotNumber) {
+                foundLot = normalize(subMatch.lotNumber);
               }
             }
 
-            if (!lotNumber && this.reelDataList) {
+            // 2) thử lấy lot từ palletGroup.lotNumber (group level)
+            if (!foundLot && palletGroup.lotNumber) {
+              foundLot = normalize(palletGroup.lotNumber);
+            }
+
+            // 3) tìm trong boxItems: so sánh serialBox và subItems.maThung
+            if (!foundLot && Array.isArray(this.boxItems)) {
+              for (const box of this.boxItems) {
+                if (normalize(box.serialBox) === firstBoxSerial) {
+                  foundLot = normalize(box.lotNumber);
+                  break;
+                }
+                const sub = (box.subItems ?? []).find(
+                  (s: any) => normalize(s.maThung) === firstBoxSerial,
+                );
+                if (sub) {
+                  foundLot = normalize(box.lotNumber);
+                  break;
+                }
+              }
+            }
+
+            // 4) tìm trong reelDataList (nếu bán thành phẩm)
+            if (!foundLot && Array.isArray(this.reelDataList)) {
               const reel = this.reelDataList.find(
-                (r: any) => r.reelID === firstBoxSerial,
+                (r: any) => normalize(r.reelID) === firstBoxSerial,
               );
               if (reel) {
-                lotNumber = reel.lot || "";
+                foundLot = normalize(reel.lot);
               }
             }
-          } else {
-            firstBoxSerial = palletSub.maPallet;
-            lotNumber = this.boxItems[0]?.lotNumber || "";
-          }
 
+            // nếu vẫn không tìm thấy, để rỗng (không fallback về serial)
+            if (!foundLot) {
+              foundLot = "";
+              console.warn("lotNumber not found for serial:", firstBoxSerial);
+            }
+          }
           const printData: PrintPalletData = {
             id: palletGroup.id,
             khachHang: palletGroup.khachHang ?? "N/A",
@@ -1046,7 +1086,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             productCode: palletGroup.tenSanPham,
             serialBox: firstBoxSerial,
             qty: soLuongCaiDatPallet,
-            lot: lotNumber,
+            lot: foundLot,
             date: new Date().toLocaleDateString("vi-VN"),
             scannedBoxes: scannedBoxes,
             printStatus: palletGroup.trangThaiIn,
@@ -1056,8 +1096,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             soLuongCaiDatPallet: printData.soLuongCaiDatPallet,
             slThung: printData.slThung,
             qty: printData.qty,
+            lot: printData.lot,
             scannedBoxesFromPallet: scannedBoxes.length,
           });
+          console.log("boxItems snapshot", this.boxItems);
+
+          console.log("palletGroup", palletGroup);
+
+          console.log("palletSub", palletSub);
 
           allPrintData.push(printData);
         });
@@ -2123,6 +2169,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           }
         });
         this.saveWarehouseNotes();
+        this.computeBoxSummary();
+        this.computePalletSummary();
 
         this.snackBar.open(
           `Lưu thành công: ${pallet_infor_detail.length} pallet, ${warehouse_note_info_detail.length} thùng/tem`,
@@ -2924,7 +2972,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         grouped[key] = {
           stt: Object.keys(grouped).length + 1,
           maSanPham: d.sap_code || "", //  Lấy từ sap_code
-          lotNumber: d.lot_number || "",
+          lotNumber: (d.lot ?? d.lot_number ?? d.lotNumber ?? "")
+            .toString()
+            .trim(),
           vendor: d.vendor || "",
           version: this.productionOrders[0]?.version ?? "",
           tenSanPham: d.sp_material_name || "", //  Lấy từ sp_material_name
@@ -2978,7 +3028,34 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   //  THÊM HÀM MAP CHO PALLET ITEMS
   private mapPalletsToPalletItems(palletDetails: any[]): PalletItem[] {
     const grouped: { [key: string]: PalletItem } = {};
+    const normalize = (v: any): string => {
+      if (v === null || v === undefined) {
+        return "";
+      }
+      return String(v).trim();
+    };
+    const findLotBySerial = (serialRaw: any): string => {
+      const serial = normalize(serialRaw);
+      if (!serial) {
+        return "";
+      }
 
+      for (const box of this.boxItems ?? []) {
+        const boxSerial = normalize(box.serialBox);
+        if (boxSerial && boxSerial === serial) {
+          return normalize(box.lotNumber);
+        }
+        const sub = (box.subItems ?? []).find(
+          (s: any) => normalize(s.maThung) === serial,
+        );
+        if (sub) {
+          return normalize(box.lotNumber);
+        }
+      }
+
+      // nếu không tìm thấy, trả về rỗng (không fallback về boxItems[0])
+      return "";
+    };
     for (const detail of palletDetails) {
       // Tạo key nhóm theo các thông tin chung của pallet cha
       const key = detail.updated_at;
@@ -3004,9 +3081,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           serialPallet: "", // pallet cha không cần serial
           subItems: [],
           tienDoScan: 0,
+          lotNumber: "",
         };
       }
-
+      const serialPallet = normalize(detail.serial_pallet);
+      const foundLot = findLotBySerial(serialPallet);
       // Thêm pallet con vào subItems
       grouped[key].subItems.push({
         id: detail.id,
@@ -3018,7 +3097,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         tienDoScan: detail.scan_progress ?? 0,
         sucChua: `${detail.num_box_actual ?? 0} thùng`,
         wmsSent: detail.wms_send_status,
+        lotNumber: foundLot,
       });
+      if (!grouped[key].lotNumber && foundLot) {
+        grouped[key].lotNumber = foundLot;
+      }
 
       // Cập nhật tổng số liệu
       // grouped[key].subItems.push(subItem);

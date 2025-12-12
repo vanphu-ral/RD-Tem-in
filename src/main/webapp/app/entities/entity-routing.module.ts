@@ -148,7 +148,7 @@ import { RouterModule } from "@angular/router";
       },
       {
         path: "generate-tem-in",
-        data: { pageTitle: "Generate tem in" },
+        data: { pageTitle: "QR Serial Rang Dong" },
         loadChildren: () =>
           import("./generate-tem-in/generate-tem-in.module").then(
             (m) => m.GenerateTemInModule,
