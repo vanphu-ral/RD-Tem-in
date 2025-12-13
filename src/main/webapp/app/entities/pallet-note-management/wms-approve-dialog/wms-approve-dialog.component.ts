@@ -173,7 +173,7 @@ export class WmsApproveDialogComponent implements OnInit {
     "qr",
     "info",
     "progress",
-    "capacity",
+    "numBoxActual",
     "sentBoxes",
   ];
   displayedColumnsSent: string[] = [
@@ -181,7 +181,7 @@ export class WmsApproveDialogComponent implements OnInit {
     "qr",
     "info",
     "progress",
-    "capacity",
+    "numBoxActual",
   ];
 
   mobileTabIndex = 0;

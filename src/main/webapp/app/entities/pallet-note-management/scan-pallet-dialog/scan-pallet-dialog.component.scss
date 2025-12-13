@@ -721,9 +721,9 @@
     }
 
     .scan-content {
-      padding: 12px;
+      padding: 8px;
       gap: 12px;
-      grid-template-columns: 1fr;
+      // grid-template-columns: 1fr;
       grid-template-rows: auto;
 
       .pallet-qr-section {
