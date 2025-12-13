@@ -38,7 +38,8 @@ export class NavbarService {
       icon: faNoteSticky,
       type: "dropdown",
       submenus: [
-        { title: "Quản lý phiếu Pallet", link: "/warehouse-note-infos" },
+        { title: "Quản lý TEM/Phiếu", link: "/warehouse-note-infos" },
+        { title: "Quản lý phê duyệt", link: "/warehouse-inbound-approvals" },
       ],
     },
     {

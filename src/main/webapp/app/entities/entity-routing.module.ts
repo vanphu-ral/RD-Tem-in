@@ -162,6 +162,14 @@ import { RouterModule } from "@angular/router";
             (m) => m.LenhSanXuatModule,
           ),
       },
+      {
+        path: "warehouse-inbound-approvals",
+        data: { pageTitle: "Quản lý phê duyệt" },
+        loadChildren: () =>
+          import(
+            "./warehouse-inbound-approval/warehouse_inbound_approval.module"
+          ).then((m) => m.WarehouseInboundApprovalModule),
+      },
       // {
       //   path: 'scan-check',
       //   data: { pageTitle: 'Scan check' },
