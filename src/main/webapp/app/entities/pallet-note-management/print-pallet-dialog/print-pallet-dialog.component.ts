@@ -705,6 +705,17 @@ export class PrintPalletDialogComponent implements OnInit {
       const pageHeight = pdf.internal.pageSize.getHeight();
 
       console.log(`Starting PDF export: ${pageElements.length} pages`);
+      const cleanupStyles: Array<() => void> = [];
+      const disableEffects = (el: HTMLElement): void => {
+        const prevBoxShadow = el.style.boxShadow;
+        const prevTransform = el.style.transform;
+        el.style.boxShadow = "none";
+        el.style.transform = "none";
+        cleanupStyles.push(() => {
+          el.style.boxShadow = prevBoxShadow;
+          el.style.transform = prevTransform;
+        });
+      };
 
       for (let i = 0; i < pageElements.length; i++) {
         const pageEl = pageElements[i];
@@ -713,88 +724,84 @@ export class PrintPalletDialogComponent implements OnInit {
           pdf.addPage(pdfFormat as any, pdfOrientation as any);
         }
 
-        // Nếu chỉ 1 phiếu trên A4: chụp riêng leftEl và vẽ ảnh chiếm nửa A4
-        if (singleA4SingleTicket) {
-          const leftEl = pageEl.querySelector(
-            ".print-left",
-          ) as HTMLElement | null;
-          const rightEl = pageEl.querySelector(
-            ".print-right",
-          ) as HTMLElement | null;
+        // Lấy số card trên page hiện tại
+        const cards = Array.from(
+          pageEl.querySelectorAll(".pallet-card"),
+        ) as HTMLElement[];
+        console.log(`Page ${i}: found ${cards.length} .pallet-card`);
 
-          // Lưu style cũ
-          if (pageEl) {
-            savedStyles.push({
-              el: pageEl,
-              styles: { display: pageEl.style.display },
-            });
-          }
-          if (leftEl) {
-            savedStyles.push({
-              el: leftEl,
-              styles: {
-                width: leftEl.style.width,
-                boxSizing: leftEl.style.boxSizing,
-                transform: leftEl.style.transform,
-                margin: leftEl.style.margin,
-              },
-            });
-          }
-          if (rightEl) {
-            savedStyles.push({
-              el: rightEl,
-              styles: {
-                display: rightEl.style.display,
-                width: rightEl.style.width,
-              },
-            });
-          }
-
-          // Ẩn right để không ảnh hưởng layout
-          if (rightEl) {
-            rightEl.style.display = "none";
-            rightEl.style.width = "0";
-          }
-
-          // Ép width leftEl tương ứng nửa A4 (pixel) để html2canvas chụp đúng tỉ lệ
-          let targetEl: HTMLElement = pageEl;
-          if (leftEl) {
-            const drawWidthMm = pageWidth / 2; // nửa A4
-            leftEl.style.boxSizing = "border-box";
-            leftEl.style.width = `${mmToPx(drawWidthMm)}px`;
-            leftEl.style.maxWidth = "100%";
-            leftEl.style.margin = "0";
-            leftEl.style.transform = "none";
-            targetEl = leftEl;
-          }
-
-          // Chụp targetEl (leftEl nếu có)
-          const canvas = await html2canvas(targetEl, {
+        // Trường hợp 2 hoặc nhiều phiếu: chụp nguyên page
+        if (cards.length >= 2) {
+          // tắt hiệu ứng nếu cần (nếu bạn đã có cleanupStyles/disableEffects)
+          // disableEffects(pageEl);
+          const canvas = await html2canvas(pageEl, {
             scale: 2,
             useCORS: true,
             logging: false,
-            allowTaint: true,
             backgroundColor: "#ffffff",
             imageTimeout: 0,
-            removeContainer: true,
-            windowWidth: document.documentElement.scrollWidth,
-            windowHeight: document.documentElement.scrollHeight,
           });
-
-          const imgData = canvas.toDataURL("image/jpeg", 0.9);
-
-          // Vẽ ảnh vào PDF: width = nửa A4 (mm), height giữ tỉ lệ
+          const imgData = canvas.toDataURL("image/png");
           const imgPixelWidth = canvas.width;
           const imgPixelHeight = canvas.height;
-          const drawWidthMm = pageWidth / 2; // nửa A4
-          const drawHeightMm = imgPixelHeight * (drawWidthMm / imgPixelWidth);
-          const yOffset = Math.max(0, (pageHeight - drawHeightMm) / 2);
-
-          pdf.addImage(imgData, "JPEG", 0, yOffset, drawWidthMm, drawHeightMm);
-
-          // cleanup
+          const imgMmWidth = pageWidth;
+          const imgMmHeight = imgPixelHeight * (pageWidth / imgPixelWidth);
+          pdf.addImage(imgData, "PNG", 0, 0, imgMmWidth, imgMmHeight);
           canvas.remove();
-        } else {
+          continue;
+        }
+
+        // Trường hợp đúng 1 phiếu trên page và paperSize là A4: chụp card và vẽ nửa A4
+        if (cards.length === 1 && this.paperSize === "A4") {
+          const card = cards[0];
+          // tắt hiệu ứng tạm thời (giống code cũ)
+          const prevBoxShadow = card.style.boxShadow;
+          const prevTransform = card.style.transform;
+          card.style.boxShadow = "none";
+          card.style.transform = "none";
+
+          try {
+            const canvas = await html2canvas(card, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: "#ffffff",
+              imageTimeout: 0,
+            });
+
+            console.log(
+              "canvas px",
+              canvas.width,
+              canvas.height,
+              "page mm",
+              pageWidth,
+              pageHeight,
+            );
+
+            const imgData = canvas.toDataURL("image/png");
+
+            // Vẽ ảnh vào nửa A4 (giữ chiều cao A4) — giống code cũ
+            const a5Width = pageWidth / 2; // mm
+            const a5Height = pageHeight; // mm
+            const xLeft = 0; // đặt bên trái; nếu muốn căn giữa nửa trang: (pageWidth - a5Width)/2
+            const yTop = 0;
+
+            pdf.addImage(imgData, "PNG", xLeft, yTop, a5Width, a5Height);
+
+            canvas.remove();
+          } catch (err) {
+            console.error("html2canvas error on single card", err);
+          } finally {
+            // khôi phục style
+            card.style.boxShadow = prevBoxShadow;
+            card.style.transform = prevTransform;
+          }
+
+          continue;
+        }
+
+        // --- KẾT THÚC xử lý singleA4SingleTicket ---
+        else {
           // Trường hợp bình thường: chụp toàn pageEl
           // (nếu pageEl có nội dung 2 phiếu, html2canvas sẽ chụp cả)
           const originalWidth = pageEl.style.width;
@@ -881,7 +888,6 @@ export class PrintPalletDialogComponent implements OnInit {
       printContent?.classList.remove("exporting-pdf");
     }
   }
-
   private async convertQRCodesToImages(): Promise<void> {
     const qrCanvases = Array.from(
       document.querySelectorAll(".print-content canvas"),

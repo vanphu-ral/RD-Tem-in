@@ -123,6 +123,13 @@
   gap: 0;
   justify-content: flex-start; /* <<< Đã sửa: phiếu lẻ nằm bên TRÁI */
   align-items: flex-start;
+  &.single-ticket {
+    justify-content: flex-start !important; // Force căn trái
+
+    .pallet-card:only-child {
+      margin-right: auto; // Đẩy về trái
+    }
+  }
 }
 
 .pallet-card {
