@@ -1,6 +1,7 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.service.LocationService;
+import com.mycompany.panacimmc.domain.AreaAreaResponse;
 import com.mycompany.panacimmc.domain.Location;
 import com.mycompany.panacimmc.domain.LocationResponse;
 import java.util.List;
@@ -20,5 +21,11 @@ public class LocationController {
     public List<LocationResponse> getAll() {
         System.out.println("Cong doan: 16");
         return this.locationService.getAll();
+    }
+
+    @GetMapping("/area")
+    public List<AreaAreaResponse> getArea() {
+        System.out.println("Cong doan: 17");
+        return this.locationService.getArea();
     }
 }
