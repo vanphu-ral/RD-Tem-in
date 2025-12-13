@@ -44,6 +44,7 @@ import { AccountService } from "app/core/auth/account.service";
 import {
   catchError,
   finalize,
+  firstValueFrom,
   map,
   Observable,
   of,
@@ -411,6 +412,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const id = this.route.snapshot.params["id"];
     if (id) {
       this.isDetail = true;
+      this.maLenhSanXuatId = Number(id);
       this.route.data.subscribe((data) => {
         const response = data["lenhSanXuat"] as WarehouseNoteResponse;
         if (response) {
@@ -1904,16 +1906,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     XLSX.writeFile(workbook, "ReelData.xlsx");
   }
   //lưu dữ liệu box và pallet
-  saveCombined(maLenhSanXuatId: number): void {
+  async saveCombined(maLenhSanXuatId?: number): Promise<void> {
     // Validate maLenhSanXuatId
-    if (!maLenhSanXuatId || maLenhSanXuatId === undefined) {
+    if (maLenhSanXuatId == null) {
+      // null hoặc undefined
       this.snackBar.open(
         "Lỗi: Chưa có ID lệnh sản xuất. Vui lòng lưu lệnh sản xuất trước.",
         "Đóng",
-        {
-          duration: 4000,
-          panelClass: ["snackbar-error"],
-        },
+        { duration: 4000, panelClass: ["snackbar-error"] },
       );
       return;
     }
@@ -2147,59 +2147,49 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     };
 
     console.log("Final Payload to save:", payload);
+    try {
+      // chuyển Observable -> Promise và await
+      const res = await firstValueFrom(
+        this.planningService.saveCombined(maLenhSanXuatId, payload),
+      );
+      console.log("Lưu thành công:", res);
 
-    this.planningService.saveCombined(maLenhSanXuatId, payload).subscribe({
-      next: (res) => {
-        console.log("Lưu thành công:", res);
+      // cập nhật cache / state giống code cũ
+      pallet_infor_detail.forEach((p) => {
+        if (p.serial_pallet) {
+          existingPalletSerials.add(p.serial_pallet);
+          this.pallets = this.pallets ?? [];
+          this.pallets.push(p);
+        }
+      });
 
-        // CẬP NHẬT LẠI cache local sau khi lưu thành công
-        // Thêm các serial mới vào existing sets
-        pallet_infor_detail.forEach((p) => {
-          if (p.serial_pallet) {
-            existingPalletSerials.add(p.serial_pallet);
-            // Cập nhật vào this.pallets để lần sau check đúng
-            if (!this.pallets) {
-              this.pallets = [];
-            }
-            this.pallets.push(p);
-          }
-        });
+      warehouse_note_info_detail.forEach((b) => {
+        if (b.reel_id) {
+          existingBoxSerials.add(b.reel_id);
+          this.details = this.details ?? [];
+          this.details.push(b);
+        }
+      });
 
-        warehouse_note_info_detail.forEach((b) => {
-          if (b.reel_id) {
-            existingBoxSerials.add(b.reel_id);
-            // Cập nhật vào this.details để lần sau check đúng
-            if (!this.details) {
-              this.details = [];
-            }
-            this.details.push(b);
-          }
-        });
-        this.saveWarehouseNotes();
-        this.computeBoxSummary();
-        this.computePalletSummary();
+      this.saveWarehouseNotes();
+      this.computeBoxSummary();
+      this.computePalletSummary();
 
-        this.snackBar.open(
-          `Lưu thành công: ${pallet_infor_detail.length} pallet, ${warehouse_note_info_detail.length} thùng/tem`,
-          "Đóng",
-          {
-            duration: 3000,
-            panelClass: ["snackbar-success"],
-          },
-        );
-      },
-      error: (err) => {
-        console.error("Lỗi khi lưu:", err);
-        this.snackBar.open(
-          `Lỗi khi lưu: ${err.error?.message || err.message}`,
-          "Đóng",
-          {
-            duration: 4000,
-            panelClass: ["snackbar-error"],
-          },
-        );
-      },
-    });
+      this.snackBar.open(
+        `Lưu thành công: ${pallet_infor_detail.length} pallet, ${warehouse_note_info_detail.length} thùng/tem`,
+        "Đóng",
+        { duration: 3000, panelClass: ["snackbar-success"] },
+      );
+    } catch (err: any) {
+      console.error("Lỗi khi lưu:", err);
+      this.snackBar.open(
+        `Lỗi khi lưu: ${err?.error?.message || err?.message || "Không xác định"}`,
+        "Đóng",
+        { duration: 4000, panelClass: ["snackbar-error"] },
+      );
+    } finally {
+      //
+    }
   }
 
   //xuất csv bán thành phẩm
@@ -2510,7 +2500,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   // Xử lý tạo thùng
-  private handleBoxCreation(data: BoxFormData, woId: string): void {
+  private async handleBoxCreation(
+    data: BoxFormData,
+    woId: string,
+  ): Promise<void> {
     this.loadingBox = true;
     console.log("[handleBoxCreation] start (use warehouse_note_info)", {
       woId,
@@ -2664,6 +2657,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
       this.boxItems = [...this.boxItems, newBox];
       this.updateProductionOrderTotal();
+      if (this.maLenhSanXuatId == null) {
+        // Nếu chưa có id, bạn có 2 lựa chọn:
+        // 1) Tạo lệnh sản xuất trước (gọi API) và lấy id, rồi gọi saveCombined
+        // 2) Hoặc lưu tạm local và yêu cầu user lưu lệnh thủ công
+        console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
+      } else {
+        await this.saveCombined(this.maLenhSanXuatId);
+      }
       this.goToBoxTab();
     } catch (err) {
       console.error("[handleBoxCreation] error", err);
@@ -2808,6 +2809,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     console.log("Final reelDataList:", this.reelDataList);
     console.log(`Đã tạo ${this.reelDataList.length} reel items cho Tem BTP`);
+    if (this.maLenhSanXuatId == null) {
+      // Nếu chưa có id, bạn có 2 lựa chọn:
+      // 1) Tạo lệnh sản xuất trước (gọi API) và lấy id, rồi gọi saveCombined
+      // 2) Hoặc lưu tạm local và yêu cầu user lưu lệnh thủ công
+      console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
+    } else {
+      await this.saveCombined(this.maLenhSanXuatId);
+    }
     this.goToCreateTemTab();
   }
 
@@ -2830,10 +2839,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   // Xử lý tạo pallet
-  private handlePalletCreation(data: PalletFormData): void {
+  private async handlePalletCreation(data: PalletFormData): Promise<void> {
     const index = this.palletItems.length + 1;
-
-    //  Tạo danh sách pallet con với đầy đủ thông tin
     const subItems: PalletBoxItem[] = [];
     const now = new Date().toISOString();
     for (let i = 1; i <= data.soLuongPallet; i++) {
@@ -2876,8 +2883,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     this.palletItems = [...this.palletItems, newPallet];
 
-    console.log(" Đã tạo Pallet với", data.soLuongPallet, "pallet con");
-    console.log(" SubItems:", subItems);
+    console.log("Đã tạo Pallet với", data.soLuongPallet, "pallet con");
+    console.log("SubItems:", subItems);
+
+    // Gọi saveCombined đúng id; chờ hoàn thành nếu saveCombined là async
+    if (this.maLenhSanXuatId == null) {
+      // Nếu chưa có id, bạn có 2 lựa chọn:
+      // 1) Tạo lệnh sản xuất trước (gọi API) và lấy id, rồi gọi saveCombined
+      // 2) Hoặc lưu tạm local và yêu cầu user lưu lệnh thủ công
+      console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
+    } else {
+      await this.saveCombined(this.maLenhSanXuatId);
+    }
 
     this.goToPalletTab();
   }
@@ -3121,6 +3138,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         sucChua: `${Number(detail.num_box_actual ?? 0)} thùng`,
         wmsSent: detail.wms_send_status,
         lotNumber: foundLot,
+        printStatus: Boolean(detail.print_status),
       };
 
       grouped[key].subItems.push(subItem);
@@ -3137,6 +3155,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         detail.quantity_per_box ?? detail.quantityPerBox ?? 0,
       );
       grouped[key].tongSlSp += Number(detail.num_box_actual ?? 0) * qtyPerBox;
+      grouped[key].trangThaiIn =
+        grouped[key].trangThaiIn || Boolean(detail.print_status);
     }
 
     return Object.values(grouped);

@@ -524,6 +524,7 @@
                     mat-icon-button
                     color="warn"
                     (click)="deletePallet(element)"
+                    [disabled]="element.trangThaiIn"
                     matTooltip="Xoá"
                     matTooltipPosition="left"
                   >
@@ -910,7 +911,7 @@
     </div>
   </div>
 
-  <div class="tab-bottom-actions">
+  <!-- <div class="tab-bottom-actions">
     <button
       mat-raised-button
       color="primary"
@@ -919,7 +920,7 @@
       <mat-icon>save</mat-icon>
       Lưu
     </button>
-  </div>
+  </div> -->
 
   <div class="pakage-button mobile-fab" [class.open]="fabMenuOpen">
     <button
