@@ -392,6 +392,21 @@ public class WarehouseNoteInfoDetailResource {
                             warehouseNoteInfoDetail.getQrCode()
                         );
                     }
+                    if (warehouseNoteInfoDetail.getTpNk() != null) {
+                        existingWarehouseNoteInfoDetail.setTpNk(
+                            warehouseNoteInfoDetail.getTpNk()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getRank() != null) {
+                        existingWarehouseNoteInfoDetail.setRank(
+                            warehouseNoteInfoDetail.getRank()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getNote2() != null) {
+                        existingWarehouseNoteInfoDetail.setNote2(
+                            warehouseNoteInfoDetail.getNote2()
+                        );
+                    }
 
                     return existingWarehouseNoteInfoDetail;
                 })

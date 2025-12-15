@@ -19,6 +19,7 @@ table {
   opacity: 1 !important;
   display: block !important;
 }
+
 .headling-detail {
   display: flex;
   justify-content: space-between;
@@ -29,7 +30,7 @@ table {
    ============================================ */
 th {
   color: #fff;
-  background: #0276ff;
+  background: #3d7bb9;
   text-align: center;
   padding: 12px 8px;
   font-weight: 600;
@@ -37,9 +38,11 @@ th {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   vertical-align: middle;
-  white-space: normal; /* Cho phép wrap */
+  white-space: normal;
+  /* Cho phép wrap */
   word-wrap: break-word;
-  min-width: 80px; /* Đảm bảo chiều rộng tối thiểu */
+  min-width: 80px;
+  /* Đảm bảo chiều rộng tối thiểu */
   line-height: 1.3;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -92,23 +95,33 @@ td {
 }
 
 /* Căn trái cho các cột text dài */
-td:nth-child(3), /* Tên hàng hóa */
-td:nth-child(7), /* User Data 2 */
-td:nth-child(8)  /* User Data 3 */ {
+td:nth-child(3),
+/* Tên hàng hóa */
+td:nth-child(7),
+/* User Data 2 */
+td:nth-child(8)
+
+/* User Data 3 */ {
   text-align: left;
-  white-space: normal; /* Cho phép wrap */
+  white-space: normal;
+  /* Cho phép wrap */
   word-wrap: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* Căn giữa cho số */
-td:nth-child(1),  /* STT */
-td:nth-child(11), /* Initial Quantity */
-td:nth-child(16)  /* Quantity Override */ {
+td:nth-child(1),
+/* STT */
+td:nth-child(11),
+/* Initial Quantity */
+td:nth-child(16)
+
+/* Quantity Override */ {
   text-align: center;
   font-weight: 500;
 }
+
 input[type="text"],
 select {
   width: 100%;

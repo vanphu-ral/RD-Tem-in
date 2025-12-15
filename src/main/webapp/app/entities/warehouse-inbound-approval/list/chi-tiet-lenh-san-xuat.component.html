@@ -486,7 +486,7 @@
             >
               <button
                 *jhiHasAnyAuthority="'ROLE_USER_QUAN_LY_PHE_DUYET'"
-                type="submit"
+                type="button"
                 [routerLink]="[
                   '/warehouse-inbound-approvals',
                   lenhSanXuat.id,
@@ -505,7 +505,7 @@
                   lenhSanXuat.trang_thai === 'Chờ duyệt' ||
                   lenhSanXuat.trang_thai === 'Đã phê duyệt'
                 "
-                type="submit"
+                type="button"
                 [routerLink]="[
                   '/warehouse-inbound-approvals',
                   lenhSanXuat.id,

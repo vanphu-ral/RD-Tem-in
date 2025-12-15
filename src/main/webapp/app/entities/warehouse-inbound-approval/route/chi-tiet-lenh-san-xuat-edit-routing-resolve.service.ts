@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { HttpResponse } from "@angular/common/http";
 import { ActivatedRouteSnapshot, Router } from "@angular/router";
 import { Observable, of, EMPTY } from "rxjs";
-import { mergeMap } from "rxjs/operators";
+import { mergeMap, catchError } from "rxjs/operators";
 import dayjs from "dayjs/esm";
 
 import {
@@ -18,25 +18,72 @@ export class ChiTietLenhSanXuatEditRoutingResolveService {
     protected router: Router,
   ) {}
 
-  resolve(route: ActivatedRouteSnapshot): Observable<any> | Observable<never> {
+  resolve(route: ActivatedRouteSnapshot): Observable<any> {
     const id = route.params["id"];
     if (id) {
       return this.service.findWarehouseNoteWithChildren(+id).pipe(
         mergeMap((response: HttpResponse<any>) => {
-          if (response.body && response.body.warehouseNoteInfo) {
-            const warehouseNoteInfo = response.body.warehouseNoteInfo;
+          console.log("[DEBUG EDIT RESOLVER] Full response:", response);
+          console.log("[DEBUG EDIT RESOLVER] Response body:", response.body);
+          console.log(
+            "[DEBUG EDIT RESOLVER] Response body keys:",
+            response.body ? Object.keys(response.body) : "null",
+          );
+
+          // Check for both camelCase and snake_case keys
+          const warehouseNoteInfo =
+            response.body?.warehouseNoteInfo ||
+            response.body?.warehouse_note_info;
+
+          console.log(
+            "[DEBUG EDIT RESOLVER] warehouseNoteInfo found:",
+            !!warehouseNoteInfo,
+          );
+
+          if (response.body && warehouseNoteInfo) {
             // Transform to the structure expected by components
             const transformed: any = {
               warehouse_note_info: warehouseNoteInfo,
-              warehouse_note_info_details: response.body.details || [],
-              genTemConfigs: response.body.genTemConfigs || [],
-              serialMappings: response.body.serialMappings || [],
+              warehouse_note_info_details:
+                response.body.details ||
+                response.body.warehouse_note_info_details ||
+                response.body.warehouseNoteInfoDetails ||
+                [],
+              genTemConfigs:
+                response.body.genTemConfigs ||
+                response.body.gen_tem_configs ||
+                [],
+              serialMappings:
+                response.body.serialMappings ||
+                response.body.serial_mappings ||
+                response.body.serialBoxPalletMappings ||
+                [],
             };
+            console.log("[DEBUG EDIT RESOLVER] Transformed data:", transformed);
             return of(transformed);
           } else {
-            this.router.navigate(["404"]);
-            return EMPTY;
+            console.error(
+              "[ERROR EDIT RESOLVER] Invalid response structure:",
+              response.body,
+            );
+            // Return empty object instead of navigating to 404
+            return of({
+              warehouse_note_info: response.body || {},
+              warehouse_note_info_details: [],
+              genTemConfigs: [],
+              serialMappings: [],
+            });
           }
+        }),
+        catchError((error) => {
+          console.error("[ERROR EDIT RESOLVER] API error:", error);
+          // Return empty object instead of navigating to 404
+          return of({
+            warehouse_note_info: {},
+            warehouse_note_info_details: [],
+            genTemConfigs: [],
+            serialMappings: [],
+          });
         }),
       );
     }

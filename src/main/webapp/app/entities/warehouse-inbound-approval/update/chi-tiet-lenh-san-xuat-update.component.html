@@ -345,6 +345,9 @@
                 {{ $any(data).user_data4 }}
               </td>
               <td>
+                {{ $any(data).user_data5 }}
+              </td>
+              <td>
                 <input
                   class="input-table"
                   type="text"
@@ -353,9 +356,6 @@
                   [ngModelOptions]="{ standalone: true }"
                   (change)="changeQuantity()"
                 />
-              </td>
-              <td>
-                {{ $any(data).user_data5 }}
               </td>
               <td>
                 {{ $any(data).msd_level }}
@@ -411,7 +411,6 @@
               <td>
                 {{ $any(data).sap_code }}
               </td>
-
               <td>
                 <input
                   type="checkbox"

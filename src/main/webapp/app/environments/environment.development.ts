@@ -7,8 +7,8 @@ export const environment = {
   keycloak: {
     serverUrl: "http://192.168.68.90:8080/auth",
     realm: "QLSX",
-    clientId: "tem_in_test",
+    clientId: "tem_in",
     adminApiUsers: "/auth/admin/realms/QLSX/users",
   },
-  baseInTemApiUrl: "http://192.168.68.77:9040/api",
+  baseInTemApiUrl: "http://localhost:9040/api",
 };

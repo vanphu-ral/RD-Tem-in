@@ -116,6 +116,15 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
     @Size(max = 255)
     private String qrCode;
 
+    @Size(max = 50)
+    private String tpNk;
+
+    @Size(max = 50)
+    private String rank;
+
+    @Size(max = 255)
+    private String note2;
+
     @JsonProperty("id")
     public Long getId() {
         return id;
@@ -486,6 +495,36 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
         this.qrCode = qrCode;
     }
 
+    @JsonProperty("tp_nk")
+    public String getTpNk() {
+        return tpNk;
+    }
+
+    @JsonProperty("tp_nk")
+    public void setTpNk(String tpNk) {
+        this.tpNk = tpNk;
+    }
+
+    @JsonProperty("rank")
+    public String getRank() {
+        return rank;
+    }
+
+    @JsonProperty("rank")
+    public void setRank(String rank) {
+        this.rank = rank;
+    }
+
+    @JsonProperty("note_2")
+    public String getNote2() {
+        return note2;
+    }
+
+    @JsonProperty("note_2")
+    public void setNote2(String note2) {
+        this.note2 = note2;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -549,6 +588,9 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
                 ", wmsSendStatus=" + getWmsSendStatus() +
                 ", listSerialItems='" + getListSerialItems() + "'" +
                 ", qrCode='" + getQrCode() + "'" +
+                ", tpNk='" + getTpNk() + "'" +
+                ", rank=" + getRank() +
+                ", note2='" + getNote2() + "'" +
                 "}";
     }
 }

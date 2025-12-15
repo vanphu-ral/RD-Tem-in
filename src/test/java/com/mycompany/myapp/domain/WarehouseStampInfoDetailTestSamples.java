@@ -48,7 +48,10 @@ public class WarehouseStampInfoDetailTestSamples {
             .sapCode("sapCode1")
             .lenhSanXuatId(1L)
             .trangThai("trangThai1")
-            .checked(1);
+            .checked(1)
+            .tpNk("tpNk1")
+            .rank("1")
+            .note2("note21");
     }
 
     public static WarehouseNoteInfoDetail getWarehouseStampInfoDetailSample2() {
@@ -84,7 +87,10 @@ public class WarehouseStampInfoDetailTestSamples {
             .sapCode("sapCode2")
             .lenhSanXuatId(2L)
             .trangThai("trangThai2")
-            .checked(2);
+            .checked(2)
+            .tpNk("tpNk2")
+            .rank("2")
+            .note2("note22");
     }
 
     public static WarehouseNoteInfoDetail getWarehouseStampInfoDetailRandomSampleGenerator() {
@@ -120,6 +126,9 @@ public class WarehouseStampInfoDetailTestSamples {
             .sapCode(UUID.randomUUID().toString())
             .lenhSanXuatId(longCount.incrementAndGet())
             .trangThai(UUID.randomUUID().toString())
-            .checked(intCount.incrementAndGet());
+            .checked(intCount.incrementAndGet())
+            .tpNk(UUID.randomUUID().toString())
+            .rank(String.valueOf(intCount.incrementAndGet()))
+            .note2(UUID.randomUUID().toString());
     }
 }

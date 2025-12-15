@@ -13,7 +13,7 @@ import { ChiTietLenhSanXuatService } from "../service/chi-tiet-lenh-san-xuat.ser
 import { PageEvent } from "@angular/material/paginator";
 
 @Component({
-  selector: "jhi-chi-tiet-lenh-san-xuat-detail",
+  selector: "jhi-chi-tiet-lenh-san-xuat-detail-2",
   templateUrl: "./chi-tiet-lenh-san-xuat-detail.component.html",
   styleUrls: ["./chi-tiet-lenh-san-xuat-detail.component.css"],
   standalone: false,
@@ -115,10 +115,8 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
 
         // Use warehouse_note_info_details directly
         this.chiTietLenhSanXuats = warehouseNoteInfoDetails;
-        this.chiTietLenhSanXuatExport = this.chiTietLenhSanXuats.filter(
-          (a) => (a as any).trang_thai === "ACTIVE",
-        );
-        this.dataExport(this.chiTietLenhSanXuatExport);
+        // Populate export data from all displayed records (not filtered)
+        this.dataExport(this.chiTietLenhSanXuats);
       } else {
         console.error("[ERROR] Invalid data structure from resolver");
         // alert('Lỗi: Không tìm thấy dữ liệu lệnh sản xuất. Vui lòng kiểm tra lại đường dẫn.');
@@ -131,7 +129,10 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
   }
 
   dataExport(list: IChiTietLenhSanXuat[]): void {
-    for (let i = 0; i < this.chiTietLenhSanXuatExport.length; i++) {
+    // Clear previous data
+    this.data = [];
+
+    for (let i = 0; i < list.length; i++) {
       const data1: {
         reelID?: string;
         partNumber?: string;
@@ -258,20 +259,40 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
     // Use backend API endpoint
     const apiEndpoint = "/api/csv-upload";
 
+    console.log("[DEBUG] Starting CSV upload to:", apiEndpoint);
+    console.log("[DEBUG] File name:", fileName);
+    console.log("[DEBUG] Data records count:", this.data.length);
+
     // Upload via backend API
     this.http.post<any>(apiEndpoint, formData).subscribe({
       next: (response) => {
-        if (response.success) {
+        console.log("[DEBUG] CSV upload response:", response);
+        console.log("[DEBUG] Response success field:", response?.success);
+
+        // Check for success - the backend returns success: true on successful upload
+        if (response && response.success === true) {
+          console.log("[DEBUG] Upload successful, updating status");
           alert(`Đã gửi ${this.data.length} bản ghi tới hệ thống thành công!`);
+
           // Update status
           this.lenhSanXuat!.trangThai = "Đã xuất csv đến server";
-          this.http.post<any>(this.resource1Url, this.lenhSanXuat).subscribe();
+          this.http.post<any>(this.resource1Url, this.lenhSanXuat).subscribe({
+            next: () => {
+              console.log("[DEBUG] Status updated successfully");
+            },
+            error: (statusError) => {
+              console.error("[ERROR] Failed to update status:", statusError);
+            },
+          });
         } else {
-          alert(`Lỗi: ${response.message}`);
+          console.error("[ERROR] Upload failed with response:", response);
+          alert(`Lỗi: ${response?.message ?? "Không có phản hồi từ server"}`);
         }
       },
       error: (error) => {
-        console.error("Error uploading CSV:", error);
+        console.error("[ERROR] Error uploading CSV:", error);
+        console.error("[ERROR] Error status:", error.status);
+        console.error("[ERROR] Error response:", error.error);
         alert(
           `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
         );
@@ -280,6 +301,7 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
   }
 
   generateCsvContentForServer(): string {
+    // Headers must be in exact order as specified: ReelID,PartNumber,Vendor,Lot,UserData1,UserData2,UserData3,UserData4,UserData5,InitialQuantity,MsdLevel,MsdInitialFloorTime,MsdBagSealDate,MarketUsage,QuantityOverride,ShelfTime,SpMaterialName,WarningLimit,MaximumLimit,Comments,WarmupTime,StorageUnit,SubStorageUnit,LocationOverride,ExpirationDate,ManufacturingDate,PartClass,SapCode
     const headers = [
       "ReelID",
       "PartNumber",
@@ -291,13 +313,13 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
       "UserData4",
       "UserData5",
       "InitialQuantity",
-      "MSDLevel",
-      "MSDInitialFloorTime",
-      "MSDBagSealDate",
+      "MsdLevel",
+      "MsdInitialFloorTime",
+      "MsdBagSealDate",
       "MarketUsage",
       "QuantityOverride",
       "ShelfTime",
-      "SPMaterialName",
+      "SpMaterialName",
       "WarningLimit",
       "MaximumLimit",
       "Comments",
@@ -307,39 +329,39 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
       "LocationOverride",
       "ExpirationDate",
       "ManufacturingDate",
-      "Partclass",
-      "SAPCode",
+      "PartClass",
+      "SapCode",
     ];
 
     const rows = this.data.map((item) => [
-      item.reelID,
-      item.partNumber,
-      item.vendor,
-      item.lot,
-      item.userData1,
-      item.userData2,
-      item.userData3,
-      item.userData4,
-      item.userData5,
-      item.initialQuantity,
+      item.reelID ?? "",
+      item.partNumber ?? "",
+      item.vendor ?? "",
+      item.lot ?? "",
+      item.userData1 ?? "",
+      item.userData2 ?? "",
+      item.userData3 ?? "",
+      item.userData4 ?? "",
+      item.userData5 ?? "",
+      item.initialQuantity ?? "",
       item.msdLevel ?? "",
       item.msdInitialFloorTime ?? "",
       item.msdBagSealDate ?? "",
       item.marketUsage ?? "",
-      item.quantityOverride ?? "1",
+      item.quantityOverride ?? "",
       item.shelfTime ?? "",
       item.spMaterialName ?? "",
       item.warningLimit ?? "",
       item.maximumLimit ?? "",
       item.comments ?? "",
       item.warmupTime ?? "",
-      item.storageUnit,
+      item.storageUnit ?? "",
       item.subStorageUnit ?? "",
       item.locationOverride ?? "",
-      item.expirationDate?.replace(/-/g, "") ?? "",
-      item.manufacturingDate?.replace(/-/g, "") ?? "",
+      item.expirationDate ?? "",
+      item.manufacturingDate ?? "",
       item.partClass ?? "",
-      item.sapCode,
+      item.sapCode ?? "",
     ]);
 
     const csvRows = [headers, ...rows]
