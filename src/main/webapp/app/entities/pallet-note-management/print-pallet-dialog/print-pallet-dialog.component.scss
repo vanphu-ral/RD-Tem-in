@@ -324,6 +324,186 @@
     }
   }
 }
+// Template Bán thành phẩm
+/* Dành cho A5 portrait: 148mm x 210mm */
+.btp-card {
+  box-sizing: border-box;
+  /* Giới hạn kích thước để không tràn A5 */
+  width: 148mm;
+  max-width: 148mm;
+  padding: 6mm;
+  margin: 0 auto;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+
+  .top-section-btp {
+    display: flex;
+    align-items: center;
+    gap: 6mm;
+    margin-bottom: 4mm;
+    padding-bottom: 3mm;
+    border-bottom: 2px solid #000;
+
+    .qr-code-wrapper-large {
+      /* QR nhỏ vừa đủ, tránh chiếm quá nhiều không gian */
+      width: 30mm;
+      height: 30mm;
+      min-width: 30mm;
+      min-height: 30mm;
+      border: 1.5px solid #000;
+      background: #fff;
+      padding: 1.5mm;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .title-wrapper-btp {
+      flex: 1 1 auto;
+      text-align: center;
+
+      h1 {
+        margin: 0;
+        font-size: 28pt; /* vừa đủ cho A5 */
+        font-weight: 700;
+        letter-spacing: 1px;
+        line-height: 1;
+      }
+    }
+  }
+
+  /* Bảng thông tin: cố định tổng chiều rộng, chia cột bằng % */
+  .info-table-btp {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5pt; /* giảm để vừa A5 */
+    margin-bottom: 0;
+    table-layout: fixed; /* giữ cột ổn định */
+
+    tbody tr {
+      border-bottom: 1px solid #000;
+    }
+
+    td {
+      padding: 2.5mm 4mm;
+      vertical-align: middle;
+      border-right: 1px solid #000;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      white-space: normal;
+    }
+
+    td:last-child {
+      border-right: none;
+    }
+
+    /* Chia tỉ lệ cột: 30% label, 20% value, 30% label, 20% value = 100% */
+    .label-cell-btp {
+      width: 20%;
+      max-width: 30%;
+      font-weight: 700;
+      background: #f3f3f3;
+      color: #000;
+      text-align: left;
+      font-size: 12pt;
+      line-height: 1.2;
+      padding-top: 3mm;
+      padding-bottom: 3mm;
+    }
+
+    .value-cell-btp {
+      width: 20%;
+      max-width: 20%;
+      color: #000;
+      font-weight: 600;
+      text-align: left;
+      font-size: 10.5pt;
+      line-height: 1.2;
+      padding-top: 3mm;
+      padding-bottom: 3mm;
+
+      &.text-note {
+        font-size: 10pt;
+        font-weight: 500;
+      }
+    }
+
+    /* Nếu một ô span nhiều cột, cho nó chiếm phần còn lại hợp lý */
+    td[colspan="3"] {
+      width: 50%;
+      max-width: 50%;
+    }
+  }
+
+  /* Responsive nhỏ: giảm kích thước font và QR */
+  @media (max-width: 420px) {
+    width: 100%;
+    padding: 4mm;
+
+    .top-section-btp {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .qr-code-wrapper-large {
+      width: 26mm;
+      height: 26mm;
+    }
+    .title-wrapper-btp h1 {
+      font-size: 16pt;
+      text-align: left;
+    }
+    .info-table-btp {
+      font-size: 9.5pt;
+      td {
+        padding: 2mm 3mm;
+      }
+      .label-cell-btp {
+        font-size: 10pt;
+      }
+      .value-cell-btp {
+        font-size: 9.5pt;
+      }
+    }
+  }
+
+  // /* In ấn: ép trang A5, loại bỏ margin ngoài, đảm bảo màu nền in */
+  // @media print {
+  //   width: 148mm;
+  //   height: 210mm;
+  //   padding: 6mm;
+  //   margin: 0;
+  //   box-shadow: none;
+  //   -webkit-print-color-adjust: exact;
+
+  //   .top-section-btp {
+  //     margin-bottom: 3mm;
+  //     border-bottom-width: 2px;
+  //   }
+  //   .qr-code-wrapper-large {
+  //     border-width: 1.5px;
+  //     padding: 1.5mm;
+  //   }
+  //   .info-table-btp {
+  //     font-size: 10pt;
+  //     tbody tr {
+  //       border-bottom-width: 1px;
+  //     }
+  //     .label-cell-btp {
+  //       background: #f3f3f3 !important;
+  //       -webkit-print-color-adjust: exact;
+  //     }
+  //     td {
+  //       padding: 2.5mm 4mm;
+  //     }
+  //   }
+
+  //   /* Tránh tràn sang trang khác: nếu nội dung quá dài, cho phép cắt */
+  //   page-break-inside: avoid;
+  // }
+}
 
 // ===== PRINT MODE =====
 @media print {
@@ -335,6 +515,16 @@
   body {
     margin: 0 !important;
     padding: 0 !important;
+  }
+  .btp-card {
+    .info-table-btp .label-cell-btp {
+      background: #e0e0e0 !important;
+    }
+
+    .qr-code-wrapper-large {
+      background: white !important;
+      border: 3px solid #000 !important;
+    }
   }
   .watermark-overlay {
     display: none !important;

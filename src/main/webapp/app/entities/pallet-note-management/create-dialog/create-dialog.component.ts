@@ -21,6 +21,8 @@ import { MatIconModule } from "@angular/material/icon";
 import { AccountService } from "app/core/auth/account.service";
 import { MatOptionModule } from "@angular/material/core";
 import { MatSelectModule } from "@angular/material/select";
+import { Subscription } from "rxjs";
+import { distinctUntilChanged, debounceTime } from "rxjs/operators";
 
 export interface DialogData {
   type: "box" | "pallet";
@@ -84,6 +86,7 @@ export interface DialogResult {
 export class CreateDialogComponent {
   form: FormGroup;
   isBoxType: boolean;
+  private scanSub: Subscription | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -93,6 +96,15 @@ export class CreateDialogComponent {
   ) {
     this.isBoxType = data.type === "box";
     this.form = this.createForm();
+    this.bindScanToActual();
+
+    // Hủy subscription khi dialog đóng để tránh leak (component sẽ bị destroy cùng dialog)
+    this.dialogRef.afterClosed().subscribe(() => {
+      if (this.scanSub) {
+        this.scanSub.unsubscribe();
+        this.scanSub = null;
+      }
+    });
 
     // Debug log để kiểm tra
     console.log("🔍 Dialog Data:", this.data);
@@ -299,5 +311,37 @@ export class CreateDialogComponent {
 
       return null;
     };
+  }
+  private bindScanToActual(): void {
+    // Nếu form chưa có (không phải pallet), bỏ qua
+    if (!this.form) {
+      return;
+    }
+
+    const scanCtrl = this.form.get("soLuongThungScan");
+    const actualCtrl = this.form.get("soLuongThungThucTe");
+
+    if (!scanCtrl || !actualCtrl) {
+      // Không phải form pallet hoặc control chưa tồn tại
+      return;
+    }
+
+    // Hủy subscription cũ nếu có
+    if (this.scanSub) {
+      this.scanSub.unsubscribe();
+      this.scanSub = null;
+    }
+
+    // Debounce + distinct để tránh setValue liên tục khi gõ
+    this.scanSub = scanCtrl.valueChanges
+      .pipe(debounceTime(150), distinctUntilChanged())
+      .subscribe((val: any) => {
+        const parsed = Number(val);
+        // Nếu không phải số hợp lệ, set về 0 hoặc bỏ qua
+        const newVal = Number.isFinite(parsed) ? parsed : 0;
+
+        // Cập nhật actual nhưng KHÔNG phát event để tránh vòng lặp
+        actualCtrl.setValue(newVal, { emitEvent: false });
+      });
   }
 }

@@ -79,7 +79,11 @@
           <th mat-header-cell *matHeaderCellDef>Mã kho nhập</th>
           <td mat-cell data-label="Mã kho nhập" *matCellDef="let element">
             <mat-form-field appearance="outline" class="compact-field">
-              <mat-select [(value)]="element.maKhoNhap">
+              <mat-select
+                [(value)]="element.maKhoNhap"
+                placeholder="Chọn kho"
+                (selectionChange)="onMaKhoNhapChange($event.value)"
+              >
                 <!-- Nếu là Bán thành phẩm -->
                 <ng-container
                   *ngIf="
@@ -94,6 +98,7 @@
                     {{ opt.label }}
                   </mat-option>
                 </ng-container>
+
                 <!-- Nếu là Thành phẩm -->
                 <ng-template #tpOptions>
                   <mat-option
@@ -547,10 +552,30 @@
         </ng-template>
 
         <div class="tab-content">
+          <div class="btp-group-btn">
+            <button
+              mat-raised-button
+              color="primary"
+              class="add-box-btn"
+              (click)="exportTemBtpCsv()"
+            >
+              <mat-icon>save_alt</mat-icon>
+              Xuất CSV
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              class="add-box-btn"
+              (click)="exportExcelReelData()"
+            >
+              <mat-icon>text_snippet</mat-icon>
+              Xuất Excel
+            </button>
+          </div>
           <div class="items-table-container scroll-container">
             <table
               mat-table
-              [dataSource]="reelDataList"
+              [dataSource]="reelGroups"
               class="items-table tem-btp-table"
             >
               <ng-container matColumnDef="stt">
@@ -564,10 +589,20 @@
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="reelID">
+              <!-- <ng-container matColumnDef="reelID">
                 <th mat-header-cell *matHeaderCellDef>Reel ID</th>
                 <td mat-cell data-label="Reel ID" *matCellDef="let element">
                   {{ element.reelID }}
+                </td>
+              </ng-container> -->
+              <ng-container matColumnDef="createdAt">
+                <th mat-header-cell *matHeaderCellDef>Created at</th>
+                <td mat-cell data-label="Reel ID" *matCellDef="let element">
+                  {{
+                    element.createdAt
+                      ? (element.createdAt | date: "yyyy-MM-dd HH:mm")
+                      : element.reelGroupKey || "-"
+                  }}
                 </td>
               </ng-container>
 
@@ -599,7 +634,7 @@
                     <mat-form-field
                       appearance="outline"
                       class="compact-field"
-                      style="width: 5rem; background: #fff"
+                      style="width: 80%; background: #fff"
                     >
                       <input matInput [(ngModel)]="storageUnitHeaderValue" />
                     </mat-form-field>
@@ -630,7 +665,7 @@
                   {{ element.trangThai }}
                 </td>
               </ng-container>
-              <ng-container matColumnDef="userData1">
+              <!-- <ng-container matColumnDef="userData1">
                 <th mat-header-cell *matHeaderCellDef>User Data 1</th>
                 <td mat-cell data-label="User Data 1" *matCellDef="let element">
                   {{ element.userData1 }}
@@ -642,30 +677,50 @@
                 <td mat-cell data-label="User Data 2" *matCellDef="let element">
                   {{ element.userData2 }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="userData3">
-                <th mat-header-cell *matHeaderCellDef>User Data 3</th>
+              <ng-container matColumnDef="tenSanPham">
+                <th mat-header-cell *matHeaderCellDef>Tên sản phẩm</th>
                 <td mat-cell data-label="User Data 3" *matCellDef="let element">
-                  {{ element.userData3 }}
+                  {{ element.tenSanPham }}
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="userData4">
+              <!-- <ng-container matColumnDef="userData4">
                 <th mat-header-cell *matHeaderCellDef>User Data 4</th>
                 <td mat-cell data-label="User Data 4" *matCellDef="let element">
                   {{ element.userData4 }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="userData5">
+              <!-- <ng-container matColumnDef="userData5">
                 <th mat-header-cell *matHeaderCellDef>User Data 5</th>
                 <td mat-cell data-label="User Data 5" *matCellDef="let element">
                   {{ element.userData5 }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="initialQuantity">
+              <ng-container matColumnDef="soLuongThung">
+                <th mat-header-cell *matHeaderCellDef>Số lượng thùng</th>
+                <td
+                  mat-cell
+                  data-label="Initial Quantity"
+                  *matCellDef="let element"
+                >
+                  {{ element.soLuongThung }}
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="soLuongSp">
+                <th mat-header-cell *matHeaderCellDef>Số lượng sản phẩm</th>
+                <td
+                  mat-cell
+                  data-label="Initial Quantity"
+                  *matCellDef="let element"
+                >
+                  {{ element.soLuongSp }}
+                </td>
+              </ng-container>
+              <!-- <ng-container matColumnDef="initialQuantity">
                 <th mat-header-cell *matHeaderCellDef>Initial Quantity</th>
                 <td
                   mat-cell
@@ -674,16 +729,16 @@
                 >
                   {{ element.initialQuantity }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="msdLevel">
+              <!-- <ng-container matColumnDef="msdLevel">
                 <th mat-header-cell *matHeaderCellDef>MSD Level</th>
                 <td mat-cell data-label="MSD Level" *matCellDef="let element">
                   {{ element.msdLevel }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="msdInitialFloorTime">
+              <!-- <ng-container matColumnDef="msdInitialFloorTime">
                 <th mat-header-cell *matHeaderCellDef>
                   MSD Initial Floor Time
                 </th>
@@ -694,9 +749,9 @@
                 >
                   {{ element.msdInitialFloorTime }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="msdBagSealDate">
+              <!-- <ng-container matColumnDef="msdBagSealDate">
                 <th mat-header-cell *matHeaderCellDef>MSD Bag Seal Date</th>
                 <td
                   mat-cell
@@ -705,9 +760,9 @@
                 >
                   {{ element.msdBagSealDate }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="marketUsage">
+              <!-- <ng-container matColumnDef="marketUsage">
                 <th mat-header-cell *matHeaderCellDef>Market Usage</th>
                 <td
                   mat-cell
@@ -716,9 +771,9 @@
                 >
                   {{ element.marketUsage }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="quantityOverride">
+              <!-- <ng-container matColumnDef="quantityOverride">
                 <th mat-header-cell *matHeaderCellDef>Quantity Override</th>
                 <td
                   mat-cell
@@ -727,16 +782,16 @@
                 >
                   {{ element.quantityOverride }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="shelfTime">
+              <!-- <ng-container matColumnDef="shelfTime">
                 <th mat-header-cell *matHeaderCellDef>Shelf Time</th>
                 <td mat-cell data-label="Shelf Time" *matCellDef="let element">
                   {{ element.shelfTime }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="spMaterialName">
+              <!-- <ng-container matColumnDef="spMaterialName">
                 <th mat-header-cell *matHeaderCellDef>SP Material Name</th>
                 <td
                   mat-cell
@@ -745,9 +800,9 @@
                 >
                   {{ element.spMaterialName }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="warningLimit">
+              <!-- <ng-container matColumnDef="warningLimit">
                 <th mat-header-cell *matHeaderCellDef>Warning Limit</th>
                 <td
                   mat-cell
@@ -756,9 +811,9 @@
                 >
                   {{ element.warningLimit }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="maximumLimit">
+              <!-- <ng-container matColumnDef="maximumLimit">
                 <th mat-header-cell *matHeaderCellDef>Maximum Limit</th>
                 <td
                   mat-cell
@@ -767,7 +822,7 @@
                 >
                   {{ element.maximumLimit }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
               <ng-container matColumnDef="comments">
                 <th mat-header-cell *matHeaderCellDef>Comments</th>
@@ -776,14 +831,14 @@
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="warmupTime">
+              <!-- <ng-container matColumnDef="warmupTime">
                 <th mat-header-cell *matHeaderCellDef>Warmup Time</th>
                 <td mat-cell data-label="Warmup Time" *matCellDef="let element">
                   {{ element.warmupTime }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="subStorageUnit">
+              <!-- <ng-container matColumnDef="subStorageUnit">
                 <th mat-header-cell *matHeaderCellDef>Sub Storage Unit</th>
                 <td
                   mat-cell
@@ -792,9 +847,9 @@
                 >
                   {{ element.subStorageUnit }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="locationOverride">
+              <!-- <ng-container matColumnDef="locationOverride">
                 <th mat-header-cell *matHeaderCellDef>Location Override</th>
                 <td
                   mat-cell
@@ -803,9 +858,9 @@
                 >
                   {{ element.locationOverride }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="expirationDate">
+              <!-- <ng-container matColumnDef="expirationDate">
                 <th mat-header-cell *matHeaderCellDef>Expiration Date</th>
                 <td
                   mat-cell
@@ -814,9 +869,9 @@
                 >
                   {{ element.expirationDate }}
                 </td>
-              </ng-container>
+              </ng-container> -->
 
-              <ng-container matColumnDef="manufacturingDate">
+              <!-- <ng-container matColumnDef="manufacturingDate">
                 <th mat-header-cell *matHeaderCellDef>Manufacturing Date</th>
                 <td
                   mat-cell
@@ -825,12 +880,39 @@
                 >
                   {{ element.manufacturingDate }}
                 </td>
-              </ng-container>
-
+              </ng-container> -->
+              <!-- 
               <ng-container matColumnDef="partClass">
                 <th mat-header-cell *matHeaderCellDef>Part Class</th>
                 <td mat-cell data-label="Part Class" *matCellDef="let element">
                   {{ element.partClass }}
+                </td>
+              </ng-container> -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Tuỳ chọn</th>
+                <td mat-cell data-label="" *matCellDef="let element">
+                  <button
+                    mat-icon-button
+                    color="primary"
+                    (click)="openGroupDetailDialog(element)"
+                    matTooltip="Xem chi tiết"
+                    matTooltipPosition="left"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                  <!-- <button mat-icon-button color="primary">
+                    <mat-icon>system_update_alt</mat-icon>
+                  </button> -->
+                  <!-- <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="deletePallet(element)"
+                    [disabled]="element.trangThaiIn"
+                    matTooltip="Xoá"
+                    matTooltipPosition="left"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button> -->
                 </td>
               </ng-container>
 
@@ -847,26 +929,6 @@
               ></tr>
               <tr mat-row *matRowDef="let row; columns: reelColumns"></tr>
             </table>
-          </div>
-          <div class="btp-group-btn">
-            <button
-              mat-raised-button
-              color="primary"
-              class="add-box-btn"
-              (click)="exportTemBtpCsv()"
-            >
-              <mat-icon>save_alt</mat-icon>
-              Xuất CSV
-            </button>
-            <button
-              mat-raised-button
-              color="primary"
-              class="add-box-btn"
-              (click)="exportExcelReelData()"
-            >
-              <mat-icon>text_snippet</mat-icon>
-              Xuất Excel
-            </button>
           </div>
         </div>
       </mat-tab>
