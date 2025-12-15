@@ -118,14 +118,14 @@
               </ng-container>
 
               <!-- Capacity Column -->
-              <ng-container matColumnDef="capacity">
+              <ng-container matColumnDef="numBoxActual">
                 <th mat-header-cell *matHeaderCellDef>Số lượng thùng</th>
-                <td mat-cell *matCellDef="let row">{{ row.capacity }}</td>
+                <td mat-cell *matCellDef="let row">{{ row.numBoxActual }}</td>
               </ng-container>
               <ng-container matColumnDef="sentBoxes">
                 <th mat-header-cell *matHeaderCellDef>Thùng đã gửi</th>
                 <td mat-cell *matCellDef="let row">
-                  {{ row.totalBoxesCount }}
+                  {{ row.sentBoxesCount }}
                   <!-- {{ row.sentBoxesCount }} / {{ row.totalBoxesCount }} ({{ row.sentBoxesPercent }}%) -->
                 </td>
               </ng-container>
@@ -198,9 +198,9 @@
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="capacity">
+              <ng-container matColumnDef="numBoxActual">
                 <th mat-header-cell *matHeaderCellDef>Số lượng thùng</th>
-                <td mat-cell *matCellDef="let row">{{ row.capacity }}</td>
+                <td mat-cell *matCellDef="let row">{{ row.numBoxActual }}</td>
               </ng-container>
 
               <tr
@@ -257,7 +257,7 @@
                 class="sr-only-focusable"
                 (keyup.enter)="onScanEnter($any($event))"
                 (input)="onScanInput($any($event))"
-                inputmode="text"
+                inputmode="none"
                 enterkeyhint="done"
               />
             </div>
@@ -328,7 +328,9 @@
 
                       <div class="card-info-row">
                         <span class="info-label">Số lượng thùng:</span>
-                        <span class="info-value">{{ pallet.capacity }}</span>
+                        <span class="info-value">{{
+                          pallet.numBoxActual
+                        }}</span>
                       </div>
                     </div>
                   </div>
@@ -400,7 +402,9 @@
 
                       <div class="card-info-row">
                         <span class="info-label">Số lượng thùng:</span>
-                        <span class="info-value">{{ pallet.capacity }}</span>
+                        <span class="info-value">{{
+                          pallet.numBoxActual
+                        }}</span>
                       </div>
                     </div>
                   </div>

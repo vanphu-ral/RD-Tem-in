@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.panacimmc.domain.AreaAreaResponse;
 import com.mycompany.panacimmc.domain.Location;
 import com.mycompany.panacimmc.domain.LocationResponse;
 import com.mycompany.panacimmc.repository.LocationRepository;
@@ -23,5 +24,9 @@ public class LocationService {
             .findById(locationId)
             .map(Location::getLocationName)
             .orElse(null);
+    }
+
+    public List<AreaAreaResponse> getArea() {
+        return locationRepository.getArea();
     }
 }

@@ -1,5 +1,6 @@
 package com.mycompany.panacimmc.repository;
 
+import com.mycompany.panacimmc.domain.AreaAreaResponse;
 import com.mycompany.panacimmc.domain.Location;
 import com.mycompany.panacimmc.domain.LocationResponse;
 import java.util.List;
@@ -23,10 +24,10 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     //    List<LocationResponse> getFullLocation();
     @Query(
         value = "select " +
-            "Location_Id as id" +
-            ",Location_Name as locationName " +
-            ",Location_FullName as locationFullName" +
-            " from Location ;",
+        "Location_Id as id" +
+        ",Location_Name as locationName " +
+        ",Location_FullName as locationFullName" +
+        " from Location ;",
         nativeQuery = true
     )
     public List<LocationResponse> getFullLocation();
@@ -36,4 +37,14 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
         nativeQuery = true
     )
     Integer checkLocationExists(@Param("locationName") String locationName);
+
+    @Query(
+        value = "select " +
+        "Area_Id as areaId" +
+        "Area_Name as areaName" +
+        ",Area_Description as areaDescription " +
+        " from AreaArea ;",
+        nativeQuery = true
+    )
+    public List<AreaAreaResponse> getArea();
 }
