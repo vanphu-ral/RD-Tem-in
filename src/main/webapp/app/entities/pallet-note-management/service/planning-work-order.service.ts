@@ -90,6 +90,10 @@ export class PlanningWorkOrderService {
   getAll(): Observable<PlanningWorkOrderResponse> {
     return this.http.get<PlanningWorkOrderResponse>(this.apiUrl);
   }
+  //laays area
+  getArea(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/location/area`);
+  }
 
   // Lọc theo sapWoId và productCode
   search(woId?: string): Observable<PlanningWorkOrderResponse> {

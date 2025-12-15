@@ -18,6 +18,9 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatPaginatorModule, PageEvent } from "@angular/material/paginator";
 import { QRCodeComponent } from "angularx-qrcode";
 import jsPDF from "jspdf";
+import { MatSnackBar } from "@angular/material/snack-bar";
+import * as XLSX from "xlsx";
+import { ProductionOrder } from "../add-new/add-new-lenh-san-xuat.component";
 
 export interface BoxDetailData {
   stt: number;
@@ -31,6 +34,8 @@ export interface BoxDetailData {
   kho: string;
   serialBox: string;
   subItems: BoxSubItem[];
+  ghiChu: string;
+  isBtp?: boolean;
 }
 
 export interface BoxInfoCard {
@@ -76,9 +81,11 @@ export class DetailBoxDialogComponent implements OnInit {
   soLuongThung: number = 0;
   tongSoLuong: number = 0;
 
+  productionOrders: ProductionOrder[] = [];
   constructor(
     public dialogRef: MatDialogRef<DetailBoxDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: BoxDetailData,
+    private snackBar: MatSnackBar,
   ) {}
 
   ngOnInit(): void {
@@ -162,6 +169,116 @@ export class DetailBoxDialogComponent implements OnInit {
     }
 
     doc.save(`qr-boxes-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
+  exportExcelFromDialog(useCurrentPage = false): void {
+    const sourceItems: BoxSubItem[] = useCurrentPage
+      ? this.paginatedItems
+      : this.boxSubItems || [];
+
+    if (!sourceItems || sourceItems.length === 0) {
+      this.snackBar.open("Không có dữ liệu để xuất Excel", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Header (kiểu rõ ràng)
+    const headers: string[] = [
+      "NumberOfPlanning",
+      "ItemCode",
+      "ProductName",
+      "SapWo",
+      "Version",
+      "TimeRecieved",
+      "ReelID",
+      "PartNumber",
+      "Vendor",
+      "QuantityOfPackage",
+      "MFGDate",
+      "ProductionShilt",
+      "OpName",
+      "Comments",
+      "Comments2",
+      "StorageUnit",
+      "TP/NK",
+      "Rank",
+      "QrCode",
+    ];
+
+    // Lấy thông tin chung
+    const po = (this as any).productionOrders?.[0] ?? null;
+    const version = po?.version ?? "";
+    const partNumber = this.data?.maSanPham ?? "";
+    const productName = this.data?.tenSanPham ?? "";
+    const lotNumber = this.data?.lotNumber ?? "";
+    const vendor = this.data?.vendor ?? "";
+    const serialBox = this.data?.serialBox ?? "";
+    const storageFromBox = this.data?.kho ?? "";
+
+    // Map rows với kiểu rõ ràng (mỗi row là mảng string|number)
+    const rows: (string | number)[][] = sourceItems.map(
+      (it: BoxSubItem): (string | number)[] => {
+        const reelId = String(it.maThung ?? "");
+        const qrPayload =
+          it.qrCode && String(it.qrCode).trim() ? String(it.qrCode) : reelId;
+
+        const numberOfPlanning = "";
+        const itemCode = String(partNumber || (po?.maSAP ?? ""));
+        const productNameRow = String(productName || (po?.tenHangHoa ?? ""));
+        const sapWo = String(po?.maLenhSanXuat ?? this.data?.lotNumber ?? "");
+        const timeReceived = String(po?.manufacturingDate ?? "");
+        const partNum = `${itemCode}${String(version ?? "") ? "_V" + String(version ?? "") : ""}`;
+        const vendorRow = String(vendor || (po?.vendor ?? ""));
+        const quantityOfPackage: string | number =
+          po?.tongSoLuong != null ? String(po.tongSoLuong) : "";
+        const mfgDate = String(po?.manufacturingDate ?? "");
+        const productionShift = String(po?.to ?? "");
+        const opName = "";
+        const comments = String(this.data?.ghiChu ?? "");
+        const comments2 = "";
+        const storageUnit = String(storageFromBox || "");
+        const tpNk = "";
+        const rank = "";
+        const qrCodeField = qrPayload;
+
+        return [
+          numberOfPlanning,
+          itemCode,
+          productNameRow,
+          sapWo,
+          String(version ?? ""),
+          timeReceived,
+          reelId,
+          partNum,
+          vendorRow,
+          quantityOfPackage,
+          mfgDate,
+          productionShift,
+          opName,
+          comments,
+          comments2,
+          storageUnit,
+          tpNk,
+          rank,
+          qrCodeField,
+        ];
+      },
+    );
+
+    // Tạo AOА data với kiểu rõ ràng và ép kiểu khi gọi thư viện
+    const aoaData: (string | number)[][] = [headers, ...rows];
+
+    // thay cho: XLSX.utils.aoa_to_sheet(aoaData as XLSX.AOA);
+    const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(aoaData as any);
+
+    const workbook: XLSX.WorkBook = {
+      Sheets: { BoxDetail: worksheet },
+      SheetNames: ["BoxDetail"],
+    };
+
+    const fileName = `BoxDetail_${serialBox || "export"}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
   }
 
   private initializeInfoCards(): void {

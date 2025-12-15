@@ -54,6 +54,13 @@ export interface PrintPalletData {
   date: string;
   scannedBoxes?: string[];
   printStatus?: boolean;
+
+  productType?: string; // "Thành phẩm" | "Bán thành phẩm"
+  version?: string;
+  maSAP?: string;
+  woId?: string;
+  erpWo?: string;
+  maLenhSanXuat?: string;
 }
 
 interface PrintPage {
