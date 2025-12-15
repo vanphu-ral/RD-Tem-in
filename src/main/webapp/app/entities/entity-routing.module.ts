@@ -167,8 +167,8 @@ import { RouterModule } from "@angular/router";
         data: { pageTitle: "Quản lý phê duyệt" },
         loadChildren: () =>
           import(
-            "./warehouse-inbound-approval/warehouse_inbound_approval.module"
-          ).then((m) => m.WarehouseInboundApprovalModule),
+            "./warehouse-inbound-approval/chi-tiet-lenh-san-xuat.module"
+          ).then((m) => m.ChiTietLenhSanXuatModule),
       },
       // {
       //   path: 'scan-check',

@@ -150,6 +150,14 @@ public class WarehouseNoteInfoDetail implements Serializable {
     @Column(name = "wms_send_status")
     private Boolean wmsSendStatus;
 
+    @Size(max = 255)
+    @Column(name = "list_serial_items", length = 255)
+    private String listSerialItems;
+
+    @Size(max = 255)
+    @Column(name = "qr_code", length = 255)
+    private String qrCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
         name = "ma_lenh_san_xuat_id",
@@ -621,6 +629,32 @@ public class WarehouseNoteInfoDetail implements Serializable {
         this.wmsSendStatus = wmsSendStatus;
     }
 
+    public String getListSerialItems() {
+        return this.listSerialItems;
+    }
+
+    public WarehouseNoteInfoDetail listSerialItems(String listSerialItems) {
+        this.setListSerialItems(listSerialItems);
+        return this;
+    }
+
+    public void setListSerialItems(String listSerialItems) {
+        this.listSerialItems = listSerialItems;
+    }
+
+    public String getQrCode() {
+        return this.qrCode;
+    }
+
+    public WarehouseNoteInfoDetail qrCode(String qrCode) {
+        this.setQrCode(qrCode);
+        return this;
+    }
+
+    public void setQrCode(String qrCode) {
+        this.qrCode = qrCode;
+    }
+
     public WarehouseNoteInfo getMaLenhSanXuat() {
         return this.maLenhSanXuat;
     }
@@ -698,6 +732,8 @@ public class WarehouseNoteInfoDetail implements Serializable {
                 ", checked=" + getChecked() +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", wmsSendStatus=" + getWmsSendStatus() +
+                ", listSerialItems='" + getListSerialItems() + "'" +
+                ", qrCode='" + getQrCode() + "'" +
                 "}";
     }
 }

@@ -382,6 +382,16 @@ public class WarehouseNoteInfoDetailResource {
                             warehouseNoteInfoDetail.getWmsSendStatus()
                         );
                     }
+                    if (warehouseNoteInfoDetail.getListSerialItems() != null) {
+                        existingWarehouseNoteInfoDetail.setListSerialItems(
+                            warehouseNoteInfoDetail.getListSerialItems()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getQrCode() != null) {
+                        existingWarehouseNoteInfoDetail.setQrCode(
+                            warehouseNoteInfoDetail.getQrCode()
+                        );
+                    }
 
                     return existingWarehouseNoteInfoDetail;
                 })

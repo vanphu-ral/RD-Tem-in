@@ -110,6 +110,12 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
 
     private Boolean wmsSendStatus;
 
+    @Size(max = 255)
+    private String listSerialItems;
+
+    @Size(max = 255)
+    private String qrCode;
+
     @JsonProperty("id")
     public Long getId() {
         return id;
@@ -460,6 +466,26 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
         this.wmsSendStatus = wmsSendStatus;
     }
 
+    @JsonProperty("list_serial_items")
+    public String getListSerialItems() {
+        return listSerialItems;
+    }
+
+    @JsonProperty("list_serial_items")
+    public void setListSerialItems(String listSerialItems) {
+        this.listSerialItems = listSerialItems;
+    }
+
+    @JsonProperty("qr_code")
+    public String getQrCode() {
+        return qrCode;
+    }
+
+    @JsonProperty("qr_code")
+    public void setQrCode(String qrCode) {
+        this.qrCode = qrCode;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -521,6 +547,8 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
                 ", checked=" + getChecked() +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", wmsSendStatus=" + getWmsSendStatus() +
+                ", listSerialItems='" + getListSerialItems() + "'" +
+                ", qrCode='" + getQrCode() + "'" +
                 "}";
     }
 }
