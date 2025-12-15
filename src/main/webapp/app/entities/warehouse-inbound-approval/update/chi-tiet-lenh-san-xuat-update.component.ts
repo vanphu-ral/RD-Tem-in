@@ -405,7 +405,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     const id = this.editForm.get(["id"])!.value;
     this.http
       .patch(`${this.resourceUrlWarehouseNoteInfo}/${id}`, {
-        trang_thai: "Đã Phê duyệt",
+        trang_thai: "Đã phê duyệt",
       })
       .subscribe(() => {
         alert("Phê duyệt thành công");

@@ -38,7 +38,7 @@ export class NavbarService {
       icon: faNoteSticky,
       type: "dropdown",
       submenus: [
-        { title: "Quản lý mã vạch đóng gói", link: "/warehouse-note-infos" },
+        { title: "Quản lý mã - vạch đóng gói", link: "/warehouse-note-infos" },
         { title: "Quản lý phê duyệt", link: "/warehouse-inbound-approvals" },
       ],
     },

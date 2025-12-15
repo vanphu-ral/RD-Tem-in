@@ -227,6 +227,53 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     }
   }
 
+  getStatusStyle(trangThai: string): any {
+    const styles: any = {};
+    switch (trangThai) {
+      case "Chờ duyệt":
+        styles.backgroundColor = "#FFF9B0";
+        styles.color = "#7A6A00";
+        styles.border = "1px solid #F0E68C";
+        break;
+      case "Đã phê duyệt":
+        styles.backgroundColor = "#C6F6D5";
+        styles.color = "#3F6D52";
+        styles.border = "1px solid #A3D9B8";
+        break;
+      case "Sản xuất hủy":
+        styles.backgroundColor = "#FFB3B3";
+        styles.color = "#FFFFFF";
+        styles.border = "1px solid #E68A8A";
+        break;
+      case "Kho hủy":
+        styles.backgroundColor = "#FF9999";
+        styles.color = "#FFFFFF";
+        styles.border = "1px solid #E67373";
+        break;
+      case "Bản nháp":
+        styles.backgroundColor = "#B2FFFF";
+        styles.color = "#007A7A";
+        styles.border = "1px solid #99E6E6";
+        break;
+      case "Từ chối":
+        styles.backgroundColor = "#FFE099";
+        styles.color = "#7F5F00";
+        styles.border = "1px solid #E6C080";
+        break;
+      case "Đã xuất csv":
+        styles.backgroundColor = "#A0D9E6";
+        styles.color = "#003F4F";
+        styles.border = "1px solid #7FBCCC";
+        break;
+      case "Lỗi Panacim":
+        styles.backgroundColor = "#4D5D75";
+        styles.color = "#FFFFFF";
+        styles.border = "1px solid #3A4A60";
+        break;
+    }
+    return styles;
+  }
+
   toggleColumnsList(): void {
     this.toggleColumns = !this.toggleColumns;
     if (this.toggleColumns) {

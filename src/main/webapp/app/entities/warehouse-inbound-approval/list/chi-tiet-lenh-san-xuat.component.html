@@ -475,7 +475,13 @@
             {{ lenhSanXuat.time_update | formatMediumDatetime }}
           </td>
           <td *ngIf="disableTrangThai === true">
-            <div [id]="i" class="trang-thai">{{ lenhSanXuat.trang_thai }}</div>
+            <div
+              [id]="i"
+              class="trang-thai"
+              [ngStyle]="getStatusStyle(lenhSanXuat.trang_thai)"
+            >
+              {{ lenhSanXuat.trang_thai }}
+            </div>
           </td>
           <td *ngIf="disableComment === true">{{ lenhSanXuat.comment }}</td>
 

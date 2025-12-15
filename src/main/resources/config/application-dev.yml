@@ -171,6 +171,7 @@ partner4:
 
 server:
   port: 9040
+  forward-headers-strategy: framework
 
 # ===================================================================
 # JHipster specific properties

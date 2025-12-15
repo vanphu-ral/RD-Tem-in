@@ -1,7 +1,12 @@
 <div class="main-content">
   <div class="header">
     <h3>Tạo TEM/Phiếu cho lệnh sản xuất</h3>
-    <div class="submit-search-sap" [formGroup]="form" *ngIf="!isDetail">
+    <div
+      style="z-index: 99999"
+      class="submit-search-sap"
+      [formGroup]="form"
+      *ngIf="!isDetail"
+    >
       <mat-form-field appearance="outline" class="sap-input">
         <mat-label>Mã lệnh sản xuất</mat-label>
         <input
