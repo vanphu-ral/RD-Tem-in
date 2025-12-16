@@ -3148,6 +3148,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           partClass: "",
           tongSl: productionOrder.tongSoLuong,
           qrCode: qrCodeValue,
+          note: data.note ?? "",
         };
 
         this.reelDataList = [...this.reelDataList, reelData];
