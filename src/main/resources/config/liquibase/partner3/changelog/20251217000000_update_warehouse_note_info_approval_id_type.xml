@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+
+    <!-- Update warehouse_note_info_approval_id column type to bigint -->
+    <changeSet id="20251217000000-1" author="jhipster">
+        <modifyDataType tableName="reelid_in_warehouse_note_info_approval" columnName="warehouse_note_info_approval_id" newDataType="bigint"/>
+    </changeSet>
+
+</databaseChangeLog>
