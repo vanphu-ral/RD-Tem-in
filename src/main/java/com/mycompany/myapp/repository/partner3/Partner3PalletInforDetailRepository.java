@@ -55,4 +55,23 @@ public interface Partner3PalletInforDetailRepository
         nativeQuery = true
     )
     String findMaxSerialPalletStartingWith(@Param("prefix") String prefix);
+
+    /**
+     * Find all PalletInforDetail by ma_lenh_san_xuat_id and filter by reel IDs.
+     * This method finds pallet details that match the ma_lenh_san_xuat_id and
+     * whose IDs are in the provided list of reel IDs.
+     *
+     * @param maLenhSanXuatId the maLenhSanXuat of the WarehouseNoteInfo
+     * @param reelIds         the list of reel IDs to filter by
+     * @return the list of PalletInforDetail
+     */
+    @Query(
+        "SELECT p FROM PalletInforDetail p " +
+        "WHERE p.maLenhSanXuatId = :maLenhSanXuatId " +
+        "AND p.id IN :reelIds"
+    )
+    List<PalletInforDetail> findByMaLenhSanXuatIdAndIdIn(
+        @Param("maLenhSanXuatId") Long maLenhSanXuatId,
+        @Param("reelIds") List<Long> reelIds
+    );
 }

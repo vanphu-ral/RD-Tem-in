@@ -224,9 +224,12 @@ public class WarehouseNoteInfoApprovalService {
                         .collect(Collectors.toList());
 
                 // Fetch and map pallet_infor_detail using warehouseNoteInfoId (Long)
+                // Filter by reel IDs to only get pallet details associated with the approved
+                // reels
                 List<PalletInforDetail> palletDetails =
-                    palletInforDetailRepository.findByMaLenhSanXuatId(
-                        warehouseNoteInfoApproval.getWarehouseNoteInfoId()
+                    palletInforDetailRepository.findByMaLenhSanXuatIdAndIdIn(
+                        warehouseNoteInfoApproval.getWarehouseNoteInfoId(),
+                        reelIdList
                     );
                 List<PalletInforDetailDTO> palletDetailDTOs = palletDetails
                     .stream()
