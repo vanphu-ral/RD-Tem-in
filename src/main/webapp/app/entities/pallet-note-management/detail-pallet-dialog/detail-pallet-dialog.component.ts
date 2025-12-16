@@ -22,6 +22,7 @@ import * as XLSX from "xlsx";
 import { PlanningWorkOrderService } from "../service/planning-work-order.service";
 import { finalize } from "rxjs";
 import { BoxDetailData } from "../detail-box-dialog/detail-box-dialog.component";
+import { WarehouseNoteInfo } from "../add-new/add-new-lenh-san-xuat.component";
 
 export interface PalletDetailData {
   id?: number;
@@ -50,6 +51,12 @@ export interface PalletDetailData {
   tienDoScan?: number;
   scannedBoxes?: any;
   printStatus?: boolean;
+  productType?: string;
+  version?: string;
+  maSAP?: string;
+  woId?: string;
+  erpWo?: string;
+  maLenhSanXuat?: string;
 }
 export interface PalletExcelRow {
   productionLine: string; // Production Line
@@ -132,7 +139,7 @@ export class PalletDetailDialogComponent implements OnInit {
     "sucChua",
     "tuyChon",
   ];
-
+  warehouseNoteInfo!: WarehouseNoteInfo;
   palletBoxItems: PalletBoxItem[] = [];
   paginatedItems: PalletBoxItem[] = [];
 
@@ -389,49 +396,73 @@ export class PalletDetailDialogComponent implements OnInit {
     }
 
     console.log("=== DEBUG onPrint ===");
+    console.log("sourceData.productType:", sourceData.productType);
     console.log("item.scannedBoxes:", item.scannedBoxes);
     console.log("sourceData.boxItems:", sourceData.boxItems);
 
-    // ===== FIX: Tính tổng số sản phẩm ĐÚNG =====
     let tongSoSanPhamTrongPallet = 0;
     let soLuongSanPhamTrongMotThung = 0;
     let firstBoxSerial = "";
     let lotNumber = "";
 
+    // ===== XỬ LÝ THEO LOẠI SẢN PHẨM =====
     if (item.scannedBoxes && item.scannedBoxes.length > 0) {
-      item.scannedBoxes.forEach((scannedSerial, index) => {
-        const trimmedSerial = scannedSerial.trim();
+      // THÀNH PHẨM
+      if (sourceData.productType === "Thành phẩm") {
+        item.scannedBoxes.forEach((scannedSerial, index) => {
+          const trimmedSerial = scannedSerial.trim();
 
-        for (const box of sourceData.boxItems ?? []) {
-          // Ưu tiên check subItems trước
-          const subItem = box.subItems?.find(
-            (sub: { maThung: string }) => sub.maThung === trimmedSerial,
+          for (const box of sourceData.boxItems ?? []) {
+            // Ưu tiên check subItems trước
+            const subItem = box.subItems?.find(
+              (sub: { maThung: string }) => sub.maThung === trimmedSerial,
+            );
+            if (subItem) {
+              tongSoSanPhamTrongPallet += subItem.soLuong || 0;
+              if (index === 0) {
+                soLuongSanPhamTrongMotThung = subItem.soLuong || 0;
+                firstBoxSerial = subItem.maThung;
+                lotNumber = box.lotNumber || "";
+              }
+              break;
+            }
+
+            // Nếu không phải subItem thì check box cha
+            if (box.serialBox === trimmedSerial) {
+              tongSoSanPhamTrongPallet += box.soLuongSp || 0;
+              if (index === 0) {
+                soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
+                firstBoxSerial = box.serialBox;
+                lotNumber = box.lotNumber || "";
+              }
+              break;
+            }
+          }
+        });
+      }
+      // BÁN THÀNH PHẨM
+      else if (sourceData.productType === "Bán thành phẩm") {
+        item.scannedBoxes.forEach((scannedSerial, index) => {
+          const trimmedSerial = scannedSerial.trim();
+
+          // Tìm trong reelDataList (đã được truyền vào boxItems)
+          const reel = (sourceData.boxItems ?? []).find(
+            (r: any) => r.reelID === trimmedSerial,
           );
-          if (subItem) {
-            tongSoSanPhamTrongPallet += subItem.soLuong || 0;
-            if (index === 0) {
-              soLuongSanPhamTrongMotThung = subItem.soLuong || 0;
-              firstBoxSerial = subItem.maThung;
-              lotNumber = box.lotNumber || "";
-            }
-            break;
-          }
 
-          // Nếu không phải subItem thì mới check box cha
-          if (box.serialBox === trimmedSerial) {
-            tongSoSanPhamTrongPallet += box.soLuongSp || 0;
+          if (reel) {
+            tongSoSanPhamTrongPallet += reel.initialQuantity || 0;
             if (index === 0) {
-              soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
-              firstBoxSerial = box.serialBox;
-              lotNumber = box.lotNumber || "";
+              soLuongSanPhamTrongMotThung = reel.initialQuantity || 0;
+              firstBoxSerial = reel.reelID;
+              lotNumber = reel.lot || "";
             }
-            break;
+          } else {
+            console.warn("Không tìm thấy reel:", trimmedSerial);
           }
-        }
-      });
+        });
+      }
     }
-
-    const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.thungScan}`;
 
     const printData: PrintPalletData = {
       id: sourceData.id,
@@ -464,14 +495,24 @@ export class PalletDetailDialogComponent implements OnInit {
       date: new Date().toLocaleDateString("vi-VN"),
       scannedBoxes: item.scannedBoxes,
       printStatus: sourceData.printStatus,
+
+      // ===== LẤY TỪ sourceData (đã được truyền từ component cha) =====
+      productType: sourceData.productType ?? "Thành phẩm",
+      version: sourceData.version ?? "",
+      maSAP: sourceData.maSAP ?? sourceData.tenSanPham ?? "",
+      woId: sourceData.woId ?? "",
+      erpWo: sourceData.erpWo ?? "",
+      maLenhSanXuat: sourceData.maLenhSanXuat ?? "",
     };
 
-    console.log("=== Print single pallet ===", printData);
+    console.log("=== Print Data ===");
+    console.log("productType:", printData.productType);
+    console.log("version:", printData.version);
+    console.log("maSAP:", printData.maSAP);
+    console.log("Full printData:", printData);
 
-    // Truyền 1 phiếu dưới dạng object (không phải array)
     this.openPrintDialog(printData);
   }
-
   onPrintAll(): void {
     const allPrintData: PrintPalletData[] = [];
 
@@ -489,46 +530,69 @@ export class PalletDetailDialogComponent implements OnInit {
         return;
       }
 
-      // ===== TÍNH TOÁN SỐ LƯỢNG GIỐNG HỆT onPrint =====
+      // ===== TÍNH TOÁN SỐ LƯỢNG THEO LOẠI SẢN PHẨM =====
       let tongSoSanPhamTrongPallet = 0;
       let soLuongSanPhamTrongMotThung = 0;
       let firstBoxSerial = "";
       let lotNumber = "";
 
       if (item.scannedBoxes && item.scannedBoxes.length > 0) {
-        item.scannedBoxes.forEach((scannedSerial, boxIndex) => {
-          const trimmedSerial = scannedSerial.trim();
+        // THÀNH PHẨM
+        if (sourceData.productType === "Thành phẩm") {
+          item.scannedBoxes.forEach((scannedSerial, boxIndex) => {
+            const trimmedSerial = scannedSerial.trim();
 
-          for (const box of sourceData.boxItems ?? []) {
-            // Ưu tiên check subItems trước
-            const subItem = box.subItems?.find(
-              (sub: { maThung: string }) => sub.maThung === trimmedSerial,
+            for (const box of sourceData.boxItems ?? []) {
+              // Ưu tiên check subItems trước
+              const subItem = box.subItems?.find(
+                (sub: { maThung: string }) => sub.maThung === trimmedSerial,
+              );
+              if (subItem) {
+                tongSoSanPhamTrongPallet += subItem.soLuong || 0;
+                if (boxIndex === 0) {
+                  soLuongSanPhamTrongMotThung = subItem.soLuong || 0;
+                  firstBoxSerial = subItem.maThung;
+                  lotNumber = box.lotNumber || "";
+                }
+                break;
+              }
+
+              // Nếu không phải subItem thì check box cha
+              if (box.serialBox === trimmedSerial) {
+                tongSoSanPhamTrongPallet += box.soLuongSp || 0;
+                if (boxIndex === 0) {
+                  soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
+                  firstBoxSerial = box.serialBox;
+                  lotNumber = box.lotNumber || "";
+                }
+                break;
+              }
+            }
+          });
+        }
+        // BÁN THÀNH PHẨM
+        else if (sourceData.productType === "Bán thành phẩm") {
+          item.scannedBoxes.forEach((scannedSerial, boxIndex) => {
+            const trimmedSerial = scannedSerial.trim();
+
+            // Tìm trong reelDataList (đã được truyền vào boxItems)
+            const reel = (sourceData.boxItems ?? []).find(
+              (r: any) => r.reelID === trimmedSerial,
             );
-            if (subItem) {
-              tongSoSanPhamTrongPallet += subItem.soLuong || 0;
-              if (boxIndex === 0) {
-                soLuongSanPhamTrongMotThung = subItem.soLuong || 0;
-                firstBoxSerial = subItem.maThung;
-                lotNumber = box.lotNumber || "";
-              }
-              break;
-            }
 
-            // Nếu không phải subItem thì check box cha
-            if (box.serialBox === trimmedSerial) {
-              tongSoSanPhamTrongPallet += box.soLuongSp || 0;
+            if (reel) {
+              tongSoSanPhamTrongPallet += reel.initialQuantity || 0;
               if (boxIndex === 0) {
-                soLuongSanPhamTrongMotThung = box.soLuongSp || 0;
-                firstBoxSerial = box.serialBox;
-                lotNumber = box.lotNumber || "";
+                soLuongSanPhamTrongMotThung = reel.initialQuantity || 0;
+                firstBoxSerial = reel.reelID;
+                lotNumber = reel.lot || "";
               }
-              break;
+            } else {
+              console.warn("Không tìm thấy reel:", trimmedSerial);
             }
-          }
-        });
+          });
+        }
       }
-
-      const tienDoThung = `${item.scannedBoxes?.length ?? 0}/${item.thungScan}`;
 
       const printData: PrintPalletData = {
         id: sourceData.id,
@@ -561,16 +625,29 @@ export class PalletDetailDialogComponent implements OnInit {
         date: new Date().toLocaleDateString("vi-VN"),
         scannedBoxes: item.scannedBoxes,
         printStatus: sourceData.printStatus,
+
+        // ===== LẤY TỪ sourceData THAY VÌ this.warehouseNoteInfo =====
+        productType: sourceData.productType ?? "Thành phẩm",
+        version: sourceData.version ?? "",
+        maSAP: sourceData.maSAP ?? sourceData.tenSanPham ?? "",
+        woId: sourceData.woId ?? "",
+        erpWo: sourceData.erpWo ?? "",
+        maLenhSanXuat: sourceData.maLenhSanXuat ?? "",
       };
 
-      console.log(
-        `Added print data for pallet ${index + 1}:`,
-        printData.serialPallet,
-      );
+      console.log(`Added print data for pallet ${index + 1}:`, {
+        serialPallet: printData.serialPallet,
+        productType: printData.productType,
+        qty: printData.qty,
+        version: printData.version,
+      });
       allPrintData.push(printData);
     });
 
-    console.log(`Total print data created: ${allPrintData.length}`);
+    console.log("=== Print All Summary ===");
+    console.log(`Total pallets: ${allPrintData.length}`);
+    console.log(`Product Type: ${allPrintData[0]?.productType}`);
+    console.log("All print data:", allPrintData);
 
     if (allPrintData.length === 0) {
       console.error("No print data generated!");
@@ -578,12 +655,7 @@ export class PalletDetailDialogComponent implements OnInit {
       return;
     }
 
-    // ===== MỞ DIALOG VỚI ARRAY =====
-    console.log(
-      "Opening print dialog with array of",
-      allPrintData.length,
-      "items",
-    );
+    // Mở dialog với array
     this.openPrintDialog(allPrintData);
   }
 

@@ -1350,7 +1350,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     // Extract valid reel IDs from box items (the actual box serials)
     const validReelIds: string[] = [];
 
-    // For Thành phẩm: extract from boxItems subItems
     if (this.warehouseNoteInfo?.product_type === "Thành phẩm") {
       this.boxItems.forEach((box) => {
         box.subItems.forEach((subItem) => {
@@ -1359,9 +1358,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           }
         });
       });
-    }
-    // For Bán thành phẩm: extract from reelDataList
-    else if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
+    } else if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
       this.reelDataList.forEach((reel) => {
         if (reel.reelID && reel.reelID.trim()) {
           validReelIds.push(reel.reelID.trim());
@@ -1400,10 +1397,22 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         team: this.productionOrders[0]?.to ?? "",
         note: pallet.note ?? "",
         // Add box data for print dialog
-        boxItems: this.boxItems,
+        boxItems:
+          this.warehouseNoteInfo?.product_type === "Thành phẩm"
+            ? this.boxItems
+            : this.reelDataList, // <-- Thêm reelDataList cho bán thành phẩm
+
         maLenhSanXuatId: this.maLenhSanXuatId,
         validReelIds: validReelIds,
         printStatus: pallet.trangThaiIn,
+
+        // ===== TRUYỀN ĐẦY ĐỦ THÔNG TIN SẢN PHẨM =====
+        productType: this.warehouseNoteInfo?.product_type ?? "Thành phẩm",
+        version: this.warehouseNoteInfo?.version ?? "",
+        maSAP: this.warehouseNoteInfo?.sap_code ?? pallet.tenSanPham ?? "",
+        woId: this.warehouseNoteInfo?.work_order_code ?? "",
+        erpWo: this.warehouseNoteInfo?.work_order_code ?? "",
+        maLenhSanXuat: this.warehouseNoteInfo?.ma_lenh_san_xuat ?? "",
       },
     };
 
