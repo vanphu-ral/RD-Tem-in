@@ -133,7 +133,7 @@ public class WarehouseNoteInfoApprovalService {
             for (ReelIdRequestDTO reelIdRequest : requestDTO.getListWarehouseNoteDetail()) {
                 ReelIdInWarehouseNoteInfoApproval reelId =
                     new ReelIdInWarehouseNoteInfoApproval();
-                reelId.setReelId(reelIdRequest.getId());
+                reelId.setId(reelIdRequest.getId());
                 reelId.setCreateAt(
                     reelIdRequest.getCreateAt() != null
                         ? reelIdRequest.getCreateAt()
@@ -146,7 +146,7 @@ public class WarehouseNoteInfoApprovalService {
                 reelIdRepository.save(reelId);
                 log.debug(
                     "Saved ReelId: {} for WarehouseNoteInfoApproval: {}",
-                    reelId.getReelId(),
+                    reelId.getId(),
                     savedApproval.getId()
                 );
             }
@@ -197,13 +197,13 @@ public class WarehouseNoteInfoApprovalService {
                     reelIdRepository.findByWarehouseNoteInfoApprovalId(id);
                 List<Long> reelIdList = reelIds
                     .stream()
-                    .map(ReelIdInWarehouseNoteInfoApproval::getReelId)
+                    .map(ReelIdInWarehouseNoteInfoApproval::getId)
                     .collect(Collectors.toList());
 
                 // Fetch warehouse_note_info_details and filter by reel IDs
                 List<WarehouseNoteInfoDetail> allDetails =
                     warehouseStampInfoDetailRepository.findByMaLenhSanXuatId(
-                        warehouseNoteInfoApproval.getMaLenhSanXuat()
+                        warehouseNoteInfoApproval.getId()
                     );
                 List<WarehouseStampInfoDetailDTO> filteredDetailDTOs =
                     allDetails
@@ -215,7 +215,7 @@ public class WarehouseNoteInfoApprovalService {
                 // Fetch and map serial_box_pallet_mapping
                 List<SerialBoxPalletMapping> serialMappings =
                     serialBoxPalletMappingRepository.findByMaLenhSanXuatId(
-                        warehouseNoteInfoApproval.getMaLenhSanXuat()
+                        warehouseNoteInfoApproval.getId()
                     );
                 List<SerialBoxPalletMappingDTO> serialMappingDTOs =
                     serialMappings
@@ -223,10 +223,10 @@ public class WarehouseNoteInfoApprovalService {
                         .map(serialBoxPalletMappingMapper::toDto)
                         .collect(Collectors.toList());
 
-                // Fetch and map pallet_infor_detail
+                // Fetch and map pallet_infor_detail using warehouseNoteInfoId (Long)
                 List<PalletInforDetail> palletDetails =
                     palletInforDetailRepository.findByMaLenhSanXuatId(
-                        warehouseNoteInfoApproval.getMaLenhSanXuat()
+                        warehouseNoteInfoApproval.getWarehouseNoteInfoId()
                     );
                 List<PalletInforDetailDTO> palletDetailDTOs = palletDetails
                     .stream()

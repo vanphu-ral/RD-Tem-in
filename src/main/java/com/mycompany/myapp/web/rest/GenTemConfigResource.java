@@ -341,9 +341,7 @@ public class GenTemConfigResource {
             maLenhSanXuatId
         );
         List<GenTemConfigDTO> genTemConfigDTOs =
-            genTemConfigService.findByMaLenhSanXuatId(
-                maLenhSanXuatId.toString()
-            );
+            genTemConfigService.findByMaLenhSanXuatId(maLenhSanXuatId);
         return ResponseEntity.ok().body(genTemConfigDTOs);
     }
 
@@ -366,9 +364,7 @@ public class GenTemConfigResource {
             maLenhSanXuatId
         );
         List<GenTemConfigSimpleDTO> genTemConfigSimpleDTOs =
-            genTemConfigService.findSimpleByMaLenhSanXuatId(
-                maLenhSanXuatId.toString()
-            );
+            genTemConfigService.findSimpleByMaLenhSanXuatId(maLenhSanXuatId);
         return ResponseEntity.ok().body(genTemConfigSimpleDTOs);
     }
 

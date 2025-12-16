@@ -13,8 +13,6 @@ public class ReelIdInWarehouseNoteInfoApprovalDTO implements Serializable {
 
     private Long id;
 
-    private Long reelId;
-
     private Long warehouseNoteInfoApprovalId;
 
     private Instant createAt;
@@ -43,14 +41,6 @@ public class ReelIdInWarehouseNoteInfoApprovalDTO implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getReelId() {
-        return this.reelId;
-    }
-
-    public void setReelId(Long reelId) {
-        this.reelId = reelId;
     }
 
     public Long getWarehouseNoteInfoApprovalId() {
@@ -114,7 +104,6 @@ public class ReelIdInWarehouseNoteInfoApprovalDTO implements Serializable {
     public String toString() {
         return "ReelIdInWarehouseNoteInfoApprovalDTO{" +
                 "id='" + getId() + "'" +
-                ", reelId=" + getReelId() +
                 ", warehouseNoteInfoApprovalId=" + getWarehouseNoteInfoApprovalId() +
                 ", createAt='" + getCreateAt() + "'" +
                 ", createBy='" + getCreateBy() + "'" +

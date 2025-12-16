@@ -273,7 +273,7 @@ public class WarehouseStampInfoService {
                 // Fetch and map warehouse_note_info_detail
                 List<WarehouseNoteInfoDetail> details =
                     warehouseStampInfoDetailRepository.findByMaLenhSanXuatId(
-                        warehouseNoteInfo.getMaLenhSanXuat()
+                        warehouseNoteInfo.getId()
                     );
                 List<WarehouseStampInfoDetailDTO> detailDTOs = details
                     .stream()
@@ -283,7 +283,7 @@ public class WarehouseStampInfoService {
                 // Fetch and map serial_box_pallet_mapping
                 List<SerialBoxPalletMapping> serialMappings =
                     serialBoxPalletMappingRepository.findByMaLenhSanXuatId(
-                        warehouseNoteInfo.getMaLenhSanXuat()
+                        warehouseNoteInfo.getId()
                     );
                 List<SerialBoxPalletMappingDTO> serialMappingDTOs =
                     serialMappings
@@ -294,7 +294,7 @@ public class WarehouseStampInfoService {
                 // Fetch and map pallet_infor_detail
                 List<PalletInforDetail> palletDetails =
                     palletInforDetailRepository.findByMaLenhSanXuatId(
-                        warehouseNoteInfo.getMaLenhSanXuat()
+                        warehouseNoteInfo.getId()
                     );
                 List<PalletInforDetailDTO> palletDetailDTOs = palletDetails
                     .stream()

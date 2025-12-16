@@ -17,12 +17,8 @@ public class ReelIdInWarehouseNoteInfoApproval implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
-
-    @Column(name = "reel_id")
-    private Long reelId;
 
     @Column(
         name = "warehouse_note_info_approval_id",
@@ -60,19 +56,6 @@ public class ReelIdInWarehouseNoteInfoApproval implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getReelId() {
-        return this.reelId;
-    }
-
-    public ReelIdInWarehouseNoteInfoApproval reelId(Long reelId) {
-        this.setReelId(reelId);
-        return this;
-    }
-
-    public void setReelId(Long reelId) {
-        this.reelId = reelId;
     }
 
     public Long getWarehouseNoteInfoApprovalId() {
@@ -177,7 +160,6 @@ public class ReelIdInWarehouseNoteInfoApproval implements Serializable {
     public String toString() {
         return "ReelIdInWarehouseNoteInfoApproval{" +
                 "id='" + getId() + "'" +
-                ", reelId=" + getReelId() +
                 ", warehouseNoteInfoApprovalId=" + getWarehouseNoteInfoApprovalId() +
                 ", createAt='" + getCreateAt() + "'" +
                 ", createBy='" + getCreateBy() + "'" +

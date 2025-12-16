@@ -147,7 +147,7 @@ public class GenTemConfigService {
      * @return the list of entities.
      */
     @Transactional(readOnly = true)
-    public List<GenTemConfigDTO> findByMaLenhSanXuatId(String maLenhSanXuatId) {
+    public List<GenTemConfigDTO> findByMaLenhSanXuatId(Long maLenhSanXuatId) {
         LOG.debug(
             "Request to get GenTemConfigs by maLenhSanXuatId : {}",
             maLenhSanXuatId
@@ -187,7 +187,7 @@ public class GenTemConfigService {
      */
     @Transactional(readOnly = true)
     public List<GenTemConfigSimpleDTO> findSimpleByMaLenhSanXuatId(
-        String maLenhSanXuatId
+        Long maLenhSanXuatId
     ) {
         LOG.debug(
             "Request to get GenTemConfigs (simple) by maLenhSanXuatId : {}",
@@ -225,7 +225,7 @@ public class GenTemConfigService {
         // Find existing record by ma_lenh_san_xuat_id
         List<GenTemConfig> existingRecords =
             genTemConfigRepository.findByMaLenhSanXuatId(
-                genTemConfigSimpleDTO.getMaLenhSanXuatId()
+                Long.valueOf(genTemConfigSimpleDTO.getMaLenhSanXuatId())
             );
 
         GenTemConfig genTemConfig;
