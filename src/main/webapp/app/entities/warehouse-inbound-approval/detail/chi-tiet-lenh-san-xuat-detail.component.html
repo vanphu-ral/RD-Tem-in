@@ -1,0 +1,244 @@
+<div>
+  <button
+    type="submit"
+    (click)="previousState()"
+    class="btn btn-info"
+    data-cy="entityDetailsBackButton"
+  >
+    <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span>Trở lại</span>
+  </button>
+
+  <div class="table-responsive" id="entities">
+    <div class="headling-detail">
+      <h2 data-cy="chiTietLenhSanXuatDetailsHeading">
+        <span>Duyệt yêu cầu</span>
+      </h2>
+      <div class="headling-btn">
+        <button
+          class="btn export-btn export-excel"
+          style="background-color: red"
+          (click)="panacimError()"
+        >
+          Báo lỗi panacim
+        </button>
+        <button class="btn export-btn export-excel" (click)="exportToExcel()">
+          Export to excel
+        </button>
+        <button class="btn export-btn exportCSV" (click)="exportCSV()">
+          Export to csv
+        </button>
+        <button
+          class="btn export-btn"
+          style="background-color: #2196f3; color: white"
+          (click)="openConfirmModal(confirmModal)"
+          [disabled]="isDisable"
+          title="Xuất CSV đến Panacim"
+        >
+          <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+          Xuất CSV đến Panacim
+        </button>
+      </div>
+    </div>
+
+    <hr />
+    <div *ngIf="lenhSanXuat" id="dvData">
+      <table class="table table-striped" aria-describedby="page-heading">
+        <thead>
+          <tr>
+            <th scope="col"><span>Mã lệnh sản xuất</span></th>
+            <th scope="col"><span>Mã SAP</span></th>
+            <th scope="col"><span>Tên hàng hoá</span></th>
+            <th scope="col"><span>Mã WO</span></th>
+            <th scope="col"><span>Version</span></th>
+            <th scope="col"><span>Mã kho nhập</span></th>
+            <th scope="col"><span>Tổng số lượng nhập</span></th>
+            <th scope="col"><span>Cập nhật bởi</span></th>
+            <th scope="col"><span>Thời gian tạo tem</span></th>
+            <th scope="col"><span>Thời gian cập nhật</span></th>
+            <th scope="col"><span>Trạng thái</span></th>
+            <th scope="col"><span>Lưu ý</span></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr data-cy="entityTable">
+            <td>
+              <span>{{ lenhSanXuat.maLenhSanXuat }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.sapCode }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.sapName }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.workOrderCode }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.version }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.storageCode }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.totalQuantity }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.createBy }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.entryTime | formatMediumDatetime }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.trangThai }}</span>
+            </td>
+            <td>
+              <span>{{ lenhSanXuat.comment }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Thông tin tem</h2>
+      <div style="overflow-x: auto; width: 100%">
+        <table class="table table-striped" id="table-data">
+          <thead>
+            <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
+              <th scope="col" jhiSortBy="STT">STT</th>
+              <th scope="col" jhiSortBy="reelID">Reel ID</th>
+              <th scope="col" jhiSortBy="partNumber">Part Number</th>
+              <th scope="col" jhiSortBy="vendor">Vendor</th>
+              <th scope="col" jhiSortBy="lot">IOT</th>
+              <th scope="col" jhiSortBy="userData1">User Data 1</th>
+              <th scope="col" jhiSortBy="userData2">
+                <span class="custom-width">User Data 2</span>
+              </th>
+              <th scope="col" jhiSortBy="userData3">
+                <span class="custom-width">User Data 3</span>
+              </th>
+              <th scope="col" jhiSortBy="userData4">User Data 4</th>
+              <th scope="col" jhiSortBy="userData5">User Data 5</th>
+              <th scope="col" jhiSortBy="initialQuantity">Initial Quantity</th>
+              <th scope="col" jhiSortBy="msdLevel">MSD Level</th>
+              <th scope="col" jhiSortBy="msdInitialFloorTime">
+                MSD Initial Floor Time
+              </th>
+              <th scope="col" jhiSortBy="msdBagSealDate">MSD Bag Seal Date</th>
+              <th scope="col" jhiSortBy="marketUsage">Market Usage</th>
+              <th scope="col" jhiSortBy="quantityOverride">
+                Quantity Override
+              </th>
+              <th scope="col" jhiSortBy="shelfTime">Shelf Time</th>
+              <th scope="col" jhiSortBy="spMaterialName">SP Material Name</th>
+              <th scope="col" jhiSortBy="warningLimit">Warning Limit</th>
+              <th scope="col" jhiSortBy="maximumLimit">Maximum Limit</th>
+              <th scope="col" jhiSortBy="comments">Comments</th>
+              <th scope="col" jhiSortBy="warmupTime">Warm Up Time</th>
+              <th scope="col" jhiSortBy="storageUnit">Storage Unit</th>
+              <th scope="col" jhiSortBy="subStorageUnit">Sub Storage Unit</th>
+              <th scope="col" jhiSortBy="locationOverride">
+                Location Override
+              </th>
+              <th scope="col" jhiSortBy="expirationDate">Expiration Date</th>
+              <th scope="col" jhiSortBy="manufacturingDate">
+                ManuFacturing Date
+              </th>
+              <th scope="col" jhiSortBy="partClass">Part Class</th>
+              <th scope="col" jhiSortBy="sapCode">Sap Code</th>
+              <th scope="col" jhiSortBy="trangThai">Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              *ngFor="
+                let data of chiTietLenhSanXuats
+                  | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+                let i = index
+              "
+            >
+              <td>
+                <span>
+                  {{ i + 1 }}
+                </span>
+              </td>
+              <td>{{ $any(data).reel_id }}</td>
+              <td>{{ $any(data).part_number }}</td>
+              <td>{{ $any(data).vendor }}</td>
+              <td>{{ $any(data).lot }}</td>
+              <td>{{ $any(data).user_data1 }}</td>
+              <td>{{ $any(data).user_data2 }}</td>
+              <td>{{ $any(data).user_data3 }}</td>
+              <td>{{ $any(data).user_data4 }}</td>
+              <td>{{ $any(data).user_data5 }}</td>
+              <td>{{ $any(data).initial_quantity }}</td>
+              <td>{{ $any(data).msd_level }}</td>
+              <td>{{ $any(data).msd_initial_floor_time }}</td>
+              <td>{{ $any(data).msd_bag_seal_date }}</td>
+              <td>{{ $any(data).market_usage }}</td>
+              <td>{{ $any(data).quantity_override }}</td>
+              <td>{{ $any(data).shelf_time }}</td>
+              <td>{{ $any(data).sp_material_name }}</td>
+              <td>{{ $any(data).warning_limit }}</td>
+              <td>{{ $any(data).maximum_limit }}</td>
+              <td>{{ $any(data).comments }}</td>
+              <td>{{ $any(data).warmup_time }}</td>
+              <td>
+                <span class="custom-width">
+                  {{ $any(data).storage_unit }}
+                </span>
+              </td>
+              <td>{{ $any(data).sub_storage_unit }}</td>
+              <td>{{ $any(data).location_override }}</td>
+              <td>{{ $any(data).expiration_date }}</td>
+              <td>{{ $any(data).manufacturing_date }}</td>
+              <td>{{ $any(data).part_class }}</td>
+              <td>{{ $any(data).sap_code }}</td>
+              <td>{{ $any(data).trang_thai }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <pagination-controls
+        (pageChange)="page = $event"
+        style="float: right; margin-right: 3rem"
+      ></pagination-controls>
+
+      <!-- <button type="button" [routerLink]="['/chi-tiet-lenh-san-xuat', lenhSanXuat.id, 'edit']" class="btn btn-primary">
+        <fa-icon icon="pencil-alt"></fa-icon>&nbsp;<span>Edit</span>
+      </button> -->
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <ng-template #confirmModal let-modal>
+    <div class="modal-header">
+      <h4 class="modal-title" id="modal-basic-title">Xác nhận xuất CSV</h4>
+    </div>
+    <div class="modal-body">
+      <p>Bạn có chắc chắn muốn xuất CSV đến Panacim?</p>
+      <p>
+        Số lượng tem: <strong>{{ data.length }}</strong>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        (click)="modal.dismiss('cancel')"
+      >
+        Hủy
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="modal.close('confirm')"
+      >
+        Xác nhận
+      </button>
+    </div>
+  </ng-template>
+</div>

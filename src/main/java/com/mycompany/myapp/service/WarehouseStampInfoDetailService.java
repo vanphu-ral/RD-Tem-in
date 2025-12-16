@@ -343,6 +343,15 @@ public class WarehouseStampInfoDetailService {
                 if (dto.getWmsSendStatus() != null) {
                     existingDetail.setWmsSendStatus(dto.getWmsSendStatus());
                 }
+                if (dto.getTpNk() != null) {
+                    existingDetail.setTpNk(dto.getTpNk());
+                }
+                if (dto.getRank() != null) {
+                    existingDetail.setRank(dto.getRank());
+                }
+                if (dto.getNote2() != null) {
+                    existingDetail.setNote2(dto.getNote2());
+                }
 
                 // Save the updated entity
                 WarehouseNoteInfoDetail savedDetail =

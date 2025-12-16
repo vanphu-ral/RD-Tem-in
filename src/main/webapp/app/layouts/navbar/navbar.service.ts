@@ -33,12 +33,13 @@ export class NavbarService {
       ],
     },
     {
-      title: "Serial và đóng gói",
+      title: "Quản lý Mã vạch - đóng gói",
       active: false,
       icon: faNoteSticky,
       type: "dropdown",
       submenus: [
-        { title: "Quản lý phiếu Pallet", link: "/warehouse-note-infos" },
+        { title: "Quản lý mã - vạch đóng gói", link: "/warehouse-note-infos" },
+        { title: "Quản lý phê duyệt", link: "/warehouse-inbound-approvals" },
       ],
     },
     {

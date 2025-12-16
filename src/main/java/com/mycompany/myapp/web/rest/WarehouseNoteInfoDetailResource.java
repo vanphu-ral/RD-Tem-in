@@ -382,6 +382,31 @@ public class WarehouseNoteInfoDetailResource {
                             warehouseNoteInfoDetail.getWmsSendStatus()
                         );
                     }
+                    if (warehouseNoteInfoDetail.getListSerialItems() != null) {
+                        existingWarehouseNoteInfoDetail.setListSerialItems(
+                            warehouseNoteInfoDetail.getListSerialItems()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getQrCode() != null) {
+                        existingWarehouseNoteInfoDetail.setQrCode(
+                            warehouseNoteInfoDetail.getQrCode()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getTpNk() != null) {
+                        existingWarehouseNoteInfoDetail.setTpNk(
+                            warehouseNoteInfoDetail.getTpNk()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getRank() != null) {
+                        existingWarehouseNoteInfoDetail.setRank(
+                            warehouseNoteInfoDetail.getRank()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getNote2() != null) {
+                        existingWarehouseNoteInfoDetail.setNote2(
+                            warehouseNoteInfoDetail.getNote2()
+                        );
+                    }
 
                     return existingWarehouseNoteInfoDetail;
                 })

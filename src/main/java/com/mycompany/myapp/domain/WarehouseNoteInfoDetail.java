@@ -150,6 +150,25 @@ public class WarehouseNoteInfoDetail implements Serializable {
     @Column(name = "wms_send_status")
     private Boolean wmsSendStatus;
 
+    @Size(max = 255)
+    @Column(name = "list_serial_items", length = 255)
+    private String listSerialItems;
+
+    @Size(max = 255)
+    @Column(name = "qr_code", length = 255)
+    private String qrCode;
+
+    @Size(max = 50)
+    @Column(name = "tp_nk", length = 50)
+    private String tpNk;
+
+    @Column(name = "rank", length = 50)
+    private String rank;
+
+    @Size(max = 255)
+    @Column(name = "note_2", length = 255)
+    private String note2;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
         name = "ma_lenh_san_xuat_id",
@@ -621,6 +640,32 @@ public class WarehouseNoteInfoDetail implements Serializable {
         this.wmsSendStatus = wmsSendStatus;
     }
 
+    public String getListSerialItems() {
+        return this.listSerialItems;
+    }
+
+    public WarehouseNoteInfoDetail listSerialItems(String listSerialItems) {
+        this.setListSerialItems(listSerialItems);
+        return this;
+    }
+
+    public void setListSerialItems(String listSerialItems) {
+        this.listSerialItems = listSerialItems;
+    }
+
+    public String getQrCode() {
+        return this.qrCode;
+    }
+
+    public WarehouseNoteInfoDetail qrCode(String qrCode) {
+        this.setQrCode(qrCode);
+        return this;
+    }
+
+    public void setQrCode(String qrCode) {
+        this.qrCode = qrCode;
+    }
+
     public WarehouseNoteInfo getMaLenhSanXuat() {
         return this.maLenhSanXuat;
     }
@@ -634,6 +679,45 @@ public class WarehouseNoteInfoDetail implements Serializable {
     ) {
         this.setMaLenhSanXuat(warehouseStampInfo);
         return this;
+    }
+
+    public String getTpNk() {
+        return this.tpNk;
+    }
+
+    public WarehouseNoteInfoDetail tpNk(String tpNk) {
+        this.setTpNk(tpNk);
+        return this;
+    }
+
+    public void setTpNk(String tpNk) {
+        this.tpNk = tpNk;
+    }
+
+    public String getRank() {
+        return this.rank;
+    }
+
+    public WarehouseNoteInfoDetail rank(String rank) {
+        this.setRank(rank);
+        return this;
+    }
+
+    public void setRank(String rank) {
+        this.rank = rank;
+    }
+
+    public String getNote2() {
+        return this.note2;
+    }
+
+    public WarehouseNoteInfoDetail note2(String note2) {
+        this.setNote2(note2);
+        return this;
+    }
+
+    public void setNote2(String note2) {
+        this.note2 = note2;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
@@ -698,6 +782,11 @@ public class WarehouseNoteInfoDetail implements Serializable {
                 ", checked=" + getChecked() +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", wmsSendStatus=" + getWmsSendStatus() +
+                ", listSerialItems='" + getListSerialItems() + "'" +
+                ", qrCode='" + getQrCode() + "'" +
+                ", tpNk='" + getTpNk() + "'" +
+                ", rank=" + getRank() +
+                ", note2='" + getNote2() + "'" +
                 "}";
     }
 }

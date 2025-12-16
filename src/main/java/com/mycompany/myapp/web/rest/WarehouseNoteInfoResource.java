@@ -2,10 +2,12 @@ package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.service.PalletInforDetailService;
 import com.mycompany.myapp.service.Partner3WarehouseStampInfoService;
+import com.mycompany.myapp.service.WarehouseStampInfoDetailService;
 import com.mycompany.myapp.service.WarehouseStampInfoService;
 import com.mycompany.myapp.service.dto.ListPalletInfoResponseDTO;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoWithChildrenDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
+import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -50,16 +52,19 @@ public class WarehouseNoteInfoResource {
     private final Partner3WarehouseStampInfoService partner3WarehouseStampInfoService;
     private final WarehouseStampInfoService warehouseStampInfoService;
     private final PalletInforDetailService palletInforDetailService;
+    private final WarehouseStampInfoDetailService warehouseStampInfoDetailService;
 
     public WarehouseNoteInfoResource(
         Partner3WarehouseStampInfoService partner3WarehouseStampInfoService,
         WarehouseStampInfoService warehouseStampInfoService,
-        PalletInforDetailService palletInforDetailService
+        PalletInforDetailService palletInforDetailService,
+        WarehouseStampInfoDetailService warehouseStampInfoDetailService
     ) {
         this.partner3WarehouseStampInfoService =
             partner3WarehouseStampInfoService;
         this.warehouseStampInfoService = warehouseStampInfoService;
         this.palletInforDetailService = palletInforDetailService;
+        this.warehouseStampInfoDetailService = warehouseStampInfoDetailService;
     }
 
     /**
@@ -519,5 +524,212 @@ public class WarehouseNoteInfoResource {
                 workOrderCode
             );
         return ResponseEntity.ok().body(response);
+    }
+
+    /**
+     * {@code GET /warehouse-note-infos/{id}/details} : get all
+     * WarehouseNoteInfoDetails by WarehouseNoteInfo ID from partner3 database.
+     *
+     * @param id the id of the WarehouseNoteInfo to get details for.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of WarehouseNoteInfoDetails in body.
+     */
+    @GetMapping("/warehouse-note-infos/{id}/details")
+    public ResponseEntity<
+        List<WarehouseStampInfoDetailDTO>
+    > getWarehouseNoteInfoDetails(@PathVariable Long id) {
+        log.debug(
+            "REST request to get WarehouseNoteInfoDetails by WarehouseNoteInfo ID : {}",
+            id
+        );
+        List<WarehouseStampInfoDetailDTO> details =
+            warehouseStampInfoDetailService.findByMaLenhSanXuatId(id);
+        return ResponseEntity.ok().body(details);
+    }
+
+    /**
+     * {@code POST /warehouse-note-infos/{id}/details} : Create a new
+     * WarehouseNoteInfoDetail for a WarehouseNoteInfo in partner3 database.
+     *
+     * @param id                          the id of the WarehouseNoteInfo.
+     * @param warehouseStampInfoDetailDTO the WarehouseNoteInfoDetail to create.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
+     *         body the new WarehouseNoteInfoDetail.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PostMapping("/warehouse-note-infos/{id}/details")
+    public ResponseEntity<
+        WarehouseStampInfoDetailDTO
+    > createWarehouseNoteInfoDetail(
+        @PathVariable Long id,
+        @Valid @RequestBody WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
+    ) throws URISyntaxException {
+        log.debug(
+            "REST request to save WarehouseNoteInfoDetail for WarehouseNoteInfo {} : {}",
+            id,
+            warehouseStampInfoDetailDTO
+        );
+
+        if (warehouseStampInfoDetailDTO.getId() != null) {
+            throw new BadRequestAlertException(
+                "A new warehouseNoteInfoDetail cannot already have an ID",
+                "warehouseNoteInfoDetail",
+                "idexists"
+            );
+        }
+
+        // Set the maLenhSanXuatId to link with WarehouseNoteInfo
+        warehouseStampInfoDetailDTO.setMaLenhSanXuatId(id);
+
+        WarehouseStampInfoDetailDTO result =
+            warehouseStampInfoDetailService.save(warehouseStampInfoDetailDTO);
+
+        return ResponseEntity.created(
+            new URI(
+                "/api/warehouse-note-infos/" + id + "/details/" + result.getId()
+            )
+        )
+            .headers(
+                HeaderUtil.createEntityCreationAlert(
+                    applicationName,
+                    false,
+                    "warehouseNoteInfoDetail",
+                    result.getId().toString()
+                )
+            )
+            .body(result);
+    }
+
+    /**
+     * {@code PUT /warehouse-note-infos/{id}/details/{detailId}} : Update an
+     * existing WarehouseNoteInfoDetail in partner3 database.
+     *
+     * @param id                          the id of the WarehouseNoteInfo.
+     * @param detailId                    the id of the WarehouseNoteInfoDetail to
+     *                                    update.
+     * @param warehouseStampInfoDetailDTO the WarehouseNoteInfoDetail to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated WarehouseNoteInfoDetail.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PutMapping("/warehouse-note-infos/{id}/details/{detailId}")
+    public ResponseEntity<
+        WarehouseStampInfoDetailDTO
+    > updateWarehouseNoteInfoDetail(
+        @PathVariable Long id,
+        @PathVariable Long detailId,
+        @Valid @RequestBody WarehouseStampInfoDetailDTO warehouseStampInfoDetailDTO
+    ) throws URISyntaxException {
+        log.debug(
+            "REST request to update WarehouseNoteInfoDetail {} for WarehouseNoteInfo {} : {}",
+            detailId,
+            id,
+            warehouseStampInfoDetailDTO
+        );
+
+        if (warehouseStampInfoDetailDTO.getId() == null) {
+            warehouseStampInfoDetailDTO.setId(detailId);
+        }
+
+        if (
+            !java.util.Objects.equals(
+                detailId,
+                warehouseStampInfoDetailDTO.getId()
+            )
+        ) {
+            throw new BadRequestAlertException(
+                "Invalid ID",
+                "warehouseNoteInfoDetail",
+                "idinvalid"
+            );
+        }
+
+        // Ensure the detail belongs to the correct WarehouseNoteInfo
+        warehouseStampInfoDetailDTO.setMaLenhSanXuatId(id);
+
+        WarehouseStampInfoDetailDTO result =
+            warehouseStampInfoDetailService.update(warehouseStampInfoDetailDTO);
+
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createEntityUpdateAlert(
+                    applicationName,
+                    false,
+                    "warehouseNoteInfoDetail",
+                    warehouseStampInfoDetailDTO.getId().toString()
+                )
+            )
+            .body(result);
+    }
+
+    /**
+     * {@code DELETE /warehouse-note-infos/{id}/details/{detailId}} : Delete a
+     * WarehouseNoteInfoDetail from partner3 database.
+     *
+     * @param id       the id of the WarehouseNoteInfo.
+     * @param detailId the id of the WarehouseNoteInfoDetail to delete.
+     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
+     */
+    @DeleteMapping("/warehouse-note-infos/{id}/details/{detailId}")
+    public ResponseEntity<Void> deleteWarehouseNoteInfoDetail(
+        @PathVariable Long id,
+        @PathVariable Long detailId
+    ) {
+        log.debug(
+            "REST request to delete WarehouseNoteInfoDetail {} for WarehouseNoteInfo {}",
+            detailId,
+            id
+        );
+        warehouseStampInfoDetailService.delete(detailId);
+        return ResponseEntity.noContent()
+            .headers(
+                HeaderUtil.createEntityDeletionAlert(
+                    applicationName,
+                    false,
+                    "warehouseNoteInfoDetail",
+                    detailId.toString()
+                )
+            )
+            .build();
+    }
+
+    /**
+     * {@code POST /warehouse-note-infos/{id}/details/batch} : Batch create or
+     * update WarehouseNoteInfoDetails for a WarehouseNoteInfo in partner3 database.
+     *
+     * @param id      the id of the WarehouseNoteInfo.
+     * @param details the list of WarehouseNoteInfoDetails to create or update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the list of created/updated WarehouseNoteInfoDetails.
+     */
+    @PostMapping("/warehouse-note-infos/{id}/details/batch")
+    public ResponseEntity<
+        List<WarehouseStampInfoDetailDTO>
+    > batchCreateOrUpdateWarehouseNoteInfoDetails(
+        @PathVariable Long id,
+        @Valid @RequestBody List<WarehouseStampInfoDetailDTO> details
+    ) {
+        log.debug(
+            "REST request to batch create/update WarehouseNoteInfoDetails for WarehouseNoteInfo {} : {}",
+            id,
+            details
+        );
+
+        List<WarehouseStampInfoDetailDTO> results = new java.util.ArrayList<>();
+
+        for (WarehouseStampInfoDetailDTO detail : details) {
+            // Set the maLenhSanXuatId to link with WarehouseNoteInfo
+            detail.setMaLenhSanXuatId(id);
+
+            if (detail.getId() == null) {
+                // Create new detail
+                results.add(warehouseStampInfoDetailService.save(detail));
+            } else {
+                // Update existing detail
+                results.add(warehouseStampInfoDetailService.update(detail));
+            }
+        }
+
+        return ResponseEntity.ok().body(results);
     }
 }

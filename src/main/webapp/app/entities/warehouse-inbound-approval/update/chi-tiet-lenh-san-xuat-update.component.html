@@ -1,0 +1,803 @@
+<div>
+  <div class="table-responsive" id="entities">
+    <form name="editForm" role="form" novalidate [formGroup]="editForm">
+      <h2
+        id="jhi-lenh-san-xuat-heading"
+        data-cy="LenhSanXuatCreateUpdateHeading"
+      >
+        Duyệt yêu cầu
+      </h2>
+      <div>
+        <div class="table-scroll">
+          <table class="table table-striped" aria-describedby="page-heading">
+            <thead>
+              <tr>
+                <th scope="col">
+                  <span>Mã lệnh sản xuất</span>
+                </th>
+                <th scope="col">
+                  <span>Mã SAP</span>
+                </th>
+                <th scope="col">
+                  <span>Tên hàng hoá</span>
+                </th>
+                <th scope="col">
+                  <span>Mã WO</span>
+                </th>
+                <th scope="col">
+                  <span>Version</span>
+                </th>
+                <th scope="col">
+                  <span>Mã kho nhập</span>
+                </th>
+                <th scope="col">
+                  <span>Tổng số lượng nhập</span>
+                </th>
+                <th scope="col">
+                  <span>Cập nhật bởi</span>
+                </th>
+                <th scope="col">
+                  <span>Thời gian in tem</span>
+                </th>
+                <th scope="col">
+                  <span>Trạng thái</span>
+                </th>
+                <th scope="col">
+                  <span>Lưu ý</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr data-cy="entityTable">
+                <td>
+                  <input
+                    class="form-control"
+                    id="maLenhSanXuat"
+                    list="maLenhSanXuat"
+                    formControlName="maLenhSanXuat"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="sapCode"
+                    list="sapCode"
+                    formControlName="sapCode"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="sapName"
+                    list="sapName"
+                    formControlName="sapName"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="workOrderCode"
+                    list="workOrderCode"
+                    formControlName="workOrderCode"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="version"
+                    list="version"
+                    formControlName="version"
+                  />
+                </td>
+                <td>
+                  <select
+                    class="form-control form-select"
+                    formControlName="storageCode"
+                  >
+                    <option value="01">01 - Kho linh kiện điện tử</option>
+                    <option value="02">02 - Kho vật tư LED</option>
+                    <option value="03">03 - Kho vật tư TBCS</option>
+                    <option value="04">04 - Kho vật tư CLC</option>
+                    <option value="05">05 - Kho ngành ĐTTĐ</option>
+                    <option value="06">06 - Kho ngành LRSP LED 1</option>
+                    <option value="07">07 - Kho ngành SMART</option>
+                    <option value="08">08 - Kho ngành LED2</option>
+                    <option value="10">10 - Kho cơ khí xưởng</option>
+                    <option value="11">11 - Kho ngành CNPT</option>
+                    <option value="12">12 - Kho vật tư Smart</option>
+                    <option value="13">13 - Kho ngành CNPT 2</option>
+                    <option value="14">14 - Kho chị Hòa 2</option>
+                    <option value="15">15 - Kho Pilot TTRD</option>
+                    <option value="17">17 - Kho vật tư SKD</option>
+                    <option value="18">18 - Kho trung tâm RD</option>
+                    <option value="19">19 - Kho LKDT thủ công</option>
+                    <option value="20">20 - Kho xuất khẩu</option>
+                  </select>
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="totalQuantity"
+                    list="totalQuantity"
+                    formControlName="totalQuantity"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="createBy"
+                    list="createBy"
+                    formControlName="createBy"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="entryTime"
+                    list="entryTime"
+                    formControlName="entryTime"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="trangThai"
+                    list="trangThai"
+                    formControlName="trangThai"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    id="comment"
+                    list="comment"
+                    formControlName="comment"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <form
+          [formGroup]="scanResult"
+          [ngClass]="{ 'show-input-scan': showScanInput }"
+          style="margin: 10px; margin: 10px"
+        >
+          <button class="btn-scan" role="button" (click)="setInputValue()">
+            Scan tem
+          </button>
+          <input
+            class="input-scan"
+            type="text"
+            id="scan"
+            [(ngModel)]="scanResults"
+            [ngModelOptions]="{ standalone: true }"
+            style="border: none; width: 98%"
+            (keydown.enter)="catchScanEvent()"
+            inputmode="none"
+          />
+          <button
+            class="btn-scan"
+            *ngIf="scanResults !== ''"
+            (click)="catchScanEvent()"
+          >
+            Kiểm tra
+          </button>
+        </form>
+
+        <!-- <div>
+          <span>Tổng số lượng đã scan: {{ countScan }}/{{ chiTietLenhSanXuatActive.length }}</span>
+          <span>Tiến độ scan: {{ resultScanPerCent }}%</span>
+        </div> -->
+
+        <div class="search-all">
+          <!-- danh sách tems có trong lệnh sản xuất -->
+          <div style="display: flex; gap: 24px">
+            <h3 id="jhi-lenh-san-xuat-heading">Danh sách tem có trong lệnh</h3>
+            <button
+              type="button"
+              class="move"
+              id="scannnnnnnn"
+              (click)="openPopupMove()"
+            >
+              Move
+            </button>
+            <h4>Số thùng: {{ chiTietLenhSanXuatActive.length }}</h4>
+          </div>
+
+          <input
+            #searchInput
+            type="text"
+            [(ngModel)]="reelID"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Tìm kiếm"
+            list="reelID"
+            style="width: 15rem"
+          />
+        </div>
+
+        <div class="table-scroll height-table">
+          <table class="table table-striped" aria-describedby="page-heading">
+            <thead>
+              <tr>
+                <th scope="col">STT</th>
+                <th scope="col"><span class="custom-width">Status</span></th>
+                <th scope="col"><span class="custom-width">Reel ID</span></th>
+                <th scope="col">
+                  <span class="custom-width">Part Number</span>
+                </th>
+                <th scope="col"><span class="custom-width">Vendor</span></th>
+                <th scope="col"><span class="custom-width">LOT</span></th>
+                <th scope="col">User Data 1</th>
+                <th scope="col">
+                  <span class="custom-width">User Data 2</span>
+                </th>
+                <th scope="col">
+                  <span class="custom-width">User Data 3</span>
+                </th>
+                <th scope="col">User Data 4</th>
+                <th scope="col">User Data 5</th>
+                <th scope="col">Initial Quantity</th>
+                <th scope="col">MSD Level</th>
+                <th scope="col">MSD Initial Floor Time</th>
+                <th scope="col">MSD Bag Seal Date</th>
+                <th scope="col">Market Usage</th>
+                <th scope="col">Quantity Override</th>
+                <th scope="col">Shelf Time</th>
+                <th scope="col">SP Material Name</th>
+                <th scope="col">Warning Limit</th>
+                <th scope="col">Maximum Limit</th>
+                <th scope="col">Comments</th>
+                <th scope="col">Warm Up Time</th>
+                <th scope="col">
+                  <span class="custom-width">Storage Unit</span>
+                  <div class="custom-search">
+                    <input
+                      class="inp-replace"
+                      type="text"
+                      [(ngModel)]="storageUnit"
+                      [ngModelOptions]="{ standalone: true }"
+                      (keydown.enter)="changeAllStorageUnit()"
+                    />
+                    <button
+                      class="btn-replace"
+                      (keydown.enter)="changeAllStorageUnit()"
+                    >
+                      <fa-icon icon="eye"></fa-icon>
+                    </button>
+                  </div>
+                </th>
+                <th scope="col">Sub Storage Unit</th>
+                <th scope="col">Location Override</th>
+                <th scope="col">Expiration Date</th>
+                <th scope="col">ManuFacturing Date</th>
+                <th scope="col">Part Class</th>
+                <th scope="col">Sap Code</th>
+                <th scope="col">
+                  Checked
+                  <div class="btn-flex">
+                    <button class="btn btn-success" (click)="onCheckAll()">
+                      Chọn tất cả
+                    </button>
+                    <button class="btn btn-danger" (click)="onUnCheckAll()">
+                      Bỏ chọn tất cả
+                    </button>
+                  </div>
+                </th>
+                <!-- <th scope="col" jhiSortBy=""></th> -->
+              </tr>
+            </thead>
+
+            <tr
+              *ngFor="
+                let data of chiTietLenhSanXuatActive
+                  | filter: reelID
+                  | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+                let i = index;
+                trackBy: trackId
+              "
+              class="editable-row"
+            >
+              <td>
+                {{ i + 1 }}
+              </td>
+              <td>
+                <select
+                  class="form-control form-select"
+                  [(ngModel)]="$any(data).trang_thai"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="changeQuantity()"
+                  style="width: 6rem"
+                >
+                  <option [ngValue]="" hidden>
+                    {{ $any(data).trang_thai }}
+                  </option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="INACTIVE">INACTIVE</option>
+                  <option value="not list">not list</option>
+                </select>
+              </td>
+
+              <td>
+                {{ $any(data).reel_id }}
+              </td>
+
+              <td>
+                {{ $any(data).part_number }}
+              </td>
+              <td>
+                {{ $any(data).vendor }}
+              </td>
+              <td>
+                {{ $any(data).lot }}
+              </td>
+              <td>
+                {{ $any(data).user_data1 }}
+              </td>
+              <td>
+                {{ $any(data).user_data2 }}
+              </td>
+              <td>
+                {{ $any(data).user_data3 }}
+              </td>
+              <td>
+                {{ $any(data).user_data4 }}
+              </td>
+              <td>
+                {{ $any(data).user_data5 }}
+              </td>
+              <td>
+                <input
+                  class="input-table"
+                  type="text"
+                  list="initialQuantity"
+                  [(ngModel)]="$any(data).initial_quantity"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="changeQuantity()"
+                />
+              </td>
+              <td>
+                {{ $any(data).msd_level }}
+              </td>
+              <td>
+                {{ $any(data).msd_initial_floor_time }}
+              </td>
+              <td>
+                {{ $any(data).msd_bag_seal_date }}
+              </td>
+              <td>
+                {{ $any(data).market_usage }}
+              </td>
+              <td>
+                {{ $any(data).quantity_override }}
+              </td>
+              <td>
+                {{ $any(data).shelf_time }}
+              </td>
+              <td>
+                {{ $any(data).sp_material_name }}
+              </td>
+              <td>
+                {{ $any(data).warning_limit }}
+              </td>
+              <td>
+                {{ $any(data).maximum_limit }}
+              </td>
+              <td>
+                {{ $any(data).comments }}
+              </td>
+              <td>
+                {{ $any(data).warmup_time }}
+              </td>
+              <td>
+                {{ $any(data).storage_unit }}
+              </td>
+              <td>
+                {{ $any(data).sub_storage_unit }}
+              </td>
+              <td>
+                {{ $any(data).location_override }}
+              </td>
+              <td>
+                {{ $any(data).expiration_date }}
+              </td>
+              <td>
+                {{ $any(data).manufacturing_date }}
+              </td>
+              <td>
+                {{ $any(data).part_class }}
+              </td>
+              <td>
+                {{ $any(data).sap_code }}
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="$any(data).checked"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="onSelected(i, !!$any(data).checked)"
+                />
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div
+          *ngIf="
+            chiTietLenhSanXuatActive && chiTietLenhSanXuatActive.length > 0
+          "
+        >
+          <div>
+            <select
+              class="form-select"
+              aria-label="Default select example"
+              [(ngModel)]="itemPerPage"
+              [ngModelOptions]="{ standalone: true }"
+              style="width: 5rem; margin-top: 1rem"
+            >
+              <option value="{{ chiTietLenhSanXuatActive.length }}">All</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+            <pagination-controls
+              (pageChange)="page = $event"
+              style="float: right; margin-right: 2rem"
+            ></pagination-controls>
+          </div>
+        </div>
+
+        <br />
+        <br />
+        <br />
+        <!-- danh sách tem không nằm trong lệnh sản xuất -->
+        <h3>Danh sách tem không có trong lệnh</h3>
+
+        <div style="overflow-x: auto; width: 98%">
+          <table class="table table-striped" aria-describedby="page-heading">
+            <thead>
+              <tr>
+                <th scope="col">STT</th>
+                <th scope="col"><span class="custom-width">Reel ID</span></th>
+                <th scope="col">
+                  <span class="custom-width">Part Number</span>
+                </th>
+                <th scope="col"><span class="custom-width">Vendor</span></th>
+                <th scope="col"><span class="custom-width">LOT</span></th>
+                <th scope="col">User Data 1</th>
+                <th scope="col">
+                  <span class="custom-width">User Data 2</span>
+                </th>
+                <th scope="col">
+                  <span class="custom-width">User Data 3</span>
+                </th>
+                <th scope="col">User Data 4</th>
+                <th scope="col">User Data 5</th>
+                <th scope="col">Initial Quantity</th>
+                <th scope="col">MSD Level</th>
+                <th scope="col">MSD Initial Floor Time</th>
+                <th scope="col">MSD Bag Seal Date</th>
+                <th scope="col">Market Usage</th>
+                <th scope="col">Quantity Override</th>
+                <th scope="col">Shelf Time</th>
+                <th scope="col">SP Material Name</th>
+                <th scope="col">Warning Limit</th>
+                <th scope="col">Maximum Limit</th>
+                <th scope="col">Comments</th>
+                <th scope="col">Warm Up Time</th>
+                <th scope="col">
+                  <span class="custom-width">Storage Unit</span>
+                </th>
+                <th scope="col">Sub Storage Unit</th>
+                <th scope="col">Location Override</th>
+                <th scope="col">Expiration Date</th>
+                <th scope="col">ManuFacturing Date</th>
+                <th scope="col">Part Class</th>
+                <th scope="col">Sap Code</th>
+                <th scope="col"><span class="custom-width">Status</span></th>
+                <th scope="col">Checked</th>
+                <!-- <th scope="col" jhiSortBy=""></th> -->
+              </tr>
+            </thead>
+
+            <tr
+              *ngFor="
+                let data of chiTietLenhSanXuatNotList
+                  | paginate
+                    : { itemsPerPage: itemPerPage2, currentPage: page2 };
+                let i = index;
+                trackBy: trackId
+              "
+              class="editable-row"
+            >
+              <td>
+                {{ i + 1 }}
+              </td>
+
+              <td>
+                {{ $any(data).reel_id }}
+              </td>
+
+              <td>
+                {{ $any(data).part_number }}
+              </td>
+              <td>
+                {{ $any(data).vendor }}
+              </td>
+              <td>
+                {{ $any(data).lot }}
+              </td>
+              <td>
+                {{ $any(data).user_data1 }}
+              </td>
+              <td>
+                {{ $any(data).user_data2 }}
+              </td>
+              <td>
+                {{ $any(data).user_data3 }}
+              </td>
+              <td>
+                {{ $any(data).user_data4 }}
+              </td>
+              <td>
+                <input
+                  class="input-table"
+                  type="text"
+                  list="initialQuantity"
+                  [(ngModel)]="$any(data).initial_quantity"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="changeQuantity()"
+                />
+              </td>
+              <td>
+                {{ $any(data).user_data5 }}
+              </td>
+              <td>
+                {{ $any(data).msd_level }}
+              </td>
+              <td>
+                {{ $any(data).msd_initial_floor_time }}
+              </td>
+              <td>
+                {{ $any(data).msd_bag_seal_date }}
+              </td>
+              <td>
+                {{ $any(data).market_usage }}
+              </td>
+              <td>
+                {{ $any(data).quantity_override }}
+              </td>
+              <td>
+                {{ $any(data).shelf_time }}
+              </td>
+              <td>
+                {{ $any(data).sp_material_name }}
+              </td>
+              <td>
+                {{ $any(data).warning_limit }}
+              </td>
+              <td>
+                {{ $any(data).maximum_limit }}
+              </td>
+              <td>
+                {{ $any(data).comments }}
+              </td>
+              <td>
+                {{ $any(data).warmup_time }}
+              </td>
+              <td>
+                <input
+                  class="input-table"
+                  type="text"
+                  list="storageUnit"
+                  [(ngModel)]="$any(data).storage_unit"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </td>
+              <td>
+                {{ $any(data).sub_storage_unit }}
+              </td>
+              <td>
+                {{ $any(data).location_override }}
+              </td>
+              <td>
+                {{ $any(data).expiration_date }}
+              </td>
+              <td>
+                {{ $any(data).manufacturing_date }}
+              </td>
+              <td>
+                {{ $any(data).part_class }}
+              </td>
+              <td>
+                {{ $any(data).sap_code }}
+              </td>
+              <td>
+                {{ $any(data).trang_thai }}
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="$any(data).checked"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div
+          *ngIf="
+            chiTietLenhSanXuatNotList && chiTietLenhSanXuatNotList.length > 0
+          "
+        >
+          <div
+            style="display: flex; justify-content: space-between; width: 98%"
+          >
+            <select
+              class="form-select"
+              aria-label="Default select example"
+              [(ngModel)]="itemPerPage"
+              [ngModelOptions]="{ standalone: true }"
+            >
+              <option value="{{ chiTietLenhSanXuatNotList.length }}">
+                All
+              </option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+            <pagination-controls
+              (pageChange)="page2 = $event"
+              style="float: right; margin-right: 2rem"
+            ></pagination-controls>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          id="save-entity"
+          class="btn btn-primary"
+          (click)="pheDuyetTem()"
+        >
+          <fa-icon icon="check"></fa-icon>&nbsp;<span>Phê duyệt</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          [disabled]="editForm.invalid || isSaving"
+          class="btn btn-primary"
+          (click)="save()"
+        >
+          <fa-icon icon="save"></fa-icon>&nbsp;<span>Lưu</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          class="btn btn-primary"
+          (click)="khoHuyStatus()"
+        >
+          <fa-icon icon="xing-square"></fa-icon>&nbsp;<span>Huỷ</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          class="btn btn-primary"
+          (click)="khoTuChoiStatus()"
+        >
+          <fa-icon icon="cancel"></fa-icon>&nbsp;<span>Từ chối</span>
+        </button>
+
+        <button
+          type="button"
+          id="cancel-save"
+          data-cy="entityCreateCancelButton"
+          class="btn btn-info"
+          (click)="previousState()"
+        >
+          <fa-icon icon="arrow-left"></fa-icon>&nbsp;<span>Trở lại</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- popup xan chi tiet -->
+<div class="popupMove" *ngIf="popupMove === true">
+  <span class="close-btn" (click)="closePopupMove()">X</span>
+  <p class="move-title">&nbsp; Xác nhận mã hàng hóa về kho</p>
+  <table class="table">
+    <thead>
+      <th>Thông tin BTP</th>
+      <th>Kho</th>
+    </thead>
+    <tbody>
+      <td>
+        <input
+          type="text"
+          id="reelID"
+          placeholder="24061110271904002"
+          style="width: 230px; height: 30px"
+          [(ngModel)]="reelID"
+          [ngModelOptions]="{ standalone: true }"
+          (change)="scanReelId()"
+        />
+      </td>
+      <td>
+        <input
+          type="text"
+          id="storageUnit"
+          placeholder="RD-BTP-01"
+          style="width: 160px; height: 30px"
+          [(ngModel)]="storageUnit"
+          [ngModelOptions]="{ standalone: true }"
+          (change)="catchEventScanReelId()"
+        />
+      </td>
+    </tbody>
+  </table>
+  <div class="btn-margin">
+    <button class="btn-primary" (click)="clearScanInFor()">Clear</button>
+  </div>
+  <div style="height: 240px; overflow: auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="z-index: 50; position: sticky; top: -2px">
+            Thông tin BTP
+          </th>
+          <th style="z-index: 50; position: sticky; top: -2px">Kho</th>
+          <th style="z-index: 50; position: sticky; top: -2px">Slot</th>
+          <th style="z-index: 50; position: sticky; top: -2px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of dataMove">
+          <td style="width: 170px">{{ item.reelID }}</td>
+          <td
+            style="
+              max-width: 81px;
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
+            "
+          >
+            {{ item.storageUnit }}
+          </td>
+          <td
+            style="
+              max-width: 60px;
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
+            "
+          >
+            {{ item.subStorageUnit }}
+          </td>
+          <td style="width: 70px">
+            <button
+              class="btn-danger"
+              style="width: 55px; margin-left: -3px"
+              (click)="removeItem(item.id)"
+            >
+              <fa-icon icon="times"></fa-icon>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="btn-margin">
+    <button mat-raised-button color="primary" (click)="UploadPanacim()">
+      <mat-icon>publish</mat-icon>
+      Đẩy tem vào Panacim
+    </button>
+    <button class="btn-primary" style="margin-top: 12px" (click)="updateInfo()">
+      Lưu
+    </button>
+  </div>
+</div>

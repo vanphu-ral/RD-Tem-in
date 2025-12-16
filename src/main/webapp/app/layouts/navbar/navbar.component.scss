@@ -76,6 +76,7 @@ Logo styles
   &.expanded {
   }
 }
+
 .sidebar-overlay {
   position: fixed;
   top: 0;
@@ -99,7 +100,7 @@ Logo styles
   left: 60px;
 
   .app-header.expanded & {
-    left: $sidebar-expanded-width;
+    left: $sidebar-expanded-width + 50px;
   }
 }
 
@@ -121,7 +122,7 @@ Logo styles
   /* Sử dụng easing function mượt hơn */
   background-color: $sidebar-background-color;
   justify-content: space-between;
-  width: 300px;
+  width: 400px;
   overflow: hidden;
 
   &.collapsed {
@@ -251,7 +252,7 @@ li::marker {
   color: white;
   font-size: 16px;
   padding: 0px;
-  margin-right: 10px;
+  margin-right: 5px;
   height: 45px;
   transition: inherit;
 }
@@ -347,7 +348,7 @@ li::marker {
   display: flex;
   align-items: center;
   height: 45px;
-  padding: 10px 10px;
+  padding: 5px 5px;
   transition:
     height 0.3s ease,
     padding 0.3s ease;
@@ -492,10 +493,12 @@ li::marker {
 @media (max-width: 599px) {
   .app-header {
     height: 40px;
+
     .login-button {
       margin-right: 20px;
     }
   }
+
   .btn-collapse {
     .app-header.expanded & {
       left: 220px !important;
@@ -517,6 +520,7 @@ li::marker {
     height: 50px;
   }
 }
+
 @media print {
   :host {
     display: none !important;

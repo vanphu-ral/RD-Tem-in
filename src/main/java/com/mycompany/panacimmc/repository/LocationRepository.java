@@ -11,17 +11,18 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LocationRepository extends JpaRepository<Location, Long> {
-    //    @Query(
-    //        value = "SELECT l.Location_Id AS id, l.Location_Name AS locationName, l.Location_FullName AS locationFullName " +
-    //        "FROM Location l " +
-    //        "INNER JOIN ( " +
-    //        "   SELECT MIN(Location_Id) AS minId " +
-    //        "   FROM Location " +
-    //        "   GROUP BY Location_Name " +
-    //        ") sub ON l.Location_Id = sub.minId",
-    //        nativeQuery = true
-    //    )
-    //    List<LocationResponse> getFullLocation();
+    // @Query(
+    // value = "SELECT l.Location_Id AS id, l.Location_Name AS locationName,
+    // l.Location_FullName AS locationFullName " +
+    // "FROM Location l " +
+    // "INNER JOIN ( " +
+    // " SELECT MIN(Location_Id) AS minId " +
+    // " FROM Location " +
+    // " GROUP BY Location_Name " +
+    // ") sub ON l.Location_Id = sub.minId",
+    // nativeQuery = true
+    // )
+    // List<LocationResponse> getFullLocation();
     @Query(
         value = "select " +
         "Location_Id as id" +
@@ -41,9 +42,9 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     @Query(
         value = "select " +
         "Area_Id as areaId" +
-        "Area_Name as areaName" +
+        ",Area_Name as areaName" +
         ",Area_Description as areaDescription " +
-        " from AreaArea ;",
+        " from [PanaCIMMC].[dbo].[Area] ;",
         nativeQuery = true
     )
     public List<AreaAreaResponse> getArea();

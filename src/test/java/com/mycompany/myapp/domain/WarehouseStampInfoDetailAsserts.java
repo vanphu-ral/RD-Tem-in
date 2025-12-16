@@ -226,6 +226,21 @@ public class WarehouseStampInfoDetailAsserts {
                 assertThat(a.getChecked())
                     .as("check checked")
                     .isEqualTo(expected.getChecked())
+            )
+            .satisfies(a ->
+                assertThat(a.getTpNk())
+                    .as("check tpNk")
+                    .isEqualTo(expected.getTpNk())
+            )
+            .satisfies(a ->
+                assertThat(a.getRank())
+                    .as("check rank")
+                    .isEqualTo(expected.getRank())
+            )
+            .satisfies(a ->
+                assertThat(a.getNote2())
+                    .as("check note2")
+                    .isEqualTo(expected.getNote2())
             );
     }
 
