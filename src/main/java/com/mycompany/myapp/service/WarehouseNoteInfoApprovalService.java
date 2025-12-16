@@ -1,15 +1,34 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.domain.GenTemConfig;
+import com.mycompany.myapp.domain.PalletInforDetail;
 import com.mycompany.myapp.domain.ReelIdInWarehouseNoteInfoApproval;
+import com.mycompany.myapp.domain.SerialBoxPalletMapping;
 import com.mycompany.myapp.domain.WarehouseNoteInfoApproval;
+import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
+import com.mycompany.myapp.repository.partner3.Partner3GenTemConfigRepository;
+import com.mycompany.myapp.repository.partner3.Partner3PalletInforDetailRepository;
 import com.mycompany.myapp.repository.partner3.Partner3ReelIdInWarehouseNoteInfoApprovalRepository;
+import com.mycompany.myapp.repository.partner3.Partner3SerialBoxPalletMappingRepository;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseNoteInfoApprovalRepository;
+import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
+import com.mycompany.myapp.service.dto.GenTemConfigDTO;
+import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
+import com.mycompany.myapp.service.dto.ReelIdInWarehouseNoteInfoApprovalDTO;
 import com.mycompany.myapp.service.dto.ReelIdRequestDTO;
+import com.mycompany.myapp.service.dto.SerialBoxPalletMappingDTO;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalDTO;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalRequestDTO;
+import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalWithChildrenDTO;
+import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
+import com.mycompany.myapp.service.mapper.GenTemConfigMapper;
+import com.mycompany.myapp.service.mapper.PalletInforDetailMapper;
+import com.mycompany.myapp.service.mapper.SerialBoxPalletMappingMapper;
+import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,14 +47,41 @@ public class WarehouseNoteInfoApprovalService {
 
     private final Partner3WarehouseNoteInfoApprovalRepository warehouseNoteInfoApprovalRepository;
     private final Partner3ReelIdInWarehouseNoteInfoApprovalRepository reelIdRepository;
+    private final Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository;
+    private final Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository;
+    private final Partner3GenTemConfigRepository genTemConfigRepository;
+    private final Partner3PalletInforDetailRepository palletInforDetailRepository;
+
+    private final WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper;
+    private final SerialBoxPalletMappingMapper serialBoxPalletMappingMapper;
+    private final GenTemConfigMapper genTemConfigMapper;
+    private final PalletInforDetailMapper palletInforDetailMapper;
 
     public WarehouseNoteInfoApprovalService(
         Partner3WarehouseNoteInfoApprovalRepository warehouseNoteInfoApprovalRepository,
-        Partner3ReelIdInWarehouseNoteInfoApprovalRepository reelIdRepository
+        Partner3ReelIdInWarehouseNoteInfoApprovalRepository reelIdRepository,
+        Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository,
+        Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository,
+        Partner3GenTemConfigRepository genTemConfigRepository,
+        Partner3PalletInforDetailRepository palletInforDetailRepository,
+        WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper,
+        SerialBoxPalletMappingMapper serialBoxPalletMappingMapper,
+        GenTemConfigMapper genTemConfigMapper,
+        PalletInforDetailMapper palletInforDetailMapper
     ) {
         this.warehouseNoteInfoApprovalRepository =
             warehouseNoteInfoApprovalRepository;
         this.reelIdRepository = reelIdRepository;
+        this.warehouseStampInfoDetailRepository =
+            warehouseStampInfoDetailRepository;
+        this.serialBoxPalletMappingRepository =
+            serialBoxPalletMappingRepository;
+        this.genTemConfigRepository = genTemConfigRepository;
+        this.palletInforDetailRepository = palletInforDetailRepository;
+        this.warehouseStampInfoDetailMapper = warehouseStampInfoDetailMapper;
+        this.serialBoxPalletMappingMapper = serialBoxPalletMappingMapper;
+        this.genTemConfigMapper = genTemConfigMapper;
+        this.palletInforDetailMapper = palletInforDetailMapper;
     }
 
     /**
@@ -87,20 +133,20 @@ public class WarehouseNoteInfoApprovalService {
             for (ReelIdRequestDTO reelIdRequest : requestDTO.getListWarehouseNoteDetail()) {
                 ReelIdInWarehouseNoteInfoApproval reelId =
                     new ReelIdInWarehouseNoteInfoApproval();
-                reelId.setId(reelIdRequest.getId());
-                reelId.setWarehouseNoteInfoApprovalId(savedApproval.getId());
+                reelId.setReelId(reelIdRequest.getId());
                 reelId.setCreateAt(
                     reelIdRequest.getCreateAt() != null
                         ? reelIdRequest.getCreateAt()
                         : Instant.now()
                 );
                 reelId.setCreateBy(reelIdRequest.getCreateBy());
+                reelId.setStatus("pending"); // Set default status
                 reelId.setWarehouseNoteInfoApproval(savedApproval);
 
                 reelIdRepository.save(reelId);
                 log.debug(
                     "Saved ReelId: {} for WarehouseNoteInfoApproval: {}",
-                    reelId.getId(),
+                    reelId.getReelId(),
                     savedApproval.getId()
                 );
             }
@@ -121,6 +167,80 @@ public class WarehouseNoteInfoApprovalService {
         return warehouseNoteInfoApprovalRepository
             .findById(id)
             .map(this::convertToDTO);
+    }
+
+    /**
+     * Get WarehouseNoteInfoApproval with all child tables data by id.
+     *
+     * @param id the id of the WarehouseNoteInfoApproval.
+     * @return the combined entity with all children.
+     */
+    @Transactional(readOnly = true)
+    public Optional<
+        WarehouseNoteInfoApprovalWithChildrenDTO
+    > findOneWithChildren(Long id) {
+        log.debug(
+            "Request to get WarehouseNoteInfoApproval with children : {}",
+            id
+        );
+
+        return warehouseNoteInfoApprovalRepository
+            .findById(id)
+            .map(warehouseNoteInfoApproval -> {
+                // Map parent entity
+                WarehouseNoteInfoApprovalDTO parentDTO = convertToDTO(
+                    warehouseNoteInfoApproval
+                );
+
+                // Fetch reel IDs for this approval
+                List<ReelIdInWarehouseNoteInfoApproval> reelIds =
+                    reelIdRepository.findByWarehouseNoteInfoApprovalId(id);
+                List<Long> reelIdList = reelIds
+                    .stream()
+                    .map(ReelIdInWarehouseNoteInfoApproval::getReelId)
+                    .collect(Collectors.toList());
+
+                // Fetch warehouse_note_info_details and filter by reel IDs
+                List<WarehouseNoteInfoDetail> allDetails =
+                    warehouseStampInfoDetailRepository.findByMaLenhSanXuatId(
+                        warehouseNoteInfoApproval.getMaLenhSanXuat()
+                    );
+                List<WarehouseStampInfoDetailDTO> filteredDetailDTOs =
+                    allDetails
+                        .stream()
+                        .filter(detail -> reelIdList.contains(detail.getId()))
+                        .map(warehouseStampInfoDetailMapper::toDto)
+                        .collect(Collectors.toList());
+
+                // Fetch and map serial_box_pallet_mapping
+                List<SerialBoxPalletMapping> serialMappings =
+                    serialBoxPalletMappingRepository.findByMaLenhSanXuatId(
+                        warehouseNoteInfoApproval.getMaLenhSanXuat()
+                    );
+                List<SerialBoxPalletMappingDTO> serialMappingDTOs =
+                    serialMappings
+                        .stream()
+                        .map(serialBoxPalletMappingMapper::toDto)
+                        .collect(Collectors.toList());
+
+                // Fetch and map pallet_infor_detail
+                List<PalletInforDetail> palletDetails =
+                    palletInforDetailRepository.findByMaLenhSanXuatId(
+                        warehouseNoteInfoApproval.getMaLenhSanXuat()
+                    );
+                List<PalletInforDetailDTO> palletDetailDTOs = palletDetails
+                    .stream()
+                    .map(palletInforDetailMapper::toDto)
+                    .collect(Collectors.toList());
+
+                // Create and return combined DTO
+                return new WarehouseNoteInfoApprovalWithChildrenDTO(
+                    parentDTO,
+                    filteredDetailDTOs,
+                    serialMappingDTOs,
+                    palletDetailDTOs
+                );
+            });
     }
 
     /**

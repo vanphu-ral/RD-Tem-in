@@ -18,7 +18,7 @@ public interface Partner3WarehouseStampInfoDetailRepository
     /**
      * Find all WarehouseNoteInfoDetail by ma_lenh_san_xuat_id.
      *
-     * @param maLenhSanXuatId the id of the WarehouseNoteInfo
+     * @param maLenhSanXuatId the maLenhSanXuat of the WarehouseNoteInfo
      * @return the list of WarehouseNoteInfoDetail
      */
     List<WarehouseNoteInfoDetail> findByMaLenhSanXuatId(Long maLenhSanXuatId);

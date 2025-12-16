@@ -39,13 +39,13 @@ spring:
   jackson:
     serialization:
       indent-output: true
-    # property-naming-strategy: SNAKE_CASE
+    property-naming-strategy: SNAKE_CASE
   datasource:
     # enabled: false
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://172.168.6.99:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
-    username: SA
-    password: Led@R@ngDong
+    url: jdbc:sqlserver://localhost:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
+    username: sa
+    password: Led@R@ngDong123!
     hikari:
       poolName: Hikari
       auto-commit: false
@@ -58,7 +58,7 @@ spring:
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 partner:
-  # enabled: false
+  enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:sqlserver://172.168.6.3:1433;database=PanaCIMMC;encrypt=true;trustServerCertificate=true;
@@ -76,12 +76,12 @@ partner:
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 partner2:
-  # enabled: false
+  enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://172.168.6.99:1433;database=WMSRAL;encrypt=true;trustServerCertificate=true;
-    username: SA
-    password: Led@R@ngDong
+    url: jdbc:sqlserver://localhost:1433;database=WMSRAL;encrypt=true;trustServerCertificate=true;
+    username: sa
+    password: Led@R@ngDong123!
   hikari:
     poolName: Hikari
     auto-commit: false
@@ -114,6 +114,7 @@ partner3:
         reWriteBatchedInserts: true
 
 partner4:
+  enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:sqlserver://192.168.68.62:1433;database=DWH;encrypt=true;trustServerCertificate=true;

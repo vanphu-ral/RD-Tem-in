@@ -8,6 +8,7 @@
     <include file="config/liquibase/partner3/changelog/20251127005100_added_entity_WarehouseStampInfoDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20251124051651_added_entity_WarehouseStampInfo.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20251208020138_add_num_box_config_to_pallet_infor_detail.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/partner3/changelog/20251216160000_update_reelid_in_warehouse_note_info_approval.xml" relativeToChangelogFile="false"/>
 
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->

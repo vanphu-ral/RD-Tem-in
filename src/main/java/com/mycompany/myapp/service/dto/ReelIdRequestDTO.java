@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.time.Instant;
 import javax.validation.constraints.*;
@@ -10,26 +11,27 @@ import javax.validation.constraints.*;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class ReelIdRequestDTO implements Serializable {
 
-    private String id;
+    private Long id;
 
     private Instant createAt;
 
     @Size(max = 50)
+    @JsonProperty("create_by")
     private String createBy;
 
     public ReelIdRequestDTO() {}
 
-    public ReelIdRequestDTO(String id, Instant createAt, String createBy) {
+    public ReelIdRequestDTO(Long id, Instant createAt, String createBy) {
         this.id = id;
         this.createAt = createAt;
         this.createBy = createBy;
     }
 
-    public String getId() {
+    public Long getId() {
         return this.id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

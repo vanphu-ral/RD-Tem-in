@@ -17,8 +17,12 @@ public class ReelIdInWarehouseNoteInfoApproval implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private String id;
+    private Long id;
+
+    @Column(name = "reel_id")
+    private Long reelId;
 
     @Column(
         name = "warehouse_note_info_approval_id",
@@ -45,17 +49,30 @@ public class ReelIdInWarehouseNoteInfoApproval implements Serializable {
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
-    public String getId() {
+    public Long getId() {
         return this.id;
     }
 
-    public ReelIdInWarehouseNoteInfoApproval id(String id) {
+    public ReelIdInWarehouseNoteInfoApproval id(Long id) {
         this.setId(id);
         return this;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getReelId() {
+        return this.reelId;
+    }
+
+    public ReelIdInWarehouseNoteInfoApproval reelId(Long reelId) {
+        this.setReelId(reelId);
+        return this;
+    }
+
+    public void setReelId(Long reelId) {
+        this.reelId = reelId;
     }
 
     public Long getWarehouseNoteInfoApprovalId() {
@@ -160,6 +177,7 @@ public class ReelIdInWarehouseNoteInfoApproval implements Serializable {
     public String toString() {
         return "ReelIdInWarehouseNoteInfoApproval{" +
                 "id='" + getId() + "'" +
+                ", reelId=" + getReelId() +
                 ", warehouseNoteInfoApprovalId=" + getWarehouseNoteInfoApprovalId() +
                 ", createAt='" + getCreateAt() + "'" +
                 ", createBy='" + getCreateBy() + "'" +

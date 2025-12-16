@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.util.List;
 import javax.validation.constraints.*;
@@ -10,54 +11,69 @@ import javax.validation.constraints.*;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class WarehouseNoteInfoApprovalRequestDTO implements Serializable {
 
+    @JsonProperty("warehouse_note_info_id")
     private Long warehouseNoteInfoId;
 
     @Size(max = 30)
+    @JsonProperty("ma_lenh_san_xuat")
     private String maLenhSanXuat;
 
     @Size(max = 50)
+    @JsonProperty("sap_code")
     private String sapCode;
 
     @Size(max = 150)
+    @JsonProperty("sap_name")
     private String sapName;
 
     @Size(max = 50)
+    @JsonProperty("work_order_code")
     private String workOrderCode;
 
     @Size(max = 50)
     private String version;
 
     @Size(max = 50)
+    @JsonProperty("storage_code")
     private String storageCode;
 
+    @JsonProperty("total_quantity")
     private Integer totalQuantity;
 
     @Size(max = 50)
+    @JsonProperty("create_by")
     private String createBy;
 
     @Size(max = 50)
+    @JsonProperty("trang_thai")
     private String trangThai;
 
     @Size(max = 150)
     private String comment;
 
     @Size(max = 20)
+    @JsonProperty("group_name")
     private String groupName;
 
     @Size(max = 255)
+    @JsonProperty("comment_2")
     private String comment2;
 
     @Size(max = 50)
+    @JsonProperty("approver_by")
     private String approverBy;
 
     @Size(max = 50)
     private String branch;
 
     @Size(max = 50)
+    @JsonProperty("product_type")
     private String productType;
 
+    @JsonProperty("destination_warehouse")
     private Long destinationWarehouse;
 
+    @JsonProperty("list_warehouse_note_detail")
     private List<ReelIdRequestDTO> listWarehouseNoteDetail;
 
     public WarehouseNoteInfoApprovalRequestDTO() {}

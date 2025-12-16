@@ -3,9 +3,11 @@ package com.mycompany.myapp.web.rest;
 import com.mycompany.myapp.service.WarehouseNoteInfoApprovalService;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalDTO;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalRequestDTO;
+import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalWithChildrenDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Optional;
 import javax.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import tech.jhipster.web.util.HeaderUtil;
+import tech.jhipster.web.util.ResponseUtil;
 
 /**
  * REST controller for managing
@@ -129,5 +132,31 @@ public class WarehouseNoteInfoApprovalResource {
         return warehouseNoteInfoApprovalDTO
             .map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * {@code GET  /warehouse-note-infos-approval/:id/with-children} : get the "id"
+     * warehouseNoteInfoApproval with all child tables data.
+     *
+     * @param id the id of the warehouseNoteInfoApproval to retrieve with children.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the warehouseNoteInfoApprovalWithChildrenDTO, or with status
+     *         {@code 404 (Not Found)}.
+     */
+    @GetMapping("/warehouse-note-infos-approval/{id}/with-children")
+    public ResponseEntity<
+        WarehouseNoteInfoApprovalWithChildrenDTO
+    > getWarehouseNoteInfoApprovalWithChildren(@PathVariable("id") Long id) {
+        log.debug(
+            "REST request to get WarehouseNoteInfoApproval with children : {}",
+            id
+        );
+        Optional<
+            WarehouseNoteInfoApprovalWithChildrenDTO
+        > warehouseNoteInfoApprovalWithChildrenDTO =
+            warehouseNoteInfoApprovalService.findOneWithChildren(id);
+        return ResponseUtil.wrapOrNotFound(
+            warehouseNoteInfoApprovalWithChildrenDTO
+        );
     }
 }

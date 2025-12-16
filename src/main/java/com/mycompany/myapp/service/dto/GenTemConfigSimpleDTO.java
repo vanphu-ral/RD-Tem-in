@@ -65,7 +65,7 @@ public class GenTemConfigSimpleDTO implements Serializable {
     @Size(max = 50)
     private String updatedBy;
 
-    private Long maLenhSanXuatId;
+    private String maLenhSanXuatId;
 
     public Long getId() {
         return id;
@@ -219,11 +219,11 @@ public class GenTemConfigSimpleDTO implements Serializable {
         this.updatedBy = updatedBy;
     }
 
-    public Long getMaLenhSanXuatId() {
+    public String getMaLenhSanXuatId() {
         return maLenhSanXuatId;
     }
 
-    public void setMaLenhSanXuatId(Long maLenhSanXuatId) {
+    public void setMaLenhSanXuatId(String maLenhSanXuatId) {
         this.maLenhSanXuatId = maLenhSanXuatId;
     }
 

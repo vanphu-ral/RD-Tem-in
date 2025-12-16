@@ -147,7 +147,7 @@ public class GenTemConfigService {
      * @return the list of entities.
      */
     @Transactional(readOnly = true)
-    public List<GenTemConfigDTO> findByMaLenhSanXuatId(Long maLenhSanXuatId) {
+    public List<GenTemConfigDTO> findByMaLenhSanXuatId(String maLenhSanXuatId) {
         LOG.debug(
             "Request to get GenTemConfigs by maLenhSanXuatId : {}",
             maLenhSanXuatId
@@ -187,7 +187,7 @@ public class GenTemConfigService {
      */
     @Transactional(readOnly = true)
     public List<GenTemConfigSimpleDTO> findSimpleByMaLenhSanXuatId(
-        Long maLenhSanXuatId
+        String maLenhSanXuatId
     ) {
         LOG.debug(
             "Request to get GenTemConfigs (simple) by maLenhSanXuatId : {}",

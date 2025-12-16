@@ -18,7 +18,7 @@ public interface Partner3SerialBoxPalletMappingRepository
     /**
      * Find all SerialBoxPalletMapping by ma_lenh_san_xuat_id.
      *
-     * @param maLenhSanXuatId the id of the WarehouseNoteInfo
+     * @param maLenhSanXuatId the maLenhSanXuat of the WarehouseNoteInfo
      * @return the list of SerialBoxPalletMapping
      */
     List<SerialBoxPalletMapping> findByMaLenhSanXuatId(Long maLenhSanXuatId);

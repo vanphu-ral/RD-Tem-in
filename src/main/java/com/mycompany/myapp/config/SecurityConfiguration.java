@@ -132,15 +132,15 @@ public class SecurityConfiguration {
             // .authenticated()
             .antMatchers("/**")
             .permitAll()
-            .and()
-            .oauth2Login()
-            .and()
-            .oauth2ResourceServer()
-            .jwt()
-            .jwtAuthenticationConverter(authenticationConverter())
-            .and()
-            .and()
-            .oauth2Client();
+            .and();
+        // .oauth2Login()
+        // .and()
+        // .oauth2ResourceServer()
+        // .jwt()
+        // .jwtAuthenticationConverter(authenticationConverter())
+        // .and()
+        // .and()
+        // .oauth2Client();
         return http.build();
     }
 
@@ -181,31 +181,26 @@ public class SecurityConfiguration {
         };
     }
 
-    @Bean
-    JwtDecoder jwtDecoder(
-        ClientRegistrationRepository clientRegistrationRepository,
-        RestTemplateBuilder restTemplateBuilder
-    ) {
-        NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(
-            issuerUri
-        );
+    // @Bean
+    // JwtDecoder jwtDecoder(
+    // ClientRegistrationRepository clientRegistrationRepository,
+    // RestTemplateBuilder restTemplateBuilder) {
+    // NimbusJwtDecoder jwtDecoder = JwtDecoders.fromOidcIssuerLocation(
+    // issuerUri);
 
-        OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(
-            jHipsterProperties.getSecurity().getOauth2().getAudience()
-        );
-        OAuth2TokenValidator<Jwt> withIssuer =
-            JwtValidators.createDefaultWithIssuer(issuerUri);
-        OAuth2TokenValidator<Jwt> withAudience =
-            new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
+    // OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(
+    // jHipsterProperties.getSecurity().getOauth2().getAudience());
+    // OAuth2TokenValidator<Jwt> withIssuer =
+    // JwtValidators.createDefaultWithIssuer(issuerUri);
+    // OAuth2TokenValidator<Jwt> withAudience = new
+    // DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
 
-        jwtDecoder.setJwtValidator(withAudience);
-        jwtDecoder.setClaimSetConverter(
-            new CustomClaimConverter(
-                clientRegistrationRepository.findByRegistrationId("oidc"),
-                restTemplateBuilder.build()
-            )
-        );
+    // jwtDecoder.setJwtValidator(withAudience);
+    // jwtDecoder.setClaimSetConverter(
+    // new CustomClaimConverter(
+    // clientRegistrationRepository.findByRegistrationId("oidc"),
+    // restTemplateBuilder.build()));
 
-        return jwtDecoder;
-    }
+    // return jwtDecoder;
+    // }
 }

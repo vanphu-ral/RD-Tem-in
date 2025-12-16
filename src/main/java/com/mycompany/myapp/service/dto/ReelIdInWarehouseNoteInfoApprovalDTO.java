@@ -11,7 +11,9 @@ import javax.validation.constraints.*;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class ReelIdInWarehouseNoteInfoApprovalDTO implements Serializable {
 
-    private String id;
+    private Long id;
+
+    private Long reelId;
 
     private Long warehouseNoteInfoApprovalId;
 
@@ -26,7 +28,7 @@ public class ReelIdInWarehouseNoteInfoApprovalDTO implements Serializable {
     public ReelIdInWarehouseNoteInfoApprovalDTO() {}
 
     public ReelIdInWarehouseNoteInfoApprovalDTO(
-        String id,
+        Long id,
         Instant createAt,
         String createBy
     ) {
@@ -35,12 +37,20 @@ public class ReelIdInWarehouseNoteInfoApprovalDTO implements Serializable {
         this.createBy = createBy;
     }
 
-    public String getId() {
+    public Long getId() {
         return this.id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getReelId() {
+        return this.reelId;
+    }
+
+    public void setReelId(Long reelId) {
+        this.reelId = reelId;
     }
 
     public Long getWarehouseNoteInfoApprovalId() {
@@ -104,6 +114,7 @@ public class ReelIdInWarehouseNoteInfoApprovalDTO implements Serializable {
     public String toString() {
         return "ReelIdInWarehouseNoteInfoApprovalDTO{" +
                 "id='" + getId() + "'" +
+                ", reelId=" + getReelId() +
                 ", warehouseNoteInfoApprovalId=" + getWarehouseNoteInfoApprovalId() +
                 ", createAt='" + getCreateAt() + "'" +
                 ", createBy='" + getCreateBy() + "'" +

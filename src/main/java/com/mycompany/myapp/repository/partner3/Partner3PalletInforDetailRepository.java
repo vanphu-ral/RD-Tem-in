@@ -20,7 +20,7 @@ public interface Partner3PalletInforDetailRepository
     /**
      * Find all PalletInforDetail by ma_lenh_san_xuat_id.
      *
-     * @param maLenhSanXuatId the id of the WarehouseNoteInfo
+     * @param maLenhSanXuatId the maLenhSanXuat of the WarehouseNoteInfo
      * @return the list of PalletInforDetail
      */
     List<PalletInforDetail> findByMaLenhSanXuatId(Long maLenhSanXuatId);
