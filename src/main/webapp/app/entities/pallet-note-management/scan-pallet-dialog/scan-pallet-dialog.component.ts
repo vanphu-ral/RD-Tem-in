@@ -8,6 +8,7 @@ import {
 } from "@angular/core";
 import {
   MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from "@angular/material/dialog";
@@ -30,8 +31,12 @@ import { PlanningWorkOrderService } from "../service/planning-work-order.service
 import { finalize } from "rxjs/operators";
 import { MatCheckboxModule } from "@angular/material/checkbox";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from "../confirm-dialog/confirm-dialog.component";
 
-interface PalletData {
+export interface PalletData {
   id: string;
   maPallet: string;
   tenSanPham: string;
@@ -40,6 +45,7 @@ interface PalletData {
   soThung: number;
   maLenhSanXuatId: number;
   validReelIds?: string[];
+  existingScannedGlobal?: Set<string>;
 }
 
 interface BoxScan {
@@ -114,6 +120,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   validBoxes: string[] = [];
 
   existingScannedBoxes: Set<string> = new Set();
+  existingScannedGlobal: Set<string> = new Set();
   isLoadingHistory = false;
 
   unscannedCodes: string[] = [];
@@ -141,6 +148,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     @Inject(MAT_DIALOG_DATA) public data: PalletData,
     private http: HttpClient,
     private planningService: PlanningWorkOrderService,
+    private dialog: MatDialog,
   ) {
     this.palletData = data;
     console.log("Scan dialog constructor data:", data);
@@ -149,6 +157,11 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.checkIfMobile();
     this.initializeValidBoxes();
+
+    if (this.palletData?.existingScannedGlobal) {
+      this.existingScannedGlobal = this.palletData.existingScannedGlobal;
+      console.log(`Global scanned boxes: ${this.existingScannedGlobal.size}`);
+    }
     this.loadExistingScannedBoxes();
 
     if (this.scanModeActive) {
@@ -189,7 +202,6 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // đảm bảo validBoxes đã có
     if (!this.validBoxes || this.validBoxes.length === 0) {
       this.initializeValidBoxes();
     }
@@ -201,16 +213,14 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => (this.isLoadingHistory = false)))
       .subscribe({
         next: (mappings) => {
-          // mappings có thể chứa cả success và error
           const successMappings = mappings.filter((m) => m.status === 1);
           const errorMappings = mappings.filter((m) => m.status !== 1);
 
-          // Set các mã đã scan (chuẩn hóa)
+          // ===== PALLET LOCAL: Boxes đã scan vào pallet này =====
           this.existingScannedBoxes = new Set(
             successMappings.map((m) => this.normalizeCode(m.serial_box)),
           );
 
-          // scannedBoxes chi tiết
           this.scannedBoxes = successMappings.map((m) => ({
             code: this.normalizeCode(m.serial_box),
             timestamp: this.parseTimestamp(m.updated_at),
@@ -224,16 +234,14 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
             message: "scan error",
           }));
 
-          // allBoxes = scanned + error (theo lịch sử)
           this.allBoxes = [...this.scannedBoxes, ...this.errorBoxes];
-
-          // Cập nhật số lượng scan tổng (từ lịch sử)
           this.scannedCount = this.scannedBoxes.length;
+
           console.log(
-            `Loaded ${this.scannedCount} boxes already scanned from history`,
+            `📋 Pallet local: ${this.scannedCount} boxes đã scan vào pallet này`,
           );
 
-          // Tính các thùng đã/ chưa scan dựa trên danh sách validBoxes
+          // Tính unscanned dựa trên GLOBAL
           this.computeFromValidAndExisting();
         },
         error: (error) => {
@@ -243,8 +251,6 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
             this.scannedBoxes = [];
             this.errorBoxes = [];
             this.allBoxes = [];
-
-            // vẫn cần tính unscanned dựa trên validBoxes
             this.computeFromValidAndExisting();
           } else {
             this.showScanResult(
@@ -319,12 +325,23 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
     const boxesToAdd = Array.from(this.selectedUnscannedBoxes);
 
-    if (!confirm(`Xác nhận thêm ${boxesToAdd.length} thùng vào pallet?`)) {
-      return;
-    }
+    const dialogData: ConfirmDialogData = {
+      title: "Xác nhận",
+      message: `Xác nhận thêm ${boxesToAdd.length} thùng vào pallet?`,
+      confirmText: "Xác nhận",
+      cancelText: "Hủy",
+      type: "info",
+    };
 
-    this.isAddingSelectedBoxes = true;
-    this.processSelectedBoxesBatch(boxesToAdd);
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: "500px",
+      data: dialogData,
+      disableClose: false,
+    });
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      this.isAddingSelectedBoxes = true;
+      this.processSelectedBoxesBatch(boxesToAdd);
+    });
   }
   // ===== TOGGLE ZEBRA MODE (CHỈ FOCUS INPUT) =====
   toggleScanMode(): void {
@@ -380,7 +397,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     }
 
     const code = this.scannedCode.trim();
-    console.log("📥 Processing code:", code);
+    console.log("Processing code:", code);
 
     this.validateAndAddBox(code);
     this.scannedCode = "";
@@ -438,7 +455,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check 2: Đã scan trong pallet này?
+    // Check 2: Đã scan vào pallet này rồi? (LOCAL)
     if (this.existingScannedBoxes.has(trimmedCode)) {
       this.addErrorBox(
         trimmedCode,
@@ -453,7 +470,16 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check 4: Có hợp lệ không?
+    // ===== Check 4: ĐÃ SCAN VÀO PALLET KHÁC CHƯA? (GLOBAL) =====
+    if (this.existingScannedGlobal.has(trimmedCode)) {
+      this.addErrorBox(
+        trimmedCode,
+        "Mã thùng đã được scan vào pallet khác trong order này",
+      );
+      return;
+    }
+
+    // Check 5: Có hợp lệ không?
     const isValid = this.validBoxes.some(
       (validCode) => validCode.trim() === trimmedCode,
     );
@@ -521,6 +547,12 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     this.scannedBoxes.push(box);
     this.allBoxes.push(box);
     this.scannedCount++;
+
+    // ===== UPDATE GLOBAL CACHE =====
+    this.existingScannedGlobal.add(code);
+
+    // Refresh unscanned list
+    this.computeFromValidAndExisting();
 
     this.showScanResult(
       "success",
@@ -667,21 +699,27 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
   private computeFromValidAndExisting(): void {
     const expected = (this.validBoxes || []).map((c) => this.normalizeCode(c));
-    this.scannedFromValidCodes = expected.filter((code) =>
-      this.existingScannedBoxes.has(code),
-    );
-    this.unscannedCodes = expected.filter(
-      (code) => !this.existingScannedBoxes.has(code),
+
+    // ===== DÙNG GLOBAL THAY VÌ LOCAL =====
+    this.scannedFromValidCodes = expected.filter(
+      (code) => this.existingScannedGlobal.has(code), // <--- Đổi từ existingScannedBoxes sang existingScannedGlobal
     );
 
-    this.scannedCount = this.scannedFromValidCodes.length;
+    this.unscannedCodes = expected.filter(
+      (code) => !this.existingScannedGlobal.has(code), // <--- Đổi từ existingScannedBoxes sang existingScannedGlobal
+    );
+
     this.unscannedCount = this.unscannedCodes.length;
 
     console.log(
-      `Scanned from valid list: ${this.scannedCount}`,
+      `Scanned globally (across all pallets): ${this.scannedFromValidCodes.length}`,
       this.scannedFromValidCodes,
     );
     console.log(`Unscanned codes: ${this.unscannedCount}`, this.unscannedCodes);
+    console.log(
+      `Scanned in THIS pallet: ${this.existingScannedBoxes.size}`,
+      Array.from(this.existingScannedBoxes),
+    );
   }
   private parseTimestamp(value: any): Date | null {
     if (!value && value !== 0) {

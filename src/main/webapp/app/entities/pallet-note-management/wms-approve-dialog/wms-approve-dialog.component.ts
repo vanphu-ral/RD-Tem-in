@@ -40,6 +40,26 @@ import { QRCodeComponent } from "angularx-qrcode";
 
 // ==================== INTERFACES ====================
 
+export interface BoxDialogItem {
+  id: number;
+  stt: number;
+  boxCode: string;
+  qrCode: string;
+  quantity: number;
+  palletCode?: string;
+  isSent: boolean;
+
+  // Display fields
+  productName?: string;
+  lotNumber?: string;
+  note?: string;
+
+  // Payload fields
+  expirationDate?: string;
+  manufacturingDate?: string;
+  rank?: string;
+  tpnk?: string;
+}
 export interface WmsDialogData {
   maLenhSanXuatId: number;
   preloadedPallets: any;
@@ -49,6 +69,7 @@ export interface WmsDialogData {
     serial_box: string;
     serial_pallet: string;
   }>;
+  productType?: string;
 }
 
 export interface PalletDialogItem {
@@ -161,10 +182,19 @@ export class WmsApproveDialogComponent implements OnInit {
   // Data
   pallets = signal<PalletDialogItem[]>([]);
   selection = new SelectionModel<PalletDialogItem>(true, []);
+  // Box data
+  boxes = signal<BoxDialogItem[]>([]);
+  boxSelection = new SelectionModel<BoxDialogItem>(true, []);
+
+  //type
+  productType: string = "";
 
   // Computed
   pendingPallets = computed(() => this.pallets().filter((p) => !p.isSent));
   sentPallets = computed(() => this.pallets().filter((p) => p.isSent));
+  // Computed cho boxes
+  pendingBoxes = computed(() => this.boxes().filter((b) => !b.isSent));
+  sentBoxes = computed(() => this.boxes().filter((b) => b.isSent));
 
   // UI State
   displayedColumnsPending: string[] = [
@@ -184,6 +214,23 @@ export class WmsApproveDialogComponent implements OnInit {
     "numBoxActual",
   ];
 
+  // Columns cho box tables
+  displayedColumnsBoxPending: string[] = [
+    "select",
+    "stt",
+    "boxCode",
+    "quantity",
+    "palletCode",
+  ];
+
+  displayedColumnsBoxSent: string[] = [
+    "stt",
+    "boxCode",
+    "quantity",
+    "palletCode",
+  ];
+  nestedTabIndexPending = 0; // 0 = Pallet, 1 = Box
+  nestedTabIndexSent = 0;
   mobileTabIndex = 0;
   isMobile = false;
   isLoading = false;
@@ -237,7 +284,7 @@ export class WmsApproveDialogComponent implements OnInit {
     this.boxDetailBySerial = boxDetailBySerial;
     this.boxToPallet = boxToPallet;
     this.palletAggregates = palletAggregates;
-
+    this.productType = data.productType ?? "Thành phẩm";
     // lưu vào component để dùng khi map
     if (
       Array.isArray(data?.preloadedPallets) &&
@@ -269,6 +316,12 @@ export class WmsApproveDialogComponent implements OnInit {
     if (this.pallets().length === 0) {
       await this.loadData();
     }
+
+    if (this.boxDetails && this.boxDetails.length > 0) {
+      const mappedBoxes = this.mapBoxesToBoxDialogItems();
+      this.boxes.set(mappedBoxes);
+      console.log("✓ Loaded boxes:", mappedBoxes.length);
+    }
   }
 
   // ==================== SEND APPROVAL ====================
@@ -283,10 +336,12 @@ export class WmsApproveDialogComponent implements OnInit {
       return;
     }
 
+    const itemName = this.productType === "Bán thành phẩm" ? "tem" : "pallet";
+
     // Confirm dialog
     const dialogData: ConfirmDialogData = {
       title: "Xác nhận gửi",
-      message: `Xác nhận gửi ${selectedPallets.length} pallet?`,
+      message: `Xác nhận gửi ${selectedPallets.length} ${itemName}?`,
       confirmText: "Xác nhận",
       cancelText: "Hủy",
       type: "info",
@@ -310,6 +365,54 @@ export class WmsApproveDialogComponent implements OnInit {
 
   // ==================== UI HELPERS ====================
 
+  //gui box
+
+  sendBoxApproval(): void {
+    const selectedBoxes = this.boxSelection.selected;
+
+    if (selectedBoxes.length === 0) {
+      this.snackBar.open("Vui lòng chọn ít nhất 1 box", "Đóng", {
+        duration: 2000,
+      });
+      return;
+    }
+
+    const dialogData: ConfirmDialogData = {
+      title: "Xác nhận gửi Box",
+      message: `Xác nhận gửi ${selectedBoxes.length} box?`,
+      confirmText: "Xác nhận",
+      cancelText: "Hủy",
+      type: "info",
+    };
+
+    const confirmRef = this.dialog.open(ConfirmDialogComponent, {
+      width: "500px",
+      data: dialogData,
+      disableClose: false,
+    });
+
+    confirmRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return;
+      }
+      this.performSendBoxApproval(selectedBoxes);
+    });
+  }
+  isAllBoxesSelected(): boolean {
+    const selectableBoxes = this.pendingBoxes();
+    return (
+      selectableBoxes.length > 0 &&
+      this.boxSelection.selected.length === selectableBoxes.length
+    );
+  }
+
+  toggleAllBoxes(): void {
+    if (this.isAllBoxesSelected()) {
+      this.boxSelection.clear();
+    } else {
+      this.boxSelection.select(...this.pendingBoxes());
+    }
+  }
   @HostListener("window:resize")
   onResize(): void {
     this.checkMobile();
@@ -818,21 +921,28 @@ export class WmsApproveDialogComponent implements OnInit {
     this.isLoading = true;
 
     try {
-      //Send WMS payload
-      await this.sendWmsPayload(selectedPallets);
-      //Update pallet status
+      // ===== PHÂN BIỆT THEO LOẠI SẢN PHẨM =====
+      if (this.productType === "Bán thành phẩm") {
+        // BÁN THÀNH PHẨM: Gửi payload khác
+        await this.sendBTPApproval(selectedPallets);
+      } else {
+        // THÀNH PHẨM: Gửi payload như cũ
+        await this.sendWmsPayload(selectedPallets);
+      }
+
+      // Update status sau khi gửi
       await this.updatePalletStatus(selectedPallets);
 
-      //Update UI
+      // Update UI
       this.updateUIAfterSend(selectedPallets);
 
+      const itemName = this.productType === "Bán thành phẩm" ? "tem" : "pallet";
       this.snackBar.open(
-        `✓ Đã gửi ${selectedPallets.length} pallet thành công!`,
+        `✓ Đã gửi ${selectedPallets.length} ${itemName} thành công!`,
         "Đóng",
         { duration: 3000, panelClass: ["success-snackbar"] },
       );
 
-      // Auto switch tab on mobile
       if (this.isMobile) {
         setTimeout(() => {
           this.mobileTabIndex = 1;
@@ -1063,4 +1173,307 @@ export class WmsApproveDialogComponent implements OnInit {
   }
 
   // ==================== EXTRACT LOT NUMBER ====================
+
+  private mapBoxesToBoxDialogItems(): BoxDialogItem[] {
+    if (!Array.isArray(this.boxDetails) || this.boxDetails.length === 0) {
+      return [];
+    }
+
+    const result: BoxDialogItem[] = [];
+
+    this.boxDetails.forEach((detail, index) => {
+      // Tìm pallet mapping
+      const mapping = this.mappings?.find(
+        (m) => m.serial_box === (detail.reel_id || detail.serial_box),
+      );
+
+      result.push({
+        id: detail.id || index + 1,
+        stt: index + 1,
+        boxCode: detail.reel_id || detail.serial_box || "",
+        qrCode: detail.qr_code || detail.reel_id || "",
+        quantity: detail.initial_quantity || 0,
+        palletCode: mapping?.serial_pallet ?? "",
+        isSent: detail.wms_send_status === true,
+
+        productName: this.warehouseNoteInfo?.sap_name || "",
+        lotNumber: detail.lot || "",
+        note: detail.comments || "",
+
+        expirationDate: detail.expiration_date || "",
+        manufacturingDate: detail.manufacturing_date || "",
+        rank: detail.rank || "",
+        tpnk: detail.tp_nk || "",
+      });
+    });
+
+    return result;
+  }
+  //xu ly gui box
+  private async performSendBoxApproval(
+    selectedBoxes: BoxDialogItem[],
+  ): Promise<void> {
+    this.isLoading = true;
+
+    try {
+      // Update box status
+      await this.updateBoxStatus(selectedBoxes);
+
+      // Send WMS box payload
+      // ===== PHÂN BIỆT THEO LOẠI SẢN PHẨM =====
+      if (this.productType === "Bán thành phẩm") {
+        await this.sendBTPBoxApproval(selectedBoxes);
+      } else {
+        await this.sendWmsBoxPayload(selectedBoxes);
+      }
+      // Update UI
+      this.updateUIAfterSendBox(selectedBoxes);
+
+      this.snackBar.open(
+        `✓ Đã gửi ${selectedBoxes.length} box thành công!`,
+        "Đóng",
+        { duration: 3000, panelClass: ["success-snackbar"] },
+      );
+
+      // Auto switch tab on mobile
+      if (this.isMobile) {
+        setTimeout(() => {
+          this.mobileTabIndex = 1;
+        }, 500);
+      }
+    } catch (error: any) {
+      console.error("Error sending box approval:", error);
+      this.snackBar.open(
+        `Lỗi: ${error?.error?.message || error?.message || "Không xác định"}`,
+        "Đóng",
+        { duration: 4000, panelClass: ["error-snackbar"] },
+      );
+    } finally {
+      this.isLoading = false;
+    }
+  }
+  private async updateBoxStatus(boxes: BoxDialogItem[]): Promise<void> {
+    const payloadArray = boxes.map((b) => ({
+      id: b.id,
+      wms_send_status: true,
+      updated_by: this.warehouseNoteInfo?.approver_by || "admin",
+    }));
+
+    try {
+      await firstValueFrom(
+        this.planningService.sendWmsApproval(payloadArray), //dieu chinh gui payload
+      );
+      console.log("✓ Box status updated");
+    } catch (error) {
+      console.error("Error updating box status:", error);
+      throw new Error("Không thể cập nhật trạng thái box");
+    }
+  }
+
+  //box thanh pham
+  private async sendWmsBoxPayload(
+    selectedBoxes: BoxDialogItem[],
+  ): Promise<void> {
+    const payload = this.buildWmsBoxPayload(selectedBoxes);
+
+    console.log("📦 WMS Box Payload:", payload);
+
+    try {
+      await firstValueFrom(this.planningService.sendWmsApproval(payload)); //dieu chinh gui payload
+      console.log("✓ WMS box approval sent");
+    } catch (error) {
+      console.error("Error sending WMS box:", error);
+      throw new Error("Không thể gửi phê duyệt WMS box");
+    }
+  }
+
+  private buildWmsBoxPayload(selectedBoxes: BoxDialogItem[]): any {
+    // Build payload tương tự pallet nhưng cho boxes
+    const info = (this.warehouseNoteInfo ?? {}) as Record<string, any>;
+
+    const formatDate = (isoDate?: string): string => {
+      if (!isoDate) {
+        return "";
+      }
+      const d = new Date(isoDate);
+      return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    };
+
+    const totalQuantity = selectedBoxes.reduce(
+      (sum, b) => sum + (b.quantity || 0),
+      0,
+    );
+
+    return {
+      general_info: {
+        client_id: info?.client_id || "",
+        inventory_code: info?.sap_code || "",
+        inventory_name: info?.sap_name || "",
+        wo_code: info?.work_order_code || "",
+        production_date: formatDate(info?.production_date || info?.time_update),
+        lot_number: this.getLotNumber() || "",
+        note: info?.comment || info?.comment_2 || "",
+        created_by: info?.create_by || info?.createBy || "admin",
+        branch: info?.branch || "",
+        production_team: (info?.group_name || "").toString().trim(),
+        number_of_box: selectedBoxes.length,
+        quantity: totalQuantity,
+        destination_warehouse: Number(info?.destination_warehouse || 1),
+        pallet_note_creation_id: Number(
+          info?.id || this.data?.maLenhSanXuatId || 0,
+        ),
+        list_box: selectedBoxes.map((box) => ({
+          box_code: box.boxCode,
+          quantity: box.quantity,
+          note: box.note ?? "",
+          pallet_code: box.palletCode ?? "",
+          expiration_date: box.expirationDate ?? "",
+          manufacturing_date: box.manufacturingDate ?? "",
+          rank: box.rank ?? "",
+          tp_nk: box.tpnk ?? "",
+        })),
+      },
+    };
+  }
+
+  //box ban thanh pham
+
+  private async sendBTPBoxApproval(
+    selectedBoxes: BoxDialogItem[],
+  ): Promise<void> {
+    const payload = this.buildBTPBoxPayload(selectedBoxes);
+
+    console.log("📦 BTP Box Approval Payload:", payload);
+
+    try {
+      await firstValueFrom(this.planningService.sendBTPApproval(payload)); //api send btp
+      console.log("✓ BTP box approval sent");
+    } catch (error) {
+      console.error("Error sending BTP box approval:", error);
+      throw new Error("Không thể gửi phê duyệt box bán thành phẩm");
+    }
+  }
+
+  private buildBTPBoxPayload(selectedBoxes: BoxDialogItem[]): any {
+    const info = this.warehouseNoteInfo ?? {};
+
+    const listWarehouseNoteDetail = selectedBoxes.map((box) => ({
+      id: box.id,
+      create_by: info.create_by || info.createBy || "admin",
+    }));
+
+    const totalQuantity = selectedBoxes.reduce(
+      (sum, b) => sum + (b.quantity || 0),
+      0,
+    );
+
+    return {
+      warehouse_note_info_id: Number(info.id || this.data.maLenhSanXuatId || 0),
+      ma_lenh_san_xuat: info.ma_lenh_san_xuat || "",
+      sap_code: info.sap_code || "",
+      sap_name: info.sap_name || "",
+      work_order_code: info.work_order_code || "",
+      version: info.version || "",
+      storage_code: info.storage_code || "",
+      total_quantity: totalQuantity,
+      create_by: info.create_by || info.createBy || "admin",
+      trang_thai: info.trang_thai || "Chờ duyệt",
+      comment: info.comment || "",
+      group_name: info.group_name || "",
+      comment_2: info.comment_2 || "",
+      approver_by: info.approver_by || info.create_by || "admin",
+      branch: info.branch || "",
+      product_type: "Bán thành phẩm",
+      destination_warehouse: Number(info.destination_warehouse || 1),
+      list_warehouse_note_detail: listWarehouseNoteDetail,
+    };
+  }
+  private updateUIAfterSendBox(sentBoxes: BoxDialogItem[]): void {
+    const sentIds = sentBoxes.map((b) => b.id);
+
+    this.boxes.update((current) =>
+      current.map((b) => (sentIds.includes(b.id) ? { ...b, isSent: true } : b)),
+    );
+
+    this.boxSelection.clear();
+  }
+
+  private async sendBTPApproval(
+    selectedPallets: PalletDialogItem[],
+  ): Promise<void> {
+    const payload = this.buildBTPPayload(selectedPallets);
+
+    console.log("📦 BTP Approval Payload:", payload);
+
+    try {
+      await firstValueFrom(this.planningService.sendBTPApproval(payload));
+      console.log("✓ BTP approval sent");
+    } catch (error) {
+      console.error("Error sending BTP approval:", error);
+      throw new Error("Không thể gửi phê duyệt bán thành phẩm");
+    }
+  }
+
+  private buildBTPPayload(selectedPallets: PalletDialogItem[]): any {
+    const info = this.warehouseNoteInfo ?? {};
+
+    // Lấy danh sách box details từ selectedPallets
+    const listWarehouseNoteDetail: Array<{ id: number; create_by: string }> =
+      [];
+
+    selectedPallets.forEach((pallet) => {
+      const boxes = (pallet as any).boxes || [];
+
+      boxes.forEach((box: any) => {
+        // Tìm box detail trong warehouseNoteInfoDetails
+        const boxDetail = this.boxDetails?.find(
+          (bd: any) =>
+            bd.reel_id === box.boxCode || bd.serial_box === box.boxCode,
+        );
+
+        if (boxDetail?.id) {
+          listWarehouseNoteDetail.push({
+            id: boxDetail.id,
+            create_by: info.create_by || info.createBy || "admin",
+          });
+        }
+      });
+    });
+
+    // Build payload theo spec BTP
+    return {
+      warehouse_note_info_id: Number(info.id || this.data.maLenhSanXuatId || 0),
+      ma_lenh_san_xuat: info.ma_lenh_san_xuat || "",
+      sap_code: info.sap_code || "",
+      sap_name: info.sap_name || "",
+      work_order_code: info.work_order_code || "",
+      version: info.version || "",
+      storage_code: info.storage_code || "",
+      total_quantity: this.calculateTotalQuantity(selectedPallets),
+      create_by: info.create_by || info.createBy || "admin",
+      trang_thai: info.trang_thai || "Chờ duyệt",
+      comment: info.comment || "",
+      group_name: info.group_name || "",
+      comment_2: info.comment_2 || "",
+      approver_by: info.approver_by || info.create_by || "admin",
+      branch: info.branch || "",
+      product_type: "Bán thành phẩm",
+      destination_warehouse: Number(info.destination_warehouse || 1),
+      list_warehouse_note_detail: listWarehouseNoteDetail,
+    };
+  }
+
+  private calculateTotalQuantity(selectedPallets: PalletDialogItem[]): number {
+    let total = 0;
+
+    selectedPallets.forEach((pallet) => {
+      const boxes = (pallet as any).boxes || [];
+
+      boxes.forEach((box: any) => {
+        total += Number(box.quantity || 0);
+      });
+    });
+
+    return total;
+  }
 }

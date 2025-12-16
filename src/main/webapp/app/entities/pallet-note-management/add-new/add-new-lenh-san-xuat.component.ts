@@ -513,7 +513,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.openWmsApprovalDialog();
     } else {
       // xử lý cho Bán thành phẩm
-      this.sendApproval();
+      this.openWmsApprovalDialog();
     }
   }
   openWmsApprovalDialog(): void {
@@ -640,6 +640,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
                 preloadedPallets: allPallets,
                 warehouseNoteInfo: body.warehouse_note_info,
                 warehouseNoteInfoDetails: body.warehouse_note_info_details,
+                productType:
+                  this.warehouseNoteInfo?.product_type || "Thành phẩm",
               };
 
               console.log("dialog data", dialogData);

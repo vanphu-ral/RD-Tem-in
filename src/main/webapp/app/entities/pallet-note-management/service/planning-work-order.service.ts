@@ -217,6 +217,13 @@ export class PlanningWorkOrderService {
       payload,
     );
   }
+  //gui duyet btp
+  sendBTPApproval(payload: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.baseUrl}/api//warehouse-note-infos-approval`,
+      payload,
+    );
+  }
   //check identify
   checkIdentifyWo(woId: string): Observable<any[]> {
     // endpoint trả mảng ([]) nếu chưa tồn tại, hoặc mảng có object nếu đã tồn tại
