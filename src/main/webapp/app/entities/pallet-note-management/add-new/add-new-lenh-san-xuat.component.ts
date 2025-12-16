@@ -2055,8 +2055,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       r.manufacturingDate ?? "", // TimeRecieved
       r.reelID, // ReelID
       r.partNumber, // PartNumber
-      r.vendor ?? "", // Vendor
-      this.productionOrders[0]?.tongSoLuong ?? "", // QuantityOfPackage
+      r.vendor ?? "RD", // Vendor
+      r.initialQuantity ?? "", // QuantityOfPackage
       r.manufacturingDate ?? "", // MFGDate
       this.productionOrders[0]?.to ?? "", // ProductionShilt
       r.TPNK ?? "",
@@ -2355,7 +2355,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             location_override: reel.locationOverride ?? "",
             expiration_date: reel.expirationDate ?? "",
             manufacturing_date: reel.manufacturingDate ?? "",
-            part_class: reel.partClass ?? "Bán thành phẩm",
+            part_class: reel.partClass ?? "",
             sap_code: reel.sapCode ?? "",
             ma_lenh_san_xuat_id: maLenhSanXuatId,
             lenh_san_xuat_id: null,
@@ -3070,7 +3070,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       const f_partNumber = norm(`${productionOrder.maSAP}V_${version}`);
       const f_storageUnit = norm(productionOrder.maKhoNhap ?? "RD01");
       const f_lot = norm(lotNumber);
-      const f_tongSl = norm(productionOrder.tongSoLuong ?? "");
+      const f_tongSl = norm(totalQuantityAfterCreation); // ===== SỬA: Dùng tổng đã tính =====
       const f_rank = norm(data.rank ?? "");
       const f_userData3 = norm(productionOrder.tenHangHoa ?? "");
       const f_userData4 = norm(productionOrder.maSAP ?? "");
@@ -3078,7 +3078,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       const f_initialQuantity = norm(data.soLuongTrongThung ?? 0);
       const f_one = "1";
       const f_manufacturingDate = norm(manufacturingDate);
-      const f_expirationDate = norm(expirationDate);
+      const f_expirationDate = norm(expirationDate || "");
       const f_sapCode = norm(productionOrder.maSAP ?? "");
 
       const qrCodeValue = [
@@ -3103,21 +3103,20 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         existing.initialQuantity =
           Number(existing.initialQuantity || 0) +
           Number(data.soLuongTrongThung || 0);
-        existing.userData1 = totalQuantityAfterCreation.toString(); // Dùng giá trị tính trước
-        // cập nhật qrCode (nếu muốn ghi đè/đảm bảo tồn tại)
+        existing.userData1 = totalQuantityAfterCreation.toString();
         existing.qrCode = qrCodeValue;
-        // cập nhật các trường liên quan nếu cần
         existing.userData2 = data.rank ?? existing.userData2;
         existing.userData3 = productionOrder.tenHangHoa ?? existing.userData3;
         existing.userData4 = productionOrder.maSAP ?? existing.userData4;
         existing.userData5 =
           productionOrder.maLenhSanXuat ?? existing.userData5;
+        existing.tongSl = totalQuantityAfterCreation; // ===== SỬA: Cập nhật tongSl =====
         console.log(`Cộng dồn vào reelID ${reelID}:`, existing);
       } else {
         const reelData: ReelData = {
           reelID,
           partNumber: f_partNumber,
-          vendor: productionOrder.maLenhSanXuat || "",
+          vendor: "RD",
           lot: lotNumber,
           userData5: productionOrder.maLenhSanXuat || "",
           initialQuantity: data.soLuongTrongThung,
@@ -3125,7 +3124,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           trangThai: "Active",
           storageUnit: f_storageUnit,
           comments: data.comments ?? "",
-          userData1: totalQuantityAfterCreation.toString(), // Dùng giá trị tính trước
+          userData1: totalQuantityAfterCreation.toString(),
           userData2: data.rank ?? "",
           userData3: productionOrder.tenHangHoa,
           userData4: productionOrder.maSAP || "",
@@ -3146,7 +3145,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           expirationDate: f_expirationDate,
           manufacturingDate: f_manufacturingDate,
           partClass: "",
-          tongSl: productionOrder.tongSoLuong,
+          tongSl: totalQuantityAfterCreation, // ===== SỬA: Dùng tổng thực tế =====
           qrCode: qrCodeValue,
           note: data.note ?? "",
         };
@@ -3158,11 +3157,25 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       counter++;
     }
 
-    // Cập nhật tổng số lượng sau khi tạo xong
+    // ===== SỬA: Tính lại tổng sau khi tạo xong tất cả =====
+    const finalTotal = this.reelDataList.reduce(
+      (sum, r) => sum + (Number(r.initialQuantity) || 0),
+      0,
+    );
+
+    // Cập nhật lại tongSl cho tất cả reels với giá trị cuối cùng
+    this.reelDataList.forEach((reel) => {
+      reel.tongSl = finalTotal;
+      reel.userData1 = finalTotal.toString();
+    });
+
+    // Cập nhật tổng số lượng cho production order
     this.updateProductionOrderTotalBTP();
 
     console.log("Final reelDataList:", this.reelDataList);
     console.log(`Đã tạo ${this.reelDataList.length} reel items cho Tem BTP`);
+    console.log(`Tổng số lượng: ${finalTotal}`);
+
     if (this.maLenhSanXuatId == null) {
       console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
     } else {
@@ -3584,6 +3597,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       grouped[key].soLuongTrongThung = Math.round(
         grouped[key].soLuongSp / grouped[key].soLuongThung,
       );
+      // console.log("Total Groups sp:", grouped[key].soLuongSp);
     }
 
     const result: ReelGroup[] = Object.values(grouped).map((group, index) => ({
