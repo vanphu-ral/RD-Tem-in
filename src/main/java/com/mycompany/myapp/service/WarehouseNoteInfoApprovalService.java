@@ -28,6 +28,7 @@ import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -197,10 +198,31 @@ public class WarehouseNoteInfoApprovalService {
                 // Fetch reel IDs for this approval
                 List<ReelIdInWarehouseNoteInfoApproval> reelIds =
                     reelIdRepository.findByWarehouseNoteInfoApprovalId(id);
+                log.debug("Fetched reelIds: {}", reelIds);
                 List<Long> reelIdList = reelIds
                     .stream()
                     .map(ReelIdInWarehouseNoteInfoApproval::getId)
                     .collect(Collectors.toList());
+                log.debug("Reel ID list: {}", reelIdList);
+
+                // Map reelIds to DTOs and set in parentDTO
+                Set<ReelIdInWarehouseNoteInfoApprovalDTO> reelIdDTOs = reelIds
+                    .stream()
+                    .map(reel -> {
+                        ReelIdInWarehouseNoteInfoApprovalDTO dto =
+                            new ReelIdInWarehouseNoteInfoApprovalDTO();
+                        dto.setId(reel.getId());
+                        dto.setWarehouseNoteInfoApprovalId(
+                            reel.getWarehouseNoteInfoApproval().getId()
+                        );
+                        dto.setCreateAt(reel.getCreateAt());
+                        dto.setCreateBy(reel.getCreateBy());
+                        dto.setStatus(reel.getStatus());
+                        return dto;
+                    })
+                    .collect(Collectors.toSet());
+                log.debug("Reel ID DTOs: {}", reelIdDTOs);
+                parentDTO.setReelIds(reelIdDTOs);
 
                 // Fetch warehouse_note_info_details and filter by reel IDs
                 List<WarehouseNoteInfoDetail> allDetails =
