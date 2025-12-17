@@ -85,6 +85,8 @@ export class PlanningWorkOrderService {
 
   private baseUrl = environment.baseInTemApiUrl;
 
+  private testUrl = "http://192.168.10.99:9040/api";
+
   constructor(private http: HttpClient) {}
 
   // Lấy tất cả work order
@@ -227,7 +229,7 @@ export class PlanningWorkOrderService {
   //gui duyet btp
   sendBTPApproval(payload: any): Observable<any> {
     return this.http.post<any>(
-      `${this.baseUrl}/api//warehouse-note-infos-approval`,
+      `${this.baseUrl}/warehouse-note-infos-approval`,
       payload,
     );
   }

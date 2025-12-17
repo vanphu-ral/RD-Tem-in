@@ -1,7 +1,14 @@
 import { HttpClient, HttpResponse } from "@angular/common/http";
 import { ApplicationConfigService } from "app/core/config/application-config.service";
 import { IChiTietLenhSanXuat } from "app/entities/chi-tiet-lenh-san-xuat/chi-tiet-lenh-san-xuat.model";
-import { Component, OnInit, ViewChild, ElementRef, Input } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  ElementRef,
+  Input,
+  ChangeDetectorRef,
+} from "@angular/core";
 import { ActivatedRoute, Router, Routes } from "@angular/router";
 import * as XLSX from "xlsx";
 import { ILenhSanXuat } from "../lenh-san-xuat.model";
@@ -63,7 +70,6 @@ import {
   WmsDialogData,
 } from "../wms-approve-dialog/wms-approve-dialog.component";
 import { MatTableDataSource } from "@angular/material/table";
-
 export interface ProductionOrder {
   id?: number;
   maLenhSanXuat: string;
@@ -439,6 +445,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     private route: ActivatedRoute,
     protected applicationConfigService: ApplicationConfigService,
     protected lenhSanXuatService: LenhSanXuatService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -2335,6 +2342,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             existing.storage_unit = reel.storageUnit;
           }
         } else {
+          const now = new Date().toISOString();
           reelMap.set(key, {
             id: null, // KHÔNG CÓ ID -> Backend sẽ INSERT
             reel_id: reel.reelID,
@@ -2361,12 +2369,13 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             sap_code: reel.sapCode ?? "",
             ma_lenh_san_xuat_id: maLenhSanXuatId,
             lenh_san_xuat_id: null,
-            trang_thai: reel.trangThai ?? "ACTIVE",
+            trang_thai: reel.trangThai ?? "New",
             checked: 1,
             tp_nk: reel.TPNK ?? "",
             qr_code: reel.qrCode ?? "",
             rank: reel.rank ?? "",
             note_2: reel.note ?? "",
+            created_at: now,
           });
         }
       }
@@ -2375,9 +2384,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         ...warehouse_note_info_detail, // Các UPDATE items
         ...Array.from(reelMap.values()), // Các INSERT items
       ];
-    }
-    if (loaiSanPham === "Bán thành phẩm") {
-      this.refreshReelGroupsFromDetails();
     }
 
     console.log(`New Pallets to save: ${pallet_infor_detail.length}`);
@@ -2437,7 +2443,16 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             }
           } else {
             this.details = this.details ?? [];
-            this.details.push(b);
+            const reelData = this.reelDataList.find(
+              (r) => r.reelID === b.reel_id,
+            );
+            this.details.push({
+              ...b,
+              created_at: b.created_at || new Date().toISOString(), // ===== QUAN TRỌNG =====
+              tp_nk: reelData?.TPNK ?? b.tp_nk ?? "",
+              rank: reelData?.rank ?? b.rank ?? "",
+              note_2: reelData?.note ?? b.note_2 ?? "",
+            });
           }
         }
       });
@@ -2451,7 +2466,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           console.log(`Updated cache for reel ${update.reel_id}`);
         }
       });
-
+      if (loaiSanPham === "Bán thành phẩm") {
+        this.refreshReelGroupsFromDetails();
+        this.cdr.detectChanges();
+      }
       this.saveWarehouseNotes();
       this.computeBoxSummary();
       this.computePalletSummary();
@@ -3123,7 +3141,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           userData5: productionOrder.maLenhSanXuat || "",
           initialQuantity: data.soLuongTrongThung,
           sapCode: productionOrder.maSAP || "",
-          trangThai: "Active",
+          trangThai: "New",
           storageUnit: f_storageUnit,
           comments: data.comments ?? "",
           userData1: totalQuantityAfterCreation.toString(),
@@ -4196,13 +4214,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     if (!this.details || this.details.length === 0) {
       this.reelGroups = [];
       this.reelDataList = [];
+      console.log("No details to refresh");
       return;
     }
 
-    console.log("Refreshing reelGroups from details...");
+    console.log("🔄 Refreshing reelGroups from details...");
+    console.log("Details count:", this.details.length);
+    console.log("Sample detail:", this.details[0]);
 
     // Map lại details thành ReelGroup
     this.reelGroups = this.mapDetailsToReelData(this.details as unknown[]);
+
+    console.log("✅ ReelGroups after refresh:", this.reelGroups.length);
 
     // Flatten lại reelDataList từ reelGroups
     const flatReels: ReelData[] = this.reelGroups.reduce(
@@ -4211,7 +4234,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           id: si.id,
           reelID: si.reelID,
           partNumber: si.partNumber ?? g.partNumber ?? "",
-          vendor: g.vendor ?? "",
+          vendor: g.vendor ?? "RD",
           lot: si.lot ?? g.lot ?? "",
           userData1: si.userData1 ?? "",
           userData2: si.userData2 ?? "",
@@ -4225,7 +4248,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           marketUsage: "",
           quantityOverride: "",
           shelfTime: "",
-          spMaterialName: g.tenSanPham ?? "",
+          spMaterialName: "",
           warningLimit: "",
           maximumLimit: "",
           comments: si.comments ?? g.comments ?? "",
@@ -4237,7 +4260,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           manufacturingDate: si.manufacturingDate ?? "",
           partClass: "",
           sapCode: g.sapCode ?? "",
-          trangThai: g.trangThai ?? "Active",
+          trangThai: g.trangThai ?? "New",
           TPNK: si.TPNK ?? "",
           rank: si.rank ?? "",
           qrCode: si.qrCode ?? "",
@@ -4263,8 +4286,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.productionOrders[0].tongSoLuong = total;
     }
 
-    console.log("✓ ReelGroups refreshed:", this.reelGroups.length);
-    console.log("✓ ReelDataList refreshed:", this.reelDataList.length);
+    console.log("✅ ReelDataList refreshed:", this.reelDataList.length);
+    console.log("Total quantity:", total);
   }
 
   // Helper method xử lý production order mới
