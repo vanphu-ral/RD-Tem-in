@@ -37,6 +37,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     this.applicationConfigService.getEndpointFor(
       "/api/warehouse-note-infos-approval",
     );
+  // resourceUrlWarehouseNoteApprovalInfo = "http://192.168.68.77:8080/api/warehouse-note-infos-approval";
   selectedAllResult?: boolean;
   selectedAll = 1;
   checkedList: any;
@@ -245,9 +246,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       this.chiTietLenhSanXuats = warehouseNoteInfoDetails;
 
       //lấy danh sách chi tiết lsx ở trạng thái active
-      this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-        (a) => a.trang_thai === "Active",
-      );
+      this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats;
       this.itemPerPage = this.chiTietLenhSanXuatActive.length;
 
       console.log(

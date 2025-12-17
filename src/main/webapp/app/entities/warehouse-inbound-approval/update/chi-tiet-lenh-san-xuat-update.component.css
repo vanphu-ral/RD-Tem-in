@@ -6,7 +6,6 @@ table {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   overflow: hidden;
-  overflow-y: auto;
 }
 
 .table-responsive {
@@ -42,7 +41,7 @@ th {
   white-space: normal;
   /* Cho phép wrap */
   word-wrap: break-word;
-  min-width: 60px;
+  min-width: 80px;
   /* Đảm bảo chiều rộng tối thiểu */
   line-height: 1.3;
   border-right: 1px solid rgba(255, 255, 255, 0.1);

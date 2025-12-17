@@ -84,6 +84,7 @@ export class PlanningWorkOrderService {
     "http://192.168.68.77:9040/api/warehouse-note-infos/work-order-code";
 
   private baseUrl = environment.baseInTemApiUrl;
+  // private baseUrl = "192.168.68.77:9040";
 
   private testUrl = "http://192.168.10.99:9040/api";
 
