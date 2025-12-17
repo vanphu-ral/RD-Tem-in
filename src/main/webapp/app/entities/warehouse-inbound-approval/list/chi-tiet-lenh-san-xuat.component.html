@@ -509,7 +509,8 @@
               <button
                 *ngIf="
                   lenhSanXuat.trang_thai === 'Chờ duyệt' ||
-                  lenhSanXuat.trang_thai === 'Đã phê duyệt'
+                  lenhSanXuat.trang_thai === 'Đã phê duyệt' ||
+                  lenhSanXuat.trang_thai === 'Pending'
                 "
                 type="button"
                 [routerLink]="[

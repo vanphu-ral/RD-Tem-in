@@ -82,17 +82,17 @@ public class WarehouseNoteInfoWithChildrenDTO implements Serializable {
     public String toString() {
         return (
             "WarehouseNoteInfoWithChildrenDTO{" +
-            "warehouseNoteInfo=" +
+            "warehouse_note_info=" +
             warehouseNoteInfo +
-            ", warehouseNoteInfoDetailsCount=" +
+            ", warehouse_note_info_details_count=" +
             (warehouseNoteInfoDetails != null
                     ? warehouseNoteInfoDetails.size()
                     : 0) +
-            ", serialBoxPalletMappingsCount=" +
+            ", serial_box_pallet_mappings_count=" +
             (serialBoxPalletMappings != null
                     ? serialBoxPalletMappings.size()
                     : 0) +
-            ", palletInforDetailsCount=" +
+            ", pallet_infor_details_count=" +
             (palletInforDetails != null ? palletInforDetails.size() : 0) +
             "}"
         );

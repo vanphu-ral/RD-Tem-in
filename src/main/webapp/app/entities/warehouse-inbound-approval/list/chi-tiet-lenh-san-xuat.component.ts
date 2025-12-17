@@ -188,6 +188,11 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
           statusElement.style.color = "#7A6A00";
           statusElement.style.border = "1px solid #F0E68C";
           break;
+        case "Pending":
+          statusElement.style.backgroundColor = "#FFF9B0"; // vàng dịu từ #FFFF33
+          statusElement.style.color = "#7A6A00";
+          statusElement.style.border = "1px solid #F0E68C";
+          break;
         case "Đã phê duyệt":
           statusElement.style.backgroundColor = "#C6F6D5"; // xanh lá pastel từ #00FF00
           statusElement.style.color = "#3F6D52";
@@ -231,6 +236,11 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     const styles: any = {};
     switch (trangThai) {
       case "Chờ duyệt":
+        styles.backgroundColor = "#FFF9B0";
+        styles.color = "#7A6A00";
+        styles.border = "1px solid #F0E68C";
+        break;
+      case "Pending":
         styles.backgroundColor = "#FFF9B0";
         styles.color = "#7A6A00";
         styles.border = "1px solid #F0E68C";
