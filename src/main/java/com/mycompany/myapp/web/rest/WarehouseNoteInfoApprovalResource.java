@@ -7,15 +7,22 @@ import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalWithChildrenDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Optional;
 import javax.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import tech.jhipster.web.util.HeaderUtil;
+import tech.jhipster.web.util.PaginationUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
 /**
@@ -111,6 +118,30 @@ public class WarehouseNoteInfoApprovalResource {
                 )
             )
             .body(result);
+    }
+
+    /**
+     * {@code GET  /warehouse-note-infos-approval} : get all the
+     * warehouseNoteInfoApprovals.
+     *
+     * @param pageable the pagination information.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of warehouseNoteInfoApprovals in body.
+     */
+    @GetMapping("/warehouse-note-infos-approval")
+    public ResponseEntity<
+        List<WarehouseNoteInfoApprovalDTO>
+    > getAllWarehouseNoteInfoApprovals(
+        @org.springdoc.api.annotations.ParameterObject Pageable pageable
+    ) {
+        log.debug("REST request to get a page of WarehouseNoteInfoApprovals");
+        Page<WarehouseNoteInfoApprovalDTO> page =
+            warehouseNoteInfoApprovalService.findAll(pageable);
+        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
+            ServletUriComponentsBuilder.fromCurrentRequest(),
+            page
+        );
+        return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
 
     /**

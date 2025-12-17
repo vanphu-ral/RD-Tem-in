@@ -10,5 +10,5 @@ export const environment = {
     clientId: "tem_in",
     adminApiUsers: "/auth/admin/realms/QLSX/users",
   },
-  baseInTemApiUrl: "http://192.168.68.77:9040/api",
+  baseInTemApiUrl: "http://localhost:9040/api",
 };

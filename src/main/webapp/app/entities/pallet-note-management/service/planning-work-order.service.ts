@@ -116,7 +116,14 @@ export class PlanningWorkOrderService {
       { observe: "response" },
     );
   }
-
+  findWarehouseNoteApprovalWithChildren(
+    maLenhSanXuatId: number,
+  ): Observable<HttpResponse<any>> {
+    return this.http.get<any>(
+      `${this.baseUrl}/warehouse-note-infos-approval/${maLenhSanXuatId}/with-children`,
+      { observe: "response" },
+    );
+  }
   //tạo đơn chính
   createWarehouseNote(payload: WarehouseNotePayload): Observable<any> {
     return this.http.post(`${this.baseUrl}/warehouse-note-infos`, payload);

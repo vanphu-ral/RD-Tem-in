@@ -30,7 +30,7 @@ import { PageEvent } from "@angular/material/paginator";
 })
 export class ChiTietLenhSanXuatComponent implements OnInit {
   resourceUrlApprove = this.applicationConfigService.getEndpointFor(
-    "api/warehouse-note-infos/not-draft",
+    "api/warehouse-note-infos-approval",
   );
   totalDataUrl = this.applicationConfigService.getEndpointFor(
     "api/warehouse-note-infos/not-draft/totaldata",
