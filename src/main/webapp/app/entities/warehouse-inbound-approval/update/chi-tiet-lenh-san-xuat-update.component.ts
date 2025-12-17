@@ -33,6 +33,10 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   resourceUrlWarehouseNoteInfo = this.applicationConfigService.getEndpointFor(
     "/api/warehouse-note-infos",
   );
+  resourceUrlWarehouseNoteApprovalInfo =
+    this.applicationConfigService.getEndpointFor(
+      "/api/warehouse-note-infos-approval",
+    );
   selectedAllResult?: boolean;
   selectedAll = 1;
   checkedList: any;
@@ -404,7 +408,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   pheDuyetTem(): void {
     const id = this.editForm.get(["id"])!.value;
     this.http
-      .patch(`${this.resourceUrlWarehouseNoteInfo}/${id}`, {
+      .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
         trang_thai: "Đã phê duyệt",
       })
       .subscribe(() => {
@@ -416,7 +420,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   khoHuyStatus(): void {
     const id = this.editForm.get(["id"])!.value;
     this.http
-      .patch(`${this.resourceUrlWarehouseNoteInfo}/${id}`, {
+      .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
         trang_thai: "Kho hủy",
       })
       .subscribe(() => {
@@ -428,7 +432,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   khoTuChoiStatus(): void {
     const id = this.editForm.get(["id"])!.value;
     this.http
-      .patch(`${this.resourceUrlWarehouseNoteInfo}/${id}`, {
+      .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
         trang_thai: "Từ chối",
       })
       .subscribe(() => {

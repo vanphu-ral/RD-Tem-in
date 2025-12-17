@@ -190,4 +190,70 @@ public class WarehouseNoteInfoApprovalResource {
             warehouseNoteInfoApprovalWithChildrenDTO
         );
     }
+
+    /**
+     * {@code PATCH  /warehouse-note-infos-approval/:id} : Update an existing
+     * warehouseNoteInfoApproval with nested reelIds in partner3 database.
+     *
+     * @param id         the id of the warehouseNoteInfoApproval to update.
+     * @param requestDTO the warehouseNoteInfoApprovalRequestDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated warehouseNoteInfoApprovalDTO, or with status
+     *         {@code 400 (Bad Request)} if the request is invalid.
+     */
+    @PatchMapping("/warehouse-note-infos-approval/{id}")
+    public ResponseEntity<
+        WarehouseNoteInfoApprovalDTO
+    > updateWarehouseNoteInfoApproval(
+        @PathVariable("id") Long id,
+        @Valid @RequestBody WarehouseNoteInfoApprovalRequestDTO requestDTO
+    ) {
+        log.debug(
+            "REST request to update WarehouseNoteInfoApproval : {} with data: {}",
+            id,
+            requestDTO
+        );
+
+        if (requestDTO == null) {
+            throw new BadRequestAlertException(
+                "warehouseNoteInfoApproval is required",
+                ENTITY_NAME,
+                "missing"
+            );
+        }
+
+        // Validate that at least the main fields are provided
+        if (
+            requestDTO.getMaLenhSanXuat() == null ||
+            requestDTO.getMaLenhSanXuat().isEmpty()
+        ) {
+            throw new BadRequestAlertException(
+                "maLenhSanXuat is required",
+                ENTITY_NAME,
+                "maLenhSanXuatRequired"
+            );
+        }
+
+        WarehouseNoteInfoApprovalDTO result =
+            warehouseNoteInfoApprovalService.update(id, requestDTO);
+
+        if (result == null || result.getId() == null) {
+            throw new BadRequestAlertException(
+                "Failed to update warehouseNoteInfoApproval",
+                ENTITY_NAME,
+                "updatefailed"
+            );
+        }
+
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createEntityUpdateAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    result.getId().toString()
+                )
+            )
+            .body(result);
+    }
 }

@@ -21,7 +21,7 @@ export class ChiTietLenhSanXuatEditRoutingResolveService {
   resolve(route: ActivatedRouteSnapshot): Observable<any> {
     const id = route.params["id"];
     if (id) {
-      return this.service.findWarehouseNoteWithChildren(+id).pipe(
+      return this.service.findWarehouseNoteApprovalWithChildren(+id).pipe(
         mergeMap((response: HttpResponse<any>) => {
           console.log("[DEBUG EDIT RESOLVER] Full response:", response);
           console.log("[DEBUG EDIT RESOLVER] Response body:", response.body);

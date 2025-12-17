@@ -249,6 +249,97 @@ public class WarehouseNoteInfoApprovalService {
     }
 
     /**
+     * Update a WarehouseNoteInfoApproval with nested ReelIds.
+     *
+     * @param id         the ID of the approval to update
+     * @param requestDTO the request DTO containing updated approval info and reel
+     *                   IDs
+     * @return the updated WarehouseNoteInfoApprovalDTO
+     */
+    public WarehouseNoteInfoApprovalDTO update(
+        Long id,
+        WarehouseNoteInfoApprovalRequestDTO requestDTO
+    ) {
+        log.debug("Updating WarehouseNoteInfoApproval with id: {}", id);
+
+        // Find existing approval
+        WarehouseNoteInfoApproval existingApproval =
+            warehouseNoteInfoApprovalRepository
+                .findById(id)
+                .orElseThrow(() ->
+                    new RuntimeException(
+                        "WarehouseNoteInfoApproval not found with id: " + id
+                    )
+                );
+
+        // Update the main approval entity
+        existingApproval.setWarehouseNoteInfoId(
+            requestDTO.getWarehouseNoteInfoId()
+        );
+        existingApproval.setMaLenhSanXuat(requestDTO.getMaLenhSanXuat());
+        existingApproval.setSapCode(requestDTO.getSapCode());
+        existingApproval.setSapName(requestDTO.getSapName());
+        existingApproval.setWorkOrderCode(requestDTO.getWorkOrderCode());
+        existingApproval.setVersion(requestDTO.getVersion());
+        existingApproval.setStorageCode(requestDTO.getStorageCode());
+        existingApproval.setTotalQuantity(requestDTO.getTotalQuantity());
+        existingApproval.setCreateBy(requestDTO.getCreateBy());
+        existingApproval.setTrangThai(requestDTO.getTrangThai());
+        existingApproval.setComment(requestDTO.getComment());
+        existingApproval.setTimeUpdate(Instant.now());
+        existingApproval.setGroupName(requestDTO.getGroupName());
+        existingApproval.setComment2(requestDTO.getComment2());
+        existingApproval.setApproverBy(requestDTO.getApproverBy());
+        existingApproval.setBranch(requestDTO.getBranch());
+        existingApproval.setProductType(requestDTO.getProductType());
+        existingApproval.setDestinationWarehouse(
+            requestDTO.getDestinationWarehouse()
+        );
+
+        // Save the updated main approval entity
+        WarehouseNoteInfoApproval updatedApproval =
+            warehouseNoteInfoApprovalRepository.save(existingApproval);
+        log.debug(
+            "Updated WarehouseNoteInfoApproval with id: {}",
+            updatedApproval.getId()
+        );
+
+        // Update ReelIds - first delete existing ones and then create new ones
+        if (requestDTO.getListWarehouseNoteDetail() != null) {
+            // Delete existing reel IDs
+            reelIdRepository.deleteByWarehouseNoteInfoApprovalId(id);
+            log.debug(
+                "Deleted existing ReelIds for WarehouseNoteInfoApproval: {}",
+                id
+            );
+
+            // Create and save new ReelIds
+            for (ReelIdRequestDTO reelIdRequest : requestDTO.getListWarehouseNoteDetail()) {
+                ReelIdInWarehouseNoteInfoApproval reelId =
+                    new ReelIdInWarehouseNoteInfoApproval();
+                reelId.setId(reelIdRequest.getId());
+                reelId.setCreateAt(
+                    reelIdRequest.getCreateAt() != null
+                        ? reelIdRequest.getCreateAt()
+                        : Instant.now()
+                );
+                reelId.setCreateBy(reelIdRequest.getCreateBy());
+                reelId.setStatus("pending"); // Set default status
+                reelId.setWarehouseNoteInfoApproval(updatedApproval);
+
+                reelIdRepository.save(reelId);
+                log.debug(
+                    "Saved ReelId: {} for WarehouseNoteInfoApproval: {}",
+                    reelId.getId(),
+                    updatedApproval.getId()
+                );
+            }
+        }
+
+        return convertToDTO(updatedApproval);
+    }
+
+    /**
      * Get all WarehouseNoteInfoApprovals.
      *
      * @param pageable the pagination information.
