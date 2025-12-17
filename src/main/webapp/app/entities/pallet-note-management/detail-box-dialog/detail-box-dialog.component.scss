@@ -46,8 +46,8 @@
 
 .dialog-content {
   padding: 24px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow-y: auto; // Chỉ scroll theo chiều dọc
+  overflow-x: visible; // Cho phép tràn ngang
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -152,6 +152,7 @@
   .table-container {
     flex: 1;
     overflow-x: auto;
+    overflow-y: visible; // Quan trọng: cho phép tràn dọc
     border: 1px solid #e5e7eb;
     border-radius: 8px;
   }
@@ -227,6 +228,63 @@
   }
 }
 
+.qr-wrapper {
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+  &:hover {
+    z-index: 9999; // Nâng lên cao nhất khi hover
+  }
+}
+.qr-img {
+  display: block;
+  cursor: pointer;
+}
+::ng-deep {
+  .mat-mdc-dialog-container {
+    overflow: visible !important;
+  }
+
+  .cdk-overlay-pane {
+    overflow: visible !important;
+  }
+}
+.qr-zoom {
+  position: fixed; // FIXED - không phải absolute!
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  padding: 12px;
+  background: white;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  z-index: 99999;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -8px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #3b82f6;
+  }
+}
+
+.qr-wrapper:hover .qr-zoom {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
 // Table Styles
 .box-table {
   width: 100%;
@@ -240,6 +298,9 @@
     padding: 16px 12px;
     text-align: center;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 
     &:last-child {
       border-right: none;
@@ -252,10 +313,17 @@
     border-bottom: 1px solid #e5e7eb;
     font-size: 14px;
     color: #1f2937;
+    overflow: visible; // Quan trọng
+    position: relative;
   }
 
-  tr.mat-row:hover {
-    background-color: #f9fafb;
+  tr.mat-row {
+    position: relative;
+
+    &:hover {
+      background-color: #f9fafb;
+      z-index: 1; // Nâng row lên khi hover
+    }
   }
 
   .box-code {

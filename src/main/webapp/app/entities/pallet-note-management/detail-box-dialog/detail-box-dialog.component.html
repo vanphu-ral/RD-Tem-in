@@ -68,16 +68,31 @@
         <ng-container matColumnDef="maThung">
           <th mat-header-cell *matHeaderCellDef>QR thùng</th>
           <td mat-cell *matCellDef="let element">
-            <qrcode
-              #qrElem
-              class="qr-img"
-              [qrdata]="
-                data.isBtp ? element.qrCode || element.maThung : element.maThung
-              "
-              [width]="80"
-              [errorCorrectionLevel]="'M'"
-              elementType="canvas"
-            ></qrcode>
+            <div class="qr-wrapper">
+              <qrcode
+                class="qr-img"
+                [qrdata]="
+                  data.isBtp
+                    ? element.qrCode || element.maThung
+                    : element.maThung
+                "
+                [width]="80"
+                elementType="canvas"
+              ></qrcode>
+
+              <!-- QR phóng to -->
+              <div class="qr-zoom">
+                <qrcode
+                  [qrdata]="
+                    data.isBtp
+                      ? element.qrCode || element.maThung
+                      : element.maThung
+                  "
+                  [width]="220"
+                  elementType="canvas"
+                ></qrcode>
+              </div>
+            </div>
           </td>
         </ng-container>
 

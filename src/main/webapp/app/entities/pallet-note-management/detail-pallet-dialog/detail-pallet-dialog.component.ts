@@ -533,6 +533,7 @@ export class PalletDetailDialogComponent implements OnInit {
         console.warn(`Skipping item ${index + 1} - no source data`);
         return;
       }
+      const boxItemsToUse = sourceData.boxItems ?? this.boxItems;
 
       // ===== TÍNH TOÁN SỐ LƯỢNG THEO LOẠI SẢN PHẨM =====
       let tongSoSanPhamTrongPallet = 0;
@@ -546,7 +547,7 @@ export class PalletDetailDialogComponent implements OnInit {
           item.scannedBoxes.forEach((scannedSerial, boxIndex) => {
             const trimmedSerial = scannedSerial.trim();
 
-            for (const box of sourceData.boxItems ?? []) {
+            for (const box of boxItemsToUse ?? []) {
               // Ưu tiên check subItems trước
               const subItem = box.subItems?.find(
                 (sub: { maThung: string }) => sub.maThung === trimmedSerial,
@@ -580,7 +581,7 @@ export class PalletDetailDialogComponent implements OnInit {
             const trimmedSerial = scannedSerial.trim();
 
             // Tìm trong reelDataList (đã được truyền vào boxItems)
-            const reel = (sourceData.boxItems ?? []).find(
+            const reel = boxItemsToUse.find(
               (r: any) => r.reelID === trimmedSerial,
             );
 
@@ -652,6 +653,8 @@ export class PalletDetailDialogComponent implements OnInit {
     console.log(`Total pallets: ${allPrintData.length}`);
     console.log(`Product Type: ${allPrintData[0]?.productType}`);
     console.log("All print data:", allPrintData);
+    console.log("palletBoxItems at print time:", this.palletBoxItems);
+    console.log("palletSources at print time:", this.palletSources);
 
     if (allPrintData.length === 0) {
       console.error("No print data generated!");
@@ -849,6 +852,9 @@ export class PalletDetailDialogComponent implements OnInit {
       this.singlePalletData = this.data as PalletDetailData;
       this.palletSources = [this.singlePalletData];
     }
+    console.log("Dialog init data:", this.data);
+    console.log("palletSources (from data):", this.palletSources);
+    console.log("palletBoxItems (initial):", this.palletBoxItems);
   }
 
   private hasMode(data: any): data is MultiPalletDialogData {
