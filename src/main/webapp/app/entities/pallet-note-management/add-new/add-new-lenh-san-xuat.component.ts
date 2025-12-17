@@ -149,6 +149,7 @@ export interface ReelData {
   qrCode?: string;
   tongSl?: number;
   note?: string;
+  createdAt?: string;
 }
 export interface ReelSubItem {
   id?: number;
@@ -172,7 +173,7 @@ export interface ReelSubItem {
 }
 
 export interface ReelGroup {
-  // thông tin group (gộp theo created_at)
+  id?: number;
   reelGroupCreatedAt: string;
   stt: number;
   partNumber?: string;
@@ -833,6 +834,33 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             const latestId =
               latestItem.id ?? latestItem.warehouse_note_info?.id ?? null;
 
+            // --- NEW: nếu bất kỳ item nào có trạng thái Approved -> dừng và thông báo ---
+            const hasApproved = sortedRes.some((it: any) => {
+              // kiểm tra cả trường trực tiếp và trong warehouse_note_info
+              const statusDirect = (it.trang_thai ?? it.trangThai) as
+                | string
+                | undefined;
+              const statusNested =
+                it.warehouse_note_info?.trang_thai ??
+                it.warehouse_note_info?.trangThai;
+              return statusDirect === "Approved" || statusNested === "Approved";
+            });
+
+            if (hasApproved) {
+              console.log(
+                "onApply: checkIdentifyWo returned an Approved order, aborting flow",
+                sortedRes,
+              );
+              this.snackBar.open(
+                "Lệnh này đã hoàn thành, hãy thử lệnh khác",
+                "Đóng",
+                { duration: 4000, panelClass: ["snackbar-info"] },
+              );
+              // Trả về observable dạng ERROR để pipeline dừng (subscriber sẽ set loading = false)
+              return of({ type: "ERROR" as const, data: null, id: null });
+            }
+            // --- END NEW ---
+
             if (!latestId) {
               console.warn("Không tìm thấy id trong checkRes, fallback search");
               return this.searchWorkOrder(woId!);
@@ -841,9 +869,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             // Navigate đến URL mới với id mới nhất
             this.router.navigate(
               ["/warehouse-note-infos", latestId, "add-new"],
-              {
-                replaceUrl: true,
-              },
+              { replaceUrl: true },
             );
 
             // Gọi API lấy chi tiết
@@ -1356,18 +1382,16 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   //detail pallet
   openPalletDetailDialog(pallet: PalletItem): void {
-    // Extract valid reel IDs from box items (the actual box serials)
     const validReelIds: string[] = [];
-
     if (this.warehouseNoteInfo?.product_type === "Thành phẩm") {
       this.boxItems.forEach((box) => {
-        box.subItems.forEach((subItem) => {
-          if (subItem.maThung && subItem.maThung.trim()) {
-            validReelIds.push(subItem.maThung.trim());
+        (box.subItems || []).forEach((sub) => {
+          if (sub.maThung && sub.maThung.trim()) {
+            validReelIds.push(sub.maThung.trim());
           }
         });
       });
-    } else if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
+    } else {
       this.reelDataList.forEach((reel) => {
         if (reel.reelID && reel.reelID.trim()) {
           validReelIds.push(reel.reelID.trim());
@@ -1375,54 +1399,52 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
     }
 
-    console.log("Product type:", this.warehouseNoteInfo?.product_type);
-    console.log("Box items:", this.boxItems);
-    console.log("Reel data list:", this.reelDataList);
-    console.log("Extracted valid reel IDs:", validReelIds);
-    console.log("maLenhSanXuatId:", this.maLenhSanXuatId);
+    const firstSub =
+      pallet.subItems && pallet.subItems.length > 0 ? pallet.subItems[0] : null;
+
+    // KHỞI TẠO các trường chỉ có trong PalletDetailData nếu PalletItem không có
+    const singleDetail: PalletDetailData = {
+      id: pallet.id,
+      stt: pallet.stt ?? 1,
+      tenSanPham: pallet.tenSanPham ?? "",
+      noSKU: pallet.noSKU ?? "",
+      createdAt: pallet.createdAt ?? "",
+      tongPallet: pallet.tongPallet ?? 1,
+      tongSlSp: pallet.tongSlSp ?? 0,
+      tongSoThung: firstSub?.tongSoThung ?? pallet.tongSoThung ?? 0,
+      thungScan: firstSub?.thungScan ?? pallet.thungScan ?? 1,
+      serialPallet: firstSub?.maPallet ?? (pallet as any).serialPallet ?? "",
+      khachHang: pallet.khachHang ?? "",
+      poNumber: pallet.poNumber ?? "",
+      dateCode: pallet.dateCode ?? "",
+      qdsx: pallet.qdsx ?? "",
+      note: pallet.note ?? "",
+      nguoiKiemTra: pallet.nguoiKiemTra ?? "",
+      ketQuaKiemTra: pallet.ketQuaKiemTra ?? "",
+      branch: pallet.nganh ?? this.productionOrders?.[0]?.nganh ?? "",
+      team: pallet.to ?? this.productionOrders?.[0]?.to ?? "",
+      maLenhSanXuatId: pallet.maLenhSanXuatId ?? this.maLenhSanXuatId,
+      validReelIds: validReelIds,
+      // KHỞI TẠO mặc định cho tiến độ / scanned list
+      tienDoScan: (pallet as any).tienDoScan ?? 0,
+      scannedBoxes: (pallet as any).scannedBoxes ?? [],
+      printStatus: (pallet as any).trangThaiIn ?? false,
+      boxItems:
+        this.warehouseNoteInfo?.product_type === "Thành phẩm"
+          ? this.boxItems
+          : this.reelDataList,
+      productType: this.warehouseNoteInfo?.product_type ?? "Thành phẩm",
+      version: this.warehouseNoteInfo?.version ?? "",
+      maSAP: this.warehouseNoteInfo?.sap_code ?? pallet.tenSanPham ?? "",
+      woId: this.warehouseNoteInfo?.work_order_code ?? "",
+      erpWo: this.warehouseNoteInfo?.work_order_code ?? "",
+      maLenhSanXuat: this.warehouseNoteInfo?.ma_lenh_san_xuat ?? "",
+      subItems: pallet.subItems ?? [],
+    };
 
     const dialogData: MultiPalletDialogData = {
       mode: "single",
-      singleData: {
-        id: pallet.id,
-        stt: pallet.stt,
-        tenSanPham: pallet.tenSanPham,
-        noSKU: pallet.noSKU,
-        createdAt: pallet.createdAt,
-        tongPallet: pallet.tongPallet,
-        tongSlSp: pallet.tongSlSp,
-        tongSoThung: pallet.tongSoThung,
-        thungScan: pallet.thungScan,
-        serialPallet: pallet.serialPallet,
-        //  THÊM CÁC FIELD CẦN CHO PRINT
-        khachHang: pallet.khachHang,
-        poNumber: pallet.poNumber,
-        dateCode: pallet.dateCode,
-        qdsx: pallet.qdsx,
-        nguoiKiemTra: pallet.nguoiKiemTra,
-        ketQuaKiemTra: pallet.ketQuaKiemTra,
-        subItems: pallet.subItems || [],
-        branch: this.productionOrders[0]?.nganh ?? "",
-        team: this.productionOrders[0]?.to ?? "",
-        note: pallet.note ?? "",
-        // Add box data for print dialog
-        boxItems:
-          this.warehouseNoteInfo?.product_type === "Thành phẩm"
-            ? this.boxItems
-            : this.reelDataList, // <-- Thêm reelDataList cho bán thành phẩm
-
-        maLenhSanXuatId: this.maLenhSanXuatId,
-        validReelIds: validReelIds,
-        printStatus: pallet.trangThaiIn,
-
-        // ===== TRUYỀN ĐẦY ĐỦ THÔNG TIN SẢN PHẨM =====
-        productType: this.warehouseNoteInfo?.product_type ?? "Thành phẩm",
-        version: this.warehouseNoteInfo?.version ?? "",
-        maSAP: this.warehouseNoteInfo?.sap_code ?? pallet.tenSanPham ?? "",
-        woId: this.warehouseNoteInfo?.work_order_code ?? "",
-        erpWo: this.warehouseNoteInfo?.work_order_code ?? "",
-        maLenhSanXuat: this.warehouseNoteInfo?.ma_lenh_san_xuat ?? "",
-      },
+      singleData: singleDetail,
     };
 
     const dialogRef = this.dialog.open(PalletDetailDialogComponent, {
@@ -1510,10 +1532,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   openPackagePalletDialog(): void {
-    // Prepare valid reel IDs (whitelist) from current data so package flow can pass it to scan dialog
     const validReelIds: string[] = [];
     if (this.warehouseNoteInfo?.product_type === "Thành phẩm") {
-      // collect all box serials (subItems.maThung)
       this.boxItems.forEach((box) => {
         (box.subItems || []).forEach((sub) => {
           if (sub.maThung && sub.maThung.trim()) {
@@ -1522,7 +1542,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         });
       });
     } else if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
-      // collect reel IDs
       this.reelDataList.forEach((r) => {
         if (r.reelID && r.reelID.trim()) {
           validReelIds.push(r.reelID.trim());
@@ -1530,7 +1549,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
     }
 
-    // Flatten tất cả pallet con từ palletItems
     const allPallets: PalletDetailData[] = this.palletItems.reduce(
       (acc: PalletDetailData[], pallet: PalletItem, parentIndex: number) => {
         const subData = pallet.subItems.map(
@@ -1541,7 +1559,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             noSKU: pallet.noSKU,
             createdAt: pallet.createdAt,
             tongPallet: 1,
-            // Đừng nhồi số thùng vào tongSlSp; nếu không dùng, set 0 cho an toàn
             tongSlSp: pallet.tongSlSp,
             tongSoThung: sub.tongSoThung ?? 0,
             thungScan: sub.thungScan ?? 1,
@@ -1560,10 +1577,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             tienDoScan: 0,
             scannedBoxes: [],
             printStatus: pallet.trangThaiIn,
-
-            // Quan trọng: cung cấp index của pallet cha để onPrintAll lấy đúng source
             parentPalletIndex: parentIndex,
-            boxItems: this.boxItems,
+            boxItems:
+              this.warehouseNoteInfo?.product_type === "Bán thành phẩm"
+                ? this.reelDataList
+                : this.boxItems,
+
+            productType: this.warehouseNoteInfo?.product_type ?? "Thành phẩm",
+            version: this.warehouseNoteInfo?.version ?? "",
+            maSAP: this.warehouseNoteInfo?.sap_code ?? pallet.tenSanPham ?? "",
+            woId: this.warehouseNoteInfo?.work_order_code ?? "",
+            erpWo: this.warehouseNoteInfo?.work_order_code ?? "",
+            maLenhSanXuat: this.warehouseNoteInfo?.ma_lenh_san_xuat ?? "",
           }),
         );
         return acc.concat(subData);
@@ -1571,22 +1596,27 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       [],
     );
 
-    // ===== LOADING INDICATOR =====
-    this.snackBar.open("Đang tải tiến độ scan...", "", {
-      duration: 0, // Không tự đóng
-    });
+    this.snackBar.open("Đang tải tiến độ scan...", "", { duration: 0 });
 
-    // ===== ĐỢI LOAD XONG MỚI MỞ DIALOG =====
-    this.loadAllPalletProgressAsync(allPallets).then(() => {
-      // Đóng loading snackbar
+    // Đợi Promise hoàn tất và nhận kết quả
+    this.loadAllPalletProgressAsync(allPallets).then((updatedPallets) => {
       this.snackBar.dismiss();
 
-      console.log(" Đã load xong tiến độ, mở dialog:", allPallets);
+      // Log sau khi đã update xong
+      // console.log("Đã load xong tiến độ:");
+      updatedPallets.forEach((p) => {
+        console.log(
+          `  ${p.serialPallet}: ${p.tienDoScan}/${p.tongSoThung} (${p.scannedBoxes?.length || 0} boxes)`,
+        );
+      });
 
       const dialogData: MultiPalletDialogData = {
         mode: "multiple",
-        multipleData: allPallets,
-        boxItems: this.boxItems,
+        multipleData: updatedPallets, // Dùng updatedPallets thay vì allPallets
+        boxItems:
+          this.warehouseNoteInfo?.product_type === "Bán thành phẩm"
+            ? this.reelDataList
+            : this.boxItems,
       };
 
       const dialogRef = this.dialog.open(PalletDetailDialogComponent, {
@@ -1600,7 +1630,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
       dialogRef.afterClosed().subscribe((result) => {
         if (result) {
-          console.log("Package completed:", result);
+          // console.log("Package completed:", result);
           this.handlePackageComplete(result);
         }
       });
@@ -1690,22 +1720,216 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     this.goToCreateTemTab();
   }
 
-  //xoa trong bang box
-  // deleteBox(index: number): void {
-  //   // Xoá  index
-  //   this.boxItems = this.boxItems.filter((_, i) => i !== index);
+  //xoa BTP
+  deleteReelGroup(index: number): void {
+    // console.log('deleteReelGroup called with param=', param);
+    const group = Array.isArray(this.reelGroups)
+      ? this.reelGroups[index]
+      : undefined;
+    if (!group) {
+      console.warn("deleteReelGroup: Không tìm thấy group tại index=", index);
+      this.snackBar.open("Không tìm thấy nhóm để xóa.", "Đóng", {
+        duration: 3000,
+        panelClass: ["snackbar-error"],
+      });
+      return;
+    }
 
-  //   //cập nhật lại STT
-  //   this.boxItems = this.boxItems.map((box, idx) => ({
-  //     ...box,
-  //     stt: idx + 1,
-  //   }));
+    const displayName =
+      group.tenSanPham ?? group.partNumber ?? `Group ${group.stt}`;
+    const subCount = Array.isArray(group.subItems) ? group.subItems.length : 0;
 
-  //   // Cập nhật lại tổng số lượng ở bảng 1
-  //   this.updateProductionOrderTotal();
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: "520px",
+      data: {
+        title: "Xác nhận xóa nhóm Bán thành phẩm",
+        message: `Bạn có chắc muốn xóa nhóm "${displayName}" gồm ${subCount} reel?\n\nHành động này không thể hoàn tác!`,
+        confirmText: "Xóa",
+        cancelText: "Hủy",
+        type: "danger",
+      } as ConfirmDialogData,
+      disableClose: false,
+    });
 
-  //   console.log(`Đã xoá thùng tại index ${index}`);
-  // }
+    dialogRef.afterClosed().subscribe((confirmed: boolean): void => {
+      if (!confirmed) {
+        return;
+      }
+
+      // Log để debug
+      console.log("deleteReelGroup: group.subItems =", group.subItems);
+
+      // Lấy subItems đã có id numeric (đã lưu DB)
+      const subs: any[] = Array.isArray(group.subItems) ? group.subItems : [];
+      const subsWithId = subs.filter(
+        (s: any) => s && s.id !== undefined && s.id !== null,
+      );
+      console.log("deleteReelGroup: subsWithId =", subsWithId);
+
+      if (subsWithId.length > 0) {
+        const deletePromises: Promise<void>[] = subsWithId.map(
+          (sub: any) =>
+            new Promise<void>((resolve, reject) => {
+              const idToDelete = sub.id;
+              if (!idToDelete) {
+                resolve();
+                return;
+              }
+              console.log(
+                "deleteReelGroup: calling deleteBoxDetail id=",
+                idToDelete,
+              );
+              this.planningService.deleteBoxDetail(idToDelete).subscribe({
+                next: () => {
+                  console.log(`Đã xóa reel detail ID ${idToDelete} khỏi DB`);
+                  resolve();
+                },
+                error: (err) => {
+                  console.error(`Lỗi xóa reel detail ID ${idToDelete}:`, err);
+                  reject(err);
+                },
+              });
+            }),
+        );
+
+        Promise.all(deletePromises)
+          .then(async () => {
+            // Sau khi xóa DB xong: refresh từ server để đồng bộ
+            try {
+              if (this.maLenhSanXuatId) {
+                const resp = await firstValueFrom(
+                  this.planningService.findWarehouseNoteWithChildren(
+                    this.maLenhSanXuatId,
+                  ),
+                );
+                const body = (resp && (resp.body ?? resp)) as any;
+                this.details = body?.warehouse_note_info_details ?? [];
+                this.reelGroups = this.mapDetailsToReelData(this.details || []);
+                this.reelDataList = this.buildReelDataListFromDetails(
+                  this.details || [],
+                );
+                this.reelGroups = [...this.reelGroups];
+                this.reelDataList = [...this.reelDataList];
+                this.cdr.detectChanges();
+              } else {
+                // fallback: remove local
+                const firstReelId =
+                  subsWithId[0]?.reelID ?? subsWithId[0]?.reel_id;
+                if (firstReelId) {
+                  this.details = (this.details || []).filter(
+                    (d: any) => d.reel_id !== firstReelId,
+                  );
+                  this.reelGroups = this.mapDetailsToReelData(
+                    this.details || [],
+                  );
+                  this.reelDataList = (this.reelDataList || []).filter(
+                    (r: any) => r.reelID !== firstReelId,
+                  );
+                } else {
+                  this.reelGroups.splice(index, 1);
+                  if (
+                    Array.isArray(this.reelDataList) &&
+                    this.reelDataList.length > index
+                  ) {
+                    this.reelDataList.splice(index, 1);
+                  }
+                }
+              }
+            } catch (err) {
+              console.warn(
+                "deleteReelGroup: refresh failed, fallback local removal",
+                err,
+              );
+              this.reelGroups.splice(index, 1);
+              if (
+                Array.isArray(this.reelDataList) &&
+                this.reelDataList.length > index
+              ) {
+                this.reelDataList.splice(index, 1);
+              }
+              const firstSubReelId =
+                subsWithId[0]?.reelID ?? subsWithId[0]?.reel_id;
+              if (firstSubReelId) {
+                this.details = (this.details || []).filter(
+                  (d: any) => d.reel_id !== firstSubReelId,
+                );
+              }
+            }
+
+            try {
+              this.computeBoxSummary();
+            } catch {
+              /* ignore */
+            }
+            try {
+              this.saveWarehouseNotes();
+            } catch {
+              /* ignore */
+            }
+            try {
+              this.cdr.detectChanges();
+            } catch {
+              /* ignore */
+            }
+
+            this.snackBar.open(
+              "Đã xóa nhóm Bán thành phẩm khỏi cơ sở dữ liệu",
+              "Đóng",
+              { duration: 3000, panelClass: ["snackbar-success"] },
+            );
+          })
+          .catch((err) => {
+            console.error("Lỗi khi xóa nhóm Bán thành phẩm:", err);
+            this.snackBar.open("Lỗi khi xóa nhóm khỏi cơ sở dữ liệu", "Đóng", {
+              duration: 4000,
+              panelClass: ["snackbar-error"],
+            });
+          });
+      } else {
+        // Chưa lưu DB → xóa trực tiếp FE
+        if (
+          Array.isArray(this.reelGroups) &&
+          index >= 0 &&
+          index < this.reelGroups.length
+        ) {
+          this.reelGroups.splice(index, 1);
+        }
+        if (
+          Array.isArray(this.reelDataList) &&
+          index >= 0 &&
+          index < this.reelDataList.length
+        ) {
+          this.reelDataList.splice(index, 1);
+        }
+        const firstSubReelId = subs[0]?.reelID ?? subs[0]?.reel_id;
+        if (firstSubReelId) {
+          this.details = (this.details || []).filter(
+            (d: any) => d.reel_id !== firstSubReelId,
+          );
+        }
+
+        try {
+          this.computeBoxSummary();
+        } catch {
+          /* ignore */
+        }
+        try {
+          this.saveWarehouseNotes();
+        } catch {
+          /* ignore */
+        }
+        try {
+          this.cdr.detectChanges();
+        } catch {
+          /* ignore */
+        }
+
+        this.snackBar.open("Đã xóa nhóm Bán thành phẩm", "Đóng", {
+          duration: 2000,
+        });
+      }
+    });
+  }
 
   //lưu bảng 1
   saveWarehouseNotes(): void {
@@ -2105,6 +2329,142 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       compression: true,
     });
   }
+
+  //hoan thanh lenh san xuat
+  async onComplete(maLenhSanXuatId: number): Promise<void> {
+    if (!maLenhSanXuatId) {
+      this.snackBar.open("Không có ID lệnh sản xuất", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    const dialogData: ConfirmDialogData = {
+      title: "Xác nhận hoàn thành",
+      message:
+        "Bạn có chắc muốn đánh dấu lệnh sản xuất này là Hoàn thành (Approved)?",
+      confirmText: "Hoàn thành",
+      cancelText: "Hủy",
+      type: "info",
+    };
+
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: "480px",
+      data: dialogData,
+      disableClose: false,
+    });
+
+    const confirmed = await firstValueFrom(ref.afterClosed());
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      // Payload tối giản cho approval: backend có thể chỉ cần id + trạng thái
+      // const approvalPayload = {
+      //   id: maLenhSanXuatId,
+      //   ma_lenh_san_xuat: String(this.warehouseNoteInfo?.ma_lenh_san_xuat ?? maLenhSanXuatId),
+      //   trang_thai: "Approved",
+      //   time_update: new Date().toISOString(),
+      // };
+
+      // Thử PATCH approval (nếu resource tồn tại)
+      // try {
+      //   await firstValueFrom(this.planningService.completeWo(maLenhSanXuatId, approvalPayload));
+      //   console.log('completeWo: PATCH success for id', maLenhSanXuatId);
+      // } catch (patchErr: any) {
+      //   console.warn('completeWo: PATCH failed', patchErr);
+
+      //   const detail = patchErr?.error?.detail ?? patchErr?.message ?? '';
+      //   const status = patchErr?.status ?? patchErr?.statusCode ?? null;
+      //   const notFound = (typeof detail === 'string' && detail.toLowerCase().includes('not found')) || status === 404;
+
+      //   if (notFound) {
+      //     if (typeof (this.planningService as any).createApproval === 'function') {
+      //       try {
+      //         await firstValueFrom((this.planningService as any).createApproval(approvalPayload));
+      //         console.log('createApproval: POST success for id', maLenhSanXuatId);
+      //       } catch (postErr: any) {
+      //         console.error('createApproval failed', postErr);
+      //         throw postErr;
+      //       }
+      //     } else {
+      //       console.warn('planningService.createApproval not available, fallback to updateWarehouseNote');
+      //     }
+      //   } else {
+      //     throw patchErr;
+      //   }
+      // }
+
+      const updatePayload: any = {
+        ...this.warehouseNoteInfo,
+        ma_lenh_san_xuat:
+          this.warehouseNoteInfo?.ma_lenh_san_xuat ?? String(maLenhSanXuatId),
+        trang_thai: "Approved",
+        time_update: new Date().toISOString(),
+      };
+
+      await firstValueFrom(
+        this.planningService.updateWarehouseNote(
+          maLenhSanXuatId,
+          updatePayload,
+        ),
+      );
+      console.log("updateWarehouseNote: PATCH success for id", maLenhSanXuatId);
+
+      if (this.productionOrders && this.productionOrders.length > 0) {
+        this.productionOrders[0].trangThai = "Approved";
+      }
+      if (this.warehouseNoteInfo) {
+        this.warehouseNoteInfo.trang_thai = "Approved";
+      }
+
+      try {
+        if (this.maLenhSanXuatId) {
+          const resp = await firstValueFrom(
+            this.planningService.findWarehouseNoteWithChildren(
+              this.maLenhSanXuatId,
+            ),
+          );
+          const body = (resp && (resp.body ?? resp)) as any;
+          this.details =
+            body?.warehouse_note_info_details ?? this.details ?? [];
+          this.reelGroups = this.mapDetailsToReelData(this.details || []);
+          this.reelDataList = this.buildReelDataListFromDetails(
+            this.details || [],
+          );
+          this.reelGroups = [...this.reelGroups];
+          this.reelDataList = [...this.reelDataList];
+          this.cdr.detectChanges();
+        }
+      } catch (refreshErr) {
+        console.warn("Refresh after complete failed", refreshErr);
+      }
+
+      this.snackBar.open("Đã hoàn thành lệnh sản xuất", "Đóng", {
+        duration: 3000,
+        panelClass: ["snackbar-success"],
+      });
+      setTimeout(() => {
+        this.router.navigate(["/warehouse-note-infos"], { replaceUrl: true });
+      }, 3200);
+    } catch (err: any) {
+      console.error("Lỗi khi hoàn thành lệnh:", err);
+      const msg =
+        err?.error?.message || err?.message || "Không thể hoàn thành lệnh";
+      this.snackBar.open(`Lỗi: ${msg}`, "Đóng", {
+        duration: 4000,
+        panelClass: ["snackbar-error"],
+      });
+    } finally {
+      try {
+        this.cdr.detectChanges();
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
   //lưu dữ liệu box và pallet
   async saveCombined(maLenhSanXuatId?: number): Promise<void> {
     // Validate maLenhSanXuatId
@@ -2603,6 +2963,58 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const s = d?.reelID ?? d?.reel_id;
     return typeof s === "string" && s.length ? s : undefined;
   }
+
+  private buildReelDataListFromDetails(details: any[]): ReelData[] {
+    return (details || []).map((d: any) => {
+      const qty =
+        typeof d.initial_quantity === "number"
+          ? d.initial_quantity
+          : Number(d.initial_quantity) || 0;
+      return {
+        id: d.id ?? undefined,
+        reelID: d.reel_id ?? d.reelID ?? "",
+        partNumber: d.part_number ?? "",
+        vendor: d.vendor ?? "",
+        lot: d.lot ?? "",
+        userData1: d.user_data_1 ?? d.userData1 ?? "",
+        userData2: d.user_data_2 ?? d.userData2 ?? "",
+        userData3: d.user_data_3 ?? d.userData3 ?? "",
+        userData4: d.user_data_4 ?? d.userData4 ?? "",
+        userData5: d.user_data_5 ?? d.userData5 ?? "",
+        initialQuantity: qty,
+        msdLevel: d.msd_level ?? d.msdLevel ?? "",
+        msdInitialFloorTime:
+          d.msd_initial_floor_time ?? d.msdInitialFloorTime ?? "",
+        msdBagSealDate: d.msd_bag_seal_date ?? d.msdBagSealDate ?? "",
+        marketUsage: d.market_usage ?? "",
+        quantityOverride: d.quantity_override ?? "",
+        shelfTime: d.shelf_time ?? "",
+        spMaterialName: d.sp_material_name ?? "",
+        warningLimit: d.warning_limit ?? "",
+        maximumLimit: d.maximum_limit ?? "",
+        comments: d.comments ?? "",
+        warmupTime: d.warmup_time ?? "",
+        storageUnit: d.storage_unit ?? "",
+        subStorageUnit: d.sub_storage_unit ?? "",
+        locationOverride: d.location_override ?? "",
+        expirationDate: d.expiration_date ?? "",
+        manufacturingDate: d.manufacturing_date ?? "",
+        partClass: d.part_class ?? "",
+        sapCode: d.sap_code ?? "",
+        trangThai: d.trang_thai ?? "",
+        TPNK: d.tp_nk ?? "",
+        rank: d.rank ?? "",
+        qrCode: d.qr_code ?? "",
+        tongSl:
+          typeof d.tong_sl === "number"
+            ? d.tong_sl
+            : Number(d.tong_sl) || undefined,
+        note: d.note_2 ?? d.note ?? "",
+        createdAt: d.created_at ?? "",
+      } as ReelData;
+    });
+  }
+
   private handlePackageComplete(result: any): void {
     // console.log("Pallet:", result.pallet);
     // console.log("Số thùng đã scan:", result.soThungDaScan);
@@ -3550,7 +3962,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   private mapDetailsToReelData(details: unknown[]): ReelGroup[] {
     console.log("mapDetailsToReelData - Input:", details);
 
-    const grouped: Record<string, ReelGroup> = {};
+    const grouped: Record<string, ReelGroup & { id?: number }> = {};
 
     for (const raw of details) {
       const d = raw as Record<string, unknown>;
@@ -3563,12 +3975,12 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
       // Key group theo created_at (lấy ngày, giờ, phút để group chính xác hơn)
       const createdAt = (d.created_at as string) ?? "";
-      // Có thể group theo ngày: createdAt.slice(0,10)
-      // Hoặc theo giờ: createdAt.slice(0,16)
-      const key = createdAt; // Group theo ngày
+      const key = createdAt; // Group theo createdAt đầy đủ
 
       if (!grouped[key]) {
         grouped[key] = {
+          // gán id nhóm tạm undefined, sẽ set khi push subItem đầu tiên có id
+          id: undefined,
           reelGroupCreatedAt: key,
           stt: Object.keys(grouped).length + 1,
           partNumber: (d.part_number as string) ?? "",
@@ -3585,7 +3997,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           trangThai: (d.trang_thai as string) ?? "Active",
           subItems: [],
           createdAt: createdAt,
-        };
+        } as ReelGroup & { id?: number };
       }
 
       const subItem: ReelSubItem = {
@@ -3609,6 +4021,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         note: (d.note_2 as string) ?? "",
       };
 
+      // Nếu group chưa có id, gán id của subItem đầu tiên (nếu có)
+      if (
+        grouped[key].id === undefined &&
+        subItem.id !== undefined &&
+        subItem.id !== null
+      ) {
+        grouped[key].id = subItem.id;
+      }
+
       grouped[key].subItems.push(subItem);
 
       // Cập nhật tổng
@@ -3617,13 +4038,17 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       grouped[key].soLuongTrongThung = Math.round(
         grouped[key].soLuongSp / grouped[key].soLuongThung,
       );
-      // console.log("Total Groups sp:", grouped[key].soLuongSp);
     }
 
-    const result: ReelGroup[] = Object.values(grouped).map((group, index) => ({
-      ...group,
-      stt: index + 1, // Đánh số lại STT sau khi group
-    }));
+    // Map sang ReelGroup[] và đảm bảo stt + id được giữ
+    const result: ReelGroup[] = Object.values(grouped).map((group, index) => {
+      const out: ReelGroup & { id?: number } = {
+        ...group,
+        stt: index + 1,
+      };
+      // Nếu bạn muốn ReelGroup có trường id chính thức, giữ nó (interface đã có id?: number)
+      return out as ReelGroup;
+    });
 
     console.log("mapDetailsToReelData - Output (groups):", result);
     console.log("Total Reel Groups:", result.length);
@@ -3739,51 +4164,95 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   //load tien do trong package
   private loadAllPalletProgressAsync(
     allPallets: PalletDetailData[],
-  ): Promise<void> {
-    const promises = allPallets.map((pallet) => {
+  ): Promise<PalletDetailData[]> {
+    // console.log(`Bắt đầu load tiến độ cho ${allPallets.length} pallet...`);
+
+    const promises = allPallets.map((pallet, index) => {
       if (!pallet.serialPallet) {
-        return Promise.resolve(); // Skip nếu không có serial
+        // console.warn(`Pallet ${index + 1}: Không có serialPallet, skip`);
+        return Promise.resolve();
       }
 
       return new Promise<void>((resolve) => {
         this.planningService.getMappings(pallet.serialPallet).subscribe({
           next: (mappings) => {
+            // console.log(`Pallet ${pallet.serialPallet}:`, {
+            //   totalMappings: mappings?.length || 0,
+            //   rawMappings: mappings
+            // });
+
+            // Kiểm tra mappings có hợp lệ không
+            if (!mappings || !Array.isArray(mappings)) {
+              console.warn(`⚠️ ${pallet.serialPallet}: mappings không hợp lệ`);
+              pallet.tienDoScan = 0;
+              pallet.scannedBoxes = [];
+              resolve();
+              return;
+            }
+
             const successMappings = mappings.filter((m) => m.status === 1);
+            console.log(` Success mappings: ${successMappings.length}`);
 
-            // Chuẩn hóa scannedBoxes: chỉ lấy string hợp lệ, trim và loại trùng
+            // Chuẩn hóa và validate serial_box
             const scanned = successMappings
-              .map((m) =>
-                typeof m.serial_box === "string" ? m.serial_box.trim() : "",
-              )
-              .filter((s) => !!s); // bỏ rỗng/null
+              .map((m) => {
+                const serial = m.serial_box;
+                // Kiểm tra kỹ hơn
+                if (serial === null || serial === undefined || serial === "") {
+                  return "";
+                }
+                return typeof serial === "string"
+                  ? serial.trim()
+                  : String(serial).trim();
+              })
+              .filter((s) => s.length > 0); // Chỉ lấy string có nội dung
 
-            pallet.tienDoScan = scanned.length;
-            pallet.scannedBoxes = [...new Set(scanned)]; // loại trùng
+            // Loại bỏ trùng lặp
+            const uniqueScanned = [...new Set(scanned)];
 
+            pallet.tienDoScan = uniqueScanned.length;
+            pallet.scannedBoxes = uniqueScanned;
+
+            console.log(
+              `${pallet.serialPallet}: ${uniqueScanned.length} boxes scanned`,
+              uniqueScanned,
+            );
             resolve();
           },
           error: (err) => {
-            if (err.status === 404) {
-              // 404 = chưa scan → OK
+            if (err?.status === 404) {
+              console.log(
+                ` ${pallet.serialPallet}: Chưa có mapping (404) → chưa scan`,
+              );
               pallet.tienDoScan = 0;
               pallet.scannedBoxes = [];
-              console.log(` Pallet ${pallet.serialPallet}: chưa scan`);
             } else {
-              console.error(` Error loading ${pallet.serialPallet}:`, err);
+              console.error(`Error loading ${pallet.serialPallet}:`, err);
               pallet.tienDoScan = 0;
               pallet.scannedBoxes = [];
             }
-            resolve(); // Vẫn resolve để không block
+            resolve();
           },
         });
       });
     });
 
-    // Đợi TẤT CẢ promises hoàn thành
     return Promise.all(promises).then(() => {
-      console.log(" Đã load xong tiến độ cho", allPallets.length, "pallet");
+      console.log(`Hoàn tất load tiến độ cho ${allPallets.length} pallet`);
+
+      // Log tổng quan
+      const summary = allPallets.map((p) => ({
+        serial: p.serialPallet,
+        scanned: p.tienDoScan,
+        total: p.tongSoThung,
+        boxes: p.scannedBoxes?.length || 0,
+      }));
+      console.table(summary);
+
+      return allPallets;
     });
   }
+
   private loadPalletProgress(
     item: PalletBoxItem,
     maLenhSanXuatId: number,
@@ -4430,6 +4899,52 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         );
     });
   }
+
+  // Kiểm tra object có phải BoxItem không
+  private isBoxItem(obj: unknown): obj is BoxItem {
+    if (!obj || typeof obj !== "object") {
+      return false;
+    }
+    // dùng in trên 'any' để tránh lỗi kiểu
+    const o = obj as any;
+    return "maSanPham" in o && "subItems" in o;
+  }
+
+  private isReelData(obj: unknown): obj is ReelData {
+    if (!obj || typeof obj !== "object") {
+      return false;
+    }
+    const o = obj as any;
+    return "reelID" in o && "initialQuantity" in o;
+  }
+  private buildReelGroupsFromReelDataList(reels: ReelData[]): ReelGroup[] {
+    const detailsLike = (reels || []).map((r) => ({
+      id: r.id,
+      reel_id: r.reelID,
+      part_number: r.partNumber,
+      lot: r.lot,
+      initial_quantity: r.initialQuantity,
+      expiration_date: r.expirationDate,
+      manufacturing_date: r.manufacturingDate,
+      qr_code: r.qrCode,
+      comments: r.comments,
+      created_at: r.createdAt ?? new Date().toISOString(),
+      tp_nk: r.TPNK,
+      rank: r.rank,
+      note_2: r.note,
+      user_data_1: r.userData1,
+      user_data_2: r.userData2,
+      user_data_3: r.userData3,
+      user_data_4: r.userData4,
+      user_data_5: r.userData5,
+      storage_unit: r.storageUnit,
+      sap_code: r.sapCode,
+      trang_thai: r.trangThai,
+    }));
+
+    return this.mapDetailsToReelData(detailsLike);
+  }
+
   // gọi sau khi lưu pallet thành công
   private persistPalletDefaults(formValue: PalletFormData): void {
     const defaults = {
