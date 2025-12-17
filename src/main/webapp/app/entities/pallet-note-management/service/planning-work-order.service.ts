@@ -77,13 +77,10 @@ export interface PlanningWorkOrderResponse {
   providedIn: "root",
 })
 export class PlanningWorkOrderService {
-  private apiUrl =
-    "http://192.168.68.77:9040/api/item-data/planning-work-orders";
-  private WMSUrl = "http://192.168.10.99:9030";
-  private apiCheckIdentifyWo =
-    "http://192.168.68.77:9040/api/warehouse-note-infos/work-order-code";
-
   private baseUrl = environment.baseInTemApiUrl;
+  private apiUrl = "${this.baseUrl}/item-data/planning-work-orders";
+  private WMSUrl = "http://192.168.10.99:9030";
+  private apiCheckIdentifyWo = `${this.baseUrl}/warehouse-note-infos/work-order-code`;
 
   private testUrl = "http://192.168.10.99:9040/api";
 
@@ -96,6 +93,14 @@ export class PlanningWorkOrderService {
   //laays area
   getArea(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/location/area`);
+  }
+
+  //hoan thanh lenh san xuat
+  completeWo(id: number, payload: any): Observable<any> {
+    return this.http.patch(
+      `${this.baseUrl}/warehouse-note-infos-approval/${id}`,
+      payload,
+    );
   }
 
   // Lọc theo sapWoId và productCode

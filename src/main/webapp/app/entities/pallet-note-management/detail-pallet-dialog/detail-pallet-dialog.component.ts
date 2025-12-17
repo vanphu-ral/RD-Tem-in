@@ -753,9 +753,9 @@ export class PalletDetailDialogComponent implements OnInit {
 
     const dialogRef = this.dialog.open(ScanPalletDialogComponent, {
       width: "100vw",
-      height: "90vh",
-      maxWidth: "1200px",
-      maxHeight: "900px",
+      height: "100vh",
+      maxWidth: "100vw",
+      maxHeight: "100vh",
       data: scanData,
       panelClass: "scan-dialog-panel",
       disableClose: true,

@@ -895,7 +895,11 @@
               </ng-container> -->
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Tuỳ chọn</th>
-                <td mat-cell data-label="" *matCellDef="let element">
+                <td
+                  mat-cell
+                  data-label=""
+                  *matCellDef="let element; let i = index"
+                >
                   <button
                     mat-icon-button
                     color="primary"
@@ -908,12 +912,13 @@
                   <button
                     mat-icon-button
                     color="warn"
-                    (click)="deleteBox(element)"
+                    (click)="deleteReelGroup(i)"
                     matTooltip="Xoá"
                     matTooltipPosition="left"
                   >
                     <mat-icon>delete</mat-icon>
                   </button>
+
                   <!-- <button mat-icon-button color="primary">
                     <mat-icon>system_update_alt</mat-icon>
                   </button> -->
@@ -1059,6 +1064,14 @@
     >
       <mat-icon>arrow_back</mat-icon>
       Trở lại
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onComplete(maLenhSanXuatId!)"
+    >
+      <mat-icon>done_all</mat-icon>
+      Hoàn thành
     </button>
 
     <button mat-raised-button color="primary" (click)="onApprove()">
