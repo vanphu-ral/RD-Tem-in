@@ -224,17 +224,18 @@ public class WarehouseNoteInfoApprovalService {
                 log.debug("Reel ID DTOs: {}", reelIdDTOs);
                 parentDTO.setReelIds(reelIdDTOs);
 
-                // Fetch warehouse_note_info_details and filter by reel IDs
-                List<WarehouseNoteInfoDetail> allDetails =
-                    warehouseStampInfoDetailRepository.findByMaLenhSanXuatId(
-                        warehouseNoteInfoApproval.getId()
-                    );
+                // Fetch warehouse_note_info_details and filter by IDs
+                List<WarehouseNoteInfoDetail> filteredDetails =
+                    warehouseStampInfoDetailRepository.findByIdIn(reelIdList);
                 List<WarehouseStampInfoDetailDTO> filteredDetailDTOs =
-                    allDetails
+                    filteredDetails
                         .stream()
-                        .filter(detail -> reelIdList.contains(detail.getId()))
                         .map(warehouseStampInfoDetailMapper::toDto)
                         .collect(Collectors.toList());
+                log.debug(
+                    "Filtered warehouse_note_info_details: {}",
+                    filteredDetailDTOs
+                );
 
                 // Fetch and map serial_box_pallet_mapping
                 List<SerialBoxPalletMapping> serialMappings =

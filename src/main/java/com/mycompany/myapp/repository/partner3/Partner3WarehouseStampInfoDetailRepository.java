@@ -32,6 +32,22 @@ public interface Partner3WarehouseStampInfoDetailRepository
     Optional<WarehouseNoteInfoDetail> findByReelId(String reelId);
 
     /**
+     * Find WarehouseNoteInfoDetail by reel IDs.
+     *
+     * @param reelIds the list of reel IDs to search for
+     * @return the list of WarehouseNoteInfoDetail matching the reel IDs
+     */
+    List<WarehouseNoteInfoDetail> findByReelIdIn(List<String> reelIds);
+
+    /**
+     * Find WarehouseNoteInfoDetail by IDs.
+     *
+     * @param ids the list of IDs to search for
+     * @return the list of WarehouseNoteInfoDetail matching the IDs
+     */
+    List<WarehouseNoteInfoDetail> findByIdIn(List<Long> ids);
+
+    /**
      * Find the reel_id with max ID where reel_id starts with the given prefix.
      *
      * @param prefix the prefix to search for
