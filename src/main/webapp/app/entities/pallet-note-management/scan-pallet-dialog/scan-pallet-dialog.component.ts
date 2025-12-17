@@ -8,6 +8,7 @@ import {
 } from "@angular/core";
 import {
   MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from "@angular/material/dialog";
@@ -28,8 +29,14 @@ import { HttpClient } from "@angular/common/http";
 import { HttpClientModule } from "@angular/common/http";
 import { PlanningWorkOrderService } from "../service/planning-work-order.service";
 import { finalize } from "rxjs/operators";
+import { MatCheckboxModule } from "@angular/material/checkbox";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from "../confirm-dialog/confirm-dialog.component";
 
-interface PalletData {
+export interface PalletData {
   id: string;
   maPallet: string;
   tenSanPham: string;
@@ -38,11 +45,12 @@ interface PalletData {
   soThung: number;
   maLenhSanXuatId: number;
   validReelIds?: string[];
+  existingScannedGlobal?: Set<string>;
 }
 
 interface BoxScan {
   code: string;
-  timestamp: Date;
+  timestamp: Date | null;
   status: "success" | "error";
   message?: string;
 }
@@ -75,6 +83,8 @@ export interface SerialBoxPalletMapping {
     ZXingScannerModule,
     FormsModule,
     HttpClientModule,
+    MatCheckboxModule,
+    MatProgressSpinnerModule,
   ],
   animations: [
     trigger("slideIn", [
@@ -110,7 +120,17 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   validBoxes: string[] = [];
 
   existingScannedBoxes: Set<string> = new Set();
+  existingScannedGlobal: Set<string> = new Set();
   isLoadingHistory = false;
+
+  unscannedCodes: string[] = [];
+  scannedFromValidCodes: string[] = [];
+  unscannedCount = 0;
+
+  selectedUnscannedBoxes: Set<string> = new Set();
+  isAddingSelectedBoxes = false;
+
+  existingScannedBoxesGlobal: Set<string> = new Set();
 
   selectedTabIndex = 0;
   scannedCount = 0;
@@ -128,6 +148,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     @Inject(MAT_DIALOG_DATA) public data: PalletData,
     private http: HttpClient,
     private planningService: PlanningWorkOrderService,
+    private dialog: MatDialog,
   ) {
     this.palletData = data;
     console.log("Scan dialog constructor data:", data);
@@ -136,6 +157,11 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.checkIfMobile();
     this.initializeValidBoxes();
+
+    if (this.palletData?.existingScannedGlobal) {
+      this.existingScannedGlobal = this.palletData.existingScannedGlobal;
+      console.log(`Global scanned boxes: ${this.existingScannedGlobal.size}`);
+    }
     this.loadExistingScannedBoxes();
 
     if (this.scanModeActive) {
@@ -157,10 +183,12 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
   initializeValidBoxes(): void {
     if (
-      this.palletData.validReelIds &&
+      this.palletData?.validReelIds &&
       this.palletData.validReelIds.length > 0
     ) {
-      this.validBoxes = this.palletData.validReelIds;
+      this.validBoxes = this.palletData.validReelIds.map((c) =>
+        this.normalizeCode(c),
+      );
       console.log("Valid reel IDs loaded:", this.validBoxes);
     } else {
       console.warn("No valid reel IDs provided or empty array");
@@ -169,9 +197,13 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   }
 
   loadExistingScannedBoxes(): void {
-    if (!this.palletData.maPallet) {
+    if (!this.palletData?.maPallet) {
       console.warn("Missing pallet info, cannot load existing scans");
       return;
+    }
+
+    if (!this.validBoxes || this.validBoxes.length === 0) {
+      this.initializeValidBoxes();
     }
 
     this.isLoadingHistory = true;
@@ -182,26 +214,44 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (mappings) => {
           const successMappings = mappings.filter((m) => m.status === 1);
+          const errorMappings = mappings.filter((m) => m.status !== 1);
 
+          // ===== PALLET LOCAL: Boxes đã scan vào pallet này =====
           this.existingScannedBoxes = new Set(
-            successMappings.map((m) => m.serial_box.trim()),
+            successMappings.map((m) => this.normalizeCode(m.serial_box)),
           );
 
           this.scannedBoxes = successMappings.map((m) => ({
-            code: m.serial_box,
-            timestamp: new Date(m.updated_at),
+            code: this.normalizeCode(m.serial_box),
+            timestamp: this.parseTimestamp(m.updated_at),
             status: "success" as const,
           }));
 
-          this.allBoxes = [...this.scannedBoxes];
+          this.errorBoxes = errorMappings.map((m) => ({
+            code: this.normalizeCode(m.serial_box),
+            timestamp: this.parseTimestamp(m.updated_at),
+            status: "error" as const,
+            message: "scan error",
+          }));
+
+          this.allBoxes = [...this.scannedBoxes, ...this.errorBoxes];
           this.scannedCount = this.scannedBoxes.length;
 
-          console.log(`Loaded ${this.scannedCount} boxes already scanned`);
+          console.log(
+            `📋 Pallet local: ${this.scannedCount} boxes đã scan vào pallet này`,
+          );
+
+          // Tính unscanned dựa trên GLOBAL
+          this.computeFromValidAndExisting();
         },
         error: (error) => {
           if (error.status === 404) {
             console.log("No existing scans found (404) - this is normal");
             this.existingScannedBoxes = new Set();
+            this.scannedBoxes = [];
+            this.errorBoxes = [];
+            this.allBoxes = [];
+            this.computeFromValidAndExisting();
           } else {
             this.showScanResult(
               "error",
@@ -212,6 +262,87 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       });
   }
 
+  //checkbox map pallet
+  toggleUnscannedBox(code: string): void {
+    if (this.selectedUnscannedBoxes.has(code)) {
+      this.selectedUnscannedBoxes.delete(code);
+    } else {
+      // Check sức chứa
+      const currentTotal = this.scannedCount + this.selectedUnscannedBoxes.size;
+      const maxCapacity = this.palletData?.thungScan ?? 0;
+
+      if (currentTotal >= maxCapacity) {
+        this.showScanResult(
+          "error",
+          `Đã đạt sức chứa tối đa (${maxCapacity} thùng)`,
+        );
+        return;
+      }
+
+      this.selectedUnscannedBoxes.add(code);
+    }
+
+    console.log("Selected boxes:", Array.from(this.selectedUnscannedBoxes));
+  }
+  // Check xem có thể chọn thêm không
+  canSelectMore(): boolean {
+    const currentTotal = this.scannedCount + this.selectedUnscannedBoxes.size;
+    const maxCapacity = this.palletData?.thungScan ?? 0;
+    return currentTotal < maxCapacity;
+  }
+  selectAllUnscanned(): void {
+    const maxCapacity = this.palletData?.thungScan ?? 0;
+    const availableSlots = maxCapacity - this.scannedCount;
+
+    if (availableSlots <= 0) {
+      this.showScanResult("error", "Pallet đã đầy");
+      return;
+    }
+
+    // Chọn tối đa số lượng slot còn trống
+    const boxesToSelect = this.unscannedCodes.slice(0, availableSlots);
+    this.selectedUnscannedBoxes = new Set(boxesToSelect);
+
+    console.log(`Selected ${this.selectedUnscannedBoxes.size} boxes`);
+  }
+  deselectAll(): void {
+    this.selectedUnscannedBoxes.clear();
+  }
+  confirmAddSelectedBoxes(): void {
+    if (this.selectedUnscannedBoxes.size === 0) {
+      this.showScanResult("error", "Chưa chọn box nào");
+      return;
+    }
+
+    // Check lại sức chứa
+    const finalTotal = this.scannedCount + this.selectedUnscannedBoxes.size;
+    const maxCapacity = this.palletData?.thungScan ?? 0;
+
+    if (finalTotal > maxCapacity) {
+      this.showScanResult("error", `Vượt quá sức chứa (${maxCapacity} thùng)`);
+      return;
+    }
+
+    const boxesToAdd = Array.from(this.selectedUnscannedBoxes);
+
+    const dialogData: ConfirmDialogData = {
+      title: "Xác nhận",
+      message: `Xác nhận thêm ${boxesToAdd.length} thùng vào pallet?`,
+      confirmText: "Xác nhận",
+      cancelText: "Hủy",
+      type: "info",
+    };
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: "500px",
+      data: dialogData,
+      disableClose: false,
+    });
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      this.isAddingSelectedBoxes = true;
+      this.processSelectedBoxesBatch(boxesToAdd);
+    });
+  }
   // ===== TOGGLE ZEBRA MODE (CHỈ FOCUS INPUT) =====
   toggleScanMode(): void {
     this.scanModeActive = !this.scanModeActive;
@@ -266,7 +397,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     }
 
     const code = this.scannedCode.trim();
-    console.log("📥 Processing code:", code);
+    console.log("Processing code:", code);
 
     this.validateAndAddBox(code);
     this.scannedCode = "";
@@ -324,7 +455,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check 2: Đã scan trong pallet này?
+    // Check 2: Đã scan vào pallet này rồi? (LOCAL)
     if (this.existingScannedBoxes.has(trimmedCode)) {
       this.addErrorBox(
         trimmedCode,
@@ -339,7 +470,16 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check 4: Có hợp lệ không?
+    // ===== Check 4: ĐÃ SCAN VÀO PALLET KHÁC CHƯA? (GLOBAL) =====
+    if (this.existingScannedGlobal.has(trimmedCode)) {
+      this.addErrorBox(
+        trimmedCode,
+        "Mã thùng đã được scan vào pallet khác trong order này",
+      );
+      return;
+    }
+
+    // Check 5: Có hợp lệ không?
     const isValid = this.validBoxes.some(
       (validCode) => validCode.trim() === trimmedCode,
     );
@@ -407,6 +547,12 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     this.scannedBoxes.push(box);
     this.allBoxes.push(box);
     this.scannedCount++;
+
+    // ===== UPDATE GLOBAL CACHE =====
+    this.existingScannedGlobal.add(code);
+
+    // Refresh unscanned list
+    this.computeFromValidAndExisting();
 
     this.showScanResult(
       "success",
@@ -523,7 +669,20 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       progressPercent: this.getProgressPercent(),
     });
   }
+  // Check xem box có được chọn không
+  isBoxSelected(code: string): boolean {
+    return this.selectedUnscannedBoxes.has(code);
+  }
+  // Get số box đã chọn
+  getSelectedCount(): number {
+    return this.selectedUnscannedBoxes.size;
+  }
 
+  // Get số slot còn trống
+  getAvailableSlots(): number {
+    const maxCapacity = this.palletData?.thungScan ?? 0;
+    return Math.max(0, maxCapacity - this.scannedCount);
+  }
   onClose(): void {
     this.stopCamera();
 
@@ -532,6 +691,100 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       totalScanned: this.scannedCount,
       progressPercent: this.getProgressPercent(),
       scannedBoxes: this.scannedBoxes,
+    });
+  }
+  private normalizeCode(code: string | null | undefined): string {
+    return (code ?? "").toString().trim().toUpperCase();
+  }
+
+  private computeFromValidAndExisting(): void {
+    const expected = (this.validBoxes || []).map((c) => this.normalizeCode(c));
+
+    // ===== DÙNG GLOBAL THAY VÌ LOCAL =====
+    this.scannedFromValidCodes = expected.filter(
+      (code) => this.existingScannedGlobal.has(code), // <--- Đổi từ existingScannedBoxes sang existingScannedGlobal
+    );
+
+    this.unscannedCodes = expected.filter(
+      (code) => !this.existingScannedGlobal.has(code), // <--- Đổi từ existingScannedBoxes sang existingScannedGlobal
+    );
+
+    this.unscannedCount = this.unscannedCodes.length;
+
+    console.log(
+      `Scanned globally (across all pallets): ${this.scannedFromValidCodes.length}`,
+      this.scannedFromValidCodes,
+    );
+    console.log(`Unscanned codes: ${this.unscannedCount}`, this.unscannedCodes);
+    console.log(
+      `Scanned in THIS pallet: ${this.existingScannedBoxes.size}`,
+      Array.from(this.existingScannedBoxes),
+    );
+  }
+  private parseTimestamp(value: any): Date | null {
+    if (!value && value !== 0) {
+      return null;
+    }
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // Xử lý batch các boxes đã chọn
+  private async processSelectedBoxesBatch(boxes: string[]): Promise<void> {
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const box of boxes) {
+      try {
+        // Gọi API mapping
+        await this.sendMappingRequestPromise(box, 1);
+
+        // Thêm vào danh sách thành công
+        this.addSuccessBox(box);
+        this.existingScannedBoxes.add(box);
+        successCount++;
+      } catch (error) {
+        console.error("Error adding box:", box, error);
+        this.addErrorBox(box, "Lỗi khi thêm vào pallet");
+        errorCount++;
+      }
+    }
+
+    // Clear selection
+    this.selectedUnscannedBoxes.clear();
+    this.isAddingSelectedBoxes = false;
+
+    // Cập nhật lại danh sách unscanned
+    this.computeFromValidAndExisting();
+
+    // Hiển thị kết quả
+    if (successCount > 0) {
+      this.showScanResult(
+        "success",
+        `Đã thêm ${successCount} thùng thành công${errorCount > 0 ? `, ${errorCount} lỗi` : ""}`,
+      );
+      this.playSuccessSound();
+    } else {
+      this.showScanResult("error", "Không thể thêm thùng nào");
+      this.playErrorSound();
+    }
+  }
+  // Helper: Convert sendMappingRequest sang Promise
+  private sendMappingRequestPromise(
+    serialBox: string,
+    status: number,
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.planningService
+        .sendMappingRequest(
+          this.palletData.maLenhSanXuatId,
+          serialBox,
+          this.palletData.maPallet,
+          status,
+        )
+        .subscribe({
+          next: (response) => resolve(response),
+          error: (error) => reject(error),
+        });
     });
   }
 }

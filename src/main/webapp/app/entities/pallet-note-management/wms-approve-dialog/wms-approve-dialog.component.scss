@@ -48,11 +48,14 @@ $border-color: #e5e7eb;
   gap: 16px;
   padding: 16px;
   background-color: #f9fafb;
-  overflow: hidden; /* ẩn overflow ở container, cho từng section cuộn */
+  overflow: hidden;
+  /* ẩn overflow ở container, cho từng section cuộn */
 }
+
 .section-divider {
   align-self: center;
 }
+
 /* Mỗi section-card sẽ có header cố định và body cuộn */
 .section-card {
   display: flex;
@@ -65,7 +68,8 @@ $border-color: #e5e7eb;
 
   /* Chiều rộng: mỗi cột chiếm 50% - thay đổi flex nếu muốn tỉ lệ khác */
   flex: 1 1 50%;
-  min-width: 280px; /* tránh quá nhỏ */
+  min-width: 280px;
+  /* tránh quá nhỏ */
   max-height: calc(90vh - 160px);
 
   .section-header {
@@ -98,6 +102,7 @@ $border-color: #e5e7eb;
 
   &.pending-section {
     flex: 1 1 50%;
+
     .section-header {
       background-color: #fff7ed;
       border-bottom: 1px solid #ffedd5;
@@ -105,6 +110,7 @@ $border-color: #e5e7eb;
       .status-dot {
         background-color: #f97316;
       }
+
       .section-title {
         color: #c2410c;
       }
@@ -113,6 +119,7 @@ $border-color: #e5e7eb;
 
   &.sent-section {
     flex: 1 1 50%;
+
     .section-header {
       background-color: #f0fdf4;
       border-bottom: 1px solid #dcfce7;
@@ -120,10 +127,65 @@ $border-color: #e5e7eb;
       .status-dot {
         background-color: #22c55e;
       }
+
       .section-title {
         color: #15803d;
       }
     }
+  }
+}
+
+.nested-tabs {
+  ::ng-deep {
+    .mat-mdc-tab-header {
+      background: #f9fafb;
+      border-bottom: 1px solid $border-color;
+    }
+
+    .mat-mdc-tab-label {
+      min-height: 40px;
+      padding: 0 16px;
+      font-size: 0.875rem;
+
+      .tab-icon-small {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 6px;
+      }
+    }
+
+    .mat-mdc-tab-body-wrapper {
+      flex: 1;
+    }
+  }
+}
+
+/* Box code styling */
+.box-code-value {
+  font-family: "Courier New", monospace;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+/* Pallet badge */
+.pallet-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Send box button */
+.send-box-btn {
+  background-color: #3b82f6;
+  color: #fff;
+
+  &:hover {
+    background-color: #2563eb;
   }
 }
 
@@ -164,11 +226,13 @@ $border-color: #e5e7eb;
   font-size: 28px;
   color: #1f2937;
 }
+
 .pallet-code-label {
   font-family: monospace;
   font-size: 0.72rem;
   color: #6b7280;
 }
+
 .pallet-code-value {
   font-weight: 500;
 }
@@ -176,17 +240,20 @@ $border-color: #e5e7eb;
 /* Progress bar: width được set inline từ component computeProgressWidth */
 .progress-cell {
   width: 25%;
+
   .progress-text {
     font-size: 0.75rem;
     color: #4b5563;
     margin-bottom: 6px;
   }
+
   .progress-bar-bg {
     width: 50%;
     height: 6px;
     background-color: #e5e7eb;
     border-radius: 9999px;
     overflow: hidden;
+
     .progress-bar-fill {
       height: 100%;
       background-color: $primary-color;
@@ -202,6 +269,7 @@ $border-color: #e5e7eb;
   gap: 12px;
   align-items: center;
 }
+
 .send-wms-btn {
   background-color: #22c55e;
   color: #fff;
@@ -252,14 +320,17 @@ $border-color: #e5e7eb;
     margin: 0;
   }
 }
+
 .qr-cell {
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 qrcode {
   display: block;
 }
+
 .sr-only-focusable {
   position: absolute;
   left: -9999px;
@@ -274,6 +345,7 @@ qrcode {
   margin: 0;
   background: transparent;
 }
+
 // ==================== DESKTOP / MOBILE TOGGLE ====================
 .desktop-only {
   display: flex;
@@ -296,6 +368,7 @@ qrcode {
 
   .dialog-header {
     padding: 10px 12px;
+
     h2 {
       font-size: 0.95rem;
     }
@@ -310,9 +383,11 @@ qrcode {
   .section-card {
     max-height: 45vh;
     min-height: 100px;
+
     .section-header {
       padding: 8px 10px;
     }
+
     .table-container {
       padding: 8px;
     }
@@ -326,11 +401,13 @@ qrcode {
         padding: 6px;
         font-size: 0.78rem;
       }
+
       /* Ẩn cột capacity trên mobile để tiết kiệm không gian (nếu cần) */
       td.mat-cell:nth-child(6),
       th.mat-header-cell:nth-child(6) {
         display: none;
       }
+
       /* Ẩn icon QR lớn để tiết kiệm không gian */
       .qr-icon {
         display: none;
@@ -341,6 +418,7 @@ qrcode {
   .dialog-footer {
     padding: 10px 12px;
   }
+
   .desktop-only {
     display: none !important;
   }
@@ -386,6 +464,7 @@ qrcode {
         .tab-icon {
           color: $primary-color;
         }
+
         .badge {
           opacity: 1;
         }
@@ -499,6 +578,7 @@ qrcode {
     transform: translateY(-10px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -511,6 +591,7 @@ qrcode {
   100% {
     opacity: 1;
   }
+
   25%,
   75% {
     opacity: 0.3;
@@ -721,6 +802,7 @@ qrcode {
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }

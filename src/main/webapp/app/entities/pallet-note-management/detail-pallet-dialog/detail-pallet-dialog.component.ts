@@ -17,7 +17,10 @@ import {
   PrintPalletDialogComponent,
   PrintPalletData,
 } from "../print-pallet-dialog/print-pallet-dialog.component";
-import { ScanPalletDialogComponent } from "../scan-pallet-dialog/scan-pallet-dialog.component";
+import {
+  PalletData,
+  ScanPalletDialogComponent,
+} from "../scan-pallet-dialog/scan-pallet-dialog.component";
 import * as XLSX from "xlsx";
 import { PlanningWorkOrderService } from "../service/planning-work-order.service";
 import { finalize } from "rxjs";
@@ -159,7 +162,8 @@ export class PalletDetailDialogComponent implements OnInit {
   pageSize = 10;
   pageIndex = 0;
   totalItems = 0;
-
+  private globalScannedBoxesCache: Set<string> | null = null;
+  private isLoadingGlobalScanned = false;
   constructor(
     public dialogRef: MatDialogRef<PalletDetailDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: MultiPalletDialogData,
@@ -668,16 +672,84 @@ export class PalletDetailDialogComponent implements OnInit {
       return;
     }
 
-    const scanData = {
+    // Nếu chưa load global scanned boxes, load trước
+    if (!this.globalScannedBoxesCache && !this.isLoadingGlobalScanned) {
+      this.loadGlobalScannedBoxesThenOpenScan(item, sourceData);
+    } else {
+      // Đã có cache, mở dialog ngay
+      this.openScanDialogWithData(item, sourceData);
+    }
+  }
+  private loadGlobalScannedBoxesThenOpenScan(
+    item: PalletBoxItem,
+    sourceData: PalletDetailData,
+  ): void {
+    if (!sourceData.maLenhSanXuatId) {
+      console.warn("Missing maLenhSanXuatId");
+      this.openScanDialogWithData(item, sourceData);
+      return;
+    }
+
+    this.isLoadingGlobalScanned = true;
+
+    this.planningService
+      .findWarehouseNoteWithChildren(sourceData.maLenhSanXuatId)
+      .pipe(
+        finalize(() => {
+          this.isLoadingGlobalScanned = false;
+        }),
+      )
+      .subscribe({
+        next: (response) => {
+          const data = response.body;
+          const mappings = data?.serial_box_pallet_mappings || [];
+
+          // Lọc ra các box có status = 1 (success) và chuẩn hóa
+          const globalScanned = mappings
+            .filter((m: any) => m.status === 1)
+            .map((m: any) => this.normalizeCode(m.serial_box));
+
+          // Cache lại
+          this.globalScannedBoxesCache = new Set(globalScanned);
+
+          console.log(
+            `✅ Loaded ${this.globalScannedBoxesCache.size} boxes đã scan trong toàn order`,
+          );
+
+          // Mở dialog với data
+          this.openScanDialogWithData(item, sourceData);
+        },
+        error: (error) => {
+          console.error("Error loading global scanned boxes:", error);
+          // Vẫn mở dialog nhưng không có global cache
+          this.globalScannedBoxesCache = new Set();
+          this.openScanDialogWithData(item, sourceData);
+        },
+      });
+  }
+
+  // Mở dialog với data đã chuẩn bị
+  private openScanDialogWithData(
+    item: PalletBoxItem,
+    sourceData: PalletDetailData,
+  ): void {
+    const scanData: PalletData = {
       id: item.maPallet,
       maPallet: item.maPallet,
       tenSanPham: sourceData.tenSanPham,
       qrCode: item.qrCode ?? item.maPallet,
       thungScan: item.thungScan,
       soThung: item.tongSoThung,
-      maLenhSanXuatId: sourceData.maLenhSanXuatId,
-      validReelIds: sourceData.validReelIds,
+      maLenhSanXuatId: sourceData.maLenhSanXuatId ?? 0,
+      validReelIds: sourceData.validReelIds ?? [],
+      existingScannedGlobal: this.globalScannedBoxesCache ?? new Set(), // ===== TRUYỀN VÀO =====
     };
+
+    console.log("Opening scan dialog with data:", {
+      maPallet: scanData.maPallet,
+      validReelIds: scanData.validReelIds?.length,
+      existingScannedGlobal: scanData.existingScannedGlobal?.size,
+    });
 
     const dialogRef = this.dialog.open(ScanPalletDialogComponent, {
       width: "100vw",
@@ -691,20 +763,20 @@ export class PalletDetailDialogComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
-        // CÂP NHẬT PROGRESS VÀ SCANNED BOXES
+        // CẬP NHẬT PROGRESS VÀ SCANNED BOXES
         item.tienDoScan = result.progressPercent ?? 0;
         item.scannedBoxes =
           (result.scannedBoxes as Array<{ code: string }>)?.map(
             (box) => box.code,
           ) ?? [];
 
-        console.log(" Updated item:", {
+        console.log("✅ Updated item:", {
           maPallet: item.maPallet,
           tienDoScan: item.tienDoScan,
           scannedBoxesCount: item.scannedBoxes?.length,
         });
 
-        //  CẬP NHẬT LẠI SOURCE DATA
+        // CẬP NHẬT LẠI SOURCE DATA
         if (this.isMultipleMode && item.parentPalletIndex !== undefined) {
           const source = this.palletSources[item.parentPalletIndex];
           if (source.subItems) {
@@ -722,11 +794,40 @@ export class PalletDetailDialogComponent implements OnInit {
           this.singlePalletData.scannedBoxes = item.scannedBoxes;
         }
 
+        // Refresh cache global scanned boxes sau khi scan xong
         if (sourceData.maLenhSanXuatId) {
+          this.refreshGlobalScannedCache(sourceData.maLenhSanXuatId);
           this.loadPalletProgress(item, sourceData.maLenhSanXuatId);
         }
       }
     });
+  }
+  private refreshGlobalScannedCache(maLenhSanXuatId: number): void {
+    this.planningService
+      .findWarehouseNoteWithChildren(maLenhSanXuatId)
+      .subscribe({
+        next: (response) => {
+          const data = response.body;
+          const mappings = data?.serial_box_pallet_mappings || [];
+
+          const globalScanned = mappings
+            .filter((m: any) => m.status === 1)
+            .map((m: any) => this.normalizeCode(m.serial_box));
+
+          this.globalScannedBoxesCache = new Set(globalScanned);
+
+          console.log(
+            `🔄 Refreshed global cache: ${this.globalScannedBoxesCache.size} boxes`,
+          );
+        },
+        error: (error) => {
+          console.error("Error refreshing global cache:", error);
+        },
+      });
+  }
+  // Helper normalize code
+  private normalizeCode(code: string | null | undefined): string {
+    return (code ?? "").toString().trim().toUpperCase();
   }
   private initializeData(): void {
     // Extract box items from dialog data

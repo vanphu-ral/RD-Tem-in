@@ -68,7 +68,8 @@ export interface BoxSubItem {
 export class DetailBoxDialogComponent implements OnInit {
   displayedColumns: string[] = ["stt", "maThung", "maThungCode", "soLuong"];
   isMobile = false;
-  @ViewChildren("qrWrap", { read: ElementRef }) qrWraps!: QueryList<ElementRef>;
+  @ViewChildren("qrElem", { read: ElementRef })
+  qrElements!: QueryList<ElementRef<HTMLElement>>;
 
   infoCards: BoxInfoCard[] = [];
   boxSubItems: BoxSubItem[] = [];
@@ -118,57 +119,9 @@ export class DetailBoxDialogComponent implements OnInit {
   }
 
   exportQRCodesPdfCurrentPage(): void {
-    const items = this.paginatedItems;
-    if (!items.length) {
-      return;
-    }
-
-    const doc = new jsPDF({
-      unit: "mm",
-      format: "a4",
-      orientation: "portrait",
-    });
-    const pageWidth = 210,
-      pageHeight = 297,
-      margin = 10;
-    const cols = 5,
-      gap = 6;
-    const contentWidth = pageWidth - margin * 2;
-    const qrSize = (contentWidth - gap * (cols - 1)) / cols;
-    const rowHeight = qrSize + 8;
-
-    let x = margin,
-      y = margin;
-
-    for (let i = 0; i < items.length; i++) {
-      const dataUrl = this.getDataUrlFromRenderedImg(i);
-      if (!dataUrl) {
-        console.warn("Không tìm thấy img QR cho item index", i);
-        continue;
-      }
-
-      if (y + qrSize + margin > pageHeight) {
-        doc.addPage();
-        x = margin;
-        y = margin;
-      }
-
-      doc.addImage(dataUrl, "PNG", x, y, qrSize, qrSize);
-
-      // label
-      const label = items[i].maThung ?? "";
-      doc.setFontSize(8);
-      const textX = x + Math.max(0, (qrSize - doc.getTextWidth(label)) / 2);
-      doc.text(label, textX, y + qrSize + 4);
-
-      x += qrSize + gap;
-      if (i % cols === cols - 1) {
-        x = margin;
-        y += rowHeight;
-      }
-    }
-
-    doc.save(`qr-boxes-${new Date().toISOString().slice(0, 10)}.pdf`);
+    setTimeout(() => {
+      this._exportPdfInternal();
+    }, 300);
   }
 
   exportExcelFromDialog(useCurrentPage = false): void {
@@ -280,6 +233,25 @@ export class DetailBoxDialogComponent implements OnInit {
     const fileName = `BoxDetail_${serialBox || "export"}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   }
+  private getDataUrlFromRenderedImg(index: number): string | null {
+    // Lấy ElementRef đã được gõ kiểu
+    const qrArray = this.qrElements.toArray();
+    const qrElem = qrArray[index];
+    if (!qrElem) {
+      return null;
+    }
+
+    // nativeElement là HTMLElement; querySelector trả về Element | null
+    const native = qrElem.nativeElement as HTMLElement;
+    const canvas = native.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) {
+      return null;
+    }
+
+    // toDataURL trả về string — an toàn để trả về
+    const dataUrl = canvas.toDataURL("image/png");
+    return dataUrl;
+  }
 
   private initializeInfoCards(): void {
     this.infoCards = [
@@ -318,18 +290,56 @@ export class DetailBoxDialogComponent implements OnInit {
     this.paginatedItems = this.boxSubItems.slice(startIndex, endIndex);
   }
 
-  private getDataUrlFromRenderedImg(indexInPage: number): string | null {
-    const wraps = this.qrWraps.toArray();
-    const wrap = wraps[indexInPage];
-    if (!wrap) {
-      return null;
+  private _exportPdfInternal(): void {
+    const items = this.paginatedItems;
+    if (!items.length) {
+      return;
     }
-    const img = wrap.nativeElement.querySelector(
-      "img",
-    ) as HTMLImageElement | null;
-    if (img && img.src && img.src.startsWith("data:")) {
-      return img.src;
+
+    const doc = new jsPDF({
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait",
+    });
+
+    const pageWidth = 210,
+      pageHeight = 297,
+      margin = 10;
+    const cols = 5,
+      gap = 6;
+    const contentWidth = pageWidth - margin * 2;
+    const qrSize = (contentWidth - gap * (cols - 1)) / cols;
+    const rowHeight = qrSize + 8;
+
+    let x = margin,
+      y = margin;
+
+    for (let i = 0; i < items.length; i++) {
+      const dataUrl = this.getDataUrlFromRenderedImg(i);
+      if (!dataUrl) {
+        continue;
+      }
+
+      if (y + qrSize + margin > pageHeight) {
+        doc.addPage();
+        x = margin;
+        y = margin;
+      }
+
+      doc.addImage(dataUrl, "PNG", x, y, qrSize, qrSize);
+
+      const label = items[i].maThung ?? "";
+      doc.setFontSize(8);
+      const textX = x + Math.max(0, (qrSize - doc.getTextWidth(label)) / 2);
+      doc.text(label, textX, y + qrSize + 4);
+
+      x += qrSize + gap;
+      if (i % cols === cols - 1) {
+        x = margin;
+        y += rowHeight;
+      }
     }
-    return null;
+
+    doc.save(`qr-boxes-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 }

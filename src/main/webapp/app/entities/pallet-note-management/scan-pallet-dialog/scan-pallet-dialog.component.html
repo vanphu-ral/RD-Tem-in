@@ -44,6 +44,93 @@
         }}</mat-icon>
         {{ scanModeActive ? "Đang scan..." : "Nhấn để kích hoạt Scan" }}
       </button>
+      <div class="unscanned-boxes-section" *ngIf="unscannedCodes.length > 0">
+        <div class="unscanned-header">
+          <h4 class="unscanned-title">
+            <mat-icon>inventory_2</mat-icon>
+            Box chưa scan ({{ unscannedCount }})
+          </h4>
+          <div class="unscanned-actions">
+            <button
+              mat-button
+              class="select-action-btn"
+              (click)="selectAllUnscanned()"
+              [disabled]="!canSelectMore() || isAddingSelectedBoxes"
+            >
+              Chọn tất cả
+            </button>
+            <button
+              mat-button
+              class="select-action-btn"
+              (click)="deselectAll()"
+              [disabled]="
+                selectedUnscannedBoxes.size === 0 || isAddingSelectedBoxes
+              "
+            >
+              Bỏ chọn
+            </button>
+          </div>
+        </div>
+
+        <!-- Available slots indicator -->
+        <div class="slots-indicator">
+          <mat-icon class="slots-icon">storage</mat-icon>
+          <span class="slots-text">
+            Còn trống: <strong>{{ getAvailableSlots() }}</strong> vị trí
+          </span>
+        </div>
+
+        <!-- List boxes với checkbox -->
+        <div class="unscanned-list">
+          <div
+            class="unscanned-item"
+            *ngFor="let code of unscannedCodes; let i = index"
+            [class.selected]="isBoxSelected(code)"
+            [class.disabled]="!canSelectMore() && !isBoxSelected(code)"
+          >
+            <mat-checkbox
+              [checked]="isBoxSelected(code)"
+              (change)="toggleUnscannedBox(code)"
+              [disabled]="
+                (!canSelectMore() && !isBoxSelected(code)) ||
+                isAddingSelectedBoxes
+              "
+              color="primary"
+            >
+            </mat-checkbox>
+            <div class="unscanned-info">
+              <span class="unscanned-code">{{ code }}</span>
+              <span class="unscanned-index">#{{ i + 1 }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirm button -->
+        <button
+          mat-raised-button
+          color="accent"
+          class="confirm-selected-btn"
+          (click)="confirmAddSelectedBoxes()"
+          [disabled]="
+            selectedUnscannedBoxes.size === 0 || isAddingSelectedBoxes
+          "
+          *ngIf="selectedUnscannedBoxes.size > 0"
+        >
+          <mat-icon>add_circle</mat-icon>
+          Thêm {{ selectedUnscannedBoxes.size }} box đã chọn
+          <mat-spinner
+            *ngIf="isAddingSelectedBoxes"
+            diameter="20"
+            class="btn-spinner"
+          ></mat-spinner>
+        </button>
+      </div>
+
+      <!-- Empty state khi không có box chưa scan -->
+      <div class="unscanned-empty" *ngIf="unscannedCodes.length === 0">
+        <mat-icon>check_circle</mat-icon>
+        <p>Tất cả box đã được scan</p>
+      </div>
     </div>
 
     <!-- Right Column: All other sections -->
