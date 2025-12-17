@@ -44,6 +44,9 @@ spring:
         prepStmtCacheSize: 250
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
+  redis:
+    host: 192.168.10.99
+    port: 6379
 partner:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource

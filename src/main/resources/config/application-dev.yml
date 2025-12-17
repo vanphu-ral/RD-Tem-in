@@ -57,6 +57,9 @@ spring:
         prepStmtCacheSize: 250
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
+  redis:
+    host: 192.168.10.99
+    port: 6379
 partner:
   # enabled: false
   datasource:
@@ -100,7 +103,7 @@ partner3:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/PNM_DB
-    username: admin
+    username: postgres
     password: admin123
     hikari:
       poolName: HikariCP-Partner3

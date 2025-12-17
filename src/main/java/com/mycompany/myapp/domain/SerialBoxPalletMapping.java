@@ -39,6 +39,9 @@ public class SerialBoxPalletMapping implements Serializable {
     @Column(name = "status")
     private Integer status;
 
+    // @Column(name = "ma_lenh_san_xuat_id")
+    // private Long maLenhSanXuatId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ma_lenh_san_xuat_id")
     @JsonIgnoreProperties(
