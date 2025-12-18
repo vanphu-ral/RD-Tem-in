@@ -682,11 +682,12 @@ export class WmsApproveDialogComponent implements OnInit {
       return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     };
 
-    // compute totals (kept safe)
+    // Compute totals
     const totalBoxes = selectedPallets.reduce(
       (s, p) => s + Number(p.numBoxActual ?? 0),
       0,
     );
+
     const totalQuantity = selectedPallets.reduce((sum, p) => {
       const boxes = (p as any).listBox ?? (p as any).boxes ?? [];
       if (Array.isArray(boxes) && boxes.length) {
@@ -698,21 +699,30 @@ export class WmsApproveDialogComponent implements OnInit {
       return sum + Number(p.numBoxActual ?? 0) * Number(p.quantityPerBox ?? 0);
     }, 0);
 
-    // build list_pallet (unchanged)
+    // Tính production_date chung (dùng cho cả general_info và list_pallet)
+    const productionDate = formatDate(
+      info?.production_date ??
+        firstPallet?.productionDate ??
+        info?.time_update ??
+        new Date().toISOString(),
+    );
+
+    // Build list_pallet
     const listPallet: WmsPalletItem[] = selectedPallets.map((pallet) => {
       const rawListBox = (pallet as any).listBox ?? (pallet as any).boxes ?? [];
+
       const list_box: WmsBox[] =
         Array.isArray(rawListBox) && rawListBox.length > 0
           ? rawListBox.map((b: any) => ({
               box_code: String(b.boxCode ?? ""),
-              quantity: Number(b.quantity ?? 0),
+              quantity: Number(b.quantity ?? 0), // Number, không phải string
               note: b.note ?? "",
               list_serial_items: b.list_serial_items ?? "",
             }))
           : Array.from({ length: Number(pallet.numBoxActual ?? 0) }).map(
               (_, i) => ({
                 box_code: `${pallet.palletCode ?? pallet.qrCode ?? "BOX"}-${i + 1}`,
-                quantity: Number(pallet.quantityPerBox ?? 0),
+                quantity: Number(pallet.quantityPerBox ?? 0), // Number
                 note: "",
                 list_serial_items: "",
               }),
@@ -726,9 +736,10 @@ export class WmsApproveDialogComponent implements OnInit {
 
       return {
         serial_pallet: pallet.palletCode ?? pallet.qrCode ?? "",
-        quantity_per_box: String(pallet.quantityPerBox ?? ""),
-        num_box_per_pallet: String(pallet.numBoxActual ?? ""),
-        total_quantity: String(totalQuantityForPallet ?? 0),
+        quantity_per_box: Number(pallet.quantityPerBox ?? 0), // Đổi từ String → Number
+        num_box_per_pallet: Number(pallet.numBoxActual ?? 0), // Đổi từ String → Number
+        total_quantity: Number(totalQuantityForPallet ?? 0), // Đổi từ String → Number
+        production_date: productionDate, // THÊM FIELD NÀY
         po_number: pallet.poNumber ?? "",
         customer_name: pallet.customerName ?? "",
         production_decision_number: pallet.productionDecisionNumber ?? "",
@@ -736,26 +747,22 @@ export class WmsApproveDialogComponent implements OnInit {
         date_code: pallet.dateCode ?? "",
         note: pallet.note ?? "",
         list_box,
-      } as unknown as WmsPalletItem;
+      };
     });
 
-    // Map general_info using warehouse_note_info fields (snake_case) with fallbacks
+    // Build payload
     const payload: WmsPayload = {
       general_info: {
-        client_id: info?.client_id ?? firstPallet?.customerName ?? "", // backend may not provide client_id
+        client_id: info?.client_id ?? firstPallet?.customerName ?? "",
         inventory_code: info?.sap_code ?? firstPallet?.itemNoSku ?? "",
         inventory_name: info?.sap_name ?? "",
         wo_code: info?.work_order_code ?? "",
-        production_date: formatDate(
-          info?.production_date ??
-            firstPallet?.productionDate ??
-            info?.time_update,
-        ),
-        lot_number: this.getLotNumber?.() ?? "",
+        production_date: productionDate, // dùng biến đã format
+        lot_number: this.getLotNumber?.() ?? "", // Đảm bảo không null
         note: info?.comment ?? info?.comment_2 ?? "",
         created_by: info?.create_by ?? info?.createBy ?? "admin",
         branch: info?.branch ?? "",
-        production_team: (info?.group_name ?? "").toString().trim() ?? "",
+        production_team: String(info?.group_name ?? "").trim(), // Đảm bảo là string
         number_of_pallet: selectedPallets.length,
         number_of_box: totalBoxes,
         quantity: totalQuantity,
@@ -768,6 +775,7 @@ export class WmsApproveDialogComponent implements OnInit {
     };
 
     console.log("WMS payload (built):", payload);
+
     return payload;
   }
 
@@ -924,13 +932,13 @@ export class WmsApproveDialogComponent implements OnInit {
 
     try {
       // ===== PHÂN BIỆT THEO LOẠI SẢN PHẨM =====
-      if (this.productType === "Bán thành phẩm") {
-        // BÁN THÀNH PHẨM: Gửi payload khác
-        await this.sendBTPApproval(selectedPallets);
-      } else {
-        // THÀNH PHẨM: Gửi payload như cũ
-        await this.sendWmsPayload(selectedPallets);
-      }
+      // if (this.productType === "Bán thành phẩm") {
+      //   // BÁN THÀNH PHẨM: Gửi payload khác
+      //   await this.sendBTPApproval(selectedPallets);
+      // } else {
+      // THÀNH PHẨM: Gửi payload như cũ
+      await this.sendWmsPayload(selectedPallets);
+      // }
 
       // Update status sau khi gửi
       await this.updatePalletStatus(selectedPallets);
@@ -1227,15 +1235,13 @@ export class WmsApproveDialogComponent implements OnInit {
     this.isLoading = true;
 
     try {
-      // Update box status
-
       // Send WMS box payload
       // ===== PHÂN BIỆT THEO LOẠI SẢN PHẨM =====
       if (this.productType === "Bán thành phẩm") {
         await this.sendBTPBoxApproval(selectedBoxes);
       } else {
-        await this.updateBoxStatus(selectedBoxes);
         await this.sendWmsBoxPayload(selectedBoxes);
+        await this.updateBoxStatus(selectedBoxes);
       }
       // Update UI
       this.updateUIAfterSendBox(selectedBoxes);
@@ -1267,12 +1273,11 @@ export class WmsApproveDialogComponent implements OnInit {
     const payloadArray = boxes.map((b) => ({
       id: b.id,
       wms_send_status: true,
-      updated_by: this.warehouseNoteInfo?.approver_by || "admin",
     }));
 
     try {
       await firstValueFrom(
-        this.planningService.sendWmsApproval(payloadArray), //dieu chinh gui payload
+        this.planningService.updateStampDetails(payloadArray),
       );
       console.log("✓ Box status updated");
     } catch (error) {
@@ -1287,7 +1292,7 @@ export class WmsApproveDialogComponent implements OnInit {
   ): Promise<void> {
     const payload = this.buildWmsBoxPayload(selectedBoxes);
 
-    console.log("📦 WMS Box Payload:", payload);
+    console.log("WMS Box Payload:", payload);
 
     try {
       await firstValueFrom(this.planningService.sendWmsApproval(payload)); //dieu chinh gui payload
@@ -1299,7 +1304,6 @@ export class WmsApproveDialogComponent implements OnInit {
   }
 
   private buildWmsBoxPayload(selectedBoxes: BoxDialogItem[]): any {
-    // Build payload tương tự pallet nhưng cho boxes
     const info = (this.warehouseNoteInfo ?? {}) as Record<string, any>;
 
     const formatDate = (isoDate?: string): string => {
@@ -1310,41 +1314,83 @@ export class WmsApproveDialogComponent implements OnInit {
       return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     };
 
+    // Tinh tong so luong tu cac box
     const totalQuantity = selectedBoxes.reduce(
-      (sum, b) => sum + (b.quantity || 0),
+      (sum, b) => sum + Number(b.quantity ?? 0),
       0,
     );
 
-    return {
+    // Tinh production_date chung
+    const productionDate = formatDate(
+      info?.production_date ?? info?.time_update ?? new Date().toISOString(),
+    );
+
+    // Build list_box theo format BE yeu cau
+    const listBox = selectedBoxes.map((box) => ({
+      box_code: String(box.boxCode ?? ""),
+      quantity: Number(box.quantity ?? 0), // Dam bao la number
+      note: box.note ?? "",
+      list_serial_items: "", // BE yeu cau field nay
+    }));
+
+    // Theo yeu cau BE: van phai co list_pallet nhung de trong thong tin pallet
+    // Chi co 1 pallet ao voi list_box chua cac box thuc te
+    const payload = {
       general_info: {
-        client_id: info?.client_id || "",
-        inventory_code: info?.sap_code || "",
-        inventory_name: info?.sap_name || "",
-        wo_code: info?.work_order_code || "",
-        production_date: formatDate(info?.production_date || info?.time_update),
-        lot_number: this.getLotNumber() || "",
-        note: info?.comment || info?.comment_2 || "",
-        created_by: info?.create_by || info?.createBy || "admin",
-        branch: info?.branch || "",
-        production_team: (info?.group_name || "").toString().trim(),
+        client_id: info?.client_id ?? "",
+        inventory_code: info?.sap_code ?? "",
+        inventory_name: info?.sap_name ?? "",
+        wo_code: info?.work_order_code ?? "",
+        production_date: productionDate,
+        lot_number: this.getLotNumber?.() ?? "",
+        note: info?.comment ?? info?.comment_2 ?? "",
+        created_by: info?.create_by ?? info?.createBy ?? "admin",
+        branch: info?.branch ?? "",
+        production_team: String(info?.group_name ?? "").trim(),
+        number_of_pallet: 1, // Co 1 pallet ao
         number_of_box: selectedBoxes.length,
         quantity: totalQuantity,
-        destination_warehouse: Number(info?.destination_warehouse || 1),
+        destination_warehouse: Number(info?.destination_warehouse ?? 1),
         pallet_note_creation_id: Number(
-          info?.id || this.data?.maLenhSanXuatId || 0,
+          info?.id ?? this.data?.maLenhSanXuatId ?? 0,
         ),
-        list_box: selectedBoxes.map((box) => ({
-          box_code: box.boxCode,
-          quantity: box.quantity,
-          note: box.note ?? "",
-          pallet_code: box.palletCode ?? "",
-          expiration_date: box.expirationDate ?? "",
-          manufacturing_date: box.manufacturingDate ?? "",
-          rank: box.rank ?? "",
-          tp_nk: box.tpnk ?? "",
-        })),
+
+        // Danh sach pallet (chi co 1 pallet ao)
+        list_pallet: [
+          {
+            serial_pallet: "", // De trong vi khong co pallet
+            quantity_per_box: 0, // De trong
+            num_box_per_pallet: selectedBoxes.length,
+            total_quantity: totalQuantity,
+            production_date: productionDate,
+            po_number: "",
+            customer_name: "",
+            production_decision_number: "",
+            item_no_sku: "",
+            date_code: "",
+            note: "Gửi thùng không có pallet",
+            list_box: listBox, // Cac box thuc te
+          },
+        ],
       },
     };
+
+    console.log("WMS Box payload (built):", payload);
+
+    // Log validation
+    console.log("Payload validation:", {
+      boxCount: selectedBoxes.length,
+      totalQuantity: totalQuantity,
+      hasProductionDate: !!productionDate,
+      listBoxLength: listBox.length,
+      typesCheck: {
+        quantity: typeof listBox[0]?.quantity,
+        num_box_per_pallet:
+          typeof payload.general_info.list_pallet[0]?.num_box_per_pallet,
+      },
+    });
+
+    return payload;
   }
 
   //box ban thanh pham
@@ -1354,7 +1400,7 @@ export class WmsApproveDialogComponent implements OnInit {
   ): Promise<void> {
     const payload = this.buildBTPBoxPayload(selectedBoxes);
 
-    console.log("📦 BTP Box Approval Payload:", payload);
+    console.log("BTP Box Approval Payload:", payload);
 
     try {
       await firstValueFrom(this.planningService.sendBTPApproval(payload)); //api send btp
@@ -1426,7 +1472,7 @@ export class WmsApproveDialogComponent implements OnInit {
   ): Promise<void> {
     const payload = this.buildBTPPayload(selectedPallets);
 
-    console.log("📦 BTP Approval Payload:", payload);
+    console.log("BTP Approval Payload:", payload);
 
     try {
       await firstValueFrom(this.planningService.sendBTPApproval(payload));
