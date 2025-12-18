@@ -650,6 +650,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
                 warehouseNoteInfoDetails: body.warehouse_note_info_details,
                 productType:
                   this.warehouseNoteInfo?.product_type || "Thành phẩm",
+
+                boxItems:
+                  this.warehouseNoteInfo?.product_type === "Thành phẩm"
+                    ? this.boxItems
+                    : undefined,
+                reelDataList:
+                  this.warehouseNoteInfo?.product_type === "Bán thành phẩm"
+                    ? this.reelDataList
+                    : undefined,
               };
 
               console.log("dialog data", dialogData);

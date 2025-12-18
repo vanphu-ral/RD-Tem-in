@@ -7,7 +7,7 @@ $border-color: #e5e7eb;
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-height: 90vh;
+  max-height: 100vh;
   background: white;
   border-radius: 8px;
   overflow: hidden;
@@ -37,6 +37,88 @@ $border-color: #e5e7eb;
       font-weight: 700;
       text-transform: uppercase;
     }
+  }
+}
+
+.qr-cell:hover .qr-zoom {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+.qr-table {
+  width: 100%;
+  background: white;
+
+  th.mat-header-cell {
+    background-color: #3b82f6;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 16px 12px;
+    text-align: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    &:last-child {
+      border-right: none;
+    }
+  }
+
+  td.mat-cell {
+    padding: 16px 12px;
+    text-align: center;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+    color: #1f2937;
+    overflow: visible; // Quan trọng
+    position: relative;
+  }
+
+  tr.mat-row {
+    position: relative;
+
+    &:hover {
+      background-color: #f9fafb;
+      z-index: 1; // Nâng row lên khi hover
+    }
+  }
+
+  .box-code {
+    font-family: "Courier New", monospace;
+    font-weight: 500;
+    color: #1f2937;
+    font-size: 14px;
+  }
+}
+.qr-zoom {
+  position: fixed; // FIXED - không phải absolute!
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  padding: 12px;
+  background: white;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  z-index: 99999;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -8px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #3b82f6;
   }
 }
 
@@ -74,14 +156,13 @@ $border-color: #e5e7eb;
 
   .section-header {
     padding: 10px 14px;
+    padding: 10px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid $border-color;
     background: transparent;
-    // position: sticky;
-    // top: 0;
-    // z-index: 2;
+    flex-shrink: 0;
 
     .section-title {
       font-size: 0.875rem;
@@ -94,10 +175,10 @@ $border-color: #e5e7eb;
 
   /* Phần chứa bảng sẽ cuộn độc lập */
   .table-container {
-    overflow: auto;
-    padding: 12px;
-    /* đảm bảo phần table không vượt quá vùng section */
-    flex: 1 1 auto;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    max-height: 100%;
   }
 
   &.pending-section {
@@ -136,6 +217,10 @@ $border-color: #e5e7eb;
 }
 
 .nested-tabs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
   ::ng-deep {
     .mat-mdc-tab-header {
       background: #f9fafb;
@@ -157,6 +242,11 @@ $border-color: #e5e7eb;
 
     .mat-mdc-tab-body-wrapper {
       flex: 1;
+      overflow: hidden;
+    }
+    .mat-mdc-tab-body-content {
+      height: 100%;
+      overflow: auto;
     }
   }
 }
