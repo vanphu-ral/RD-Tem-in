@@ -78,8 +78,8 @@ export interface PlanningWorkOrderResponse {
 })
 export class PlanningWorkOrderService {
   private baseUrl = environment.baseInTemApiUrl;
-  private apiUrl = "${this.baseUrl}/item-data/planning-work-orders";
-  private WMSUrl = "http://192.168.68.77:9030";
+  private apiUrl = `${this.baseUrl}/item-data/planning-work-orders`;
+  private WMSUrl = "https://192.168.68.77:9030";
   private apiCheckIdentifyWo = `${this.baseUrl}/warehouse-note-infos/work-order-code`;
 
   private testUrl = "http://192.168.68.77:9040/api";
