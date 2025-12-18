@@ -352,10 +352,10 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       this.scanMode = "zebra";
       this.cameraActive = false; // Đảm bảo camera TẮT
 
-      console.log("✅ Zebra scanner activated - Input focused");
+      console.log("Zebra scanner activated - Input focused");
       setTimeout(() => this.focusScannerInput(), 100);
     } else {
-      console.log("❌ Zebra scanner deactivated");
+      console.log(" Zebra scanner deactivated");
     }
   }
 
@@ -383,10 +383,9 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   focusScannerInput(): void {
     if (this.scannerInput && this.scannerInput.nativeElement) {
       this.scannerInput.nativeElement.focus();
-      console.log("✅ Input focused");
+      console.log("Input focused");
     }
   }
-
   processScannedCode(): void {
     if (
       !this.scannedCode ||
@@ -396,8 +395,11 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const code = this.scannedCode.trim();
-    console.log("Processing code:", code);
+    const raw = this.scannedCode.trim();
+    // Lấy phần trước dấu '#' nếu scanner trả chuỗi dạng "code#info#..."
+    const code = this.getPrimaryScannedCode(raw);
+
+    console.log("Processing code:", raw, "=> primary:", code);
 
     this.validateAndAddBox(code);
     this.scannedCode = "";
@@ -447,7 +449,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const trimmedCode = code.trim();
+    const trimmedCode = this.getPrimaryScannedCode(code);
 
     // Check 1: Đã đủ số lượng?
     if (this.scannedCount >= (this.palletData?.thungScan ?? 0)) {
@@ -786,5 +788,14 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
           error: (error) => reject(error),
         });
     });
+  }
+
+  //hepler scan
+  private getPrimaryScannedCode(raw: string): string {
+    if (!raw) {
+      return "";
+    }
+    const first = String(raw).split("#")[0] ?? raw;
+    return first.trim();
   }
 }

@@ -105,8 +105,17 @@
                           [qrdata]="row.palletCode?.trim() ?? ''"
                           [width]="80"
                           [errorCorrectionLevel]="'M'"
+                          class="qr-img"
                         >
                         </qrcode>
+                        <div class="qr-zoom">
+                          <qrcode
+                            [qrdata]="row.palletCode?.trim() ?? ''"
+                            [width]="220"
+                            [errorCorrectionLevel]="'M'"
+                          >
+                          </qrcode>
+                        </div>
                       </div>
                     </td>
                   </ng-container>
@@ -169,7 +178,11 @@
 
             <div class="table-container">
               <ng-container *ngIf="pendingBoxes().length > 0; else noBoxes">
-                <table mat-table [dataSource]="pendingBoxes()" class="w-full">
+                <table
+                  mat-table
+                  [dataSource]="pendingBoxes()"
+                  class="w-full qr-table"
+                >
                   <!-- Checkbox Column -->
                   <ng-container matColumnDef="select">
                     <th mat-header-cell *matHeaderCellDef>
@@ -198,6 +211,35 @@
                   <ng-container matColumnDef="stt">
                     <th mat-header-cell *matHeaderCellDef>STT</th>
                     <td mat-cell *matCellDef="let i = index">{{ i + 1 }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="qr">
+                    <th mat-header-cell *matHeaderCellDef>Mã QR</th>
+                    <td mat-cell *matCellDef="let row">
+                      <div class="qr-cell">
+                        <qrcode
+                          [qrdata]="
+                            row.qrCode?.trim() ?? row.boxCode?.trim() ?? ''
+                          "
+                          [width]="80"
+                          [errorCorrectionLevel]="'M'"
+                          class="qr-img"
+                        >
+                        </qrcode>
+
+                        <!-- zoom -->
+                        <div class="qr-zoom">
+                          <qrcode
+                            [qrdata]="
+                              row.qrCode?.trim() ?? row.boxCode?.trim() ?? ''
+                            "
+                            [width]="220"
+                            [errorCorrectionLevel]="'M'"
+                          >
+                          </qrcode>
+                        </div>
+                      </div>
+                    </td>
                   </ng-container>
 
                   <!-- Box Code Column -->
@@ -273,7 +315,11 @@
 
             <div class="table-container">
               @if (sentPallets().length > 0) {
-                <table mat-table [dataSource]="sentPallets()" class="w-full">
+                <table
+                  mat-table
+                  [dataSource]="sentPallets()"
+                  class="w-full qr-table"
+                >
                   <!-- (Columns repeated for Sent table without checkboxes) -->
                   <ng-container matColumnDef="stt">
                     <th mat-header-cell *matHeaderCellDef>STT</th>
@@ -288,8 +334,17 @@
                           [qrdata]="row.palletCode?.trim() ?? ''"
                           [width]="80"
                           [errorCorrectionLevel]="'M'"
+                          class="qr-img"
                         >
                         </qrcode>
+                        <div class="qr-zoom">
+                          <qrcode
+                            [qrdata]="row.palletCode?.trim() ?? ''"
+                            [width]="220"
+                            [errorCorrectionLevel]="'M'"
+                          >
+                          </qrcode>
+                        </div>
                       </div>
                     </td>
                   </ng-container>
@@ -347,6 +402,33 @@
                   <ng-container matColumnDef="stt">
                     <th mat-header-cell *matHeaderCellDef>STT</th>
                     <td mat-cell *matCellDef="let i = index">{{ i + 1 }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="qr">
+                    <th mat-header-cell *matHeaderCellDef>Mã QR</th>
+                    <td mat-cell *matCellDef="let row">
+                      <div class="qr-cell">
+                        <qrcode
+                          [qrdata]="
+                            row.qrCode?.trim() ?? row.boxCode?.trim() ?? ''
+                          "
+                          [width]="80"
+                          [errorCorrectionLevel]="'M'"
+                          class="qr-img"
+                        >
+                        </qrcode>
+                        <div class="qr-zoom">
+                          <qrcode
+                            [qrdata]="
+                              row.qrCode?.trim() ?? row.boxCode?.trim() ?? ''
+                            "
+                            [width]="220"
+                            [errorCorrectionLevel]="'M'"
+                          >
+                          </qrcode>
+                        </div>
+                      </div>
+                    </td>
                   </ng-container>
 
                   <ng-container matColumnDef="boxCode">

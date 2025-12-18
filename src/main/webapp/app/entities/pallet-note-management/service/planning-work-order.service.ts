@@ -79,10 +79,10 @@ export interface PlanningWorkOrderResponse {
 export class PlanningWorkOrderService {
   private baseUrl = environment.baseInTemApiUrl;
   private apiUrl = `${this.baseUrl}/item-data/planning-work-orders`;
-  private WMSUrl = "https://192.168.68.77:9030";
+  private WMSUrl = "https://192.168.68.77:9030/api";
   private apiCheckIdentifyWo = `${this.baseUrl}/warehouse-note-infos/work-order-code`;
 
-  private testUrl = "http://192.168.68.77:9040/api";
+  private testUrl = "http://192.168.10.99:9030/api";
 
   constructor(private http: HttpClient) {}
 
@@ -227,8 +227,17 @@ export class PlanningWorkOrderService {
 
   sendWmsApproval(payload: any): Observable<any> {
     return this.http.post<any>(
-      `${this.WMSUrl}/api/import-requirements/wms`,
+      `${this.testUrl}/import-requirements/wms`,
       payload,
+    );
+  }
+  // Cập nhật trạng thái thùng wwms (mảng)
+  updateStampDetails(
+    payloadArray: { id: number; wms_send_status: boolean }[],
+  ): Observable<any> {
+    return this.http.put<any>(
+      `${this.baseUrl}/warehouse-stamp-info-details`,
+      payloadArray,
     );
   }
   //gui duyet btp

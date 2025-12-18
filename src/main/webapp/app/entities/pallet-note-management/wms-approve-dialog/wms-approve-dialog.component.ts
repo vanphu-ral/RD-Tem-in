@@ -70,6 +70,8 @@ export interface WmsDialogData {
     serial_pallet: string;
   }>;
   productType?: string;
+  boxItems?: any[]; // Cho thanh pham
+  reelDataList?: any[];
 }
 
 export interface PalletDialogItem {
@@ -221,6 +223,7 @@ export class WmsApproveDialogComponent implements OnInit {
   displayedColumnsBoxPending: string[] = [
     "select",
     "stt",
+    "qr",
     "boxCode",
     "quantity",
     "palletCode",
@@ -228,6 +231,7 @@ export class WmsApproveDialogComponent implements OnInit {
 
   displayedColumnsBoxSent: string[] = [
     "stt",
+    "qr",
     "boxCode",
     "quantity",
     "palletCode",
@@ -275,8 +279,20 @@ export class WmsApproveDialogComponent implements OnInit {
       this.warehouseNoteInfoDetails = data.warehouseNoteInfoDetails;
       this.boxDetails = data.warehouseNoteInfoDetails;
     }
+    if (data.productType === "Thành phẩm" && Array.isArray(data.boxItems)) {
+      this.boxDetails = data.boxItems;
+      console.log("Loaded boxItems for Thanh pham:", this.boxDetails.length);
+    } else if (
+      data.productType === "Bán thành phẩm" &&
+      Array.isArray(data.reelDataList)
+    ) {
+      this.boxDetails = data.reelDataList;
+      console.log(
+        "Loaded reelDataList for Ban thanh pham:",
+        this.boxDetails.length,
+      );
+    }
 
-    // nhận mapping từ data (hỗ trợ cả snake_case và camelCase)
     if (Array.isArray((data as any).serial_box_pallet_mappings)) {
       this.mappings = (data as any).serial_box_pallet_mappings;
     } else if (Array.isArray((data as any).serialBoxPalletMappings)) {
@@ -289,7 +305,7 @@ export class WmsApproveDialogComponent implements OnInit {
     this.boxToPallet = boxToPallet;
     this.palletAggregates = palletAggregates;
     this.productType = data.productType ?? "Thành phẩm";
-    // lưu vào component để dùng khi map
+
     if (
       Array.isArray(data?.preloadedPallets) &&
       data.preloadedPallets.length > 0
@@ -298,9 +314,8 @@ export class WmsApproveDialogComponent implements OnInit {
       const mapped = this.mapDetailDataToDialogItems(data.preloadedPallets);
       this.pallets.set(mapped);
 
-      this.loadUnassignedBoxes();
+      this.loadAllBoxesIntoSignal();
 
-      // Lưu raw data để build payload
       this.warehouseNoteInfo = {
         ...(this.warehouseNoteInfo ?? {}),
         id: data.maLenhSanXuatId,
@@ -323,7 +338,7 @@ export class WmsApproveDialogComponent implements OnInit {
       await this.loadData();
     }
 
-    this.loadUnassignedBoxes();
+    this.loadAllBoxesIntoSignal();
   }
 
   // ==================== SEND APPROVAL ====================
@@ -600,31 +615,131 @@ export class WmsApproveDialogComponent implements OnInit {
 
     this.selection.clear();
   }
-  private processScannedCode(code: string): void {
-    // Lấy mảng thực tế mà template đang hiển thị
-    const list = this.pendingPallets();
+  private processScannedCode(rawInput: string): void {
+    if (!rawInput) {
+      return;
+    }
 
-    // Tìm object trong chính mảng đó (đảm bảo cùng reference với bảng)
-    const found = list.find(
-      (p: any) =>
-        p.qrCode === code ||
-        p.palletCode === code ||
-        String(p.id) === String(code),
-    );
+    // tách nhiều mã nếu scanner gửi nhiều dòng
+    const codes = String(rawInput)
+      .split(/[\r\n]+/)
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    console.log("Scan received:", rawInput, "=>", codes);
+
+    // Xác định context: pallet vs box
+    const isMobileView = !!this.isMobile;
+    const pendingTabIndex = this.nestedTabIndexPending ?? 0;
+    const mobileTab = this.mobileTabIndex ?? 0;
+    const inPendingView = isMobileView ? mobileTab === 0 : true; // mobileTabIndex 0 = pending
+    const isPalletTab = inPendingView
+      ? pendingTabIndex === 0
+      : pendingTabIndex === 0;
+
+    console.log("Scan context:", {
+      isMobileView,
+      mobileTab,
+      pendingTabIndex,
+      isPalletTab,
+    });
+
+    for (const rawCode of codes) {
+      if (!rawCode) {
+        continue;
+      }
+      if (isPalletTab) {
+        this._processScannedPalletCode(rawCode);
+      } else {
+        this._processScannedBoxCode(rawCode);
+      }
+    }
+  }
+  /** Xử lý scan cho Pallet (giữ nguyên hành vi cũ) */
+  private _processScannedPalletCode(rawCode: string): void {
+    const code = this.normalizeSerial(rawCode);
+    console.log("Process pallet code:", rawCode, "=>", code);
+
+    const list = this.pendingPallets ? this.pendingPallets() : [];
+    const found = list.find((p: any) => {
+      const qr = this.normalizeSerial(
+        p.qrCode ?? p.palletCode ?? p.serialPallet ?? "",
+      );
+      const idStr = this.normalizeSerial(p.id);
+      return qr === code || idStr === code;
+    });
 
     if (!found) {
       this.snackBar.open(
-        `Mã ${code} không nằm trong danh sách chưa gửi`,
+        `Mã ${rawCode} không nằm trong danh sách pallet chưa gửi`,
         "Đóng",
         { duration: 1500 },
       );
       return;
     }
 
-    // Select object từ mảng hiển thị (cùng reference) — sẽ tick checkbox
     if (!this.selection.isSelected(found)) {
       this.selection.select(found);
-      this.cdr.detectChanges(); // đảm bảo UI cập nhật ngay
+      this.cdr.detectChanges();
+    }
+  }
+
+  private _processScannedBoxCode(rawCode: string): void {
+    const isBtp =
+      String(this.productType ?? "")
+        .toLowerCase()
+        .includes("bán thành phẩm") ||
+      String(this.productType ?? "")
+        .toLowerCase()
+        .includes("ban thanh pham");
+
+    // Nếu BTP, lấy phần trước dấu '#'
+    const codeToMatch = isBtp
+      ? (String(rawCode).split("#")[0] ?? rawCode)
+      : rawCode;
+    const code = this.normalizeSerial(codeToMatch);
+    console.log("Process box code:", rawCode, "isBtp:", isBtp, "match:", code);
+
+    const list = this.pendingBoxes ? this.pendingBoxes() : [];
+    console.log("Pending boxes count:", list.length);
+
+    const found = list.find((b: any) => {
+      const qr = this.normalizeSerial(b.qrCode ?? b.qr_code ?? b.qr ?? "");
+      const boxCode = this.normalizeSerial(
+        b.boxCode ?? b.serial_box ?? b.maThung ?? "",
+      );
+      const reelId = this.normalizeSerial(
+        b.reelID ?? b.reel_id ?? b.reel ?? "",
+      );
+      const idStr = this.normalizeSerial(b.id);
+
+      if (isBtp && reelId && reelId === code) {
+        return true;
+      }
+      if (qr && qr === code) {
+        return true;
+      }
+      if (boxCode && boxCode === code) {
+        return true;
+      }
+      if (idStr && idStr === code) {
+        return true;
+      }
+      return false;
+    });
+
+    if (!found) {
+      this.snackBar.open(
+        `Mã ${rawCode} không nằm trong danh sách box chưa gửi`,
+        "Đóng",
+        { duration: 1500 },
+      );
+      return;
+    }
+
+    if (!this.boxSelection.isSelected(found)) {
+      this.boxSelection.select(found);
+      this.cdr.detectChanges();
     }
   }
 
@@ -682,11 +797,12 @@ export class WmsApproveDialogComponent implements OnInit {
       return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     };
 
-    // compute totals (kept safe)
+    // Compute totals
     const totalBoxes = selectedPallets.reduce(
       (s, p) => s + Number(p.numBoxActual ?? 0),
       0,
     );
+
     const totalQuantity = selectedPallets.reduce((sum, p) => {
       const boxes = (p as any).listBox ?? (p as any).boxes ?? [];
       if (Array.isArray(boxes) && boxes.length) {
@@ -698,21 +814,30 @@ export class WmsApproveDialogComponent implements OnInit {
       return sum + Number(p.numBoxActual ?? 0) * Number(p.quantityPerBox ?? 0);
     }, 0);
 
-    // build list_pallet (unchanged)
+    // Tính production_date chung (dùng cho cả general_info và list_pallet)
+    const productionDate = formatDate(
+      info?.production_date ??
+        firstPallet?.productionDate ??
+        info?.time_update ??
+        new Date().toISOString(),
+    );
+
+    // Build list_pallet
     const listPallet: WmsPalletItem[] = selectedPallets.map((pallet) => {
       const rawListBox = (pallet as any).listBox ?? (pallet as any).boxes ?? [];
+
       const list_box: WmsBox[] =
         Array.isArray(rawListBox) && rawListBox.length > 0
           ? rawListBox.map((b: any) => ({
               box_code: String(b.boxCode ?? ""),
-              quantity: Number(b.quantity ?? 0),
+              quantity: Number(b.quantity ?? 0), // Number, không phải string
               note: b.note ?? "",
               list_serial_items: b.list_serial_items ?? "",
             }))
           : Array.from({ length: Number(pallet.numBoxActual ?? 0) }).map(
               (_, i) => ({
                 box_code: `${pallet.palletCode ?? pallet.qrCode ?? "BOX"}-${i + 1}`,
-                quantity: Number(pallet.quantityPerBox ?? 0),
+                quantity: Number(pallet.quantityPerBox ?? 0), // Number
                 note: "",
                 list_serial_items: "",
               }),
@@ -726,9 +851,10 @@ export class WmsApproveDialogComponent implements OnInit {
 
       return {
         serial_pallet: pallet.palletCode ?? pallet.qrCode ?? "",
-        quantity_per_box: String(pallet.quantityPerBox ?? ""),
-        num_box_per_pallet: String(pallet.numBoxActual ?? ""),
-        total_quantity: String(totalQuantityForPallet ?? 0),
+        quantity_per_box: Number(pallet.quantityPerBox ?? 0), // Đổi từ String → Number
+        num_box_per_pallet: Number(pallet.numBoxActual ?? 0), // Đổi từ String → Number
+        total_quantity: Number(totalQuantityForPallet ?? 0), // Đổi từ String → Number
+        production_date: productionDate, // THÊM FIELD NÀY
         po_number: pallet.poNumber ?? "",
         customer_name: pallet.customerName ?? "",
         production_decision_number: pallet.productionDecisionNumber ?? "",
@@ -736,26 +862,22 @@ export class WmsApproveDialogComponent implements OnInit {
         date_code: pallet.dateCode ?? "",
         note: pallet.note ?? "",
         list_box,
-      } as unknown as WmsPalletItem;
+      };
     });
 
-    // Map general_info using warehouse_note_info fields (snake_case) with fallbacks
+    // Build payload
     const payload: WmsPayload = {
       general_info: {
-        client_id: info?.client_id ?? firstPallet?.customerName ?? "", // backend may not provide client_id
+        client_id: info?.client_id ?? firstPallet?.customerName ?? "",
         inventory_code: info?.sap_code ?? firstPallet?.itemNoSku ?? "",
         inventory_name: info?.sap_name ?? "",
         wo_code: info?.work_order_code ?? "",
-        production_date: formatDate(
-          info?.production_date ??
-            firstPallet?.productionDate ??
-            info?.time_update,
-        ),
-        lot_number: this.getLotNumber?.() ?? "",
+        production_date: productionDate, // dùng biến đã format
+        lot_number: this.getLotNumber?.() ?? "", // Đảm bảo không null
         note: info?.comment ?? info?.comment_2 ?? "",
         created_by: info?.create_by ?? info?.createBy ?? "admin",
         branch: info?.branch ?? "",
-        production_team: (info?.group_name ?? "").toString().trim() ?? "",
+        production_team: String(info?.group_name ?? "").trim(), // Đảm bảo là string
         number_of_pallet: selectedPallets.length,
         number_of_box: totalBoxes,
         quantity: totalQuantity,
@@ -768,6 +890,7 @@ export class WmsApproveDialogComponent implements OnInit {
     };
 
     console.log("WMS payload (built):", payload);
+
     return payload;
   }
 
@@ -924,13 +1047,13 @@ export class WmsApproveDialogComponent implements OnInit {
 
     try {
       // ===== PHÂN BIỆT THEO LOẠI SẢN PHẨM =====
-      if (this.productType === "Bán thành phẩm") {
-        // BÁN THÀNH PHẨM: Gửi payload khác
-        await this.sendBTPApproval(selectedPallets);
-      } else {
-        // THÀNH PHẨM: Gửi payload như cũ
-        await this.sendWmsPayload(selectedPallets);
-      }
+      // if (this.productType === "Bán thành phẩm") {
+      //   // BÁN THÀNH PHẨM: Gửi payload khác
+      //   await this.sendBTPApproval(selectedPallets);
+      // } else {
+      // THÀNH PHẨM: Gửi payload như cũ
+      await this.sendWmsPayload(selectedPallets);
+      // }
 
       // Update status sau khi gửi
       await this.updatePalletStatus(selectedPallets);
@@ -1227,15 +1350,13 @@ export class WmsApproveDialogComponent implements OnInit {
     this.isLoading = true;
 
     try {
-      // Update box status
-
       // Send WMS box payload
       // ===== PHÂN BIỆT THEO LOẠI SẢN PHẨM =====
       if (this.productType === "Bán thành phẩm") {
         await this.sendBTPBoxApproval(selectedBoxes);
       } else {
-        await this.updateBoxStatus(selectedBoxes);
         await this.sendWmsBoxPayload(selectedBoxes);
+        await this.updateBoxStatus(selectedBoxes);
       }
       // Update UI
       this.updateUIAfterSendBox(selectedBoxes);
@@ -1267,12 +1388,11 @@ export class WmsApproveDialogComponent implements OnInit {
     const payloadArray = boxes.map((b) => ({
       id: b.id,
       wms_send_status: true,
-      updated_by: this.warehouseNoteInfo?.approver_by || "admin",
     }));
 
     try {
       await firstValueFrom(
-        this.planningService.sendWmsApproval(payloadArray), //dieu chinh gui payload
+        this.planningService.updateStampDetails(payloadArray),
       );
       console.log("✓ Box status updated");
     } catch (error) {
@@ -1287,7 +1407,7 @@ export class WmsApproveDialogComponent implements OnInit {
   ): Promise<void> {
     const payload = this.buildWmsBoxPayload(selectedBoxes);
 
-    console.log("📦 WMS Box Payload:", payload);
+    console.log("WMS Box Payload:", payload);
 
     try {
       await firstValueFrom(this.planningService.sendWmsApproval(payload)); //dieu chinh gui payload
@@ -1299,7 +1419,6 @@ export class WmsApproveDialogComponent implements OnInit {
   }
 
   private buildWmsBoxPayload(selectedBoxes: BoxDialogItem[]): any {
-    // Build payload tương tự pallet nhưng cho boxes
     const info = (this.warehouseNoteInfo ?? {}) as Record<string, any>;
 
     const formatDate = (isoDate?: string): string => {
@@ -1310,41 +1429,83 @@ export class WmsApproveDialogComponent implements OnInit {
       return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     };
 
+    // Tinh tong so luong tu cac box
     const totalQuantity = selectedBoxes.reduce(
-      (sum, b) => sum + (b.quantity || 0),
+      (sum, b) => sum + Number(b.quantity ?? 0),
       0,
     );
 
-    return {
+    // Tinh production_date chung
+    const productionDate = formatDate(
+      info?.production_date ?? info?.time_update ?? new Date().toISOString(),
+    );
+
+    // Build list_box theo format BE yeu cau
+    const listBox = selectedBoxes.map((box) => ({
+      box_code: String(box.boxCode ?? ""),
+      quantity: Number(box.quantity ?? 0), // Dam bao la number
+      note: box.note ?? "",
+      list_serial_items: "", // BE yeu cau field nay
+    }));
+
+    // Theo yeu cau BE: van phai co list_pallet nhung de trong thong tin pallet
+    // Chi co 1 pallet ao voi list_box chua cac box thuc te
+    const payload = {
       general_info: {
-        client_id: info?.client_id || "",
-        inventory_code: info?.sap_code || "",
-        inventory_name: info?.sap_name || "",
-        wo_code: info?.work_order_code || "",
-        production_date: formatDate(info?.production_date || info?.time_update),
-        lot_number: this.getLotNumber() || "",
-        note: info?.comment || info?.comment_2 || "",
-        created_by: info?.create_by || info?.createBy || "admin",
-        branch: info?.branch || "",
-        production_team: (info?.group_name || "").toString().trim(),
+        client_id: info?.client_id ?? "",
+        inventory_code: info?.sap_code ?? "",
+        inventory_name: info?.sap_name ?? "",
+        wo_code: info?.work_order_code ?? "",
+        production_date: productionDate,
+        lot_number: this.getLotNumber?.() ?? "",
+        note: info?.comment ?? info?.comment_2 ?? "",
+        created_by: info?.create_by ?? info?.createBy ?? "admin",
+        branch: info?.branch ?? "",
+        production_team: String(info?.group_name ?? "").trim(),
+        number_of_pallet: 1, // Co 1 pallet ao
         number_of_box: selectedBoxes.length,
         quantity: totalQuantity,
-        destination_warehouse: Number(info?.destination_warehouse || 1),
+        destination_warehouse: Number(info?.destination_warehouse ?? 1),
         pallet_note_creation_id: Number(
-          info?.id || this.data?.maLenhSanXuatId || 0,
+          info?.id ?? this.data?.maLenhSanXuatId ?? 0,
         ),
-        list_box: selectedBoxes.map((box) => ({
-          box_code: box.boxCode,
-          quantity: box.quantity,
-          note: box.note ?? "",
-          pallet_code: box.palletCode ?? "",
-          expiration_date: box.expirationDate ?? "",
-          manufacturing_date: box.manufacturingDate ?? "",
-          rank: box.rank ?? "",
-          tp_nk: box.tpnk ?? "",
-        })),
+
+        // Danh sach pallet (chi co 1 pallet ao)
+        list_pallet: [
+          {
+            serial_pallet: "", // De trong vi khong co pallet
+            quantity_per_box: 0, // De trong
+            num_box_per_pallet: selectedBoxes.length,
+            total_quantity: totalQuantity,
+            production_date: productionDate,
+            po_number: "",
+            customer_name: "",
+            production_decision_number: "",
+            item_no_sku: "",
+            date_code: "",
+            note: "Gửi thùng không có pallet",
+            list_box: listBox, // Cac box thuc te
+          },
+        ],
       },
     };
+
+    console.log("WMS Box payload (built):", payload);
+
+    // Log validation
+    console.log("Payload validation:", {
+      boxCount: selectedBoxes.length,
+      totalQuantity: totalQuantity,
+      hasProductionDate: !!productionDate,
+      listBoxLength: listBox.length,
+      typesCheck: {
+        quantity: typeof listBox[0]?.quantity,
+        num_box_per_pallet:
+          typeof payload.general_info.list_pallet[0]?.num_box_per_pallet,
+      },
+    });
+
+    return payload;
   }
 
   //box ban thanh pham
@@ -1354,7 +1515,7 @@ export class WmsApproveDialogComponent implements OnInit {
   ): Promise<void> {
     const payload = this.buildBTPBoxPayload(selectedBoxes);
 
-    console.log("📦 BTP Box Approval Payload:", payload);
+    console.log("BTP Box Approval Payload:", payload);
 
     try {
       await firstValueFrom(this.planningService.sendBTPApproval(payload)); //api send btp
@@ -1426,7 +1587,7 @@ export class WmsApproveDialogComponent implements OnInit {
   ): Promise<void> {
     const payload = this.buildBTPPayload(selectedPallets);
 
-    console.log("📦 BTP Approval Payload:", payload);
+    console.log("BTP Approval Payload:", payload);
 
     try {
       await firstValueFrom(this.planningService.sendBTPApproval(payload));
@@ -1504,7 +1665,7 @@ export class WmsApproveDialogComponent implements OnInit {
     if (s === null || s === undefined) {
       return "";
     }
-    return String(s).trim().toLowerCase();
+    return String(s).trim();
   }
 
   private getCurrentPalletsArray(): PalletDialogItem[] {
@@ -1517,10 +1678,8 @@ export class WmsApproveDialogComponent implements OnInit {
     const result: BoxDialogItem[] = [];
     const palletsArr = this.getCurrentPalletsArray();
 
-    // 1) Build scannedSet từ pallets: scannedBoxes + pallet.boxes/boxItems (boxCode)
     const scannedSet = new Set<string>();
     palletsArr.forEach((p) => {
-      // scannedBoxes nếu có
       if (Array.isArray(p.scannedBoxes)) {
         p.scannedBoxes.forEach((s) => {
           const norm = this.normalizeSerial(s);
@@ -1530,7 +1689,6 @@ export class WmsApproveDialogComponent implements OnInit {
         });
       }
 
-      // pallet may contain boxes or boxItems (preloaded mapping used "boxes" earlier)
       const items = Array.isArray((p as any).boxes)
         ? (p as any).boxes
         : Array.isArray((p as any).boxItems)
@@ -1539,7 +1697,12 @@ export class WmsApproveDialogComponent implements OnInit {
 
       items.forEach((b: any) => {
         const candidate =
-          b?.boxCode ?? b?.reel_id ?? b?.serial_box ?? b?.serial ?? "";
+          b?.boxCode ??
+          b?.reelID ??
+          b?.reel_id ??
+          b?.serial_box ??
+          b?.maThung ??
+          "";
         const norm = this.normalizeSerial(candidate);
         if (norm) {
           scannedSet.add(norm);
@@ -1547,7 +1710,6 @@ export class WmsApproveDialogComponent implements OnInit {
       });
     });
 
-    // 2) Build mappedSet từ mappings (hỗ trợ nhiều tên trường)
     const mappedSet = new Set<string>();
     (this.mappings || []).forEach((m: any) => {
       const candidate =
@@ -1558,29 +1720,33 @@ export class WmsApproveDialogComponent implements OnInit {
       }
     });
 
-    // 3) Chọn nguồn boxDetails: ưu tiên this.boxDetails; nếu rỗng thì fallback từ pallets[].boxes/boxItems
     type SourceBox = {
       id?: number;
+      reelID?: string;
       reel_id?: string;
       serial_box?: string;
+      maThung?: string;
       initial_quantity?: number;
+      initialQuantity?: number; // THEM field nay cho BTP
+      soLuong?: number;
       comments?: string;
       wms_send_status?: boolean;
-      qr_code?: string;
+      qrCode?: string; // THEM field camelCase
+      qr_code?: string; // Giu lai de fallback
       lot?: string;
       expiration_date?: string;
       manufacturing_date?: string;
       rank?: string;
       tp_nk?: string;
+      TPNK?: string; // THEM field uppercase
+      subItems?: any[];
     };
 
     let sourceBoxDetails: SourceBox[] = [];
 
     if (Array.isArray(this.boxDetails) && this.boxDetails.length > 0) {
-      // boxDetails từ API — ép kiểu an toàn
       sourceBoxDetails = this.boxDetails as SourceBox[];
     } else {
-      // fallback: build từ pallets[].boxes hoặc pallets[].boxItems (không dùng flatMap)
       const fallback: SourceBox[] = [];
       palletsArr.forEach((p) => {
         const items = Array.isArray((p as any).boxes)
@@ -1592,17 +1758,32 @@ export class WmsApproveDialogComponent implements OnInit {
         items.forEach((b: any) => {
           fallback.push({
             id: b?.id,
-            reel_id:
-              b?.boxCode ?? b?.reel_id ?? b?.serial_box ?? b?.serial ?? "",
-            initial_quantity: Number(b?.quantity ?? b?.initial_quantity ?? 0),
+            reelID: b?.reelID ?? b?.reel_id,
+            reel_id: b?.reel_id ?? b?.reelID,
+            maThung: b?.maThung ?? b?.boxCode ?? b?.serial_box,
+            serial_box: b?.serial_box ?? b?.maThung,
+            initial_quantity: Number(
+              b?.quantity ??
+                b?.initial_quantity ??
+                b?.initialQuantity ??
+                b?.soLuong ??
+                0,
+            ),
+            initialQuantity: Number(
+              b?.initialQuantity ?? b?.initial_quantity ?? b?.soLuong ?? 0,
+            ),
+            soLuong: Number(b?.soLuong ?? b?.quantity ?? 0),
             comments: b?.note ?? b?.comments ?? "",
             wms_send_status: !!b?.wms_send_status || false,
-            qr_code: b?.qr_code ?? "",
+            qrCode: b?.qrCode ?? b?.qr_code ?? "", // Uu tien camelCase
+            qr_code: b?.qr_code ?? b?.qrCode ?? "",
             lot: b?.lot ?? "",
             expiration_date: b?.expiration_date ?? "",
             manufacturing_date: b?.manufacturing_date ?? "",
             rank: b?.rank ?? "",
-            tp_nk: b?.tp_nk ?? "",
+            tp_nk: b?.tp_nk ?? b?.TPNK ?? "",
+            TPNK: b?.TPNK ?? b?.tp_nk ?? "",
+            subItems: b?.subItems,
           } as SourceBox);
         });
       });
@@ -1610,10 +1791,79 @@ export class WmsApproveDialogComponent implements OnInit {
       sourceBoxDetails = fallback;
     }
 
-    // 4) Lọc: chỉ lấy box chưa scan, chưa map, chưa gửi
+    // Loc va map
     sourceBoxDetails.forEach((detail, idx) => {
-      const serialCandidate =
-        detail.reel_id ?? detail.serial_box ?? detail.reel_id ?? "";
+      // TRUONG HOP 1: Thanh pham co subItems
+      if (
+        this.productType === "Thành phẩm" &&
+        Array.isArray(detail.subItems) &&
+        detail.subItems.length > 0
+      ) {
+        detail.subItems.forEach((sub: any, subIdx: number) => {
+          const serialCandidate = sub?.maThung ?? sub?.serial_box ?? "";
+          const serial = this.normalizeSerial(serialCandidate);
+          if (!serial) {
+            return;
+          }
+
+          const isScanned = scannedSet.has(serial);
+          const isMapped = mappedSet.has(serial);
+          const isSent = sub?.wms_send_status === true;
+
+          if (!isScanned && !isMapped && !isSent) {
+            // Uu tien camelCase qrCode, fallback qr_code
+            const qrCodeCandidate =
+              sub?.qrCode ??
+              sub?.qr_code ??
+              sub?.maThung ??
+              sub?.serial_box ??
+              "";
+
+            result.push({
+              id: (sub?.id ?? idx * 1000 + subIdx + 1) as number,
+              stt: result.length + 1,
+              boxCode: serial,
+              qrCode: qrCodeCandidate,
+              quantity: Number(sub?.soLuong ?? sub?.quantity ?? 0),
+              palletCode: "",
+              isSent: false,
+              productName: this.warehouseNoteInfo?.sap_name ?? "",
+              lotNumber: detail.lot ?? "",
+              note: sub?.comments ?? "",
+              expirationDate: sub?.expiration_date ?? "",
+              manufacturingDate: sub?.manufacturing_date ?? "",
+              rank: sub?.rank ?? "",
+              tpnk: sub?.tp_nk ?? sub?.TPNK ?? "",
+            });
+          }
+        });
+        return;
+      }
+
+      // TRUONG HOP 2: Ban thanh pham hoac Thanh pham khong co subItems
+      let serialCandidate = "";
+      let qrCodeCandidate = "";
+
+      if (this.productType === "Bán thành phẩm") {
+        serialCandidate = detail.reelID ?? detail.reel_id ?? "";
+        // QUAN TRONG: Uu tien camelCase qrCode truoc
+        qrCodeCandidate =
+          detail.qrCode ??
+          detail.qr_code ??
+          detail.reelID ??
+          detail.reel_id ??
+          "";
+      } else {
+        serialCandidate =
+          detail.maThung ?? detail.serial_box ?? detail.reel_id ?? "";
+        qrCodeCandidate =
+          detail.qrCode ??
+          detail.qr_code ??
+          detail.maThung ??
+          detail.serial_box ??
+          "";
+      }
+
       const serial = this.normalizeSerial(serialCandidate);
       if (!serial) {
         return;
@@ -1626,10 +1876,15 @@ export class WmsApproveDialogComponent implements OnInit {
       if (!isScanned && !isMapped && !isSent) {
         result.push({
           id: (detail.id ?? idx + 1) as number,
-          stt: idx + 1,
-          boxCode: detail.reel_id ?? detail.serial_box ?? "",
-          qrCode: (detail.qr_code ?? detail.reel_id ?? "") as string,
-          quantity: Number(detail.initial_quantity ?? 0),
+          stt: result.length + 1,
+          boxCode: serial,
+          qrCode: qrCodeCandidate,
+          quantity: Number(
+            detail.initialQuantity ??
+              detail.initial_quantity ??
+              detail.soLuong ??
+              0,
+          ),
           palletCode: "",
           isSent: false,
           productName: this.warehouseNoteInfo?.sap_name ?? "",
@@ -1638,22 +1893,21 @@ export class WmsApproveDialogComponent implements OnInit {
           expirationDate: detail.expiration_date ?? "",
           manufacturingDate: detail.manufacturing_date ?? "",
           rank: detail.rank ?? "",
-          tpnk: detail.tp_nk ?? "",
+          tpnk: detail.TPNK ?? detail.tp_nk ?? "",
         });
       }
     });
 
-    // debug một lần
-    console.log(
-      "getUnassignedBoxDialogItems: sourceCount=",
-      sourceBoxDetails.length,
-      "scanned=",
-      scannedSet.size,
-      "mapped=",
-      mappedSet.size,
-      "unassigned=",
-      result.length,
-    );
+    console.log("getUnassignedBoxDialogItems:", {
+      productType: this.productType,
+      sourceCount: sourceBoxDetails.length,
+      scanned: scannedSet.size,
+      mapped: mappedSet.size,
+      unassigned: result.length,
+      sampleQrCode: result[0]?.qrCode,
+      sampleBoxCode: result[0]?.boxCode,
+      sampleFullItem: result[0],
+    });
 
     return result;
   }
@@ -1675,6 +1929,214 @@ export class WmsApproveDialogComponent implements OnInit {
       this.boxSelection.clear();
     }
     this.cdr.markForCheck();
+  }
+
+  private loadAllBoxesIntoSignal(): void {
+    const allItems = this.getAllBoxDialogItems(); // build both pending + sent
+    // Nếu boxes là signal
+    if (typeof (this.boxes as any) === "function" && (this.boxes as any).set) {
+      (this.boxes as any).set(allItems);
+    } else if ((this.boxes as any)?.set) {
+      (this.boxes as any).set(allItems);
+    } else if ((this.boxes as any)?.next) {
+      (this.boxes as any).next(allItems);
+    } else {
+      (this.boxes as any) = allItems;
+    }
+
+    // reset selection nếu cần
+    if (this.boxSelection && typeof this.boxSelection.clear === "function") {
+      this.boxSelection.clear();
+    }
+    this.cdr.markForCheck();
+  }
+  private getAllBoxDialogItems(): BoxDialogItem[] {
+    const result: BoxDialogItem[] = [];
+    const palletsArr = this.getCurrentPalletsArray();
+
+    // build mappedSet / scannedSet như bạn đã có (giữ nguyên)
+    const scannedSet = new Set<string>();
+    palletsArr.forEach((p) => {
+      if (Array.isArray(p.scannedBoxes)) {
+        p.scannedBoxes.forEach((s) => {
+          const norm = this.normalizeSerial(s);
+          if (norm) {
+            scannedSet.add(norm);
+          }
+        });
+      }
+      const items = Array.isArray((p as any).boxes)
+        ? (p as any).boxes
+        : Array.isArray((p as any).boxItems)
+          ? (p as any).boxItems
+          : [];
+      items.forEach((b: any) => {
+        const candidate =
+          b?.boxCode ??
+          b?.reelID ??
+          b?.reel_id ??
+          b?.serial_box ??
+          b?.maThung ??
+          "";
+        const norm = this.normalizeSerial(candidate);
+        if (norm) {
+          scannedSet.add(norm);
+        }
+      });
+    });
+
+    const mappedSet = new Set<string>();
+    (this.mappings || []).forEach((m: any) => {
+      const candidate =
+        m?.serial_box ?? m?.reel_id ?? m?.boxSerial ?? m?.box_code ?? "";
+      const norm = this.normalizeSerial(candidate);
+      if (norm) {
+        mappedSet.add(norm);
+      }
+    });
+
+    // Build sourceBoxDetails same as your function (reuse existing logic)
+    let sourceBoxDetails: any[] = [];
+    if (Array.isArray(this.boxDetails) && this.boxDetails.length > 0) {
+      sourceBoxDetails = this.boxDetails;
+    } else {
+      // fallback: collect from palletsArr (same as your fallback)
+      const fallback: any[] = [];
+      palletsArr.forEach((p) => {
+        const items = Array.isArray((p as any).boxes)
+          ? (p as any).boxes
+          : Array.isArray((p as any).boxItems)
+            ? (p as any).boxItems
+            : [];
+        items.forEach((b: any) => {
+          fallback.push(b);
+        });
+      });
+      sourceBoxDetails = fallback;
+    }
+
+    // Map every source detail to BoxDialogItem (keep isSent)
+    sourceBoxDetails.forEach((detail: any, idx: number) => {
+      // If detail has subItems (Thành phẩm with subItems)
+      if (
+        this.productType === "Thành phẩm" &&
+        Array.isArray(detail.subItems) &&
+        detail.subItems.length > 0
+      ) {
+        detail.subItems.forEach((sub: any, subIdx: number) => {
+          const serialCandidate = sub?.maThung ?? sub?.serial_box ?? "";
+          const serial = this.normalizeSerial(serialCandidate);
+          if (!serial) {
+            return;
+          }
+
+          const isSent = sub?.wms_send_status === true;
+          const qrCodeCandidate =
+            sub?.qrCode ??
+            sub?.qr_code ??
+            sub?.maThung ??
+            sub?.serial_box ??
+            "";
+
+          result.push({
+            id: (sub?.id ?? idx * 1000 + subIdx + 1) as number,
+            stt: result.length + 1,
+            boxCode: serial,
+            qrCode: qrCodeCandidate,
+            quantity: Number(sub?.soLuong ?? sub?.quantity ?? 0),
+            palletCode: "",
+            isSent,
+            productName: this.warehouseNoteInfo?.sap_name ?? "",
+            lotNumber: detail.lot ?? "",
+            note: sub?.comments ?? "",
+            expirationDate: sub?.expiration_date ?? "",
+            manufacturingDate: sub?.manufacturing_date ?? "",
+            rank: sub?.rank ?? "",
+            tpnk: sub?.tp_nk ?? sub?.TPNK ?? "",
+          });
+        });
+        return;
+      }
+
+      // Non-subItems or BTP
+      let serialCandidate = "";
+      let qrCodeCandidate = "";
+
+      if (this.productType === "Bán thành phẩm") {
+        serialCandidate = detail.reelID ?? detail.reel_id ?? "";
+        qrCodeCandidate =
+          detail.qrCode ??
+          detail.qr_code ??
+          detail.reelID ??
+          detail.reel_id ??
+          "";
+      } else {
+        serialCandidate =
+          detail.maThung ?? detail.serial_box ?? detail.reel_id ?? "";
+        qrCodeCandidate =
+          detail.qrCode ??
+          detail.qr_code ??
+          detail.maThung ??
+          detail.serial_box ??
+          "";
+      }
+
+      const serial = this.normalizeSerial(serialCandidate);
+      if (!serial) {
+        return;
+      }
+
+      let isSent: boolean;
+      if (this.productType === "Bán thành phẩm") {
+        const tt = (detail.trang_thai ?? detail.trangThai ?? "")
+          .toString()
+          .trim()
+          .toLowerCase();
+
+        // Nếu backend trả 'pending' hoặc 'approved' => coi là đã gửi
+        const trangThaiIsSent = tt === "pending" || tt === "approved";
+
+        // Nếu wms_send_status === true thì chắc chắn là sent,
+        // hoặc nếu trang_thai là pending/approved thì cũng coi là sent.
+        isSent = detail.wms_send_status === true || trangThaiIsSent;
+      } else {
+        // Thành phẩm: giữ nguyên kiểm tra wms_send_status
+        isSent = detail.wms_send_status === true;
+      }
+
+      result.push({
+        id: (detail.id ?? idx + 1) as number,
+        stt: result.length + 1,
+        boxCode: serial,
+        qrCode: qrCodeCandidate,
+        quantity: Number(
+          detail.initialQuantity ??
+            detail.initial_quantity ??
+            detail.soLuong ??
+            0,
+        ),
+        palletCode: "",
+        isSent,
+        productName: this.warehouseNoteInfo?.sap_name ?? "",
+        lotNumber: detail.lot ?? "",
+        note: detail.comments ?? "",
+        expirationDate: detail.expiration_date ?? "",
+        manufacturingDate: detail.manufacturing_date ?? "",
+        rank: detail.rank ?? "",
+        tpnk: detail.TPNK ?? detail.tp_nk ?? "",
+      });
+    });
+
+    console.log("getAllBoxDialogItems:", {
+      productType: this.productType,
+      sourceCount: sourceBoxDetails.length,
+      scanned: scannedSet.size,
+      mapped: mappedSet.size,
+      totalBoxes: result.length,
+      sample: result[0],
+    });
+
+    return result;
   }
 
   //helper
