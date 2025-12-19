@@ -61,6 +61,7 @@ export interface PrintPalletData {
   woId?: string;
   erpWo?: string;
   maLenhSanXuat?: string;
+  totalProductsOnPallet?: number;
 }
 
 interface PrintPage {

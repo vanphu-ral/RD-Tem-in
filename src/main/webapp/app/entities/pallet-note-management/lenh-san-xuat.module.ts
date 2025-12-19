@@ -19,6 +19,7 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { MatDialogModule } from "@angular/material/dialog";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
+import { MatAutocompleteModule } from "@angular/material/autocomplete";
 
 @NgModule({
   imports: [
@@ -27,6 +28,7 @@ import { MatProgressBarModule } from "@angular/material/progress-bar";
     NgxPaginationModule,
     // Angular Material Modules
     MatTooltipModule,
+    MatAutocompleteModule,
     MatTabsModule,
     MatTableModule, // Quan trọng cho mat-table
     MatButtonModule,
