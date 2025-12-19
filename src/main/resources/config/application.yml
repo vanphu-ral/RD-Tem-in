@@ -187,11 +187,11 @@ spring:
         max-active: 8 # Số kết nối tối đa
         max-idle: 8 # Số kết nối nhàn rỗi tối đa
         min-idle: 0 # Số kết nối nhàn rỗi tối thiểu
-        max-wait: -1ms # Thời gian chờ tối đa cho kết nối
+        max-wait: 2000ms # Thời gian chờ tối đa cho kết nối
   cache:
     type: redis
     redis:
-      time-to-live: 3600000
+      time-to-live: 3600000 # 1 giờ
 server:
   servlet:
     session:
