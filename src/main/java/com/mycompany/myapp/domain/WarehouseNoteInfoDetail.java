@@ -95,8 +95,8 @@ public class WarehouseNoteInfoDetail implements Serializable {
     @Column(name = "maximum_limit", length = 20)
     private String maximumLimit;
 
-    @Size(max = 50)
-    @Column(name = "comments", length = 50)
+    @Size(max = 255)
+    @Column(name = "comments", length = 255)
     private String comments;
 
     @Size(max = 20)
