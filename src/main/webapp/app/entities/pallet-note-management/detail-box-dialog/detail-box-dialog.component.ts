@@ -276,59 +276,58 @@ export class DetailBoxDialogComponent implements OnInit {
 
   private getDataUrlFromRenderedImg(index: number): string | null {
     try {
-      // 1) Thử lấy wrapper theo ViewChildren nếu có
-      const qrArray = (this.qrElements || { toArray: () => [] }).toArray();
-      const qrElem = qrArray[index];
-      if (qrElem) {
-        const native = qrElem.nativeElement as HTMLElement;
-        const canvas = native.querySelector(
-          "canvas",
-        ) as HTMLCanvasElement | null;
-        if (canvas) {
-          try {
-            return canvas.toDataURL("image/png");
-          } catch (err) {
-            console.warn("canvas.toDataURL failed", err);
-          }
-        }
-        const img = native.querySelector("img") as HTMLImageElement | null;
-        if (img && img.src) {
-          return img.src;
-        }
-      }
-
-      // 2) Fallback: tìm canvas theo data-qr-index attribute
+      // Tìm wrapper theo data-qr-index
       const wrapperByAttr = document.querySelector(
         `.qr-wrapper[data-qr-index="${index}"]`,
       ) as HTMLElement | null;
+
       if (wrapperByAttr) {
-        const c = wrapperByAttr.querySelector(
+        // ⭐ Ưu tiên lấy canvas từ .qr-zoom (220px hoặc cao hơn)
+        const zoomCanvas = wrapperByAttr.querySelector(
+          ".qr-zoom canvas",
+        ) as HTMLCanvasElement | null;
+
+        if (zoomCanvas) {
+          // ⭐ Tạo canvas mới với độ phân giải cao gấp 5 lần
+          const highResCanvas = document.createElement("canvas");
+          const scale = 5; // Tăng gấp 5 lần độ phân giải
+
+          highResCanvas.width = zoomCanvas.width * scale;
+          highResCanvas.height = zoomCanvas.height * scale;
+
+          const ctx = highResCanvas.getContext("2d");
+          if (ctx) {
+            // ⭐ Tắt image smoothing để pixel sắc nét
+            ctx.imageSmoothingEnabled = false;
+            // @ts-expect-error - Legacy browser support
+            ctx.mozImageSmoothingEnabled = false;
+            // @ts-expect-error - Legacy browser support
+            ctx.webkitImageSmoothingEnabled = false;
+            // @ts-expect-error - Legacy browser support
+            ctx.msImageSmoothingEnabled = false;
+
+            // Scale và vẽ lại
+            ctx.scale(scale, scale);
+            ctx.drawImage(zoomCanvas, 0, 0);
+
+            try {
+              return highResCanvas.toDataURL("image/png");
+            } catch (err) {
+              console.warn("highRes canvas.toDataURL failed", err);
+            }
+          }
+        }
+
+        // Fallback: canvas thường
+        const normalCanvas = wrapperByAttr.querySelector(
           "canvas",
         ) as HTMLCanvasElement | null;
-        if (c) {
-          return c.toDataURL("image/png");
-        }
-        const im = wrapperByAttr.querySelector(
-          "img",
-        ) as HTMLImageElement | null;
-        if (im && im.src) {
-          return im.src;
+
+        if (normalCanvas) {
+          return normalCanvas.toDataURL("image/png");
         }
       }
 
-      // 3) Cuối cùng: lấy tất cả canvas trên trang và chọn theo index (nếu thứ tự khớp)
-      const canvases = Array.from(
-        document.querySelectorAll(".qr-wrapper canvas"),
-      ) as HTMLCanvasElement[];
-      if (canvases[index]) {
-        try {
-          return canvases[index].toDataURL("image/png");
-        } catch (err) {
-          console.warn("canvas fallback toDataURL failed", err);
-        }
-      }
-
-      // 4) Không tìm được
       return null;
     } catch (err) {
       console.error("getDataUrlFromRenderedImg error:", err);
@@ -418,6 +417,7 @@ export class DetailBoxDialogComponent implements OnInit {
       unit: "mm",
       format: "a4",
       orientation: "portrait",
+      compress: false,
     });
 
     const pageWidth = 210,
@@ -462,7 +462,7 @@ export class DetailBoxDialogComponent implements OnInit {
         y = margin;
       }
 
-      doc.addImage(dataUrl, "PNG", x, y, qrSize, qrSize);
+      doc.addImage(dataUrl, "PNG", x, y, qrSize, qrSize, undefined, "NONE");
 
       const label = items[i].maThung ?? "";
       doc.setFontSize(8);
