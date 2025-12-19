@@ -455,11 +455,11 @@ export class PalletDetailDialogComponent implements OnInit {
           );
 
           if (reel) {
-            tongSoSanPhamTrongPallet += reel.initialQuantity || 0;
             if (index === 0) {
               soLuongSanPhamTrongMotThung = reel.initialQuantity || 0;
               firstBoxSerial = reel.reelID;
               lotNumber = reel.lot || "";
+              tongSoSanPhamTrongPallet += reel.initialQuantity || 0;
             }
           } else {
             console.warn("Không tìm thấy reel:", trimmedSerial);
@@ -467,6 +467,11 @@ export class PalletDetailDialogComponent implements OnInit {
         });
       }
     }
+    const soThungDuKienNum = Number(item.tongSoThung ?? 0);
+    const soLuongSpTrong1ThungNum = Number(soLuongSanPhamTrongMotThung ?? 0);
+
+    // Tổng sản phẩm trên pallet (mặc định theo cấu hình)
+    const totalProductsOnPallet = soThungDuKienNum * soLuongSpTrong1ThungNum;
 
     const printData: PrintPalletData = {
       id: sourceData.id,
@@ -507,6 +512,7 @@ export class PalletDetailDialogComponent implements OnInit {
       woId: sourceData.woId ?? "",
       erpWo: sourceData.erpWo ?? "",
       maLenhSanXuat: sourceData.maLenhSanXuat ?? "",
+      totalProductsOnPallet: totalProductsOnPallet,
     };
 
     console.log("=== Print Data ===");
@@ -586,19 +592,22 @@ export class PalletDetailDialogComponent implements OnInit {
             );
 
             if (reel) {
-              tongSoSanPhamTrongPallet += reel.initialQuantity || 0;
               if (boxIndex === 0) {
                 soLuongSanPhamTrongMotThung = reel.initialQuantity || 0;
                 firstBoxSerial = reel.reelID;
                 lotNumber = reel.lot || "";
               }
+              tongSoSanPhamTrongPallet += reel.initialQuantity || 0;
             } else {
               console.warn("Không tìm thấy reel:", trimmedSerial);
             }
           });
         }
       }
-
+      const soThungDuKienNum = Number(item.tongSoThung ?? 0);
+      const soLuongSpTrong1ThungNum = Number(soLuongSanPhamTrongMotThung ?? 0);
+      // Tổng sản phẩm trên pallet (mặc định theo cấu hình)
+      const totalProductsOnPallet = soThungDuKienNum * soLuongSpTrong1ThungNum;
       const printData: PrintPalletData = {
         id: sourceData.id,
         khachHang: sourceData.khachHang ?? "N/A",
@@ -638,6 +647,7 @@ export class PalletDetailDialogComponent implements OnInit {
         woId: sourceData.woId ?? "",
         erpWo: sourceData.erpWo ?? "",
         maLenhSanXuat: sourceData.maLenhSanXuat ?? "",
+        totalProductsOnPallet: totalProductsOnPallet,
       };
 
       console.log(`Added print data for pallet ${index + 1}:`, {
@@ -649,15 +659,8 @@ export class PalletDetailDialogComponent implements OnInit {
       allPrintData.push(printData);
     });
 
-    console.log("=== Print All Summary ===");
-    console.log(`Total pallets: ${allPrintData.length}`);
-    console.log(`Product Type: ${allPrintData[0]?.productType}`);
-    console.log("All print data:", allPrintData);
-    console.log("palletBoxItems at print time:", this.palletBoxItems);
-    console.log("palletSources at print time:", this.palletSources);
-
     if (allPrintData.length === 0) {
-      console.error("No print data generated!");
+      // console.error("No print data generated!");
       alert("Không có pallet nào để in!");
       return;
     }

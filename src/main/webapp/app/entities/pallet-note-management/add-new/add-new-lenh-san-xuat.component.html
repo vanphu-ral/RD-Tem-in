@@ -634,15 +634,37 @@
 
               <ng-container matColumnDef="storageUnit">
                 <th mat-header-cell *matHeaderCellDef>
-                  Storage Unit
-                  <div class="header-actions">
+                  Chọn kho
+                  <div
+                    class="header-actions"
+                    style="display: flex; align-items: center; gap: 8px"
+                  >
                     <mat-form-field
                       appearance="outline"
                       class="compact-field"
                       style="width: 80%; background: #fff"
                     >
-                      <input matInput [(ngModel)]="storageUnitHeaderValue" />
+                      <!-- Header autocomplete + Enter để apply -->
+                      <input
+                        matInput
+                        placeholder="Chọn kho"
+                        [(ngModel)]="storageUnitHeaderValue"
+                        (keydown.enter)="applyStorageUnitToAll()"
+                        [matAutocomplete]="autoHeader"
+                      />
+                      <mat-autocomplete
+                        #autoHeader="matAutocomplete"
+                        [displayWith]="displayAreaLabel"
+                      >
+                        <mat-option
+                          *ngFor="let opt of filteredHeaderOptions | async"
+                          [value]="opt.value"
+                        >
+                          {{ opt.label }}
+                        </mat-option>
+                      </mat-autocomplete>
                     </mat-form-field>
+
                     <button
                       mat-icon-button
                       color="primary"
@@ -656,10 +678,33 @@
                 <td
                   mat-cell
                   data-label="Storage Unit"
-                  *matCellDef="let element"
+                  *matCellDef="let element; let i = index"
                 >
-                  <mat-form-field appearance="outline" class="compact-field">
-                    <input matInput [(ngModel)]="element.storageUnit" />
+                  <mat-form-field
+                    appearance="outline"
+                    class="compact-field"
+                    style="width: 100%"
+                  >
+                    <!-- dùng two-way binding để model luôn cập nhật -->
+                    <input
+                      matInput
+                      placeholder="Chọn kho"
+                      [(ngModel)]="element.storageUnit"
+                      (ngModelChange)="onStorageUnitChange($event, element, i)"
+                      [matAutocomplete]="auto"
+                      aria-label="storageUnit"
+                    />
+                    <mat-autocomplete
+                      #auto="matAutocomplete"
+                      [displayWith]="displayAreaLabel"
+                    >
+                      <mat-option
+                        *ngFor="let opt of filteredStorageOptions[i] | async"
+                        [value]="opt.value"
+                      >
+                        {{ opt.label }}
+                      </mat-option>
+                    </mat-autocomplete>
                   </mat-form-field>
                 </td>
               </ng-container>

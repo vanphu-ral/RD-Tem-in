@@ -55,6 +55,7 @@ import {
   map,
   Observable,
   of,
+  startWith,
   switchMap,
   timeout,
 } from "rxjs";
@@ -283,6 +284,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   resourceUrl1 = this.applicationConfigService.getEndpointFor(
     "/api/chi-tiet-lenh-san-xuat/update",
   );
+  storageOptions: AreaOption[] = []; // sẽ gán từ maKhoNhapOptionsBTP hoặc loadAreaOptions()
+  filteredStorageOptions: Observable<AreaOption[]>[] = [];
+  filteredHeaderOptions: Observable<AreaOption[]> = of([]);
   woId = "";
   maLenhSanXuatId?: number;
   currentStorageCode = "";
@@ -492,11 +496,107 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           }));
 
         this.maKhoNhapOptionsBTP = [{ value: "", label: "--" }, ...mapped];
+        this.storageOptions = this.maKhoNhapOptionsBTP;
+        this.initStorageFilters();
       },
       error: (err) => {
         console.error("Lỗi khi load area options", err);
       },
     });
+  }
+  initStorageFilters(): void {
+    this.storageOptions = this.maKhoNhapOptionsBTP ?? this.storageOptions ?? [];
+
+    // header observable: filter theo storageUnitHeaderValue
+    this.filteredHeaderOptions = of(this.storageOptions).pipe(
+      // startWith để có giá trị ban đầu; dùng map để filter theo header value
+      startWith(this.storageOptions),
+      map(() => this._filterStorageOptions(this.storageUnitHeaderValue)),
+    );
+
+    // tạo observable mặc định cho mỗi dòng (không reset controls)
+    const list = this.reelGroups ?? [];
+    this.filteredStorageOptions = list.map(() =>
+      of<AreaOption[]>(this.storageOptions),
+    );
+  }
+  // gọi khi user gõ trong header (nếu muốn realtime)
+  onHeaderInputChange(val: string): void {
+    this.storageUnitHeaderValue = val ?? "";
+    this.filteredHeaderOptions = of(
+      this._filterStorageOptions(this.storageUnitHeaderValue),
+    );
+  }
+
+  onStorageUnitChange(
+    value: string,
+    element: {
+      storageUnit?: string;
+      subItems?: any[];
+      reelID?: string;
+      _storageControl?: any;
+    },
+    index: number,
+  ): void {
+    const newVal = (value ?? "").trim();
+
+    // 1) Cập nhật trực tiếp trên element (group hoặc reel item)
+    element.storageUnit = newVal;
+
+    // 2) Nếu element là group (có subItems), cập nhật tất cả reelDataList tương ứng
+    if (Array.isArray(element.subItems) && element.subItems.length > 0) {
+      const reelIds: string[] = element.subItems
+        .map((s: any) =>
+          String(s.reelID ?? s.reelId ?? s.maThung ?? s.maPallet ?? ""),
+        )
+        .filter((id: string) => id.length > 0);
+
+      (this.reelDataList || []).forEach((r) => {
+        if (r && r.reelID && reelIds.includes(String(r.reelID))) {
+          r.storageUnit = newVal;
+        }
+      });
+    } else {
+      // 3) Nếu element là một reel item, cập nhật item tương ứng
+      const reelId = String(element.reelID ?? "");
+      if (reelId) {
+        const found = (this.reelDataList || []).find(
+          (r) => String(r.reelID) === reelId,
+        );
+        if (found) {
+          found.storageUnit = newVal;
+        }
+      }
+    }
+
+    // 4) Nếu dùng per-row FormControl, cập nhật control (không emit event)
+    if (
+      element._storageControl &&
+      typeof element._storageControl.setValue === "function"
+    ) {
+      element._storageControl.setValue(newVal, { emitEvent: false });
+    }
+
+    // 5) Cập nhật filtered observable cho dòng index để autocomplete show label
+    const q = (newVal || "").toLowerCase();
+    const filtered: AreaOption[] = (this.storageOptions || []).filter(
+      (o: AreaOption) =>
+        o.value.toLowerCase().includes(q) || o.label.toLowerCase().includes(q),
+    );
+    this.filteredStorageOptions[index] = of<AreaOption[]>(filtered);
+  }
+
+  displayAreaLabel(val: string | AreaOption): string {
+    if (!val) {
+      return "";
+    }
+    if (typeof val === "object") {
+      return (val as AreaOption).label ?? (val as any).value ?? "";
+    }
+    // đảm bảo storageOptions là mảng trước khi dùng find
+    const options = this.storageOptions ?? [];
+    const found = options.find((o) => o.value === val);
+    return found ? found.label : String(val);
   }
 
   onMaKhoNhapChange(value: string, productionOrder?: any): void {
@@ -504,8 +604,26 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       return;
     }
 
-    this.reelGroups.forEach((g) => {
+    (this.reelGroups || []).forEach((g, idx) => {
       g.storageUnit = value;
+
+      // nếu dùng FormControl per-row
+      if (
+        (g as any)._storageControl &&
+        typeof (g as any)._storageControl.setValue === "function"
+      ) {
+        (g as any)._storageControl.setValue(value);
+      }
+
+      // đảm bảo filtered observable tồn tại cho dòng idx
+      this.filteredStorageOptions[idx] = of<AreaOption[]>(
+        this.storageOptions ?? [],
+      );
+    });
+
+    // Đồng bộ vào reelDataList (nơi saveCombined đọc)
+    (this.reelDataList || []).forEach((r) => {
+      r.storageUnit = value;
     });
 
     this.storageUnitHeaderValue = value;
@@ -1095,6 +1213,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           // soLuongCaiDatPallet chỉ là tổng số sản phẩm đã scan
           const soLuongCaiDatPallet = tongSoSanPhamDaScan;
 
+          const totalProductsOnPallet = soThungDuKien * soLuongCaiDatPallet;
+
           console.log("  Summary:", {
             scannedBoxesCount: scannedBoxes.length,
             tongSoSanPhamDaScan: tongSoSanPhamDaScan,
@@ -1218,6 +1338,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             woId: this.warehouseNoteInfo?.work_order_code ?? "",
             erpWo: this.warehouseNoteInfo?.work_order_code ?? "",
             maLenhSanXuat: this.warehouseNoteInfo?.ma_lenh_san_xuat ?? "",
+            totalProductsOnPallet: totalProductsOnPallet,
           };
 
           console.log("  Print data for pallet " + palletSub.maPallet + ":", {
@@ -1291,40 +1412,41 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   //nhap kho
   applyStorageUnitToAll(): void {
-    const newStorage = (this.storageUnitHeaderValue || "").trim();
-    if (!newStorage) {
-      this.snackBar.open("Vui lòng nhập Storage Unit", "Đóng", {
-        duration: 2000,
-        panelClass: ["snackbar-warning"],
-      });
-      return;
-    }
-
-    const loaiSanPham = this.productionOrders[0]?.loaiSanPham;
+    const newStorage = (this.storageUnitHeaderValue ?? "").trim();
+    const loaiSanPham = this.productionOrders?.[0]?.loaiSanPham;
 
     if (loaiSanPham === "Bán thành phẩm") {
-      // Cập nhật storage unit cho tất cả reels
-      this.reelDataList = this.reelDataList.map((item) => ({
-        ...item,
-        storageUnit: newStorage,
-      }));
+      // cập nhật reelDataList (giữ reference)
+      (this.reelDataList || []).forEach((item) => {
+        item.storageUnit = newStorage;
+      });
 
-      // Cập nhật cho reelGroups nếu có
-      if (this.reelGroups && this.reelGroups.length > 0) {
-        this.reelGroups = this.reelGroups.map((group) => ({
-          ...group,
-          storageUnit: newStorage,
-        }));
-      }
+      // cập nhật reelGroups và filtered observable cho UI
+      (this.reelGroups || []).forEach((group, idx) => {
+        group.storageUnit = newStorage;
+        // nếu dùng FormControl per-row, setValue ở đây (nếu có)
+        if (
+          (group as any)._storageControl &&
+          typeof (group as any)._storageControl.setValue === "function"
+        ) {
+          (group as any)._storageControl.setValue(newStorage);
+        }
+        this.filteredStorageOptions[idx] = of<AreaOption[]>(
+          this.storageOptions,
+        );
+      });
 
       this.snackBar.open(
-        `Đã áp dụng Storage Unit "${newStorage}" cho ${this.reelDataList.length} tem`,
+        `Đã áp dụng Storage Unit "${newStorage}" cho ${this.reelDataList?.length ?? 0} tem`,
         "Đóng",
-        { duration: 2000, panelClass: ["snackbar-success"] },
+        {
+          duration: 2000,
+          panelClass: ["snackbar-success"],
+        },
       );
     }
 
-    // Gọi save để lưu thay đổi
+    // lưu ngay nếu bạn muốn auto-save
     this.saveCombined(this.maLenhSanXuatId);
   }
 
@@ -2683,7 +2805,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
         // Nếu reel ĐÃ TỒN TẠI và có thay đổi storage_unit -> UPDATE
         if (existingDetail && existingDetail.id) {
-          const existingStorage = existingDetail.storage_unit || "";
+          const existingStorage = (existingDetail?.storage_unit ?? "")
+            .toString()
+            .trim();
           const newStorage = reel.storageUnit || "";
 
           if (existingStorage !== newStorage) {
@@ -3590,7 +3714,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       const qrCodeValue = [
         f_reelID,
         f_partNumber,
-        f_storageUnit,
+        f_vendor,
         f_lot,
         f_tongSl,
         f_rank,
@@ -5041,48 +5165,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   // Kiểm tra object có phải BoxItem không
-  private isBoxItem(obj: unknown): obj is BoxItem {
-    if (!obj || typeof obj !== "object") {
-      return false;
+  private _filterStorageOptions(query: string): AreaOption[] {
+    const q = (query ?? "").toLowerCase().trim();
+    if (!q) {
+      return this.storageOptions;
     }
-    // dùng in trên 'any' để tránh lỗi kiểu
-    const o = obj as any;
-    return "maSanPham" in o && "subItems" in o;
-  }
-
-  private isReelData(obj: unknown): obj is ReelData {
-    if (!obj || typeof obj !== "object") {
-      return false;
-    }
-    const o = obj as any;
-    return "reelID" in o && "initialQuantity" in o;
-  }
-  private buildReelGroupsFromReelDataList(reels: ReelData[]): ReelGroup[] {
-    const detailsLike = (reels || []).map((r) => ({
-      id: r.id,
-      reel_id: r.reelID,
-      part_number: r.partNumber,
-      lot: r.lot,
-      initial_quantity: r.initialQuantity,
-      expiration_date: r.expirationDate,
-      manufacturing_date: r.manufacturingDate,
-      qr_code: r.qrCode,
-      comments: r.comments,
-      created_at: r.createdAt ?? new Date().toISOString(),
-      tp_nk: r.TPNK,
-      rank: r.rank,
-      note_2: r.note,
-      user_data_1: r.userData1,
-      user_data_2: r.userData2,
-      user_data_3: r.userData3,
-      user_data_4: r.userData4,
-      user_data_5: r.userData5,
-      storage_unit: r.storageUnit,
-      sap_code: r.sapCode,
-      trang_thai: r.trangThai,
-    }));
-
-    return this.mapDetailsToReelData(detailsLike);
+    return this.storageOptions.filter(
+      (o) =>
+        o.value.toLowerCase().includes(q) || o.label.toLowerCase().includes(q),
+    );
   }
 
   // gọi sau khi lưu pallet thành công
