@@ -222,7 +222,7 @@ export class PlanningWorkOrderService {
   //send WMS
   //lay ma kho area
   getAreas(): Observable<WorkshopHierarchy[]> {
-    return this.http.get<WorkshopHierarchy[]>(`${this.WMSUrl}/api/areas/`);
+    return this.http.get<WorkshopHierarchy[]>(`${this.WMSUrl}/areas/`);
   }
 
   sendWmsApproval(payload: any): Observable<any> {

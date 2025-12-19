@@ -36,6 +36,8 @@ export interface BoxDetailData {
   subItems: BoxSubItem[];
   ghiChu: string;
   isBtp?: boolean;
+  productionOrders?: any[];
+  po?: any;
 }
 
 export interface BoxInfoCard {
@@ -48,6 +50,24 @@ export interface BoxSubItem {
   qrCode?: string;
   maThung: string;
   soLuong: number;
+
+  reelID?: string;
+  partNumber?: string;
+  initialQuantity?: number;
+  manufacturingDate?: string;
+  expirationDate?: string;
+  userData1?: string; // NumberOfPlanning
+  userData2?: string;
+  userData3?: string; // ProductName
+  userData4?: string; // ItemCode
+  userData5?: string; // SapWo
+  vendor?: string;
+  storageUnit?: string;
+  TPNK?: string;
+  rank?: string;
+  note?: string; // Comments2
+  comments?: string; // Comments
+  qrCodeFull?: string;
 }
 
 @Component({
@@ -68,9 +88,10 @@ export interface BoxSubItem {
 export class DetailBoxDialogComponent implements OnInit {
   displayedColumns: string[] = ["stt", "maThung", "maThungCode", "soLuong"];
   isMobile = false;
-  @ViewChildren("qrElem", { read: ElementRef })
-  qrElements!: QueryList<ElementRef<HTMLElement>>;
-
+  @ViewChildren("qrRef", { read: ElementRef })
+  qrElements!: QueryList<ElementRef>;
+  // qrElements!: QueryList<ElementRef<HTMLElement>>;
+  po: any = null;
   infoCards: BoxInfoCard[] = [];
   boxSubItems: BoxSubItem[] = [];
   paginatedItems: BoxSubItem[] = [];
@@ -94,6 +115,9 @@ export class DetailBoxDialogComponent implements OnInit {
     window.addEventListener("resize", () => {
       this.isMobile = window.innerWidth <= 768;
     });
+    this.boxSubItems = this.data?.subItems ?? [];
+    this.paginatedItems = [...this.boxSubItems];
+    this.po = this.data?.po ?? null;
     this.initializeInfoCards();
     this.loadBoxSubItems();
     this.calculateSummary();
@@ -125,9 +149,10 @@ export class DetailBoxDialogComponent implements OnInit {
   }
 
   exportExcelFromDialog(useCurrentPage = false): void {
-    const sourceItems: BoxSubItem[] = useCurrentPage
-      ? this.paginatedItems
-      : this.boxSubItems || [];
+    // NOTE: đảm bảo boxSubItems đã được "enriched" và có kiểu đầy đủ BoxSubItemFull
+    const sourceItems = (
+      useCurrentPage ? (this.paginatedItems ?? []) : (this.boxSubItems ?? [])
+    ) as BoxSubItem[];
 
     if (!sourceItems || sourceItems.length === 0) {
       this.snackBar.open("Không có dữ liệu để xuất Excel", "Đóng", {
@@ -136,12 +161,12 @@ export class DetailBoxDialogComponent implements OnInit {
       return;
     }
 
-    // Header (kiểu rõ ràng)
     const headers: string[] = [
       "NumberOfPlanning",
       "ItemCode",
       "ProductName",
       "SapWo",
+      "Lot",
       "Version",
       "TimeRecieved",
       "ReelID",
@@ -159,98 +184,188 @@ export class DetailBoxDialogComponent implements OnInit {
       "QrCode",
     ];
 
-    // Lấy thông tin chung
-    const po = (this as any).productionOrders?.[0] ?? null;
-    const version = po?.version ?? "";
-    const partNumber = this.data?.maSanPham ?? "";
-    const productName = this.data?.tenSanPham ?? "";
-    const lotNumber = this.data?.lotNumber ?? "";
-    const vendor = this.data?.vendor ?? "";
-    const serialBox = this.data?.serialBox ?? "";
-    const storageFromBox = this.data?.kho ?? "";
-
-    // Map rows với kiểu rõ ràng (mỗi row là mảng string|number)
-    const rows: (string | number)[][] = sourceItems.map(
-      (it: BoxSubItem): (string | number)[] => {
-        const reelId = String(it.maThung ?? "");
-        const qrPayload =
-          it.qrCode && String(it.qrCode).trim() ? String(it.qrCode) : reelId;
-
-        const numberOfPlanning = "";
-        const itemCode = String(partNumber || (po?.maSAP ?? ""));
-        const productNameRow = String(productName || (po?.tenHangHoa ?? ""));
-        const sapWo = String(po?.maLenhSanXuat ?? this.data?.lotNumber ?? "");
-        const timeReceived = String(po?.manufacturingDate ?? "");
-        const partNum = `${itemCode}${String(version ?? "") ? "_V" + String(version ?? "") : ""}`;
-        const vendorRow = String(vendor || (po?.vendor ?? ""));
-        const quantityOfPackage: string | number =
-          po?.tongSoLuong != null ? String(po.tongSoLuong) : "";
-        const mfgDate = String(po?.manufacturingDate ?? "");
-        const productionShift = String(po?.to ?? "");
-        const opName = "";
-        const comments = String(this.data?.ghiChu ?? "");
-        const comments2 = "";
-        const storageUnit = String(storageFromBox || "");
-        const tpNk = "";
-        const rank = "";
-        const qrCodeField = qrPayload;
-
-        return [
-          numberOfPlanning,
-          itemCode,
-          productNameRow,
-          sapWo,
-          String(version ?? ""),
-          timeReceived,
-          reelId,
-          partNum,
-          vendorRow,
-          quantityOfPackage,
-          mfgDate,
-          productionShift,
-          opName,
-          comments,
-          comments2,
-          storageUnit,
-          tpNk,
-          rank,
-          qrCodeField,
-        ];
-      },
+    const po = this.po ?? null;
+    const version = this.toStr(po?.version ?? "");
+    const itemCodeFromDialog = this.toStr(
+      this.data?.maSanPham ?? po?.maSAP ?? "",
     );
+    const productNameFromDialog = this.toStr(
+      this.data?.tenSanPham ?? po?.tenHangHoa ?? "",
+    );
+    const sapWo = this.toStr(po?.maLenhSanXuat ?? this.data?.lotNumber ?? "");
+    const storageUnitFromDialog = this.toStr(
+      this.data?.kho ?? po?.storage_code ?? "",
+    );
+    const vendorFromDialog = this.toStr(
+      this.data?.vendor ?? po?.vendor ?? "RD",
+    );
+    const serialBox = this.toStr(this.data?.serialBox ?? "");
 
-    // Tạo AOА data với kiểu rõ ràng và ép kiểu khi gọi thư viện
+    // rows có kiểu rõ ràng (string|number)[][]
+    const rows: (string | number)[][] = sourceItems.map((it: BoxSubItem) => {
+      // Lấy giá trị an toàn, ép kiểu rõ ràng
+      const numberOfPlanning = this.toStr(
+        it.userData1 ?? this.data?.soLuongSp ?? po?.tongSoLuong ?? "",
+      );
+      const itemCode =
+        itemCodeFromDialog || this.toStr(it.userData4 ?? po?.maSAP ?? "");
+      const productName =
+        productNameFromDialog ||
+        this.toStr(it.userData3 ?? po?.tenHangHoa ?? "");
+      const lot = this.toStr(this.data?.lotNumber ?? "");
+      const timeReceived = this.toStr(
+        it.manufacturingDate ?? po?.manufacturingDate ?? "",
+      );
+      const reelId = this.toStr(it.reelID ?? it.maThung ?? "");
+      const partNumber = this.toStr(
+        it.partNumber ??
+          (itemCode ? `${itemCode}${version ? "_V" + version : ""}` : ""),
+      );
+      const vendorRow = this.toStr(it.vendor ?? vendorFromDialog);
+      const quantityOfPackage = this.toNum(
+        it.initialQuantity ?? it.soLuong ?? 0,
+      );
+      const mfgDate = this.toStr(
+        it.manufacturingDate ?? po?.manufacturingDate ?? "",
+      );
+      const productionShift = this.toStr(po?.to ?? "");
+      const comments = this.toStr(it.comments ?? this.data?.ghiChu ?? "");
+      const comments2 = this.toStr(it.note ?? "");
+      const storageUnit = this.toStr(
+        it.storageUnit ?? storageUnitFromDialog ?? "",
+      );
+      const tpNk = this.toStr(it.TPNK ?? "");
+      const rank = this.toStr(it.rank ?? "");
+      const qr = this.toStr(it.qrCodeFull ?? it.qrCode ?? "");
+
+      const row: (string | number)[] = [
+        numberOfPlanning,
+        itemCode,
+        productName,
+        sapWo,
+        lot,
+        version,
+        timeReceived,
+        reelId,
+        partNumber,
+        vendorRow,
+        quantityOfPackage,
+        mfgDate,
+        productionShift,
+        "", // OpName (giữ rỗng nếu không có)
+        comments,
+        comments2,
+        storageUnit,
+        tpNk,
+        rank,
+        qr,
+      ];
+
+      return row;
+    });
+
     const aoaData: (string | number)[][] = [headers, ...rows];
-
-    // thay cho: XLSX.utils.aoa_to_sheet(aoaData as XLSX.AOA);
-    const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(aoaData as any);
-
+    const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet(aoaData);
     const workbook: XLSX.WorkBook = {
       Sheets: { BoxDetail: worksheet },
       SheetNames: ["BoxDetail"],
     };
-
     const fileName = `BoxDetail_${serialBox || "export"}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   }
+
   private getDataUrlFromRenderedImg(index: number): string | null {
-    // Lấy ElementRef đã được gõ kiểu
-    const qrArray = this.qrElements.toArray();
-    const qrElem = qrArray[index];
-    if (!qrElem) {
+    try {
+      // 1) Thử lấy wrapper theo ViewChildren nếu có
+      const qrArray = (this.qrElements || { toArray: () => [] }).toArray();
+      const qrElem = qrArray[index];
+      if (qrElem) {
+        const native = qrElem.nativeElement as HTMLElement;
+        const canvas = native.querySelector(
+          "canvas",
+        ) as HTMLCanvasElement | null;
+        if (canvas) {
+          try {
+            return canvas.toDataURL("image/png");
+          } catch (err) {
+            console.warn("canvas.toDataURL failed", err);
+          }
+        }
+        const img = native.querySelector("img") as HTMLImageElement | null;
+        if (img && img.src) {
+          return img.src;
+        }
+      }
+
+      // 2) Fallback: tìm canvas theo data-qr-index attribute
+      const wrapperByAttr = document.querySelector(
+        `.qr-wrapper[data-qr-index="${index}"]`,
+      ) as HTMLElement | null;
+      if (wrapperByAttr) {
+        const c = wrapperByAttr.querySelector(
+          "canvas",
+        ) as HTMLCanvasElement | null;
+        if (c) {
+          return c.toDataURL("image/png");
+        }
+        const im = wrapperByAttr.querySelector(
+          "img",
+        ) as HTMLImageElement | null;
+        if (im && im.src) {
+          return im.src;
+        }
+      }
+
+      // 3) Cuối cùng: lấy tất cả canvas trên trang và chọn theo index (nếu thứ tự khớp)
+      const canvases = Array.from(
+        document.querySelectorAll(".qr-wrapper canvas"),
+      ) as HTMLCanvasElement[];
+      if (canvases[index]) {
+        try {
+          return canvases[index].toDataURL("image/png");
+        } catch (err) {
+          console.warn("canvas fallback toDataURL failed", err);
+        }
+      }
+
+      // 4) Không tìm được
+      return null;
+    } catch (err) {
+      console.error("getDataUrlFromRenderedImg error:", err);
       return null;
     }
+  }
 
-    // nativeElement là HTMLElement; querySelector trả về Element | null
-    const native = qrElem.nativeElement as HTMLElement;
-    const canvas = native.querySelector("canvas") as HTMLCanvasElement | null;
-    if (!canvas) {
-      return null;
+  private waitForCanvases(timeoutMs = 3000): Promise<void> {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const check = (): void => {
+        const canvases = document.querySelectorAll(".qr-wrapper canvas");
+        if (canvases.length > 0) {
+          resolve();
+          return;
+        }
+        if (Date.now() - start > timeoutMs) {
+          resolve();
+          return;
+        }
+        setTimeout(check, 100);
+      };
+      check();
+    });
+  }
+
+  private toStr(v: unknown): string {
+    if (v === null || v === undefined) {
+      return "";
     }
+    return String(v);
+  }
 
-    // toDataURL trả về string — an toàn để trả về
-    const dataUrl = canvas.toDataURL("image/png");
-    return dataUrl;
+  // Helper chuyển về number an toàn (trả 0 nếu không phải số)
+  private toNum(v: unknown): number {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
   }
 
   private initializeInfoCards(): void {
@@ -290,11 +405,14 @@ export class DetailBoxDialogComponent implements OnInit {
     this.paginatedItems = this.boxSubItems.slice(startIndex, endIndex);
   }
 
-  private _exportPdfInternal(): void {
+  private async _exportPdfInternal(): Promise<void> {
     const items = this.paginatedItems;
-    if (!items.length) {
+    if (!items || items.length === 0) {
       return;
     }
+
+    // Đợi canvas render (tối đa timeout)
+    await this.waitForCanvases(5000); // chờ tối đa 5s
 
     const doc = new jsPDF({
       unit: "mm",
@@ -313,9 +431,27 @@ export class DetailBoxDialogComponent implements OnInit {
 
     let x = margin,
       y = margin;
-
     for (let i = 0; i < items.length; i++) {
-      const dataUrl = this.getDataUrlFromRenderedImg(i);
+      // Lấy dataUrl (cố gắng từ DOM, nếu không có sẽ tạo bằng thư viện)
+      let dataUrl = this.getDataUrlFromRenderedImg(i);
+      if (!dataUrl) {
+        // fallback: tạo QR trực tiếp từ text (không phụ thuộc DOM)
+        try {
+          const text =
+            (this.data?.isBtp
+              ? (items[i].qrCode ?? items[i].maThung)
+              : items[i].maThung) ?? "";
+          // nếu bạn không muốn dùng thư viện, comment dòng dưới và bỏ qua item
+          // require import: import QRCode from 'qrcode';
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          dataUrl = await QRCode.toDataURL(String(text), { width: 300 });
+        } catch (err) {
+          console.warn("QR generation fallback failed for index", i, err);
+          dataUrl = null;
+        }
+      }
+
       if (!dataUrl) {
         continue;
       }

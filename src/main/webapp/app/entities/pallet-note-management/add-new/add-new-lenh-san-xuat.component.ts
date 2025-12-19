@@ -150,6 +150,7 @@ export interface ReelData {
   tongSl?: number;
   note?: string;
   createdAt?: string;
+  batchGroupId?: string;
 }
 export interface ReelSubItem {
   id?: number;
@@ -1474,6 +1475,47 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   // Method mở dialog chi tiết thùng
   openBoxDetailDialog(box: BoxItem): void {
+    // Nếu bạn có this.reelDataList (ReelData[]), dùng nó để enrich
+    const reelMap = new Map<string, ReelData>();
+    (this.reelDataList || []).forEach((r) => {
+      if (r.reelID) {
+        reelMap.set(String(r.reelID), r);
+      }
+    });
+
+    // Map subItems (có thể chỉ có maThung, soLuong, qrCode)
+    const enrichedSubItems: BoxSubItem[] = (box.subItems || []).map(
+      (s: any, idx: number) => {
+        const key = String(s.maThung ?? s.reelID ?? s.reel_id ?? "");
+        const reel = reelMap.get(key);
+        return {
+          stt: s.stt ?? idx + 1,
+          maThung: key,
+          soLuong: Number(s.soLuong ?? s.initialQuantity ?? 0),
+          qrCode: s.qrCode ?? s.qr_code ?? reel?.qrCode ?? reel?.qrCode ?? "",
+          // merge fields from reel if present
+          reelID: reel?.reelID ?? key,
+          partNumber: reel?.partNumber ?? s.partNumber ?? "",
+          initialQuantity: reel?.initialQuantity ?? Number(s.soLuong ?? 0),
+          manufacturingDate:
+            reel?.manufacturingDate ?? s.manufacturingDate ?? "",
+          expirationDate: reel?.expirationDate ?? s.expirationDate ?? "",
+          userData1: reel?.userData1 ?? s.userData1 ?? "",
+          userData2: reel?.userData2 ?? s.userData2 ?? "",
+          userData3: reel?.userData3 ?? s.userData3 ?? "",
+          userData4: reel?.userData4 ?? s.userData4 ?? "",
+          userData5: reel?.userData5 ?? s.userData5 ?? "",
+          vendor: reel?.vendor ?? s.vendor ?? box.vendor ?? "RD",
+          storageUnit: reel?.storageUnit ?? s.storageUnit ?? box.kho ?? "",
+          TPNK: reel?.TPNK ?? s.TPNK ?? "",
+          rank: reel?.rank ?? s.rank ?? "",
+          note: reel?.note ?? s.note ?? "",
+          comments: reel?.comments ?? s.comments ?? "",
+          qrCodeFull: reel?.qrCode ?? s.qrCode ?? "",
+        } as BoxSubItem;
+      },
+    );
+
     const dialogData: BoxDetailData = {
       stt: box.stt,
       maSanPham: box.maSanPham,
@@ -1486,11 +1528,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       kho: box.kho,
       ghiChu: box.ghiChu,
       serialBox: box.serialBox,
-      subItems: box.subItems || [],
+      // truyền enrichedSubItems thay vì raw subItems
+      subItems: enrichedSubItems,
       isBtp: this.productionOrders?.[0]?.loaiSanPham === "Bán thành phẩm",
+      productionOrders: this.productionOrders ?? [],
+      po: this.productionOrders?.[0] ?? null,
     };
 
-    const dialogRef = this.dialog.open(DetailBoxDialogComponent, {
+    this.dialog.open(DetailBoxDialogComponent, {
       width: "900px",
       maxWidth: "100vw",
       maxHeight: "90vh",
@@ -1498,13 +1543,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       disableClose: false,
       autoFocus: false,
     });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        console.log("Dialog đã đóng với kết quả:", result);
-      }
-    });
   }
+
   openGroupDetailDialog(group: ReelGroup): void {
     const box: BoxItem = {
       stt: group.stt,
@@ -3455,16 +3495,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
       return;
     }
+
     const version = this.productionOrders[0]?.version ?? "";
     const now = new Date();
-    let counter = this.reelDataList.length + 1;
+    // counter bắt đầu từ số reel hiện có + 1
+    let counter = (this.reelDataList?.length ?? 0) + 1;
+
+    // Lấy lotNumber
     let lotNumber = "";
     try {
       const res: any = await this.planningService.search(woId).toPromise();
-
       const item =
         res?.content?.find((c: any) => c.woId === woId) ?? res?.content?.[0];
-
       lotNumber = item?.lotNumber ?? "";
     } catch (error) {
       console.error("Error fetching lotNumber:", error);
@@ -3475,13 +3517,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.productionOrders.find((po) => po.maWO === woId) ??
       this.productionOrders[0];
 
-    // Tính tổng số lượng SAU KHI tạo xong tất cả thùng
-    const totalQuantityAfterCreation =
-      this.reelDataList.reduce(
-        (sum, r) => sum + (Number(r.initialQuantity) || 0),
-        0,
-      ) +
-      data.soLuongThung * data.soLuongTrongThung;
+    // Tính tổng hiện tại và tổng sau khi tạo batch mới
+    const currentTotal = (this.reelDataList || []).reduce(
+      (sum, r) => sum + (Number(r.initialQuantity) || 0),
+      0,
+    );
+    const newQuantity =
+      Number(data.soLuongThung || 0) * Number(data.soLuongTrongThung || 0);
+    const totalQuantityAfterCreation = currentTotal + newQuantity;
 
     // helper chuẩn hoá
     const norm = (v: any): string => {
@@ -3491,7 +3534,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       return String(v).trim();
     };
 
-    // manufacturingDate và expirationDate chuẩn
+    // manufacturingDate và expirationDate chuẩn (YYYYMMDD)
     const manufacturingDate = new Date()
       .toISOString()
       .split("T")[0]
@@ -3501,17 +3544,39 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       return `${d.getFullYear() + 2}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
     })();
 
-    for (let i = 0; i < data.soLuongThung; i++) {
-      const reelID = this.generateReelID(now, productionOrder.maSAP, counter);
+    // createdAt cho batch (ISO) giống pallet
+    const createdAtForBatch = new Date().toISOString();
 
-      const existing = this.reelDataList.find((r) => r.reelID === reelID);
+    // Set để kiểm tra reelID đã tồn tại
+    const existingReelIDs = new Set(
+      (this.reelDataList || []).map((r) => r.reelID),
+    );
+
+    const newReels: ReelData[] = [];
+
+    for (let i = 0; i < Number(data.soLuongThung || 0); i++) {
+      // Sinh reelID và đảm bảo không trùng (so với existing + newReels)
+      let reelID = this.generateReelID(
+        now,
+        productionOrder.maSAP ?? "",
+        counter,
+      );
+      while (
+        existingReelIDs.has(reelID) ||
+        newReels.some((nr) => nr.reelID === reelID)
+      ) {
+        counter++;
+        reelID = this.generateReelID(now, productionOrder.maSAP ?? "", counter);
+      }
+      counter++;
 
       // chuẩn bị các trường dùng để tạo qrCode
       const f_reelID = norm(reelID);
       const f_partNumber = norm(`${productionOrder.maSAP}V_${version}`);
       const f_storageUnit = norm(productionOrder.maKhoNhap ?? "RD01");
+      const f_vendor = norm("RD");
       const f_lot = norm(lotNumber);
-      const f_tongSl = norm(totalQuantityAfterCreation); // ===== SỬA: Dùng tổng đã tính =====
+      const f_tongSl = norm(totalQuantityAfterCreation);
       const f_rank = norm(data.rank ?? "");
       const f_userData3 = norm(productionOrder.tenHangHoa ?? "");
       const f_userData4 = norm(productionOrder.maSAP ?? "");
@@ -3540,71 +3605,78 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         f_sapCode,
       ].join("#");
 
-      if (existing) {
-        existing.initialQuantity =
-          Number(existing.initialQuantity || 0) +
-          Number(data.soLuongTrongThung || 0);
-        existing.userData1 = totalQuantityAfterCreation.toString();
-        existing.qrCode = qrCodeValue;
-        existing.userData2 = data.rank ?? existing.userData2;
-        existing.userData3 = productionOrder.tenHangHoa ?? existing.userData3;
-        existing.userData4 = productionOrder.maSAP ?? existing.userData4;
-        existing.userData5 =
-          productionOrder.maLenhSanXuat ?? existing.userData5;
-        existing.tongSl = totalQuantityAfterCreation; // ===== SỬA: Cập nhật tongSl =====
-        console.log(`Cộng dồn vào reelID ${reelID}:`, existing);
-      } else {
-        const reelData: ReelData = {
-          reelID,
-          partNumber: f_partNumber,
-          vendor: "RD",
-          lot: lotNumber,
-          userData5: productionOrder.maLenhSanXuat || "",
-          initialQuantity: data.soLuongTrongThung,
-          sapCode: productionOrder.maSAP || "",
-          trangThai: "New",
-          storageUnit: f_storageUnit,
-          comments: data.comments ?? "",
-          userData1: totalQuantityAfterCreation.toString(),
-          userData2: data.rank ?? "",
-          userData3: productionOrder.tenHangHoa,
-          userData4: productionOrder.maSAP || "",
-          TPNK: data.TPNK ?? "",
-          rank: data.rank ?? "",
-          msdLevel: "1",
-          msdInitialFloorTime: "",
-          spMaterialName: "",
-          msdBagSealDate: "",
-          marketUsage: "",
-          quantityOverride: "",
-          shelfTime: "",
-          warningLimit: "",
-          maximumLimit: "",
-          warmupTime: "",
-          subStorageUnit: "",
-          locationOverride: "",
-          expirationDate: f_expirationDate,
-          manufacturingDate: f_manufacturingDate,
-          partClass: "",
-          tongSl: totalQuantityAfterCreation, // ===== SỬA: Dùng tổng thực tế =====
-          qrCode: qrCodeValue,
-          note: data.note ?? "",
-        };
+      const reelData: ReelData = {
+        reelID,
+        partNumber: f_partNumber,
+        vendor: "RD",
+        lot: lotNumber,
+        userData5: productionOrder.maLenhSanXuat || "",
+        initialQuantity: Number(data.soLuongTrongThung || 0),
+        sapCode: productionOrder.maSAP || "",
+        trangThai: "New",
+        storageUnit: f_storageUnit,
+        comments: data.comments ?? "",
+        userData1: totalQuantityAfterCreation.toString(),
+        userData2: data.rank ?? "",
+        userData3: productionOrder.tenHangHoa ?? "",
+        userData4: productionOrder.maSAP || "",
+        TPNK: data.TPNK ?? "",
+        rank: data.rank ?? "",
+        msdLevel: "1",
+        msdInitialFloorTime: "",
+        spMaterialName: "",
+        msdBagSealDate: "",
+        marketUsage: "",
+        quantityOverride: "",
+        shelfTime: "",
+        warningLimit: "",
+        maximumLimit: "",
+        warmupTime: "",
+        subStorageUnit: "",
+        locationOverride: "",
+        expirationDate: f_expirationDate,
+        manufacturingDate: f_manufacturingDate,
+        partClass: "",
+        tongSl: totalQuantityAfterCreation,
+        qrCode: qrCodeValue,
+        note: data.note ?? "",
+        // Lưu createdAt giống pallet (ISO) để group client-side
+        createdAt: createdAtForBatch,
+      };
 
-        this.reelDataList = [...this.reelDataList, reelData];
-        console.log("Thêm mới reelData:", reelData);
-      }
-
-      counter++;
+      newReels.push(reelData);
+      existingReelIDs.add(reelID);
+      console.log("Thêm mới reelData (tạm):", reelData);
     }
 
-    // ===== SỬA: Tính lại tổng sau khi tạo xong tất cả =====
+    // Merge + dedupe: ưu tiên bản hiện có (server) nếu có, thêm newReels nếu reelID chưa tồn tại
+    const mergedMap = new Map<string, ReelData>();
+    for (const r of this.reelDataList || []) {
+      mergedMap.set(r.reelID, r);
+    }
+    for (const nr of newReels) {
+      if (!mergedMap.has(nr.reelID)) {
+        mergedMap.set(nr.reelID, nr);
+      } else {
+        // nếu existing không có createdAt nhưng nr có, cập nhật createdAt
+        const existing = mergedMap.get(nr.reelID)!;
+        if (!existing.createdAt && nr.createdAt) {
+          existing.createdAt = nr.createdAt;
+        }
+        // nếu muốn cập nhật các trường khác từ nr, làm merge ở đây
+      }
+    }
+
+    // Gán lại reelDataList theo thứ tự: giữ thứ tự hiện có, thêm mới ở cuối
+    this.reelDataList = Array.from(mergedMap.values());
+
+    // Tính lại tổng sau khi tạo xong tất cả
     const finalTotal = this.reelDataList.reduce(
       (sum, r) => sum + (Number(r.initialQuantity) || 0),
       0,
     );
 
-    // Cập nhật lại tongSl cho tất cả reels với giá trị cuối cùng
+    // Cập nhật lại tongSl và userData1 cho tất cả reels
     this.reelDataList.forEach((reel) => {
       reel.tongSl = finalTotal;
       reel.userData1 = finalTotal.toString();
@@ -3614,7 +3686,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     this.updateProductionOrderTotalBTP();
 
     console.log("Final reelDataList:", this.reelDataList);
-    console.log(`Đã tạo ${this.reelDataList.length} reel items cho Tem BTP`);
+    console.log(`Đã tạo ${newReels.length} reel items mới cho Tem BTP`);
     console.log(`Tổng số lượng: ${finalTotal}`);
 
     if (this.maLenhSanXuatId == null) {
@@ -3622,6 +3694,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     } else {
       await this.saveCombined(this.maLenhSanXuatId);
     }
+
     this.goToCreateTemTab();
   }
 
@@ -3973,28 +4046,82 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     console.log("mapDetailsToReelData - Input:", details);
 
     const grouped: Record<string, ReelGroup & { id?: number }> = {};
+    const seenReelIDs = new Set<string>();
+
+    const normalize = (v: any): string => {
+      if (v === null || v === undefined) {
+        return "";
+      }
+      return String(v).trim();
+    };
+
+    // Tạo localMap từ reelDataList (client cache) để lấy createdAt cục bộ nếu có
+    const localMap = new Map<string, ReelData>();
+    (this.reelDataList || []).forEach((r) => {
+      if (r.reelID) {
+        localMap.set(String(r.reelID), r);
+      }
+    });
+
+    // Helper tạo key giống pallet: kết hợp createdAt + sap + part + lot + user_data_3
+    const makeKey = (d: Record<string, unknown>): string => {
+      const createdAt = normalize(d.created_at ?? d.createdAt ?? "");
+      const sap = normalize(d.sap_code ?? d.user_data_4 ?? "");
+      const part = normalize(d.part_number ?? "");
+      const lot = normalize(d.lot ?? "");
+      const user3 = normalize(d.user_data_3 ?? d.sp_material_name ?? "");
+      return `${createdAt}|${sap}|${part}|${lot}|${user3}`;
+    };
 
     for (const raw of details) {
       const d = raw as Record<string, unknown>;
 
-      // Parse qty an toàn
       const qty =
         typeof d.initial_quantity === "number"
           ? (d.initial_quantity as number)
           : Number(d.initial_quantity as string) || 0;
 
-      // Key group theo created_at (lấy ngày, giờ, phút để group chính xác hơn)
-      const createdAt = (d.created_at as string) ?? "";
-      const key = createdAt; // Group theo createdAt đầy đủ
+      const reelId = normalize(d.reel_id ?? d.reelID ?? "");
+
+      // Nếu đã xử lý reelId này (trùng), bỏ qua để tránh lặp
+      if (reelId && seenReelIDs.has(reelId)) {
+        continue;
+      }
+
+      // Lấy các nguồn batch/created:
+      const batchFromField = normalize(
+        d.batch_id ?? d.batchKey ?? d.batch ?? "",
+      );
+      const createdAtServer = normalize(d.created_at ?? d.createdAt ?? "");
+
+      // Lấy createdAt cục bộ nếu có (client-side batchId khi tạo)
+      const local = reelId ? localMap.get(reelId) : undefined;
+      const localCreatedAt = local?.createdAt ? normalize(local.createdAt) : "";
+
+      // parse batch trong qr_code nếu có token BATCH:... (nếu bạn từng dùng)
+      const qrRaw = normalize(d.qr_code ?? "");
+      let batchFromQr = "";
+      if (qrRaw) {
+        const m = qrRaw.match(/BATCH:([^#]+)/);
+        if (m && m[1]) {
+          batchFromQr = m[1];
+        }
+      }
+
+      // Chọn key ưu tiên: batchFromField -> localCreatedAt -> batchFromQr -> createdAtServer -> fallback makeKey
+      let key =
+        batchFromField || localCreatedAt || batchFromQr || createdAtServer;
+      if (!key) {
+        key = makeKey(d);
+      }
 
       if (!grouped[key]) {
         grouped[key] = {
-          // gán id nhóm tạm undefined, sẽ set khi push subItem đầu tiên có id
           id: undefined,
           reelGroupCreatedAt: key,
           stt: Object.keys(grouped).length + 1,
           partNumber: (d.part_number as string) ?? "",
-          sapCode: (d.sap_code as string) ?? "",
+          sapCode: (d.sap_code as string) ?? (d.user_data_4 as string) ?? "",
           lot: (d.lot as string) ?? "",
           vendor: (d.vendor as string) ?? "",
           tenSanPham:
@@ -4006,13 +4133,13 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           storageUnit: (d.storage_unit as string) ?? "",
           trangThai: (d.trang_thai as string) ?? "Active",
           subItems: [],
-          createdAt: createdAt,
+          createdAt: key,
         } as ReelGroup & { id?: number };
       }
 
       const subItem: ReelSubItem = {
         id: (d.id as number) ?? undefined,
-        reelID: (d.reel_id as string) ?? "",
+        reelID: reelId,
         partNumber: (d.part_number as string) ?? "",
         lot: (d.lot as string) ?? "",
         userData1: (d.user_data_1 as string) ?? "",
@@ -4025,13 +4152,21 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         manufacturingDate: (d.manufacturing_date as string) ?? "",
         qrCode: (d.qr_code as string) ?? "",
         comments: (d.comments as string) ?? "",
-        createdAt: createdAt,
+        createdAt: key,
         TPNK: (d.tp_nk as string) ?? "",
         rank: (d.rank as string) ?? "",
         note: (d.note_2 as string) ?? "",
       };
 
-      // Nếu group chưa có id, gán id của subItem đầu tiên (nếu có)
+      // push subItem và cập nhật tổng
+      grouped[key].subItems.push(subItem);
+      grouped[key].soLuongThung = grouped[key].subItems.length;
+      grouped[key].soLuongSp += qty;
+      grouped[key].soLuongTrongThung = Math.round(
+        grouped[key].soLuongSp / Math.max(1, grouped[key].soLuongThung),
+      );
+
+      // set id nhóm nếu có
       if (
         grouped[key].id === undefined &&
         subItem.id !== undefined &&
@@ -4040,14 +4175,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         grouped[key].id = subItem.id;
       }
 
-      grouped[key].subItems.push(subItem);
-
-      // Cập nhật tổng
-      grouped[key].soLuongThung = grouped[key].subItems.length;
-      grouped[key].soLuongSp += qty;
-      grouped[key].soLuongTrongThung = Math.round(
-        grouped[key].soLuongSp / grouped[key].soLuongThung,
-      );
+      // đánh dấu reelId đã seen để tránh lặp
+      if (reelId) {
+        seenReelIDs.add(reelId);
+      }
     }
 
     // Map sang ReelGroup[] và đảm bảo stt + id được giữ
@@ -4056,7 +4187,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         ...group,
         stt: index + 1,
       };
-      // Nếu bạn muốn ReelGroup có trường id chính thức, giữ nó (interface đã có id?: number)
       return out as ReelGroup;
     });
 

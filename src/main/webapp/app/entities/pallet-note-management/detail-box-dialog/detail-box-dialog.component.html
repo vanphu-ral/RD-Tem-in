@@ -67,8 +67,8 @@
 
         <ng-container matColumnDef="maThung">
           <th mat-header-cell *matHeaderCellDef>QR thùng</th>
-          <td mat-cell *matCellDef="let element">
-            <div class="qr-wrapper">
+          <td mat-cell *matCellDef="let element; let i = index">
+            <div class="qr-wrapper" #qrRef [attr.data-qr-index]="i">
               <qrcode
                 class="qr-img"
                 [qrdata]="
