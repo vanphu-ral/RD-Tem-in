@@ -3769,6 +3769,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const day = String(date.getDate()).padStart(2, "0"); // 24
     const hours = String(date.getHours()).padStart(2, "0"); // 08
     const minutes = String(date.getMinutes()).padStart(2, "0"); // 08
+    const seconds = String(date.getSeconds()).padStart(2, "0"); // 21
 
     // Lấy 2 số cuối của sapCode
     const sapCodeLast2 = sapCode.slice(-2); // 21 (từ maSAP)
@@ -3776,7 +3777,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     // Counter tự nhiên tăng dần (5 chữ số)
     const counterStr = String(counter).padStart(5, "0"); // 00001
 
-    return `${year}${month}${day}${hours}${minutes}${sapCodeLast2}${counterStr}`;
+    return `${year}${month}${day}${hours}${minutes}${seconds}${counterStr}`;
   }
 
   //map data detail

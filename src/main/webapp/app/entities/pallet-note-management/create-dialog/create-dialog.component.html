@@ -72,7 +72,7 @@
                   form.get('soLuongTrongThung')?.touched,
               }"
             >
-              Số lượng SP trong 1 pallet
+              Số lượng SP trong 1 thùng
             </label>
             <mat-form-field appearance="outline" class="full-width">
               <input
@@ -134,7 +134,7 @@
         </div>
         <div class="form-row">
           <div class="form-field full-width">
-            <label class="field-label">Ghi chú chi tiết</label>
+            <label class="field-label">Ghi chú ca</label>
             <mat-form-field appearance="outline" class="full-width">
               <textarea
                 matInput
@@ -193,10 +193,20 @@
                   form.get('extraFieldBTP')?.touched,
               }"
             >
-              Manufacturing Date
+              Ngày sản xuất
             </label>
             <mat-form-field appearance="outline" class="full-width">
-              <input matInput formControlName="mfg" placeholder="Nhập MFG..." />
+              <mat-datepicker-toggle
+                matSuffix
+                [for]="mfgPicker"
+              ></mat-datepicker-toggle>
+              <mat-datepicker #mfgPicker></mat-datepicker>
+              <input
+                matInput
+                [matDatepicker]="mfgPicker"
+                formControlName="mfg"
+                placeholder="Chọn ngày sản xuất..."
+              />
             </mat-form-field>
           </div>
         </div>

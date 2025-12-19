@@ -46,6 +46,7 @@ export interface PalletData {
   maLenhSanXuatId: number;
   validReelIds?: string[];
   existingScannedGlobal?: Set<string>;
+  wmsSendStatus?: boolean;
 }
 
 interface BoxScan {
@@ -492,6 +493,14 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
         "Mã thùng không hợp lệ hoặc không thuộc lệnh sản xuất này",
       );
       this.sendMappingRequest(trimmedCode, 0);
+      return;
+    }
+    // Check 6: Kiểm tra trạng thái wms_send_status
+    if (this.palletData?.wmsSendStatus === true) {
+      this.addErrorBox(
+        trimmedCode,
+        "Pallet đã được gửi WMS, không thể scan thêm",
+      );
       return;
     }
 

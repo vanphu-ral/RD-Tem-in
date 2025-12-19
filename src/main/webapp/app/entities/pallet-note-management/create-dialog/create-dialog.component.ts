@@ -23,7 +23,7 @@ import { MatOptionModule } from "@angular/material/core";
 import { MatSelectModule } from "@angular/material/select";
 import { Subscription } from "rxjs";
 import { distinctUntilChanged, debounceTime } from "rxjs/operators";
-
+import { MatDatepickerModule } from "@angular/material/datepicker";
 export interface DialogData {
   type: "box" | "pallet";
   maSanPham?: string;
@@ -79,6 +79,7 @@ export interface DialogResult {
     MatIconModule,
     MatOptionModule,
     MatSelectModule,
+    MatDatepickerModule,
   ],
   templateUrl: "./create-dialog.component.html",
   styleUrls: ["./create-dialog.component.scss"],
