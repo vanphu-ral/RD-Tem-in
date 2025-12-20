@@ -44,6 +44,8 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
 
     private Integer initialQuantity;
 
+    private Integer quantity;
+
     @Size(max = 20)
     private String msdLevel;
 
@@ -105,6 +107,18 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
     private String trangThai;
 
     private Integer checked;
+
+    private Integer qmsStoredCheckId;
+
+    private String timeQmsApprove;
+
+    private Integer qmsResultCheck;
+
+    private Integer qmsScanMode;
+
+    private String updatedBy;
+
+    private String updatedAt;
 
     private Instant createdAt;
 
@@ -233,6 +247,16 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
     @JsonProperty("initial_quantity")
     public void setInitialQuantity(Integer initialQuantity) {
         this.initialQuantity = initialQuantity;
+    }
+
+    @JsonProperty("quantity")
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    @JsonProperty("quantity")
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
     }
 
     @JsonProperty("msd_level")
@@ -455,6 +479,66 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
         this.checked = checked;
     }
 
+    @JsonProperty("qms_stored_check_id")
+    public Integer getQmsStoredCheckId() {
+        return qmsStoredCheckId;
+    }
+
+    @JsonProperty("qms_stored_check_id")
+    public void setQmsStoredCheckId(Integer qmsStoredCheckId) {
+        this.qmsStoredCheckId = qmsStoredCheckId;
+    }
+
+    @JsonProperty("time_qms_approve")
+    public String getTimeQmsApprove() {
+        return timeQmsApprove;
+    }
+
+    @JsonProperty("time_qms_approve")
+    public void setTimeQmsApprove(String timeQmsApprove) {
+        this.timeQmsApprove = timeQmsApprove;
+    }
+
+    @JsonProperty("qms_result_check")
+    public Integer getQmsResultCheck() {
+        return qmsResultCheck;
+    }
+
+    @JsonProperty("qms_result_check")
+    public void setQmsResultCheck(Integer qmsResultCheck) {
+        this.qmsResultCheck = qmsResultCheck;
+    }
+
+    @JsonProperty("qms_scan_mode")
+    public Integer getQmsScanMode() {
+        return qmsScanMode;
+    }
+
+    @JsonProperty("qms_scan_mode")
+    public void setQmsScanMode(Integer qmsScanMode) {
+        this.qmsScanMode = qmsScanMode;
+    }
+
+    @JsonProperty("updated_by")
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    @JsonProperty("updated_by")
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    @JsonProperty("updated_at")
+    public String getUpdatedAt() {
+        return updatedAt;
+    }
+
+    @JsonProperty("updated_at")
+    public void setUpdatedAt(String updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     @JsonProperty("created_at")
     public Instant getCreatedAt() {
         return createdAt;
@@ -562,6 +646,7 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
                 ", userData4='" + getUserData4() + "'" +
                 ", userData5='" + getUserData5() + "'" +
                 ", initialQuantity=" + getInitialQuantity() +
+                ", quantity=" + getQuantity() +
                 ", msdLevel='" + getMsdLevel() + "'" +
                 ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
                 ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
@@ -584,6 +669,12 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
                 ", lenhSanXuatId=" + getLenhSanXuatId() +
                 ", trangThai='" + getTrangThai() + "'" +
                 ", checked=" + getChecked() +
+                ", qmsStoredCheckId=" + getQmsStoredCheckId() +
+                ", timeQmsApprove='" + getTimeQmsApprove() + "'" +
+                ", qmsResultCheck=" + getQmsResultCheck() +
+                ", qmsScanMode=" + getQmsScanMode() +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", wmsSendStatus=" + getWmsSendStatus() +
                 ", listSerialItems='" + getListSerialItems() + "'" +

@@ -166,13 +166,20 @@ public class PalletInforDetailService {
     public Optional<PalletInforDetailDTO> findOne(String id) {
         LOG.debug("Request to get PalletInforDetail : {}", id);
         try {
+            // Try to parse the id as a numeric value
             Long entityId = Long.valueOf(id);
             return palletInforDetailRepository
                 .findById(entityId)
                 .map(palletInforDetailMapper::toDto);
         } catch (NumberFormatException e) {
-            LOG.warn("Invalid id format for findOne: {}", id);
-            return Optional.empty();
+            // If the id is not numeric, try to find by serialPallet
+            LOG.warn(
+                "Invalid numeric id format for findOne: {}. Attempting to find by serialPallet.",
+                id
+            );
+            return palletInforDetailRepository
+                .findBySerialPallet(id)
+                .map(palletInforDetailMapper::toDto);
         }
     }
 

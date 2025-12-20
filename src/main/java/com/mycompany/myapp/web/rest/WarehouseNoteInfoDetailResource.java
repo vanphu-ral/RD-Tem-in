@@ -407,6 +407,36 @@ public class WarehouseNoteInfoDetailResource {
                             warehouseNoteInfoDetail.getNote2()
                         );
                     }
+                    if (warehouseNoteInfoDetail.getQmsStoredCheckId() != null) {
+                        existingWarehouseNoteInfoDetail.setQmsStoredCheckId(
+                            warehouseNoteInfoDetail.getQmsStoredCheckId()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getTimeQmsApprove() != null) {
+                        existingWarehouseNoteInfoDetail.setTimeQmsApprove(
+                            warehouseNoteInfoDetail.getTimeQmsApprove()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getQmsResultCheck() != null) {
+                        existingWarehouseNoteInfoDetail.setQmsResultCheck(
+                            warehouseNoteInfoDetail.getQmsResultCheck()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getQmsScanMode() != null) {
+                        existingWarehouseNoteInfoDetail.setQmsScanMode(
+                            warehouseNoteInfoDetail.getQmsScanMode()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getUpdatedAt() != null) {
+                        existingWarehouseNoteInfoDetail.setUpdatedAt(
+                            warehouseNoteInfoDetail.getUpdatedAt()
+                        );
+                    }
+                    if (warehouseNoteInfoDetail.getUpdatedBy() != null) {
+                        existingWarehouseNoteInfoDetail.setUpdatedBy(
+                            warehouseNoteInfoDetail.getUpdatedBy()
+                        );
+                    }
 
                     return existingWarehouseNoteInfoDetail;
                 })

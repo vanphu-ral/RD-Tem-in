@@ -144,6 +144,27 @@ public class WarehouseNoteInfoDetail implements Serializable {
     @Column(name = "checked")
     private Integer checked;
 
+    @Column(name = "qms_stored_check_id")
+    private Long qmsStoredCheckId;
+
+    @Size(max = 50)
+    @Column(name = "time_qms_approve", length = 50)
+    private String timeQmsApprove;
+
+    @Column(name = "qms_result_check")
+    private Integer qmsResultCheck;
+
+    @Column(name = "qms_scan_mode")
+    private Integer qmsScanMode;
+
+    @Size(max = 50)
+    @Column(name = "updated_at", length = 50)
+    private String updatedAt;
+
+    @Size(max = 50)
+    @Column(name = "updated_by", length = 50)
+    private String updatedBy;
+
     @Column(name = "created_at")
     private Instant createdAt;
 
@@ -614,6 +635,84 @@ public class WarehouseNoteInfoDetail implements Serializable {
         this.checked = checked;
     }
 
+    public Long getQmsStoredCheckId() {
+        return this.qmsStoredCheckId;
+    }
+
+    public WarehouseNoteInfoDetail qmsStoredCheckId(Long qmsStoredCheckId) {
+        this.setQmsStoredCheckId(qmsStoredCheckId);
+        return this;
+    }
+
+    public void setQmsStoredCheckId(Long qmsStoredCheckId) {
+        this.qmsStoredCheckId = qmsStoredCheckId;
+    }
+
+    public String getTimeQmsApprove() {
+        return this.timeQmsApprove;
+    }
+
+    public WarehouseNoteInfoDetail timeQmsApprove(String timeQmsApprove) {
+        this.setTimeQmsApprove(timeQmsApprove);
+        return this;
+    }
+
+    public void setTimeQmsApprove(String timeQmsApprove) {
+        this.timeQmsApprove = timeQmsApprove;
+    }
+
+    public Integer getQmsResultCheck() {
+        return this.qmsResultCheck;
+    }
+
+    public WarehouseNoteInfoDetail qmsResultCheck(Integer qmsResultCheck) {
+        this.setQmsResultCheck(qmsResultCheck);
+        return this;
+    }
+
+    public void setQmsResultCheck(Integer qmsResultCheck) {
+        this.qmsResultCheck = qmsResultCheck;
+    }
+
+    public Integer getQmsScanMode() {
+        return this.qmsScanMode;
+    }
+
+    public WarehouseNoteInfoDetail qmsScanMode(Integer qmsScanMode) {
+        this.setQmsScanMode(qmsScanMode);
+        return this;
+    }
+
+    public void setQmsScanMode(Integer qmsScanMode) {
+        this.qmsScanMode = qmsScanMode;
+    }
+
+    public String getUpdatedAt() {
+        return this.updatedAt;
+    }
+
+    public WarehouseNoteInfoDetail updatedAt(String updatedAt) {
+        this.setUpdatedAt(updatedAt);
+        return this;
+    }
+
+    public void setUpdatedAt(String updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getUpdatedBy() {
+        return this.updatedBy;
+    }
+
+    public WarehouseNoteInfoDetail updatedBy(String updatedBy) {
+        this.setUpdatedBy(updatedBy);
+        return this;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
     public Instant getCreatedAt() {
         return this.createdAt;
     }
@@ -780,6 +879,12 @@ public class WarehouseNoteInfoDetail implements Serializable {
                 ", lenhSanXuatId=" + getLenhSanXuatId() +
                 ", trangThai='" + getTrangThai() + "'" +
                 ", checked=" + getChecked() +
+                ", qmsStoredCheckId=" + getQmsStoredCheckId() +
+                ", timeQmsApprove='" + getTimeQmsApprove() + "'" +
+                ", qmsResultCheck=" + getQmsResultCheck() +
+                ", qmsScanMode=" + getQmsScanMode() +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", wmsSendStatus=" + getWmsSendStatus() +
                 ", listSerialItems='" + getListSerialItems() + "'" +
