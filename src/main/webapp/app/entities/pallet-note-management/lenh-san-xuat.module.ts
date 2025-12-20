@@ -20,6 +20,7 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { MatDialogModule } from "@angular/material/dialog";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { MatAutocompleteModule } from "@angular/material/autocomplete";
+import { FormsModule } from '@angular/forms';
 
 @NgModule({
   imports: [
@@ -35,6 +36,7 @@ import { MatAutocompleteModule } from "@angular/material/autocomplete";
     MatIconModule,
     MatSelectModule,
     MatProgressBarModule,
+    FormsModule,
     MatInputModule,
     MatDialogModule,
     MatFormFieldModule,

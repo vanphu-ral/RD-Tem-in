@@ -44,6 +44,7 @@ import {
   WarehouseNotePayload,
   WorkshopHierarchy,
   PlanningWorkOrderResponse,
+  Area,
 } from "../service/planning-work-order.service";
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
 import { MatSnackBar } from "@angular/material/snack-bar";
@@ -412,6 +413,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   selectedTabIndex = 0;
   fabMenuOpen = false;
 
+
   //form
   form = this.fb.group({
     woId: ["", Validators.required],
@@ -439,6 +441,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   lastPalletForm: PalletFormData | null = null;
   isDetail = false;
   private hierarchyCache: any[] = [];
+  
+  //po counter
+  private poCounters = new Map<string, number>();
   //log
   constructor(
     private dialog: MatDialog,
@@ -452,7 +457,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     protected applicationConfigService: ApplicationConfigService,
     protected lenhSanXuatService: LenhSanXuatService,
     private cdr: ChangeDetectorRef,
-  ) {}
+  ) { }
 
   async ngOnInit(): Promise<void> {
     this.selectedTabIndex = 0;
@@ -1101,6 +1106,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     }
 
     const allPrintData: PrintPalletData[] = [];
+    const poCounters = new Map<string, number>(); // bộ đếm theo poNumber
     console.log("Starting print preparation...");
     this.refreshPalletItemsBeforePrint().then(() => {
       this.palletItems.forEach((palletGroup, groupIndex) => {
@@ -1111,11 +1117,24 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         palletGroup.subItems.forEach((palletSub, subIndex) => {
           console.log(
             "Processing sub-pallet " +
-              (subIndex + 1) +
-              "/" +
-              palletGroup.subItems.length,
+            (subIndex + 1) +
+            "/" +
+            palletGroup.subItems.length,
           );
-
+          const poRaw = palletGroup.poNumber ?? "";
+          const poKey = String(poRaw).trim().toUpperCase();
+          // const current = poCounters.get(po) ?? 0;
+          // const nextCounter = current + 1;
+          // poCounters.set(po, nextCounter);
+          let thuTuGiaPallet: number;
+          if (poKey) {
+            const current = poCounters.get(poKey) ?? 0;
+            const nextCounter = current + 1;
+            poCounters.set(poKey, nextCounter);
+            thuTuGiaPallet = nextCounter;
+          } else {
+            thuTuGiaPallet = palletSub.stt;
+          }
           // QUAN TRỌNG: Lấy scannedBoxes từ palletSub (đã có sẵn từ loadPalletProgress)
           const scannedBoxes: string[] = palletSub.scannedBoxes ?? [];
 
@@ -1156,10 +1175,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
                     found = true;
                     console.log(
                       "    Found in subItems: " +
-                        trimmed +
-                        " -> " +
-                        qtyFound +
-                        " SP",
+                      trimmed +
+                      " -> " +
+                      qtyFound +
+                      " SP",
                     );
                     break;
                   }
@@ -1179,10 +1198,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
                       found = true;
                       console.log(
                         "    Found as parent box: " +
-                          trimmed +
-                          " -> " +
-                          qtyFound +
-                          " SP",
+                        trimmed +
+                        " -> " +
+                        qtyFound +
+                        " SP",
                       );
                       break;
                     }
@@ -1336,7 +1355,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             lpl2: palletGroup.to ?? this.productionOrders[0]?.to ?? "",
 
             soLuongCaiDatPallet: soLuongCaiDatPallet,
-            thuTuGiaPallet: palletSub.stt,
+            thuTuGiaPallet: thuTuGiaPallet,
             soLuongBaoNgoaiThungGiaPallet: soThungDuKien.toString(),
             slThung: palletGroup.tongSlSp,
 
@@ -1598,6 +1617,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const dialogData: MultiPalletDialogData = {
       mode: "single",
       singleData: singleDetail,
+      poCounters: this.poCounters
     };
 
     const dialogRef = this.dialog.open(PalletDetailDialogComponent, {
@@ -4418,12 +4438,17 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   private loadMaKhoNhapOptionsTP(): void {
     this.planningService.getAreas().subscribe({
-      next: (res: any) => {
-        const areas = res.data ?? [];
-        this.maKhoNhapOptionsTP = areas.map((a: any) => ({
+      next: (areas: Area[]) => {
+        // lọc chỉ những kho đang active
+        const activeAreas = areas.filter(a => a.isActive);
+
+        // map sang options
+        this.maKhoNhapOptionsTP = activeAreas.map(a => ({
           value: a.code,
           label: `${a.code} - ${a.name}`,
         }));
+
+        console.log('Options TP:', this.maKhoNhapOptionsTP);
       },
       error: (err) => {
         console.error("Lỗi lấy danh sách area:", err);
@@ -4433,6 +4458,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       },
     });
   }
+
 
   //in tat ca
   private openPrintDialogFromAddNew(data: PrintPalletData[]): void {

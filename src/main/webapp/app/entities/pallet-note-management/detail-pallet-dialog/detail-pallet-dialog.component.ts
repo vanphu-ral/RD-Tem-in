@@ -105,6 +105,7 @@ export interface MultiPalletDialogData {
   singleData?: PalletDetailData;
   multipleData?: PalletDetailData[];
   boxItems?: any[]; // Box data for print dialog
+  poCounters?: Map<string, number>;
 }
 
 @Component({
@@ -169,7 +170,7 @@ export class PalletDetailDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: MultiPalletDialogData,
     private dialog: MatDialog,
     private planningService: PlanningWorkOrderService,
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.initializeData();
@@ -253,8 +254,8 @@ export class PalletDetailDialogComponent implements OnInit {
         dateCode: sourceData.dateCode ?? "",
         manufactureDate: sourceData.createdAt
           ? new Date(sourceData.createdAt)
-              .toLocaleDateString("en-GB")
-              .replace(/\//g, "")
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "")
           : "",
 
         // Thông tin kiểm tra
@@ -409,6 +410,7 @@ export class PalletDetailDialogComponent implements OnInit {
     let firstBoxSerial = "";
     let lotNumber = "";
 
+
     // ===== XỬ LÝ THEO LOẠI SẢN PHẨM =====
     if (item.scannedBoxes && item.scannedBoxes.length > 0) {
       // THÀNH PHẨM
@@ -472,6 +474,16 @@ export class PalletDetailDialogComponent implements OnInit {
 
     // Tổng sản phẩm trên pallet (mặc định theo cấu hình)
     const totalProductsOnPallet = soThungDuKienNum * soLuongSpTrong1ThungNum;
+    const poKey = (sourceData.poNumber ?? "").trim().toUpperCase();
+    let thuTuGiaPallet: number;
+    if (poKey) {
+      const current = this.data.poCounters?.get(poKey) ?? 0;
+      const nextCounter = current + 1;
+      this.data.poCounters?.set(poKey, nextCounter);
+      thuTuGiaPallet = nextCounter;
+    } else {
+      thuTuGiaPallet = item.stt;
+    }
 
     const printData: PrintPalletData = {
       id: sourceData.id,
@@ -492,7 +504,7 @@ export class PalletDetailDialogComponent implements OnInit {
       lpl2: sourceData.team ?? "",
 
       soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
-      thuTuGiaPallet: item.stt,
+      thuTuGiaPallet: thuTuGiaPallet,
       soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
       slThung: sourceData.tongSlSp,
       note: sourceData.note ?? "",
@@ -608,6 +620,17 @@ export class PalletDetailDialogComponent implements OnInit {
       const soLuongSpTrong1ThungNum = Number(soLuongSanPhamTrongMotThung ?? 0);
       // Tổng sản phẩm trên pallet (mặc định theo cấu hình)
       const totalProductsOnPallet = soThungDuKienNum * soLuongSpTrong1ThungNum;
+      const poKey = (sourceData.poNumber ?? "").trim().toUpperCase();
+      let thuTuGiaPallet: number;
+      if (poKey) {
+        const current = this.data.poCounters?.get(poKey) ?? 0;
+        const nextCounter = current + 1;
+        this.data.poCounters?.set(poKey, nextCounter);
+        thuTuGiaPallet = nextCounter;
+      } else {
+        thuTuGiaPallet = item.stt;
+      }
+
       const printData: PrintPalletData = {
         id: sourceData.id,
         khachHang: sourceData.khachHang ?? "N/A",
@@ -627,7 +650,7 @@ export class PalletDetailDialogComponent implements OnInit {
         lpl2: sourceData.team ?? "",
 
         soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
-        thuTuGiaPallet: item.stt,
+        thuTuGiaPallet: thuTuGiaPallet,
         soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
         slThung: sourceData.tongSlSp,
         note: sourceData.note ?? "",

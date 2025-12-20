@@ -72,6 +72,17 @@ export interface ProductionTeam {
 export interface PlanningWorkOrderResponse {
   content: PlanningWorkOrder[];
 }
+export interface Area {
+  id: number;
+  code: string;
+  name: string;
+  thuKho?: string | null;
+  description?: string | null;
+  address?: string | null;
+  isActive: boolean;
+  updatedBy?: string | null;
+  updatedDate?: string; // ISO date string
+}
 
 @Injectable({
   providedIn: "root",
@@ -79,7 +90,7 @@ export interface PlanningWorkOrderResponse {
 export class PlanningWorkOrderService {
   private baseUrl = environment.baseInTemApiUrl;
   private apiUrl = `${this.baseUrl}/item-data/planning-work-orders`;
-  private WMSUrl = "https://192.168.68.77:9030/api";
+  private WMSUrl = "http://192.168.10.99:9040/api";
   private apiCheckIdentifyWo = `${this.baseUrl}/warehouse-note-infos/work-order-code`;
 
   private testUrl = "http://192.168.10.99:9030/api";
@@ -221,8 +232,8 @@ export class PlanningWorkOrderService {
 
   //send WMS
   //lay ma kho area
-  getAreas(): Observable<WorkshopHierarchy[]> {
-    return this.http.get<WorkshopHierarchy[]>(`${this.WMSUrl}/areas/`);
+  getAreas(): Observable<Area[]> {
+    return this.http.get<Area[]>(`${this.WMSUrl}/areas/`);
   }
 
   sendWmsApproval(payload: any): Observable<any> {

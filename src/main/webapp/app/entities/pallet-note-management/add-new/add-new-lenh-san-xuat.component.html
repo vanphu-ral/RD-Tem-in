@@ -85,31 +85,17 @@
           <td mat-cell data-label="Mã kho nhập" *matCellDef="let element">
             <mat-form-field appearance="outline" class="compact-field">
               <mat-select
-                [(value)]="element.maKhoNhap"
+                [(ngModel)]="element.maKhoNhap"
                 placeholder="Chọn kho"
                 (selectionChange)="onMaKhoNhapChange($event.value)"
               >
-                <!-- Nếu là Bán thành phẩm -->
-                <ng-container
-                  *ngIf="
-                    element.loaiSanPham === 'Bán thành phẩm';
-                    else tpOptions
-                  "
-                >
-                  <mat-option
-                    *ngFor="let opt of maKhoNhapOptionsBTP"
-                    [value]="opt.value"
-                  >
+                <ng-container *ngIf="element.loaiSanPham === 'Bán thành phẩm'; else tpOptions">
+                  <mat-option *ngFor="let opt of maKhoNhapOptionsBTP" [value]="opt.value">
                     {{ opt.label }}
                   </mat-option>
                 </ng-container>
-
-                <!-- Nếu là Thành phẩm -->
                 <ng-template #tpOptions>
-                  <mat-option
-                    *ngFor="let opt of maKhoNhapOptionsTP"
-                    [value]="opt.value"
-                  >
+                  <mat-option *ngFor="let opt of maKhoNhapOptionsTP" [value]="opt.value">
                     {{ opt.label }}
                   </mat-option>
                 </ng-template>
