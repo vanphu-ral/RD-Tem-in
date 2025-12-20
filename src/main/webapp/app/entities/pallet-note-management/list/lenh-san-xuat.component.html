@@ -29,281 +29,516 @@
 
     <!-- <div class="table-responsive" id="entities" *ngIf="lenhSanXuats && lenhSanXuats.length > 0"> -->
     <div style="overflow: auto; height: 850px; width: 100%">
-      <table class="table" aria-describedby="page-heading">
-        <thead>
-          <tr
-            jhiSort
-            [(predicate)]="predicate"
-            [(ascending)]="ascending"
-            (sortChange)="loadPage()"
-          >
-            <th scope="col" jhiSortBy="STT" style="position: sticky; top: 0">
-              <span>STT</span>
-              <input
-                type="text"
-                style="width: 10px; border: none; background-color: #3d7bb9"
-              />
-            </th>
-
-            <th
-              scope="col"
-              jhiSortBy="maLenhSanXuat"
-              style="position: sticky; top: 0"
+      <div class="desktop-table-view">
+        <table class="table" aria-describedby="page-heading">
+          <thead>
+            <tr
+              jhiSort
+              [(predicate)]="predicate"
+              [(ascending)]="ascending"
+              (sortChange)="loadPage()"
             >
-              <span>Lệnh sản xuất</span>
+              <th scope="col" jhiSortBy="STT" style="position: sticky; top: 0">
+                <span>STT</span>
+                <input
+                  type="text"
+                  style="width: 10px; border: none; background-color: #3d7bb9"
+                />
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="maLenhSanXuat"
+                style="position: sticky; top: 0"
+              >
+                <span>Lệnh sản xuất</span>
+                <input
+                  #searchInput
+                  type="text"
+                  [(ngModel)]="maLenhSanXuat"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="search"
+                  list="maLenhSanXuat"
+                  style="width: 4rem"
+                  (change)="findFucntion()"
+                />
+                <datalist id="maLenhSanXuat">
+                  <option *ngFor="let data of listOfMaLenhSanXuat">
+                    {{ data }}
+                  </option>
+                </datalist>
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="sapCode"
+                style="position: sticky; top: 0"
+              >
+                <span>Mã SAP</span>
+                <input
+                  #searchInput
+                  type="text"
+                  [(ngModel)]="sapCode"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="search"
+                  list="sapCode"
+                  style="width: 4rem"
+                  (change)="findFucntion()"
+                />
+                <datalist id="sapCode">
+                  <option *ngFor="let data of listOfSapCode">{{ data }}</option>
+                </datalist>
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="sapName"
+                style="position: sticky; top: 0"
+              >
+                <span>Tên hàng hoá</span>
+                <input
+                  #searchInput
+                  type="text"
+                  [(ngModel)]="sapName"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="search"
+                  list="sapName"
+                  (change)="findFucntion()"
+                  class="tenHangHoa-col"
+                />
+                <datalist id="sapName">
+                  <option *ngFor="let data of listOfSapName">{{ data }}</option>
+                </datalist>
+              </th>
+              <th
+                scope="col"
+                jhiSortBy="totalQuantity"
+                style="position: sticky; top: 0"
+              >
+                <span>Tổ sản xuất</span>
+                <input
+                  style="border: none; width: 3rem; background-color: #3d7bb9"
+                  disabled
+                />
+              </th>
+              <th
+                scope="col"
+                jhiSortBy="product_type"
+                style="position: sticky; top: 0"
+              >
+                <span>Phân loại</span>
+                <select
+                  class="form-control form-select"
+                  [(ngModel)]="product_type"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="findFucntion()"
+                  style="width: 5rem"
+                >
+                  <option value=""></option>
+                  <option value="Thành phẩm">Thành phẩm</option>
+                  <option value="Bán thành phẩm">Bán thành phẩm</option>
+                </select>
+              </th>
+              <th
+                scope="col"
+                jhiSortBy="workOrderCode"
+                style="position: sticky; top: 0"
+              >
+                <span>Mã WO</span>
+                <input
+                  #searchInput
+                  type="text"
+                  [(ngModel)]="workOrderCode"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="search"
+                  list="workOrderCode"
+                  style="width: 5rem"
+                  (change)="findFucntion()"
+                />
+                <datalist id="workOrderCode">
+                  <option *ngFor="let data of listOfWorkOrderCode">
+                    {{ data }}
+                  </option>
+                </datalist>
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="version"
+                style="position: sticky; top: 0"
+              >
+                <span>Version</span>
+                <input
+                  #searchInput
+                  type="text"
+                  [(ngModel)]="version"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="search"
+                  list="version"
+                  style="width: 3rem"
+                  (change)="findFucntion()"
+                />
+                <datalist id="version">
+                  <option *ngFor="let data of listOfVersion">{{ data }}</option>
+                </datalist>
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="storageCode"
+                style="position: sticky; top: 0"
+              >
+                <span>Mã kho nhập</span>
+                <input
+                  #searchInput
+                  type="text"
+                  [(ngModel)]="storageCode"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="search"
+                  list="storageCode"
+                  style="width: 4rem"
+                  (change)="findFucntion()"
+                />
+                <datalist id="storageCode">
+                  <option value="01">Kho linh kiện điện tử</option>
+                  <option value="02">Kho vật tư LED</option>
+                  <option value="03">Kho vật tư TBCS</option>
+                  <option value="04">Kho vật tư CLC</option>
+                  <option value="05">Kho ngành ĐTTĐ</option>
+                  <option value="06">Kho ngành LRSP LED 1</option>
+                  <option value="07">Kho ngành SMART</option>
+                  <option value="08">Kho ngành LED2</option>
+                  <option value="10">Kho cơ khí xưởng</option>
+                  <option value="11">Kho ngành CNPT</option>
+                  <option value="12">Kho vật tư Smart</option>
+                  <option value="13">Kho ngành CNPT 2</option>
+                  <option value="14">Kho chị Hòa 2</option>
+                  <option value="15">Kho Pilot TTRD</option>
+                  <option value="17">Kho vật tư SKD</option>
+                  <option value="18">Kho trung tâm RD</option>
+                  <option value="19">Kho LKDT thủ công</option>
+                  <option value="20">Kho xuất khẩu</option>
+                </datalist>
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="totalQuantity"
+                style="position: sticky; top: 0"
+              >
+                <span>Tổng nhập</span>
+                <input
+                  style="border: none; width: 5rem; background-color: #3d7bb9"
+                  disabled
+                />
+              </th>
+              <th
+                scope="col"
+                jhiSortBy="totalQuantity"
+                style="position: sticky; top: 0"
+              >
+                <span>Chi tiết</span>
+                <input
+                  style="border: none; width: 4rem; background-color: #3d7bb9"
+                  disabled
+                />
+              </th>
+              <th
+                scope="col"
+                jhiSortBy="createBy"
+                style="position: sticky; top: 0"
+              >
+                <span>Nhân viên</span>
+                <input
+                  #searchInput
+                  type="text"
+                  [(ngModel)]="createBy"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="search"
+                  list="createBy"
+                  style="width: 5rem"
+                  (change)="findFucntion()"
+                />
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="entryTime"
+                style="position: sticky; top: 0"
+              >
+                <span>Ngày tạo tem</span>
+                <input
+                  type="date"
+                  [(ngModel)]="entryTime"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="findFucntion()"
+                  class="date-col"
+                />
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="timeUpdate"
+                style="position: sticky; top: 0"
+              >
+                <span>Ngày cập nhật</span>
+                <input
+                  type="date"
+                  [(ngModel)]="timeUpdate"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="findFucntion()"
+                  class="date-col"
+                  disabled
+                />
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="trangThai"
+                style="position: sticky; top: 0"
+              >
+                <span>Trạng thái</span>
+                <select
+                  class="form-control form-select"
+                  [(ngModel)]="trangThai"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="findFucntion()"
+                >
+                  <option value=""></option>
+                  <option value="Bản nháp">Bản nháp</option>
+                  <option value="Chờ duyệt">Chờ duyệt</option>
+                  <option value="Đã phê duyệt">Đã phê duyệt</option>
+                  <option value="Từ chối">Từ chối</option>
+                  <option value="Kho hủy">Kho hủy</option>
+                  <option value="Sản xuất hủy">Sản xuất hủy</option>
+                </select>
+              </th>
+
+              <th
+                scope="col"
+                jhiSortBy="comment"
+                style="position: sticky; top: 0"
+              >
+                <span>Lưu ý</span>
+                <input
+                  style="border: none; width: 5rem; background-color: #3d7bb9"
+                  disabled
+                />
+              </th>
+
+              <th scope="col" style="position: sticky; top: 0; z-index: 5">
+                <span>Options</span>
+                <input
+                  style="border: none; width: 70%; background-color: #3d7bb9"
+                  disabled
+                />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="
+                let lenhSanXuat of lenhSanXuats ?? []
+                  | filter: trangThai
+                  | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+                let i = index;
+                trackBy: trackId
+              "
+              data-cy="entityTable"
+            >
+              <td>
+                <a>{{ i + 1 }}</a>
+              </td>
+              <td>{{ lenhSanXuat.maLenhSanXuat }}</td>
+              <td>{{ lenhSanXuat.sapCode }}</td>
+              <td>{{ lenhSanXuat.sapName }}</td>
+              <td>
+                <div
+                  style="display: flex; justify-content: center"
+                  [id]="lenhSanXuat.id"
+                  class="trang-thai"
+                >
+                  {{ lenhSanXuat.groupName }}
+                </div>
+              </td>
+              <td>
+                <span
+                  style="display: flex; justify-content: center"
+                  [ngClass]="
+                    getProductTypeClass(lenhSanXuat.product_type ?? '')
+                  "
+                  class="badge px-3 py-2"
+                >
+                  {{ lenhSanXuat.product_type }}
+                </span>
+              </td>
+              <td>{{ lenhSanXuat.workOrderCode }}</td>
+              <td>{{ lenhSanXuat.version }}</td>
+              <td>{{ lenhSanXuat.storageCode }}</td>
+              <td>{{ lenhSanXuat.totalQuantity }}</td>
+              <td>{{ lenhSanXuat.comment2 }}</td>
+              <td>{{ lenhSanXuat.createBy }}</td>
+              <td>{{ lenhSanXuat.entryTime | formatMediumDatetime }}</td>
+              <td>{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</td>
+              <td>
+                <span
+                  style="display: flex; justify-content: center"
+                  [ngClass]="getTrangThaiClass(lenhSanXuat.trangThai ?? '')"
+                  class="badge px-3 py-2"
+                  [id]="i"
+                >
+                  {{ lenhSanXuat.trangThai }}
+                </span>
+              </td>
+              <td>{{ lenhSanXuat.comment }}</td>
+              <td class="text-end">
+                <div class="btn-group" *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'">
+                  <button
+                    *jhiHasAnyAuthority="'ROLE_USER_TEM'"
+                    type="submit"
+                    [routerLink]="[
+                      '/warehouse-note-infos',
+                      lenhSanXuat.id,
+                      'view',
+                    ]"
+                    class="btn btn-info btn-sm detail-btn"
+                    data-cy="entityDetailsButton"
+                    data-bs-toggle="tooltip"
+                    title="Xem chi tiết"
+                  >
+                    <fa-icon icon="eye"></fa-icon>
+                    <!-- <span class="d-none d-md-inline">View</span> -->
+                  </button>
+
+                  <!-- <button
+                    *ngIf="lenhSanXuat.trangThai === 'Bản nháp'"
+                    type="submit"
+                    [routerLink]="['/lenh-san-xuat', lenhSanXuat.id, 'edit']"
+                    class="btn btn-primary btn-sm"
+                    data-cy="entityEditButton"
+                    data-bs-toggle="tooltip"
+                    title="Chỉnh sửa"
+                  >
+                    <fa-icon icon="pencil-alt"></fa-icon>
+                  </button> -->
+                  <button
+                    *ngIf="lenhSanXuat.trangThai === 'Bản nháp'"
+                    type="submit"
+                    [routerLink]="[
+                      '/warehouse-note-infos',
+                      lenhSanXuat.id,
+                      'add-new',
+                    ]"
+                    class="btn btn-primary btn-sm"
+                    data-cy="entityEditButton"
+                    data-bs-toggle="tooltip"
+                    title="Chỉnh sửa"
+                  >
+                    <fa-icon icon="pencil-alt"></fa-icon>
+                  </button>
+
+                  <button
+                    *ngIf="lenhSanXuat.trangThai === 'Bản nháp'"
+                    type="submit"
+                    (click)="delete(lenhSanXuat)"
+                    class="btn btn-danger btn-sm"
+                    data-cy="entityDeleteButton"
+                    data-bs-toggle="tooltip"
+                    title="Xoá"
+                  >
+                    <fa-icon icon="times"></fa-icon>
+                    <!-- <span class="d-none d-md-inline">Delete</span> -->
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mobile-card-view">
+        <!-- Mobile Search Panel -->
+        <div class="mobile-search-panel">
+          <button
+            class="search-toggle-btn"
+            (click)="toggleMobileSearch()"
+            [class.active]="mobileSearchOpen"
+          >
+            <fa-icon [icon]="mobileSearchOpen ? 'times' : 'search'"></fa-icon>
+            {{ mobileSearchOpen ? "Đóng" : "Tìm kiếm" }}
+          </button>
+
+          <div class="search-filters" [class.open]="mobileSearchOpen">
+            <div class="filter-group">
+              <label>Lệnh SX</label>
               <input
-                #searchInput
                 type="text"
+                class="form-control"
                 [(ngModel)]="maLenhSanXuat"
                 [ngModelOptions]="{ standalone: true }"
-                placeholder="search"
-                list="maLenhSanXuat"
-                style="width: 4rem"
+                placeholder="Nhập lệnh SX..."
                 (change)="findFucntion()"
               />
-              <datalist id="maLenhSanXuat">
-                <option *ngFor="let data of listOfMaLenhSanXuat">
-                  {{ data }}
-                </option>
-              </datalist>
-            </th>
+            </div>
 
-            <th
-              scope="col"
-              jhiSortBy="sapCode"
-              style="position: sticky; top: 0"
-            >
-              <span>Mã SAP</span>
+            <div class="filter-group">
+              <label>Mã SAP</label>
               <input
-                #searchInput
                 type="text"
+                class="form-control"
                 [(ngModel)]="sapCode"
                 [ngModelOptions]="{ standalone: true }"
-                placeholder="search"
-                list="sapCode"
-                style="width: 4rem"
+                placeholder="Nhập mã SAP..."
                 (change)="findFucntion()"
               />
-              <datalist id="sapCode">
-                <option *ngFor="let data of listOfSapCode">{{ data }}</option>
-              </datalist>
-            </th>
+            </div>
 
-            <th
-              scope="col"
-              jhiSortBy="sapName"
-              style="position: sticky; top: 0"
-            >
-              <span>Tên hàng hoá</span>
+            <div class="filter-group">
+              <label>Tên hàng hóa</label>
               <input
-                #searchInput
                 type="text"
+                class="form-control"
                 [(ngModel)]="sapName"
                 [ngModelOptions]="{ standalone: true }"
-                placeholder="search"
-                list="sapName"
+                placeholder="Nhập tên hàng hóa..."
                 (change)="findFucntion()"
-                class="tenHangHoa-col"
               />
-              <datalist id="sapName">
-                <option *ngFor="let data of listOfSapName">{{ data }}</option>
-              </datalist>
-            </th>
-            <th
-              scope="col"
-              jhiSortBy="totalQuantity"
-              style="position: sticky; top: 0"
-            >
-              <span>Tổ sản xuất</span>
-              <input
-                style="border: none; width: 3rem; background-color: #3d7bb9"
-                disabled
-              />
-            </th>
-            <th
-              scope="col"
-              jhiSortBy="product_type"
-              style="position: sticky; top: 0"
-            >
-              <span>Phân loại</span>
+            </div>
+
+            <div class="filter-group">
+              <label>Phân loại</label>
               <select
                 class="form-control form-select"
                 [(ngModel)]="product_type"
                 [ngModelOptions]="{ standalone: true }"
                 (ngModelChange)="findFucntion()"
-                style="width: 5rem"
               >
-                <option value=""></option>
+                <option value="">Tất cả</option>
                 <option value="Thành phẩm">Thành phẩm</option>
                 <option value="Bán thành phẩm">Bán thành phẩm</option>
               </select>
-            </th>
-            <th
-              scope="col"
-              jhiSortBy="workOrderCode"
-              style="position: sticky; top: 0"
-            >
-              <span>Mã WO</span>
+            </div>
+
+            <div class="filter-group">
+              <label>Mã WO</label>
               <input
-                #searchInput
                 type="text"
+                class="form-control"
                 [(ngModel)]="workOrderCode"
                 [ngModelOptions]="{ standalone: true }"
-                placeholder="search"
-                list="workOrderCode"
-                style="width: 5rem"
+                placeholder="Nhập mã WO..."
                 (change)="findFucntion()"
               />
-              <datalist id="workOrderCode">
-                <option *ngFor="let data of listOfWorkOrderCode">
-                  {{ data }}
-                </option>
-              </datalist>
-            </th>
+            </div>
 
-            <th
-              scope="col"
-              jhiSortBy="version"
-              style="position: sticky; top: 0"
-            >
-              <span>Version</span>
-              <input
-                #searchInput
-                type="text"
-                [(ngModel)]="version"
-                [ngModelOptions]="{ standalone: true }"
-                placeholder="search"
-                list="version"
-                style="width: 3rem"
-                (change)="findFucntion()"
-              />
-              <datalist id="version">
-                <option *ngFor="let data of listOfVersion">{{ data }}</option>
-              </datalist>
-            </th>
-
-            <th
-              scope="col"
-              jhiSortBy="storageCode"
-              style="position: sticky; top: 0"
-            >
-              <span>Mã kho nhập</span>
-              <input
-                #searchInput
-                type="text"
-                [(ngModel)]="storageCode"
-                [ngModelOptions]="{ standalone: true }"
-                placeholder="search"
-                list="storageCode"
-                style="width: 4rem"
-                (change)="findFucntion()"
-              />
-              <datalist id="storageCode">
-                <option value="01">Kho linh kiện điện tử</option>
-                <option value="02">Kho vật tư LED</option>
-                <option value="03">Kho vật tư TBCS</option>
-                <option value="04">Kho vật tư CLC</option>
-                <option value="05">Kho ngành ĐTTĐ</option>
-                <option value="06">Kho ngành LRSP LED 1</option>
-                <option value="07">Kho ngành SMART</option>
-                <option value="08">Kho ngành LED2</option>
-                <option value="10">Kho cơ khí xưởng</option>
-                <option value="11">Kho ngành CNPT</option>
-                <option value="12">Kho vật tư Smart</option>
-                <option value="13">Kho ngành CNPT 2</option>
-                <option value="14">Kho chị Hòa 2</option>
-                <option value="15">Kho Pilot TTRD</option>
-                <option value="17">Kho vật tư SKD</option>
-                <option value="18">Kho trung tâm RD</option>
-                <option value="19">Kho LKDT thủ công</option>
-                <option value="20">Kho xuất khẩu</option>
-              </datalist>
-            </th>
-
-            <th
-              scope="col"
-              jhiSortBy="totalQuantity"
-              style="position: sticky; top: 0"
-            >
-              <span>Tổng nhập</span>
-              <input
-                style="border: none; width: 5rem; background-color: #3d7bb9"
-                disabled
-              />
-            </th>
-            <th
-              scope="col"
-              jhiSortBy="totalQuantity"
-              style="position: sticky; top: 0"
-            >
-              <span>Chi tiết</span>
-              <input
-                style="border: none; width: 4rem; background-color: #3d7bb9"
-                disabled
-              />
-            </th>
-            <th
-              scope="col"
-              jhiSortBy="createBy"
-              style="position: sticky; top: 0"
-            >
-              <span>Nhân viên</span>
-              <input
-                #searchInput
-                type="text"
-                [(ngModel)]="createBy"
-                [ngModelOptions]="{ standalone: true }"
-                placeholder="search"
-                list="createBy"
-                style="width: 5rem"
-                (change)="findFucntion()"
-              />
-            </th>
-
-            <th
-              scope="col"
-              jhiSortBy="entryTime"
-              style="position: sticky; top: 0"
-            >
-              <span>Ngày tạo tem</span>
-              <input
-                type="date"
-                [(ngModel)]="entryTime"
-                [ngModelOptions]="{ standalone: true }"
-                (change)="findFucntion()"
-                class="date-col"
-              />
-            </th>
-
-            <th
-              scope="col"
-              jhiSortBy="timeUpdate"
-              style="position: sticky; top: 0"
-            >
-              <span>Ngày cập nhật</span>
-              <input
-                type="date"
-                [(ngModel)]="timeUpdate"
-                [ngModelOptions]="{ standalone: true }"
-                (change)="findFucntion()"
-                class="date-col"
-                disabled
-              />
-            </th>
-
-            <th
-              scope="col"
-              jhiSortBy="trangThai"
-              style="position: sticky; top: 0"
-            >
-              <span>Trạng thái</span>
+            <div class="filter-group">
+              <label>Trạng thái</label>
               <select
                 class="form-control form-select"
                 [(ngModel)]="trangThai"
                 [ngModelOptions]="{ standalone: true }"
                 (ngModelChange)="findFucntion()"
               >
-                <option value=""></option>
+                <option value="">Tất cả</option>
                 <option value="Bản nháp">Bản nháp</option>
                 <option value="Chờ duyệt">Chờ duyệt</option>
                 <option value="Đã phê duyệt">Đã phê duyệt</option>
@@ -311,31 +546,39 @@
                 <option value="Kho hủy">Kho hủy</option>
                 <option value="Sản xuất hủy">Sản xuất hủy</option>
               </select>
-            </th>
+            </div>
 
-            <th
-              scope="col"
-              jhiSortBy="comment"
-              style="position: sticky; top: 0"
-            >
-              <span>Lưu ý</span>
+            <div class="filter-group">
+              <label>Ngày tạo tem</label>
               <input
-                style="border: none; width: 5rem; background-color: #3d7bb9"
-                disabled
+                type="date"
+                class="form-control"
+                [(ngModel)]="entryTime"
+                [ngModelOptions]="{ standalone: true }"
+                (change)="findFucntion()"
               />
-            </th>
+            </div>
 
-            <th scope="col" style="position: sticky; top: 0; z-index: 5">
-              <span>Options</span>
-              <input
-                style="border: none; width: 70%; background-color: #3d7bb9"
-                disabled
-              />
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
+            <div class="filter-actions">
+              <button class="btn btn-secondary" (click)="clearFilters()">
+                <fa-icon icon="times"></fa-icon>
+                Xóa bộ lọc
+              </button>
+              <button
+                class="btn btn-primary"
+                (click)="findFucntion(); toggleMobileSearch()"
+              >
+                <fa-icon icon="search"></fa-icon>
+                Áp dụng
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="warehouse-cards-mobile">
+          <div
+            class="warehouse-card-mobile"
             *ngFor="
               let lenhSanXuat of lenhSanXuats ?? []
                 | filter: trangThai
@@ -343,114 +586,154 @@
               let i = index;
               trackBy: trackId
             "
-            data-cy="entityTable"
           >
-            <td>
-              <a>{{ i + 1 }}</a>
-            </td>
-            <td>{{ lenhSanXuat.maLenhSanXuat }}</td>
-            <td>{{ lenhSanXuat.sapCode }}</td>
-            <td>{{ lenhSanXuat.sapName }}</td>
-            <td>
-              <div
-                style="display: flex; justify-content: center"
-                [id]="lenhSanXuat.id"
-                class="trang-thai"
-              >
-                {{ lenhSanXuat.groupName }}
+            <!-- Card Header -->
+            <div class="card-header-mobile">
+              <div class="header-left">
+                <span class="card-number">#{{ i + 1 }}</span>
+                <span class="card-code">{{ lenhSanXuat.maLenhSanXuat }}</span>
               </div>
-            </td>
-            <td>
-              <span
-                style="display: flex; justify-content: center"
-                [ngClass]="getProductTypeClass(lenhSanXuat.product_type ?? '')"
-                class="badge px-3 py-2"
+              <div class="header-right">
+                <span
+                  class="status-badge-mobile"
+                  [ngClass]="getTrangThaiClass(lenhSanXuat.trangThai ?? '')"
+                >
+                  {{ lenhSanXuat.trangThai }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="card-body-mobile">
+              <!-- Product Type Badge -->
+              <div class="product-type-section">
+                <span
+                  class="product-badge-mobile"
+                  [ngClass]="
+                    getProductTypeClass(lenhSanXuat.product_type ?? '')
+                  "
+                >
+                  {{ lenhSanXuat.product_type }}
+                </span>
+              </div>
+
+              <!-- Main Info -->
+              <div class="info-section">
+                <div class="info-row-mobile">
+                  <span class="label-mobile">Mã SAP:</span>
+                  <span class="value-mobile">{{ lenhSanXuat.sapCode }}</span>
+                </div>
+                <div class="info-row-mobile">
+                  <span class="label-mobile">Tên hàng hóa:</span>
+                  <span
+                    class="value-mobile full-width"
+                    [title]="lenhSanXuat.sapName"
+                  >
+                    {{ lenhSanXuat.sapName }}
+                  </span>
+                </div>
+                <div class="info-row-mobile">
+                  <span class="label-mobile">Mã WO:</span>
+                  <span class="value-mobile">{{
+                    lenhSanXuat.workOrderCode
+                  }}</span>
+                </div>
+                <div class="info-row-mobile">
+                  <span class="label-mobile">Version:</span>
+                  <span class="value-mobile">{{ lenhSanXuat.version }}</span>
+                </div>
+              </div>
+
+              <!-- Stats Grid -->
+              <div class="stats-grid-mobile">
+                <div class="stat-item-mobile">
+                  <span class="stat-label-mobile">Tổ SX</span>
+                  <span class="stat-value-mobile">{{
+                    lenhSanXuat.groupName
+                  }}</span>
+                </div>
+                <div class="stat-item-mobile">
+                  <span class="stat-label-mobile">Kho nhập</span>
+                  <span class="stat-value-mobile">{{
+                    lenhSanXuat.storageCode
+                  }}</span>
+                </div>
+                <div class="stat-item-mobile">
+                  <span class="stat-label-mobile">Tổng nhập</span>
+                  <span class="stat-value-mobile highlight">{{
+                    lenhSanXuat.totalQuantity
+                  }}</span>
+                </div>
+              </div>
+
+              <!-- Additional Info -->
+              <div class="additional-info-mobile">
+                <div class="info-item-mobile">
+                  <fa-icon icon="user" class="info-icon"></fa-icon>
+                  <span>{{ lenhSanXuat.createBy }}</span>
+                </div>
+                <div class="info-item-mobile">
+                  <!-- <fa-icon icon="calendar" class="info-icon"></fa-icon> -->
+                  <span>{{
+                    lenhSanXuat.entryTime | formatMediumDatetime
+                  }}</span>
+                </div>
+                <div class="info-item-mobile" *ngIf="lenhSanXuat.comment">
+                  <fa-icon icon="comment" class="info-icon"></fa-icon>
+                  <span>{{ lenhSanXuat.comment }}</span>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div
+                class="card-actions-mobile"
+                *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
               >
-                {{ lenhSanXuat.product_type }}
-              </span>
-            </td>
-            <td>{{ lenhSanXuat.workOrderCode }}</td>
-            <td>{{ lenhSanXuat.version }}</td>
-            <td>{{ lenhSanXuat.storageCode }}</td>
-            <td>{{ lenhSanXuat.totalQuantity }}</td>
-            <td>{{ lenhSanXuat.comment2 }}</td>
-            <td>{{ lenhSanXuat.createBy }}</td>
-            <td>{{ lenhSanXuat.entryTime | formatMediumDatetime }}</td>
-            <td>{{ lenhSanXuat.timeUpdate | formatMediumDatetime }}</td>
-            <td>
-              <span
-                style="display: flex; justify-content: center"
-                [ngClass]="getTrangThaiClass(lenhSanXuat.trangThai ?? '')"
-                class="badge px-3 py-2"
-                [id]="i"
-              >
-                {{ lenhSanXuat.trangThai }}
-              </span>
-            </td>
-            <td>{{ lenhSanXuat.comment }}</td>
-            <td class="text-end">
-              <div class="btn-group" *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'">
                 <button
                   *jhiHasAnyAuthority="'ROLE_USER_TEM'"
-                  type="submit"
+                  class="btn btn-sm btn-info"
                   [routerLink]="[
                     '/warehouse-note-infos',
                     lenhSanXuat.id,
                     'view',
                   ]"
-                  class="btn btn-info btn-sm detail-btn"
-                  data-cy="entityDetailsButton"
                   data-bs-toggle="tooltip"
                   title="Xem chi tiết"
                 >
                   <fa-icon icon="eye"></fa-icon>
-                  <!-- <span class="d-none d-md-inline">View</span> -->
+                  Chi tiết
                 </button>
 
-                <!-- <button
-                  *ngIf="lenhSanXuat.trangThai === 'Bản nháp'"
-                  type="submit"
-                  [routerLink]="['/lenh-san-xuat', lenhSanXuat.id, 'edit']"
-                  class="btn btn-primary btn-sm"
-                  data-cy="entityEditButton"
-                  data-bs-toggle="tooltip"
-                  title="Chỉnh sửa"
-                >
-                  <fa-icon icon="pencil-alt"></fa-icon>
-                </button> -->
                 <button
                   *ngIf="lenhSanXuat.trangThai === 'Bản nháp'"
-                  type="submit"
+                  class="btn btn-sm btn-primary"
                   [routerLink]="[
                     '/warehouse-note-infos',
                     lenhSanXuat.id,
                     'add-new',
                   ]"
-                  class="btn btn-primary btn-sm"
-                  data-cy="entityEditButton"
                   data-bs-toggle="tooltip"
                   title="Chỉnh sửa"
                 >
                   <fa-icon icon="pencil-alt"></fa-icon>
+                  Sửa
                 </button>
 
                 <button
                   *ngIf="lenhSanXuat.trangThai === 'Bản nháp'"
-                  type="submit"
+                  class="btn btn-sm btn-danger"
                   (click)="delete(lenhSanXuat)"
-                  class="btn btn-danger btn-sm"
-                  data-cy="entityDeleteButton"
                   data-bs-toggle="tooltip"
                   title="Xoá"
                 >
                   <fa-icon icon="times"></fa-icon>
-                  <!-- <span class="d-none d-md-inline">Delete</span> -->
+                  Xóa
                 </button>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

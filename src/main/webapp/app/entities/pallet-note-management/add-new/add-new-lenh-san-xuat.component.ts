@@ -585,6 +585,22 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     );
     this.filteredStorageOptions[index] = of<AreaOption[]>(filtered);
   }
+  onHeaderStorageUnitChange(value: string): void {
+    const newVal = (value ?? "").trim();
+
+    // cập nhật model header
+    this.storageUnitHeaderValue = newVal;
+
+    // lọc danh sách options theo chuỗi nhập
+    const q = newVal.toLowerCase();
+    const filtered: AreaOption[] = (this.storageOptions || []).filter(
+      (o: AreaOption) =>
+        o.value.toLowerCase().includes(q) || o.label.toLowerCase().includes(q),
+    );
+
+    // cập nhật observable cho autocomplete ở header
+    this.filteredHeaderOptions = of<AreaOption[]>(filtered);
+  }
 
   displayAreaLabel(val: string | AreaOption): string {
     if (!val) {
@@ -1213,15 +1229,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           // soLuongCaiDatPallet chỉ là tổng số sản phẩm đã scan
           const soLuongCaiDatPallet = tongSoSanPhamDaScan;
 
-          const totalProductsOnPallet = soThungDuKien * soLuongCaiDatPallet;
+          let totalProductsOnPallet: number | undefined;
+          if (this.warehouseNoteInfo?.product_type === "Bán thành phẩm") {
+            totalProductsOnPallet = soThungDuKien * soLuongSpTrong1Thung;
+          }
 
-          console.log("  Summary:", {
-            scannedBoxesCount: scannedBoxes.length,
-            tongSoSanPhamDaScan: tongSoSanPhamDaScan,
-            soLuongSpTrong1Thung: soLuongSpTrong1Thung,
-            soThungDuKien: soThungDuKien,
-            soLuongCaiDatPallet: soLuongCaiDatPallet,
-          });
+          // console.log("  Summary:", {
+          //   scannedBoxesCount: scannedBoxes.length,
+          //   tongSoSanPhamDaScan: tongSoSanPhamDaScan,
+          //   soLuongSpTrong1Thung: soLuongSpTrong1Thung,
+          //   soThungDuKien: soThungDuKien,
+          //   soLuongCaiDatPallet: soLuongCaiDatPallet,
+          // });
 
           // Lấy thông tin box đầu tiên
           const normalize = (v: any): string =>
@@ -1338,12 +1357,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             woId: this.warehouseNoteInfo?.work_order_code ?? "",
             erpWo: this.warehouseNoteInfo?.work_order_code ?? "",
             maLenhSanXuat: this.warehouseNoteInfo?.ma_lenh_san_xuat ?? "",
-            totalProductsOnPallet: totalProductsOnPallet,
+            totalProductsOnPallet,
           };
 
           console.log("  Print data for pallet " + palletSub.maPallet + ":", {
-            soLuongCaiDatPallet: printData.soLuongCaiDatPallet,
-            slThung: printData.slThung,
             qty: printData.qty,
             lot: printData.lot,
             scannedBoxesFromPallet: scannedBoxes.length,
@@ -1351,6 +1368,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             maSAP: printData.maSAP,
             woId: printData.woId,
             erpWo: printData.erpWo,
+            totalProductsOnPallet,
+            soLuongCaiDatPallet: printData.soLuongCaiDatPallet,
+            soLuongBaoNgoaiThungGiaPallet: soThungDuKien.toString(),
+            slThung: printData.slThung,
           });
           console.log("boxItems snapshot", this.boxItems);
 
@@ -4157,7 +4178,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       const qtyPerBox = Number(
         detail.quantity_per_box ?? detail.quantityPerBox ?? 0,
       );
-      grouped[key].tongSlSp += Number(detail.num_box_actual ?? 0) * qtyPerBox;
+      grouped[key].tongSlSp += qtyPerBox;
       grouped[key].trangThaiIn =
         grouped[key].trangThaiIn || Boolean(detail.print_status);
     }

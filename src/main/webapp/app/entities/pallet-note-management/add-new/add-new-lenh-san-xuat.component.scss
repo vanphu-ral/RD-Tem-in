@@ -544,6 +544,12 @@
 .fab-backdrop {
   display: none;
 }
+.desktop-only {
+  display: block;
+}
+.mobile-only {
+  display: none;
+}
 
 // ==========================================
 // MOBILE RESPONSIVE - VERSION MỚI HOÀN TOÀN
@@ -551,6 +557,13 @@
 // ==========================================
 
 @media screen and (max-width: 768px) {
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: block;
+  }
   // ===== FIX MAIN CONTAINER - CHO PHÉP SCROLL =====
   .main-content {
     padding: 8px;
@@ -596,48 +609,231 @@
   }
 
   // ===== TABLE CONTAINER =====
-  .table-container {
-    padding: 8px;
-    margin-bottom: 10px;
-    max-height: none !important;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  // .table-container {
+  //   padding: 8px;
+  //   margin-bottom: 10px;
+  //   max-height: none !important;
+  //   overflow-x: auto;
+  //   -webkit-overflow-scrolling: touch;
+  // }
 
-  // ===== PRODUCTION TABLE - SCROLL NGANG =====
-  .production-table {
-    min-width: 600px; // Đảm bảo có scroll ngang
-    font-size: 10px;
+  .mobile-cards {
+    padding: 12px;
 
-    th {
-      padding: 6px 4px;
-      font-size: 9px;
-      min-width: 50px;
-      white-space: nowrap;
+    .mobile-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+
+      &:active {
+        transform: scale(0.98);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+      }
     }
 
-    td {
-      padding: 4px;
-      font-size: 10px;
-      white-space: nowrap;
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+      border-bottom: 2px solid #e0e0e0;
+      gap: 8px;
 
-      mat-form-field {
-        width: auto;
-        min-width: 80px;
+      .product-type-badge {
+        flex: 1;
+        padding: 6px 12px;
+        background: #2196f3;
+        color: white;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        white-space: nowrap;
 
-        ::ng-deep {
-          .mat-mdc-form-field {
-            height: 28px !important;
+        &.btp {
+          background: #ff9800;
+        }
+      }
+
+      .status-badge {
+        padding: 6px 12px;
+        background: #f5f5f5;
+        color: #666;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+
+        &.active {
+          background: #4caf50;
+          color: white;
+        }
+      }
+    }
+
+    .card-body {
+      padding: 16px;
+
+      .info-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+
+        &.primary {
+          background: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
+          padding: 12px;
+          margin: -16px -16px 12px -16px;
+          border-bottom: 2px solid #e3f2fd;
+          border-radius: 0;
+
+          .info-icon {
+            color: #1976d2;
           }
 
-          .mat-mdc-text-field-wrapper {
-            padding: 2px 4px;
-          }
-
-          .mat-mdc-form-field-subscript-wrapper {
-            display: none;
+          .info-value {
+            color: #1976d2;
+            font-weight: 600;
           }
         }
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .info-icon {
+          color: #757575;
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+          margin-top: 2px;
+        }
+
+        .info-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .info-label {
+            font-size: 12px;
+            color: #757575;
+            font-weight: 500;
+          }
+
+          .info-value {
+            font-size: 14px;
+            color: #212121;
+            font-weight: 500;
+            word-break: break-word;
+          }
+        }
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+
+        &:last-of-type {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+
+        .info-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .info-label {
+            font-size: 11px;
+            color: #757575;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .info-value {
+            font-size: 14px;
+            color: #212121;
+            font-weight: 500;
+
+            &.highlight {
+              color: #1976d2;
+              font-weight: 600;
+              font-size: 15px;
+            }
+          }
+        }
+      }
+
+      .warehouse-select {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 2px solid #f0f0f0;
+
+        .mat-form-field {
+          width: 100%;
+
+          ::ng-deep {
+            .mat-form-field-wrapper {
+              padding-bottom: 0;
+            }
+
+            .mat-form-field-infix {
+              padding: 10px 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .action-buttons {
+    padding: 16px;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+
+    button {
+      width: 100%;
+      height: 48px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+
+  // Adjust header for mobile
+  .header {
+    padding: 12px 16px;
+
+    h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .submit-search-sap {
+      flex-direction: column;
+      gap: 12px;
+
+      .sap-input {
+        width: 100%;
+      }
+
+      .search-button {
+        width: 100%;
+        height: 48px;
       }
     }
   }
@@ -745,7 +941,318 @@
         background: #999;
       }
     }
+    .items-table {
+      display: none; // Ẩn table trên mobile
+    }
   }
+  .box-cards-mobile,
+  .pallet-cards-mobile,
+  .tem-cards-mobile {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    padding: 0;
+    margin-top: 10px;
+  }
+  // ===== CARD THÙNG (BOX) =====
+  .box-card-mobile {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .card-number {
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .card-badge {
+        font-size: 9px;
+        background: rgba(255, 255, 255, 0.25);
+        padding: 2px 6px;
+        border-radius: 10px;
+      }
+    }
+
+    .card-body {
+      padding: 10px;
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 10px;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .label {
+        color: #666;
+        font-weight: 500;
+      }
+
+      .value {
+        color: #333;
+        font-weight: 600;
+        text-align: right;
+        max-width: 60%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        &.highlight {
+          color: #1976d2;
+          font-size: 12px;
+        }
+      }
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      padding-top: 8px;
+      border-top: 1px solid #f0f0f0;
+      margin-top: 8px;
+
+      button {
+        flex: 1;
+        height: 32px;
+        font-size: 10px;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+  }
+
+  // ===== CARD PALLET =====
+  .pallet-card-mobile {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+    .card-header {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: #fff;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .card-number {
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .status-badge {
+        font-size: 8px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        min-width: auto;
+      }
+    }
+
+    .card-body {
+      padding: 10px;
+    }
+
+    .card-section {
+      margin-bottom: 8px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .section-title {
+        font-size: 9px;
+        color: #888;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+
+      .section-content {
+        font-size: 11px;
+        color: #333;
+        font-weight: 500;
+      }
+    }
+
+    .card-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 8px 0;
+      border-top: 1px solid #f0f0f0;
+      border-bottom: 1px solid #f0f0f0;
+      margin: 8px 0;
+
+      .stat-item {
+        text-align: center;
+
+        .stat-label {
+          font-size: 8px;
+          color: #666;
+          display: block;
+          margin-bottom: 2px;
+        }
+
+        .stat-value {
+          font-size: 13px;
+          font-weight: 700;
+          color: #1976d2;
+        }
+      }
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+
+      button {
+        flex: 1;
+        height: 32px;
+        font-size: 10px;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+  }
+
+  // ===== CARD TEM BTP =====
+  .tem-card-mobile {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+    .card-header {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: #fff;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .card-number {
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .card-status {
+        font-size: 9px;
+        background: rgba(255, 255, 255, 0.25);
+        padding: 2px 6px;
+        border-radius: 10px;
+      }
+    }
+
+    .card-body {
+      padding: 10px;
+    }
+
+    .card-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px 8px;
+      margin-bottom: 8px;
+
+      .info-item {
+        .info-label {
+          font-size: 8px;
+          color: #666;
+          display: block;
+          margin-bottom: 2px;
+        }
+
+        .info-value {
+          font-size: 10px;
+          color: #333;
+          font-weight: 600;
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+    }
+
+    .card-storage {
+      padding: 6px 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      margin-bottom: 8px;
+
+      .storage-label {
+        font-size: 8px;
+        color: #666;
+        margin-bottom: 4px;
+      }
+
+      .storage-value {
+        font-size: 10px;
+        color: #1976d2;
+        font-weight: 600;
+      }
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 8px;
+
+      button {
+        flex: 1;
+        height: 32px;
+        font-size: 10px;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+  }
+  // .btp-group-btn {
+  //   flex-direction: column;
+  //   gap: 8px;
+  //   margin-bottom: 10px;
+
+  //   button {
+  //     width: 100%;
+  //     height: 38px;
+  //     font-size: 12px;
+  //   }
+  // }
   .summary-cards {
     flex-direction: column;
   }
@@ -1094,6 +1601,11 @@
   .header h2,
   .header h3 {
     font-size: 14px;
+  }
+  .box-cards-mobile,
+  .pallet-cards-mobile,
+  .tem-cards-mobile {
+    grid-template-columns: 1fr; // 1 cột trên màn hình nhỏ
   }
 
   .production-table {
