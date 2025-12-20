@@ -38,7 +38,7 @@
   </div>
 
   <div class="table-wrapper">
-    <div class="table-container">
+    <div class="table-container desktop-only">
       <mat-progress-bar
         *ngIf="loading"
         mode="indeterminate"
@@ -85,11 +85,10 @@
           <td mat-cell data-label="Mã kho nhập" *matCellDef="let element">
             <mat-form-field appearance="outline" class="compact-field">
               <mat-select
-                [(value)]="element.maKhoNhap"
+                [(ngModel)]="element.maKhoNhap"
                 placeholder="Chọn kho"
                 (selectionChange)="onMaKhoNhapChange($event.value)"
               >
-                <!-- Nếu là Bán thành phẩm -->
                 <ng-container
                   *ngIf="
                     element.loaiSanPham === 'Bán thành phẩm';
@@ -103,8 +102,6 @@
                     {{ opt.label }}
                   </mat-option>
                 </ng-container>
-
-                <!-- Nếu là Thành phẩm -->
                 <ng-template #tpOptions>
                   <mat-option
                     *ngFor="let opt of maKhoNhapOptionsTP"
@@ -152,6 +149,118 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
+    </div>
+    <div class="mobile-cards mobile-only">
+      <mat-progress-bar
+        *ngIf="loading"
+        mode="indeterminate"
+        color="primary"
+      ></mat-progress-bar>
+      <div class="mobile-card" *ngFor="let element of productionOrders">
+        <!-- Header with Product Type Badge -->
+        <div class="card-header">
+          <div
+            class="product-type-badge"
+            [class.btp]="element.loaiSanPham === 'Bán thành phẩm'"
+          >
+            {{ element.loaiSanPham }}
+          </div>
+          <div
+            class="status-badge"
+            [class.active]="element.trangThai === 'Hoạt động'"
+          >
+            {{ element.trangThai }}
+          </div>
+        </div>
+
+        <!-- Main Info -->
+        <div class="card-body">
+          <div class="info-row primary">
+            <mat-icon class="info-icon">article</mat-icon>
+            <div class="info-content">
+              <span class="info-label">Mã lệnh SX</span>
+              <span class="info-value">{{ element.maLenhSanXuat }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <mat-icon class="info-icon">inventory_2</mat-icon>
+            <div class="info-content">
+              <span class="info-label">Tên hàng hóa</span>
+              <span class="info-value">{{ element.tenHangHoa }}</span>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Mã SAP</span>
+              <span class="info-value">{{ element.maSAP }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Mã WO</span>
+              <span class="info-value">{{ element.maWO }}</span>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Version</span>
+              <span class="info-value">{{ element.version }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Tổng SL</span>
+              <span class="info-value highlight">{{
+                element.tongSoLuong
+              }}</span>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Ngành</span>
+              <span class="info-value">{{ element.nganh }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Tổ</span>
+              <span class="info-value">{{ element.to }}</span>
+            </div>
+          </div>
+
+          <!-- Warehouse Select -->
+          <div class="warehouse-select">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Mã kho nhập</mat-label>
+              <mat-select
+                [(value)]="element.maKhoNhap"
+                placeholder="Chọn kho"
+                (selectionChange)="onMaKhoNhapChange($event.value)"
+              >
+                <ng-container
+                  *ngIf="
+                    element.loaiSanPham === 'Bán thành phẩm';
+                    else tpOptionsMobile
+                  "
+                >
+                  <mat-option
+                    *ngFor="let opt of maKhoNhapOptionsBTP"
+                    [value]="opt.value"
+                  >
+                    {{ opt.label }}
+                  </mat-option>
+                </ng-container>
+                <ng-template #tpOptionsMobile>
+                  <mat-option
+                    *ngFor="let opt of maKhoNhapOptionsTP"
+                    [value]="opt.value"
+                  >
+                    {{ opt.label }}
+                  </mat-option>
+                </ng-template>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="action-buttons">
       <button mat-raised-button color="primary" (click)="saveWarehouseNotes()">
@@ -216,15 +325,6 @@
                 <div class="summary-card__meta">Tổng số sản phẩm</div>
               </div>
             </div>
-
-            <!-- <div class="summary-card">
-              <div class="summary-card__icon"><mat-icon>grain</mat-icon></div>
-              <div class="summary-card__body">
-                <div class="summary-card__label">Tổng số lot</div>
-                <div class="summary-card__value">{{ boxSummaryContext.totalLots }}</div>
-                <div class="summary-card__meta">Số lot khác nhau</div>
-              </div>
-            </div> -->
           </div>
 
           <div class="items-table-container">
@@ -264,13 +364,6 @@
                 </td>
               </ng-container>
 
-              <!-- <ng-container matColumnDef="vendor">
-                <th mat-header-cell *matHeaderCellDef>Vendor</th>
-                <td mat-cell data-label="Vendor" *matCellDef="let element">
-                  {{ element.vendor }}
-                </td>
-              </ng-container> -->
-
               <ng-container matColumnDef="soLuongThung">
                 <th mat-header-cell *matHeaderCellDef>Số lượng thùng</th>
                 <td mat-cell data-label="SL thùng" *matCellDef="let element">
@@ -298,18 +391,6 @@
                   {{ element.kho }}
                 </td>
               </ng-container>
-
-              <!-- <ng-container matColumnDef="trangThaiIn">
-                <th mat-header-cell *matHeaderCellDef>Trạng thái in</th>
-                <td mat-cell data-label="TT in" *matCellDef="let element">
-                  <span
-                    class="status-badge"
-                    [ngClass]="element.trangThaiIn ? 'printed' : 'not-printed'"
-                  >
-                    {{ element.trangThaiIn ? "Đã in" : "Chưa in" }}
-                  </span>
-                </td>
-              </ng-container> -->
 
               <ng-container matColumnDef="tuyChon">
                 <th mat-header-cell *matHeaderCellDef>Tuỳ chọn</th>
@@ -342,7 +423,67 @@
               <tr mat-header-row *matHeaderRowDef="boxColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: boxColumns"></tr>
             </table>
+            <div class="box-cards-mobile d-md-none">
+              <div
+                class="box-card-mobile"
+                *ngFor="let element of boxItems; let i = index"
+              >
+                <div class="card-header">
+                  <span class="card-number">#{{ element.stt }}</span>
+                  <span class="card-badge">{{ element.maSanPham }}</span>
+                </div>
+                <div class="card-body">
+                  <div class="card-row">
+                    <span class="label">Tên SP:</span>
+                    <span class="value" [title]="element.tenSanPham">{{
+                      element.tenSanPham
+                    }}</span>
+                  </div>
+                  <div class="card-row">
+                    <span class="label">Lot:</span>
+                    <span class="value">{{ element.lotNumber }}</span>
+                  </div>
+                  <div class="card-row">
+                    <span class="label">SL thùng:</span>
+                    <span class="value highlight">{{
+                      element.soLuongThung
+                    }}</span>
+                  </div>
+                  <div class="card-row">
+                    <span class="label">SL SP:</span>
+                    <span class="value highlight">{{ element.soLuongSp }}</span>
+                  </div>
+                  <div class="card-row">
+                    <span class="label">Kho:</span>
+                    <span class="value">{{ element.kho }}</span>
+                  </div>
+                  <div class="card-row" *ngIf="element.ghiChu">
+                    <span class="label">Ghi chú:</span>
+                    <span class="value">{{ element.ghiChu }}</span>
+                  </div>
+                  <div class="card-actions">
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      (click)="openBoxDetailDialog(element)"
+                    >
+                      <mat-icon>visibility</mat-icon>
+                      Chi tiết
+                    </button>
+                    <button
+                      mat-stroked-button
+                      color="warn"
+                      (click)="deleteBox(i)"
+                    >
+                      <mat-icon>delete</mat-icon>
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+          <!-- Mobile card view -->
         </div>
       </mat-tab>
 
@@ -546,6 +687,81 @@
               <tr mat-header-row *matHeaderRowDef="palletColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: palletColumns"></tr>
             </table>
+            <!-- Mobile card view -->
+            <div class="pallet-cards-mobile d-md-none">
+              <div
+                class="pallet-card-mobile"
+                *ngFor="let element of palletItems"
+              >
+                <div class="card-header">
+                  <span class="card-number">#{{ element.stt }}</span>
+                  <span
+                    class="status-badge"
+                    [ngClass]="element.trangThaiIn ? 'printed' : 'not-printed'"
+                  >
+                    {{ element.trangThaiIn ? "Đã in" : "Chưa in" }}
+                  </span>
+                </div>
+                <div class="card-body">
+                  <div class="card-section">
+                    <div class="section-title">Sản phẩm</div>
+                    <div class="section-content">{{ element.tenSanPham }}</div>
+                  </div>
+                  <div class="card-section">
+                    <div class="section-title">No/SKU</div>
+                    <div class="section-content">{{ element.noSKU }}</div>
+                  </div>
+                  <div class="card-section">
+                    <div class="section-title">Khách hàng</div>
+                    <div class="section-content">{{ element.khachHang }}</div>
+                  </div>
+                  <div class="card-section">
+                    <div class="section-title">PO Number</div>
+                    <div class="section-content">{{ element.poNumber }}</div>
+                  </div>
+
+                  <div class="card-stats">
+                    <div class="stat-item">
+                      <span class="stat-label">Pallet</span>
+                      <span class="stat-value">{{ element.tongPallet }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Thùng</span>
+                      <span class="stat-value">{{ element.tongSoThung }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">PO</span>
+                      <span class="stat-value">1</span>
+                    </div>
+                  </div>
+
+                  <div class="card-section" *ngIf="element.note">
+                    <div class="section-title">Ghi chú</div>
+                    <div class="section-content">{{ element.note }}</div>
+                  </div>
+
+                  <div class="card-actions">
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      (click)="openPalletDetailDialog(element)"
+                    >
+                      <mat-icon>visibility</mat-icon>
+                      Chi tiết
+                    </button>
+                    <button
+                      mat-stroked-button
+                      color="warn"
+                      (click)="deletePallet(element)"
+                      [disabled]="element.trangThaiIn"
+                    >
+                      <mat-icon>delete</mat-icon>
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </mat-tab>
@@ -651,6 +867,7 @@
                         [(ngModel)]="storageUnitHeaderValue"
                         (keydown.enter)="applyStorageUnitToAll()"
                         [matAutocomplete]="autoHeader"
+                        (ngModelChange)="onHeaderStorageUnitChange($event)"
                       />
                       <mat-autocomplete
                         #autoHeader="matAutocomplete"
@@ -715,19 +932,6 @@
                   {{ element.trangThai }}
                 </td>
               </ng-container>
-              <!-- <ng-container matColumnDef="userData1">
-                <th mat-header-cell *matHeaderCellDef>User Data 1</th>
-                <td mat-cell data-label="User Data 1" *matCellDef="let element">
-                  {{ element.userData1 }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="userData2">
-                <th mat-header-cell *matHeaderCellDef>User Data 2</th>
-                <td mat-cell data-label="User Data 2" *matCellDef="let element">
-                  {{ element.userData2 }}
-                </td>
-              </ng-container> -->
 
               <ng-container matColumnDef="tenSanPham">
                 <th mat-header-cell *matHeaderCellDef>Tên sản phẩm</th>
@@ -735,20 +939,6 @@
                   {{ element.tenSanPham }}
                 </td>
               </ng-container>
-
-              <!-- <ng-container matColumnDef="userData4">
-                <th mat-header-cell *matHeaderCellDef>User Data 4</th>
-                <td mat-cell data-label="User Data 4" *matCellDef="let element">
-                  {{ element.userData4 }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="userData5">
-                <th mat-header-cell *matHeaderCellDef>User Data 5</th>
-                <td mat-cell data-label="User Data 5" *matCellDef="let element">
-                  {{ element.userData5 }}
-                </td>
-              </ng-container> -->
 
               <ng-container matColumnDef="soLuongThung">
                 <th mat-header-cell *matHeaderCellDef>Số lượng thùng</th>
@@ -770,174 +960,12 @@
                   {{ element.soLuongSp }}
                 </td>
               </ng-container>
-              <!-- <ng-container matColumnDef="initialQuantity">
-                <th mat-header-cell *matHeaderCellDef>Initial Quantity</th>
-                <td
-                  mat-cell
-                  data-label="Initial Quantity"
-                  *matCellDef="let element"
-                >
-                  {{ element.initialQuantity }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="msdLevel">
-                <th mat-header-cell *matHeaderCellDef>MSD Level</th>
-                <td mat-cell data-label="MSD Level" *matCellDef="let element">
-                  {{ element.msdLevel }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="msdInitialFloorTime">
-                <th mat-header-cell *matHeaderCellDef>
-                  MSD Initial Floor Time
-                </th>
-                <td
-                  mat-cell
-                  data-label="MSD Initial Floor Time"
-                  *matCellDef="let element"
-                >
-                  {{ element.msdInitialFloorTime }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="msdBagSealDate">
-                <th mat-header-cell *matHeaderCellDef>MSD Bag Seal Date</th>
-                <td
-                  mat-cell
-                  data-label="MSD Bag Seal Date"
-                  *matCellDef="let element"
-                >
-                  {{ element.msdBagSealDate }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="marketUsage">
-                <th mat-header-cell *matHeaderCellDef>Market Usage</th>
-                <td
-                  mat-cell
-                  data-label="Market Usage"
-                  *matCellDef="let element"
-                >
-                  {{ element.marketUsage }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="quantityOverride">
-                <th mat-header-cell *matHeaderCellDef>Quantity Override</th>
-                <td
-                  mat-cell
-                  data-label="Quantity Override"
-                  *matCellDef="let element"
-                >
-                  {{ element.quantityOverride }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="shelfTime">
-                <th mat-header-cell *matHeaderCellDef>Shelf Time</th>
-                <td mat-cell data-label="Shelf Time" *matCellDef="let element">
-                  {{ element.shelfTime }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="spMaterialName">
-                <th mat-header-cell *matHeaderCellDef>SP Material Name</th>
-                <td
-                  mat-cell
-                  data-label="SP Material Name"
-                  *matCellDef="let element"
-                >
-                  {{ element.spMaterialName }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="warningLimit">
-                <th mat-header-cell *matHeaderCellDef>Warning Limit</th>
-                <td
-                  mat-cell
-                  data-label="Warning Limit"
-                  *matCellDef="let element"
-                >
-                  {{ element.warningLimit }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="maximumLimit">
-                <th mat-header-cell *matHeaderCellDef>Maximum Limit</th>
-                <td
-                  mat-cell
-                  data-label="Maximum Limit"
-                  *matCellDef="let element"
-                >
-                  {{ element.maximumLimit }}
-                </td>
-              </ng-container> -->
-
               <ng-container matColumnDef="comments">
                 <th mat-header-cell *matHeaderCellDef>Comments</th>
                 <td mat-cell data-label="Comments" *matCellDef="let element">
                   {{ element.comments }}
                 </td>
               </ng-container>
-
-              <!-- <ng-container matColumnDef="warmupTime">
-                <th mat-header-cell *matHeaderCellDef>Warmup Time</th>
-                <td mat-cell data-label="Warmup Time" *matCellDef="let element">
-                  {{ element.warmupTime }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="subStorageUnit">
-                <th mat-header-cell *matHeaderCellDef>Sub Storage Unit</th>
-                <td
-                  mat-cell
-                  data-label="Sub Storage Unit"
-                  *matCellDef="let element"
-                >
-                  {{ element.subStorageUnit }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="locationOverride">
-                <th mat-header-cell *matHeaderCellDef>Location Override</th>
-                <td
-                  mat-cell
-                  data-label="Location Override"
-                  *matCellDef="let element"
-                >
-                  {{ element.locationOverride }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="expirationDate">
-                <th mat-header-cell *matHeaderCellDef>Expiration Date</th>
-                <td
-                  mat-cell
-                  data-label="Expiration Date"
-                  *matCellDef="let element"
-                >
-                  {{ element.expirationDate }}
-                </td>
-              </ng-container> -->
-
-              <!-- <ng-container matColumnDef="manufacturingDate">
-                <th mat-header-cell *matHeaderCellDef>Manufacturing Date</th>
-                <td
-                  mat-cell
-                  data-label="Manufacturing Date"
-                  *matCellDef="let element"
-                >
-                  {{ element.manufacturingDate }}
-                </td>
-              </ng-container> -->
-              <!-- 
-              <ng-container matColumnDef="partClass">
-                <th mat-header-cell *matHeaderCellDef>Part Class</th>
-                <td mat-cell data-label="Part Class" *matCellDef="let element">
-                  {{ element.partClass }}
-                </td>
-              </ng-container> -->
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Tuỳ chọn</th>
                 <td
@@ -963,20 +991,6 @@
                   >
                     <mat-icon>delete</mat-icon>
                   </button>
-
-                  <!-- <button mat-icon-button color="primary">
-                    <mat-icon>system_update_alt</mat-icon>
-                  </button> -->
-                  <!-- <button
-                    mat-icon-button
-                    color="warn"
-                    (click)="deletePallet(element)"
-                    [disabled]="element.trangThaiIn"
-                    matTooltip="Xoá"
-                    matTooltipPosition="left"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button> -->
                 </td>
               </ng-container>
 
@@ -993,6 +1007,76 @@
               ></tr>
               <tr mat-row *matRowDef="let row; columns: reelColumns"></tr>
             </table>
+            <!-- Mobile card view -->
+            <div class="tem-cards-mobile d-md-none">
+              <div
+                class="tem-card-mobile"
+                *ngFor="let element of reelGroups; let i = index"
+              >
+                <div class="card-header">
+                  <span class="card-number">#{{ i + 1 }}</span>
+                  <span class="card-status">{{ element.trangThai }}</span>
+                </div>
+                <div class="card-body">
+                  <div class="card-info-grid">
+                    <div class="info-item">
+                      <span class="info-label">Part Number</span>
+                      <span class="info-value" [title]="element.partNumber">{{
+                        element.partNumber
+                      }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Lot</span>
+                      <span class="info-value">{{ element.lot }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">SL Thùng</span>
+                      <span class="info-value">{{ element.soLuongThung }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">SL SP</span>
+                      <span class="info-value">{{ element.soLuongSp }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">SAP Code</span>
+                      <span class="info-value">{{ element.sapCode }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Created</span>
+                      <span class="info-value">{{
+                        element.createdAt | date: "MM-dd HH:mm"
+                      }}</span>
+                    </div>
+                  </div>
+
+                  <div class="card-storage">
+                    <div class="storage-label">Kho</div>
+                    <div class="storage-value">
+                      {{ element.storageUnit || "Chưa chọn" }}
+                    </div>
+                  </div>
+
+                  <div class="card-actions">
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      (click)="openGroupDetailDialog(element)"
+                    >
+                      <mat-icon>visibility</mat-icon>
+                      Chi tiết
+                    </button>
+                    <button
+                      mat-stroked-button
+                      color="warn"
+                      (click)="deleteReelGroup(i)"
+                    >
+                      <mat-icon>delete</mat-icon>
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </mat-tab>
@@ -1036,17 +1120,6 @@
       </button>
     </div>
   </div>
-
-  <!-- <div class="tab-bottom-actions">
-    <button
-      mat-raised-button
-      color="primary"
-      (click)="saveCombined(maLenhSanXuatId!)"
-    >
-      <mat-icon>save</mat-icon>
-      Lưu
-    </button>
-  </div> -->
 
   <div class="pakage-button mobile-fab" [class.open]="fabMenuOpen">
     <button

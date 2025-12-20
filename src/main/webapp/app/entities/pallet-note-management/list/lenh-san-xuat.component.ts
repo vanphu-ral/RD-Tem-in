@@ -66,6 +66,9 @@ export class LenhSanXuatComponent implements OnInit {
     trangThai: "",
   });
 
+  //mobile
+  mobileSearchOpen = false;
+
   lenhSanXuats?: ILenhSanXuat[];
   lenhSanXuatGoc?: ILenhSanXuat[];
   isLoading = false;
@@ -243,6 +246,23 @@ export class LenhSanXuatComponent implements OnInit {
   onPageSizeChange(): void {
     this.pageNumber = 1;
     this.getLenhSanXuatList();
+  }
+  toggleMobileSearch(): void {
+    this.mobileSearchOpen = !this.mobileSearchOpen;
+  }
+  clearFilters(): void {
+    this.maLenhSanXuat = "";
+    this.sapCode = "";
+    this.sapName = "";
+    this.product_type = "";
+    this.workOrderCode = "";
+    this.version = "";
+    this.storageCode = "";
+    this.trangThai = "";
+    this.createBy = "";
+    this.entryTime = "";
+    this.timeUpdate = "";
+    this.findFucntion();
   }
   // Thay đổi background color ứng với mỗi trạng thái
   changeColor(): void {

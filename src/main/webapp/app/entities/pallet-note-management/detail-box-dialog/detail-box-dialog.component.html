@@ -120,7 +120,9 @@
         <div class="card-body">
           <div class="qr-code">
             <qrcode
-              [qrdata]="element.maThung"
+              [qrdata]="
+                data.isBtp ? element.qrCode || element.maThung : element.maThung
+              "
               [width]="100"
               [errorCorrectionLevel]="'M'"
               elementType="img"
