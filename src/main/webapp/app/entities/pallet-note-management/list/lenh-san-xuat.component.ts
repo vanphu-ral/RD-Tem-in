@@ -24,6 +24,7 @@ import { LenhSanXuatService } from "../service/lenh-san-xuat.service";
 import { LenhSanXuatDeleteDialogComponent } from "../delete/lenh-san-xuat-delete-dialog.component";
 import { PageEvent } from "@angular/material/paginator";
 import { environment } from "app/environments/environment";
+import { AccountService } from "app/core/auth/account.service";
 @Component({
   selector: "jhi-lenh-san-xuat",
   templateUrl: "./lenh-san-xuat.component.html",
@@ -152,6 +153,7 @@ export class LenhSanXuatComponent implements OnInit {
     protected http: HttpClient,
     protected applicationConfigService: ApplicationConfigService,
     protected formBuilder: UntypedFormBuilder,
+    private accountService: AccountService,
   ) {}
   mappingBodySearchAndPagination(): void {
     this.body.maLenhSanXuat = this.maLenhSanXuat;
@@ -410,10 +412,13 @@ export class LenhSanXuatComponent implements OnInit {
         this.firstPageBtn = false;
       }
     } else {
-      console.log("no result");
-      // this.getTotalData();
-      this.getLenhSanXuatList();
+      const currentUser: string = this.accountService.isAuthenticated()
+        ? (this.accountService["userIdentity"]?.login ?? "unknown")
+        : "unknown";
+
+      this.createBy = currentUser;
     }
+    this.getLenhSanXuatList();
     // this.createListOfMaLenhSanXuat();
     // this.createListOfSapCode();
     // this.createListOfSapName();
