@@ -21,6 +21,7 @@ import jsPDF from "jspdf";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import * as XLSX from "xlsx";
 import { ProductionOrder } from "../add-new/add-new-lenh-san-xuat.component";
+import { PlanningWorkOrderService } from "../service/planning-work-order.service";
 
 export interface BoxDetailData {
   stt: number;
@@ -46,6 +47,7 @@ export interface BoxInfoCard {
 }
 
 export interface BoxSubItem {
+  id?: number;
   stt: number;
   qrCode?: string;
   maThung: string;
@@ -108,6 +110,7 @@ export class DetailBoxDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<DetailBoxDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: BoxDetailData,
     private snackBar: MatSnackBar,
+    private planningService: PlanningWorkOrderService,
   ) {}
 
   ngOnInit(): void {
@@ -272,6 +275,25 @@ export class DetailBoxDialogComponent implements OnInit {
     };
     const fileName = `BoxDetail_${serialBox || "export"}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(workbook, fileName);
+
+    const payload = sourceItems
+      .filter((it) => it.id !== undefined && it.id !== null)
+      .map((it) => ({ id: it.id as number, print_status: true }));
+    if (payload.length > 0) {
+      this.planningService.updatePrintBtpDetails(payload).subscribe({
+        next: () => {
+          this.snackBar.open("Đã cập nhật trạng thái in", "Đóng", {
+            duration: 3000,
+          });
+        },
+        error: (err) => {
+          console.error("Lỗi cập nhật trạng thái in:", err);
+          this.snackBar.open("Cập nhật trạng thái in thất bại", "Đóng", {
+            duration: 3000,
+          });
+        },
+      });
+    }
   }
 
   private getDataUrlFromRenderedImg(index: number): string | null {

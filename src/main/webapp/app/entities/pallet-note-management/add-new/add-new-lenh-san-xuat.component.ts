@@ -153,6 +153,7 @@ export interface ReelData {
   note?: string;
   createdAt?: string;
   batchGroupId?: string;
+  printStatus?: string;
 }
 export interface ReelSubItem {
   id?: number;
@@ -172,6 +173,7 @@ export interface ReelSubItem {
   qrCode?: string;
   note?: string;
   comments?: string;
+  printStatus?: boolean;
   createdAt?: string;
 }
 
@@ -192,6 +194,7 @@ export interface ReelGroup {
   trangThai?: string;
   subItems: ReelSubItem[];
   createdAt?: string;
+  printStatus?: boolean;
 }
 
 //thanh pham
@@ -350,6 +353,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     "storageUnit",
     "comments",
     "trangThai",
+    "trangThaiIn",
     "actions",
   ];
 
@@ -438,6 +442,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   pallets: any[] = [];
   isLoadingProgress: { [maPallet: string]: boolean } = {};
   lastPalletForm: PalletFormData | null = null;
+  lastBtpForm: BoxFormData | null = null;
   isDetail = false;
   private hierarchyCache: any[] = [];
 
@@ -682,20 +687,22 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           this.snackBar.dismiss();
 
           const body = httpResp?.body as WarehouseNoteResponse | undefined;
-          if (
-            !body ||
-            !Array.isArray(body.pallet_infor_details) ||
-            body.pallet_infor_details.length === 0
-          ) {
-            this.snackBar.open("Không có dữ liệu pallet để duyệt", "Đóng", {
-              duration: 3000,
-            });
-            return;
+          if (this.isThanhPham) {
+            if (
+              !body ||
+              !Array.isArray(body.pallet_infor_details) ||
+              body.pallet_infor_details.length === 0
+            ) {
+              this.snackBar.open("Không có dữ liệu pallet để duyệt", "Đóng", {
+                duration: 3000,
+              });
+              return;
+            }
           }
 
           // Map palletDetails -> PalletItem[]
           const palletItems = this.mapPalletsToPalletItems(
-            body.pallet_infor_details,
+            body?.pallet_infor_details ?? [],
           );
           // Lưu vào component nếu cần
           this.palletItems = palletItems.map((p) => ({
@@ -785,8 +792,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               } = {
                 maLenhSanXuatId: this.maLenhSanXuatId!,
                 preloadedPallets: allPallets,
-                warehouseNoteInfo: body.warehouse_note_info,
-                warehouseNoteInfoDetails: body.warehouse_note_info_details,
+                warehouseNoteInfo: body?.warehouse_note_info,
+                warehouseNoteInfoDetails: body?.warehouse_note_info_details,
                 productType:
                   this.warehouseNoteInfo?.product_type || "Thành phẩm",
 
@@ -1497,11 +1504,12 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       return;
     }
 
-    const dialogData: DialogData = {
+    const dialogData: DialogData & { defaults?: BoxFormData } = {
       type: "box",
       maSanPham: firstOrder.tenHangHoa,
       woId: firstOrder.woId,
       loaiSanPham: firstOrder.loaiSanPham, //  truyền loại sản phẩm
+      defaults: this.lastBtpForm ?? undefined,
     };
 
     const dialogRef = this.dialog.open(CreateDialogComponent, {
@@ -1521,6 +1529,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           this.handleBoxCreation(boxData, dialogData.woId!);
         } else if (dialogData.loaiSanPham === "Bán thành phẩm") {
           this.handleTemBTPCreation(boxData, dialogData.woId!);
+          this.lastBtpForm = boxData;
         }
       }
     });
@@ -1652,6 +1661,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         const reel = reelMap.get(key);
         return {
           stt: s.stt ?? idx + 1,
+          id: reel?.id,
           maThung: key,
           soLuong: Number(s.soLuong ?? s.initialQuantity ?? 0),
           qrCode: s.qrCode ?? s.qr_code ?? reel?.qrCode ?? reel?.qrCode ?? "",
@@ -1674,6 +1684,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           note: reel?.note ?? s.note ?? "",
           comments: reel?.comments ?? s.comments ?? "",
           qrCodeFull: reel?.qrCode ?? s.qrCode ?? "",
+          printStatus: reel?.printStatus ?? false,
         } as BoxSubItem;
       },
     );
@@ -3576,7 +3587,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         maSanPham: prodOrder.maSAP ?? prodOrder.maLenhSanXuat ?? "",
         lotNumber: prodOrder.lotNumber ?? "",
         version: prodOrder.version ?? "",
-        vendor: "", // nếu cần gán vendor từ prodOrder, thêm ở đây
+        vendor: "RD", // nếu cần gán vendor từ prodOrder, thêm ở đây
         tenSanPham: prodOrder.tenHangHoa ?? "",
         soLuongThung: data.soLuongThung,
         soLuongSp: tongSoLuongSp,
@@ -3593,14 +3604,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
       this.boxItems = [...this.boxItems, newBox];
       this.updateProductionOrderTotal();
-      if (this.maLenhSanXuatId == null) {
-        // Nếu chưa có id, bạn có 2 lựa chọn:
-        // 1) Tạo lệnh sản xuất trước (gọi API) và lấy id, rồi gọi saveCombined
-        // 2) Hoặc lưu tạm local và yêu cầu user lưu lệnh thủ công
-        console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
-      } else {
-        await this.saveCombined(this.maLenhSanXuatId);
-      }
+      // if (this.maLenhSanXuatId == null) {
+      //   // Nếu chưa có id, bạn có 2 lựa chọn:
+      //   // 1) Tạo lệnh sản xuất trước (gọi API) và lấy id, rồi gọi saveCombined
+      //   // 2) Hoặc lưu tạm local và yêu cầu user lưu lệnh thủ công
+      //   console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
+      // } else {
+      // }
+      await this.saveCombined(this.maLenhSanXuatId);
       this.goToBoxTab();
     } catch (err) {
       console.error("[handleBoxCreation] error", err);
@@ -3853,11 +3864,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     console.log(`Đã tạo ${newReels.length} reel items mới cho Tem BTP`);
     console.log(`Tổng số lượng: ${finalTotal}`);
 
-    if (this.maLenhSanXuatId == null) {
-      console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
-    } else {
-      await this.saveCombined(this.maLenhSanXuatId);
-    }
+    // if (this.maLenhSanXuatId == null) {
+    //   console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
+    // } else {
+    // }
+    await this.saveCombined(this.maLenhSanXuatId);
 
     this.goToCreateTemTab();
   }
@@ -4197,7 +4208,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       const qtyPerBox = Number(
         detail.quantity_per_box ?? detail.quantityPerBox ?? 0,
       );
-      grouped[key].tongSlSp += qtyPerBox;
+      grouped[key].tongSlSp = qtyPerBox;
       grouped[key].trangThaiIn =
         grouped[key].trangThaiIn || Boolean(detail.print_status);
     }
@@ -4320,6 +4331,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         TPNK: (d.tp_nk as string) ?? "",
         rank: (d.rank as string) ?? "",
         note: (d.note_2 as string) ?? "",
+        printStatus: (d.print_status as boolean) ?? false,
       };
 
       // push subItem và cập nhật tổng
@@ -4328,6 +4340,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       grouped[key].soLuongSp += qty;
       grouped[key].soLuongTrongThung = Math.round(
         grouped[key].soLuongSp / Math.max(1, grouped[key].soLuongThung),
+      );
+      grouped[key].printStatus = grouped[key].subItems.every(
+        (s) => s.printStatus,
       );
 
       // set id nhóm nếu có

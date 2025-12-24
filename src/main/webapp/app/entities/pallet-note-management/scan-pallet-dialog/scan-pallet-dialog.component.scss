@@ -89,8 +89,9 @@
     overflow-y: auto;
     padding: 16px;
     display: grid;
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 480px 1fr;
     gap: 16px;
+    height: calc(100vh - 120px);
 
     // QR CODE SECTION
     .pallet-qr-section {
@@ -100,7 +101,9 @@
       text-align: center;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       grid-column: 1;
-      grid-row: 1;
+      grid-row: 1 / -1;
+      display: flex;
+      flex-direction: column;
 
       .qr-display {
         display: inline-block;
@@ -163,6 +166,10 @@
         background: #f8f9fa;
         border-radius: 12px;
         border: 1px solid #e0e0e0;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
 
       .unscanned-header {
@@ -172,6 +179,7 @@
         margin-bottom: 12px;
         padding-bottom: 12px;
         border-bottom: 2px solid #e0e0e0;
+        flex-shrink: 0;
       }
 
       .unscanned-title {
@@ -238,9 +246,15 @@
 
       /* Unscanned List */
       .unscanned-list {
-        max-height: 300px;
-        overflow-y: auto;
-        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1; // Chiếm phần còn lại
+        overflow-y: auto; // Scroll chỉ list
+        padding: 8px;
+        background: #f8fafc;
+        border-radius: 8px;
+        min-height: 0;
 
         &::-webkit-scrollbar {
           width: 6px;
@@ -263,15 +277,15 @@
 
       .unscanned-item {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 12px;
-        padding: 10px 12px;
+        padding: 12px;
         background: white;
-        border: 2px solid #e0e0e0;
+        border: 2px solid #e2e8f0;
         border-radius: 8px;
-        margin-bottom: 8px;
-        transition: all 0.2s ease;
+        transition: all 0.2s;
         cursor: pointer;
+        flex-shrink: 0;
 
         &:hover:not(.disabled) {
           border-color: #2196f3;
@@ -299,7 +313,91 @@
         flex: 1;
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
+        align-items: flex-start;
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 0;
+
+          .label {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            min-width: 80px;
+            text-align: left;
+          }
+          .unscanned-code {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            font-family: "Courier New", monospace;
+            background: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 4px;
+            flex: 1;
+            text-align: right;
+          }
+
+          // Số lượng
+          .unscanned-quantity {
+            font-size: 14px;
+            font-weight: 700;
+            color: #78350f;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #fbbf24;
+            font-family: "Courier New", monospace;
+          }
+
+          // Vị trí kho
+          .unscanned-location {
+            font-size: 13px;
+            font-weight: 700;
+            color: #3730a3;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #6366f1;
+            font-family: "Courier New", monospace;
+          }
+
+          // Vendor
+          .unscanned-vendor {
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+          }
+
+          // Lot number
+          .unscanned-lot {
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            font-family: "Courier New", monospace;
+          }
+        }
+      }
+      &::-webkit-scrollbar {
+        width: 8px;
+      }
+      &::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+
+        &:hover {
+          background: #94a3b8;
+        }
       }
 
       .unscanned-code {
@@ -310,12 +408,13 @@
       }
 
       .unscanned-index {
-        font-size: 12px;
-        color: #108e02;
-        background: #aef8a7;
+        font-size: 13px;
+        color: #3f51b5;
+        background: #dfe3f8;
         padding: 2px 8px;
         border-radius: 12px;
-        border: 0.5px solid #33b625;
+        border: 0.5px solid #8b99e7;
+        font-weight: bold;
       }
 
       /* Confirm Button */
@@ -369,512 +468,511 @@
     // RIGHT COLUMN CONTAINER
     .right-column {
       grid-column: 2;
-      grid-row: 1 / span 10;
+      grid-row: 1 / -1;
       display: flex;
       flex-direction: column;
       gap: 16px;
-    }
+      overflow-y: auto;
+      min-height: 0;
+      .scanner-section {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-    // SCANNER SECTION
-    .scanner-section {
-      background: white;
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        // Desktop Scanner
+        .desktop-scanner {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 12px;
 
-      // Desktop Scanner
-      .desktop-scanner {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-
-        .hidden-input {
-          position: absolute;
-          opacity: 0;
-          pointer-events: none;
-        }
-
-        .simulate-btn {
-          width: 100%;
-          height: 44px;
-
-          mat-icon {
-            margin-right: 8px;
-          }
-        }
-
-        .test-btn {
-          width: 100%;
-          margin-top: 4px;
-        }
-      }
-
-      // Mobile Scanner
-      .mobile-scanner {
-        .camera-container {
-          position: relative;
-          width: 100%;
-          aspect-ratio: 1;
-          background: #000;
-          border-radius: 8px;
-          overflow: hidden;
-          margin-bottom: 12px;
-
-          &.active {
-            box-shadow: 0 0 0 3px rgba(2, 118, 255, 0.3);
-          }
-
-          // Camera Preview
-          ::ng-deep {
-            zxing-scanner {
-              display: block;
-              width: 100%;
-              height: 100%;
-
-              video {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-              }
-            }
-          }
-
-          // Placeholder
-          .camera-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            background: #1a1a1a;
-
-            .start-camera-btn {
-              width: 64px;
-              height: 64px;
-
-              mat-icon {
-                font-size: 32px;
-                width: 32px;
-                height: 32px;
-              }
-            }
-          }
-
-          // Overlay
-          .camera-overlay {
+          .hidden-input {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            opacity: 0;
             pointer-events: none;
-
-            .scan-frame {
-              position: relative;
-              width: 70%;
-              height: 70%;
-              max-width: 280px;
-              max-height: 280px;
-
-              .corner {
-                position: absolute;
-                width: 40px;
-                height: 40px;
-                border: 4px solid #0276ff;
-
-                &.top-left {
-                  top: 0;
-                  left: 0;
-                  border-right: none;
-                  border-bottom: none;
-                  border-top-left-radius: 8px;
-                }
-
-                &.top-right {
-                  top: 0;
-                  right: 0;
-                  border-left: none;
-                  border-bottom: none;
-                  border-top-right-radius: 8px;
-                }
-
-                &.bottom-left {
-                  bottom: 0;
-                  left: 0;
-                  border-right: none;
-                  border-top: none;
-                  border-bottom-left-radius: 8px;
-                }
-
-                &.bottom-right {
-                  bottom: 0;
-                  right: 0;
-                  border-left: none;
-                  border-top: none;
-                  border-bottom-right-radius: 8px;
-                }
-              }
-            }
           }
 
-          // Controls
-          .camera-controls {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            pointer-events: all;
-
-            .control-btn {
-              background: rgba(0, 0, 0, 0.6);
-              color: white;
-              backdrop-filter: blur(10px);
-
-              &:hover {
-                background: rgba(0, 0, 0, 0.8);
-              }
-            }
-          }
-        }
-
-        .manual-input-toggle {
-          width: 100%;
-          height: 44px;
-
-          mat-icon {
-            margin-right: 8px;
-          }
-        }
-      }
-
-      // Scan Feedback
-      .scan-feedback {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 6px;
-        margin-top: 12px;
-        font-weight: 600;
-        font-size: 13px;
-
-        &.success {
-          background: #e8f5e9;
-          color: #2e7d32;
-
-          mat-icon {
-            color: #2e7d32;
-          }
-        }
-
-        &.error {
-          background: #ffebee;
-          color: #c62828;
-
-          mat-icon {
-            color: #c62828;
-          }
-        }
-
-        mat-icon {
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
-        }
-      }
-    }
-
-    // ACTION BUTTONS ROW
-    .action-buttons-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-
-      .action-btn {
-        height: 44px;
-        font-weight: 600;
-
-        mat-icon {
-          margin-right: 6px;
-        }
-
-        &.success-btn {
-          border-color: #2e7d32;
-          color: #2e7d32;
-
-          &:hover {
-            background: #e8f5e9;
-          }
-        }
-
-        &.error-btn {
-          border-color: #c62828;
-          color: #c62828;
-
-          &:hover {
-            background: #ffebee;
-          }
-        }
-      }
-    }
-
-    // PROGRESS SECTION
-    .progress-section {
-      background: white;
-      border-radius: 8px;
-      padding: 14px 16px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
-      .progress-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-
-        .progress-label {
-          font-size: 13px;
-          font-weight: 600;
-          color: #333;
-        }
-
-        .progress-percent {
-          font-size: 16px;
-          font-weight: 700;
-          color: #0276ff;
-        }
-      }
-
-      ::ng-deep .mat-mdc-progress-bar {
-        height: 6px;
-        border-radius: 3px;
-      }
-
-      .progress-stats {
-        margin-top: 10px;
-
-        .stat-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #2e7d32;
-
-          mat-icon {
-            font-size: 16px;
-            width: 16px;
-            height: 16px;
-          }
-        }
-      }
-    }
-
-    // SUMMARY STATS
-    .summary-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 12px;
-
-      .stat-card {
-        background: white;
-        border-radius: 8px;
-        padding: 14px;
-        text-align: center;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 2px solid;
-
-        &.total {
-          background: #e3f2fd;
-          border-color: #0276ff;
-
-          .stat-value {
-            color: #0276ff;
-          }
-        }
-
-        &.scanned {
-          background: #e8f5e9;
-          border-color: #2e7d32;
-
-          .stat-value {
-            color: #2e7d32;
-          }
-        }
-
-        &.error {
-          background: #ffebee;
-          border-color: #c62828;
-
-          .stat-value {
-            color: #c62828;
-          }
-        }
-
-        .stat-label {
-          display: block;
-          font-size: 10px;
-          font-weight: 700;
-          color: #666;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 6px;
-        }
-
-        .stat-value {
-          display: block;
-          font-size: 28px;
-          font-weight: 700;
-          line-height: 1;
-        }
-      }
-    }
-
-    // TABS
-    .scan-sections {
-      display: flex;
-      gap: 16px;
-      flex: 1;
-      min-height: 250px;
-
-      .scan-section {
-        flex: 1;
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
-        .section-header {
-          border-bottom: 2px solid #e0e0e0;
-          padding: 8px 12px;
-          background: #fff;
-
-          .tab-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-        }
-
-        .boxes-list {
-          padding: 12px;
-          max-height: 280px;
-          overflow-y: auto;
-
-          .box-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            transition: all 0.2s ease;
-
-            &.success {
-              background: #e8f5e9;
-
-              .box-icon {
-                color: #2e7d32;
-              }
-            }
-
-            &.error {
-              background: #ffebee;
-
-              .box-icon {
-                color: #c62828;
-              }
-            }
-
-            .box-icon {
-              font-size: 20px;
-              width: 20px;
-              height: 20px;
-              flex-shrink: 0;
-              margin-top: 2px;
-            }
-
-            .box-info {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-              gap: 3px;
-
-              .box-code {
-                font-size: 13px;
-                font-weight: 700;
-                color: #333;
-              }
-
-              .box-time {
-                font-size: 11px;
-                color: #999;
-              }
-
-              .box-message {
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                font-size: 11px;
-                color: #c62828;
-                margin-top: 2px;
-
-                mat-icon {
-                  font-size: 13px;
-                  width: 13px;
-                  height: 13px;
-                }
-              }
-            }
-          }
-
-          .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            color: #999;
+          .simulate-btn {
+            width: 100%;
+            height: 44px;
 
             mat-icon {
-              font-size: 48px;
-              width: 48px;
-              height: 48px;
-              margin-bottom: 12px;
-              opacity: 0.4;
-            }
-
-            p {
-              margin: 0;
-              font-size: 13px;
+              margin-right: 8px;
             }
           }
 
-          &::-webkit-scrollbar {
-            width: 5px;
+          .test-btn {
+            width: 100%;
+            margin-top: 4px;
+          }
+        }
+
+        // Mobile Scanner
+        .mobile-scanner {
+          .camera-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+
+            &.active {
+              box-shadow: 0 0 0 3px rgba(2, 118, 255, 0.3);
+            }
+
+            // Camera Preview
+            ::ng-deep {
+              zxing-scanner {
+                display: block;
+                width: 100%;
+                height: 100%;
+
+                video {
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                }
+              }
+            }
+
+            // Placeholder
+            .camera-placeholder {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100%;
+              background: #1a1a1a;
+
+              .start-camera-btn {
+                width: 64px;
+                height: 64px;
+
+                mat-icon {
+                  font-size: 32px;
+                  width: 32px;
+                  height: 32px;
+                }
+              }
+            }
+
+            // Overlay
+            .camera-overlay {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              pointer-events: none;
+
+              .scan-frame {
+                position: relative;
+                width: 70%;
+                height: 70%;
+                max-width: 280px;
+                max-height: 280px;
+
+                .corner {
+                  position: absolute;
+                  width: 40px;
+                  height: 40px;
+                  border: 4px solid #0276ff;
+
+                  &.top-left {
+                    top: 0;
+                    left: 0;
+                    border-right: none;
+                    border-bottom: none;
+                    border-top-left-radius: 8px;
+                  }
+
+                  &.top-right {
+                    top: 0;
+                    right: 0;
+                    border-left: none;
+                    border-bottom: none;
+                    border-top-right-radius: 8px;
+                  }
+
+                  &.bottom-left {
+                    bottom: 0;
+                    left: 0;
+                    border-right: none;
+                    border-top: none;
+                    border-bottom-left-radius: 8px;
+                  }
+
+                  &.bottom-right {
+                    bottom: 0;
+                    right: 0;
+                    border-left: none;
+                    border-top: none;
+                    border-bottom-right-radius: 8px;
+                  }
+                }
+              }
+            }
+
+            // Controls
+            .camera-controls {
+              position: absolute;
+              top: 12px;
+              right: 12px;
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+              pointer-events: all;
+
+              .control-btn {
+                background: rgba(0, 0, 0, 0.6);
+                color: white;
+                backdrop-filter: blur(10px);
+
+                &:hover {
+                  background: rgba(0, 0, 0, 0.8);
+                }
+              }
+            }
           }
 
-          &::-webkit-scrollbar-track {
-            background: #f5f5f5;
+          .manual-input-toggle {
+            width: 100%;
+            height: 44px;
+
+            mat-icon {
+              margin-right: 8px;
+            }
+          }
+        }
+
+        // Scan Feedback
+        .scan-feedback {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 6px;
+          margin-top: 12px;
+          font-weight: 600;
+          font-size: 13px;
+
+          &.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+
+            mat-icon {
+              color: #2e7d32;
+            }
           }
 
-          &::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 3px;
+          &.error {
+            background: #ffebee;
+            color: #c62828;
 
-            &:hover {
-              background: #aaa;
+            mat-icon {
+              color: #c62828;
+            }
+          }
+
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+        }
+      }
+      .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 12px;
+
+        .stat-card {
+          background: white;
+          border-radius: 8px;
+          padding: 14px;
+          text-align: center;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          border: 2px solid;
+
+          &.total {
+            background: #e3f2fd;
+            border-color: #0276ff;
+
+            .stat-value {
+              color: #0276ff;
+            }
+          }
+
+          &.scanned {
+            background: #e8f5e9;
+            border-color: #2e7d32;
+
+            .stat-value {
+              color: #2e7d32;
+            }
+          }
+
+          &.error {
+            background: #ffebee;
+            border-color: #c62828;
+
+            .stat-value {
+              color: #c62828;
+            }
+          }
+
+          .stat-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+          }
+
+          .stat-value {
+            display: block;
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1;
+          }
+        }
+      }
+
+      // TABS
+      .scan-sections {
+        display: flex;
+        gap: 16px;
+        flex: 1;
+        min-height: 250px;
+
+        .scan-section {
+          flex: 1;
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+          .section-header {
+            border-bottom: 2px solid #e0e0e0;
+            padding: 8px 12px;
+            background: #fff;
+
+            .tab-label {
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+          }
+
+          .boxes-list {
+            padding: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+
+            .box-item {
+              display: flex;
+              align-items: flex-start;
+              gap: 10px;
+              padding: 10px;
+              border-radius: 6px;
+              margin-bottom: 8px;
+              transition: all 0.2s ease;
+
+              &.success {
+                background: #e8f5e9;
+
+                .box-icon {
+                  color: #2e7d32;
+                }
+              }
+
+              &.error {
+                background: #ffebee;
+
+                .box-icon {
+                  color: #c62828;
+                }
+              }
+
+              .box-icon {
+                font-size: 20px;
+                width: 20px;
+                height: 20px;
+                flex-shrink: 0;
+                margin-top: 2px;
+              }
+
+              .box-info {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+
+                .box-code {
+                  font-size: 13px;
+                  font-weight: 700;
+                  color: #333;
+                }
+
+                .box-time {
+                  font-size: 11px;
+                  color: #999;
+                }
+
+                .box-message {
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                  font-size: 11px;
+                  color: #c62828;
+                  margin-top: 2px;
+
+                  mat-icon {
+                    font-size: 13px;
+                    width: 13px;
+                    height: 13px;
+                  }
+                }
+              }
+            }
+
+            .empty-state {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: 40px 20px;
+              color: #999;
+
+              mat-icon {
+                font-size: 48px;
+                width: 48px;
+                height: 48px;
+                margin-bottom: 12px;
+                opacity: 0.4;
+              }
+
+              p {
+                margin: 0;
+                font-size: 13px;
+              }
+            }
+
+            &::-webkit-scrollbar {
+              width: 5px;
+            }
+
+            &::-webkit-scrollbar-track {
+              background: #f5f5f5;
+            }
+
+            &::-webkit-scrollbar-thumb {
+              background: #ccc;
+              border-radius: 3px;
+
+              &:hover {
+                background: #aaa;
+              }
             }
           }
         }
       }
     }
   }
+  // ACTION BUTTONS ROW
+  .action-buttons-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+
+    .action-btn {
+      height: 44px;
+      font-weight: 600;
+
+      mat-icon {
+        margin-right: 6px;
+      }
+
+      &.success-btn {
+        border-color: #2e7d32;
+        color: #2e7d32;
+
+        &:hover {
+          background: #e8f5e9;
+        }
+      }
+
+      &.error-btn {
+        border-color: #c62828;
+        color: #c62828;
+
+        &:hover {
+          background: #ffebee;
+        }
+      }
+    }
+  }
+
+  // PROGRESS SECTION
+  .progress-section {
+    background: white;
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+
+      .progress-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .progress-percent {
+        font-size: 16px;
+        font-weight: 700;
+        color: #0276ff;
+      }
+    }
+
+    ::ng-deep .mat-mdc-progress-bar {
+      height: 6px;
+      border-radius: 3px;
+    }
+
+    .progress-stats {
+      margin-top: 10px;
+
+      .stat-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #2e7d32;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+  }
+
+  // SUMMARY STATS
 
   // FOOTER
   .scan-footer {
@@ -955,24 +1053,48 @@
     }
 
     .scan-content {
-      padding: 8px;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto;
       gap: 12px;
-      // grid-template-columns: 1fr;
-      grid-template-rows: auto;
+      padding: 8px;
+      height: auto;
 
       .pallet-qr-section {
         padding: 16px;
         grid-column: 1;
-        grid-row: auto;
+        grid-row: 1;
 
         .qr-display {
           padding: 10px;
+        }
+        .unscanned-boxes-section {
+          margin-top: 16px;
+          padding: 12px;
+        }
+
+        .unscanned-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }
+
+        .unscanned-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+
+        .unscanned-list {
+          max-height: 200px;
+        }
+
+        .unscanned-item {
+          padding: 8px 10px;
         }
       }
 
       .right-column {
         grid-column: 1;
-        grid-row: auto;
+        grid-row: 2;
       }
 
       .scanner-section {
@@ -1014,6 +1136,16 @@
 
         .boxes-list {
           max-height: 200px;
+        }
+      }
+      .scan-sections {
+        flex-direction: column;
+        min-height: 200px;
+
+        .scan-section {
+          .boxes-list {
+            max-height: 150px;
+          }
         }
       }
     }

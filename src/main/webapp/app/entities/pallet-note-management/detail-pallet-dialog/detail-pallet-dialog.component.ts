@@ -53,6 +53,7 @@ export interface PalletDetailData {
   validReelIds?: string[]; // Valid reel IDs for this production order
   tienDoScan?: number;
   scannedBoxes?: any;
+  locationCode?: string;
   printStatus?: boolean;
   productType?: string;
   version?: string;
@@ -741,7 +742,7 @@ export class PalletDetailDialogComponent implements OnInit {
           this.globalScannedBoxesCache = new Set(globalScanned);
 
           console.log(
-            `✅ Loaded ${this.globalScannedBoxesCache.size} boxes đã scan trong toàn order`,
+            `Loaded ${this.globalScannedBoxesCache.size} boxes đã scan trong toàn order`,
           );
 
           // Mở dialog với data
@@ -771,6 +772,8 @@ export class PalletDetailDialogComponent implements OnInit {
       maLenhSanXuatId: sourceData.maLenhSanXuatId ?? 0,
       validReelIds: sourceData.validReelIds ?? [],
       existingScannedGlobal: this.globalScannedBoxesCache ?? new Set(), // ===== TRUYỀN VÀO =====
+      boxItems: sourceData.boxItems ?? [],
+      locationCode: sourceData.locationCode,
     };
 
     console.log("Opening scan dialog with data:", {

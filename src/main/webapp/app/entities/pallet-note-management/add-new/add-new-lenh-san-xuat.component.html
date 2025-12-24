@@ -966,6 +966,17 @@
                   {{ element.comments }}
                 </td>
               </ng-container>
+              <ng-container matColumnDef="trangThaiIn">
+                <th mat-header-cell *matHeaderCellDef>Trạng thái in</th>
+                <td mat-cell data-label="TT in" *matCellDef="let element">
+                  <span
+                    class="status-badge"
+                    [ngClass]="element.printStatus ? 'printed' : 'not-printed'"
+                  >
+                    {{ element.printStatus ? "Đã in" : "Chưa in" }}
+                  </span>
+                </td>
+              </ng-container>
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Tuỳ chọn</th>
                 <td
@@ -988,6 +999,7 @@
                     (click)="deleteReelGroup(i)"
                     matTooltip="Xoá"
                     matTooltipPosition="left"
+                    [disabled]="element.printStatus"
                   >
                     <mat-icon>delete</mat-icon>
                   </button>

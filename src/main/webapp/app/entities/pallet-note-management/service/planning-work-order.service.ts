@@ -251,6 +251,16 @@ export class PlanningWorkOrderService {
       payloadArray,
     );
   }
+
+  //caap nhat trang thai in thung
+  updatePrintBtpDetails(
+    payloadArray: { id: number; print_status: boolean }[],
+  ): Observable<any> {
+    return this.http.put<any>(
+      `${this.baseUrl}/warehouse-stamp-info-details`,
+      payloadArray,
+    );
+  }
   //gui duyet btp
   sendBTPApproval(payload: any): Observable<any> {
     return this.http.post<any>(
