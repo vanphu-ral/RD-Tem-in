@@ -1504,12 +1504,51 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       return;
     }
 
+    // chuẩn bị defaults ban đầu từ lastBtpForm (chuyển null -> undefined)
+    let defaults: BoxFormData | undefined = this.lastBtpForm ?? undefined;
+
+    // Nếu là Bán thành phẩm thì lấy record mới nhất từ this.details (đã load trong ngOnInit)
+    if (firstOrder.loaiSanPham === "Bán thành phẩm") {
+      const details = (this.details ?? []) as any[]; // details đã gán trong handleExistingWarehouseNote
+
+      if (details.length > 0) {
+        let latest: any = details[0];
+        let latestDate = new Date(
+          String(latest.created_at ?? latest.createdAt ?? ""),
+        );
+        for (let i = 1; i < details.length; i++) {
+          const d = details[i];
+          const dDate = new Date(String(d?.created_at ?? d?.createdAt ?? ""));
+          if (!isNaN(dDate.getTime()) && dDate > latestDate) {
+            latest = d;
+            latestDate = dDate;
+          }
+        }
+
+        // map chỉ các trường cần thiết, ép kiểu an toàn
+        defaults = {
+          // các field bắt buộc trong BoxFormData
+          maSanPham:
+            (latest?.sap_code as string) ?? firstOrder.tenHangHoa ?? "",
+          soLuongTrongThung: Number(latest?.initial_quantity ?? 0),
+          soLuongThung: 1,
+          // các field BTP cần điền sẵn
+          TPNK: (latest?.tp_nk as string) ?? "",
+          rank: (latest?.rank as string) ?? "",
+          mfg: (latest?.manufacturing_date as string) ?? "",
+          note: (latest?.note_2 as string) ?? "",
+          comments: (latest?.comments as string) ?? "",
+        } as BoxFormData;
+      }
+    }
+
+    // chuẩn bị dialogData và mở dialog
     const dialogData: DialogData & { defaults?: BoxFormData } = {
       type: "box",
       maSanPham: firstOrder.tenHangHoa,
       woId: firstOrder.woId,
-      loaiSanPham: firstOrder.loaiSanPham, //  truyền loại sản phẩm
-      defaults: this.lastBtpForm ?? undefined,
+      loaiSanPham: firstOrder.loaiSanPham,
+      defaults: defaults ?? undefined,
     };
 
     const dialogRef = this.dialog.open(CreateDialogComponent, {
@@ -1524,7 +1563,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       if (result && result.type === "box") {
         const boxData = result.data as BoxFormData;
 
-        //  check loại sản phẩm để gọi đúng hàm
         if (dialogData.loaiSanPham === "Thành phẩm") {
           this.handleBoxCreation(boxData, dialogData.woId!);
         } else if (dialogData.loaiSanPham === "Bán thành phẩm") {
@@ -1537,10 +1575,64 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   // Mở dialog tạo pallet
   openCreatePalletDialog(): void {
+    // Lấy tên sản phẩm từ productionOrders nếu có
+    const tenSanPham = this.productionOrders?.[0]?.tenHangHoa ?? "";
+
+    // Lấy defaults hiện có (lastPalletForm có thể null)
+    let defaults: PalletFormData | undefined = this.lastPalletForm ?? undefined;
+
+    // Nếu đã có pallet_infor_details (this.pallets) thì tìm bản ghi mới nhất
+    const details = (this.pallets ?? []) as any[]; // this.pallets được gán trong handleExistingWarehouseNote
+
+    if (details.length > 0) {
+      // Tìm bản ghi mới nhất theo updated_at (hoặc updatedAt)
+      let latest: any = details[0];
+      let latestDate = new Date(
+        String(latest.updated_at ?? latest.updatedAt ?? ""),
+      );
+
+      for (let i = 1; i < details.length; i++) {
+        const d = details[i];
+        const dDate = new Date(String(d?.updated_at ?? d?.updatedAt ?? ""));
+        if (!isNaN(dDate.getTime()) && dDate > latestDate) {
+          latest = d;
+          latestDate = dDate;
+        }
+      }
+
+      // Map các trường pallet_infor_details -> PalletFormData (chỉ các trường bạn cần)
+      defaults = {
+        // giữ các field bắt buộc/hiện có trong PalletFormData
+        tenSanPham: tenSanPham,
+        // map các trường cụ thể
+        khachHang: (latest.customer_name as string) ?? "",
+        poNumber: (latest.po_number as string) ?? "",
+        dateCode: (latest.date_code as string) ?? "",
+        qdsx: (latest.qdsx_no as string) ?? "",
+        nguoiKiemTra: (latest.inspector_name as string) ?? undefined,
+        ketQuaKiemTra: (latest.inspection_result as string) ?? undefined,
+        note: (latest.note as string) ?? "",
+        qtyPerBox: Number(
+          latest.quantity_per_box ?? latest.num_box_config ?? 1,
+        ),
+        // số lượng thùng scan / thực tế / pallet: map từ num_box_actual / num_box_config nếu có
+        soLuongThungScan: Number(
+          latest.num_box_actual ?? latest.num_box_config ?? 1,
+        ),
+        soLuongThungThucTe: Number(
+          latest.num_box_actual ?? latest.num_box_config ?? 1,
+        ),
+        soLuongPallet: Number(latest.num_box_config ?? 1),
+        noSKU: (latest.item_no_sku as string) ?? "",
+        // nếu PalletFormData có thêm trường khác, gán tương tự ở đây
+      } as PalletFormData;
+    }
+
+    // Chuẩn bị dialogData và mở dialog
     const dialogData: DialogData & { defaults?: PalletFormData } = {
       type: "pallet",
-      tenSanPham: this.productionOrders[0]?.tenHangHoa,
-      defaults: this.lastPalletForm ?? undefined,
+      tenSanPham: tenSanPham,
+      defaults: defaults ?? undefined,
     };
 
     const dialogRef = this.dialog.open(CreateDialogComponent, {

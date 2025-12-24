@@ -699,8 +699,20 @@ export class PrintPalletDialogComponent implements OnInit {
 
       console.log(`Exporting ${pageElements.length} pages...`);
 
-      // === TỐI ƯU 1: Chụp theo BATCH 5 pages ===
-      const BATCH_SIZE = 5;
+      // ========== TỐI ƯU CHÍNH: Giảm scale và tăng batch size ==========
+      const BATCH_SIZE = 10; // Tăng từ 5 lên 10
+      const SCALE = 1.2; // Giảm từ 1.5 xuống 1.2 (vẫn đủ rõ)
+      const JPEG_QUALITY = 0.75; // Cố định quality
+
+      // Pre-optimize tất cả cards một lần
+      const allCards = document.querySelectorAll(
+        ".pallet-card",
+      ) as NodeListOf<HTMLElement>;
+      allCards.forEach((card) => {
+        card.style.boxShadow = "none";
+        card.style.transform = "none";
+        card.style.transition = "none"; // Tắt animation
+      });
 
       for (
         let batchStart = 0;
@@ -710,27 +722,21 @@ export class PrintPalletDialogComponent implements OnInit {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, pageElements.length);
         const batch = pageElements.slice(batchStart, batchEnd);
 
-        // Chụp batch song song
-        const canvasPromises = batch.map((pageEl) => {
-          // Tắt effects
-          const cards = pageEl.querySelectorAll(
-            ".pallet-card",
-          ) as NodeListOf<HTMLElement>;
-          cards.forEach((card) => {
-            card.style.boxShadow = "none";
-            card.style.transform = "none";
-          });
-
-          return html2canvas(pageEl, {
-            scale: 1.5, // Cân bằng chất lượng/tốc độ
+        // ========== CÁCH 1: Chụp song song với timeout ngắn ==========
+        const canvasPromises = batch.map((pageEl) =>
+          html2canvas(pageEl, {
+            scale: SCALE,
             useCORS: true,
             logging: false,
             backgroundColor: "#ffffff",
-            imageTimeout: 0,
+            imageTimeout: 5000,
             allowTaint: false,
-            removeContainer: false,
-          });
-        });
+            removeContainer: true,
+            foreignObjectRendering: false,
+            windowWidth: pageEl.scrollWidth,
+            windowHeight: pageEl.scrollHeight,
+          }),
+        );
 
         const canvases = await Promise.all(canvasPromises);
 
@@ -749,21 +755,29 @@ export class PrintPalletDialogComponent implements OnInit {
           const pageEl = batch[i];
           const cards = pageEl.querySelectorAll(".pallet-card");
 
-          // === TỐI ƯU 2: Nén JPEG tùy theo content ===
-          const quality = cards.length === 1 ? 0.8 : 0.7; // 1 phiếu = quality cao hơn
-          const imgData = canvas.toDataURL("image/jpeg", quality);
+          // Nén JPEG cố định
+          const imgData = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
 
           if (cards.length === 1 && this.paperSize === "A4") {
             // 1 phiếu A4 - vẽ nửa trang
             pdf.addImage(imgData, "JPEG", 0, 0, pageWidth / 2, pageHeight);
           } else {
-            // Full page
+            // Full page với tỉ lệ đúng
             const imgWidth = canvas.width;
             const imgHeight = canvas.height;
-            const pdfHeight = (imgHeight * pageWidth) / imgWidth;
-            pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pdfHeight);
+            const ratio = Math.min(
+              pageWidth / imgWidth,
+              pageHeight / imgHeight,
+            );
+            const pdfWidth = imgWidth * ratio;
+            const pdfHeight = imgHeight * ratio;
+
+            pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
           }
 
+          // Giải phóng memory ngay lập tức
+          canvas.width = 0;
+          canvas.height = 0;
           canvas.remove();
         }
 
@@ -771,8 +785,13 @@ export class PrintPalletDialogComponent implements OnInit {
         this.progressPdf = Math.round((batchEnd / pageElements.length) * 100);
         this.cdr.detectChanges();
 
-        // === TỐI ƯU 3: Yield sau mỗi batch ===
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        // Yield cho browser thở
+        await new Promise((resolve) => setTimeout(resolve, 5));
+
+        // Force garbage collection hint
+        if ((batchStart + BATCH_SIZE) % 50 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
 
       // Save
@@ -803,22 +822,32 @@ export class PrintPalletDialogComponent implements OnInit {
     }
   }
 
-  // === TỐI ƯU 4: Pre-render QR một lần duy nhất ===
+  // ========== TỐI ƯU QR CODE: Chuyển đổi nhanh hơn ==========
   private async convertQRCodesToImages(): Promise<void> {
-    const qrElements = document.querySelectorAll("qrcode");
+    const qrElements = Array.from(document.querySelectorAll("qrcode"));
 
-    const promises = Array.from(qrElements).map((qr) => {
-      const canvas = qr.querySelector("canvas");
-      if (canvas) {
-        const img = document.createElement("img");
-        img.src = canvas.toDataURL("image/png");
-        img.style.width = canvas.style.width;
-        img.style.height = canvas.style.height;
-        canvas.replaceWith(img);
+    // Batch convert QR codes
+    const BATCH_SIZE = 20;
+    for (let i = 0; i < qrElements.length; i += BATCH_SIZE) {
+      const batch = qrElements.slice(i, i + BATCH_SIZE);
+
+      batch.forEach((qr) => {
+        const canvas = qr.querySelector("canvas");
+        if (canvas) {
+          const img = document.createElement("img");
+          img.src = canvas.toDataURL("image/png");
+          img.style.width = canvas.style.width;
+          img.style.height = canvas.style.height;
+          img.style.display = "block";
+          canvas.replaceWith(img);
+        }
+      });
+
+      // Yield mỗi batch
+      if (i + BATCH_SIZE < qrElements.length) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
-    });
-
-    await Promise.all(promises);
+    }
   }
   // private async convertQRCodesToImages(): Promise<void> {
   //   const qrCanvases = Array.from(
