@@ -360,24 +360,27 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   // Danh sách cố định cho Bán thành phẩm
   maKhoNhapOptionsBTP = [
     { value: "", label: "--" },
-    { value: "RD-Warehouse", label: "2 - RD-Warehouse" },
-    { value: "RD-LED-19", label: "3 - Kho LKDT thủ công" },
-    { value: "RD-LED-03", label: "4 - Kho vật tư TBCS" },
-    { value: "RD-LED-02", label: "5 - Kho C Ha" },
-    { value: "RD-LED-05", label: "6 - Kho ngành DTTD" },
-    { value: "RD-LED-12", label: "7 - Kho A Hai" },
-    { value: "RD-LED-17", label: "8 - Kho C Huong-SKD" },
-    { value: "RD-LED-09", label: "9 - Kho vật tư Xuất khẩu" },
-    { value: "RD-LED-07", label: "10 - Kho ngành LED1" },
-    { value: "RD-LED-06", label: "11 - Kho ngành LED1" },
-    { value: "RD-LED-08", label: "12 - Kho ngành SMART" },
-    { value: "RD-LED-11", label: "13 - Kho ngành CNPT" },
-    { value: "RD-BTP-MODUL-DRV", label: "14 - Kho BTP MODULE DRV" },
-    { value: "LR-LED1", label: "15 - Kho-Ngành-LED1" },
-    { value: "LR-LED2", label: "16 - Kho-Ngành-LED2" },
-    { value: "CNPT-01", label: "17 - Kho-Ngành-CNPT" },
-    { value: "LR-SMART", label: "17 - Kho-Ngành-SMART" },
-    { value: "RD-TT-18", label: "18 - Kho TT R&D" },
+    { value: "RD-Warehouse", label: "RD-Warehouse - RD-Warehouse" },
+    { value: "RD-LED-19", label: "RD-LED-19 - Kho LKDT thủ công" },
+    { value: "RD-LED-03", label: "RD-LED-03 - Kho vật tư TBCS" },
+    { value: "RD-LED-02", label: "RD-LED-02 - Kho C Ha" },
+    { value: "RD-LED-05", label: "RD-LED-05 - Kho ngành DTTD" },
+    { value: "RD-LED-12", label: "RD-LED-12 - Kho A Hai" },
+    { value: "RD-LED-17", label: "RD-LED-17 - Kho C Huong-SKD" },
+    { value: "RD-LED-09", label: "RD-LED-09 - Kho vật tư Xuất khẩu" },
+    { value: "RD-LED-07", label: "RD-LED-07 - Kho ngành LED1" },
+    { value: "RD-LED-06", label: "RD-LED-06 - Kho ngành LED1" },
+    { value: "RD-LED-08", label: "RD-LED-08 - Kho ngành SMART" },
+    { value: "RD-LED-11", label: "RD-LED-11 - Kho ngành CNPT" },
+    {
+      value: "RD-BTP-MODUL-DRV",
+      label: "RD-BTP-MODUL-DRV - Kho BTP MODULE DRV",
+    },
+    { value: "LR-LED1", label: "LR-LED1 - Kho-Ngành-LED1" },
+    { value: "LR-LED2", label: "LR-LED2 - Kho-Ngành-LED2" },
+    { value: "CNPT-01", label: "CNPT-01 - Kho-Ngành-CNPT" },
+    { value: "LR-SMART", label: "LR-SMART - Kho-Ngành-SMART" },
+    { value: "RD-TT-18", label: "RD-TT-18 - Kho TT R&D" },
   ];
   //sumary
   boxSummaryContext = {
@@ -500,7 +503,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           .filter((a: any) => a.areaId !== 1)
           .map((a: any) => ({
             value: String(a.areaName ?? ""),
-            label: `${a.areaId} - ${a.areaDescription}`,
+            label: `${a.areaName} - ${a.areaDescription}`,
             description: a.areaDescription ?? "",
           }));
 
@@ -1524,7 +1527,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             latestDate = dDate;
           }
         }
-
+        const parsedMfg = this.parseApiDateToDate(latest?.manufacturing_date);
         // map chỉ các trường cần thiết, ép kiểu an toàn
         defaults = {
           // các field bắt buộc trong BoxFormData
@@ -1535,7 +1538,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           // các field BTP cần điền sẵn
           TPNK: (latest?.tp_nk as string) ?? "",
           rank: (latest?.rank as string) ?? "",
-          mfg: (latest?.manufacturing_date as string) ?? "",
+          mfg: parsedMfg ?? undefined,
           note: (latest?.note_2 as string) ?? "",
           comments: (latest?.comments as string) ?? "",
         } as BoxFormData;
@@ -4467,79 +4470,22 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     return result;
   }
 
-  private sendApproval(): void {
-    const currentUser = this.accountService.isAuthenticated()
-      ? this.accountService["userIdentity"]?.login
-      : "unknown";
-
-    const currentOrder = this.productionOrders[0];
-    if (!currentOrder) {
-      this.snackBar.open("Không có dữ liệu lệnh sản xuất", "Đóng", {
-        duration: 3000,
-      });
-      return;
+  private parseApiDateToDate(value?: string | null): Date | null {
+    if (!value) {
+      return null;
     }
 
-    // Chỉ cho gửi nếu trạng thái là "Bản nháp"
-    if (currentOrder.trangThai !== "Bản nháp") {
-      this.snackBar.open("Chỉ có bản nháp mới được gửi phê duyệt", "Đóng", {
-        duration: 3000,
-      });
-      return;
+    // Nếu dạng "YYYYMMDD" (ví dụ "20251222")
+    const compact = String(value).trim();
+    if (/^\d{8}$/.test(compact)) {
+      const y = Number(compact.slice(0, 4));
+      const m = Number(compact.slice(4, 6)) - 1; // monthIndex
+      const d = Number(compact.slice(6, 8));
+      const dt = new Date(y, m, d);
+      return isNaN(dt.getTime()) ? null : dt;
     }
 
-    // Cập nhật trạng thái sang "Chờ duyệt"
-    currentOrder.trangThai = "Chờ duyệt";
-
-    const payload: WarehouseNotePayload = {
-      id: currentOrder.id,
-      ma_lenh_san_xuat: currentOrder.maLenhSanXuat,
-      sap_code: currentOrder.maSAP,
-      sap_name: currentOrder.tenHangHoa,
-      work_order_code: currentOrder.maWO,
-      version: currentOrder.version,
-      storage_code: currentOrder.maKhoNhap,
-      total_quantity: currentOrder.tongSoLuong,
-      create_by: currentUser ?? "",
-      trang_thai: "Chờ duyệt", // ép trạng thái
-      group_name: currentOrder.to,
-      comment_2: "",
-      approver_by: "",
-      branch: currentOrder.nganh,
-      product_type: currentOrder.loaiSanPham,
-      destination_warehouse: 1,
-    };
-
-    if (!currentOrder.id) {
-      this.snackBar.open("Lỗi: Không có ID lệnh sản xuất", "Đóng", {
-        duration: 3000,
-      });
-      return;
-    }
-
-    this.planningService
-      .updateWarehouseNote(currentOrder.id, payload)
-      .subscribe({
-        next: (res) => {
-          const newId =
-            res.warehouse_note_info?.id ?? res.id ?? currentOrder.id;
-          this.maLenhSanXuatId = newId;
-          currentOrder.id = newId;
-
-          this.snackBar.open("Gửi phê duyệt thành công", "Đóng", {
-            duration: 3000,
-            panelClass: ["snackbar-success"],
-          });
-          this.router.navigate([`/warehouse-note-infos`]);
-        },
-        error: (err) => {
-          console.error("Lỗi khi cập nhật trạng thái:", err);
-          this.snackBar.open("Không thể gửi phê duyệt", "Đóng", {
-            duration: 4000,
-            panelClass: ["snackbar-error"],
-          });
-        },
-      });
+    return null;
   }
 
   private loadMaKhoNhapOptionsTP(): void {
