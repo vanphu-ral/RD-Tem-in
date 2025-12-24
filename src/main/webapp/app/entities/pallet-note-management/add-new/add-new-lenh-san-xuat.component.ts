@@ -2658,8 +2658,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     const dialogData: ConfirmDialogData = {
       title: "Xác nhận hoàn thành",
-      message:
-        "Bạn có chắc muốn đánh dấu lệnh sản xuất này là Hoàn thành (Approved)?",
+      message: "Bạn có chắc muốn đánh dấu lệnh sản xuất này là Hoàn thành?",
       confirmText: "Hoàn thành",
       cancelText: "Hủy",
       type: "info",
