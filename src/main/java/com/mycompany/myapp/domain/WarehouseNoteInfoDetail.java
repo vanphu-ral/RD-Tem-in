@@ -171,6 +171,9 @@ public class WarehouseNoteInfoDetail implements Serializable {
     @Column(name = "wms_send_status")
     private Boolean wmsSendStatus;
 
+    @Column(name = "print_status")
+    private Boolean printStatus;
+
     @Size(max = 255)
     @Column(name = "list_serial_items", length = 255)
     private String listSerialItems;
@@ -739,6 +742,19 @@ public class WarehouseNoteInfoDetail implements Serializable {
         this.wmsSendStatus = wmsSendStatus;
     }
 
+    public Boolean getPrintStatus() {
+        return this.printStatus;
+    }
+
+    public WarehouseNoteInfoDetail printStatus(Boolean printStatus) {
+        this.setPrintStatus(printStatus);
+        return this;
+    }
+
+    public void setPrintStatus(Boolean printStatus) {
+        this.printStatus = printStatus;
+    }
+
     public String getListSerialItems() {
         return this.listSerialItems;
     }
@@ -887,6 +903,7 @@ public class WarehouseNoteInfoDetail implements Serializable {
                 ", updatedBy='" + getUpdatedBy() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", wmsSendStatus=" + getWmsSendStatus() +
+                ", printStatus=" + getPrintStatus() +
                 ", listSerialItems='" + getListSerialItems() + "'" +
                 ", qrCode='" + getQrCode() + "'" +
                 ", tpNk='" + getTpNk() + "'" +

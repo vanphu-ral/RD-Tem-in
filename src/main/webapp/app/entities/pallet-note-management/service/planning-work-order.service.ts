@@ -90,10 +90,10 @@ export interface Area {
 export class PlanningWorkOrderService {
   private baseUrl = environment.baseInTemApiUrl;
   private apiUrl = `${this.baseUrl}/item-data/planning-work-orders`;
-  private WMSUrl = "http://192.168.10.99:9040/api";
+  private WMSUrl = "http://192.168.68.77:9040/api";
   private apiCheckIdentifyWo = `${this.baseUrl}/warehouse-note-infos/work-order-code`;
 
-  private testUrl = "http://192.168.10.99:9030/api";
+  private testUrl = "http://192.168.68.77:9030/api";
 
   constructor(private http: HttpClient) {}
 

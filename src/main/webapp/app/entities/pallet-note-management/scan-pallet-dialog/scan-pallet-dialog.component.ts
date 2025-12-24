@@ -340,8 +340,12 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       disableClose: false,
     });
     dialogRef.afterClosed().subscribe((confirmed: boolean) => {
-      this.isAddingSelectedBoxes = true;
-      this.processSelectedBoxesBatch(boxesToAdd);
+      if (confirmed) {
+        this.isAddingSelectedBoxes = true;
+        this.processSelectedBoxesBatch(boxesToAdd);
+      } else {
+        this.isAddingSelectedBoxes = false;
+      }
     });
   }
   // ===== TOGGLE ZEBRA MODE (CHỈ FOCUS INPUT) =====
