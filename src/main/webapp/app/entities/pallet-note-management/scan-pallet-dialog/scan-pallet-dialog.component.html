@@ -101,34 +101,13 @@
 
             <div class="unscanned-info">
               <div class="info-row">
-                <span class="label">Mã thùng:</span>
+                <!-- <span class="label">Mã thùng:</span> -->
                 <span class="unscanned-code">{{ box.code }}</span>
               </div>
 
               <div class="info-row" *ngIf="box.soLuong && box.soLuong !== 0">
-                <span class="label">Số lượng:</span>
+                <!-- <span class="label">Số lượng:</span> -->
                 <span class="unscanned-quantity">{{ box.soLuong }}</span>
-              </div>
-
-              <div
-                class="info-row"
-                *ngIf="box.locationCode && box.locationCode !== '—'"
-              >
-                <span class="label">Kho:</span>
-                <span class="unscanned-location">{{ box.locationCode }}</span>
-              </div>
-
-              <div class="info-row" *ngIf="box.vendor && box.vendor !== '—'">
-                <span class="label">Vendor:</span>
-                <span class="unscanned-vendor">{{ box.vendor }}</span>
-              </div>
-
-              <div
-                class="info-row"
-                *ngIf="box.lotNumber && box.lotNumber !== '—'"
-              >
-                <span class="label">Lot:</span>
-                <span class="unscanned-lot">{{ box.lotNumber }}</span>
               </div>
             </div>
           </div>
