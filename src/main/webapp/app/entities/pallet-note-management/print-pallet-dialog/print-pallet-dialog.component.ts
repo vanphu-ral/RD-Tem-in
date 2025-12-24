@@ -99,7 +99,13 @@ export class PrintPalletDialogComponent implements OnInit {
   isLoadingPdf = false;
   progressPdf = 0;
   unprintedPages: PrintPage[] = [];
-
+  private pdfRenderLogs: {
+    pageIndex: number;
+    palletId?: string | number;
+    startAt: string;
+    renderedAt: string;
+    durationMs: number;
+  }[] = [];
   constructor(
     public dialogRef: MatDialogRef<PrintPalletDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: PrintPalletData | PrintPalletData[],
@@ -721,7 +727,6 @@ export class PrintPalletDialogComponent implements OnInit {
       ) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, pageElements.length);
         const batch = pageElements.slice(batchStart, batchEnd);
-
         // ========== CÁCH 1: Chụp song song với timeout ngắn ==========
         const canvasPromises = batch.map((pageEl) =>
           html2canvas(pageEl, {
