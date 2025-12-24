@@ -84,23 +84,52 @@
         <div class="unscanned-list">
           <div
             class="unscanned-item"
-            *ngFor="let code of unscannedCodes; let i = index"
-            [class.selected]="isBoxSelected(code)"
-            [class.disabled]="!canSelectMore() && !isBoxSelected(code)"
+            *ngFor="let box of unscannedBoxes; let i = index"
+            [class.selected]="isBoxSelected(box.code)"
+            [class.disabled]="!canSelectMore() && !isBoxSelected(box.code)"
           >
             <mat-checkbox
-              [checked]="isBoxSelected(code)"
-              (change)="toggleUnscannedBox(code)"
+              [checked]="isBoxSelected(box.code)"
+              (change)="toggleUnscannedBox(box.code)"
               [disabled]="
-                (!canSelectMore() && !isBoxSelected(code)) ||
+                (!canSelectMore() && !isBoxSelected(box.code)) ||
                 isAddingSelectedBoxes
               "
               color="primary"
             >
             </mat-checkbox>
+
             <div class="unscanned-info">
-              <span class="unscanned-code">{{ code }}</span>
-              <span class="unscanned-index">#{{ i + 1 }}</span>
+              <div class="info-row">
+                <span class="label">Mã thùng:</span>
+                <span class="unscanned-code">{{ box.code }}</span>
+              </div>
+
+              <div class="info-row" *ngIf="box.soLuong && box.soLuong !== 0">
+                <span class="label">Số lượng:</span>
+                <span class="unscanned-quantity">{{ box.soLuong }}</span>
+              </div>
+
+              <div
+                class="info-row"
+                *ngIf="box.locationCode && box.locationCode !== '—'"
+              >
+                <span class="label">Kho:</span>
+                <span class="unscanned-location">{{ box.locationCode }}</span>
+              </div>
+
+              <div class="info-row" *ngIf="box.vendor && box.vendor !== '—'">
+                <span class="label">Vendor:</span>
+                <span class="unscanned-vendor">{{ box.vendor }}</span>
+              </div>
+
+              <div
+                class="info-row"
+                *ngIf="box.lotNumber && box.lotNumber !== '—'"
+              >
+                <span class="label">Lot:</span>
+                <span class="unscanned-lot">{{ box.lotNumber }}</span>
+              </div>
             </div>
           </div>
         </div>

@@ -35,6 +35,7 @@ import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from "../confirm-dialog/confirm-dialog.component";
+import { BoxDetailData } from "../detail-box-dialog/detail-box-dialog.component";
 
 export interface PalletData {
   id: string;
@@ -47,6 +48,9 @@ export interface PalletData {
   validReelIds?: string[];
   existingScannedGlobal?: Set<string>;
   wmsSendStatus?: boolean;
+  boxItems?: any[];
+  locationCode?: string;
+  locationId?: number;
 }
 
 interface BoxScan {
@@ -54,6 +58,16 @@ interface BoxScan {
   timestamp: Date | null;
   status: "success" | "error";
   message?: string;
+}
+
+interface UnscannedBox {
+  code: string;
+  soLuong?: number;
+  rank?: string;
+  vendor?: string;
+  lotNumber?: string;
+  locationCode?: string;
+  locationId?: number;
 }
 
 export interface SerialBoxPalletMapping {
@@ -124,7 +138,9 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   existingScannedGlobal: Set<string> = new Set();
   isLoadingHistory = false;
 
+  unscannedBoxes: UnscannedBox[] = [];
   unscannedCodes: string[] = [];
+  boxItems: BoxDetailData[] = [];
   scannedFromValidCodes: string[] = [];
   unscannedCount = 0;
 
@@ -152,6 +168,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
   ) {
     this.palletData = data;
+    this.boxItems = data.boxItems ?? [];
     console.log("Scan dialog constructor data:", data);
   }
 
@@ -164,6 +181,8 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       console.log(`Global scanned boxes: ${this.existingScannedGlobal.size}`);
     }
     this.loadExistingScannedBoxes();
+
+    this.logDebugInfo();
 
     if (this.scanModeActive) {
       this.focusScannerInput();
@@ -239,7 +258,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
           this.scannedCount = this.scannedBoxes.length;
 
           console.log(
-            `📋 Pallet local: ${this.scannedCount} boxes đã scan vào pallet này`,
+            `Pallet local: ${this.scannedCount} boxes đã scan vào pallet này`,
           );
 
           // Tính unscanned dựa trên GLOBAL
@@ -708,6 +727,40 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       scannedBoxes: this.scannedBoxes,
     });
   }
+  logDebugInfo(): void {
+    console.group("🐛 DETAILED DEBUG INFO");
+
+    console.log("1️⃣ Valid boxes (codes to scan):", this.validBoxes);
+
+    console.log("2️⃣ BoxItems structure:");
+    this.boxItems.forEach((box, i) => {
+      console.log(`   Box ${i}:`, {
+        tenSanPham: box.tenSanPham,
+        kho: box.kho,
+        soLuongTrongThung: box.soLuongTrongThung,
+        subItemsCount: box.subItems?.length || 0,
+        firstSubItem: box.subItems?.[0],
+      });
+    });
+
+    console.log("3️⃣ Flattened boxes:");
+    const flattened = this.flattenBoxItems(this.boxItems || []);
+    console.table(flattened.slice(0, 10));
+
+    console.log("4️⃣ Matching test:");
+    if (this.validBoxes.length > 0 && flattened.length > 0) {
+      const testCode = this.validBoxes[0];
+      const found = flattened.find(
+        (b) => this.normalizeCode(b.serialBox || "") === testCode,
+      );
+      console.log(`   Testing code: ${testCode}`);
+      console.log(`   Found:`, found);
+    }
+
+    console.log("5️⃣ Unscanned boxes result:", this.unscannedBoxes);
+
+    console.groupEnd();
+  }
   private normalizeCode(code: string | null | undefined): string {
     return (code ?? "").toString().trim().toUpperCase();
   }
@@ -715,26 +768,110 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   private computeFromValidAndExisting(): void {
     const expected = (this.validBoxes || []).map((c) => this.normalizeCode(c));
 
-    // ===== DÙNG GLOBAL THAY VÌ LOCAL =====
-    this.scannedFromValidCodes = expected.filter(
-      (code) => this.existingScannedGlobal.has(code), // <--- Đổi từ existingScannedBoxes sang existingScannedGlobal
+    this.scannedFromValidCodes = expected.filter((code) =>
+      this.existingScannedGlobal.has(code),
     );
 
-    this.unscannedCodes = expected.filter(
-      (code) => !this.existingScannedGlobal.has(code), // <--- Đổi từ existingScannedBoxes sang existingScannedGlobal
+    const unscanned = expected.filter(
+      (code) => !this.existingScannedGlobal.has(code),
     );
 
-    this.unscannedCount = this.unscannedCodes.length;
+    console.log("🔍 Debug Info:", {
+      totalExpected: expected.length,
+      unscannedCount: unscanned.length,
+      boxItemsCount: this.boxItems?.length || 0,
+    });
 
-    console.log(
-      `Scanned globally (across all pallets): ${this.scannedFromValidCodes.length}`,
-      this.scannedFromValidCodes,
-    );
-    console.log(`Unscanned codes: ${this.unscannedCount}`, this.unscannedCodes);
-    console.log(
-      `Scanned in THIS pallet: ${this.existingScannedBoxes.size}`,
-      Array.from(this.existingScannedBoxes),
-    );
+    // Use helper to flatten
+    const flattenedBoxes = this.flattenBoxItems(this.boxItems || []);
+
+    console.log("Flattened boxes:", flattenedBoxes.length);
+    if (flattenedBoxes.length > 0) {
+      console.log("Sample:", flattenedBoxes[0]);
+    }
+
+    // Map unscanned codes
+    this.unscannedBoxes = unscanned.map((code) => {
+      const boxInfo = flattenedBoxes.find(
+        (b) => this.normalizeCode(b.serialBox || "") === code,
+      );
+
+      if (boxInfo) {
+        console.log(`Mapped ${code}:`, {
+          soLuong: boxInfo.soLuongTrongThung,
+          kho: boxInfo.kho,
+          vendor: boxInfo.vendor,
+        });
+      } else {
+        console.warn(` Not found: ${code}`);
+      }
+
+      return {
+        code,
+        soLuong: boxInfo?.soLuongTrongThung || 0,
+        vendor: boxInfo?.vendor || "—",
+        lotNumber: boxInfo?.lotNumber || "—",
+        locationCode: boxInfo?.kho || this.palletData?.locationCode || "—",
+      };
+    });
+
+    this.unscannedCodes = unscanned;
+    this.unscannedCount = this.unscannedBoxes.length;
+
+    console.log("Result:", {
+      unscannedBoxesCount: this.unscannedBoxes.length,
+      scannedGloballyCount: this.scannedFromValidCodes.length,
+      scannedInPalletCount: this.existingScannedBoxes.size,
+    });
+  }
+  private flattenBoxItems(boxItems: BoxDetailData[]): any[] {
+    const flattened: any[] = [];
+
+    boxItems.forEach((parent) => {
+      if (!parent.subItems || !Array.isArray(parent.subItems)) {
+        return;
+      }
+
+      parent.subItems.forEach((sub) => {
+        flattened.push({
+          // Serial/Code identifiers
+          serialBox: sub.maThung || sub.reelID,
+          maThung: sub.maThung,
+          reelID: sub.reelID,
+
+          // Quantity info
+          soLuongTrongThung: parent.soLuongTrongThung, // From parent
+          soLuong: sub.soLuong || sub.initialQuantity, // From sub
+
+          // Location
+          kho: parent.kho,
+          locationCode: parent.kho,
+
+          // Vendor & Lot
+          vendor: sub.vendor ?? parent.vendor,
+          lotNumber: sub.rank ?? parent.lotNumber,
+
+          // Product info
+          tenSanPham: parent.tenSanPham,
+          maSanPham: parent.maSanPham,
+
+          // Additional sub info
+          partNumber: sub.partNumber,
+          note: sub.note,
+          qrCode: sub.qrCode,
+
+          // Dates
+          manufacturingDate: sub.manufacturingDate,
+          expirationDate: sub.expirationDate,
+
+          // Raw data for debugging
+          _parentBox: parent,
+          _subItem: sub,
+        });
+      });
+    });
+
+    return flattened;
   }
   private parseTimestamp(value: any): Date | null {
     if (!value && value !== 0) {

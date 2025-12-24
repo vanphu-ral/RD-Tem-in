@@ -143,6 +143,7 @@ export class CreateDialogComponent {
       ? this.accountService["userIdentity"]?.login
       : "unknown";
     const defaults = (this.data as any).defaults as PalletFormData | undefined;
+    const defaultsBTP = (this.data as any).defaults as BoxFormData | undefined;
     if (this.isBoxType) {
       const expectedMaSanPham = this.data.maSanPham ?? "";
       const formGroup = this.fb.group({
@@ -171,30 +172,32 @@ export class CreateDialogComponent {
             Validators.pattern(/^[1-9][0-9]{0,4}$/),
           ],
         ],
-        note: [""],
+        note: [defaultsBTP?.note ?? ""],
       }) as FormGroup;
 
       // Nếu là Bán thành phẩm thì thêm trường đặc thù
       if (this.data.loaiSanPham === "Bán thành phẩm") {
         formGroup.addControl(
           "TPNK",
-          this.fb.control("", [Validators.maxLength(50)]),
+          this.fb.control(defaultsBTP?.TPNK ?? "", [Validators.maxLength(50)]),
         );
         formGroup.addControl(
           "rank",
-          this.fb.control("", [Validators.maxLength(50)]),
+          this.fb.control(defaultsBTP?.rank ?? "", [Validators.maxLength(50)]),
         );
         formGroup.addControl(
           "mfg",
-          this.fb.control("", [Validators.maxLength(50)]),
+          this.fb.control(defaultsBTP?.mfg ?? "", [Validators.maxLength(50)]),
         );
         formGroup.addControl(
           "note",
-          this.fb.control("", [Validators.maxLength(200)]),
+          this.fb.control(defaultsBTP?.note ?? "", [Validators.maxLength(200)]),
         );
         formGroup.addControl(
           "comments",
-          this.fb.control("", [Validators.maxLength(200)]),
+          this.fb.control(defaultsBTP?.comments ?? "", [
+            Validators.maxLength(200),
+          ]),
         );
       }
 
