@@ -343,6 +343,9 @@ public class WarehouseStampInfoDetailService {
                 if (dto.getWmsSendStatus() != null) {
                     existingDetail.setWmsSendStatus(dto.getWmsSendStatus());
                 }
+                if (dto.getPrintStatus() != null) {
+                    existingDetail.setPrintStatus(dto.getPrintStatus());
+                }
                 if (dto.getTpNk() != null) {
                     existingDetail.setTpNk(dto.getTpNk());
                 }

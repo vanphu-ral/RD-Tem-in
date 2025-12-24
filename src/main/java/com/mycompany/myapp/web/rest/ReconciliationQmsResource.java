@@ -10,6 +10,7 @@ import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.util.*;
+import liquibase.pro.packaged.is;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -155,10 +156,10 @@ public class ReconciliationQmsResource {
             generalInfo.put("inventory_code", warehouseNoteInfo.getSapCode());
             // String inventoryName = warehouseNoteInfo.getSapName();
             // generalInfo.put(
-            //     "inventory_name",
-            //     inventoryName != null && inventoryName.length() > 15
-            //         ? inventoryName.substring(0, 15)
-            //         : inventoryName
+            // "inventory_name",
+            // inventoryName != null && inventoryName.length() > 15
+            // ? inventoryName.substring(0, 15)
+            // : inventoryName
             // );
             generalInfo.put("inventory_name", warehouseNoteInfo.getSapName());
             generalInfo.put("wo_code", warehouseNoteInfo.getWorkOrderCode());
@@ -176,21 +177,67 @@ public class ReconciliationQmsResource {
                 "production_team",
                 warehouseNoteInfo.getGroupName().trim()
             );
-            generalInfo.put("number_of_pallet", palletInforDetails.size());
-            generalInfo.put("number_of_box", warehouseNoteInfoDetails.size());
-            generalInfo.put(
-                "quantity",
-                warehouseNoteInfo.getTotalQuantity() != null
-                    ? warehouseNoteInfo.getTotalQuantity()
-                    : 0
-            );
+            // Calculate number_of_pallet, number_of_box, and quantity based on the request
+            // body
+            int numberOfPallet = 0;
+            int numberOfBox = 0;
+            int totalQuantity = 0;
+            Set<String> boxCodesInPallets = new HashSet<>();
+
+            // Count pallets and collect box codes from pallets
+            if (modePalletList != null) {
+                numberOfPallet = modePalletList.size();
+                for (Map<String, Object> modePallet : modePalletList) {
+                    List<Map<String, Object>> listBox = (List<
+                        Map<String, Object>
+                    >) modePallet.get("list_box");
+                    if (listBox != null) {
+                        for (Map<String, Object> box : listBox) {
+                            String boxCode = (String) box.get("reel_id");
+                            if (boxCode != null) {
+                                boxCodesInPallets.add(boxCode);
+                                numberOfBox++;
+                                // Sum the initial_quantity from the box
+                                if (box.containsKey("initial_quantity")) {
+                                    totalQuantity += ((Number) box.get(
+                                            "initial_quantity"
+                                        )).intValue();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sum the initial_quantity from mode_box items that are not in pallets
+            if (modeBoxList != null) {
+                for (Map<String, Object> modeBox : modeBoxList) {
+                    String boxCode = (String) modeBox.get("reel_id");
+                    if (
+                        boxCode != null && !boxCodesInPallets.contains(boxCode)
+                    ) {
+                        // Sum the initial_quantity from the box
+                        if (modeBox.containsKey("initial_quantity")) {
+                            totalQuantity += ((Number) modeBox.get(
+                                    "initial_quantity"
+                                )).intValue();
+                        }
+                    }
+                }
+            }
+
+            generalInfo.put("number_of_pallet", numberOfPallet);
+            generalInfo.put("number_of_box", numberOfBox);
+            generalInfo.put("quantity", totalQuantity);
+            Object warehouseValue = 1;
             String storageCode = warehouseNoteInfo.getStorageCode();
-            generalInfo.put(
-                "destination_warehouse",
-                storageCode != null && !storageCode.isEmpty()
-                    ? Integer.parseInt(storageCode)
-                    : 0
-            );
+            if (storageCode == null || storageCode.isEmpty()) {
+                warehouseValue = 0;
+                // } else if (storageCode.equals("RD-01")) {
+                // warehouseValue = 1;
+                // }
+            }
+            generalInfo.put("destination_warehouse", warehouseValue);
             generalInfo.put(
                 "pallet_note_creation_id",
                 warehouseNoteInfo.getId()
@@ -210,7 +257,7 @@ public class ReconciliationQmsResource {
 
                     // Calculate num_box_per_pallet and total_quantity from list_box
                     int numBoxPerPallet = 0;
-                    int totalQuantity = 0;
+                    int totalQuantityPerPallet = 0;
 
                     List<Map<String, Object>> listBox = new ArrayList<>();
                     List<Map<String, Object>> listBoxFromMode = (List<
@@ -225,12 +272,12 @@ public class ReconciliationQmsResource {
                             boxInfo.put("list_serial_items", "");
                             listBox.add(boxInfo);
                             numBoxPerPallet++;
-                            totalQuantity++;
+                            totalQuantityPerPallet++;
                         }
                     }
 
                     pallet.put("num_box_per_pallet", numBoxPerPallet);
-                    pallet.put("total_quantity", totalQuantity);
+                    pallet.put("total_quantity", totalQuantityPerPallet);
                     pallet.put("po_number", "");
                     pallet.put("customer_name", "");
                     pallet.put("production_decision_number", "");
@@ -248,7 +295,8 @@ public class ReconciliationQmsResource {
                 }
             }
 
-            // Add pallets from mode_box - group into single list_pallet with empty serial_pallet and quantity_per_box
+            // Add pallets from mode_box - group into single list_pallet with empty
+            // serial_pallet and quantity_per_box
             if (modeBoxList != null && !modeBoxList.isEmpty()) {
                 Map<String, Object> modeBoxPallet = new HashMap<>();
                 modeBoxPallet.put("serial_pallet", "");
@@ -256,10 +304,10 @@ public class ReconciliationQmsResource {
 
                 // Calculate num_box_per_pallet and total_quantity from mode_box items
                 int numBoxPerPallet = modeBoxList.size();
-                int totalQuantity = modeBoxList.size();
+                int totalQuantityModeBox = modeBoxList.size();
 
                 modeBoxPallet.put("num_box_per_pallet", numBoxPerPallet);
-                modeBoxPallet.put("total_quantity", totalQuantity);
+                modeBoxPallet.put("total_quantity", totalQuantityModeBox);
                 modeBoxPallet.put("po_number", "");
                 modeBoxPallet.put("customer_name", "");
                 modeBoxPallet.put("production_decision_number", "");

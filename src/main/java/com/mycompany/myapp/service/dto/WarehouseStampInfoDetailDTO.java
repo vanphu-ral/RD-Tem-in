@@ -124,6 +124,8 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
 
     private Boolean wmsSendStatus;
 
+    private Boolean printStatus;
+
     @Size(max = 255)
     private String listSerialItems;
 
@@ -559,6 +561,16 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
         this.wmsSendStatus = wmsSendStatus;
     }
 
+    @JsonProperty("print_status")
+    public Boolean getPrintStatus() {
+        return printStatus;
+    }
+
+    @JsonProperty("print_status")
+    public void setPrintStatus(Boolean printStatus) {
+        this.printStatus = printStatus;
+    }
+
     @JsonProperty("list_serial_items")
     public String getListSerialItems() {
         return listSerialItems;
@@ -677,6 +689,7 @@ public class WarehouseStampInfoDetailDTO implements Serializable {
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", wmsSendStatus=" + getWmsSendStatus() +
+                ", printStatus=" + getPrintStatus() +
                 ", listSerialItems='" + getListSerialItems() + "'" +
                 ", qrCode='" + getQrCode() + "'" +
                 ", tpNk='" + getTpNk() + "'" +
