@@ -145,6 +145,12 @@ export class LenhSanXuatComponent implements OnInit {
   pageSize = 20;
   pageIndex = 0;
 
+  //auto filter
+  hiddenCreateBy = ""; // giá trị ngầm (user hiện tại)
+  createByInput = ""; // giá trị hiển thị trong input
+  createByTouched = false;
+  isAdminTem = false;
+
   constructor(
     protected lenhSanXuatService: LenhSanXuatService,
     protected activatedRoute: ActivatedRoute,
@@ -388,44 +394,87 @@ export class LenhSanXuatComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const result = sessionStorage.getItem("tem-in-search-body");
-    if (result) {
-      this.body = JSON.parse(result);
-      this.maLenhSanXuat = this.body.maLenhSanXuat;
-      this.sapCode = this.body.sapCode;
-      this.sapName = this.body.sapName;
-      this.product_type = this.body.product_type;
-      this.workOrderCode = this.body.workOrderCode;
-      this.version = this.body.version;
-      this.storageCode = this.body.storageCode;
-      this.createBy = this.body.createBy;
-      this.entryTime = this.body.timeUpdate;
-      this.timeUpdate = this.body.timeUpdate;
-      this.itemPerPage = this.body.itemPerPage;
-      this.pageNumber = this.body.pageNumber;
-      this.trangThai = this.body.trangThai;
-      console.log("have result!");
-      // this.getTotalData();
-      this.getLenhSanXuatList();
-      if (this.pageNumber > 1) {
-        this.backPageBtn = false;
-        this.firstPageBtn = false;
-      }
-    } else {
-      const currentUser: string = this.accountService.isAuthenticated()
-        ? (this.accountService["userIdentity"]?.login ?? "unknown")
-        : "unknown";
-
-      this.createBy = currentUser;
-    }
-    this.getLenhSanXuatList();
-    // this.createListOfMaLenhSanXuat();
-    // this.createListOfSapCode();
-    // this.createListOfSapName();
-    // this.createListOfVersion();
-    // this.createListOfWordOrderCode();
+    this.accountService.identity().subscribe(
+      (account) => {
+        this.isAdminTem = !!account?.authorities?.includes?.("ROLE_ADMIN_TEM");
+        const result = sessionStorage.getItem("tem-in-search-body");
+        if (result) {
+          this.body = JSON.parse(result);
+          this.maLenhSanXuat = this.body.maLenhSanXuat;
+          this.sapCode = this.body.sapCode;
+          this.sapName = this.body.sapName;
+          this.product_type = this.body.product_type;
+          this.workOrderCode = this.body.workOrderCode;
+          this.version = this.body.version;
+          this.storageCode = this.body.storageCode;
+          // this.createBy = this.body.createBy;
+          this.createByInput = this.body.createBy ?? "";
+          this.hiddenCreateBy = this.createByInput || this.getCurrentUser();
+          this.createByTouched = !!this.body.createBy;
+          this.entryTime = this.body.timeUpdate;
+          this.timeUpdate = this.body.timeUpdate;
+          this.itemPerPage = this.body.itemPerPage;
+          this.pageNumber = this.body.pageNumber;
+          this.trangThai = this.body.trangThai;
+          console.log("have result!");
+          // this.getTotalData();
+          this.getLenhSanXuatList();
+          if (this.pageNumber > 1) {
+            this.backPageBtn = false;
+            this.firstPageBtn = false;
+          }
+        } else {
+          this.hiddenCreateBy = this.getCurrentUser();
+          this.createByInput = ""; // không hiển thị user trong input
+          this.createByTouched = false;
+        }
+        this.getLenhSanXuatList();
+      },
+      () => {
+        this.isAdminTem = false;
+        const result = sessionStorage.getItem("tem-in-search-body");
+        if (result) {
+          this.body = JSON.parse(result);
+          this.maLenhSanXuat = this.body.maLenhSanXuat;
+          this.sapCode = this.body.sapCode;
+          this.sapName = this.body.sapName;
+          this.product_type = this.body.product_type;
+          this.workOrderCode = this.body.workOrderCode;
+          this.version = this.body.version;
+          this.storageCode = this.body.storageCode;
+          // this.createBy = this.body.createBy;
+          this.createByInput = this.body.createBy ?? "";
+          this.hiddenCreateBy = this.createByInput || this.getCurrentUser();
+          this.createByTouched = !!this.body.createBy;
+          this.entryTime = this.body.timeUpdate;
+          this.timeUpdate = this.body.timeUpdate;
+          this.itemPerPage = this.body.itemPerPage;
+          this.pageNumber = this.body.pageNumber;
+          this.trangThai = this.body.trangThai;
+          console.log("have result!");
+          // this.getTotalData();
+          this.getLenhSanXuatList();
+          if (this.pageNumber > 1) {
+            this.backPageBtn = false;
+            this.firstPageBtn = false;
+          }
+        } else {
+          this.hiddenCreateBy = this.getCurrentUser();
+          this.createByInput = ""; // không hiển thị user trong input
+          this.createByTouched = false;
+        }
+        this.getLenhSanXuatList();
+      },
+    );
   }
-
+  getCurrentUser(): string {
+    return this.accountService.isAuthenticated()
+      ? (this.accountService["userIdentity"]?.login ?? "unknown")
+      : "unknown";
+  }
+  onCreateByInput(): void {
+    this.createByTouched = true;
+  }
   // getLenhSanXuatList(): void {
   //   this.http.post<any>(this.resourceUrl, this.body).subscribe((res) => {
   //     this.lenhSanXuats = res;
@@ -503,6 +552,8 @@ export class LenhSanXuatComponent implements OnInit {
   }
   reloadPage(): void {
     window.location.reload();
+    this.createByInput = "";
+    this.createByTouched = false;
   }
   trackId(_index: number, item: ILenhSanXuat): number {
     return item.id!;
@@ -681,7 +732,7 @@ export class LenhSanXuatComponent implements OnInit {
         params = params.set(key, s);
       }
     };
-
+    // let effectiveCreateBy = this.createByTouched ? (this.createByInput ?? '') : (this.hiddenCreateBy ?? '');
     // Các trường lọc theo yêu cầu (map tên param theo API)
     addIf("maLenhSanXuat", this.maLenhSanXuat);
     addIf("sapCode", this.sapCode);
@@ -689,7 +740,15 @@ export class LenhSanXuatComponent implements OnInit {
     addIf("workOrderCode", this.workOrderCode);
     addIf("version", this.version);
     addIf("storageCode", this.storageCode);
-    addIf("createBy", this.createBy);
+    // addIf("createBy", this.createBy);
+    if (!this.isAdminTem) {
+      const effectiveCreateBy = this.createByTouched
+        ? (this.createByInput ?? "")
+        : (this.hiddenCreateBy ?? "");
+      addIf("createBy", effectiveCreateBy);
+    } else {
+      addIf("createBy", this.createBy);
+    }
     addIf("trangThai", this.trangThai);
     addIf("comment", (this as any).comment ?? "");
     addIf("groupName", this.groupName);

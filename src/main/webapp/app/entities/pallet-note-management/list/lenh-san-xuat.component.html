@@ -252,8 +252,9 @@
                 <input
                   #searchInput
                   type="text"
-                  [(ngModel)]="createBy"
+                  [(ngModel)]="createByInput"
                   [ngModelOptions]="{ standalone: true }"
+                  (input)="onCreateByInput()"
                   placeholder="search"
                   list="createBy"
                   style="width: 5rem"
