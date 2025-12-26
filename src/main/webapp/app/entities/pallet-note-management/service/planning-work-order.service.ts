@@ -90,7 +90,7 @@ export interface Area {
 export class PlanningWorkOrderService {
   private baseUrl = environment.baseInTemApiUrl;
   private apiUrl = `${this.baseUrl}/item-data/planning-work-orders`;
-  private WMSUrl = "http://192.168.68.77:9040/api";
+  private WMSUrl = "https://ral-wms-logistic.rangdong.com.vn:9004/api";
   private apiCheckIdentifyWo = `${this.baseUrl}/warehouse-note-infos/work-order-code`;
 
   private testUrl = "http://192.168.68.77:9030/api";
@@ -238,7 +238,7 @@ export class PlanningWorkOrderService {
 
   sendWmsApproval(payload: any): Observable<any> {
     return this.http.post<any>(
-      `${this.testUrl}/import-requirements/wms`,
+      `${this.WMSUrl}/import-requirements/wms`,
       payload,
     );
   }

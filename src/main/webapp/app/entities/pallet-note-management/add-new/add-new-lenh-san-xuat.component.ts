@@ -153,7 +153,7 @@ export interface ReelData {
   note?: string;
   createdAt?: string;
   batchGroupId?: string;
-  printStatus?: string;
+  printStatus?: boolean;
 }
 export interface ReelSubItem {
   id?: number;
@@ -2569,7 +2569,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
       return;
     }
+    console.log("Sample reelDataList:", this.reelDataList.slice(0, 5));
 
+    const filteredReels = this.reelGroups
+      .flatMap((g) => g.subItems)
+      .filter((si) => si.printStatus === false);
+
+    if (filteredReels.length === 0) {
+      this.snackBar.open("Không có thùng nào chưa in để xuất Excel", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
     // Header cố định theo yêu cầu
     const headers = [
       "NumberOfPlanning",
@@ -2595,28 +2606,35 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     ];
 
     // Map dữ liệu theo đúng cột, không lấy thêm trường nào khác
-    const rows = this.reelDataList.map((r) => [
-      r.userData1 ?? "", // NumberOfPlanning
-      r.userData4 ?? "", // ItemCode
-      r.userData3 ?? "", // ProductName
-      r.userData5 ?? "", // SapWo
-      r.lot ?? "",
-      this.productionOrders[0]?.version ?? "", // Version
-      r.manufacturingDate ?? "", // TimeRecieved
-      r.reelID, // ReelID
-      r.partNumber, // PartNumber
-      r.vendor ?? "RD", // Vendor
-      r.initialQuantity ?? "", // QuantityOfPackage
-      r.manufacturingDate ?? "", // MFGDate
-      this.productionOrders[0]?.to ?? "", // ProductionShilt
-      r.TPNK ?? "",
-      r.comments ?? "", // Comments
-      r.note ?? "", // Comments2
-      r.storageUnit ?? "",
-      r.TPNK ?? "",
-      r.rank ?? "",
-      r.qrCode ?? "",
-    ]);
+    const rows = filteredReels.map((si) => {
+      // Tìm group chứa subItem này để lấy thông tin nhóm
+      const group = this.reelGroups.find((g) =>
+        g.subItems.some((item) => item.reelID === si.reelID),
+      );
+
+      return [
+        si.userData1 ?? "",
+        si.userData4 ?? "",
+        si.userData3 ?? "",
+        si.userData5 ?? "",
+        si.lot ?? "",
+        this.productionOrders[0]?.version ?? "",
+        si.manufacturingDate ?? "",
+        si.reelID,
+        si.partNumber ?? group?.partNumber ?? "",
+        group?.vendor ?? "RD",
+        si.initialQuantity ?? "",
+        si.manufacturingDate ?? "",
+        this.productionOrders[0]?.to ?? "",
+        si.TPNK ?? "",
+        si.comments ?? "",
+        si.note ?? "",
+        group?.storageUnit ?? "",
+        si.TPNK ?? "",
+        si.rank ?? "",
+        si.qrCode ?? "",
+      ];
+    });
 
     // Tạo worksheet từ AOA: chỉ có headers + rows
     const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([
@@ -2645,6 +2663,24 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       type: "binary",
       compression: true,
     });
+    const payload = filteredReels
+      .filter((it) => it.id !== undefined && it.id !== null)
+      .map((it) => ({ id: it.id as number, print_status: true }));
+    if (payload.length > 0) {
+      this.planningService.updatePrintBtpDetails(payload).subscribe({
+        next: () => {
+          this.snackBar.open("Đã cập nhật trạng thái in", "Đóng", {
+            duration: 3000,
+          });
+        },
+        error: (err) => {
+          console.error("Lỗi cập nhật trạng thái in:", err);
+          this.snackBar.open("Cập nhật trạng thái in thất bại", "Đóng", {
+            duration: 3000,
+          });
+        },
+      });
+    }
   }
 
   //hoan thanh lenh san xuat
@@ -3773,15 +3809,21 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     // Lấy lotNumber
     let lotNumber = "";
-    try {
-      const res: any = await this.planningService.search(woId).toPromise();
-      const item =
-        res?.content?.find((c: any) => c.woId === woId) ?? res?.content?.[0];
-      lotNumber = item?.lotNumber ?? "";
-    } catch (error) {
-      console.error("Error fetching lotNumber:", error);
-      lotNumber = "";
-    }
+    // try {
+    //   const res: any = await this.planningService.search(woId).toPromise();
+    //   const item =
+    //     res?.content?.find((c: any) => c.woId === woId) ?? res?.content?.[0];
+    //   lotNumber = item?.lotNumber ?? "";
+    // } catch (error) {
+    //   console.error("Error fetching lotNumber:", error);
+    //   lotNumber = "";
+    // }
+    // sau khi set this.productionOrders = [...]
+    this.productionOrders[0].lotNumber =
+      this.warehouseNoteInfo.lot_number ?? "";
+    // hoặc lưu riêng
+    lotNumber = this.warehouseNoteInfo.lot_number ?? "";
+    console.log("Lot number from payload:", this.productionOrders[0].lotNumber);
 
     const productionOrder =
       this.productionOrders.find((po) => po.maWO === woId) ??
@@ -4975,6 +5017,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
                   qrCode: si.qrCode ?? "",
                   tongSl: 0, // sẽ cập nhật sau
                   note: si.note ?? "",
+                  printStatus: si.printStatus ?? false,
                 })) as ReelData[];
 
                 return acc.concat(mappedR);
