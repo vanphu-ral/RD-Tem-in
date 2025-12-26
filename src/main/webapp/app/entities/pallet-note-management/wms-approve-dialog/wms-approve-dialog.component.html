@@ -53,6 +53,7 @@
 
         <mat-tab-group
           [(selectedIndex)]="nestedTabIndexPending"
+          (selectedIndexChange)="onPendingTabChange($event)"
           class="nested-tabs"
         >
           <!-- Tab Pallet -->
@@ -304,6 +305,7 @@
         <!-- ===== NESTED TABS CHO ĐÃ GỬI ===== -->
         <mat-tab-group
           [(selectedIndex)]="nestedTabIndexSent"
+          (selectedIndexChange)="onSendTabChange($event)"
           class="nested-tabs"
         >
           <!-- Tab Pallet -->

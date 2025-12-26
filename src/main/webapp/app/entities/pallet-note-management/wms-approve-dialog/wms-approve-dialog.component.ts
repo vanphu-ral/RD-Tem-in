@@ -337,12 +337,28 @@ export class WmsApproveDialogComponent implements OnInit {
     if (this.pallets().length === 0) {
       await this.loadData();
     }
+    if (this.productType === "Bán thành phẩm") {
+      this.nestedTabIndexPending = 1;
+      // tab Box bên chưa gửi
+      this.nestedTabIndexSent = 1;
+      // // đồng bộ tab Box bên đã gửi
+      this.cdr.detectChanges();
+      // // cập nhật view
+    }
 
     this.loadAllBoxesIntoSignal();
+    // this.loadUnassignedBoxes();
   }
 
   // ==================== SEND APPROVAL ====================
-
+  onPendingTabChange(index: number): void {
+    // đồng bộ index sang nhóm "Đã gửi"
+    this.nestedTabIndexSent = index;
+  }
+  onSendTabChange(index: number): void {
+    // đồng bộ index sang nhóm "Đã gửi"
+    this.nestedTabIndexPending = index;
+  }
   sendApproval(): void {
     const selectedPallets = this.selection.selected;
 
@@ -1799,7 +1815,9 @@ export class WmsApproveDialogComponent implements OnInit {
         Array.isArray(detail.subItems) &&
         detail.subItems.length > 0
       ) {
+        console.log("detail with subItems", detail);
         detail.subItems.forEach((sub: any, subIdx: number) => {
+          console.log("sub item", sub);
           const serialCandidate = sub?.maThung ?? sub?.serial_box ?? "";
           const serial = this.normalizeSerial(serialCandidate);
           if (!serial) {
@@ -2102,7 +2120,9 @@ export class WmsApproveDialogComponent implements OnInit {
       } else {
         // Thành phẩm: giữ nguyên kiểm tra wms_send_status
         isSent = detail.wms_send_status === true;
+        console.log("detail in else", detail);
       }
+      console.log("detail", detail);
 
       result.push({
         id: (detail.id ?? idx + 1) as number,
