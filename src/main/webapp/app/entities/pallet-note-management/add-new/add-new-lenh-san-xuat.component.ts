@@ -2919,7 +2919,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             warehouse_note_info_detail.push({
               id: null,
               reel_id: b.serialBox,
-              part_number: `${b.maSanPham}V_${version}`,
+              part_number: `${b.maSanPham}_V${version}`,
               vendor: b.vendor,
               lot: b.lotNumber,
               user_data1: "",
@@ -2955,7 +2955,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             warehouse_note_info_detail.push({
               id: null,
               reel_id: sub.maThung,
-              part_number: `${b.maSanPham}V_${version}`,
+              part_number: `${b.maSanPham}_V${version}`,
               vendor: b.vendor,
               lot: b.lotNumber,
               initial_quantity: sub.soLuong,
@@ -3060,7 +3060,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           reelMap.set(key, {
             id: null, // KHÔNG CÓ ID -> Backend sẽ INSERT
             reel_id: reel.reelID,
-            part_number: `${reel.sapCode}V_${version}`,
+            part_number: `${reel.sapCode}_V${version}`,
             vendor: reel.vendor ?? "",
             lot: reel.lot ?? "",
             user_data_1: reel.userData1 ?? "",
@@ -3899,7 +3899,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
       // chuẩn bị các trường dùng để tạo qrCode
       const f_reelID = norm(reelID);
-      const f_partNumber = norm(`${productionOrder.maSAP}V_${version}`);
+      const f_partNumber = norm(`${productionOrder.maSAP}_V${version}`);
       const f_storageUnit = norm(productionOrder.maKhoNhap ?? "RD01");
       const f_vendor = norm("RD");
       const f_lot = norm(lotNumber);
