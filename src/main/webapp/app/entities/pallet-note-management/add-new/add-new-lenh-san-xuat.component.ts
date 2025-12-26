@@ -3846,10 +3846,26 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     };
 
     // manufacturingDate và expirationDate chuẩn (YYYYMMDD)
-    const manufacturingDate = new Date()
-      .toISOString()
-      .split("T")[0]
-      .replace(/-/g, "");
+    const formatDateToYYYYMMDD = (
+      date: Date | string | null | undefined,
+    ): string => {
+      if (!date) {
+        const d = new Date();
+        return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+      }
+
+      const d = date instanceof Date ? date : new Date(date);
+
+      if (isNaN(d.getTime())) {
+        const fallback = new Date();
+        return `${fallback.getFullYear()}${String(fallback.getMonth() + 1).padStart(2, "0")}${String(fallback.getDate()).padStart(2, "0")}`;
+      }
+
+      return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    };
+
+    // Lấy manufacturingDate từ form data
+    const manufacturingDate = formatDateToYYYYMMDD(data.mfg);
     const expirationDate = (() => {
       const d = new Date();
       return `${d.getFullYear() + 2}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;

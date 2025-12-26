@@ -41,7 +41,7 @@ export interface BoxFormData {
   comments?: string;
   TPNK?: string;
   rank?: string;
-  mfg?: string;
+  mfg?: Date | string | null;
   note?: string;
 }
 
