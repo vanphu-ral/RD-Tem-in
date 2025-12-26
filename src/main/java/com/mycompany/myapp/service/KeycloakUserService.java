@@ -44,7 +44,7 @@ public class KeycloakUserService {
                     .clients()
                     .findAll()
                     .stream()
-                    .filter(c -> c.getClientId().equals("tem_in_test"))
+                    .filter(c -> c.getClientId().equals("tem_in"))
                     .findFirst()
                     .orElseThrow(() ->
                         new RuntimeException("Client not found")

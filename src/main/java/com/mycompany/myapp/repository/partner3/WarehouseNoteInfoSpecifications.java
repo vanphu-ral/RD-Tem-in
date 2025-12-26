@@ -94,9 +94,9 @@ public class WarehouseNoteInfoSpecifications {
             if (createBy == null || createBy.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.like(
+            return criteriaBuilder.equal(
                 criteriaBuilder.lower(root.get("createBy")),
-                "%" + createBy.trim().toLowerCase() + "%"
+                createBy.trim().toLowerCase()
             );
         };
     }
