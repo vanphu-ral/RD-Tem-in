@@ -295,29 +295,64 @@ public class WarehouseNoteInfoApprovalService {
                     )
                 );
 
-        // Update the main approval entity
-        existingApproval.setWarehouseNoteInfoId(
-            requestDTO.getWarehouseNoteInfoId()
-        );
-        existingApproval.setMaLenhSanXuat(requestDTO.getMaLenhSanXuat());
-        existingApproval.setSapCode(requestDTO.getSapCode());
-        existingApproval.setSapName(requestDTO.getSapName());
-        existingApproval.setWorkOrderCode(requestDTO.getWorkOrderCode());
-        existingApproval.setVersion(requestDTO.getVersion());
-        existingApproval.setStorageCode(requestDTO.getStorageCode());
-        existingApproval.setTotalQuantity(requestDTO.getTotalQuantity());
-        existingApproval.setCreateBy(requestDTO.getCreateBy());
-        existingApproval.setTrangThai(requestDTO.getTrangThai());
-        existingApproval.setComment(requestDTO.getComment());
+        // Update the main approval entity - only update fields that are provided in the request
+        if (requestDTO.getWarehouseNoteInfoId() != null) {
+            existingApproval.setWarehouseNoteInfoId(
+                requestDTO.getWarehouseNoteInfoId()
+            );
+        }
+        if (requestDTO.getMaLenhSanXuat() != null) {
+            existingApproval.setMaLenhSanXuat(requestDTO.getMaLenhSanXuat());
+        }
+        if (requestDTO.getSapCode() != null) {
+            existingApproval.setSapCode(requestDTO.getSapCode());
+        }
+        if (requestDTO.getSapName() != null) {
+            existingApproval.setSapName(requestDTO.getSapName());
+        }
+        if (requestDTO.getWorkOrderCode() != null) {
+            existingApproval.setWorkOrderCode(requestDTO.getWorkOrderCode());
+        }
+        if (requestDTO.getVersion() != null) {
+            existingApproval.setVersion(requestDTO.getVersion());
+        }
+        if (requestDTO.getStorageCode() != null) {
+            existingApproval.setStorageCode(requestDTO.getStorageCode());
+        }
+        if (requestDTO.getTotalQuantity() != null) {
+            existingApproval.setTotalQuantity(requestDTO.getTotalQuantity());
+        }
+        if (requestDTO.getCreateBy() != null) {
+            existingApproval.setCreateBy(requestDTO.getCreateBy());
+        }
+        if (requestDTO.getTrangThai() != null) {
+            existingApproval.setTrangThai(requestDTO.getTrangThai());
+        }
+        if (requestDTO.getComment() != null) {
+            existingApproval.setComment(requestDTO.getComment());
+        }
+        // Always update the time
         existingApproval.setTimeUpdate(Instant.now());
-        existingApproval.setGroupName(requestDTO.getGroupName());
-        existingApproval.setComment2(requestDTO.getComment2());
-        existingApproval.setApproverBy(requestDTO.getApproverBy());
-        existingApproval.setBranch(requestDTO.getBranch());
-        existingApproval.setProductType(requestDTO.getProductType());
-        existingApproval.setDestinationWarehouse(
-            requestDTO.getDestinationWarehouse()
-        );
+        if (requestDTO.getGroupName() != null) {
+            existingApproval.setGroupName(requestDTO.getGroupName());
+        }
+        if (requestDTO.getComment2() != null) {
+            existingApproval.setComment2(requestDTO.getComment2());
+        }
+        if (requestDTO.getApproverBy() != null) {
+            existingApproval.setApproverBy(requestDTO.getApproverBy());
+        }
+        if (requestDTO.getBranch() != null) {
+            existingApproval.setBranch(requestDTO.getBranch());
+        }
+        if (requestDTO.getProductType() != null) {
+            existingApproval.setProductType(requestDTO.getProductType());
+        }
+        if (requestDTO.getDestinationWarehouse() != null) {
+            existingApproval.setDestinationWarehouse(
+                requestDTO.getDestinationWarehouse()
+            );
+        }
 
         // Save the updated main approval entity
         WarehouseNoteInfoApproval updatedApproval =
@@ -327,37 +362,9 @@ public class WarehouseNoteInfoApprovalService {
             updatedApproval.getId()
         );
 
-        // Update ReelIds - first delete existing ones and then create new ones
-        if (requestDTO.getListWarehouseNoteDetail() != null) {
-            // Delete existing reel IDs
-            reelIdRepository.deleteByWarehouseNoteInfoApprovalId(id);
-            log.debug(
-                "Deleted existing ReelIds for WarehouseNoteInfoApproval: {}",
-                id
-            );
-
-            // Create and save new ReelIds
-            for (ReelIdRequestDTO reelIdRequest : requestDTO.getListWarehouseNoteDetail()) {
-                ReelIdInWarehouseNoteInfoApproval reelId =
-                    new ReelIdInWarehouseNoteInfoApproval();
-                reelId.setId(reelIdRequest.getId());
-                reelId.setCreateAt(
-                    reelIdRequest.getCreateAt() != null
-                        ? reelIdRequest.getCreateAt()
-                        : Instant.now()
-                );
-                reelId.setCreateBy(reelIdRequest.getCreateBy());
-                reelId.setStatus("pending"); // Set default status
-                reelId.setWarehouseNoteInfoApproval(updatedApproval);
-
-                reelIdRepository.save(reelId);
-                log.debug(
-                    "Saved ReelId: {} for WarehouseNoteInfoApproval: {}",
-                    reelId.getId(),
-                    updatedApproval.getId()
-                );
-            }
-        }
+        // Note: We intentionally do NOT update the related ReelIdInWarehouseNoteInfoApproval entities
+        // to comply with the requirement that only the specified information should be updated.
+        // The related warehouse_note_info_detail table should remain unchanged.
 
         return convertToDTO(updatedApproval);
     }

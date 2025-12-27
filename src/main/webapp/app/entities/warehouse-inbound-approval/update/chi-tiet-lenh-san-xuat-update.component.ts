@@ -30,6 +30,9 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   resourceUrlUpdate = this.applicationConfigService.getEndpointFor(
     "/api/warehouse-note-info-details",
   );
+  resourceUrlUpdateDetail = this.applicationConfigService.getEndpointFor(
+    "/api/warehouse-stamp-info-details",
+  );
   resourceUrlWarehouseNoteInfo = this.applicationConfigService.getEndpointFor(
     "/api/warehouse-note-infos",
   );
@@ -461,7 +464,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         sapName: this.editForm.get(["sapName"])!.value,
         workOrderCode: this.editForm.get(["workOrderCode"])!.value,
         version: this.editForm.get(["version"])!.value,
-        storageCode: this.editForm.get(["storageCode"])!.value,
+        storage_code: this.editForm.get(["storageCode"])!.value,
         totalQuantity: this.editForm.get(["totalQuantity"])!.value,
         createBy: this.editForm.get(["createBy"])!.value,
         entryTime: this.editForm.get(["entryTime"])!.value,
@@ -474,11 +477,14 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
       // Update warehouse_note_info
       this.http
-        .put<any>(`${this.resourceUrlWarehouseNoteInfo}/${id}`, updateDTO)
+        .patch<any>(
+          `${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`,
+          updateDTO,
+        )
         .subscribe(() => {
           // Update warehouse_note_info_details
           this.http
-            .post<any>(this.resourceUrlUpdate, this.chiTietLenhSanXuats)
+            .put<any>(this.resourceUrlUpdateDetail, this.chiTietLenhSanXuats)
             .subscribe(() => {
               this.isSaving = false;
               alert("cập nhật chi tiết lệnh sản xuất thành công!");

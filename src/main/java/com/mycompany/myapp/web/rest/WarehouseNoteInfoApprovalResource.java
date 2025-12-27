@@ -222,15 +222,16 @@ public class WarehouseNoteInfoApprovalResource {
             );
         }
 
-        // Validate that at least the main fields are provided
+        // For PATCH operations, we allow partial updates so we don't require all fields
+        // Only validate if maLenhSanXuat is provided, it should not be empty
         if (
-            requestDTO.getMaLenhSanXuat() == null ||
+            requestDTO.getMaLenhSanXuat() != null &&
             requestDTO.getMaLenhSanXuat().isEmpty()
         ) {
             throw new BadRequestAlertException(
-                "maLenhSanXuat is required",
+                "maLenhSanXuat cannot be empty",
                 ENTITY_NAME,
-                "maLenhSanXuatRequired"
+                "maLenhSanXuatEmpty"
             );
         }
 
