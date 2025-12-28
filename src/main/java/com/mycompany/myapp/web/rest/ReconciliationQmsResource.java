@@ -92,6 +92,9 @@ public class ReconciliationQmsResource {
                 }
             }
 
+            // Update wms_send_status for pallets in mode_pallet
+            updatePalletWmsSendStatus(modePalletList);
+
             // Update mode_box
             if (modeBoxList != null) {
                 for (Map<String, Object> modeBox : modeBoxList) {
@@ -402,7 +405,34 @@ public class ReconciliationQmsResource {
             if (data.containsKey("updated_by")) {
                 detail.setUpdatedBy((String) data.get("updated_by"));
             }
+            if (data.containsKey("wms_send_status")) {
+                Integer wmsSendStatusValue = (Integer) data.get(
+                    "wms_send_status"
+                );
+                detail.setWmsSendStatus(
+                    wmsSendStatusValue != null && wmsSendStatusValue == 1
+                );
+            }
             warehouseStampInfoDetailService.update(detail);
+        }
+    }
+
+    private void updatePalletWmsSendStatus(
+        List<Map<String, Object>> modePalletList
+    ) {
+        if (modePalletList != null) {
+            for (Map<String, Object> modePallet : modePalletList) {
+                String serialPallet = (String) modePallet.get("serial_pallet");
+                if (serialPallet != null) {
+                    Optional<PalletInforDetailDTO> palletOpt =
+                        palletInforDetailService.findOne(serialPallet);
+                    if (palletOpt.isPresent()) {
+                        PalletInforDetailDTO pallet = palletOpt.get();
+                        pallet.setWmsSendStatus(true);
+                        palletInforDetailService.save(pallet);
+                    }
+                }
+            }
         }
     }
 }
