@@ -93,7 +93,7 @@ export class PlanningWorkOrderService {
   private WMSUrl = "https://ral-wms-logistic.rangdong.com.vn:9004/api";
   private apiCheckIdentifyWo = `${this.baseUrl}/warehouse-note-infos/work-order-code`;
 
-  private testUrl = "http://192.168.68.77:9030/api";
+  private testUrl = "http://192.168.68.77:9040/api";
 
   constructor(private http: HttpClient) {}
 
@@ -233,7 +233,7 @@ export class PlanningWorkOrderService {
   //send WMS
   //lay ma kho area
   getAreas(): Observable<Area[]> {
-    return this.http.get<Area[]>(`${this.WMSUrl}/areas/`);
+    return this.http.get<Area[]>(`${this.testUrl}/areas`);
   }
 
   sendWmsApproval(payload: any): Observable<any> {

@@ -18,7 +18,7 @@
 #       - SPRING_CLOUD_DISCOVERY_CLIENT_SIMPLE_INSTANCES_MYAPP_0_URI=http://host.docker.internal:8081
 #       - SPRING_CLOUD_DISCOVERY_CLIENT_SIMPLE_INSTANCES_MYAPP_1_URI=http://host.docker.internal:8082
 # Or add a new application named MyNewApp
-#       - SPRING_CLOUD_DISCOVERY_CLIENT_SIMPLE_INSTANCES_MYNEWAPP_0_URI=http://host.docker.internal:8085
+#       - SPRING_CLOUD_DISCOVERY_CLIENT_SIMPLE_INSTANCES_MYNEWAPP_0_URI=http://host.docker.internal:9040
 # This configuration is intended for development purpose, it's **your** responsibility to harden it for production
 
 #### IMPORTANT
@@ -45,7 +45,7 @@ services:
       - SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_ISSUER_URI=http://keycloak:8080/auth/realms/jhipster
       - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_ID=jhipster-control-center
       - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET=jhipster-control-center
-      - SPRING_CLOUD_DISCOVERY_CLIENT_SIMPLE_INSTANCES_JHIPSTER_0_URI=http://host.docker.internal:8085
+      - SPRING_CLOUD_DISCOVERY_CLIENT_SIMPLE_INSTANCES_JHIPSTER_0_URI=http://host.docker.internal:9040
       - LOGGING_FILE_NAME=/tmp/jhipster-control-center.log
     # If you want to expose these ports outside your dev PC,
     # remove the "127.0.0.1:" prefix

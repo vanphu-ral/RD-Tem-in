@@ -2890,6 +2890,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             scan_progress: sub.tienDoScan ?? 0,
             num_box_actual: sub.tongSoThung,
             num_box_config: sub.thungScan ?? 1,
+            pallet_index: sub.stt ?? 1,
             updated_at: new Date().toISOString(),
             updated_by: currentUser,
             created_at: p.createdAt,
