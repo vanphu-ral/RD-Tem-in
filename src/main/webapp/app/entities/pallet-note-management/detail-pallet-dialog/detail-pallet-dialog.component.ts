@@ -99,6 +99,7 @@ export interface PalletBoxItem {
   lotNumber?: string;
   noSKU?: string;
   scannedBoxes?: string[];
+  thuTuPallet?: number;
 }
 
 // Multi-mode data interface
@@ -506,7 +507,7 @@ export class PalletDetailDialogComponent implements OnInit {
 
       soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
       // thuTuGiaPallet: thuTuGiaPallet,
-      thuTuGiaPallet: Number(sourceData.thuTuPallet),
+      thuTuGiaPallet: item.thuTuPallet ?? sourceData.thuTuPallet ?? 1,
       soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
       slThung: sourceData.tongSlSp,
       note: sourceData.note ?? "",
@@ -653,7 +654,7 @@ export class PalletDetailDialogComponent implements OnInit {
 
         soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
         // thuTuGiaPallet: thuTuGiaPallet,
-        thuTuGiaPallet: Number(sourceData.thuTuPallet),
+        thuTuGiaPallet: item.thuTuPallet ?? sourceData.thuTuPallet ?? 1,
         soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
         slThung: sourceData.tongSlSp,
         note: sourceData.note ?? "",
@@ -938,6 +939,7 @@ export class PalletDetailDialogComponent implements OnInit {
             parentPalletIndex: sourceIndex,
             tenSanPham: source.tenSanPham,
             noSKU: source.noSKU,
+            thuTuPallet: subItem.thuTuPallet ?? source.thuTuPallet ?? 1,
 
             //SỬ DỤNG DỮ LIỆU ĐÃ CÓ, KHÔNG GHI ĐÈ
             scannedBoxes: subItem.scannedBoxes ?? [],
@@ -979,6 +981,7 @@ export class PalletDetailDialogComponent implements OnInit {
           parentPalletIndex: sourceIndex,
           tenSanPham: source.tenSanPham,
           noSKU: source.noSKU,
+          thuTuPallet: source.thuTuPallet ?? 1,
 
           // SỬ DỤNG DỮ LIỆU ĐÃ CÓ TỪ SOURCE
           scannedBoxes: source.scannedBoxes ?? [],

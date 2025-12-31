@@ -408,13 +408,7 @@
                   >
                     <mat-icon>visibility</mat-icon>
                   </button>
-                  <button
-                    mat-icon-button
-                    color="warn"
-                    (click)="deleteBox(i)"
-                    matTooltip="Xoá"
-                    matTooltipPosition="left"
-                  >
+                  <button mat-icon-button color="warn" (click)="deleteBox(i)">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </td>
@@ -676,8 +670,6 @@
                     color="warn"
                     (click)="deletePallet(element)"
                     [disabled]="element.trangThaiIn"
-                    matTooltip="Xoá"
-                    matTooltipPosition="left"
                   >
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -997,8 +989,6 @@
                     mat-icon-button
                     color="warn"
                     (click)="deleteReelGroup(i)"
-                    matTooltip="Xoá"
-                    matTooltipPosition="left"
                     [disabled]="element.printStatus"
                   >
                     <mat-icon>delete</mat-icon>

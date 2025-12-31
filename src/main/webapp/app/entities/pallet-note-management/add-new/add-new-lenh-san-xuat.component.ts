@@ -252,6 +252,7 @@ export interface PalletItem {
   lotNumber?: string;
   wmsSent?: boolean;
   status?: string;
+  palletIndex?: number;
 }
 export interface PalletBoxItem {
   stt: number;
