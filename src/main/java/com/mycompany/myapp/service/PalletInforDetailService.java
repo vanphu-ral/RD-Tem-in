@@ -393,6 +393,10 @@ public class PalletInforDetailService {
                     existingPallet.setPrintStatus(dto.getPrintStatus());
                 }
 
+                if (dto.getPalletIndex() != null) {
+                    existingPallet.setPalletIndex(dto.getPalletIndex());
+                }
+
                 // Always update the timestamp
                 existingPallet.setUpdatedAt(Instant.now());
 

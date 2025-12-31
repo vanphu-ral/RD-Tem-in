@@ -418,7 +418,6 @@ export class LenhSanXuatComponent implements OnInit {
           this.trangThai = this.body.trangThai;
           console.log("have result!");
           // this.getTotalData();
-          this.getLenhSanXuatList();
           if (this.pageNumber > 1) {
             this.backPageBtn = false;
             this.firstPageBtn = false;
@@ -427,6 +426,7 @@ export class LenhSanXuatComponent implements OnInit {
           this.hiddenCreateBy = this.getCurrentUser();
           this.createByInput = ""; // không hiển thị user trong input
           this.createByTouched = false;
+          this.createBy = this.hiddenCreateBy;
         }
         this.getLenhSanXuatList();
       },
@@ -453,7 +453,6 @@ export class LenhSanXuatComponent implements OnInit {
           this.trangThai = this.body.trangThai;
           console.log("have result!");
           // this.getTotalData();
-          this.getLenhSanXuatList();
           if (this.pageNumber > 1) {
             this.backPageBtn = false;
             this.firstPageBtn = false;
@@ -462,6 +461,7 @@ export class LenhSanXuatComponent implements OnInit {
           this.hiddenCreateBy = this.getCurrentUser();
           this.createByInput = ""; // không hiển thị user trong input
           this.createByTouched = false;
+          this.createBy = this.hiddenCreateBy;
         }
         this.getLenhSanXuatList();
       },
@@ -474,6 +474,7 @@ export class LenhSanXuatComponent implements OnInit {
   }
   onCreateByInput(): void {
     this.createByTouched = true;
+    this.createBy = this.createByInput;
   }
   // getLenhSanXuatList(): void {
   //   this.http.post<any>(this.resourceUrl, this.body).subscribe((res) => {
@@ -740,7 +741,6 @@ export class LenhSanXuatComponent implements OnInit {
     addIf("workOrderCode", this.workOrderCode);
     addIf("version", this.version);
     addIf("storageCode", this.storageCode);
-    // addIf("createBy", this.createBy);
     if (!this.isAdminTem) {
       const effectiveCreateBy = this.createByTouched
         ? (this.createByInput ?? "")

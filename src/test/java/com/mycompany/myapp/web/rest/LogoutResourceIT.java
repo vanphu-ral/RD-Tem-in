@@ -74,7 +74,7 @@ class LogoutResourceIT {
 
     @Test
     void getLogoutInformation() throws Exception {
-        final String ORIGIN_URL = "http://192.168.68.77:8085";
+        final String ORIGIN_URL = "http://192.168.68.77:9040";
         String logoutUrl = this.registrations.findByRegistrationId("oidc")
             .getProviderDetails()
             .getConfigurationMetadata()
@@ -88,7 +88,7 @@ class LogoutResourceIT {
             ORIGIN_URL;
         restLogoutMockMvc
             .perform(
-                post("http://192.168.68.77:8085/api/logout").header(
+                post("http://192.168.68.77:9040/api/logout").header(
                     HttpHeaders.ORIGIN,
                     ORIGIN_URL
                 )
