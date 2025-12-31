@@ -293,11 +293,33 @@ export class WmsApproveDialogComponent implements OnInit {
       );
     }
 
+    // QUAN TRONG: Lay mappings tu data.serialBoxPalletMappings hoac tu preloadedPallets
     if (Array.isArray((data as any).serial_box_pallet_mappings)) {
       this.mappings = (data as any).serial_box_pallet_mappings;
-    } else if (Array.isArray((data as any).serialBoxPalletMappings)) {
-      this.mappings = (data as any).serialBoxPalletMappings;
+    } else if (Array.isArray(data.serialBoxPalletMappings)) {
+      this.mappings = data.serialBoxPalletMappings;
+    } else if (Array.isArray(data?.preloadedPallets)) {
+      // THEM: Build mappings tu scannedBoxes cua pallets
+      const tempMappings: Array<{ serial_box: string; serial_pallet: string }> =
+        [];
+      data.preloadedPallets.forEach((pallet: any) => {
+        if (Array.isArray(pallet.scannedBoxes)) {
+          pallet.scannedBoxes.forEach((boxCode: string) => {
+            tempMappings.push({
+              serial_box: boxCode,
+              serial_pallet: pallet.serialPallet ?? pallet.palletCode ?? "",
+            });
+          });
+        }
+      });
+      this.mappings = tempMappings;
+      console.log(
+        "Built mappings from preloaded pallets:",
+        this.mappings.length,
+      );
     }
+
+    console.log("Mappings loaded:", this.mappings.length);
 
     const { boxDetailBySerial, boxToPallet, palletAggregates } =
       this.buildBoxAggregates(this.warehouseNoteInfoDetails, this.mappings);
@@ -324,11 +346,8 @@ export class WmsApproveDialogComponent implements OnInit {
         ...(this.warehouseNoteInfoDetails ?? {}),
         id: data.maLenhSanXuatId,
       };
-    }
-    // FALLBACK: Load data trong dialog (không có preload)
-    else {
+    } else {
       console.warn("No preloaded data, loading inside dialog");
-      // Sẽ gọi trong ngOnInit
     }
   }
 
@@ -1972,53 +1991,36 @@ export class WmsApproveDialogComponent implements OnInit {
     const result: BoxDialogItem[] = [];
     const palletsArr = this.getCurrentPalletsArray();
 
-    // build mappedSet / scannedSet như bạn đã có (giữ nguyên)
-    const scannedSet = new Set<string>();
+    console.log("getAllBoxDialogItems START:", {
+      palletsCount: palletsArr.length,
+      boxDetailsCount: this.boxDetails.length,
+      mappingsCount: this.mappings.length,
+    });
+
+    const palletStatusMap = new Map<string, boolean>();
     palletsArr.forEach((p) => {
-      if (Array.isArray(p.scannedBoxes)) {
-        p.scannedBoxes.forEach((s) => {
-          const norm = this.normalizeSerial(s);
-          if (norm) {
-            scannedSet.add(norm);
-          }
-        });
+      const serial = this.normalizeSerial(p.palletCode ?? p.serialPallet ?? "");
+      if (serial) {
+        palletStatusMap.set(serial, p.isSent === true);
       }
-      const items = Array.isArray((p as any).boxes)
-        ? (p as any).boxes
-        : Array.isArray((p as any).boxItems)
-          ? (p as any).boxItems
-          : [];
-      items.forEach((b: any) => {
-        const candidate =
-          b?.boxCode ??
-          b?.reelID ??
-          b?.reel_id ??
-          b?.serial_box ??
-          b?.maThung ??
-          "";
-        const norm = this.normalizeSerial(candidate);
-        if (norm) {
-          scannedSet.add(norm);
-        }
-      });
     });
 
-    const mappedSet = new Set<string>();
+    const boxToPalletMap = new Map<string, string>();
     (this.mappings || []).forEach((m: any) => {
-      const candidate =
-        m?.serial_box ?? m?.reel_id ?? m?.boxSerial ?? m?.box_code ?? "";
-      const norm = this.normalizeSerial(candidate);
-      if (norm) {
-        mappedSet.add(norm);
+      const boxSerial = this.normalizeSerial(
+        m?.serial_box ?? m?.reel_id ?? m?.boxSerial ?? m?.box_code ?? "",
+      );
+      const palletSerial = this.normalizeSerial(m?.serial_pallet ?? "");
+      if (boxSerial && palletSerial) {
+        boxToPalletMap.set(boxSerial, palletSerial);
+        console.log(`Mapping: ${boxSerial} -> ${palletSerial}`);
       }
     });
 
-    // Build sourceBoxDetails same as your function (reuse existing logic)
     let sourceBoxDetails: any[] = [];
     if (Array.isArray(this.boxDetails) && this.boxDetails.length > 0) {
       sourceBoxDetails = this.boxDetails;
     } else {
-      // fallback: collect from palletsArr (same as your fallback)
       const fallback: any[] = [];
       palletsArr.forEach((p) => {
         const items = Array.isArray((p as any).boxes)
@@ -2033,9 +2035,8 @@ export class WmsApproveDialogComponent implements OnInit {
       sourceBoxDetails = fallback;
     }
 
-    // Map every source detail to BoxDialogItem (keep isSent)
     sourceBoxDetails.forEach((detail: any, idx: number) => {
-      // If detail has subItems (Thành phẩm with subItems)
+      // TRUONG HOP 1: Thanh pham co subItems
       if (
         this.productType === "Thành phẩm" &&
         Array.isArray(detail.subItems) &&
@@ -2048,7 +2049,27 @@ export class WmsApproveDialogComponent implements OnInit {
             return;
           }
 
-          const isSent = sub?.wms_send_status === true;
+          // Get pallet mapping first
+          const palletSerial = boxToPalletMap.get(serial) ?? "";
+
+          // Check own status
+          let isSent = sub?.wms_send_status === true;
+
+          // LOG DEBUG - THEM VAO DAY
+          if (palletSerial) {
+            console.log(
+              `[SubItem] Box ${serial}: pallet=${palletSerial}, palletSent=${palletStatusMap.get(palletSerial)}, ownStatus=${isSent}`,
+            );
+          }
+
+          // Check pallet status
+          if (palletSerial && palletStatusMap.get(palletSerial) === true) {
+            isSent = true;
+            console.log(
+              `[SubItem] Box ${serial} -> isSent set to TRUE (pallet sent)`,
+            );
+          }
+
           const qrCodeCandidate =
             sub?.qrCode ??
             sub?.qr_code ??
@@ -2062,7 +2083,7 @@ export class WmsApproveDialogComponent implements OnInit {
             boxCode: serial,
             qrCode: qrCodeCandidate,
             quantity: Number(sub?.soLuong ?? sub?.quantity ?? 0),
-            palletCode: "",
+            palletCode: palletSerial,
             isSent,
             productName: this.warehouseNoteInfo?.sap_name ?? "",
             lotNumber: detail.lot ?? "",
@@ -2076,7 +2097,7 @@ export class WmsApproveDialogComponent implements OnInit {
         return;
       }
 
-      // Non-subItems or BTP
+      // TRUONG HOP 2: Ban thanh pham hoac Thanh pham khong co subItems
       let serialCandidate = "";
       let qrCodeCandidate = "";
 
@@ -2104,25 +2125,32 @@ export class WmsApproveDialogComponent implements OnInit {
         return;
       }
 
-      let isSent: boolean;
+      const palletSerial = boxToPalletMap.get(serial) ?? "";
+      let isSent: boolean = false;
+
+      if (palletSerial) {
+        console.log(
+          `[Direct] Box ${serial}: pallet=${palletSerial}, palletSent=${palletStatusMap.get(palletSerial)}, ownStatus=${isSent}`,
+        );
+      }
+
       if (this.productType === "Bán thành phẩm") {
         const tt = (detail.trang_thai ?? detail.trangThai ?? "")
           .toString()
           .trim()
           .toLowerCase();
-
-        // Nếu backend trả 'pending' hoặc 'approved' => coi là đã gửi
         const trangThaiIsSent = tt === "pending" || tt === "approved";
-
-        // Nếu wms_send_status === true thì chắc chắn là sent,
-        // hoặc nếu trang_thai là pending/approved thì cũng coi là sent.
         isSent = detail.wms_send_status === true || trangThaiIsSent;
       } else {
-        // Thành phẩm: giữ nguyên kiểm tra wms_send_status
         isSent = detail.wms_send_status === true;
-        console.log("detail in else", detail);
       }
-      console.log("detail", detail);
+
+      if (palletSerial && palletStatusMap.get(palletSerial) === true) {
+        isSent = true;
+        console.log(
+          `[Direct] Box ${serial} -> isSent set to TRUE (pallet sent)`,
+        );
+      }
 
       result.push({
         id: (detail.id ?? idx + 1) as number,
@@ -2135,7 +2163,7 @@ export class WmsApproveDialogComponent implements OnInit {
             detail.soLuong ??
             0,
         ),
-        palletCode: "",
+        palletCode: palletSerial,
         isSent,
         productName: this.warehouseNoteInfo?.sap_name ?? "",
         lotNumber: detail.lot ?? "",
@@ -2147,13 +2175,14 @@ export class WmsApproveDialogComponent implements OnInit {
       });
     });
 
-    console.log("getAllBoxDialogItems:", {
-      productType: this.productType,
-      sourceCount: sourceBoxDetails.length,
-      scanned: scannedSet.size,
-      mapped: mappedSet.size,
-      totalBoxes: result.length,
-      sample: result[0],
+    console.log("Box load complete:", {
+      total: result.length,
+      sent: result.filter((b) => b.isSent).length,
+      pending: result.filter((b) => !b.isSent).length,
+      withPallet: result.filter((b) => b.palletCode).length,
+      sentWithPallet: result.filter((b) => b.isSent && b.palletCode).length,
+      palletStatusMapSize: palletStatusMap.size,
+      boxToPalletMapSize: boxToPalletMap.size,
     });
 
     return result;
