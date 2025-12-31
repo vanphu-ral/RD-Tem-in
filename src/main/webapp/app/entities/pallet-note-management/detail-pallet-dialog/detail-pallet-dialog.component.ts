@@ -52,6 +52,7 @@ export interface PalletDetailData {
   maLenhSanXuatId?: number; // Production order ID
   validReelIds?: string[]; // Valid reel IDs for this production order
   tienDoScan?: number;
+  thuTuPallet?: number;
   scannedBoxes?: any;
   locationCode?: string;
   printStatus?: boolean;
@@ -504,7 +505,8 @@ export class PalletDetailDialogComponent implements OnInit {
       lpl2: sourceData.team ?? "",
 
       soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
-      thuTuGiaPallet: thuTuGiaPallet,
+      // thuTuGiaPallet: thuTuGiaPallet,
+      thuTuGiaPallet: Number(sourceData.thuTuPallet),
       soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
       slThung: sourceData.tongSlSp,
       note: sourceData.note ?? "",
@@ -650,7 +652,8 @@ export class PalletDetailDialogComponent implements OnInit {
         lpl2: sourceData.team ?? "",
 
         soLuongCaiDatPallet: tongSoSanPhamTrongPallet,
-        thuTuGiaPallet: thuTuGiaPallet,
+        // thuTuGiaPallet: thuTuGiaPallet,
+        thuTuGiaPallet: Number(sourceData.thuTuPallet),
         soLuongBaoNgoaiThungGiaPallet: item.tongSoThung.toString(),
         slThung: sourceData.tongSlSp,
         note: sourceData.note ?? "",

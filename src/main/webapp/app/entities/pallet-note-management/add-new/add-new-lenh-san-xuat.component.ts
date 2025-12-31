@@ -239,6 +239,7 @@ export interface PalletItem {
   poNumber: string;
   dateCode: string;
   qdsx: string;
+  thuTuPallet?: number;
   nguoiKiemTra: string;
   ketQuaKiemTra: string;
   trangThaiIn: boolean;
@@ -266,6 +267,7 @@ export interface PalletBoxItem {
   wmsSent?: boolean;
   lotNumber?: string;
   status?: string;
+  thuTuPallet?: number;
 }
 interface AreaOption {
   value: string; // areaId (string để bind vào mat-select)
@@ -1364,7 +1366,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             lpl2: palletGroup.to ?? this.productionOrders[0]?.to ?? "",
 
             soLuongCaiDatPallet: soLuongCaiDatPallet,
-            thuTuGiaPallet: thuTuGiaPallet,
+            // thuTuGiaPallet: thuTuGiaPallet,
+            thuTuGiaPallet: Number(palletSub?.thuTuPallet),
+
             soLuongBaoNgoaiThungGiaPallet: soThungDuKien.toString(),
             slThung: palletGroup.tongSlSp,
 
@@ -1708,6 +1712,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         this.warehouseNoteInfo?.product_type === "Thành phẩm"
           ? this.boxItems
           : this.reelDataList,
+
+      thuTuPallet: pallet.thuTuPallet ?? 1,
       productType: this.warehouseNoteInfo?.product_type ?? "Thành phẩm",
       version: this.warehouseNoteInfo?.version ?? "",
       maSAP: this.warehouseNoteInfo?.sap_code ?? pallet.tenSanPham ?? "",
@@ -1899,7 +1905,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               this.warehouseNoteInfo?.product_type === "Bán thành phẩm"
                 ? this.reelDataList
                 : this.boxItems,
-
+            thuTuPallet: pallet.thuTuPallet ?? 1,
             productType: this.warehouseNoteInfo?.product_type ?? "Thành phẩm",
             version: this.warehouseNoteInfo?.version ?? "",
             maSAP: this.warehouseNoteInfo?.sap_code ?? pallet.tenSanPham ?? "",
@@ -2890,6 +2896,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             scan_progress: sub.tienDoScan ?? 0,
             num_box_actual: sub.tongSoThung,
             num_box_config: sub.thungScan ?? 1,
+            pallet_index: sub.thuTuPallet ?? null,
             updated_at: new Date().toISOString(),
             updated_by: currentUser,
             created_at: p.createdAt,
@@ -4048,6 +4055,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const index = this.palletItems.length + 1;
     const subItems: PalletBoxItem[] = [];
     const now = new Date().toISOString();
+
+    // Tính số pallet đã có cùng mã PO
+    const existingCountSamePO = this.palletItems
+      .filter((p) => p.poNumber === data.poNumber)
+      .reduce((sum, p) => sum + p.subItems.length, 0);
+
+    // Thứ tự pallet mới cho PO này
+    let thuTuStart = existingCountSamePO + 1;
+
     for (let i = 1; i <= data.soLuongPallet; i++) {
       const palletCode = this.generatePalletCode(index, i);
       subItems.push({
@@ -4059,6 +4075,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         tienDoScan: 0,
         sucChua: `${data.soLuongThungThucTe} thùng`,
         createdAt: now,
+        // thêm trường thuTuPallet cho subItem nếu cần
+        thuTuPallet: thuTuStart++,
       });
     }
 
@@ -4091,11 +4109,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     console.log("Đã tạo Pallet với", data.soLuongPallet, "pallet con");
     console.log("SubItems:", subItems);
 
-    // Gọi saveCombined đúng id; chờ hoàn thành nếu saveCombined là async
     if (this.maLenhSanXuatId == null) {
-      // Nếu chưa có id, bạn có 2 lựa chọn:
-      // 1) Tạo lệnh sản xuất trước (gọi API) và lấy id, rồi gọi saveCombined
-      // 2) Hoặc lưu tạm local và yêu cầu user lưu lệnh thủ công
       console.warn("maLenhSanXuatId chưa có, bỏ qua auto-save");
     } else {
       await this.saveCombined(this.maLenhSanXuatId);
@@ -4318,6 +4332,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           khachHang: detail.customer_name ?? "",
           poNumber: detail.po_number ?? "",
           dateCode: detail.date_code ?? "",
+          thuTuPallet: detail.pallet_index ?? "",
           qdsx: detail.qdsx_no ?? "",
           nguoiKiemTra: detail.inspector_name ?? "",
           ketQuaKiemTra: detail.inspection_result ?? "",
@@ -4343,6 +4358,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         tienDoScan: Number(detail.scan_progress ?? 0),
         sucChua: `${Number(detail.num_box_actual ?? 0)} thùng`,
         wmsSent: detail.wms_send_status,
+        thuTuPallet: detail.pallet_index,
         lotNumber: foundLot,
         printStatus: Boolean(detail.print_status),
       };
