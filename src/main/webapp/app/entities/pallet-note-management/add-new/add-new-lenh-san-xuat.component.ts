@@ -1906,7 +1906,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               this.warehouseNoteInfo?.product_type === "Bán thành phẩm"
                 ? this.reelDataList
                 : this.boxItems,
-            thuTuPallet: pallet.thuTuPallet ?? 1,
+            thuTuPallet: sub.thuTuPallet ?? 1,
             productType: this.warehouseNoteInfo?.product_type ?? "Thành phẩm",
             version: this.warehouseNoteInfo?.version ?? "",
             maSAP: this.warehouseNoteInfo?.sap_code ?? pallet.tenSanPham ?? "",
