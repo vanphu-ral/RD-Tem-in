@@ -1067,10 +1067,30 @@ export class WmsApproveDialogComponent implements OnInit {
   // ==================== HELPER: GET LOT NUMBER ====================
 
   private getLotNumber(): string {
-    if (this.boxDetails && this.boxDetails.length > 0) {
-      const lot = (this.boxDetails[0] as { lot?: string | null })?.lot;
-      return lot ?? "";
+    // Ưu tiên lấy từ boxItems (cho Thành phẩm)
+    if (Array.isArray(this.data?.boxItems) && this.data.boxItems.length > 0) {
+      const lotNumber = this.data.boxItems[0]?.lotNumber;
+      if (lotNumber) {
+        return String(lotNumber).trim();
+      }
     }
+
+    // Fallback: tìm trong boxDetails với nhiều tên field khác nhau
+    if (this.boxDetails && this.boxDetails.length > 0) {
+      const firstBox = this.boxDetails[0];
+      const lot =
+        firstBox?.lotNumber ?? firstBox?.lot_number ?? firstBox?.lot ?? "";
+
+      if (lot) {
+        return String(lot).trim();
+      }
+    }
+
+    // Fallback cuối: từ warehouseNoteInfo
+    if (this.warehouseNoteInfo?.lot_number) {
+      return String(this.warehouseNoteInfo.lot_number).trim();
+    }
+
     return "";
   }
 
