@@ -150,8 +150,10 @@
         border: 1px solid #e0e0e0;
         flex: 1;
         min-height: 0;
+        max-height: 500px;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
 
       .unscanned-header {
@@ -207,6 +209,7 @@
         border-radius: 8px;
         margin-bottom: 12px;
         border-left: 4px solid #ff9800;
+        flex-shrink: 0;
       }
 
       .slots-icon {
@@ -233,7 +236,8 @@
         gap: 8px;
         flex: 1; // Chiếm phần còn lại
         overflow-y: auto; // Scroll chỉ list
-        padding: 0;
+        padding: 4px;
+        margin: -4px;
         background: #f8fafc;
         border-radius: 8px;
         min-height: 0;
@@ -409,6 +413,8 @@
         justify-content: center;
         gap: 8px;
         position: relative;
+        margin-top: 12px;
+        flex-shrink: 0;
 
         mat-icon {
           font-size: 20px;
@@ -1046,7 +1052,7 @@
     }
 
     .unscanned-code {
-      font-size: 12px;
+      font-size: 12px !important;
     }
 
     .scan-content {
@@ -1068,6 +1074,7 @@
         .unscanned-boxes-section {
           margin-top: 16px;
           padding: 12px;
+          max-height: 300px;
         }
 
         .unscanned-header {
@@ -1082,7 +1089,7 @@
         }
 
         .unscanned-list {
-          max-height: 200px;
+          max-height: none;
         }
 
         .unscanned-item {
