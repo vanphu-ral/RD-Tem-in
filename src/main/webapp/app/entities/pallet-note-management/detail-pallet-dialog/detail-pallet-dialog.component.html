@@ -97,6 +97,15 @@
             <td mat-cell *matCellDef="let element">
               <button
                 mat-icon-button
+                (click)="openScanDialog(element)"
+                matTooltip="Scan thùng"
+                matTooltipPosition="left"
+                class="print-button"
+              >
+                <mat-icon>qr_code_scanner</mat-icon>
+              </button>
+              <button
+                mat-icon-button
                 (click)="onPrint(element)"
                 class="print-button"
               >
@@ -104,12 +113,13 @@
               </button>
               <button
                 mat-icon-button
-                (click)="openScanDialog(element)"
-                matTooltip="Scan thùng"
+                (click)="onDeletePallet(element)"
+                matTooltip="Xóa pallet"
                 matTooltipPosition="left"
-                class="print-button"
+                class="delete-button"
+                color="warn"
               >
-                <mat-icon>qr_code_scanner</mat-icon>
+                <mat-icon>delete</mat-icon>
               </button>
             </td>
           </ng-container>
@@ -187,6 +197,14 @@
             >
               <mat-icon>qr_code_scanner</mat-icon>
               Scan
+            </button>
+            <button
+              mat-icon-button
+              (click)="onDeletePallet(item)"
+              class="delete-icon-btn"
+              color="warn"
+            >
+              <mat-icon>delete</mat-icon>
             </button>
           </div>
         </div>

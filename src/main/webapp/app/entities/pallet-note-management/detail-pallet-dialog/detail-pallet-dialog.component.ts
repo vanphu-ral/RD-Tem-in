@@ -26,6 +26,8 @@ import { PlanningWorkOrderService } from "../service/planning-work-order.service
 import { finalize } from "rxjs";
 import { BoxDetailData } from "../detail-box-dialog/detail-box-dialog.component";
 import { WarehouseNoteInfo } from "../add-new/add-new-lenh-san-xuat.component";
+import { MatSnackBar } from "@angular/material/snack-bar";
+import { ConfirmDialogComponent } from "../confirm-dialog/confirm-dialog.component";
 
 export interface PalletDetailData {
   id?: number;
@@ -87,6 +89,7 @@ export interface PalletExcelRow {
   team: string; // Tổ
 }
 export interface PalletBoxItem {
+  id?: number;
   stt: number;
   maPallet: string;
   tongSoThung: number;
@@ -173,6 +176,7 @@ export class PalletDetailDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: MultiPalletDialogData,
     private dialog: MatDialog,
     private planningService: PlanningWorkOrderService,
+    private snackBar: MatSnackBar,
   ) {}
 
   ngOnInit(): void {
@@ -390,7 +394,126 @@ export class PalletDetailDialogComponent implements OnInit {
   }
 
   onClose(): void {
-    this.dialogRef.close();
+    this.dialogRef.close({
+      updated: true,
+      remainingCount: this.palletBoxItems.length,
+      remainingSources: this.palletSources,
+      deletedCount:
+        this.data.mode === "multiple"
+          ? (this.data.multipleData?.length ?? 0) - this.palletSources.length
+          : this.palletBoxItems.length === 0
+            ? 1
+            : 0,
+    });
+  }
+  // SỬA LẠI HÀM onDeletePallet
+  onDeletePallet(item: PalletBoxItem): void {
+    // 1) Try get sourceData by index first
+    let sourceData: any;
+    if (this.isMultipleMode) {
+      const idx = item.parentPalletIndex ?? 0;
+      sourceData = this.palletSources?.[idx];
+    } else {
+      sourceData = this.singlePalletData;
+    }
+
+    // 2) Fallback: try find by parent id (if item has parentId) or by serial
+    const itemSerial = (item.maPallet || "").toString().trim();
+    if (!sourceData) {
+      // try find in palletSources by matching serial or id
+      sourceData = (this.palletSources || []).find((s: any) => {
+        if (!s) {
+          return false;
+        }
+        if (s.id && item.parentPalletIndex && s.id === item.parentPalletIndex) {
+          return true;
+        }
+        const serial = (s.serialPallet || s.subItems?.[0]?.maPallet || "")
+          .toString()
+          .trim();
+        return serial && serial === itemSerial;
+      });
+    }
+
+    if (!sourceData) {
+      // try find in palletBoxItems (flat list) as last resort
+      sourceData = (this.palletBoxItems || []).find((b: any) => {
+        const serial = (b.maPallet || b.serialPallet || "").toString().trim();
+        return serial && serial === itemSerial;
+      });
+    }
+
+    if (!sourceData) {
+      console.error("Không tìm thấy source data cho pallet", {
+        item,
+        palletSources: this.palletSources,
+      });
+      this.snackBar.open(
+        "Không tìm thấy dữ liệu pallet để xóa. Vui lòng thử lại.",
+        "Đóng",
+        { duration: 3000, panelClass: ["error-snackbar"] },
+      );
+      return;
+    }
+
+    // 3) Tìm subItem trong sourceData (nếu có)
+    let palletIdToDelete: number | undefined;
+    let isSubItem = false;
+    if (Array.isArray(sourceData.subItems) && sourceData.subItems.length > 0) {
+      const subItem = sourceData.subItems.find(
+        (sub: any) =>
+          (sub.maPallet || sub.serialPallet || "").toString().trim() ===
+          itemSerial,
+      );
+      if (subItem) {
+        palletIdToDelete = subItem.id ?? sourceData.id;
+        isSubItem = true;
+        console.log("Deleting subItem:", {
+          maPallet: subItem.maPallet,
+          subItemId: subItem.id,
+          parentId: sourceData.id,
+          willDelete: palletIdToDelete,
+        });
+      }
+    }
+
+    // nếu không tìm thấy subItem, xóa whole pallet (sourceData)
+    if (!palletIdToDelete) {
+      palletIdToDelete = sourceData.id;
+      console.log("Deleting direct pallet:", {
+        serialPallet: sourceData.serialPallet,
+        id: palletIdToDelete,
+      });
+    }
+
+    if (!palletIdToDelete || palletIdToDelete <= 0 || isNaN(palletIdToDelete)) {
+      console.error("Invalid pallet ID:", palletIdToDelete);
+      this.snackBar.open("ID pallet không hợp lệ", "Đóng", {
+        duration: 3000,
+        panelClass: ["error-snackbar"],
+      });
+      return;
+    }
+
+    const confirmDialog = this.dialog.open(ConfirmDialogComponent, {
+      width: "400px",
+      data: {
+        title: "Xác nhận xóa",
+        message: `Bạn có chắc chắn muốn xóa pallet "${item.maPallet}"?\n\n(ID: ${palletIdToDelete})`,
+        confirmText: "Xóa",
+        cancelText: "Hủy",
+        type: "warn",
+      },
+    });
+
+    confirmDialog.afterClosed().subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return;
+      }
+
+      // gọi API xóa, sau đó cập nhật FE
+      this.deletePallet(palletIdToDelete!, item);
+    });
   }
 
   onPrint(item: PalletBoxItem): void {
@@ -805,7 +928,7 @@ export class PalletDetailDialogComponent implements OnInit {
             (box) => box.code,
           ) ?? [];
 
-        console.log("✅ Updated item:", {
+        console.log("Updated item:", {
           maPallet: item.maPallet,
           tienDoScan: item.tienDoScan,
           scannedBoxesCount: item.scannedBoxes?.length,
@@ -935,6 +1058,7 @@ export class PalletDetailDialogComponent implements OnInit {
 
           const item: PalletBoxItem = {
             ...subItem,
+            id: subItem.id,
             stt: globalStt++,
             parentPalletIndex: sourceIndex,
             tenSanPham: source.tenSanPham,
@@ -972,6 +1096,7 @@ export class PalletDetailDialogComponent implements OnInit {
         // });
 
         const item: PalletBoxItem = {
+          id: source.id,
           stt: globalStt++,
           maPallet: source.serialPallet,
           qrCode: source.serialPallet,
@@ -1066,5 +1191,232 @@ export class PalletDetailDialogComponent implements OnInit {
           }
         },
       });
+  }
+  private deletePallet(palletId: number, item: PalletBoxItem): void {
+    const loadingSnackBar = this.snackBar.open("Đang xóa pallet...", "", {
+      duration: 0,
+    });
+
+    this.planningService.deletePalletDetail(palletId).subscribe({
+      next: () => {
+        loadingSnackBar.dismiss();
+
+        console.log("Delete API successful, updating UI...");
+        console.log("Before delete:", {
+          palletBoxItems: this.palletBoxItems.length,
+          palletSources: this.palletSources.length,
+          item: {
+            maPallet: item.maPallet,
+            parentIndex: item.parentPalletIndex,
+            id: item.id,
+          },
+        });
+
+        // ===== BƯỚC 1: XÓA KHỎI palletBoxItems =====
+        const itemIndex = this.palletBoxItems.findIndex(
+          (p) => p.maPallet === item.maPallet,
+        );
+
+        if (itemIndex > -1) {
+          console.log(`  ✓ Removing from palletBoxItems at index ${itemIndex}`);
+          this.palletBoxItems.splice(itemIndex, 1);
+
+          // Cập nhật lại STT
+          this.palletBoxItems.forEach((p, idx) => {
+            p.stt = idx + 1;
+          });
+        }
+
+        // ===== BƯỚC 2: XÓA KHỎI palletSources =====
+        if (this.isMultipleMode && item.parentPalletIndex !== undefined) {
+          const parentIndex = item.parentPalletIndex;
+          const source = this.palletSources[parentIndex];
+
+          if (!source) {
+            console.warn(` Source not found at index ${parentIndex}`);
+          } else if (source.subItems && source.subItems.length > 0) {
+            // ===== CÓ SUBITEMS - XÓA SUBITEM =====
+            const subIndex = source.subItems.findIndex(
+              (sub) => sub.maPallet === item.maPallet,
+            );
+
+            if (subIndex > -1) {
+              console.log(
+                `  ✓ Removing subItem at palletSources[${parentIndex}].subItems[${subIndex}]`,
+              );
+              source.subItems.splice(subIndex, 1);
+
+              // NẾU HẾT SUBITEM, XÓA LUÔN PARENT SOURCE
+              if (source.subItems.length === 0) {
+                console.log(
+                  ` No more subItems, removing parent source at index ${parentIndex}`,
+                );
+                this.palletSources.splice(parentIndex, 1);
+
+                // CẬP NHẬT parentPalletIndex CHO CÁC ITEM CÒN LẠI
+                this.palletBoxItems.forEach((p) => {
+                  if (
+                    p.parentPalletIndex !== undefined &&
+                    p.parentPalletIndex > parentIndex
+                  ) {
+                    const oldIndex = p.parentPalletIndex;
+                    p.parentPalletIndex--;
+                    console.log(
+                      `    Updated item ${p.maPallet}: parentIndex ${oldIndex} -> ${p.parentPalletIndex}`,
+                    );
+                  }
+                });
+              }
+            } else {
+              console.warn(
+                ` SubItem not found with maPallet: ${item.maPallet}`,
+              );
+            }
+          } else {
+            // ===== KHÔNG CÓ SUBITEMS - XÓA TRỰC TIẾP SOURCE =====
+            console.log(`  ✓ Removing direct source at index ${parentIndex}`);
+            this.palletSources.splice(parentIndex, 1);
+
+            // CẬP NHẬT parentPalletIndex CHO CÁC ITEM CÒN LẠI
+            this.palletBoxItems.forEach((p) => {
+              if (
+                p.parentPalletIndex !== undefined &&
+                p.parentPalletIndex > parentIndex
+              ) {
+                p.parentPalletIndex--;
+              }
+            });
+          }
+        } else if (this.singlePalletData) {
+          // ===== SINGLE MODE =====
+          console.log("  ✓ Single mode - clearing singlePalletData");
+          this.singlePalletData = undefined;
+
+          // XÓA KHỎI palletSources LUÔN
+          if (this.palletSources.length > 0) {
+            this.palletSources = [];
+          }
+        }
+
+        console.log("After delete:", {
+          palletBoxItems: this.palletBoxItems.length,
+          palletSources: this.palletSources.length,
+          remainingSources: this.palletSources.map((s) => ({
+            serial: s.serialPallet,
+            subItemsCount: s.subItems?.length ?? 0,
+          })),
+        });
+
+        // ===== BƯỚC 3: CẬP NHẬT PAGINATION =====
+        this.totalItems = this.palletBoxItems.length;
+
+        const maxPageIndex = Math.max(
+          0,
+          Math.ceil(this.totalItems / this.pageSize) - 1,
+        );
+        if (this.pageIndex > maxPageIndex) {
+          this.pageIndex = maxPageIndex;
+          console.log(`  ✓ Adjusted pageIndex to ${this.pageIndex}`);
+        }
+
+        this.updatePaginatedItems();
+
+        // ===== BƯỚC 4: THÔNG BÁO =====
+        this.snackBar.open(
+          `✓ Đã xóa pallet "${item.maPallet}" thành công`,
+          "Đóng",
+          {
+            duration: 3000,
+            panelClass: ["success-snackbar"],
+          },
+        );
+
+        // ===== BƯỚC 5: ĐÓNG DIALOG NẾU HẾT =====
+        if (this.palletBoxItems.length === 0) {
+          console.log(" No items left, closing dialog...");
+          this.snackBar.open("Đã xóa tất cả pallet. Đóng cửa sổ...", "Đóng", {
+            duration: 2000,
+          });
+
+          setTimeout(() => {
+            this.dialogRef.close({
+              deleted: true,
+              allDeleted: true,
+              remainingCount: 0,
+              remainingSources: this.palletSources, // TRUYỀN RA
+            });
+          }, 2000);
+        }
+      },
+      error: (error) => {
+        loadingSnackBar.dismiss();
+        console.error("Delete API failed:", error);
+
+        // XỬ LÝ 404/500 - Entity đã bị xóa
+        if (error.status === 404 || error.status === 500) {
+          const errorDetail = error?.error?.detail || "";
+
+          if (
+            errorDetail.includes("No class") ||
+            errorDetail.includes("exists!")
+          ) {
+            console.warn(" Entity already deleted, cleaning up UI...");
+
+            // Cleanup UI như thành công
+            const itemIndex = this.palletBoxItems.findIndex(
+              (p) => p.maPallet === item.maPallet,
+            );
+
+            if (itemIndex > -1) {
+              this.palletBoxItems.splice(itemIndex, 1);
+
+              // XÓA KHỎI palletSources
+              if (item.parentPalletIndex !== undefined) {
+                const source = this.palletSources[item.parentPalletIndex];
+                if (source?.subItems) {
+                  const subIndex = source.subItems.findIndex(
+                    (sub) => sub.maPallet === item.maPallet,
+                  );
+                  if (subIndex > -1) {
+                    source.subItems.splice(subIndex, 1);
+
+                    if (source.subItems.length === 0) {
+                      this.palletSources.splice(item.parentPalletIndex, 1);
+                    }
+                  }
+                } else {
+                  this.palletSources.splice(item.parentPalletIndex, 1);
+                }
+              }
+
+              this.totalItems = this.palletBoxItems.length;
+              this.updatePaginatedItems();
+            }
+
+            this.snackBar.open(
+              `Pallet "${item.maPallet}" đã bị xóa trước đó. Đã cập nhật giao diện.`,
+              "Đóng",
+              {
+                duration: 3000,
+                panelClass: ["warning-snackbar"],
+              },
+            );
+
+            return;
+          }
+        }
+
+        // Lỗi khác
+        const errorMsg =
+          error?.error?.detail ||
+          error?.error?.message ||
+          error?.message ||
+          "Không xác định";
+        this.snackBar.open(`Lỗi xóa pallet: ${errorMsg}`, "Đóng", {
+          duration: 5000,
+          panelClass: ["error-snackbar"],
+        });
+      },
+    });
   }
 }

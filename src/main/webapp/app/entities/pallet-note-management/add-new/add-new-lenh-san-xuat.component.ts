@@ -1738,11 +1738,220 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       disableClose: false,
       autoFocus: false,
     });
-
     dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        console.log("Dialog đã đóng với kết quả:", result);
+      console.log("Dialog closed with result:", result);
+
+      if (!result) {
+        console.log("Dialog closed without changes");
+        return;
       }
+
+      // Nếu không có cập nhật gì thì thôi
+      if (!(result.updated || result.deleted)) {
+        console.log("No update/delete flags in result, nothing to do.");
+        return;
+      }
+
+      console.log("Processing updates:", {
+        deleted: result.deletedCount ?? 0,
+        remaining: result.remainingCount,
+        allDeleted: result.allDeleted,
+      });
+
+      // 1) Trường hợp xóa hết cả nhóm pallet
+      if (result.allDeleted) {
+        const palletIndex = this.palletItems.findIndex(
+          (p) => p.id === pallet.id,
+        );
+        if (palletIndex > -1) {
+          this.palletItems.splice(palletIndex, 1);
+          console.log(`Removed pallet group at index ${palletIndex}`);
+        }
+        // cập nhật STT
+        this.palletItems = this.palletItems.map((p, idx) => ({
+          ...p,
+          stt: idx + 1,
+        }));
+        this.snackBar.open(
+          "Đã xóa tất cả pallet. Đang tải lại dữ liệu...",
+          "Đóng",
+          { duration: 2000 },
+        );
+        this.reloadData();
+        this.computePalletSummary();
+        return;
+      }
+
+      // 2) Trường hợp backend trả remainingSources (cập nhật chi tiết từ server)
+      if (
+        Array.isArray(result.remainingSources) &&
+        result.remainingSources.length > 0
+      ) {
+        const palletIndex = this.palletItems.findIndex(
+          (p) => p.id === pallet.id,
+        );
+        if (palletIndex === -1) {
+          console.warn("Pallet not found in palletItems");
+        } else {
+          const updatedPallet = result.remainingSources[0];
+          console.log("remainingSources[0]:", updatedPallet);
+
+          // Map subItems giống cấu trúc FE
+          const newSubItems = (updatedPallet.subItems || []).map(
+            (sub: any, idx: number) => ({
+              id: sub.id,
+              stt: idx + 1,
+              maPallet: sub.maPallet || sub.serialPallet,
+              tongSoThung: Number(sub.tongSoThung ?? 0),
+              thungScan: Number(sub.thungScan ?? 1),
+              qrCode: sub.qrCode || sub.maPallet,
+              tienDoScan: Number(sub.tienDoScan ?? 0),
+              sucChua: `${Number(sub.tongSoThung ?? 0)} thùng`,
+              scannedBoxes: sub.scannedBoxes || [],
+              createdAt: sub.createdAt,
+              wmsSent: sub.wmsSent || false,
+              thuTuPallet: sub.thuTuPallet ?? idx + 1,
+            }),
+          );
+
+          // Tính lại tổng từ subItems (FE đảm bảo đúng dù backend trả không nhất quán)
+          const newTongPallet = newSubItems.length;
+          const newTongSoThung = newSubItems.reduce(
+            (sum: number, s: any) => sum + (Number(s.tongSoThung) || 0),
+            0,
+          );
+
+          // Tạo object pallet mới và thay thế phần tử trong mảng
+          const newPalletObj = {
+            ...this.palletItems[palletIndex],
+            subItems: newSubItems,
+            tongPallet: newTongPallet,
+            tongSoThung: newTongSoThung,
+          };
+
+          this.palletItems = [
+            ...this.palletItems.slice(0, palletIndex),
+            newPalletObj,
+            ...this.palletItems.slice(palletIndex + 1),
+          ];
+
+          // Cập nhật STT và summary
+          this.palletItems = this.palletItems.map((p, idx) => ({
+            ...p,
+            stt: idx + 1,
+          }));
+          this.computePalletSummary();
+          try {
+            this.cdr.detectChanges();
+          } catch (e) {
+            /* ignore if not available */
+          }
+
+          this.snackBar.open(
+            `✓ Đã cập nhật. Còn lại ${result.remainingCount} pallet`,
+            "Đóng",
+            { duration: 2000 },
+          );
+        }
+        return;
+      }
+
+      // 3) Trường hợp remainingSources tồn tại nhưng rỗng (Array(0)) OR backend không trả remainingSources
+      //    => cố gắng cập nhật FE dựa trên deletedIds / deletedSerials nếu dialog trả về,
+      //    nếu không có thông tin chi tiết thì fallback reloadData().
+
+      // Tìm index pallet hiện tại
+      const palletIndex = this.palletItems.findIndex((p) => p.id === pallet.id);
+
+      // Nếu dialog trả về danh sách id pallet con đã xóa (recommended)
+      const deletedIds: number[] = Array.isArray(result.deletedIds)
+        ? result.deletedIds
+        : [];
+      const deletedSerials: string[] = Array.isArray(result.deletedSerials)
+        ? result.deletedSerials
+        : [];
+
+      if (
+        palletIndex > -1 &&
+        (deletedIds.length > 0 || deletedSerials.length > 0)
+      ) {
+        // Xóa subItems theo id hoặc theo serial
+        let currentSubItems = this.palletItems[palletIndex].subItems || [];
+
+        if (deletedIds.length > 0) {
+          currentSubItems = currentSubItems.filter(
+            (s: any) => !deletedIds.includes(s.id),
+          );
+        } else if (deletedSerials.length > 0) {
+          const normalizedDeleted = deletedSerials.map((x: string) =>
+            (x || "").toString().trim(),
+          );
+          currentSubItems = currentSubItems.filter(
+            (s: any) =>
+              !normalizedDeleted.includes(
+                (s.maPallet || s.qrCode || "").toString().trim(),
+              ),
+          );
+        }
+
+        // Tạo subItems mới với stt cập nhật
+        const newSubItems = currentSubItems.map(
+          (sub: PalletBoxItem, idx: number) => ({
+            ...sub,
+            stt: idx + 1,
+          }),
+        );
+
+        // Tính lại tổng
+        const newTongPallet = newSubItems.length;
+        const newTongSoThung = newSubItems.reduce(
+          (sum: number, s: any) => sum + (Number(s.tongSoThung) || 0),
+          0,
+        );
+
+        // Thay thế pallet object
+        const newPalletObj = {
+          ...this.palletItems[palletIndex],
+          subItems: newSubItems,
+          tongPallet: newTongPallet,
+          tongSoThung: newTongSoThung,
+        };
+
+        this.palletItems = [
+          ...this.palletItems.slice(0, palletIndex),
+          newPalletObj,
+          ...this.palletItems.slice(palletIndex + 1),
+        ];
+
+        // Cập nhật STT và summary
+        this.palletItems = this.palletItems.map((p, idx) => ({
+          ...p,
+          stt: idx + 1,
+        }));
+        this.computePalletSummary();
+        try {
+          this.cdr.detectChanges();
+        } catch (e) {
+          /* ignore */
+        }
+
+        this.snackBar.open(
+          `✓ Đã cập nhật. Còn lại ${result.remainingCount} pallet`,
+          "Đóng",
+          { duration: 2000 },
+        );
+        return;
+      }
+
+      // 4) Nếu không có remainingSources và không có deletedIds/deletedSerials => fallback reload
+      console.warn(
+        "No remainingSources and no deletedIds/deletedSerials returned by dialog. Falling back to reloadData().",
+      );
+      this.reloadData();
+      this.computePalletSummary();
+      this.snackBar.open("Đã cập nhật (tải lại dữ liệu).", "Đóng", {
+        duration: 2000,
+      });
     });
   }
 
@@ -4619,7 +4828,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
             // Kiểm tra mappings có hợp lệ không
             if (!mappings || !Array.isArray(mappings)) {
-              console.warn(`⚠️ ${pallet.serialPallet}: mappings không hợp lệ`);
+              console.warn(`${pallet.serialPallet}: mappings không hợp lệ`);
               pallet.tienDoScan = 0;
               pallet.scannedBoxes = [];
               resolve();
@@ -5124,14 +5333,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       return;
     }
 
-    console.log("🔄 Refreshing reelGroups from details...");
+    console.log("Refreshing reelGroups from details...");
     console.log("Details count:", this.details.length);
     console.log("Sample detail:", this.details[0]);
 
     // Map lại details thành ReelGroup
     this.reelGroups = this.mapDetailsToReelData(this.details as unknown[]);
 
-    console.log("✅ ReelGroups after refresh:", this.reelGroups.length);
+    console.log("ReelGroups after refresh:", this.reelGroups.length);
 
     // Flatten lại reelDataList từ reelGroups
     const flatReels: ReelData[] = this.reelGroups.reduce(
@@ -5192,7 +5401,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.productionOrders[0].tongSoLuong = total;
     }
 
-    console.log("✅ ReelDataList refreshed:", this.reelDataList.length);
+    console.log("ReelDataList refreshed:", this.reelDataList.length);
     console.log("Total quantity:", total);
   }
 
