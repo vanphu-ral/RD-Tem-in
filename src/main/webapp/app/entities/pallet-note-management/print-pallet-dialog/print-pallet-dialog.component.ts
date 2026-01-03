@@ -95,7 +95,7 @@ export class PrintPalletDialogComponent implements OnInit {
   totalPages = 0;
   displayPages: PrintPage[] = [];
   isMultiMode = false;
-  paperSize: "A4" | "A5" = "A4";
+  paperSize: "A4" | "A5" = "A5";
   isLoadingPdf = false;
   progressPdf = 0;
   unprintedPages: PrintPage[] = [];
