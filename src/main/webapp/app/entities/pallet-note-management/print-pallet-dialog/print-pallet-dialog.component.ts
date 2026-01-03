@@ -95,10 +95,11 @@ export class PrintPalletDialogComponent implements OnInit {
   totalPages = 0;
   displayPages: PrintPage[] = [];
   isMultiMode = false;
-  paperSize: "A4" | "A5" = "A5";
+  paperSize: "A4" | "A5" = "A4";
   isLoadingPdf = false;
   progressPdf = 0;
   unprintedPages: PrintPage[] = [];
+  private readonly PAPER_SIZE_STORAGE_KEY = "print-pallet-paper-size";
   private pdfRenderLogs: {
     pageIndex: number;
     palletId?: string | number;
@@ -119,9 +120,9 @@ export class PrintPalletDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadPaperSizePreference();
     this.initializePallets();
     this.createPages();
-
     setTimeout(() => {
       this.debugPrintData();
     }, 500);
@@ -174,6 +175,19 @@ export class PrintPalletDialogComponent implements OnInit {
 
   onPaperSizeChange(): void {
     console.log(`Paper size changed to: ${this.paperSize}`);
+
+    // Lưu vào localStorage
+    try {
+      localStorage.setItem(this.PAPER_SIZE_STORAGE_KEY, this.paperSize);
+      console.log(`Saved to localStorage: ${this.paperSize}`);
+
+      // Verify save
+      const saved = localStorage.getItem(this.PAPER_SIZE_STORAGE_KEY);
+      console.log(`Verified saved value: ${saved}`);
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+    }
+
     this.createPages();
     this.cdr.detectChanges();
   }
@@ -895,6 +909,17 @@ export class PrintPalletDialogComponent implements OnInit {
   //     }),
   //   );
   // }
+
+  private loadPaperSizePreference(): void {
+    const savedSize = localStorage.getItem(this.PAPER_SIZE_STORAGE_KEY);
+    if (savedSize === "A4" || savedSize === "A5") {
+      this.paperSize = savedSize;
+      console.log(`Loaded saved paper size: ${savedSize}`);
+    } else {
+      // Mặc định là A4 nếu chưa có trong localStorage
+      this.paperSize = "A4";
+    }
+  }
 
   private async updatePrintStatusAfterPrint(
     pallets: PrintPalletData[],

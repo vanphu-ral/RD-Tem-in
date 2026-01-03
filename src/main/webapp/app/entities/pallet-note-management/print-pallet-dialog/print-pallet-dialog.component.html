@@ -7,8 +7,8 @@
       <mat-form-field appearance="outline" class="paper-size-selector">
         <mat-label>Kích thước</mat-label>
         <mat-select
-          [(value)]="paperSize"
-          (selectionChange)="onPaperSizeChange()"
+          [(ngModel)]="paperSize"
+          (ngModelChange)="onPaperSizeChange()"
         >
           <mat-option value="A4">A4 (2 phiếu/trang)</mat-option>
           <mat-option value="A5">A5 (1 phiếu/trang)</mat-option>
