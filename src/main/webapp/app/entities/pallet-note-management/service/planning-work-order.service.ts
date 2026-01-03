@@ -198,6 +198,13 @@ export class PlanningWorkOrderService {
     );
   }
 
+  // Thêm method xóa mapping
+  deleteMapping(mappingId: number): Observable<any> {
+    return this.http.delete(
+      `${this.baseUrl}/serial-box-pallet-mappings/${mappingId}`,
+    );
+  }
+
   //get mappings by maLenhSanXuatId
   getMappingsByMaLenhSanXuatId(
     maLenhSanXuatId: number,

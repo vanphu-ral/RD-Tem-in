@@ -58,6 +58,8 @@ interface BoxScan {
   timestamp: Date | null;
   status: "success" | "error";
   message?: string;
+  soLuong?: number;
+  mappingId?: number;
 }
 
 interface UnscannedBox {
@@ -236,16 +238,23 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
           const successMappings = mappings.filter((m) => m.status === 1);
           const errorMappings = mappings.filter((m) => m.status !== 1);
 
-          // ===== PALLET LOCAL: Boxes đã scan vào pallet này =====
           this.existingScannedBoxes = new Set(
             successMappings.map((m) => this.normalizeCode(m.serial_box)),
           );
 
-          this.scannedBoxes = successMappings.map((m) => ({
-            code: this.normalizeCode(m.serial_box),
-            timestamp: this.parseTimestamp(m.updated_at),
-            status: "success" as const,
-          }));
+          // Sửa lại để bao gồm soLuong và mappingId
+          this.scannedBoxes = successMappings.map((m) => {
+            const normalizedCode = this.normalizeCode(m.serial_box);
+            const boxInfo = this.findBoxInfo(normalizedCode);
+
+            return {
+              code: normalizedCode,
+              timestamp: this.parseTimestamp(m.updated_at),
+              status: "success" as const,
+              soLuong: boxInfo?.soLuongTrongThung || 0,
+              mappingId: m.id, // Lưu ID để xóa sau này
+            };
+          });
 
           this.errorBoxes = errorMappings.map((m) => ({
             code: this.normalizeCode(m.serial_box),
@@ -261,7 +270,6 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
             `Pallet local: ${this.scannedCount} boxes đã scan vào pallet này`,
           );
 
-          // Tính unscanned dựa trên GLOBAL
           this.computeFromValidAndExisting();
         },
         error: (error) => {
@@ -554,7 +562,9 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           if (isSuccessCase) {
-            this.addSuccessBox(serialBox);
+            // response có thể chứa id của mapping vừa tạo
+            const mappingId = response?.id || response?.data?.id;
+            this.addSuccessBox(serialBox, mappingId);
             this.existingScannedBoxes.add(serialBox.trim());
           }
         },
@@ -571,21 +581,24 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       });
   }
 
-  addSuccessBox(code: string): void {
+  // Cập nhật addSuccessBox để lưu soLuong
+  addSuccessBox(code: string, mappingId?: number): void {
+    const boxInfo = this.findBoxInfo(code);
+
     const box: BoxScan = {
       code,
       timestamp: new Date(),
       status: "success",
+      soLuong: boxInfo?.soLuongTrongThung || 0,
+      mappingId: mappingId,
     };
 
     this.scannedBoxes.push(box);
     this.allBoxes.push(box);
     this.scannedCount++;
 
-    // ===== UPDATE GLOBAL CACHE =====
     this.existingScannedGlobal.add(code);
 
-    // Refresh unscanned list
     this.computeFromValidAndExisting();
 
     this.showScanResult(
@@ -620,37 +633,30 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
   removeSuccessBox(index: number): void {
     const box = this.scannedBoxes[index];
 
-    if (!confirm(`Xác nhận xóa box "${box.code}" khỏi pallet?`)) {
+    if (!box.mappingId) {
+      this.showScanResult("error", "Không tìm thấy ID mapping để xóa");
       return;
     }
 
-    this.isProcessing = true;
+    const dialogData: ConfirmDialogData = {
+      title: "Xác nhận xóa",
+      message: `Xác nhận xóa box "${box.code}" khỏi pallet?`,
+      confirmText: "Xóa",
+      cancelText: "Hủy",
+      type: "warning",
+    };
 
-    this.planningService
-      .removeMapping(
-        box.code,
-        this.palletData.maPallet,
-        this.palletData.maLenhSanXuatId,
-      )
-      .pipe(finalize(() => (this.isProcessing = false)))
-      .subscribe({
-        next: () => {
-          this.scannedBoxes.splice(index, 1);
-          this.scannedCount--;
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: "400px",
+      data: dialogData,
+      disableClose: false,
+    });
 
-          const allIndex = this.allBoxes.findIndex((b) => b.code === box.code);
-          if (allIndex > -1) {
-            this.allBoxes.splice(allIndex, 1);
-          }
-
-          this.existingScannedBoxes.delete(box.code.trim());
-          this.showScanResult("success", "Đã xóa box khỏi pallet");
-        },
-        error: (error) => {
-          console.error("Error deleting box:", error);
-          this.showScanResult("error", "Không thể xóa box. Vui lòng thử lại.");
-        },
-      });
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        this.performDeleteMapping(box, index);
+      }
+    });
   }
 
   removeErrorBox(index: number): void {
@@ -761,8 +767,46 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
     console.groupEnd();
   }
+
+  // Helper method để tìm thông tin box
+  private findBoxInfo(code: string): any {
+    const flattenedBoxes = this.flattenBoxItems(this.boxItems || []);
+    return flattenedBoxes.find(
+      (b) => this.normalizeCode(b.serialBox || "") === code,
+    );
+  }
   private normalizeCode(code: string | null | undefined): string {
     return (code ?? "").toString().trim().toUpperCase();
+  }
+
+  private performDeleteMapping(box: BoxScan, index: number): void {
+    this.isProcessing = true;
+
+    this.planningService
+      .deleteMapping(box.mappingId!)
+      .pipe(finalize(() => (this.isProcessing = false)))
+      .subscribe({
+        next: () => {
+          this.scannedBoxes.splice(index, 1);
+          this.scannedCount--;
+
+          const allIndex = this.allBoxes.findIndex((b) => b.code === box.code);
+          if (allIndex > -1) {
+            this.allBoxes.splice(allIndex, 1);
+          }
+
+          this.existingScannedBoxes.delete(box.code.trim());
+          this.existingScannedGlobal.delete(box.code.trim());
+
+          this.computeFromValidAndExisting();
+
+          this.showScanResult("success", "Đã xóa box khỏi pallet");
+        },
+        error: (error) => {
+          console.error("Error deleting box:", error);
+          this.showScanResult("error", "Không thể xóa box. Vui lòng thử lại.");
+        },
+      });
   }
 
   private computeFromValidAndExisting(): void {

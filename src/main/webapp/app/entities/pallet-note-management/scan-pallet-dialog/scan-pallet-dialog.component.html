@@ -325,11 +325,25 @@
             >
               <mat-icon class="box-icon">check_circle</mat-icon>
               <div class="box-info">
-                <span class="box-code">{{ box.code }}</span>
+                <div class="box-code-row">
+                  <span class="box-code">{{ box.code }}</span>
+                  <span class="box-quantity" *ngIf="box.soLuong">{{
+                    box.soLuong
+                  }}</span>
+                </div>
                 <span class="box-time">{{
                   box.timestamp | date: "HH:mm:ss"
                 }}</span>
               </div>
+              <button
+                mat-icon-button
+                class="delete-btn"
+                (click)="removeSuccessBox(i)"
+                [disabled]="isProcessing"
+                matTooltip="Xóa khỏi pallet"
+              >
+                <mat-icon>clear</mat-icon>
+              </button>
             </div>
             <div class="empty-state" *ngIf="scannedBoxes.length === 0">
               <mat-icon>check_circle_outline</mat-icon>
