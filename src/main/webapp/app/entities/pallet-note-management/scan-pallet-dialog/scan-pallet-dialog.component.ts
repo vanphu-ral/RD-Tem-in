@@ -561,9 +561,19 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (response) => {
+          // THÊM LOG ĐỂ XEM CẤU TRÚC RESPONSE
+          console.log("🔍 API Response:", response);
+
           if (isSuccessCase) {
-            // response có thể chứa id của mapping vừa tạo
-            const mappingId = response?.id || response?.data?.id;
+            // Thử nhiều cách lấy ID
+            const mappingId =
+              response?.id ||
+              response?.data?.id ||
+              response?.result?.id ||
+              response?.mapping?.id;
+
+            console.log("Extracted mappingId:", mappingId);
+
             this.addSuccessBox(serialBox, mappingId);
             this.existingScannedBoxes.add(serialBox.trim());
           }
@@ -931,11 +941,17 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
 
     for (const box of boxes) {
       try {
-        // Gọi API mapping
-        await this.sendMappingRequestPromise(box, 1);
+        // Gọi API mapping và nhận response
+        const response = await this.sendMappingRequestPromise(box, 1);
 
-        // Thêm vào danh sách thành công
-        this.addSuccessBox(box);
+        // Lấy mappingId từ response
+        const mappingId =
+          response?.id || response?.data?.id || response?.result?.id;
+
+        console.log(`Box ${box} - mappingId: ${mappingId}`);
+
+        // Thêm vào danh sách thành công VỚI mappingId
+        this.addSuccessBox(box, mappingId);
         this.existingScannedBoxes.add(box);
         successCount++;
       } catch (error) {
