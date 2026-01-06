@@ -249,7 +249,8 @@ export class CreateDialogComponent {
           ],
         ],
         soLuongPallet: [
-          defaults?.soLuongPallet ?? 1,
+          // defaults?.soLuongPallet ?? 1,
+          1,
           [
             Validators.required,
             Validators.min(1),
