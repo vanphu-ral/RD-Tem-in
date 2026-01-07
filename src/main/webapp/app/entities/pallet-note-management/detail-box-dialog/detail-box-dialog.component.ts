@@ -442,32 +442,77 @@ export class DetailBoxDialogComponent implements OnInit {
       compress: false,
     });
 
-    const pageWidth = 210,
-      pageHeight = 297,
-      margin = 10;
-    const cols = 5,
-      gap = 6;
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
+    const cols = 5;
+    const gap = 6;
     const contentWidth = pageWidth - margin * 2;
     const qrSize = (contentWidth - gap * (cols - 1)) / cols;
-    const rowHeight = qrSize + 8;
 
-    let x = margin,
-      y = margin;
+    // Font sizes (giữ như bạn yêu cầu)
+    const qtyFontSize = 18; // số lượng
+    const labelFontSize = 10; // mã thùng
+
+    // GIẢM KHOẢNG CÁCH để text sát QR hơn
+    const qtyOffset = 1.2; // khoảng cách từ đáy QR tới baseline số lượng (mm)
+    const labelOffset = 1.0; // khoảng cách giữa baseline số lượng và baseline mã thùng (mm)
+
+    // Tính line height xấp xỉ (mm)
+    const approxQtyLineHeight = qtyFontSize / 2.8;
+    const approxLabelLineHeight = labelFontSize / 2.8;
+
+    // rowHeight: qr + khoảng cho 2 dòng text + buffer nhỏ
+    const rowHeight =
+      qrSize +
+      qtyOffset +
+      approxQtyLineHeight +
+      labelOffset +
+      approxLabelLineHeight +
+      1; // 1mm buffer
+
+    let x = margin;
+    let y = margin;
+
+    // helper: truncate text để vừa width (1 dòng)
+    const truncateToWidth = (
+      text: string,
+      maxWidth: number,
+      fontSize: number,
+    ): string => {
+      doc.setFontSize(fontSize);
+      if (doc.getTextWidth(text) <= maxWidth) {
+        return text;
+      }
+      const ell = "...";
+      let low = 0;
+      let high = text.length;
+      let best = "";
+      while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        const candidate = text.slice(0, mid);
+        if (doc.getTextWidth(candidate) <= maxWidth) {
+          best = candidate;
+          low = mid + 1;
+        } else {
+          high = mid;
+        }
+      }
+      return best || text.slice(0, 1);
+    };
+
     for (let i = 0; i < items.length; i++) {
       // Lấy dataUrl (cố gắng từ DOM, nếu không có sẽ tạo bằng thư viện)
-      let dataUrl = this.getDataUrlFromRenderedImg(i);
+      let dataUrl: string | null = this.getDataUrlFromRenderedImg(i);
       if (!dataUrl) {
-        // fallback: tạo QR trực tiếp từ text (không phụ thuộc DOM)
         try {
           const text =
             (this.data?.isBtp
               ? (items[i].qrCode ?? items[i].maThung)
               : items[i].maThung) ?? "";
-          // nếu bạn không muốn dùng thư viện, comment dòng dưới và bỏ qua item
-          // require import: import QRCode from 'qrcode';
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          dataUrl = await QRCode.toDataURL(String(text), { width: 300 });
+          dataUrl = await QRCode.toDataURL(String(text), { width: 500 });
         } catch (err) {
           console.warn("QR generation fallback failed for index", i, err);
           dataUrl = null;
@@ -478,19 +523,52 @@ export class DetailBoxDialogComponent implements OnInit {
         continue;
       }
 
-      if (y + qrSize + margin > pageHeight) {
+      // nếu vượt chiều cao trang -> addPage
+      if (y + rowHeight + margin > pageHeight) {
         doc.addPage();
         x = margin;
         y = margin;
       }
 
+      // vẽ QR
       doc.addImage(dataUrl, "PNG", x, y, qrSize, qrSize, undefined, "NONE");
 
-      const label = items[i].maThung ?? "";
-      doc.setFontSize(8);
-      const textX = x + Math.max(0, (qrSize - doc.getTextWidth(label)) / 2);
-      doc.text(label, textX, y + qrSize + 4);
+      // chuẩn bị text
+      const labelRaw = String(items[i].maThung ?? "");
+      const qTyRaw = String(items[i].soLuong ?? "");
 
+      // Vẽ số lượng: đặt sát đáy QR hơn bằng qtyOffset nhỏ
+      const qtyText = qTyRaw;
+      doc.setFontSize(qtyFontSize);
+      // nếu muốn in đậm số lượng, bỏ comment dòng dưới (phụ thuộc font)
+      // doc.setFont(undefined, 'bold');
+      const qtyTextWidth = doc.getTextWidth(qtyText);
+      const qtyX = x + Math.max(0, (qrSize - qtyTextWidth) / 2);
+      // baseline số lượng: ngay dưới QR + qtyOffset
+      const qtyY = y + qrSize + qtyOffset;
+      if (qtyText) {
+        doc.text(qtyText, qtyX, qtyY);
+      }
+      // nếu đã set bold, reset về normal (nếu cần)
+      // doc.setFont(undefined, 'normal');
+
+      // Vẽ mã thùng: ngay dưới số lượng, dùng labelOffset nhỏ
+      const maxLabelWidth = qrSize;
+      const truncatedLabel = truncateToWidth(
+        labelRaw,
+        maxLabelWidth,
+        labelFontSize,
+      );
+      doc.setFontSize(labelFontSize);
+      const labelWidth = doc.getTextWidth(truncatedLabel);
+      const labelX = x + Math.max(0, (qrSize - labelWidth) / 2);
+      // baseline mã thùng: ngay dưới baseline số lượng + labelOffset
+      const labelY = qtyY + labelOffset + approxLabelLineHeight * 0.6; // điều chỉnh nhẹ baseline
+      if (truncatedLabel) {
+        doc.text(truncatedLabel, labelX, labelY);
+      }
+
+      // cập nhật vị trí tiếp theo
       x += qrSize + gap;
       if (i % cols === cols - 1) {
         x = margin;
