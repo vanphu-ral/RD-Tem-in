@@ -19,7 +19,22 @@
         <mat-icon>picture_as_pdf</mat-icon>
         Xuất PDF
       </button>
-      <button mat-raised-button color="primary" (click)="onPrint()">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onPrint()"
+        class="no-mobile"
+      >
+        <mat-icon>print</mat-icon>
+        Print
+      </button>
+      <!-- Mobile-only: Print using PDF from server (Recommended for mobile) -->
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onPrintFromServer()"
+        class="mobile-only"
+      >
         <mat-icon>print</mat-icon>
         Print
       </button>

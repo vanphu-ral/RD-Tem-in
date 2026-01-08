@@ -61,8 +61,9 @@ import {
   timeout,
 } from "rxjs";
 import { LenhSanXuatService } from "../service/lenh-san-xuat.service";
+import { PrintPalletData } from "../service/pallet.service";
 import {
-  PrintPalletData,
+  // PrintPalletData,
   PrintPalletDialogComponent,
 } from "../print-pallet-dialog/print-pallet-dialog.component";
 import { SerialBoxPalletMapping } from "../scan-pallet-dialog/scan-pallet-dialog.component";

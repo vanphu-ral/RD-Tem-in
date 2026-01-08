@@ -58,4 +58,34 @@ public interface Partner3WarehouseStampInfoDetailRepository
         nativeQuery = true
     )
     String findMaxReelIdStartingWith(@Param("prefix") String prefix);
+
+    /**
+     * Check if a pallet code exists in a work order.
+     *
+     * @param palletCode    the pallet code to search for
+     * @param workOrderCode the work order code to search for
+     * @return true if the pallet code exists in the work order, false otherwise
+     */
+    @Query(
+        "SELECT COUNT(p) > 0 FROM PalletInforDetail p JOIN WarehouseNoteInfo w ON p.maLenhSanXuatId = w.id WHERE p.serialPallet = :palletCode AND w.workOrderCode = :workOrderCode"
+    )
+    boolean existsByPalletCodeAndWorkOrderCode(
+        @Param("palletCode") String palletCode,
+        @Param("workOrderCode") String workOrderCode
+    );
+
+    /**
+     * Check if a box code exists in a work order.
+     *
+     * @param boxCode       the box code to search for
+     * @param workOrderCode the work order code to search for
+     * @return true if the box code exists in the work order, false otherwise
+     */
+    @Query(
+        "SELECT COUNT(w) > 0 FROM WarehouseNoteInfoDetail w WHERE w.reelId = :boxCode AND w.maLenhSanXuat.workOrderCode = :workOrderCode"
+    )
+    boolean existsByBoxCodeAndWorkOrderCode(
+        @Param("boxCode") String boxCode,
+        @Param("workOrderCode") String workOrderCode
+    );
 }

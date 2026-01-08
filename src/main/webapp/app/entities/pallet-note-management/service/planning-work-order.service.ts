@@ -93,7 +93,7 @@ export class PlanningWorkOrderService {
   private WMSUrl = "https://ral-wms-logistic.rangdong.com.vn:9004/api";
   private apiCheckIdentifyWo = `${this.baseUrl}/warehouse-note-infos/work-order-code`;
 
-  private testUrl = "http://192.168.68.77:9040/api";
+  private testUrl = "http://192.168.68.77:8085/api";
 
   constructor(private http: HttpClient) {}
 

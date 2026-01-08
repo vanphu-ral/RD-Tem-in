@@ -6,6 +6,8 @@ import com.mycompany.myapp.service.Partner3MigrationService;
 import com.mycompany.myapp.service.dto.CombinedPalletWarehouseDTO;
 import com.mycompany.myapp.service.dto.MaxSerialResponseDTO;
 import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
+import com.mycompany.myapp.service.dto.PalletPrintRequest;
+import com.mycompany.myapp.service.dto.PrintPalletDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -483,5 +486,93 @@ public class PalletInforDetailResource {
         LOG.debug("REST request to get max serials starting with B");
         MaxSerialResponseDTO result = palletInforDetailService.getMaxSerials();
         return ResponseEntity.ok().body(result);
+    }
+
+    /**
+     * {@code POST /pallet-infor-details/print-pdf} : Generate PDF for printing pallets.
+     *
+     * @param request the print request containing pallet list and paper size configuration.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the PDF binary
+     *         data in body, or with status {@code 400 (Bad Request)} if the request is invalid.
+     */
+    @PostMapping(
+        value = "/print-pdf",
+        produces = MediaType.APPLICATION_PDF_VALUE
+    )
+    public ResponseEntity<byte[]> printPalletsToPdf(
+        @Valid @RequestBody PalletPrintRequest request
+    ) {
+        LOG.debug(
+            "REST request to print {} pallets to PDF with size {}",
+            request.getPallets().size(),
+            request.getPaperSize()
+        );
+
+        if (request.getPallets() == null || request.getPallets().isEmpty()) {
+            throw new BadRequestAlertException(
+                "Pallet list cannot be empty",
+                ENTITY_NAME,
+                "palletlistempty"
+            );
+        }
+
+        byte[] pdfBytes = palletInforDetailService.generatePalletPdf(
+            request.getPallets(),
+            request.getPaperSize()
+        );
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_PDF)
+            .header(
+                HttpHeaders.CONTENT_DISPOSITION,
+                "inline; filename=pallet-print-" +
+                System.currentTimeMillis() +
+                ".pdf"
+            )
+            .body(pdfBytes);
+    }
+
+    /**
+     * {@code POST /pallet-infor-details/export-pdf} : Export PDF for downloading pallets.
+     *
+     * @param request the print request containing pallet list and paper size configuration.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the PDF binary
+     *         data in body, or with status {@code 400 (Bad Request)} if the request is invalid.
+     */
+    @PostMapping(
+        value = "/export-pdf",
+        produces = MediaType.APPLICATION_PDF_VALUE
+    )
+    public ResponseEntity<byte[]> exportPalletsToPdf(
+        @Valid @RequestBody PalletPrintRequest request
+    ) {
+        LOG.debug(
+            "REST request to export {} pallets to PDF with size {}",
+            request.getPallets().size(),
+            request.getPaperSize()
+        );
+
+        if (request.getPallets() == null || request.getPallets().isEmpty()) {
+            throw new BadRequestAlertException(
+                "Pallet list cannot be empty",
+                ENTITY_NAME,
+                "palletlistempty"
+            );
+        }
+
+        byte[] pdfBytes = palletInforDetailService.generatePalletPdf(
+            request.getPallets(),
+            request.getPaperSize()
+        );
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_PDF)
+            .header(
+                HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=pallet-export-" +
+                System.currentTimeMillis() +
+                ".pdf"
+            )
+            .body(pdfBytes);
     }
 }

@@ -116,7 +116,7 @@ jhipster:
       queue-size: 512
   mail:
     from: test@localhost
-    base-url: http://127.0.0.1:9040
+    base-url: http://127.0.0.1:8085
 # ===================================================================
 # Application specific properties
 # Add your own application properties here, see the ApplicationProperties class

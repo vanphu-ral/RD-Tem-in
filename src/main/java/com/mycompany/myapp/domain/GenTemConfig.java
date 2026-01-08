@@ -60,8 +60,8 @@ public class GenTemConfig implements Serializable {
     @Column(name = "po_number", length = 255)
     private String poNumber;
 
-    @Size(max = 10)
-    @Column(name = "date_code", length = 10)
+    @Size(max = 50)
+    @Column(name = "date_code", length = 50)
     private String dateCode;
 
     @Size(max = 255)
