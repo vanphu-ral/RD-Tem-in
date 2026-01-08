@@ -22,13 +22,13 @@
   <div class="scan-content">
     <!-- Left Column: QR Code Section -->
     <div class="pallet-qr-section">
-      <div class="qr-display">
+      <!-- <div class="qr-display">
         <qrcode
           [qrdata]="palletData.qrCode"
           [width]="160"
           [errorCorrectionLevel]="'M'"
         ></qrcode>
-      </div>
+      </div> -->
       <p class="qr-label">MÃ PALLET</p>
       <p class="qr-code">{{ palletData.maPallet }}</p>
 
@@ -175,7 +175,7 @@
           <!-- ===== THÊM: BUTTONS CONTROL ===== -->
           <div class="scan-mode-buttons">
             <!-- Nút kích hoạt Zebra Scanner -->
-            <button
+            <!-- <button
               mat-raised-button
               [color]="
                 scanModeActive && scanMode === 'zebra' ? 'primary' : null
@@ -189,7 +189,7 @@
                   ? "Đang scan..."
                   : "Kích hoạt Scan"
               }}
-            </button>
+            </button> -->
 
             <!-- Nút mở Camera -->
             <button
