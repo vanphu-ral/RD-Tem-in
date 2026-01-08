@@ -4,6 +4,7 @@ import com.mycompany.myapp.domain.SerialBoxPalletMapping;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -38,4 +39,19 @@ public interface Partner3SerialBoxPalletMappingRepository
      * @return the SerialBoxPalletMapping if found
      */
     Optional<SerialBoxPalletMapping> findBySerialBox(String serialBox);
+
+    /**
+     * Check if a box code exists with a specific status.
+     *
+     * @param serialBox the box code to search for
+     * @param status    the status to search for
+     * @return true if the box code exists with the specified status, false otherwise
+     */
+    @Query(
+        "SELECT COUNT(s) > 0 FROM SerialBoxPalletMapping s WHERE s.serialBox = :serialBox AND s.status = :status"
+    )
+    boolean existsBySerialBoxAndStatus(
+        @Param("serialBox") String serialBox,
+        @Param("status") Integer status
+    );
 }

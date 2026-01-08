@@ -344,7 +344,8 @@ public class ReconciliationQmsResource {
             requestBody.put("general_info", generalInfo);
 
             // Step 4: Send to external API
-            String url = "http://localhost:9030/api/import-requirements/wms";
+            String url =
+                "https://ral-wms-logistic.rangdong.com.vn:9004/api/import-requirements/wms";
             // hiển thị requestBody trên log
             LOG.debug("Request body gửi WMS", requestBody);
             ResponseEntity<Map> response = restTemplate.postForEntity(

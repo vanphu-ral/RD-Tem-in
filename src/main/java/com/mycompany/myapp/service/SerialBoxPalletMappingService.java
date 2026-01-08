@@ -98,16 +98,6 @@ public class SerialBoxPalletMappingService {
             insertDTO
         );
 
-        WarehouseNoteInfo warehouseStampInfo =
-            partner3WarehouseStampInfoRepository
-                .findById(maLenhSanXuatId)
-                .orElseThrow(() ->
-                    new RuntimeException(
-                        "WarehouseNoteInfo not found with id: " +
-                        maLenhSanXuatId
-                    )
-                );
-
         SerialBoxPalletMapping serialBoxPalletMapping =
             new SerialBoxPalletMapping();
         serialBoxPalletMapping.setSerialBox(insertDTO.getSerialBox());
@@ -121,7 +111,19 @@ public class SerialBoxPalletMappingService {
             updatedBy = SecurityUtils.getCurrentUserLogin().orElse("system");
         }
         serialBoxPalletMapping.setUpdatedBy(updatedBy);
-        serialBoxPalletMapping.setMaLenhSanXuat(warehouseStampInfo);
+
+        if (maLenhSanXuatId != null) {
+            WarehouseNoteInfo warehouseStampInfo =
+                partner3WarehouseStampInfoRepository
+                    .findById(maLenhSanXuatId)
+                    .orElseThrow(() ->
+                        new RuntimeException(
+                            "WarehouseNoteInfo not found with id: " +
+                            maLenhSanXuatId
+                        )
+                    );
+            serialBoxPalletMapping.setMaLenhSanXuat(warehouseStampInfo);
+        }
 
         serialBoxPalletMapping = serialBoxPalletMappingRepository.save(
             serialBoxPalletMapping

@@ -13,16 +13,23 @@ import com.mycompany.myapp.service.dto.ListPalletInfoResponseDTO;
 import com.mycompany.myapp.service.dto.MaxSerialResponseDTO;
 import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
 import com.mycompany.myapp.service.dto.PalletWithBoxesDTO;
+import com.mycompany.myapp.service.dto.PrintPalletDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.PalletInforDetailMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
+import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -490,5 +497,72 @@ public class PalletInforDetailService {
             .collect(Collectors.toList());
 
         return new ListPalletInfoResponseDTO(palletWithBoxesList);
+    }
+
+    /**
+     * Generate PDF for printing pallets.
+     *
+     * @param printPalletDTOs the list of pallet data to print
+     * @param paperSize paper size (A4 or A5), defaults to A4
+     * @return the PDF byte array
+     */
+    public byte[] generatePalletPdf(
+        List<PrintPalletDTO> printPalletDTOs,
+        String paperSize
+    ) {
+        LOG.debug(
+            "Request to generate PDF for {} pallets, Size: {}",
+            printPalletDTOs.size(),
+            paperSize
+        );
+
+        try {
+            // 1. Select template file based on paper size
+            String templateName;
+            if ("A5".equalsIgnoreCase(paperSize)) {
+                templateName = "templates/pallet_A5.jrxml";
+            } else {
+                templateName = "templates/pallet_A4.jrxml"; // Default to A4
+            }
+
+            // 2. Load template from resources
+            InputStream reportStream = new ClassPathResource(
+                templateName
+            ).getInputStream();
+            JasperReport jasperReport = JasperCompileManager.compileReport(
+                reportStream
+            );
+
+            // 3. Create data source
+            JRBeanCollectionDataSource dataSource =
+                new JRBeanCollectionDataSource(printPalletDTOs);
+
+            // 4. Add parameters
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("createdBy", "System");
+
+            // 5. Fill report
+            JasperPrint jasperPrint = JasperFillManager.fillReport(
+                jasperReport,
+                parameters,
+                dataSource
+            );
+
+            // 6. Export to PDF
+            return JasperExportManager.exportReportToPdf(jasperPrint);
+        } catch (Exception e) {
+            LOG.error("Error generating PDF with JasperReports", e);
+            throw new RuntimeException("Failed to generate PDF", e);
+        }
+    }
+
+    /**
+     * Generate PDF for printing pallets with default A4 size.
+     *
+     * @param printPalletDTOs the list of pallet data to print
+     * @return the PDF byte array
+     */
+    public byte[] generatePalletPdf(List<PrintPalletDTO> printPalletDTOs) {
+        return generatePalletPdf(printPalletDTOs, "A4");
     }
 }
