@@ -19,6 +19,7 @@ import { FormsModule } from "@angular/forms";
 import { PalletDialogItem } from "../wms-approve-dialog/wms-approve-dialog.component";
 import { firstValueFrom } from "rxjs";
 import { PlanningWorkOrderService } from "../service/planning-work-order.service";
+import { PalletService, PrintPalletData } from "../service/pallet.service";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { AccountService } from "app/core/auth/account.service";
 import QRCode from "qrcode";
@@ -27,44 +28,6 @@ import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from "../confirm-dialog/confirm-dialog.component";
-
-export interface PrintPalletData {
-  id?: number;
-  khachHang: string;
-  serialPallet: string;
-  tenSanPham: string;
-  poNumber: string;
-  itemNoSku: string;
-  nganh: string;
-  led2: string;
-  soQdsx: string;
-  to: string;
-  lpl2: string;
-  ngaySanXuat: string;
-  dateCode: string;
-  soLuongCaiDatPallet: number;
-  thuTuGiaPallet: number;
-  soLuongBaoNgoaiThungGiaPallet: string;
-  slThung: number;
-  note: string;
-  nguoiKiemTra: string;
-  ketQuaKiemTra: string;
-  productCode: string;
-  serialBox: string;
-  qty: number;
-  lot: string;
-  date: string;
-  scannedBoxes?: string[];
-  printStatus?: boolean;
-
-  productType?: string; // "Thành phẩm" | "Bán thành phẩm"
-  version?: string;
-  maSAP?: string;
-  woId?: string;
-  erpWo?: string;
-  maLenhSanXuat?: string;
-  totalProductsOnPallet?: number;
-}
 
 interface PrintPage {
   left: PrintPalletData;
@@ -112,6 +75,7 @@ export class PrintPalletDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: PrintPalletData | PrintPalletData[],
     private cdr: ChangeDetectorRef,
     private planningService: PlanningWorkOrderService,
+    private palletService: PalletService,
     private snackBar: MatSnackBar,
     private accountService: AccountService,
     private dialog: MatDialog,
@@ -839,6 +803,401 @@ export class PrintPalletDialogComponent implements OnInit {
       this.cdr.detectChanges();
       printContent?.classList.remove("exporting-pdf");
     }
+  }
+
+  /**
+   * ===== PRINT USING PDF BLOB =====
+   * Reuses PDF generation logic from onExportPdf()
+   * Opens PDF in new tab/iframe for printing instead of saving
+   */
+  async onPrintPDF(): Promise<void> {
+    this.isLoadingPdf = true;
+    this.progressPdf = 0;
+
+    const unprintedPallets = this.pallets.filter((p) => !this.isNotScanned(p));
+
+    if (unprintedPallets.length === 0) {
+      this.snackBar.open("Không có phiếu nào cần in!", "Đóng", {
+        duration: 3000,
+      });
+      this.isLoadingPdf = false;
+      return;
+    }
+
+    // Tạo pages
+    const tempPages: PrintPage[] = [];
+    if (this.paperSize === "A4") {
+      for (let i = 0; i < unprintedPallets.length; i += 2) {
+        tempPages.push({
+          left: unprintedPallets[i],
+          right: unprintedPallets[i + 1] || undefined,
+        });
+      }
+    } else {
+      for (let i = 0; i < unprintedPallets.length; i++) {
+        tempPages.push({
+          left: unprintedPallets[i],
+          right: undefined,
+        });
+      }
+    }
+
+    const originalPages = this.displayPages;
+    this.displayPages = tempPages;
+    this.cdr.detectChanges();
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await this.convertQRCodesToImages();
+
+    const printContent = document.querySelector(".print-content");
+    printContent?.classList.add("exporting-pdf");
+
+    // Ẩn watermark
+    const watermarkEls = Array.from(
+      document.querySelectorAll(".watermark-overlay"),
+    ) as HTMLElement[];
+    const watermarkDisplays: string[] = [];
+    watermarkEls.forEach((el, idx) => {
+      watermarkDisplays[idx] = el.style.display;
+      el.style.display = "none";
+    });
+
+    try {
+      const isA5 = this.paperSize === "A5";
+      const pdf = new jsPDF(
+        isA5 ? "portrait" : "landscape",
+        "mm",
+        isA5 ? [148, 210] : [297, 210],
+      );
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const pageElements = Array.from(
+        document.querySelectorAll(".print-page"),
+      ) as HTMLElement[];
+
+      console.log(
+        `Generating PDF for printing: ${pageElements.length} pages...`,
+      );
+
+      // Tối ưu: Giảm scale và tăng batch size
+      const BATCH_SIZE = 10;
+      const SCALE = 1.2;
+      const JPEG_QUALITY = 0.75;
+
+      // Pre-optimize tất cả cards một lần
+      const allCards = document.querySelectorAll(
+        ".pallet-card",
+      ) as NodeListOf<HTMLElement>;
+      allCards.forEach((card) => {
+        card.style.boxShadow = "none";
+        card.style.transform = "none";
+        card.style.transition = "none";
+      });
+
+      for (
+        let batchStart = 0;
+        batchStart < pageElements.length;
+        batchStart += BATCH_SIZE
+      ) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, pageElements.length);
+        const batch = pageElements.slice(batchStart, batchEnd);
+
+        const canvasPromises = batch.map((pageEl) =>
+          html2canvas(pageEl, {
+            scale: SCALE,
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff",
+            imageTimeout: 5000,
+            allowTaint: false,
+            removeContainer: true,
+            foreignObjectRendering: false,
+            windowWidth: pageEl.scrollWidth,
+            windowHeight: pageEl.scrollHeight,
+          }),
+        );
+
+        const canvases = await Promise.all(canvasPromises);
+
+        // Thêm vào PDF
+        for (let i = 0; i < canvases.length; i++) {
+          const pageIndex = batchStart + i;
+
+          if (pageIndex > 0) {
+            pdf.addPage(
+              isA5 ? [148, 210] : [297, 210],
+              isA5 ? "portrait" : "landscape",
+            );
+          }
+
+          const canvas = canvases[i];
+          const cards = batch[i].querySelectorAll(".pallet-card");
+          const imgData = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+
+          if (cards.length === 1 && this.paperSize === "A4") {
+            pdf.addImage(imgData, "JPEG", 0, 0, pageWidth / 2, pageHeight);
+          } else {
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(
+              pageWidth / imgWidth,
+              pageHeight / imgHeight,
+            );
+            const pdfWidth = imgWidth * ratio;
+            const pdfHeight = imgHeight * ratio;
+            pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+          }
+
+          // Giải phóng memory
+          canvas.width = 0;
+          canvas.height = 0;
+          canvas.remove();
+        }
+
+        this.progressPdf = Math.round((batchEnd / pageElements.length) * 100);
+        this.cdr.detectChanges();
+
+        await new Promise((resolve) => setTimeout(resolve, 5));
+
+        if ((batchStart + BATCH_SIZE) % 50 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+
+      // ===== MỞ PDF TRONG IFRAME ĐỂ IN =====
+      const pdfBlob = pdf.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+
+      // Tạo iframe ẩn để in
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.style.position = "fixed";
+      iframe.style.left = "0";
+      iframe.style.top = "0";
+      iframe.style.width = "100%";
+      iframe.style.height = "100%";
+      iframe.src = blobUrl;
+      document.body.appendChild(iframe);
+
+      // Xử lý sau khi iframe load xong
+      iframe.onload = () => {
+        setTimeout(() => {
+          try {
+            iframe.contentWindow?.print();
+          } catch (err) {
+            console.error("Print error:", err);
+            // Fallback: mở trong tab mới
+            window.open(blobUrl, "_blank");
+          }
+        }, 500);
+      };
+
+      // Cleanup sau khi in xong hoặc người dùng đóng dialog
+      this.dialogRef.afterClosed().subscribe(() => {
+        URL.revokeObjectURL(blobUrl);
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      });
+
+      // Xác nhận sau khi in xong
+      const dialogData: ConfirmDialogData = {
+        title: "Bạn đã in chưa?",
+        message: "Chọn Xong để cập nhật trạng thái!",
+        confirmText: "Xong",
+        cancelText: "Hủy",
+        type: "info",
+      };
+
+      const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+        width: "500px",
+        data: dialogData,
+        disableClose: false,
+      });
+
+      dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          void this.updatePrintStatusAfterPrint(unprintedPallets);
+        }
+      });
+
+      this.snackBar.open(
+        `Đã tạo PDF để in ${unprintedPallets.length} phiếu!`,
+        "Đóng",
+        { duration: 2000 },
+      );
+    } catch (err) {
+      console.error("PDF print error:", err);
+      this.snackBar.open("Lỗi khi in PDF", "Đóng", { duration: 3000 });
+    } finally {
+      // Restore
+      watermarkEls.forEach((el, idx) => {
+        el.style.display = watermarkDisplays[idx] ?? "";
+      });
+
+      this.displayPages = originalPages;
+      this.isLoadingPdf = false;
+      this.progressPdf = 0;
+      this.cdr.detectChanges();
+      printContent?.classList.remove("exporting-pdf");
+    }
+  }
+
+  /**
+   * ===== SERVER-SIDE PDF PRINTING (New Method) =====
+   * Gọi API backend để tạo PDF, nhận blob về và in
+   * Phân biệt Mobile vs Desktop để tối ưu trải nghiệm
+   */
+  onPrintFromServer(): void {
+    this.isLoadingPdf = true;
+    this.progressPdf = 0;
+
+    const unprintedPallets = this.pallets.filter((p) => !this.isNotScanned(p));
+
+    if (unprintedPallets.length === 0) {
+      this.snackBar.open("Không có phiếu nào cần in!", "Đóng", {
+        duration: 3000,
+      });
+      this.isLoadingPdf = false;
+      return;
+    }
+
+    // Update progress
+    this.progressPdf = 25;
+    this.cdr.detectChanges();
+
+    // Gọi API lấy PDF blob
+    this.palletService
+      .printPallets(unprintedPallets, this.paperSize)
+      .subscribe({
+        next: (response) => {
+          this.progressPdf = 75;
+          this.cdr.detectChanges();
+
+          // 1. Lấy dữ liệu Blob từ response body
+          const blob = new Blob([response.body!], { type: "application/pdf" });
+
+          // 2. Tạo URL ảo cho file PDF này
+          const blobUrl = URL.createObjectURL(blob);
+
+          // 3. Xử lý in (Phân biệt Mobile và PC)
+          if (this.isMobileDevice()) {
+            this.printForMobile(blobUrl);
+          } else {
+            this.printForDesktop(blobUrl);
+          }
+
+          this.progressPdf = 100;
+          this.isLoadingPdf = false;
+          this.cdr.detectChanges();
+
+          // Hiện dialog xác nhận sau khi in
+          this.showPrintConfirmationDialog(unprintedPallets);
+        },
+        error: (err) => {
+          console.error("Lỗi in từ server:", err);
+          this.isLoadingPdf = false;
+          this.progressPdf = 0;
+          this.cdr.detectChanges();
+
+          // Fallback: dùng phương thức cũ (client-side)
+          this.snackBar.open(
+            "Lỗi kết nối server, đang dùng phương thức in cũ...",
+            "Đóng",
+            {
+              duration: 3000,
+            },
+          );
+          setTimeout(() => {
+            void this.onPrintPDF();
+          }, 500);
+        },
+      });
+  }
+
+  /**
+   * Kiểm tra thiết bị di động
+   */
+  isMobileDevice(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent,
+    );
+  }
+
+  /**
+   * ===== IN CHO MOBILE (Tối ưu nhất) =====
+   * Mở PDF trong tab mới, người dùng dùng chức năng Share -> Print của điện thoại
+   */
+  printForMobile(blobUrl: string): void {
+    // Mở PDF trong tab mới (An toàn nhất trên iOS/Android)
+    window.open(blobUrl, "_blank");
+  }
+
+  /**
+   * ===== IN CHO DESKTOP =====
+   * Dùng iframe để in tự động
+   */
+  printForDesktop(blobUrl: string): void {
+    // Tạo iframe ẩn để in
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    iframe.style.position = "fixed";
+    iframe.style.left = "0";
+    iframe.style.top = "0";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.src = blobUrl;
+    document.body.appendChild(iframe);
+
+    // Xử lý sau khi iframe load xong
+    iframe.onload = () => {
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.print();
+        } catch (err) {
+          console.error("Print error:", err);
+          // Fallback: mở trong tab mới
+          window.open(blobUrl, "_blank");
+        }
+      }, 500);
+    };
+
+    // Cleanup khi dialog đóng
+    this.dialogRef.afterClosed().subscribe(() => {
+      URL.revokeObjectURL(blobUrl);
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    });
+  }
+
+  /**
+   * Hiện dialog xác nhận sau khi in
+   */
+  private showPrintConfirmationDialog(
+    unprintedPallets: PrintPalletData[],
+  ): void {
+    const dialogData: ConfirmDialogData = {
+      title: "Bạn đã in chưa?",
+      message: "Chọn Xong để cập nhật trạng thái!",
+      confirmText: "Xong",
+      cancelText: "Hủy",
+      type: "info",
+    };
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: "500px",
+      data: dialogData,
+      disableClose: false,
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        void this.updatePrintStatusAfterPrint(unprintedPallets);
+      }
+    });
   }
 
   // ========== TỐI ƯU QR CODE: Chuyển đổi nhanh hơn ==========

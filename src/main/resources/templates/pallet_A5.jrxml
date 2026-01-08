@@ -1,12 +1,11 @@
 <!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 7.0.3-41034ca841d452f3305ba55b9042260aaa1ab5dd  -->
-<jasperReport 
-	xmlns="http://jasperreports.sourceforge.net/jasperreports" 
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-    xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
-	name="pallet_A5" 
-	language="java" 
-	pageWidth="421" 
-	pageHeight="595" whenNoDataType="NoPages" columnWidth="401" leftMargin="5" rightMargin="5" topMargin="5" bottomMargin="5" uuid="44ebada7-4e05-43de-aece-47b4acc735f8">
+<jasperReport name="pallet_A5" language="java" pageWidth="421" pageHeight="595" whenNoDataType="NoPages" columnWidth="401" leftMargin="5" rightMargin="5" topMargin="5" bottomMargin="5" uuid="44ebada7-4e05-43de-aece-47b4acc735f8">
+    <property name="net.sf.jasperreports.default.pdf.font.name" value="Roboto"/>
+    <property name="net.sf.jasperreports.default.pdf.encoding" value="Identity-H"/>
+    <property name="net.sf.jasperreports.default.pdf.embedded" value="true"/>
+    
+    <property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+
 	<parameter name="createdBy" class="java.lang.String"/>
 	<field name="id" class="java.lang.Long"/>
 	<field name="khachHang" class="java.lang.String"/>
@@ -50,25 +49,25 @@
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<pen lineWidth="1.0" lineColor="#000000"/>
 			</element>
-			<element kind="textField" uuid="70c82e6e-5052-42b0-b514-d369f637c601" x="111" y="15" width="277" height="40" fontSize="28.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<element kind="textField" uuid="70c82e6e-5052-42b0-b514-d369f637c601" x="110" y="6" width="277" height="61" fontName="Arial" fontSize="28.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
 				<expression><![CDATA["PHIẾU THÔNG TIN"]]></expression>
 			</element>
 			<element kind="line" uuid="b92402eb-5ff1-49f6-a553-bc89b58e81d7" x="11" y="93" width="385" height="1">
 				<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				<pen lineWidth="1.0" lineColor="#000000"/>
 			</element>
-			<element kind="staticText" uuid="193eb506-ddbf-4c03-bbf5-a3fbb5e624c8" mode="Transparent" x="11" y="99" width="105" height="40" backcolor="#C4C2C2" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="193eb506-ddbf-4c03-bbf5-a3fbb5e624c8" mode="Transparent" x="11" y="99" width="109" height="40" backcolor="#FFFFFF" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Khách hàng]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
 					<pen lineWidth="0.5"/>
 					<topPen lineWidth="0.5"/>
-					<leftPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
 					<bottomPen lineWidth="0.5"/>
-					<rightPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="af729f1b-49f9-4497-81c2-46f0c0ef198f" mode="Transparent" x="116" y="99" width="280" height="40" fontSize="15.0" bold="true" vTextAlign="Middle">
+			<element kind="textField" uuid="af729f1b-49f9-4497-81c2-46f0c0ef198f" mode="Transparent" x="120" y="99" width="276" height="40" fontSize="18.0" bold="true" vTextAlign="Middle">
 				<expression><![CDATA[$F{khachHang}]]></expression>
 				<box leftPadding="3">
 					<pen lineWidth="0.5"/>
@@ -78,7 +77,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="37bb721e-525c-42cd-9724-d0aca28edfe9" mode="Transparent" x="11" y="139" width="105" height="22" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="37bb721e-525c-42cd-9724-d0aca28edfe9" mode="Transparent" x="11" y="139" width="109" height="22" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Serial pallet]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -89,7 +88,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="7e7235f8-001a-4ab3-b805-c72fb25581b5" mode="Transparent" x="116" y="139" width="280" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="7e7235f8-001a-4ab3-b805-c72fb25581b5" mode="Transparent" x="120" y="139" width="276" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA[$F{serialPallet}]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -100,7 +99,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="b4ec557c-6ce2-497c-9b27-274b307dce00" mode="Transparent" x="11" y="161" width="105" height="40" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="b4ec557c-6ce2-497c-9b27-274b307dce00" mode="Transparent" x="11" y="161" width="109" height="40" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Tên sản phẩm]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box topPadding="2" leftPadding="3">
@@ -111,7 +110,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="b7b69f45-3200-4757-a6a4-eb98154f8aa1" mode="Transparent" x="116" y="161" width="280" height="40" fontSize="9.0" textAdjust="StretchHeight" vTextAlign="Middle">
+			<element kind="textField" uuid="b7b69f45-3200-4757-a6a4-eb98154f8aa1" mode="Transparent" x="120" y="161" width="276" height="40" fontSize="9.0" textAdjust="StretchHeight" vTextAlign="Middle">
 				<expression><![CDATA[$F{tenSanPham}]]></expression>
 				<box topPadding="2" leftPadding="3">
 					<pen lineWidth="0.5"/>
@@ -121,7 +120,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="e3903f02-5dcb-4f51-9352-e3aacecf8fed" mode="Transparent" x="11" y="201" width="105" height="53" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="e3903f02-5dcb-4f51-9352-e3aacecf8fed" mode="Transparent" x="11" y="201" width="109" height="53" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[PO Number]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -132,7 +131,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="d61eac8d-33bb-4673-8d43-fa8e056a1bcd" mode="Transparent" x="116" y="201" width="280" height="53" fontSize="18.0" bold="true" vTextAlign="Middle">
+			<element kind="textField" uuid="d61eac8d-33bb-4673-8d43-fa8e056a1bcd" mode="Transparent" x="120" y="201" width="276" height="53" fontSize="22.0" bold="true" vTextAlign="Middle">
 				<expression><![CDATA[$F{poNumber}]]></expression>
 				<box leftPadding="3">
 					<pen lineWidth="0.5"/>
@@ -142,7 +141,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="8762819b-5ec8-4d4a-b8ff-e92a5316c825" mode="Transparent" x="11" y="254" width="105" height="22" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="8762819b-5ec8-4d4a-b8ff-e92a5316c825" mode="Transparent" x="11" y="254" width="109" height="22" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Item No/SKU]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -153,7 +152,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="2aa673ea-19ff-49f6-99c8-c18688071bcf" mode="Transparent" x="116" y="254" width="141" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="2aa673ea-19ff-49f6-99c8-c18688071bcf" mode="Transparent" x="120" y="254" width="130" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA[$F{itemNoSku}]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -164,7 +163,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="c294f26b-f7a4-48c4-8741-903c6ded58ef" mode="Transparent" x="257" y="254" width="139" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="c294f26b-f7a4-48c4-8741-903c6ded58ef" mode="Transparent" x="250" y="254" width="146" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA["Ngành:  " + ($F{led2} != null ? $F{led2} : "")]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -175,7 +174,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="47bdf4f0-7895-4438-9bcd-be8aa57986f7" mode="Transparent" x="11" y="276" width="105" height="22" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="47bdf4f0-7895-4438-9bcd-be8aa57986f7" mode="Transparent" x="11" y="276" width="109" height="22" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Số QDSX]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<property name="com.jaspersoft.studio.unit.width" value="px"/>
@@ -187,7 +186,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="9399dd58-6d1d-46bd-950d-3d9fc86162d6" mode="Transparent" x="116" y="276" width="141" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="9399dd58-6d1d-46bd-950d-3d9fc86162d6" mode="Transparent" x="120" y="276" width="130" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA[$F{soQdsx}]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -198,7 +197,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="b9da28f0-efa2-4ab7-96fb-c3bac9871d98" mode="Transparent" x="257" y="276" width="139" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="b9da28f0-efa2-4ab7-96fb-c3bac9871d98" mode="Transparent" x="250" y="276" width="146" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA["Tổ:  " + ($F{to} != null ? $F{to} : "")]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -209,7 +208,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="c7a54bf0-d497-4fb2-8e34-503708485370" mode="Transparent" x="11" y="298" width="105" height="22" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="c7a54bf0-d497-4fb2-8e34-503708485370" mode="Transparent" x="11" y="298" width="109" height="22" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Ngày sản xuất]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -220,7 +219,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="b5c81015-c786-4517-95bb-0219c7ef182f" mode="Transparent" x="116" y="298" width="141" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="b5c81015-c786-4517-95bb-0219c7ef182f" mode="Transparent" x="120" y="298" width="130" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA[$F{ngaySanXuat}]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -231,7 +230,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="0b197119-c8c2-45b1-96db-3b6f0921d320" mode="Transparent" x="257" y="298" width="139" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="0b197119-c8c2-45b1-96db-3b6f0921d320" mode="Transparent" x="250" y="298" width="146" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA["Date Code:  " + ($F{dateCode} != null ? $F{dateCode} : "")]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<property name="com.jaspersoft.studio.unit.width" value="pixel"/>
@@ -243,7 +242,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="b6fb9f95-0e23-47dc-a032-f3bdc1d619b1" mode="Transparent" x="11" y="320" width="105" height="38" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="b6fb9f95-0e23-47dc-a032-f3bdc1d619b1" mode="Transparent" x="11" y="320" width="109" height="38" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Số lượng
 (sản phẩm/pallet)]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
@@ -255,7 +254,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="51700abc-407e-4b6b-b059-433fdfe99233" mode="Transparent" x="116" y="320" width="141" height="38" fontSize="16.0" bold="true" vTextAlign="Middle">
+			<element kind="textField" uuid="51700abc-407e-4b6b-b059-433fdfe99233" mode="Transparent" x="120" y="320" width="130" height="38" fontSize="16.0" bold="true" vTextAlign="Middle">
 				<expression><![CDATA[$F{soLuongCaiDatPallet} != null ? $F{soLuongCaiDatPallet}.toString() : ""]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -266,7 +265,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="82da84ee-46d9-4c67-b42b-4c708fd03be4" mode="Transparent" x="257" y="320" width="139" height="38" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="82da84ee-46d9-4c67-b42b-4c708fd03be4" mode="Transparent" x="250" y="320" width="146" height="38" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA["SL SP/Thùng:  " + ($F{slThung} != null ? $F{slThung}.toString() : "")]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -277,7 +276,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="da12f33e-4719-41ea-a6ec-5826e1bcaed2" mode="Transparent" x="11" y="358" width="105" height="38" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="da12f33e-4719-41ea-a6ec-5826e1bcaed2" mode="Transparent" x="11" y="358" width="109" height="38" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Số lượng
 (thùng/pallet)]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
@@ -289,7 +288,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="9584502c-ffe9-415c-8e13-63b652caf7dd" mode="Transparent" x="116" y="358" width="141" height="38" fontSize="16.0" bold="true" vTextAlign="Middle">
+			<element kind="textField" uuid="9584502c-ffe9-415c-8e13-63b652caf7dd" mode="Transparent" x="120" y="358" width="130" height="38" fontSize="16.0" bold="true" vTextAlign="Middle">
 				<expression><![CDATA[$F{soLuongBaoNgoaiThungGiaPallet}]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -300,7 +299,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="f33ae452-be79-4443-aec9-8d294ca66ca8" mode="Transparent" x="257" y="358" width="139" height="38" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="f33ae452-be79-4443-aec9-8d294ca66ca8" mode="Transparent" x="250" y="358" width="146" height="38" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA["Thứ tự giá:  " + ($F{thuTuGiaPallet} != null ? $F{thuTuGiaPallet}.toString() : "")]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -311,7 +310,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="d289b39d-8a75-489e-88fb-aa2c3ca3a29d" mode="Transparent" x="11" y="396" width="105" height="22" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Middle">
+			<element kind="staticText" uuid="d289b39d-8a75-489e-88fb-aa2c3ca3a29d" mode="Transparent" x="11" y="396" width="109" height="22" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Middle">
 				<text><![CDATA[Người kiểm tra]]></text>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -322,7 +321,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="f314e3b5-45dc-49ec-9b47-4a0db01c67d2" mode="Transparent" x="116" y="396" width="141" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="f314e3b5-45dc-49ec-9b47-4a0db01c67d2" mode="Transparent" x="120" y="396" width="130" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA[$F{nguoiKiemTra}]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -333,7 +332,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="746741cd-0454-4204-baef-4574560cd1db" mode="Transparent" x="257" y="396" width="139" height="22" fontSize="9.0" vTextAlign="Middle">
+			<element kind="textField" uuid="746741cd-0454-4204-baef-4574560cd1db" mode="Transparent" x="250" y="396" width="146" height="22" fontSize="9.0" vTextAlign="Middle">
 				<expression><![CDATA["KQ kiểm tra:  " + ($F{ketQuaKiemTra} != null ? $F{ketQuaKiemTra} : "")]]></expression>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<box leftPadding="3">
@@ -344,7 +343,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="staticText" uuid="0f3d423d-1b8e-47ba-8347-536feeba6c72" mode="Transparent" x="11" y="418" width="105" height="42" fontName="Arial Unicode MS" fontSize="12.0" bold="true" vTextAlign="Top">
+			<element kind="staticText" uuid="0f3d423d-1b8e-47ba-8347-536feeba6c72" mode="Transparent" x="11" y="418" width="109" height="42" fontName="Roboto" pdfFontName="Roboto" pdfEncoding="Identity-H" fontSize="10.0" bold="true" vTextAlign="Top">
 				<text><![CDATA[Ghi chú]]></text>
 				<box topPadding="3" leftPadding="3">
 					<pen lineWidth="0.5"/>
@@ -354,7 +353,7 @@
 					<rightPen lineWidth="0.5"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="8e80dc6c-7e4d-4471-9a7c-010c6339991d" mode="Transparent" x="116" y="418" width="280" height="42" fontSize="8.0" textAdjust="StretchHeight" vTextAlign="Top">
+			<element kind="textField" uuid="8e80dc6c-7e4d-4471-9a7c-010c6339991d" mode="Transparent" x="120" y="418" width="276" height="42" fontSize="8.0" textAdjust="StretchHeight" vTextAlign="Top">
 				<expression><![CDATA[$F{note}]]></expression>
 				<box topPadding="3" leftPadding="3">
 					<pen lineWidth="0.5"/>
@@ -394,33 +393,25 @@
 			<element kind="textField" uuid="fa48fccb-f29b-4590-8f93-e0de36130ef5" x="181" y="549" width="190" height="14" fontSize="8.0" vTextAlign="Middle">
 				<expression><![CDATA[$F{date}]]></expression>
 			</element>
-			<componentElement>
-				<reportElement uuid="e6838700-af56-4258-9c1f-2b554d1c8c86" mode="Opaque" x="17" y="20" width="64" height="64">
-					<property name="com.jaspersoft.studio.unit.width" value="px"/>
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<c:barbecue xmlns:c="http://jasperreports.sourceforge.net/jasperreports/components" 
-							xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" 
-							type="QRCode" moduleWidth="0.0" evaluationTime="Now">
-					<c:codeExpression><![CDATA[$F{serialPallet}]]></c:codeExpression>
-				</c:barbecue>
-			</componentElement>
+			<element kind="component" uuid="e6838700-af56-4258-9c1f-2b554d1c8c86" mode="Opaque" x="17" y="20" width="64" height="64">
+				<component kind="barcode4j:QRCode" margin="0">
+					<codeExpression><![CDATA[$F{serialPallet}]]></codeExpression>
+				</component>
+				<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</element>
 			<element kind="rectangle" uuid="82dc7e07-d3c8-46cd-a5ca-89ccec30330b" x="11" y="481" width="75" height="75">
 				<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<pen lineWidth="1.0" lineColor="#000000"/>
 			</element>
-			<componentElement>
-				<reportElement uuid="7ee2d9f6-e7a6-4dbd-9720-5c1febc35cd7" mode="Opaque" x="18" y="488" width="62" height="62">
-					<property name="com.jaspersoft.studio.unit.width" value="px"/>
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<c:barbecue xmlns:c="http://jasperreports.sourceforge.net/jasperreports/components" 
-							xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" 
-							type="QRCode" moduleWidth="0.0" evaluationTime="Now">
-					<c:codeExpression><![CDATA[$F{serialBox}]]></c:codeExpression>
-				</c:barbecue>
-			</componentElement>
+			<element kind="component" uuid="7ee2d9f6-e7a6-4dbd-9720-5c1febc35cd7" mode="Opaque" x="18" y="488" width="62" height="62">
+				<component kind="barcode4j:QRCode" margin="0">
+					<codeExpression><![CDATA[$F{serialBox}]]></codeExpression>
+				</component>
+				<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</element>
 			<element kind="line" uuid="32816e93-1252-431a-8804-e8f9f836fb01" x="11" y="474" width="385" height="1">
 				<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				<pen lineWidth="1.0" lineColor="#000000"/>

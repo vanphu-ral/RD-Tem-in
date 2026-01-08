@@ -616,3 +616,35 @@
     transform: scale(0.65);
   }
 }
+
+// ===== MOBILE/NO-MOBILE UTILITY CLASSES =====
+// Hide elements by default
+.mobile-only {
+  display: none !important;
+}
+
+.no-mobile {
+  display: flex !important;
+}
+
+// Show mobile-only elements on small screens (phones)
+@media screen and (max-width: 599px) {
+  .mobile-only {
+    display: flex !important;
+  }
+
+  .no-mobile {
+    display: none !important;
+  }
+}
+
+// Tablets: optionally show/hide based on need
+@media screen and (min-width: 600px) and (max-width: 992px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .no-mobile {
+    display: flex !important;
+  }
+}

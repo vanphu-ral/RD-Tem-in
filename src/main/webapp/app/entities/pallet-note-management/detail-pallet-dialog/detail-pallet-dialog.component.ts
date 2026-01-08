@@ -15,8 +15,9 @@ import { MatChipsModule } from "@angular/material/chips";
 import { QRCodeComponent } from "angularx-qrcode";
 import {
   PrintPalletDialogComponent,
-  PrintPalletData,
+  // PrintPalletData,
 } from "../print-pallet-dialog/print-pallet-dialog.component";
+import { PrintPalletData } from "../service/pallet.service";
 import {
   PalletData,
   ScanPalletDialogComponent,

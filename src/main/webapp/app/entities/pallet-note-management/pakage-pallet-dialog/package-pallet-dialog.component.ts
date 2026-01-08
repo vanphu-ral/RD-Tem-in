@@ -26,8 +26,9 @@ import { ZXingScannerComponent } from "@zxing/ngx-scanner";
 import { BarcodeFormat } from "@zxing/library";
 import { PalletDetailDialogComponent } from "../detail-pallet-dialog/detail-pallet-dialog.component";
 import { PageEvent } from "@angular/material/paginator";
+import { PrintPalletData } from "../service/pallet.service";
 import {
-  PrintPalletData,
+  // PrintPalletData,
   PrintPalletDialogComponent,
 } from "../print-pallet-dialog/print-pallet-dialog.component";
 import { ScanPalletDialogComponent } from "../scan-pallet-dialog/scan-pallet-dialog.component";
