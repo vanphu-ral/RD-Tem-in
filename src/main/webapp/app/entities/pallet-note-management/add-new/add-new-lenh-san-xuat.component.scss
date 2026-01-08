@@ -464,15 +464,6 @@
   }
 }
 
-@media (max-width: 720px) {
-  .summary-cards {
-    flex-direction: column;
-  }
-  .summary-card {
-    flex: 1 1 auto;
-  }
-}
-
 .btp-group-btn {
   display: flex;
   gap: 15px;
@@ -550,6 +541,10 @@
 .mobile-only {
   display: none;
 }
+.d-flex {
+  display: flex;
+  gap: 7rem;
+}
 
 // ==========================================
 // MOBILE RESPONSIVE - VERSION MỚI HOÀN TOÀN
@@ -618,7 +613,7 @@
   // }
 
   .mobile-cards {
-    padding: 12px;
+    padding: 0px 12px;
 
     .mobile-card {
       background: white;
@@ -637,7 +632,7 @@
     }
 
     .card-header {
-      display: flex;
+      display: none;
       justify-content: space-between;
       align-items: center;
       padding: 12px 16px;
@@ -678,7 +673,7 @@
     }
 
     .card-body {
-      padding: 16px;
+      padding: 8px;
 
       .info-row {
         display: flex;
@@ -777,9 +772,8 @@
       }
 
       .warehouse-select {
-        margin-top: 16px;
-        padding-top: 16px;
         border-top: 2px solid #f0f0f0;
+        width: 80%;
 
         .mat-form-field {
           width: 100%;
@@ -799,7 +793,7 @@
   }
 
   .action-buttons {
-    padding: 16px;
+    padding: 0;
     position: sticky;
     bottom: 0;
     background: white;
@@ -816,7 +810,8 @@
 
   // Adjust header for mobile
   .header {
-    padding: 12px 16px;
+    padding: 3px 16px;
+    margin: 0;
 
     h3 {
       font-size: 18px;
@@ -842,7 +837,7 @@
   .action-buttons {
     display: flex;
     justify-content: flex-end;
-    margin-top: 8px;
+    // margin-top: 8px;
 
     button {
       height: 36px;
@@ -971,7 +966,7 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
       padding: 8px 10px;
-      display: flex;
+      display: flex; //hide
       justify-content: space-between;
       align-items: center;
 
@@ -1054,7 +1049,7 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 
     .card-header {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      background: rgb(63, 81, 181);
       color: #fff;
       padding: 8px 10px;
       display: flex;
@@ -1091,12 +1086,20 @@
         text-transform: uppercase;
         margin-bottom: 4px;
         font-weight: 600;
+        &.po_number {
+          font-weight: bold;
+          font-size: 12px;
+        }
       }
 
       .section-content {
         font-size: 11px;
         color: #333;
         font-weight: 500;
+        &.po_number {
+          font-weight: bold;
+          font-size: 14px;
+        }
       }
     }
 
@@ -1254,10 +1257,62 @@
   //   }
   // }
   .summary-cards {
-    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0 0; /* 2 columns on mobile to reduce vertical scroll */
+    grid-template-columns: repeat(2, 1fr);
+    align-items: stretch;
   }
   .summary-card {
-    flex: 1 1 auto;
+    padding: 8px;
+    min-width: 0; /* allow content to wrap vertically if needed */
+    align-items: flex-start;
+    gap: 8px; /* make cards slightly denser */
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04); /* icon + body stacked horizontally but compact */
+    .summary-card__icon {
+      width: 40px;
+      height: 40px;
+      margin-right: 8px;
+      font-size: 18px;
+      border-radius: 6px;
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .summary-card__body {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .summary-card__label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 2px;
+      white-space: normal; /* allow wrap if label long */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.1;
+    }
+    .summary-card__value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #111;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+    .summary-card__meta {
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0.95;
+    }
   }
   // ===== BOX TABLE - THU NHỎ NHƯNG GIỮ CẤU TRÚC =====
   .items-table {

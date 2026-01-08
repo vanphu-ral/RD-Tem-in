@@ -471,6 +471,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.selectedTabIndex = 0;
+    this.showPalletTab = true;
     this.isMobile = window.innerWidth < 768;
     this.isDetail = false;
     await this.loadHierarchyCache();
@@ -5129,9 +5130,25 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           return { type: "ERROR" as const, data: null };
         }
 
+        // Sắp xếp và lấy item mới nhất
+        const sorted = [...filtered].sort((a, b) => {
+          // Sắp xếp theo id, createdDate, hoặc timestamp giảm dần
+          const idA = Number(a.id ?? 0);
+          const idB = Number(b.id ?? 0);
+          return idB - idA; // Lấy mới nhất
+        });
+
+        const latestItem = sorted[0];
+
+        console.log(
+          `Found ${filtered.length} items for woId ${woId}, using latest:`,
+          latestItem,
+        );
+
+        // Chỉ trả về 1 item mới nhất trong array
         return {
           type: "NEW_ORDER" as const,
-          data: filtered,
+          data: [latestItem], // Wrap trong array để giữ nguyên logic downstream
         };
       }),
       catchError((err) => {
@@ -5407,26 +5424,45 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   // Helper method xử lý production order mới
   private handleNewProductionOrder(filtered: any[], woId: string): void {
-    this.productionOrders = filtered.map((item) => ({
-      maLenhSanXuat: item.sapWoId ?? "",
-      maSAP: item.productCode ?? "",
-      tenHangHoa: item.productName ?? "",
-      maWO: item.woId ?? "",
-      version: item.bomVersion ?? "",
-      maKhoNhap: "",
-      tongSoLuong: 0,
-      trangThai: "Bản nháp",
-      loaiSanPham: item.productType ?? "",
-      lotNumber: item.lotNumber ?? "",
-      nganhRaw: item.branchCode ?? "",
-      toRaw: item.groupCode ?? "",
-      xuong: "",
-      xuongId: "",
-      nganh: "",
-      nganhId: "",
-      to: "",
-      toId: "",
-    }));
+    if (!filtered || filtered.length === 0) {
+      this.snackBar.open("Không có dữ liệu đơn sản xuất", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Nếu có nhiều items, log cảnh báo và chỉ lấy cái đầu tiên
+    if (filtered.length > 1) {
+      console.warn(
+        `Found ${filtered.length} items for woId ${woId}, using first item only`,
+      );
+    }
+
+    // Chỉ lấy 1 item đầu tiên (hoặc mới nhất nếu đã sort ở upstream)
+    const item = filtered[0];
+
+    this.productionOrders = [
+      {
+        maLenhSanXuat: item.sapWoId ?? "",
+        maSAP: item.productCode ?? "",
+        tenHangHoa: item.productName ?? "",
+        maWO: item.woId ?? "",
+        version: item.bomVersion ?? "",
+        maKhoNhap: "",
+        tongSoLuong: 0,
+        trangThai: "Bản nháp",
+        loaiSanPham: item.productType ?? "",
+        lotNumber: item.lotNumber ?? "",
+        nganhRaw: item.branchCode ?? "",
+        toRaw: item.groupCode ?? "",
+        xuong: "",
+        xuongId: "",
+        nganh: "",
+        nganhId: "",
+        to: "",
+        toId: "",
+      },
+    ];
 
     // Hàm xử lý mapping
     const processMapping = (workshops: any[]): void => {

@@ -175,13 +175,13 @@
 
         <!-- Main Info -->
         <div class="card-body">
-          <div class="info-row primary">
+          <!-- <div class="info-row primary">
             <mat-icon class="info-icon">article</mat-icon>
             <div class="info-content">
               <span class="info-label">Mã lệnh SX</span>
               <span class="info-value">{{ element.maLenhSanXuat }}</span>
             </div>
-          </div>
+          </div> -->
 
           <div class="info-row">
             <mat-icon class="info-icon">inventory_2</mat-icon>
@@ -227,37 +227,47 @@
           </div>
 
           <!-- Warehouse Select -->
-          <div class="warehouse-select">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Mã kho nhập</mat-label>
-              <mat-select
-                [(value)]="element.maKhoNhap"
-                placeholder="Chọn kho"
-                (selectionChange)="onMaKhoNhapChange($event.value)"
-              >
-                <ng-container
-                  *ngIf="
-                    element.loaiSanPham === 'Bán thành phẩm';
-                    else tpOptionsMobile
-                  "
-                >
-                  <mat-option
-                    *ngFor="let opt of maKhoNhapOptionsBTP"
-                    [value]="opt.value"
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="warehouse-select">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Mã kho nhập</mat-label>
+                  <mat-select
+                    [(value)]="element.maKhoNhap"
+                    placeholder="Chọn kho"
+                    (selectionChange)="onMaKhoNhapChange($event.value)"
                   >
-                    {{ opt.label }}
-                  </mat-option>
-                </ng-container>
-                <ng-template #tpOptionsMobile>
-                  <mat-option
-                    *ngFor="let opt of maKhoNhapOptionsTP"
-                    [value]="opt.value"
-                  >
-                    {{ opt.label }}
-                  </mat-option>
-                </ng-template>
-              </mat-select>
-            </mat-form-field>
+                    <ng-container
+                      *ngIf="
+                        element.loaiSanPham === 'Bán thành phẩm';
+                        else tpOptionsMobile
+                      "
+                    >
+                      <mat-option
+                        *ngFor="let opt of maKhoNhapOptionsBTP"
+                        [value]="opt.value"
+                      >
+                        {{ opt.label }}
+                      </mat-option>
+                    </ng-container>
+                    <ng-template #tpOptionsMobile>
+                      <mat-option
+                        *ngFor="let opt of maKhoNhapOptionsTP"
+                        [value]="opt.value"
+                      >
+                        {{ opt.label }}
+                      </mat-option>
+                    </ng-template>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </div>
+            <!-- <div class="info-item">
+              <div class="info-content">
+                <span class="info-label">Mã lệnh SX</span>
+                <span class="info-value">{{ element.maLenhSanXuat }}</span>
+              </div>
+            </div> -->
           </div>
         </div>
       </div>
@@ -699,17 +709,21 @@
                     <div class="section-title">Sản phẩm</div>
                     <div class="section-content">{{ element.tenSanPham }}</div>
                   </div>
-                  <div class="card-section">
-                    <div class="section-title">No/SKU</div>
-                    <div class="section-content">{{ element.noSKU }}</div>
+                  <div class="d-flex">
+                    <div class="card-section">
+                      <div class="section-title">No/SKU</div>
+                      <div class="section-content">{{ element.noSKU }}</div>
+                    </div>
+                    <div class="card-section">
+                      <div class="section-title">Khách hàng</div>
+                      <div class="section-content">{{ element.khachHang }}</div>
+                    </div>
                   </div>
                   <div class="card-section">
-                    <div class="section-title">Khách hàng</div>
-                    <div class="section-content">{{ element.khachHang }}</div>
-                  </div>
-                  <div class="card-section">
-                    <div class="section-title">PO Number</div>
-                    <div class="section-content">{{ element.poNumber }}</div>
+                    <div class="section-title po_number">PO Number</div>
+                    <div class="section-content po_number">
+                      {{ element.poNumber }}
+                    </div>
                   </div>
 
                   <div class="card-stats">
