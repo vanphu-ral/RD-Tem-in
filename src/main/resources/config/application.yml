@@ -192,6 +192,11 @@ spring:
     type: redis
     redis:
       time-to-live: 3600000 # 1 giờ
+
+jasper:
+  reports:
+    compiler: net.sf.jasperreports.engine.design.JRJdtCompiler
+
 server:
   servlet:
     session:

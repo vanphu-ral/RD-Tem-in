@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.util.JRLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -520,17 +521,24 @@ public class PalletInforDetailService {
             // 1. Select template file based on paper size
             String templateName;
             if ("A5".equalsIgnoreCase(paperSize)) {
-                templateName = "templates/pallet_A5.jrxml";
+                templateName = "templates/Blank_A5.jasper";
             } else {
-                templateName = "templates/pallet_A4.jrxml"; // Default to A4
+                templateName = "templates/Blank_A4.jasper"; // Default to A4
             }
 
-            // 2. Load template from resources
-            InputStream reportStream = new ClassPathResource(
+            // 2. Load pre-compiled template from resources
+            InputStream jasperStream = new ClassPathResource(
                 templateName
             ).getInputStream();
-            JasperReport jasperReport = JasperCompileManager.compileReport(
-                reportStream
+
+            if (jasperStream == null) {
+                LOG.error("Cannot find report template: {}", templateName);
+                throw new RuntimeException("Report template not found");
+            }
+
+            // Load compiled report (không cần compile)
+            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(
+                jasperStream
             );
 
             // 3. Create data source
@@ -550,9 +558,18 @@ public class PalletInforDetailService {
 
             // 6. Export to PDF
             return JasperExportManager.exportReportToPdf(jasperPrint);
+        } catch (JRException e) {
+            LOG.error("JasperReports error: {}", e.getMessage(), e);
+            throw new RuntimeException(
+                "Failed to generate PDF: " + e.getMessage(),
+                e
+            );
         } catch (Exception e) {
-            LOG.error("Error generating PDF with JasperReports", e);
-            throw new RuntimeException("Failed to generate PDF", e);
+            LOG.error("Unexpected error generating PDF: {}", e.getMessage(), e);
+            throw new RuntimeException(
+                "Failed to generate PDF: " + e.getMessage(),
+                e
+            );
         }
     }
 

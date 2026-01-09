@@ -47,6 +47,11 @@ spring:
   redis:
     host: 192.168.10.99
     port: 6379
+
+jasper:
+  reports:
+    compiler: net.sf.jasperreports.engine.design.JRJdtCompiler
+
 partner:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource

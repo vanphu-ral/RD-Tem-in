@@ -368,7 +368,11 @@
             <artifactId>jasperreports</artifactId>
             <version>7.0.3</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.eclipse.jdt</groupId>
+            <artifactId>ecj</artifactId>
+            <version>3.26.0</version>
+        </dependency>
         <!-- QUAN TRỌNG: Component extensions cho JasperReports -->
         <dependency>
             <groupId>net.sf.jasperreports</groupId>
