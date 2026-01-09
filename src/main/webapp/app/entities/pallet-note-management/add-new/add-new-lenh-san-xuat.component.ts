@@ -73,6 +73,9 @@ import {
   WmsDialogData,
 } from "../wms-approve-dialog/wms-approve-dialog.component";
 import { MatTableDataSource } from "@angular/material/table";
+import jsPDF from "jspdf";
+import QRCode from "qrcode";
+
 export interface ProductionOrder {
   id?: number;
   maLenhSanXuat: string;
@@ -1504,6 +1507,138 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     // lưu ngay nếu bạn muốn auto-save
     this.saveCombined(this.maLenhSanXuatId);
+  }
+
+  async exportAllQRCodesPdf(): Promise<void> {
+    const items = this.collectAllBoxSubItems();
+    if (!items.length) {
+      return;
+    }
+
+    const doc = new jsPDF({
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait",
+      compress: false,
+    });
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
+    const cols = 4;
+    const gap = 6;
+    const contentWidth = pageWidth - margin * 2;
+    const qrSize = (contentWidth - gap * (cols - 1)) / cols;
+
+    const qtyFontSize = 18;
+    const labelFontSize = 10;
+
+    const qtyOffset = 1.2;
+    const labelOffset = 1.0;
+
+    const approxQtyLineHeight = qtyFontSize / 2.8;
+    const approxLabelLineHeight = labelFontSize / 2.8;
+
+    const rowHeight =
+      qrSize +
+      qtyOffset +
+      approxQtyLineHeight +
+      labelOffset +
+      approxLabelLineHeight +
+      1;
+
+    let x = margin;
+    let y = margin;
+
+    const truncateToWidth = (
+      text: string,
+      maxWidth: number,
+      fontSize: number,
+    ): string => {
+      doc.setFontSize(fontSize);
+      if (doc.getTextWidth(text) <= maxWidth) {
+        return text;
+      }
+
+      let low = 0;
+      let high = text.length;
+      let best = "";
+      while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        const candidate = text.slice(0, mid);
+        if (doc.getTextWidth(candidate) <= maxWidth) {
+          best = candidate;
+          low = mid + 1;
+        } else {
+          high = mid;
+        }
+      }
+      return best || text.slice(0, 1);
+    };
+
+    for (let i = 0; i < items.length; i++) {
+      let dataUrl: string | null = null;
+
+      try {
+        const text = String(items[i].maThung ?? "");
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        dataUrl = await QRCode.toDataURL(text, { width: 500 });
+      } catch (err) {
+        console.warn("QR gen failed:", items[i], err);
+        continue;
+      }
+
+      if (y + rowHeight + margin > pageHeight) {
+        doc.addPage();
+        x = margin;
+        y = margin;
+      }
+      if (!dataUrl) {
+        continue;
+      }
+      // QR
+      doc.addImage(
+        dataUrl as string,
+        "PNG",
+        x,
+        y,
+        qrSize,
+        qrSize,
+        undefined,
+        "NONE",
+      );
+
+      const labelRaw = String(items[i].maThung ?? "");
+      const qtyRaw = String(items[i].soLuong ?? "");
+
+      // số lượng
+      doc.setFontSize(qtyFontSize);
+      const qtyWidth = doc.getTextWidth(qtyRaw);
+      const qtyX = x + Math.max(0, (qrSize - qtyWidth) / 2);
+      const qtyY = y + qrSize + qtyOffset;
+      if (qtyRaw) {
+        doc.text(qtyRaw, qtyX, qtyY);
+      }
+
+      // mã thùng
+      const truncatedLabel = truncateToWidth(labelRaw, qrSize, labelFontSize);
+      doc.setFontSize(labelFontSize);
+      const labelWidth = doc.getTextWidth(truncatedLabel);
+      const labelX = x + Math.max(0, (qrSize - labelWidth) / 2);
+      const labelY = qtyY + labelOffset + approxLabelLineHeight * 0.6;
+      if (truncatedLabel) {
+        doc.text(truncatedLabel, labelX, labelY);
+      }
+
+      x += qrSize + gap;
+      if (i % cols === cols - 1) {
+        x = margin;
+        y += rowHeight;
+      }
+    }
+
+    doc.save(`qr-all-boxes-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
   // Mở dialog tạo thùng sản phẩm
@@ -3961,6 +4096,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       // } else {
       // }
       await this.saveCombined(this.maLenhSanXuatId);
+      this.reloadData();
       this.goToBoxTab();
     } catch (err) {
       console.error("[handleBoxCreation] error", err);
@@ -4328,6 +4464,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     }
 
     this.goToPalletTab();
+    this.reloadData();
   }
 
   private generatePalletCode(sourceIndex: number, palletIndex: number): string {
@@ -4961,23 +5098,40 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             return;
           }
 
-          if (response && response.pallet_infor_details) {
-            // response.pallet_infor_details có thể đã đúng cấu trúc
+          /* ================= PALLET ================= */
+          if (response.pallet_infor_details) {
             this.pallets = response.pallet_infor_details;
+
             this.palletItems = this.mapPalletsToPalletItems(this.pallets).map(
               (p) => ({
                 ...p,
                 maLenhSanXuatId: this.maLenhSanXuatId,
               }),
             );
+
             this.computePalletSummary();
           } else {
             console.warn(
-              "reloadData: pallet_infor_details not found in response body",
+              "reloadData: pallet_infor_details not found",
+              response,
+            );
+          }
+
+          /* ================= BOX ================= */
+          if (response.warehouse_note_info_details) {
+            this.boxItems = this.mapDetailsToBoxItems(
+              response.warehouse_note_info_details,
+            );
+
+            this.computeBoxSummary(); // nếu anh có hàm này
+          } else {
+            console.warn(
+              "reloadData: warehouse_note_info_details not found",
               response,
             );
           }
         },
+
         error: (err) => {
           console.error("Error reloading data:", err);
         },
@@ -5616,5 +5770,20 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     } catch (e) {
       console.warn("Cannot save pallet defaults", e);
     }
+  }
+  //gom qr box
+  private collectAllBoxSubItems(): BoxSubItem[] {
+    const all: BoxSubItem[] = [];
+
+    (this.boxItems || []).forEach((box) => {
+      (box.subItems || []).forEach((s, idx) => {
+        all.push({
+          ...s,
+          stt: all.length + 1,
+        });
+      });
+    });
+
+    return all;
   }
 }

@@ -445,7 +445,7 @@ export class DetailBoxDialogComponent implements OnInit {
     const pageWidth = 210;
     const pageHeight = 297;
     const margin = 10;
-    const cols = 5;
+    const cols = 4;
     const gap = 6;
     const contentWidth = pageWidth - margin * 2;
     const qrSize = (contentWidth - gap * (cols - 1)) / cols;
