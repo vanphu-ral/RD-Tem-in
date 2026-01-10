@@ -1524,31 +1524,24 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 10;
+    const margin = 8;
+
     const cols = 4;
-    const gap = 6;
+    const rowsPerPage = 5;
+    const itemsPerPage = cols * rowsPerPage;
+
+    const gapX = 5;
+
     const contentWidth = pageWidth - margin * 2;
-    const qrSize = (contentWidth - gap * (cols - 1)) / cols;
+    const usableHeight = pageHeight - margin * 2;
+
+    const cellWidth = (contentWidth - gapX * (cols - 1)) / cols;
+    const cellHeight = usableHeight / rowsPerPage;
+
+    const qrSize = Math.min(cellWidth, cellHeight * 0.65);
 
     const qtyFontSize = 18;
-    const labelFontSize = 10;
-
-    const qtyOffset = 1.2;
-    const labelOffset = 1.0;
-
-    const approxQtyLineHeight = qtyFontSize / 2.8;
-    const approxLabelLineHeight = labelFontSize / 2.8;
-
-    const rowHeight =
-      qrSize +
-      qtyOffset +
-      approxQtyLineHeight +
-      labelOffset +
-      approxLabelLineHeight +
-      1;
-
-    let x = margin;
-    let y = margin;
+    const labelFontSize = 8;
 
     const truncateToWidth = (
       text: string,
@@ -1577,65 +1570,58 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     };
 
     for (let i = 0; i < items.length; i++) {
-      let dataUrl: string | null = null;
+      // sang trang mới sau mỗi 20 QR
+      if (i > 0 && i % itemsPerPage === 0) {
+        doc.addPage();
+      }
 
+      const indexInPage = i % itemsPerPage;
+      const row = Math.floor(indexInPage / cols);
+      const col = indexInPage % cols;
+
+      const xCell = margin + col * (cellWidth + gapX);
+      const yCell = margin + row * cellHeight;
+
+      let dataUrl: string | null = null;
       try {
         const text = String(items[i].maThung ?? "");
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
         dataUrl = await QRCode.toDataURL(text, { width: 500 });
       } catch (err) {
         console.warn("QR gen failed:", items[i], err);
         continue;
       }
 
-      if (y + rowHeight + margin > pageHeight) {
-        doc.addPage();
-        x = margin;
-        y = margin;
-      }
       if (!dataUrl) {
         continue;
       }
-      // QR
-      doc.addImage(
-        dataUrl as string,
-        "PNG",
-        x,
-        y,
-        qrSize,
-        qrSize,
-        undefined,
-        "NONE",
-      );
 
-      const labelRaw = String(items[i].maThung ?? "");
+      // căn giữa QR trong cell
+      const xQR = xCell + (cellWidth - qrSize) / 2;
+      const yQR = yCell + 4;
+
+      doc.addImage(dataUrl, "PNG", xQR, yQR, qrSize, qrSize);
+
       const qtyRaw = String(items[i].soLuong ?? "");
+      const labelRaw = String(items[i].maThung ?? "");
 
       // số lượng
       doc.setFontSize(qtyFontSize);
       const qtyWidth = doc.getTextWidth(qtyRaw);
-      const qtyX = x + Math.max(0, (qrSize - qtyWidth) / 2);
-      const qtyY = y + qrSize + qtyOffset;
-      if (qtyRaw) {
-        doc.text(qtyRaw, qtyX, qtyY);
-      }
+      doc.text(qtyRaw, xCell + (cellWidth - qtyWidth) / 2, yQR + qrSize + 6);
 
       // mã thùng
-      const truncatedLabel = truncateToWidth(labelRaw, qrSize, labelFontSize);
+      const truncatedLabel = truncateToWidth(
+        labelRaw,
+        cellWidth,
+        labelFontSize,
+      );
       doc.setFontSize(labelFontSize);
       const labelWidth = doc.getTextWidth(truncatedLabel);
-      const labelX = x + Math.max(0, (qrSize - labelWidth) / 2);
-      const labelY = qtyY + labelOffset + approxLabelLineHeight * 0.6;
-      if (truncatedLabel) {
-        doc.text(truncatedLabel, labelX, labelY);
-      }
-
-      x += qrSize + gap;
-      if (i % cols === cols - 1) {
-        x = margin;
-        y += rowHeight;
-      }
+      doc.text(
+        truncatedLabel,
+        xCell + (cellWidth - labelWidth) / 2,
+        yQR + qrSize + 11,
+      );
     }
 
     doc.save(`qr-all-boxes-${new Date().toISOString().slice(0, 10)}.pdf`);

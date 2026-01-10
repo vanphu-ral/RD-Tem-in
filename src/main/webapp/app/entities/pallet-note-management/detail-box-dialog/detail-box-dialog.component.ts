@@ -22,6 +22,7 @@ import { MatSnackBar } from "@angular/material/snack-bar";
 import * as XLSX from "xlsx";
 import { ProductionOrder } from "../add-new/add-new-lenh-san-xuat.component";
 import { PlanningWorkOrderService } from "../service/planning-work-order.service";
+import QRCode from "@zxing/library/esm/core/qrcode/encoder/QRCode";
 
 export interface BoxDetailData {
   stt: number;
@@ -432,8 +433,7 @@ export class DetailBoxDialogComponent implements OnInit {
       return;
     }
 
-    // Đợi canvas render (tối đa timeout)
-    await this.waitForCanvases(5000); // chờ tối đa 5s
+    await this.waitForCanvases(5000);
 
     const doc = new jsPDF({
       unit: "mm",
@@ -444,37 +444,25 @@ export class DetailBoxDialogComponent implements OnInit {
 
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 10;
+    const margin = 8;
+
     const cols = 4;
-    const gap = 6;
+    const rowsPerPage = 5;
+    const itemsPerPage = cols * rowsPerPage;
+
+    const gapX = 5;
+
     const contentWidth = pageWidth - margin * 2;
-    const qrSize = (contentWidth - gap * (cols - 1)) / cols;
+    const usableHeight = pageHeight - margin * 2;
 
-    // Font sizes (giữ như bạn yêu cầu)
-    const qtyFontSize = 18; // số lượng
-    const labelFontSize = 10; // mã thùng
+    const cellWidth = (contentWidth - gapX * (cols - 1)) / cols;
+    const cellHeight = usableHeight / rowsPerPage;
 
-    // GIẢM KHOẢNG CÁCH để text sát QR hơn
-    const qtyOffset = 1.2; // khoảng cách từ đáy QR tới baseline số lượng (mm)
-    const labelOffset = 1.0; // khoảng cách giữa baseline số lượng và baseline mã thùng (mm)
+    const qrSize = Math.min(cellWidth, cellHeight * 0.65);
 
-    // Tính line height xấp xỉ (mm)
-    const approxQtyLineHeight = qtyFontSize / 2.8;
-    const approxLabelLineHeight = labelFontSize / 2.8;
+    const qtyFontSize = 18;
+    const labelFontSize = 8;
 
-    // rowHeight: qr + khoảng cho 2 dòng text + buffer nhỏ
-    const rowHeight =
-      qrSize +
-      qtyOffset +
-      approxQtyLineHeight +
-      labelOffset +
-      approxLabelLineHeight +
-      1; // 1mm buffer
-
-    let x = margin;
-    let y = margin;
-
-    // helper: truncate text để vừa width (1 dòng)
     const truncateToWidth = (
       text: string,
       maxWidth: number,
@@ -484,7 +472,7 @@ export class DetailBoxDialogComponent implements OnInit {
       if (doc.getTextWidth(text) <= maxWidth) {
         return text;
       }
-      const ell = "...";
+
       let low = 0;
       let high = text.length;
       let best = "";
@@ -502,20 +490,33 @@ export class DetailBoxDialogComponent implements OnInit {
     };
 
     for (let i = 0; i < items.length; i++) {
-      // Lấy dataUrl (cố gắng từ DOM, nếu không có sẽ tạo bằng thư viện)
+      // sang trang mới sau mỗi 20 QR
+      if (i > 0 && i % itemsPerPage === 0) {
+        doc.addPage();
+      }
+
+      const indexInPage = i % itemsPerPage;
+      const row = Math.floor(indexInPage / cols);
+      const col = indexInPage % cols;
+
+      const xCell = margin + col * (cellWidth + gapX);
+      const yCell = margin + row * cellHeight;
+
+      // lấy QR từ DOM trước
       let dataUrl: string | null = this.getDataUrlFromRenderedImg(i);
+
       if (!dataUrl) {
         try {
           const text =
             (this.data?.isBtp
               ? (items[i].qrCode ?? items[i].maThung)
               : items[i].maThung) ?? "";
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          dataUrl = await QRCode.toDataURL(String(text), { width: 500 });
+          dataUrl = await (QRCode as any).toDataURL(String(text), {
+            width: 500,
+          });
         } catch (err) {
-          console.warn("QR generation fallback failed for index", i, err);
-          dataUrl = null;
+          console.warn("QR generation fallback failed:", items[i], err);
+          continue;
         }
       }
 
@@ -523,57 +524,33 @@ export class DetailBoxDialogComponent implements OnInit {
         continue;
       }
 
-      // nếu vượt chiều cao trang -> addPage
-      if (y + rowHeight + margin > pageHeight) {
-        doc.addPage();
-        x = margin;
-        y = margin;
-      }
+      // QR căn giữa trong cell
+      const xQR = xCell + (cellWidth - qrSize) / 2;
+      const yQR = yCell + 4;
 
-      // vẽ QR
-      doc.addImage(dataUrl, "PNG", x, y, qrSize, qrSize, undefined, "NONE");
+      doc.addImage(dataUrl, "PNG", xQR, yQR, qrSize, qrSize);
 
-      // chuẩn bị text
+      const qtyRaw = String(items[i].soLuong ?? "");
       const labelRaw = String(items[i].maThung ?? "");
-      const qTyRaw = String(items[i].soLuong ?? "");
 
-      // Vẽ số lượng: đặt sát đáy QR hơn bằng qtyOffset nhỏ
-      const qtyText = qTyRaw;
+      // số lượng
       doc.setFontSize(qtyFontSize);
-      // nếu muốn in đậm số lượng, bỏ comment dòng dưới (phụ thuộc font)
-      // doc.setFont(undefined, 'bold');
-      const qtyTextWidth = doc.getTextWidth(qtyText);
-      const qtyX = x + Math.max(0, (qrSize - qtyTextWidth) / 2);
-      // baseline số lượng: ngay dưới QR + qtyOffset
-      const qtyY = y + qrSize + qtyOffset;
-      if (qtyText) {
-        doc.text(qtyText, qtyX, qtyY);
-      }
-      // nếu đã set bold, reset về normal (nếu cần)
-      // doc.setFont(undefined, 'normal');
+      const qtyWidth = doc.getTextWidth(qtyRaw);
+      doc.text(qtyRaw, xCell + (cellWidth - qtyWidth) / 2, yQR + qrSize + 6);
 
-      // Vẽ mã thùng: ngay dưới số lượng, dùng labelOffset nhỏ
-      const maxLabelWidth = qrSize;
+      // mã thùng
       const truncatedLabel = truncateToWidth(
         labelRaw,
-        maxLabelWidth,
+        cellWidth,
         labelFontSize,
       );
       doc.setFontSize(labelFontSize);
       const labelWidth = doc.getTextWidth(truncatedLabel);
-      const labelX = x + Math.max(0, (qrSize - labelWidth) / 2);
-      // baseline mã thùng: ngay dưới baseline số lượng + labelOffset
-      const labelY = qtyY + labelOffset + approxLabelLineHeight * 0.6; // điều chỉnh nhẹ baseline
-      if (truncatedLabel) {
-        doc.text(truncatedLabel, labelX, labelY);
-      }
-
-      // cập nhật vị trí tiếp theo
-      x += qrSize + gap;
-      if (i % cols === cols - 1) {
-        x = margin;
-        y += rowHeight;
-      }
+      doc.text(
+        truncatedLabel,
+        xCell + (cellWidth - labelWidth) / 2,
+        yQR + qrSize + 11,
+      );
     }
 
     doc.save(`qr-boxes-${new Date().toISOString().slice(0, 10)}.pdf`);
