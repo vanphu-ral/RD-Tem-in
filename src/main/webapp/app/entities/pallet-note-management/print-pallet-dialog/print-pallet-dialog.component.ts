@@ -1118,6 +1118,71 @@ export class PrintPalletDialogComponent implements OnInit {
   }
 
   /**
+   * Tải PDF về máy thay vì in
+   */
+  async onDownloadPdf(): Promise<void> {
+    const unprintedPallets = this.pallets.filter((p) => !this.isNotScanned(p));
+
+    if (unprintedPallets.length === 0) {
+      this.snackBar.open("Không có phiếu nào để tải!", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    this.isLoadingPdf = true;
+    this.progressPdf = 0;
+    this.cdr.detectChanges();
+
+    try {
+      const response = await firstValueFrom(
+        this.palletService.downloadPalletsPdf(unprintedPallets, this.paperSize),
+      );
+
+      // Tạo blob từ response
+      const blob = new Blob([response.body!], { type: "application/pdf" });
+
+      // Lấy filename từ header Content-Disposition
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `pallet-export-${this.paperSize}-${Date.now()}.pdf`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/"/g, "");
+        }
+      }
+
+      // Tạo link tải về
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Giải phóng URL
+      window.URL.revokeObjectURL(downloadUrl);
+
+      this.snackBar.open(
+        `Đã tải ${unprintedPallets.length} phiếu thành công!`,
+        "Đóng",
+        {
+          duration: 2000,
+        },
+      );
+    } catch (error) {
+      console.error("Lỗi tải PDF:", error);
+      this.snackBar.open("Lỗi khi tải PDF", "Đóng", { duration: 3000 });
+    } finally {
+      this.isLoadingPdf = false;
+      this.progressPdf = 0;
+      this.cdr.detectChanges();
+    }
+  }
+
+  /**
    * Kiểm tra thiết bị di động
    */
   isMobileDevice(): boolean {

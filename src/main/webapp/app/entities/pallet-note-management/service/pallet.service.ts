@@ -98,4 +98,28 @@ export class PalletService {
       observe: "response",
     });
   }
+
+  /**
+   * Tải PDF về máy thay vì chỉ mở blob
+   * @param pallets Mảng dữ liệu pallet cần tải PDF
+   * @param paperSize Kích thước giấy ("A4" hoặc "A5"), mặc định là "A4"
+   * @returns Observable với HttpResponse chứa blob PDF
+   */
+  downloadPalletsPdf(
+    pallets: PrintPalletData[],
+    paperSize: string = "A4",
+  ): Observable<HttpResponse<Blob>> {
+    const url = `${this.apiUrl}/export-pdf`;
+    const request: PrintPalletRequest = {
+      pallets: pallets,
+      paperSize: paperSize,
+    };
+    return this.http.post(url, request, {
+      responseType: "blob",
+      observe: "response",
+      headers: {
+        Accept: "application/pdf",
+      },
+    });
+  }
 }
