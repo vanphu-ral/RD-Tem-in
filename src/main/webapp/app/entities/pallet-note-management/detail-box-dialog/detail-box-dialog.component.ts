@@ -439,7 +439,7 @@ export class DetailBoxDialogComponent implements OnInit {
       unit: "mm",
       format: "a4",
       orientation: "portrait",
-      compress: false,
+      compress: true,
     });
 
     const pageWidth = 210;
@@ -458,7 +458,8 @@ export class DetailBoxDialogComponent implements OnInit {
     const cellWidth = (contentWidth - gapX * (cols - 1)) / cols;
     const cellHeight = usableHeight / rowsPerPage;
 
-    const qrSize = Math.min(cellWidth, cellHeight * 0.65);
+    // QR gần bằng hiện tại, chỉ nhỏ hơn chút
+    const qrSize = Math.min(cellWidth, cellHeight * 0.68);
 
     const qtyFontSize = 18;
     const labelFontSize = 8;
@@ -472,7 +473,6 @@ export class DetailBoxDialogComponent implements OnInit {
       if (doc.getTextWidth(text) <= maxWidth) {
         return text;
       }
-
       let low = 0;
       let high = text.length;
       let best = "";
@@ -489,8 +489,24 @@ export class DetailBoxDialogComponent implements OnInit {
       return best || text.slice(0, 1);
     };
 
+    // convert PNG → JPEG để giảm dung lượng PDF
+    const pngToJpeg = (dataUrl: string, quality = 0.65): Promise<string> =>
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.src = dataUrl;
+      });
+
     for (let i = 0; i < items.length; i++) {
-      // sang trang mới sau mỗi 20 QR
       if (i > 0 && i % itemsPerPage === 0) {
         doc.addPage();
       }
@@ -502,20 +518,23 @@ export class DetailBoxDialogComponent implements OnInit {
       const xCell = margin + col * (cellWidth + gapX);
       const yCell = margin + row * cellHeight;
 
-      // lấy QR từ DOM trước
+      // 1. lấy QR từ DOM nếu có
       let dataUrl: string | null = this.getDataUrlFromRenderedImg(i);
 
+      // 2. fallback: generate lại QR (size vừa đủ)
       if (!dataUrl) {
         try {
           const text =
             (this.data?.isBtp
               ? (items[i].qrCode ?? items[i].maThung)
               : items[i].maThung) ?? "";
+
           dataUrl = await (QRCode as any).toDataURL(String(text), {
-            width: 500,
+            width: 200, // rất quan trọng để giảm size PDF
+            margin: 1,
           });
         } catch (err) {
-          console.warn("QR generation fallback failed:", items[i], err);
+          console.warn("QR generation failed:", items[i], err);
           continue;
         }
       }
@@ -524,11 +543,14 @@ export class DetailBoxDialogComponent implements OnInit {
         continue;
       }
 
+      // 3. convert sang JPEG để PDF nhẹ hơn rất nhiều
+      const jpegUrl = await pngToJpeg(dataUrl, 0.65);
+
       // QR căn giữa trong cell
       const xQR = xCell + (cellWidth - qrSize) / 2;
       const yQR = yCell + 4;
 
-      doc.addImage(dataUrl, "PNG", xQR, yQR, qrSize, qrSize);
+      doc.addImage(jpegUrl, "JPEG", xQR, yQR, qrSize, qrSize);
 
       const qtyRaw = String(items[i].soLuong ?? "");
       const labelRaw = String(items[i].maThung ?? "");

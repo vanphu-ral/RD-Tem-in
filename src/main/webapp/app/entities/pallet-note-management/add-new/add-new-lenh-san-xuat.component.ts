@@ -1519,7 +1519,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       unit: "mm",
       format: "a4",
       orientation: "portrait",
-      compress: false,
+      compress: true, //  bật nén PDF
     });
 
     const pageWidth = 210;
@@ -1543,6 +1543,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const qtyFontSize = 18;
     const labelFontSize = 8;
 
+    // --- helper: truncate text ---
     const truncateToWidth = (
       text: string,
       maxWidth: number,
@@ -1569,8 +1570,24 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       return best || text.slice(0, 1);
     };
 
+    // --- helper: PNG -> JPEG để giảm size ---
+    const pngToJpeg = (dataUrl: string, quality = 0.65): Promise<string> =>
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.src = dataUrl;
+      });
+
     for (let i = 0; i < items.length; i++) {
-      // sang trang mới sau mỗi 20 QR
       if (i > 0 && i % itemsPerPage === 0) {
         doc.addPage();
       }
@@ -1582,24 +1599,26 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       const xCell = margin + col * (cellWidth + gapX);
       const yCell = margin + row * cellHeight;
 
-      let dataUrl: string | null = null;
+      let dataUrl: string;
       try {
         const text = String(items[i].maThung ?? "");
-        dataUrl = await QRCode.toDataURL(text, { width: 500 });
+        //  giảm kích thước QR gốc
+        dataUrl = await (QRCode as any).toDataURL(text, {
+          width: 280,
+          margin: 1,
+        });
       } catch (err) {
         console.warn("QR gen failed:", items[i], err);
         continue;
       }
 
-      if (!dataUrl) {
-        continue;
-      }
+      //  convert sang JPEG để giảm size PDF
+      const jpegUrl = await pngToJpeg(dataUrl, 0.65);
 
-      // căn giữa QR trong cell
       const xQR = xCell + (cellWidth - qrSize) / 2;
       const yQR = yCell + 4;
 
-      doc.addImage(dataUrl, "PNG", xQR, yQR, qrSize, qrSize);
+      doc.addImage(jpegUrl, "JPEG", xQR, yQR, qrSize, qrSize);
 
       const qtyRaw = String(items[i].soLuong ?? "");
       const labelRaw = String(items[i].maThung ?? "");
