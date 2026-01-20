@@ -1765,13 +1765,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         qtyPerBox: Number(
           latest.quantity_per_box ?? latest.num_box_config ?? 1,
         ),
-        // số lượng thùng scan / thực tế / pallet: map từ num_box_actual / num_box_config nếu có
-        soLuongThungScan: Number(
-          latest.num_box_actual ?? latest.num_box_config ?? 1,
-        ),
-        soLuongThungThucTe: Number(
-          latest.num_box_actual ?? latest.num_box_config ?? 1,
-        ),
+        soLuongThungScan: Number(1),
+        soLuongThungThucTe: Number(latest.num_box_actual ?? 1),
         soLuongPallet: Number(latest.num_box_config ?? 1),
         noSKU: (latest.item_no_sku as string) ?? "",
         // nếu PalletFormData có thêm trường khác, gán tương tự ở đây
