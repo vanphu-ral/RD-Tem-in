@@ -11,6 +11,8 @@ table {
 .table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Toast */
@@ -178,8 +180,9 @@ input[type="checkbox"] {
 }
 
 .form-control {
-  width: auto;
+  width: 100%;
   font-size: 13px;
+  max-width: 100%;
 }
 
 .btn {
@@ -385,8 +388,9 @@ input[type="checkbox"] {
 .search-all {
   display: flex;
   justify-content: space-between;
-  width: 98%;
+  width: 100%;
   margin: 10px 0;
+  padding-right: 0;
 }
 
 .form-control {
@@ -395,7 +399,37 @@ input[type="checkbox"] {
 
 .table-scroll {
   overflow-x: auto;
-  width: 98%;
+  width: 100%;
+  max-width: 100%;
+}
+.table-scroll + div {
+  width: 100%;
+  padding-right: 0;
+}
+.table-scroll + div > div {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+}
+*::-webkit-scrollbar {
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+.search-all + .table-scroll + div > div {
+  width: 100%;
 }
 
 .height-table {
@@ -420,7 +454,10 @@ input[type="checkbox"] {
   height: 46px;
   width: 142px;
 }
-
+.search-all input[type="text"] {
+  width: 15rem;
+  max-width: 250px;
+}
 /* ---------------------------------------------popup move--------------------------------------- */
 .popupMove {
   top: 0;
@@ -431,6 +468,10 @@ input[type="checkbox"] {
   left: 0;
   right: 0;
   font-family: "RM Neue", sans-serif;
+}
+.popupMove .table {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* close btn */

@@ -9,6 +9,7 @@ import { Observable } from "rxjs";
 import { finalize } from "rxjs/operators";
 import { IChiTietLenhSanXuat } from "../chi-tiet-lenh-san-xuat.model";
 import { ChiTietLenhSanXuatService } from "../service/chi-tiet-lenh-san-xuat.service";
+import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
 import {
   ILenhSanXuat,
   LenhSanXuat,
@@ -170,6 +171,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     protected applicationConfigService: ApplicationConfigService,
     protected http: HttpClient,
     protected accountService: AccountService,
+    private modalService: NgbModal,
   ) {}
 
   ngOnInit(): void {
@@ -407,16 +409,23 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   }
 
   // ================================  các button ======================================================
-  pheDuyetTem(): void {
-    const id = this.editForm.get(["id"])!.value;
-    this.http
-      .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
-        trang_thai: "Đã phê duyệt",
-      })
-      .subscribe(() => {
-        alert("Phê duyệt thành công");
-        this.previousState();
-      });
+  pheDuyetTem(content: any): void {
+    this.modalService.open(content, { centered: true }).result.then(
+      (result) => {
+        if (result === "confirm") {
+          const id = this.editForm.get(["id"])!.value;
+          this.http
+            .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
+              trang_thai: "Đã phê duyệt",
+            })
+            .subscribe(() => {
+              alert("Phê duyệt thành công");
+              this.previousState();
+            });
+        }
+      },
+      () => {},
+    );
   }
 
   khoHuyStatus(): void {

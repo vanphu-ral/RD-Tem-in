@@ -8,10 +8,7 @@
         Duyệt yêu cầu
       </h2>
       <div>
-        <div
-          class="table-scroll"
-          style="overflow-x: visible; max-width: 100% - 80px"
-        >
+        <div class="table-scroll" style="overflow-x: auto; width: 100%">
           <table class="table table-striped" aria-describedby="page-heading">
             <thead>
               <tr>
@@ -178,7 +175,7 @@
             id="scan"
             [(ngModel)]="scanResults"
             [ngModelOptions]="{ standalone: true }"
-            style="border: none; width: 98%"
+            style="border: none; width: 100%"
             (keydown.enter)="catchScanEvent()"
             inputmode="none"
           />
@@ -459,7 +456,7 @@
         <!-- danh sách tem không nằm trong lệnh sản xuất -->
         <h3>Danh sách tem không có trong lệnh</h3>
 
-        <div style="overflow-x: auto; width: 98%">
+        <div style="overflow-x: auto; width: 100%">
           <table class="table table-striped" aria-describedby="page-heading">
             <thead>
               <tr>
@@ -637,7 +634,7 @@
           "
         >
           <div
-            style="display: flex; justify-content: space-between; width: 98%"
+            style="display: flex; justify-content: space-between; width: 100%"
           >
             <select
               class="form-select"
@@ -665,7 +662,7 @@
           type="submit"
           id="save-entity"
           class="btn btn-primary"
-          (click)="pheDuyetTem()"
+          (click)="pheDuyetTem(confirmModal)"
         >
           <fa-icon icon="check"></fa-icon>&nbsp;<span>Phê duyệt</span>
         </button>
@@ -807,3 +804,29 @@
     </button>
   </div>
 </div>
+<ng-template #confirmModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title">Xác nhận</h4>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="modal.dismiss()"
+    ></button>
+  </div>
+  <div class="modal-body">
+    <p>Bạn có chắc chắn muốn thực hiện hành động này không?</p>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">
+      Hủy
+    </button>
+    <button
+      type="button"
+      class="btn btn-primary"
+      (click)="modal.close('confirm')"
+    >
+      Xác nhận
+    </button>
+  </div>
+</ng-template>
