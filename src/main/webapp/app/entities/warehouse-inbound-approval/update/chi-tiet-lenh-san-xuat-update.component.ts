@@ -1,7 +1,13 @@
 import { DATE_TIME_FORMAT } from "app/config/input.constants";
 import dayjs from "dayjs/esm";
 import { ApplicationConfigService } from "./../../../core/config/application-config.service";
-import { Component, Input, OnInit } from "@angular/core";
+import {
+  Component,
+  Input,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+} from "@angular/core";
 import { HttpResponse, HttpClient } from "@angular/common/http";
 import { UntypedFormBuilder, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
@@ -18,6 +24,7 @@ import { LenhSanXuatService } from "app/entities/lenh-san-xuat/service/lenh-san-
 import { AccountService } from "app/core/auth/account.service";
 import { Account } from "app/core/auth/account.model";
 import { PageEvent } from "@angular/material/paginator";
+import { AuthServerProvider } from "app/core/auth/auth-session.service";
 @Component({
   selector: "jhi-chi-tiet-lenh-san-xuat-update",
   templateUrl: "./chi-tiet-lenh-san-xuat-update.component.html",
@@ -41,7 +48,10 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     this.applicationConfigService.getEndpointFor(
       "/api/warehouse-note-infos-approval",
     );
-  // resourceUrlWarehouseNoteApprovalInfo = "http://192.168.68.77:8080/api/warehouse-note-infos-approval";
+
+  // resourceUrlQMS = 'http://192.168.18.124:8449/production/check-step';
+  resourceUrlQMS = "http://192.168.68.92/qms/production/check-step";
+  // resourceUrlWarehouseNoteApprovalInfo = "http://192.168.68.77:8085/api/warehouse-note-infos-approval";
   selectedAllResult?: boolean;
   selectedAll = 1;
   checkedList: any;
@@ -50,7 +60,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   @Input() itemPerPage = 10;
   @Input() itemPerPage3 = 5;
   @Input() itemPerPage2 = 10;
-
+  @ViewChild("messageModal") messageModal!: TemplateRef<any>;
   page?: number;
   page2?: number;
   page3?: number;
@@ -66,6 +76,10 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   ascending!: boolean;
 
   selectedStatus = "";
+
+  //loader
+  loading = false;
+  message: string | null = null;
 
   changeStatus: {
     id: number;
@@ -172,6 +186,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     protected http: HttpClient,
     protected accountService: AccountService,
     private modalService: NgbModal,
+    private authServerProvider: AuthServerProvider,
   ) {}
 
   ngOnInit(): void {
@@ -419,7 +434,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
               trang_thai: "Đã phê duyệt",
             })
             .subscribe(() => {
-              alert("Phê duyệt thành công");
+              // alert("Phê duyệt thành công");
+              this.openMessageModal("Phê duyệt thành công");
               this.previousState();
             });
         }
@@ -435,7 +451,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         trang_thai: "Kho hủy",
       })
       .subscribe(() => {
-        alert("Kho hủy thành công");
+        // alert("Kho hủy thành công");
+        this.openMessageModal("Kho hủy thành công");
         this.previousState();
       });
   }
@@ -447,9 +464,177 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         trang_thai: "Từ chối",
       })
       .subscribe(() => {
-        alert("Từ chối thành công");
+        // alert("Từ chối thành công");
+        this.openMessageModal("Từ chối thành công");
         this.previousState();
       });
+  }
+  openMessageModal(msg: string): void {
+    this.message = msg;
+    this.modalService.open(this.messageModal, { centered: true });
+  }
+  createQMS(content: any): void {
+    this.modalService.open(content, { centered: true }).result.then(
+      (result) => {
+        if (result === "confirm") {
+          if (
+            !this.chiTietLenhSanXuats ||
+            this.chiTietLenhSanXuats.length === 0
+          ) {
+            // alert('Không có dữ liệu để tạo nhập kho QMS');
+            this.openMessageModal("Không có dữ liệu để tạo nhập kho QMS");
+            return;
+          }
+          this.loading = true;
+          const firstDetail = this.chiTietLenhSanXuats[0];
+          const maLenhSanXuat = this.editForm.get(["maLenhSanXuat"])!.value;
+
+          const requestBody = {
+            typeRequest: "ACTION_BROWS_STEP",
+            page: 1,
+            size: 10,
+            name: null,
+            code: null,
+            lot: firstDetail.lot,
+            step: "",
+            sap: maLenhSanXuat,
+            startDate: null,
+            endDate: null,
+            workOrderCode: this.editForm.get(["workOrderCode"])!.value,
+          };
+
+          this.accountService.identity().subscribe((account) => {
+            const username = account?.login ?? "unknown";
+
+            this.authServerProvider.getToken().subscribe((token) => {
+              // lấy id
+              this.http
+                .post<any>(this.resourceUrlQMS, requestBody, {
+                  headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  observe: "response",
+                })
+                .subscribe({
+                  next: (response) => {
+                    const lstOrder = response.body?.lstOrder;
+                    if (lstOrder && lstOrder.length > 0) {
+                      const workOrderId = String(lstOrder[0].id);
+
+                      const now = new Date();
+                      const checkDate = now.toISOString().slice(0, 16);
+                      const createdAt = now.toISOString();
+                      const updatedAt = now.toISOString();
+
+                      const storeCheckBody = {
+                        lstElectronic: [],
+                        lstExternal: [],
+                        lstSize: [],
+                        lstConfused: [],
+                        lstStructure: [],
+                        lstSafe: [],
+                        lstErrorCheck: [],
+                        checkDate,
+                        createdAt,
+                        updatedAt,
+                        quatityStore: 0,
+                        lot: firstDetail.lot,
+                        quatity: 0,
+                        totalErr: 1,
+                        checkPerson: username,
+                        ids: this.generateRandomId(),
+                        conclude: "Đạt",
+                        workOrderId,
+                        note: null,
+                        colorCode: null,
+                        colorName: null,
+                      };
+                      const requestPayload = {
+                        data: storeCheckBody,
+                        dataCheck: {},
+                      };
+                      //tạo nhập kho
+                      // this.http.post<any>('http://192.168.18.124:8449/store-check/create', requestPayload, {
+                      this.http
+                        .post<any>(
+                          "http://192.168.68.92/qms/store-check/create",
+                          requestPayload,
+                          {
+                            headers: {
+                              "Content-Type": "application/json",
+                              Accept: "application/json",
+                              Authorization: `Bearer ${token}`,
+                            },
+                            observe: "response",
+                          },
+                        )
+                        .subscribe({
+                          next: (res2) => {
+                            console.log("STORE-CHECK Response:", res2);
+
+                            const qmsStoreCheckId = res2.body?.id;
+                            if (qmsStoreCheckId) {
+                              const palletPayloadArray = [
+                                {
+                                  id: firstDetail.id,
+                                  qms_store_check_id: qmsStoreCheckId,
+                                  updated_by: username,
+                                },
+                              ];
+
+                              // lưu qms_store_check_id với pallet/thùng tương ứng
+                              this.http
+                                .put<any>(
+                                  "http://192.168.68.77:8085/api/pallet-infor-details",
+                                  palletPayloadArray,
+                                  {
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                      Accept: "application/json",
+                                      Authorization: `Bearer ${token}`,
+                                    },
+                                    observe: "response",
+                                  },
+                                )
+                                .subscribe({
+                                  next: (res3) => {
+                                    console.log("PALLET-INFOR Response:", res3);
+                                    this.openMessageModal(
+                                      "Tạo nhập kho QMS thành công",
+                                    );
+                                    this.loading = false;
+                                  },
+                                  error: (err3) => {
+                                    console.error("PALLET-INFOR ERROR:", err3);
+                                    this.openMessageModal(
+                                      "Tạo nhập kho QMS thất bại",
+                                    );
+                                    this.loading = false;
+                                  },
+                                });
+                            } else {
+                              this.loading = false;
+                            }
+
+                            // ============================================
+                          },
+                          error: (err2) => {
+                            console.error("STORE-CHECK ERROR:", err2);
+                            this.openMessageModal("Tạo nhập kho QMS thất bại");
+                            this.loading = false;
+                          },
+                        });
+                    }
+                  },
+                });
+            });
+          });
+        }
+      },
+      () => {},
+    );
   }
   //================================ chức năng scan mã kho panacim =========================================
   setStorageUnit(storageUnit: string): void {
@@ -496,7 +681,10 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
             .put<any>(this.resourceUrlUpdateDetail, this.chiTietLenhSanXuats)
             .subscribe(() => {
               this.isSaving = false;
-              alert("cập nhật chi tiết lệnh sản xuất thành công!");
+              // alert("cập nhật chi tiết lệnh sản xuất thành công!");
+              this.openMessageModal(
+                "Cập nhật chi tiết lệnh sản xuất thành công!",
+              );
               window.location.reload();
             });
         });
@@ -874,5 +1062,19 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   //upload
   UploadPanacim(): void {
     //code
+  }
+  private generateRandomId(): string {
+    const chars = "abcdefghijklmnopqrstuvwxyz";
+    const segmentLength = 5;
+    const segments = 5;
+    const result: string[] = [];
+    for (let i = 0; i < segments; i++) {
+      let segment = "";
+      for (let j = 0; j < segmentLength; j++) {
+        segment += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      result.push(segment);
+    }
+    return result.join("-");
   }
 }

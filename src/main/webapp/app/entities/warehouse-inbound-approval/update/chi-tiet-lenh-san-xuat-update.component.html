@@ -684,7 +684,16 @@
           class="btn btn-primary"
           (click)="khoHuyStatus()"
         >
-          <fa-icon icon="xing-square"></fa-icon>&nbsp;<span>Huỷ</span>
+          <span>Huỷ</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          class="btn btn-primary"
+          (click)="createQMS(confirmModal)"
+        >
+          <span>Tạo nhập kho QMS</span>
         </button>
 
         <button
@@ -830,3 +839,31 @@
     </button>
   </div>
 </ng-template>
+<ng-template #messageModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title">Thông báo</h4>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="modal.dismiss()"
+    ></button>
+  </div>
+  <div class="modal-body">
+    <p>{{ message }}</p>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-primary" (click)="modal.close()">
+      Đóng
+    </button>
+  </div>
+</ng-template>
+
+<div *ngIf="loading" class="loader-overlay">
+  <div class="loader-box">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Đang xử lý, vui lòng chờ...</p>
+  </div>
+</div>
