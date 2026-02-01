@@ -652,6 +652,11 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
     const id = this.editForm.get(["id"])!.value;
     if (id !== undefined && id !== null) {
+      const storageCode = this.editForm.get(["storageCode"])!.value;
+
+      this.chiTietLenhSanXuats.forEach((item: any) => {
+        item.storage_unit = storageCode;
+      });
       // Create DTO with only necessary fields to avoid data loss
       const updateDTO = {
         id: id,
@@ -660,6 +665,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         sapName: this.editForm.get(["sapName"])!.value,
         workOrderCode: this.editForm.get(["workOrderCode"])!.value,
         version: this.editForm.get(["version"])!.value,
+        storageCode: this.editForm.get(["storageCode"])!.value,
         storage_code: this.editForm.get(["storageCode"])!.value,
         totalQuantity: this.editForm.get(["totalQuantity"])!.value,
         createBy: this.editForm.get(["createBy"])!.value,
@@ -674,13 +680,18 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       // Update warehouse_note_info
       this.http
         .patch<any>(
-          `${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`,
+          // `${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`,
+          `http://192.168.68.77:8085/api/warehouse-note-infos-approval/${id}`,
           updateDTO,
         )
         .subscribe(() => {
           // Update warehouse_note_info_details
           this.http
-            .put<any>(this.resourceUrlUpdateDetail, this.chiTietLenhSanXuats)
+            // .put<any>(this.resourceUrlUpdateDetail, this.chiTietLenhSanXuats)
+            .put<any>(
+              `http://192.168.68.77:8085/api/warehouse-stamp-info-details`,
+              this.chiTietLenhSanXuats,
+            )
             .subscribe(() => {
               this.isSaving = false;
               // alert("cập nhật chi tiết lệnh sản xuất thành công!");
