@@ -483,7 +483,7 @@ input[type="checkbox"] {
   z-index: 100;
   position: fixed;
   bottom: 0;
-  left: 0;
+  left: 60px;
   right: 0;
   font-family: "RM Neue", sans-serif;
 }

@@ -964,16 +964,18 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   }
   // bắt sự kiện scan
   catchEventScanReelId(): void {
+    if (!this.storageUnit || this.storageUnit.trim() === "") {
+      return;
+    }
     const positionSL = this.storageUnit.indexOf("-SL");
     if (positionSL === -1) {
       const item = {
         id: this.count,
         reelID: this.reelID,
-        storageUnit: this.storageUnit.slice(2),
+        storageUnit: this.storageUnit,
         subStorageUnit: "",
       };
-      this.chiTietLenhSanXuatActive[this.index].storageUnit =
-        this.storageUnit.slice(2);
+      this.chiTietLenhSanXuatActive[this.index].storage_unit = this.storageUnit;
       this.dataMove.push(item);
       this.dataMove.sort((a: any, b: any) => b.id - a.id);
       setTimeout(() => {
@@ -986,12 +988,12 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       const item = {
         id: this.count,
         reelID: this.reelID,
-        storageUnit: this.storageUnit.slice(2, positionSL),
+        storageUnit: this.storageUnit.slice(0, positionSL),
         subStorageUnit: this.storageUnit.slice(positionSL + 3),
       };
-      this.chiTietLenhSanXuatActive[this.index].storageUnit =
-        this.storageUnit.slice(2, positionSL);
-      this.chiTietLenhSanXuatActive[this.index].subStorageUnit =
+      this.chiTietLenhSanXuatActive[this.index].storage_unit =
+        this.storageUnit.slice(0, positionSL);
+      this.chiTietLenhSanXuatActive[this.index].sub_storage_unit =
         this.storageUnit.slice(positionSL + 3);
       this.dataMove.push(item);
       this.dataMove.sort((a: any, b: any) => b.id - a.id);
@@ -1035,9 +1037,53 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   }
   //cập nhật thông tin kho sau khi scan Move
   updateInfo(): void {
-    this.popupMove = false;
-    this.alertTimeout("Cập nhật vị trí kho thành công", 1000);
+    this.loading = true;
+
+    // Lấy danh sách items đã được cập nhật storage_unit từ dataMove
+    const updatedItems = this.chiTietLenhSanXuats.filter((item) =>
+      this.dataMove.some((move) => move.reelID === item.reel_id),
+    );
+
+    this.http
+      .put<any>(this.resourceUrlUpdateDetail, updatedItems, {
+        observe: "response",
+      })
+      .subscribe({
+        next: () => {
+          this.loading = false;
+          this.popupMove = false;
+          this.dataMove = [];
+          this.openMessageModal("Cập nhật vị trí kho thành công");
+        },
+        error: () => {
+          this.loading = false;
+          this.openMessageModal("Cập nhật vị trí kho thất bại");
+        },
+      });
   }
+  // updateInfo(): void {
+  //   this.loading = true;
+  //   const updatedItems = this.chiTietLenhSanXuats.filter((item) =>
+  //     this.dataMove.some((move) => move.reelID === item.reel_id)
+  //   );
+  //   this.http
+  //     .put<any>("http://192.168.68.77:8085/api/warehouse-stamp-info-details", updatedItems, {
+  //       observe: 'response'
+  //     })
+  //     .subscribe({
+  //       next: () => {
+  //         this.loading = false;
+  //         this.popupMove = false;
+  //         this.dataMove = [];
+  //         this.openMessageModal("Cập nhật vị trí kho thành công");
+  //       },
+  //       error: (err) => {
+  //         this.loading = false;
+  //         console.error("Update error:", err);
+  //         this.openMessageModal("Cập nhật vị trí kho thất bại");
+  //       }
+  //     });
+  // }
   openPopupMove(): void {
     this.popupMove = true;
     setTimeout(() => {

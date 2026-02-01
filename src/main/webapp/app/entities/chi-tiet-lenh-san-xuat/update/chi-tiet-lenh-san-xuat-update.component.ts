@@ -762,8 +762,28 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   }
   //cập nhật thông tin kho sau khi scan Move
   updateInfo(): void {
-    this.popupMove = false;
-    this.alertTimeout("Cập nhật vị trí kho thành công", 1000);
+    // this.loading = true;
+    const updatedItems = this.chiTietLenhSanXuats.filter((item) =>
+      this.dataMove.some((move) => move.reelID === item.reelID),
+    );
+    this.http
+      .put<any>(
+        `${this.resourceUrlUpdate}/${this.editForm.get(["id"])!.value as number}`,
+        updatedItems,
+      )
+      .subscribe({
+        next: () => {
+          // this.loading = false;
+          this.popupMove = false;
+          this.dataMove = [];
+          this.alertTimeout("Cập nhật vị trí kho thành công", 1000);
+        },
+        error: (err) => {
+          // this.loading = false;
+          console.error("Update error:", err);
+          this.alertTimeout("Cập nhật vị trí kho thất bại", 1000);
+        },
+      });
   }
   openPopupMove(): void {
     this.popupMove = true;
