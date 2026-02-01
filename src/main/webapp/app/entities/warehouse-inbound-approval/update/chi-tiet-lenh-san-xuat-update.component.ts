@@ -266,7 +266,9 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       this.chiTietLenhSanXuats = warehouseNoteInfoDetails;
 
       //lấy danh sách chi tiết lsx ở trạng thái active
-      this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats;
+      this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
+        (a) => a.trang_thai === "pending",
+      );
       this.itemPerPage = this.chiTietLenhSanXuatActive.length;
 
       console.log(
@@ -786,12 +788,13 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   async catchScanEvent(): Promise<any> {
     this.scanValue = {};
     const test = this.scanResults.split("#");
+
     for (let i = 0; i < test.length; i++) {
       if (i === 0) {
-        this.scanValue.reelID = test[0];
+        this.scanValue.reel_id = test[0];
       }
       if (i === 1) {
-        this.scanValue.partNumber = test[i];
+        this.scanValue.part_number = test[i];
       }
       if (i === 2) {
         this.scanValue.vendor = test[i];
@@ -800,124 +803,110 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
         this.scanValue.lot = test[i];
       }
       if (i === 4) {
-        this.scanValue.userData1 = test[i];
+        this.scanValue.user_data_1 = test[i];
       }
       if (i === 5) {
-        this.scanValue.userData2 = test[i];
+        this.scanValue.user_data_2 = test[i];
       }
       if (i === 6) {
-        test[i] = "null";
-        this.scanValue.userData3 = test[i];
+        this.scanValue.user_data_3 = test[i] || "null";
       }
       if (i === 7) {
-        this.scanValue.userData4 = test[i];
+        this.scanValue.user_data_4 = test[i];
       }
       if (i === 8) {
-        this.scanValue.userData5 = Number(test[i]);
+        this.scanValue.user_data_5 = test[i];
       }
       if (i === 9) {
-        this.scanValue.initialQuantity = Number(test[i]);
+        this.scanValue.initial_quantity = Number(test[i]);
       }
       if (i === 10) {
-        this.scanValue.quantityOverride = Number(test[i]);
+        this.scanValue.quantity_override = Number(test[i]);
       }
       if (i === 11) {
-        this.scanValue.storageUnit = test[i];
+        this.scanValue.storage_unit = test[i];
       }
       if (i === 12) {
-        this.scanValue.expirationDate = test[i];
+        this.scanValue.expiration_date = test[i];
       }
       if (i === 13) {
-        this.scanValue.manufacturingDate = test[i];
+        this.scanValue.manufacturing_date = test[i];
       }
       if (i === 14) {
-        this.scanValue.sapCode = test[i];
+        this.scanValue.sap_code = test[i];
       }
     }
 
     this.isExisted = false;
+
     for (let i = 0; i < this.chiTietLenhSanXuats.length; i++) {
+      const item = this.chiTietLenhSanXuats[i];
+
       if (
-        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reel_id &&
-        this.chiTietLenhSanXuats[i].trang_thai === "Active"
+        this.scanValue.reel_id === item.reel_id &&
+        item.trang_thai === "pending"
       ) {
         this.isExisted = true;
-        this.chiTietLenhSanXuats[i].checked = 1;
+        item.checked = 1;
         this.countScan++;
         this.tienDoScan =
           (this.countScan / this.chiTietLenhSanXuatActive.length) * 100;
         this.resultScanPerCent = this.tienDoScan.toFixed(0);
         this.alertTimeout("Đã tìm thấy tem trong danh sách lệnh", 1000);
         await this.playAlertSoundSuccess();
-        return; // Dừng tiến trình nếu đã xử lý
+        return;
       } else if (
-        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reel_id &&
-        this.chiTietLenhSanXuats[i].trang_thai === "INACTIVE"
+        this.scanValue.reel_id === item.reel_id &&
+        item.trang_thai === "inactive"
       ) {
         this.isExisted = true;
-        this.chiTietLenhSanXuats[i].checked = 1;
+        item.checked = 1;
         this.alertTimeout("Tem đang ở trạng thái Inactive", 1000);
         await this.playAlertSound();
         return;
       } else if (
-        this.scanValue.reelID === this.chiTietLenhSanXuats[i].reel_id &&
-        this.chiTietLenhSanXuats[i].trang_thai === "not list"
+        this.scanValue.reel_id === item.reel_id &&
+        item.trang_thai === "not list"
       ) {
         this.isExisted = true;
-        this.chiTietLenhSanXuats[i].checked = 1;
+        item.checked = 1;
         this.alertTimeout("Tem đang ở trạng thái not list", 1000);
         await this.playAlertSound();
         return;
       }
     }
 
-    // Nếu không nằm trong danh sách thì xử lý luôn và dừng tiến trình
-    if (this.isExisted === false) {
+    // Nếu không nằm trong danh sách thì thêm mới
+    if (!this.isExisted) {
       const item: any = {
         id: 0,
-        reelID: this.scanValue.reelID,
-        partNumber: this.scanValue.partNumber,
+        reel_id: this.scanValue.reel_id,
+        part_number: this.scanValue.part_number,
         vendor: this.scanValue.vendor,
         lot: this.scanValue.lot,
-        userData1: this.scanValue.userData1,
-        userData2: this.scanValue.userData2,
-        userData3: this.scanValue.userData3,
-        userData4: this.scanValue.userData4,
-        userData5: this.scanValue.userData5,
-        initialQuantity: this.scanValue.initialQuantity,
-        msdLevel: "",
-        msdInitialFloorTime: "",
-        msdBagSealDate: "",
-        marketUsage: "",
-        quantityOverride: this.scanValue.quantityOverride,
-        shelfTime: "",
-        spMaterialName: "",
-        warningLimit: "",
-        maximumLimit: "",
-        comments: "",
-        warmupTime: "",
-        storageUnit: this.scanValue.storageUnit,
-        subStorageUnit: "",
-        locationOverride: "",
-        expirationDate: this.scanValue.expirationDate,
-        manufacturingDate: this.scanValue.manufacturingDate,
-        partClass: "",
-        sapCode: this.scanValue.sapCode,
-        trangThai: "not list",
+        user_data_1: this.scanValue.user_data_1,
+        user_data_2: this.scanValue.user_data_2,
+        user_data_3: this.scanValue.user_data_3,
+        user_data_4: this.scanValue.user_data_4,
+        user_data_5: this.scanValue.user_data_5,
+        initial_quantity: this.scanValue.initial_quantity,
+        quantity_override: this.scanValue.quantity_override,
+        storage_unit: this.scanValue.storage_unit,
+        expiration_date: this.scanValue.expiration_date,
+        manufacturing_date: this.scanValue.manufacturing_date,
+        sap_code: this.scanValue.sap_code,
+        trang_thai: "not list",
         checked: 1,
-        lenhSanXuat: this.createFromForm(),
+        lenh_san_xuat: this.createFromForm(),
       };
       this.chiTietLenhSanXuats.push(item);
       this.alertTimeout("Tem không nằm trong danh sách", 1000);
       await this.playAlertSound();
-
-      // cập nhật lại danh sách chi tiết lsx ở trạng thái active
-      return;
     }
   }
   sortList(): void {
     this.chiTietLenhSanXuatActive = this.chiTietLenhSanXuats.filter(
-      (a) => a.trang_thai === "Active",
+      (a) => a.trang_thai === "pending",
     );
     this.chiTietLenhSanXuatActive.sort(function (a, b) {
       if (
@@ -930,7 +919,6 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       }
       return 0;
     });
-    // cập nhật lại danh sách chi tiết lsx không có trong danh sách
     this.chiTietLenhSanXuatNotList = this.chiTietLenhSanXuats.filter(
       (a) => a.trang_thai === "not list",
     );

@@ -516,6 +516,7 @@ input[type="checkbox"] {
   font-size: 21px;
   background-image: linear-gradient(to right, #0083b0, #00b4db);
   margin-top: 61px;
+  margin-left: 61px;
   max-width: 322px;
   color: #fff;
 }
