@@ -459,6 +459,18 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   //po counter
   private poCounters = new Map<string, number>();
   //log
+
+  // Thêm vào component
+  private readonly BRANCH_TO_WAREHOUSE_MAP: Record<string, string> = {
+    DTTD: "RD-LED-05", // Kho ngành DTTD
+    CNPT: "CNPT-01", // Kho-Ngành-CNPT (hoặc RD-LED-11)
+    "LR LED": "LR-LED1", // Kho-Ngành-LED1
+    LRLED: "LR-LED1", // Alternative format
+    LED1: "LR-LED1", // Kho-Ngành-LED1
+    LED2: "LR-LED2", // Kho-Ngành-LED2
+    TBCS: "RD-LED-03", // Kho vật tư TBCS
+    SMART: "LR-SMART", // Kho-Ngành-SMART (hoặc RD-LED-08)
+  };
   constructor(
     private dialog: MatDialog,
     private planningService: PlanningWorkOrderService,
@@ -2922,8 +2934,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
       return;
     }
+
     console.log("Sample reelDataList:", this.reelDataList.slice(0, 5));
 
+    // Lọc reels chưa in
     const filteredReels = this.reelGroups
       .flatMap((g) => g.subItems)
       .filter((si) => si.printStatus === false);
@@ -2934,7 +2948,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       });
       return;
     }
-    // Header cố định theo yêu cầu
+
+    // Header cố định
     const headers = [
       "NumberOfPlanning",
       "ItemCode",
@@ -2958,9 +2973,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       "QrCode",
     ];
 
-    // Map dữ liệu theo đúng cột, không lấy thêm trường nào khác
+    // Map dữ liệu
     const rows = filteredReels.map((si) => {
-      // Tìm group chứa subItem này để lấy thông tin nhóm
       const group = this.reelGroups.find((g) =>
         g.subItems.some((item) => item.reelID === si.reelID),
       );
@@ -2989,7 +3003,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       ];
     });
 
-    // Tạo worksheet từ AOA: chỉ có headers + rows
+    // Tạo worksheet
     const worksheet: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([
       headers,
       ...rows,
@@ -2998,6 +3012,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       Sheets: { ReelData: worksheet },
       SheetNames: ["ReelData"],
     };
+
     const now = new Date();
     const timestamp =
       now.getFullYear().toString() +
@@ -3010,29 +3025,101 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     const fileName = `ReelData_${timestamp}.xlsx`;
 
+    // Xuất file
     XLSX.writeFileXLSX(workbook, fileName, {
       bookType: "xlsx",
       bookSST: false,
       type: "binary",
       compression: true,
     });
+
+    // Cập nhật trạng thái in
     const payload = filteredReels
       .filter((it) => it.id !== undefined && it.id !== null)
       .map((it) => ({ id: it.id as number, print_status: true }));
+
     if (payload.length > 0) {
+      // Tạo Set chứa reelID đã xuất để cập nhật nhanh
+      const exportedReelIds = new Set(
+        filteredReels.map((it) => it.reelID).filter(Boolean),
+      );
+
+      // 1. CẬP NHẬT BACKEND
       this.planningService.updatePrintBtpDetails(payload).subscribe({
         next: () => {
-          this.snackBar.open("Đã cập nhật trạng thái in", "Đóng", {
-            duration: 3000,
+          console.log("✓ Backend updated successfully");
+
+          // 2. CẬP NHẬT UI - reelGroups (source of truth cho template)
+          this.reelGroups.forEach((group) => {
+            group.subItems.forEach((subItem) => {
+              if (exportedReelIds.has(subItem.reelID)) {
+                subItem.printStatus = true;
+              }
+            });
+
+            // Cập nhật printStatus cho group (tất cả subItems đã in)
+            group.printStatus = group.subItems.every((s) => s.printStatus);
           });
+
+          // 3. CẬP NHẬT reelDataList (nếu dùng để hiển thị)
+          this.reelDataList.forEach((reel) => {
+            if (exportedReelIds.has(reel.reelID)) {
+              reel.printStatus = true;
+            }
+          });
+
+          // 4. CẬP NHẬT details (cache backend data)
+          if (this.details && Array.isArray(this.details)) {
+            this.details.forEach((detail: any) => {
+              const reelId = detail.reel_id || detail.reelID;
+              if (reelId && exportedReelIds.has(reelId)) {
+                detail.print_status = true;
+              }
+            });
+          }
+
+          // 5. TRIGGER CHANGE DETECTION
+          this.reelGroups = [...this.reelGroups];
+          this.reelDataList = [...this.reelDataList];
+
+          try {
+            this.cdr.detectChanges();
+          } catch (e) {
+            console.warn("Change detection error:", e);
+          }
+
+          // Thông báo thành công
+          this.snackBar.open(
+            `✓ Đã xuất ${filteredReels.length} reel và cập nhật trạng thái`,
+            "Đóng",
+            {
+              duration: 3000,
+              panelClass: ["snackbar-success"],
+            },
+          );
         },
         error: (err) => {
           console.error("Lỗi cập nhật trạng thái in:", err);
-          this.snackBar.open("Cập nhật trạng thái in thất bại", "Đóng", {
-            duration: 3000,
-          });
+          this.snackBar.open(
+            "Xuất Excel thành công nhưng lỗi cập nhật trạng thái in",
+            "Đóng",
+            {
+              duration: 4000,
+              panelClass: ["snackbar-error"],
+            },
+          );
         },
       });
+    } else {
+      // Trường hợp không có item nào có ID (chưa lưu DB)
+      console.warn("No items with ID to update print status");
+      this.snackBar.open(
+        "Đã xuất Excel (các reel chưa lưu DB không cập nhật trạng thái)",
+        "Đóng",
+        {
+          duration: 3000,
+        },
+      );
     }
   }
 
@@ -3524,6 +3611,56 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           }
         }
       });
+      if (
+        res.warehouse_note_info_detail &&
+        Array.isArray(res.warehouse_note_info_detail)
+      ) {
+        res.warehouse_note_info_detail.forEach((savedItem: any) => {
+          const reelId = savedItem.reel_id;
+          const newId = savedItem.id;
+
+          if (reelId && newId) {
+            // Cập nhật ID trong reelDataList
+            const reelInList = this.reelDataList.find(
+              (r) => r.reelID === reelId,
+            );
+            if (reelInList) {
+              reelInList.id = newId;
+              reelInList.printStatus = savedItem.print_status ?? false;
+              console.log(
+                `Mapped ID ${newId} to reel ${reelId} in reelDataList`,
+              );
+            }
+
+            // Cập nhật ID trong reelGroups.subItems
+            this.reelGroups.forEach((group) => {
+              const subItem = group.subItems.find((si) => si.reelID === reelId);
+              if (subItem) {
+                subItem.id = newId;
+                subItem.printStatus = savedItem.print_status ?? false;
+                console.log(
+                  `Mapped ID ${newId} to reel ${reelId} in reelGroups`,
+                );
+              }
+            });
+
+            // Cập nhật ID trong details cache
+            const detailInCache = this.details?.find(
+              (d: any) => d.reel_id === reelId,
+            );
+            if (detailInCache) {
+              detailInCache.id = newId;
+              detailInCache.print_status = savedItem.print_status ?? false;
+            }
+          }
+        });
+
+        // Trigger change detection để UI cập nhật
+        this.reelGroups = [...this.reelGroups];
+        this.reelDataList = [...this.reelDataList];
+
+        console.log("✓ Đã map ID từ response vào UI state");
+      }
 
       warehouse_note_info_updates.forEach((update) => {
         const detail = this.details?.find((d: any) => d.id === update.id);
@@ -4324,6 +4461,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         note: data.note ?? "",
         // Lưu createdAt giống pallet (ISO) để group client-side
         createdAt: createdAtForBatch,
+        printStatus: false,
       };
 
       newReels.push(reelData);
@@ -5345,7 +5483,21 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         );
 
         console.log("[handleExistingWarehouseNote] Mapped codes:", mapped);
+        const existingStorage = this.warehouseNoteInfo.storage_code?.trim();
+        let autoWarehouse = existingStorage || "";
 
+        if (
+          !autoWarehouse &&
+          this.warehouseNoteInfo.product_type === "Bán thành phẩm"
+        ) {
+          autoWarehouse = this.autoSelectWarehouse(mapped.nganh ?? branchCode);
+          if (autoWarehouse) {
+            console.log(
+              "[handleExistingWarehouseNote] Auto-selected warehouse:",
+              autoWarehouse,
+            );
+          }
+        }
         this.productionOrders = [
           {
             id: this.warehouseNoteInfo.id,
@@ -5354,7 +5506,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             tenHangHoa: this.warehouseNoteInfo.sap_name,
             maWO: this.warehouseNoteInfo.work_order_code,
             version: this.warehouseNoteInfo.version,
-            maKhoNhap: this.warehouseNoteInfo.storage_code,
+            maKhoNhap: autoWarehouse,
             tongSoLuong: this.warehouseNoteInfo.total_quantity,
             trangThai: this.warehouseNoteInfo.trang_thai,
             loaiSanPham: this.warehouseNoteInfo.product_type,
@@ -5627,6 +5779,32 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           order.nganhRaw,
           order.toRaw,
         );
+
+        let autoWarehouse = order.maKhoNhap || "";
+
+        if (order.loaiSanPham === "Bán thành phẩm" && !autoWarehouse) {
+          // Ưu tiên dùng nganh đã map, fallback về nganhRaw
+          const branchForWarehouse = mapped.nganh ?? order.nganhRaw ?? "";
+
+          if (branchForWarehouse) {
+            autoWarehouse = this.autoSelectWarehouse(branchForWarehouse);
+
+            if (autoWarehouse) {
+              console.log(
+                "[handleNewProductionOrder] Auto-selected warehouse:",
+                {
+                  branch: branchForWarehouse,
+                  warehouse: autoWarehouse,
+                },
+              );
+            } else {
+              console.warn(
+                "[handleNewProductionOrder] No warehouse found for branch:",
+                branchForWarehouse,
+              );
+            }
+          }
+        }
         return {
           ...order,
           xuong: mapped.xuong ?? order.xuong,
@@ -5635,6 +5813,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           nganhId: mapped.nganhId ?? order.nganhId,
           to: mapped.to ?? order.to,
           toId: mapped.toId ?? order.toId,
+          maKhoNhap: autoWarehouse || order.maKhoNhap || "",
         };
       });
 
@@ -5785,5 +5964,65 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     });
 
     return all;
+  }
+
+  //  Tự động chọn kho dựa trên mã ngành
+  private autoSelectWarehouse(branchCode?: string): string {
+    if (!branchCode) {
+      console.log("[autoSelectWarehouse] No branch code provided");
+      return "";
+    }
+
+    const normalized = branchCode
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    console.log("[autoSelectWarehouse] Normalized branch:", normalized);
+
+    // Try exact match first
+    let warehouseCode = this.BRANCH_TO_WAREHOUSE_MAP[normalized];
+
+    // Try partial match if no exact match
+    if (!warehouseCode) {
+      for (const [key, value] of Object.entries(this.BRANCH_TO_WAREHOUSE_MAP)) {
+        const normalizedKey = key
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+
+        if (
+          normalized.includes(normalizedKey) ||
+          normalizedKey.includes(normalized)
+        ) {
+          warehouseCode = value;
+          console.log("[autoSelectWarehouse] Partial match:", { key, value });
+          break;
+        }
+      }
+    }
+
+    // Verify warehouse exists in options
+    if (warehouseCode) {
+      const exists = this.maKhoNhapOptionsBTP.some(
+        (opt) => opt.value === warehouseCode,
+      );
+      if (exists) {
+        console.log("[autoSelectWarehouse] Selected warehouse:", warehouseCode);
+        return warehouseCode;
+      } else {
+        console.warn(
+          "[autoSelectWarehouse] Warehouse not in options:",
+          warehouseCode,
+        );
+      }
+    }
+
+    console.log(
+      "[autoSelectWarehouse] No warehouse found for branch:",
+      branchCode,
+    );
+    return "";
   }
 }
