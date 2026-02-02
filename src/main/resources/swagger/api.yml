@@ -5,9 +5,9 @@ info:
   title: "Jhipster"
   version: 0.0.1
 servers:
-  - url: http://192.168.68.77:9040/api
+  - url: http://192.168.68.77:8085/api
     description: Development server
-  - url: https://192.168.68.77:9040/api
+  - url: https://192.168.68.77:8085/api
     description: Development server with TLS Profile
 paths: {}
 components:

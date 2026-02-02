@@ -460,6 +460,9 @@ public class PalletInforDetailService {
         List<PalletInforDetail> pallets =
             palletInforDetailRepository.findByWorkOrderCode(workOrderCode);
 
+        // Collect all boxes from all pallets for the top-level list_box
+        List<WarehouseStampInfoDetailDTO> allBoxes = new ArrayList<>();
+
         // Build the response with pallets and their boxes
         List<PalletWithBoxesDTO> palletWithBoxesList = pallets
             .stream()
@@ -486,18 +489,19 @@ public class PalletInforDetailService {
                 for (String serialBox : serialBoxes) {
                     warehouseStampInfoDetailRepository
                         .findByReelId(serialBox)
-                        .ifPresent(box ->
-                            boxList.add(
-                                warehouseStampInfoDetailMapper.toDto(box)
-                            )
-                        );
+                        .ifPresent(box -> {
+                            WarehouseStampInfoDetailDTO boxDTO =
+                                warehouseStampInfoDetailMapper.toDto(box);
+                            boxList.add(boxDTO);
+                            allBoxes.add(boxDTO); // Add to top-level list
+                        });
                 }
 
                 return new PalletWithBoxesDTO(palletDTO, boxList);
             })
             .collect(Collectors.toList());
 
-        return new ListPalletInfoResponseDTO(palletWithBoxesList);
+        return new ListPalletInfoResponseDTO(palletWithBoxesList, allBoxes);
     }
 
     /**

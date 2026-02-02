@@ -37,7 +37,8 @@ spring:
         physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
         implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
     properties:
-      hibernate.jdbc.time_zone: UTC
+      # hibernate.jdbc.time_zone: UTC
+      hibernate.jdbc.time_zone: Asia/Bangkok
       hibernate.id.new_generator_mappings: true
       hibernate.connection.provider_disables_autocommit: true
       hibernate.cache.use_second_level_cache: false
@@ -59,7 +60,7 @@ spring:
   #      hibernate.cache.use_query_cache: false
   #      hibernate.generate_statistics: false
   #      hibernate.hbm2ddl.auto: validate
-  #      hibernate.jdbc.time_zone: UTC
+  #  hibernate.jdbc.time_zone: UTC
   #      hibernate.query.fail_on_pagination_over_collection_fetch: true
   liquibase:
     enabled: false
@@ -116,7 +117,7 @@ jhipster:
       queue-size: 512
   mail:
     from: test@localhost
-    base-url: http://127.0.0.1:9040
+    base-url: http://127.0.0.1:8085
 # ===================================================================
 # Application specific properties
 # Add your own application properties here, see the ApplicationProperties class
