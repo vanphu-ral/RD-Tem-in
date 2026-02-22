@@ -23,6 +23,8 @@ import * as XLSX from "xlsx";
 import { ProductionOrder } from "../add-new/add-new-lenh-san-xuat.component";
 import { PlanningWorkOrderService } from "../service/planning-work-order.service";
 import QRCode from "@zxing/library/esm/core/qrcode/encoder/QRCode";
+import { MatCheckboxModule } from "@angular/material/checkbox";
+import { MatTooltipModule } from "@angular/material/tooltip";
 
 export interface BoxDetailData {
   stt: number;
@@ -40,6 +42,7 @@ export interface BoxDetailData {
   isBtp?: boolean;
   productionOrders?: any[];
   po?: any;
+  printStatus?: boolean;
 }
 
 export interface BoxInfoCard {
@@ -71,6 +74,7 @@ export interface BoxSubItem {
   note?: string; // Comments2
   comments?: string; // Comments
   qrCodeFull?: string;
+  printStatus?: boolean;
 }
 
 @Component({
@@ -84,12 +88,20 @@ export interface BoxSubItem {
     MatIconModule,
     MatPaginatorModule,
     QRCodeComponent,
+    MatCheckboxModule,
+    MatTooltipModule,
   ],
   templateUrl: "./detail-box-dialog.component.html",
   styleUrls: ["./detail-box-dialog.component.scss"],
 })
 export class DetailBoxDialogComponent implements OnInit {
-  displayedColumns: string[] = ["stt", "maThung", "maThungCode", "soLuong"];
+  displayedColumns: string[] = [
+    "stt",
+    "maThung",
+    "maThungCode",
+    "soLuong",
+    "select",
+  ];
   isMobile = false;
   @ViewChildren("qrRef", { read: ElementRef })
   qrElements!: QueryList<ElementRef>;
@@ -107,6 +119,7 @@ export class DetailBoxDialogComponent implements OnInit {
   tongSoLuong: number = 0;
 
   productionOrders: ProductionOrder[] = [];
+  selectedSubItemIds = new Set<string>();
   constructor(
     public dialogRef: MatDialogRef<DetailBoxDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: BoxDetailData,
@@ -126,6 +139,7 @@ export class DetailBoxDialogComponent implements OnInit {
     this.loadBoxSubItems();
     this.calculateSummary();
     this.updatePaginatedItems();
+    this.initCheckboxSelection();
   }
 
   onPageChange(event: PageEvent): void {
@@ -151,12 +165,30 @@ export class DetailBoxDialogComponent implements OnInit {
       this._exportPdfInternal();
     }, 300);
   }
+  toggleSubItemSelection(maThung: string): void {
+    if (this.selectedSubItemIds.has(maThung)) {
+      this.selectedSubItemIds.delete(maThung);
+    } else {
+      this.selectedSubItemIds.add(maThung);
+    }
+  }
+
+  isSubItemSelected(maThung: string): boolean {
+    return this.selectedSubItemIds.has(maThung);
+  }
 
   exportExcelFromDialog(useCurrentPage = false): void {
-    // NOTE: đảm bảo boxSubItems đã được "enriched" và có kiểu đầy đủ BoxSubItemFull
-    const sourceItems = (
+    // đảm bảo boxSubItems đã được "enriched" và có kiểu đầy đủ BoxSubItemFull
+    // const sourceItems = (
+    //   useCurrentPage ? (this.paginatedItems ?? []) : (this.boxSubItems ?? [])
+    // ) as BoxSubItem[];
+    const allItems = (
       useCurrentPage ? (this.paginatedItems ?? []) : (this.boxSubItems ?? [])
     ) as BoxSubItem[];
+
+    const sourceItems = allItems.filter((it) =>
+      this.selectedSubItemIds.has(it.maThung),
+    );
 
     if (!sourceItems || sourceItems.length === 0) {
       this.snackBar.open("Không có dữ liệu để xuất Excel", "Đóng", {
@@ -274,7 +306,8 @@ export class DetailBoxDialogComponent implements OnInit {
       Sheets: { BoxDetail: worksheet },
       SheetNames: ["BoxDetail"],
     };
-    const fileName = `BoxDetail_${serialBox || "export"}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    // const fileName = `BoxDetail_${serialBox || "export"}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const fileName = `BTP_BoxDetail_export.xlsx`;
     XLSX.writeFile(workbook, fileName);
 
     const payload = sourceItems
@@ -295,6 +328,13 @@ export class DetailBoxDialogComponent implements OnInit {
         },
       });
     }
+  }
+
+  private initCheckboxSelection(): void {
+    this.selectedSubItemIds.clear();
+    (this.boxSubItems ?? [])
+      .filter((si) => si.printStatus === false)
+      .forEach((si) => this.selectedSubItemIds.add(si.maThung));
   }
 
   private getDataUrlFromRenderedImg(index: number): string | null {
@@ -428,7 +468,9 @@ export class DetailBoxDialogComponent implements OnInit {
   }
 
   private async _exportPdfInternal(): Promise<void> {
-    const items = this.paginatedItems;
+    const items = (this.paginatedItems ?? []).filter((it) =>
+      this.selectedSubItemIds.has(it.maThung),
+    );
     if (!items || items.length === 0) {
       return;
     }

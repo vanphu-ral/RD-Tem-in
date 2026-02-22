@@ -352,16 +352,20 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     "stt",
     "createdAt",
     "partNumber",
-    "sapCode",
+    // "sapCode",
     "lot",
-    "tenSanPham",
+    "TPNK",
+    "rank",
+    // "tenSanPham",
     "soLuongThung",
     "soLuongSp",
     "storageUnit",
     "comments",
+    "note",
     "trangThai",
     "trangThaiIn",
     "actions",
+    "select",
   ];
 
   // Danh sách cố định cho Bán thành phẩm
@@ -454,6 +458,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   lastPalletForm: PalletFormData | null = null;
   lastBtpForm: BoxFormData | null = null;
   isDetail = false;
+  //chọn bản cần xuất file
+  selectedReelIds = new Set<string>();
+
   private hierarchyCache: any[] = [];
 
   //po counter
@@ -2938,12 +2945,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     console.log("Sample reelDataList:", this.reelDataList.slice(0, 5));
 
     // Lọc reels chưa in
+    // const filteredReels = this.reelGroups
+    //   .flatMap((g) => g.subItems)
+    //   .filter((si) => si.printStatus === false);
     const filteredReels = this.reelGroups
       .flatMap((g) => g.subItems)
-      .filter((si) => si.printStatus === false);
+      .filter((si) => this.selectedReelIds.has(si.reelID));
 
     if (filteredReels.length === 0) {
-      this.snackBar.open("Không có thùng nào chưa in để xuất Excel", "Đóng", {
+      this.snackBar.open("Không có btp nào được chọn để xuất Excel", "Đóng", {
         duration: 3000,
       });
       return;
@@ -3707,10 +3717,30 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       //
     }
   }
+  // Toggle từng reel
+  toggleReelSelection(reelID: string): void {
+    if (this.selectedReelIds.has(reelID)) {
+      this.selectedReelIds.delete(reelID);
+    } else {
+      this.selectedReelIds.add(reelID);
+    }
+  }
 
-  //xuất csv bán thành phẩm
+  isReelSelected(reelID: string): boolean {
+    return this.selectedReelIds.has(reelID);
+  }
+  // xuất csv bán thành phẩm
   public exportTemBtpCsv(): void {
-    // 1. Khai báo header theo đúng thứ tự bạn muốn
+    const filteredReelData = this.reelDataList.filter((item: ReelData) =>
+      this.selectedReelIds.has(item.reelID),
+    );
+
+    if (filteredReelData.length === 0) {
+      this.snackBar.open("Không có reel nào được chọn để xuất CSV", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
     const headers = [
       "ReelID",
       "PartNumber",
@@ -3742,8 +3772,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       "SAPCode",
     ];
 
-    // 2. Map reelDataList thành rows
-    const rows = this.reelDataList.map((item: ReelData) => [
+    //Map reelDataList thành rows
+    const rows = filteredReelData.map((item: ReelData) => [
       item.reelID,
       item.partNumber,
       item.vendor,
@@ -3774,14 +3804,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       item.sapCode,
     ]);
 
-    // 3. Ghép header + rows thành CSV string
+    // Ghép header + rows thành CSV string
     const csvRows = [headers, ...rows]
       .map((row) => row.map((cell) => cell ?? "").join(","))
       .join("\n");
 
     const csvContent = "\ufeff" + csvRows;
 
-    // 4. Xuất file CSV
+    // Xuất file CSV
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -3790,13 +3820,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       .toISOString()
       .replace(/[:.]/g, "-")
       .slice(0, -5);
-    link.download = `TemBTP_${timestamp}.csv`;
+    link.download = `BTP_BoxDetail_export.csv`;
     link.click();
 
     this.snackBar.open("Xuất CSV thành công", "Đóng", {
       duration: 3000,
     });
   }
+
   // Helper: đọc serial pallet từ cả PalletItem (serialPallet) lẫn raw API (serial_pallet)
   private getPalletSerialSafe(p: any): string | undefined {
     const s = p?.serialPallet ?? p?.serial_pallet;
@@ -4871,8 +4902,17 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     return Object.values(grouped);
   }
 
+  private initCheckboxSelection(): void {
+    this.selectedReelIds.clear();
+    this.reelGroups
+      .flatMap((g) => g.subItems)
+      .filter((si) => si.printStatus === false)
+      .forEach((si) => this.selectedReelIds.add(si.reelID));
+  }
+
   //  THÊM HÀM MAP CHO REEL DATA (Tem BTP)
   private mapDetailsToReelData(details: unknown[]): ReelGroup[] {
+    this.initCheckboxSelection();
     console.log("mapDetailsToReelData - Input:", details);
 
     const grouped: Record<string, ReelGroup & { id?: number }> = {};
@@ -4964,6 +5004,9 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           trangThai: (d.trang_thai as string) ?? "Active",
           subItems: [],
           createdAt: key,
+          TPNK: (d.tp_nk as string) ?? "",
+          rank: (d.rank as string) ?? "",
+          note: (d.note_2 as string) ?? "",
         } as ReelGroup & { id?: number };
       }
 
