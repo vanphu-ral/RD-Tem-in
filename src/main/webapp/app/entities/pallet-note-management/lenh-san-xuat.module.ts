@@ -21,6 +21,7 @@ import { MatDialogModule } from "@angular/material/dialog";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { MatAutocompleteModule } from "@angular/material/autocomplete";
 import { FormsModule } from "@angular/forms";
+import { MatCheckboxModule } from "@angular/material/checkbox";
 
 @NgModule({
   imports: [
@@ -40,6 +41,7 @@ import { FormsModule } from "@angular/forms";
     MatInputModule,
     MatDialogModule,
     MatFormFieldModule,
+    MatCheckboxModule,
   ],
   declarations: [
     LenhSanXuatComponent,
