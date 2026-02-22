@@ -3729,6 +3729,33 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   isReelSelected(reelID: string): boolean {
     return this.selectedReelIds.has(reelID);
   }
+  isGroupAllSelected(group: ReelGroup): boolean {
+    return group.subItems.every((si) => this.isReelSelected(si.reelID));
+  }
+
+  isGroupPartialSelected(group: ReelGroup): boolean {
+    const some = group.subItems.some((si) => this.isReelSelected(si.reelID));
+    return some && !this.isGroupAllSelected(group);
+  }
+
+  toggleGroupSelection(group: ReelGroup, checked: boolean): void {
+    group.subItems.forEach((si) =>
+      this.toggleReelSelection(
+        checked
+          ? this.isReelSelected(si.reelID)
+            ? si.reelID
+            : si.reelID // luôn add
+          : si.reelID,
+      ),
+    );
+    group.subItems.forEach((si) => {
+      if (checked) {
+        this.selectedReelIds.add(si.reelID);
+      } else {
+        this.selectedReelIds.delete(si.reelID);
+      }
+    });
+  }
   // xuất csv bán thành phẩm
   public exportTemBtpCsv(): void {
     const filteredReelData = this.reelDataList.filter((item: ReelData) =>
