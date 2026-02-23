@@ -256,6 +256,18 @@
                     <th mat-header-cell *matHeaderCellDef>Số lượng</th>
                     <td mat-cell *matCellDef="let row">{{ row.quantity }}</td>
                   </ng-container>
+                  <ng-container matColumnDef="tpnk">
+                    <th mat-header-cell *matHeaderCellDef>TP/NK</th>
+                    <td mat-cell *matCellDef="let row">{{ row.tpnk }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="rank">
+                    <th mat-header-cell *matHeaderCellDef>Rank</th>
+                    <td mat-cell *matCellDef="let row">{{ row.rank }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="note">
+                    <th mat-header-cell *matHeaderCellDef>Ghi chú</th>
+                    <td mat-cell *matCellDef="let row">{{ row.note }}</td>
+                  </ng-container>
 
                   <!-- Pallet Code Column -->
                   <ng-container matColumnDef="palletCode">
@@ -441,6 +453,18 @@
                   <ng-container matColumnDef="quantity">
                     <th mat-header-cell *matHeaderCellDef>Số lượng</th>
                     <td mat-cell *matCellDef="let row">{{ row.quantity }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="tpnk">
+                    <th mat-header-cell *matHeaderCellDef>TP/NK</th>
+                    <td mat-cell *matCellDef="let row">{{ row.tpnk }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="rank">
+                    <th mat-header-cell *matHeaderCellDef>Rank</th>
+                    <td mat-cell *matCellDef="let row">{{ row.rank }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="note">
+                    <th mat-header-cell *matHeaderCellDef>Ghi chú</th>
+                    <td mat-cell *matCellDef="let row">{{ row.note }}</td>
                   </ng-container>
 
                   <ng-container matColumnDef="palletCode">

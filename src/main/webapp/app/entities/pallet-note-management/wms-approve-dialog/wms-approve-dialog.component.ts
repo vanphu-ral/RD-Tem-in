@@ -226,6 +226,9 @@ export class WmsApproveDialogComponent implements OnInit {
     "qr",
     "boxCode",
     "quantity",
+    "tpnk",
+    "rank",
+    "note",
     "palletCode",
   ];
 
@@ -234,6 +237,9 @@ export class WmsApproveDialogComponent implements OnInit {
     "qr",
     "boxCode",
     "quantity",
+    "tpnk",
+    "rank",
+    "note",
     "palletCode",
   ];
   nestedTabIndexPending = 0; // 0 = Pallet, 1 = Box

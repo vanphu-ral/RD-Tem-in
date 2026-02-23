@@ -153,6 +153,10 @@ $border-color: #e5e7eb;
   min-width: 280px;
   /* tránh quá nhỏ */
   max-height: calc(90vh - 160px);
+  position: relative;
+  &:hover {
+    z-index: 3;
+  }
 
   .section-header {
     padding: 10px 14px;
@@ -183,6 +187,7 @@ $border-color: #e5e7eb;
 
   &.pending-section {
     flex: 1 1 50%;
+    // z-index: 2;
 
     .section-header {
       background-color: #fff7ed;
@@ -200,6 +205,7 @@ $border-color: #e5e7eb;
 
   &.sent-section {
     flex: 1 1 50%;
+    // z-index: 1;
 
     .section-header {
       background-color: #f0fdf4;

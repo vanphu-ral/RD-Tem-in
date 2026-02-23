@@ -3033,7 +3033,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       String(now.getMinutes()).padStart(2, "0") +
       String(now.getSeconds()).padStart(2, "0");
 
-    const fileName = `ReelData_${timestamp}.xlsx`;
+    const fileName = `ReelData.xlsx`;
 
     // Xuất file
     XLSX.writeFileXLSX(workbook, fileName, {
@@ -5471,6 +5471,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.showTemBtpTab = false;
       this.loadMaKhoNhapOptionsTP();
     } else if (loai === "Bán thành phẩm") {
+      this.goToCreateTemTab();
       this.showTemBtpTab = true;
       this.showPalletTab = true;
       this.showThungTab = false;
