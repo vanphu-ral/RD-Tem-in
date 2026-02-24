@@ -394,79 +394,18 @@ export class LenhSanXuatComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.accountService.identity().subscribe(
-      (account) => {
+    this.accountService.identity().subscribe({
+      next: (account) => {
         this.isAdminTem = !!account?.authorities?.includes?.("ROLE_ADMIN_TEM");
-        const result = sessionStorage.getItem("tem-in-search-body");
-        if (result) {
-          this.body = JSON.parse(result);
-          this.maLenhSanXuat = this.body.maLenhSanXuat;
-          this.sapCode = this.body.sapCode;
-          this.sapName = this.body.sapName;
-          this.product_type = this.body.product_type;
-          this.workOrderCode = this.body.workOrderCode;
-          this.version = this.body.version;
-          this.storageCode = this.body.storageCode;
-          // this.createBy = this.body.createBy;
-          this.createByInput = this.body.createBy ?? "";
-          this.hiddenCreateBy = this.createByInput || this.getCurrentUser();
-          this.createByTouched = !!this.body.createBy;
-          this.entryTime = this.body.timeUpdate;
-          this.timeUpdate = this.body.timeUpdate;
-          this.itemPerPage = this.body.itemPerPage;
-          this.pageNumber = this.body.pageNumber;
-          this.trangThai = this.body.trangThai;
-          console.log("have result!");
-          // this.getTotalData();
-          if (this.pageNumber > 1) {
-            this.backPageBtn = false;
-            this.firstPageBtn = false;
-          }
-        } else {
-          this.hiddenCreateBy = this.getCurrentUser();
-          this.createByInput = ""; // không hiển thị user trong input
-          this.createByTouched = false;
-          this.createBy = this.hiddenCreateBy;
-        }
-        this.getLenhSanXuatList();
+        this.initSearchState(account?.login ?? "unknown");
       },
-      () => {
+      error: () => {
         this.isAdminTem = false;
-        const result = sessionStorage.getItem("tem-in-search-body");
-        if (result) {
-          this.body = JSON.parse(result);
-          this.maLenhSanXuat = this.body.maLenhSanXuat;
-          this.sapCode = this.body.sapCode;
-          this.sapName = this.body.sapName;
-          this.product_type = this.body.product_type;
-          this.workOrderCode = this.body.workOrderCode;
-          this.version = this.body.version;
-          this.storageCode = this.body.storageCode;
-          // this.createBy = this.body.createBy;
-          this.createByInput = this.body.createBy ?? "";
-          this.hiddenCreateBy = this.createByInput || this.getCurrentUser();
-          this.createByTouched = !!this.body.createBy;
-          this.entryTime = this.body.timeUpdate;
-          this.timeUpdate = this.body.timeUpdate;
-          this.itemPerPage = this.body.itemPerPage;
-          this.pageNumber = this.body.pageNumber;
-          this.trangThai = this.body.trangThai;
-          console.log("have result!");
-          // this.getTotalData();
-          if (this.pageNumber > 1) {
-            this.backPageBtn = false;
-            this.firstPageBtn = false;
-          }
-        } else {
-          this.hiddenCreateBy = this.getCurrentUser();
-          this.createByInput = ""; // không hiển thị user trong input
-          this.createByTouched = false;
-          this.createBy = this.hiddenCreateBy;
-        }
-        this.getLenhSanXuatList();
+        this.initSearchState("unknown");
       },
-    );
+    });
   }
+
   getCurrentUser(): string {
     return this.accountService.isAuthenticated()
       ? (this.accountService["userIdentity"]?.login ?? "unknown")
@@ -760,5 +699,43 @@ export class LenhSanXuatComponent implements OnInit {
 
     console.log("[buildParams] params:", params.toString());
     return params;
+  }
+  private initSearchState(currentUserLogin: string): void {
+    const result = sessionStorage.getItem("tem-in-search-body");
+
+    if (result) {
+      this.body = JSON.parse(result);
+      this.maLenhSanXuat = this.body.maLenhSanXuat;
+      this.sapCode = this.body.sapCode;
+      this.sapName = this.body.sapName;
+      this.product_type = this.body.product_type;
+      this.workOrderCode = this.body.workOrderCode;
+      this.version = this.body.version;
+      this.storageCode = this.body.storageCode;
+      this.itemPerPage = this.body.itemPerPage;
+      this.pageNumber = this.body.pageNumber;
+      this.trangThai = this.body.trangThai;
+      this.timeUpdate = this.body.timeUpdate;
+      this.entryTime = this.body.entryTime;
+
+      this.createByInput = this.body.createBy ?? "";
+      this.createByTouched = !!this.body.createBy;
+
+      // dùng currentUserLogin đã resolve
+      this.hiddenCreateBy = this.createByInput || currentUserLogin;
+      this.createBy = this.isAdminTem ? this.createBy : this.hiddenCreateBy;
+
+      if (this.pageNumber > 1) {
+        this.backPageBtn = false;
+        this.firstPageBtn = false;
+      }
+    } else {
+      this.hiddenCreateBy = currentUserLogin;
+      this.createByInput = "";
+      this.createByTouched = false;
+      this.createBy = this.hiddenCreateBy; // set createBy
+    }
+
+    this.getLenhSanXuatList();
   }
 }
