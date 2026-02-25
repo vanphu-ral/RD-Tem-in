@@ -40,6 +40,7 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
   predicate!: string;
   ascending!: boolean;
   isDisable = false;
+  hasCheckedRecords = false;
 
   fileName = "Chi-tiet-lenh-san-xuat";
 
@@ -132,7 +133,10 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
     // Clear previous data
     this.data = [];
 
-    for (let i = 0; i < list.length; i++) {
+    // Filter only records with checked = 1
+    const checkedList = list.filter((item: any) => item.checked === 1);
+
+    for (let i = 0; i < checkedList.length; i++) {
       const data1: {
         reelID?: string;
         partNumber?: string;
@@ -163,37 +167,41 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
         partClass?: string | null;
         sapCode?: string | null;
       } = {
-        reelID: (list[i] as any).reel_id || "",
-        partNumber: (list[i] as any).part_number || "",
-        vendor: (list[i] as any).vendor || "",
-        lot: (list[i] as any).lot || "",
-        userData1: (list[i] as any).user_data1 || "",
-        userData2: (list[i] as any).user_data2 || "",
-        userData3: (list[i] as any).user_data3 || "",
-        userData4: (list[i] as any).user_data4 || "",
-        userData5: (list[i] as any).user_data5 || 0,
-        initialQuantity: (list[i] as any).initial_quantity || 0,
-        msdLevel: (list[i] as any).msd_level || "",
-        msdInitialFloorTime: (list[i] as any).msd_initial_floor_time || "",
-        msdBagSealDate: (list[i] as any).msd_bag_seal_date || "",
-        marketUsage: (list[i] as any).market_usage || "",
-        quantityOverride: (list[i] as any).quantity_override || 0,
-        shelfTime: (list[i] as any).shelf_time || "",
-        spMaterialName: (list[i] as any).sp_material_name || "",
-        warningLimit: (list[i] as any).warning_limit || "",
-        maximumLimit: (list[i] as any).maximum_limit || "",
-        comments: (list[i] as any).comments || "",
-        warmupTime: (list[i] as any).warmup_time || "",
-        storageUnit: (list[i] as any).storage_unit || "",
-        subStorageUnit: (list[i] as any).sub_storage_unit || "",
-        locationOverride: (list[i] as any).location_override || "",
-        expirationDate: (list[i] as any).expiration_date || "",
-        manufacturingDate: (list[i] as any).manufacturing_date || "",
-        partClass: (list[i] as any).part_class || "",
-        sapCode: (list[i] as any).sap_code || "",
+        reelID: (checkedList[i] as any).reel_id || "",
+        partNumber: (checkedList[i] as any).part_number || "",
+        vendor: (checkedList[i] as any).vendor || "",
+        lot: (checkedList[i] as any).lot || "",
+        userData1: (checkedList[i] as any).user_data1 || "",
+        userData2: (checkedList[i] as any).user_data2 || "",
+        userData3: (checkedList[i] as any).user_data3 || "",
+        userData4: (checkedList[i] as any).user_data4 || "",
+        userData5: (checkedList[i] as any).user_data5 || 0,
+        initialQuantity: (checkedList[i] as any).initial_quantity || 0,
+        msdLevel: (checkedList[i] as any).msd_level || "",
+        msdInitialFloorTime:
+          (checkedList[i] as any).msd_initial_floor_time || "",
+        msdBagSealDate: (checkedList[i] as any).msd_bag_seal_date || "",
+        marketUsage: (checkedList[i] as any).market_usage || "",
+        quantityOverride: (checkedList[i] as any).quantity_override || 0,
+        shelfTime: (checkedList[i] as any).shelf_time || "",
+        spMaterialName: (checkedList[i] as any).sp_material_name || "",
+        warningLimit: (checkedList[i] as any).warning_limit || "",
+        maximumLimit: (checkedList[i] as any).maximum_limit || "",
+        comments: (checkedList[i] as any).comments || "",
+        warmupTime: (checkedList[i] as any).warmup_time || "",
+        storageUnit: (checkedList[i] as any).storage_unit || "",
+        subStorageUnit: (checkedList[i] as any).sub_storage_unit || "",
+        locationOverride: (checkedList[i] as any).location_override || "",
+        expirationDate: (checkedList[i] as any).expiration_date || "",
+        manufacturingDate: (checkedList[i] as any).manufacturing_date || "",
+        partClass: (checkedList[i] as any).part_class || "",
+        sapCode: (checkedList[i] as any).sap_code || "",
       };
       this.data.push(data1);
     }
+
+    // Update flag to check if there are any checked records
+    this.hasCheckedRecords = this.data.length > 0;
   }
   exportCSV(): void {
     this.lenhSanXuat!.trangThai = "Đã xuất csv";
@@ -243,7 +251,7 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
 
   exportCsvToFixedIP(): void {
     if (!this.data || this.data.length === 0) {
-      alert("Không có dữ liệu để xuất CSV!");
+      alert("Không có bản ghi nào được chọn (checked) để xuất CSV!");
       return;
     }
 
@@ -272,7 +280,9 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
         // Check for success - the backend returns success: true on successful upload
         if (response && response.success === true) {
           console.log("[DEBUG] Upload successful, updating status");
-          alert(`Đã gửi ${this.data.length} bản ghi tới hệ thống thành công!`);
+          alert(
+            `Đã gửi ${this.data.length} bản ghi (đã check) tới hệ thống Panacim thành công!`,
+          );
 
           // Update status
           this.lenhSanXuat!.trangThai = "Đã xuất csv đến server";

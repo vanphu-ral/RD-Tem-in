@@ -51,44 +51,19 @@
             <tbody>
               <tr data-cy="entityTable">
                 <td>
-                  <input
-                    class="form-control"
-                    id="maLenhSanXuat"
-                    list="maLenhSanXuat"
-                    formControlName="maLenhSanXuat"
-                  />
+                  {{ editForm.get("maLenhSanXuat")?.value }}
                 </td>
                 <td>
-                  <input
-                    class="form-control"
-                    id="sapCode"
-                    list="sapCode"
-                    formControlName="sapCode"
-                  />
+                  {{ editForm.get("sapCode")?.value }}
                 </td>
                 <td>
-                  <input
-                    class="form-control"
-                    id="sapName"
-                    list="sapName"
-                    formControlName="sapName"
-                  />
+                  {{ editForm.get("sapName")?.value }}
                 </td>
                 <td>
-                  <input
-                    class="form-control"
-                    id="workOrderCode"
-                    list="workOrderCode"
-                    formControlName="workOrderCode"
-                  />
+                  {{ editForm.get("workOrderCode")?.value }}
                 </td>
                 <td>
-                  <input
-                    class="form-control"
-                    id="version"
-                    list="version"
-                    formControlName="version"
-                  />
+                  {{ editForm.get("version")?.value }}
                 </td>
                 <td>
                   <select
@@ -101,7 +76,8 @@
                     <option value="RD-LED-02">02 - Kho vật tư LED</option>
                     <option value="RD-LED-03">03 - Kho vật tư TBCS</option>
                     <option value="RD-LED-04">04 - Kho vật tư CLC</option>
-                    <option value="RD-LED-05">05 - Kho ngành ĐTTĐ</option>
+                    <option value="05-A01-01">05 - Kho ngành ĐTTĐ</option>
+                    <!-- <option value="RD-LED-05">05 - Kho ngành ĐTTĐ</option> -->
                     <option value="RD-LED-06">06 - Kho ngành LRSP LED 1</option>
                     <option value="RD-LED-07">07 - Kho ngành SMART</option>
                     <option value="RD-LED-08">08 - Kho ngành LED2</option>
@@ -126,28 +102,13 @@
                   />
                 </td>
                 <td>
-                  <input
-                    class="form-control"
-                    id="createBy"
-                    list="createBy"
-                    formControlName="createBy"
-                  />
+                  {{ editForm.get("createBy")?.value }}
                 </td>
                 <td>
-                  <input
-                    class="form-control"
-                    id="entryTime"
-                    list="entryTime"
-                    formControlName="entryTime"
-                  />
+                  {{ editForm.get("entryTime")?.value }}
                 </td>
                 <td>
-                  <input
-                    class="form-control"
-                    id="trangThai"
-                    list="trangThai"
-                    formControlName="trangThai"
-                  />
+                  {{ editForm.get("trangThai")?.value }}
                 </td>
                 <td>
                   <input
@@ -164,28 +125,29 @@
         <form
           [formGroup]="scanResult"
           [ngClass]="{ 'show-input-scan': showScanInput }"
-          style="margin: 10px; margin: 10px"
         >
-          <button class="btn-scan" role="button" (click)="setInputValue()">
-            Scan tem
-          </button>
-          <input
-            class="input-scan"
-            type="text"
-            id="scan"
-            [(ngModel)]="scanResults"
-            [ngModelOptions]="{ standalone: true }"
-            style="border: none; width: 100%"
-            (keydown.enter)="catchScanEvent()"
-            inputmode="none"
-          />
-          <button
-            class="btn-scan"
-            *ngIf="scanResults !== ''"
-            (click)="catchScanEvent()"
-          >
-            Kiểm tra
-          </button>
+          <div style="display: flex; gap: 8px; align-items: sapce-between">
+            <button class="btn-scan" role="button" (click)="setInputValue()">
+              Scan tem
+            </button>
+            <input
+              class="input-scan"
+              type="text"
+              id="scan"
+              [(ngModel)]="scanResults"
+              [ngModelOptions]="{ standalone: true }"
+              style="border: none; width: 100%"
+              (keydown.enter)="catchScanEvent()"
+              inputmode="none"
+            />
+            <button
+              class="btn-scan"
+              *ngIf="scanResults !== ''"
+              (click)="catchScanEvent()"
+            >
+              Kiểm tra
+            </button>
+          </div>
         </form>
 
         <!-- <div>
@@ -224,6 +186,17 @@
             <thead>
               <tr>
                 <th scope="col">STT</th>
+                <th scope="col">
+                  Checked
+                  <div class="btn-flex">
+                    <button class="btn btn-success" (click)="onCheckAll()">
+                      Chọn tất cả
+                    </button>
+                    <button class="btn btn-danger" (click)="onUnCheckAll()">
+                      Bỏ chọn tất cả
+                    </button>
+                  </div>
+                </th>
                 <th scope="col"><span class="custom-width">Status</span></th>
                 <th scope="col"><span class="custom-width">Reel ID</span></th>
                 <th scope="col">
@@ -276,17 +249,7 @@
                 <th scope="col">ManuFacturing Date</th>
                 <th scope="col">Part Class</th>
                 <th scope="col">Sap Code</th>
-                <th scope="col">
-                  Checked
-                  <div class="btn-flex">
-                    <button class="btn btn-success" (click)="onCheckAll()">
-                      Chọn tất cả
-                    </button>
-                    <button class="btn btn-danger" (click)="onUnCheckAll()">
-                      Bỏ chọn tất cả
-                    </button>
-                  </div>
-                </th>
+
                 <!-- <th scope="col" jhiSortBy=""></th> -->
               </tr>
             </thead>
@@ -303,6 +266,14 @@
             >
               <td>
                 {{ i + 1 }}
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="$any(data).checked"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="onSelected(i, !!$any(data).checked)"
+                />
               </td>
               <td>
                 <select
@@ -413,14 +384,6 @@
               </td>
               <td>
                 {{ $any(data).sap_code }}
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  [(ngModel)]="$any(data).checked"
-                  [ngModelOptions]="{ standalone: true }"
-                  (change)="onSelected(i, !!$any(data).checked)"
-                />
               </td>
             </tr>
           </table>
@@ -719,7 +682,7 @@
   </div>
 </div>
 <!-- popup xan chi tiet -->
-<div class="popupMove" *ngIf="popupMove === true">
+<div class="popupMove" *ngIf="popupMove === true" style="padding: 20px">
   <span class="close-btn" (click)="closePopupMove()">X</span>
   <p class="move-title">&nbsp; Xác nhận mã hàng hóa về kho</p>
   <table class="table">
@@ -808,6 +771,13 @@
       <mat-icon>publish</mat-icon>
       Đẩy tem vào Panacim
     </button> -->
+    <button
+      class="btn-primary"
+      style="margin-top: 12px"
+      (click)="closePopupMove()"
+    >
+      Hủy
+    </button>
     <button class="btn-primary" style="margin-top: 12px" (click)="updateInfo()">
       Lưu
     </button>

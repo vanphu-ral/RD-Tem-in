@@ -31,6 +31,11 @@ public interface Partner3WarehouseStampInfoRepository
     )
     List<WarehouseNoteInfo> findByTrangThaiNotDraft();
 
+    @Query(
+        "SELECT COUNT(w) FROM WarehouseNoteInfo w WHERE w.trangThai != 'Bản nháp' AND w.productType = 'Bán thành phẩm'"
+    )
+    Long countByTrangThaiNotDraft();
+
     @Query("SELECT w FROM WarehouseNoteInfo w WHERE w.deletedBy IS NULL")
     Page<WarehouseNoteInfo> findAll(Pageable pageable);
 

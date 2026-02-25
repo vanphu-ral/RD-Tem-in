@@ -58,7 +58,7 @@ describe("Logs Service", () => {
           name: "server.ports",
           properties: {
             "local.server.port": {
-              value: "9040",
+              value: "8085",
             },
           },
         },

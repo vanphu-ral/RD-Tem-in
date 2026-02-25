@@ -307,24 +307,24 @@
               (change)="findFucntion()"
             />
             <datalist id="storageCode">
-              <option value="01">Kho linh kiện điện tử</option>
-              <option value="02">Kho vật tư LED</option>
-              <option value="03">Kho vật tư TBCS</option>
-              <option value="04">Kho vật tư CLC</option>
-              <option value="05">Kho ngành ĐTTĐ</option>
-              <option value="06">Kho ngành LRSP LED 1</option>
-              <option value="07">Kho ngành SMART</option>
-              <option value="08">Kho ngành LED2</option>
-              <option value="10">Kho cơ khí xưởng</option>
-              <option value="11">Kho ngành CNPT</option>
-              <option value="12">Kho vật tư Smart</option>
-              <option value="13">Kho ngành CNPT 2</option>
-              <option value="14">Kho chị Hòa 2</option>
-              <option value="15">Kho Pilot TTRD</option>
-              <option value="17">Kho vật tư SKD</option>
-              <option value="18">Kho trung tâm RD</option>
-              <option value="19">Kho LKDT thủ công</option>
-              <option value="20">Kho xuất khẩu</option>
+              <option value="RD-LED-01">Kho linh kiện điện tử</option>
+              <option value="RD-LED-02">Kho vật tư LED</option>
+              <option value="RD-LED-03">Kho vật tư TBCS</option>
+              <option value="RD-LED-04">Kho vật tư CLC</option>
+              <option value="05-A01-01">Kho ngành ĐTTĐ</option>
+              <option value="RD-LED-06">Kho ngành LRSP LED 1</option>
+              <option value="RD-LED-07">Kho ngành SMART</option>
+              <option value="RD-LED-08">Kho ngành LED2</option>
+              <option value="RD-LED-10">Kho cơ khí xưởng</option>
+              <option value="RD-LED-11">Kho ngành CNPT</option>
+              <option value="RD-LED-12">Kho vật tư Smart</option>
+              <option value="RD-LED-13">Kho ngành CNPT 2</option>
+              <option value="RD-LED-14">Kho chị Hòa 2</option>
+              <option value="RD-LED-15">Kho Pilot TTRD</option>
+              <option value="RD-LED-17">Kho vật tư SKD</option>
+              <option value="RD-LED-18">Kho trung tâm RD</option>
+              <option value="RD-LED-19">Kho LKDT thủ công</option>
+              <option value="RD-LED-20">Kho xuất khẩu</option>
             </datalist>
           </th>
 
@@ -415,8 +415,10 @@
               (change)="findFucntion()"
             >
               <option value=""></option>
+              <option value="Pending">Pending</option>
               <option value="Chờ duyệt">Chờ duyệt</option>
               <option value="Đã phê duyệt">Đã phê duyệt</option>
+              <option value="Đang nhập kho">Đang nhập kho</option>
               <option value="Từ chối">Từ chối</option>
               <option value="Kho hủy">Kho hủy</option>
               <option value="Đã xuất csv">Đã xuất csv</option>
@@ -453,9 +455,7 @@
       <tbody>
         <tr
           *ngFor="
-            let lenhSanXuat of lenhSanXuats ?? []
-              | filter: trangThai
-              | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+            let lenhSanXuat of lenhSanXuats ?? [] | filter: trangThai;
             let i = index;
             trackBy: trackId
           "
@@ -560,10 +560,10 @@
         [(ngModel)]="itemPerPage"
         (change)="findFucntion()"
       >
-        <option value="10">10</option>
-        <option value="15">15</option>
-        <option value="20">20</option>
-        <option value="{{ lenhSanXuats?.length }}">All</option>
+        <option [value]="10">10</option>
+        <option [value]="15">15</option>
+        <option [value]="20">20</option>
+        <option [value]="totalData">All</option>
       </select>
     </div>
 
@@ -712,7 +712,7 @@
         </thead>
         <tbody>
           <tr *ngFor="
-              let lenhSanXuat of lenhSanXuats | filter: trangThai | paginate: { itemsPerPage: itemPerPage, currentPage: page };
+              let lenhSanXuat of lenhSanXuats ?? []
               let i = index;
               trackBy: trackId
             " data-cy="entityTable">

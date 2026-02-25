@@ -467,13 +467,12 @@ public class WarehouseNoteInfoResource {
      *         quantity.
      */
     @GetMapping("/warehouse-note-infos/not-draft/totaldata")
-    public ResponseEntity<Integer> getWarehouseNoteInfosNotDraftTotalData() {
+    public ResponseEntity<Long> getWarehouseNoteInfosNotDraftTotalData() {
         log.debug(
-            "REST request to get total quantity of WarehouseNoteInfos where trangThai != 'Bản nháp'"
+            "REST request to get total count of WarehouseNoteInfos where trangThai != 'Bản nháp'"
         );
-        Integer totalQuantity =
-            partner3WarehouseStampInfoService.getTotalQuantity();
-        return ResponseEntity.ok().body(totalQuantity);
+        Long totalCount = partner3WarehouseStampInfoService.getTotalCount();
+        return ResponseEntity.ok().body(totalCount);
     }
 
     /**

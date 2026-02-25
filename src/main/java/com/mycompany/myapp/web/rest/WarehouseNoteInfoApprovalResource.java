@@ -7,7 +7,9 @@ import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalWithChildrenDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.validation.Valid;
 import org.slf4j.Logger;
@@ -125,23 +127,57 @@ public class WarehouseNoteInfoApprovalResource {
      * warehouseNoteInfoApprovals.
      *
      * @param pageable the pagination information.
+     * @param maLenhSanXuat the maLenhSanXuat to filter by.
+     * @param sapCode the sapCode to filter by.
+     * @param sapName the sapName to filter by.
+     * @param workOrderCode the workOrderCode to filter by.
+     * @param version the version to filter by.
+     * @param storageCode the storageCode to filter by.
+     * @param createBy the createBy to filter by.
+     * @param trangThai the trangThai to filter by.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
      *         of warehouseNoteInfoApprovals in body.
      */
     @GetMapping("/warehouse-note-infos-approval")
-    public ResponseEntity<
-        List<WarehouseNoteInfoApprovalDTO>
-    > getAllWarehouseNoteInfoApprovals(
-        @org.springdoc.api.annotations.ParameterObject Pageable pageable
+    public ResponseEntity<Map<String, Object>> getAllWarehouseNoteInfoApprovals(
+        @org.springdoc.api.annotations.ParameterObject Pageable pageable,
+        @RequestParam(required = false) String maLenhSanXuat,
+        @RequestParam(required = false) String sapCode,
+        @RequestParam(required = false) String sapName,
+        @RequestParam(required = false) String workOrderCode,
+        @RequestParam(required = false) String version,
+        @RequestParam(required = false) String storageCode,
+        @RequestParam(required = false) String createBy,
+        @RequestParam(required = false) String trangThai
     ) {
-        log.debug("REST request to get a page of WarehouseNoteInfoApprovals");
-        Page<WarehouseNoteInfoApprovalDTO> page =
-            warehouseNoteInfoApprovalService.findAll(pageable);
-        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
-            ServletUriComponentsBuilder.fromCurrentRequest(),
-            page
+        log.debug(
+            "REST request to get a page of WarehouseNoteInfoApprovals with filters"
         );
-        return ResponseEntity.ok().headers(headers).body(page.getContent());
+
+        // Build filter object
+        WarehouseNoteInfoApprovalService.Filter filter =
+            new WarehouseNoteInfoApprovalService.Filter();
+        filter.setMaLenhSanXuat(maLenhSanXuat);
+        filter.setSapCode(sapCode);
+        filter.setSapName(sapName);
+        filter.setWorkOrderCode(workOrderCode);
+        filter.setVersion(version);
+        filter.setStorageCode(storageCode);
+        filter.setCreateBy(createBy);
+        filter.setTrangThai(trangThai);
+
+        Page<WarehouseNoteInfoApprovalDTO> page =
+            warehouseNoteInfoApprovalService.findAll(pageable, filter);
+
+        // Return response with total count in body and header for frontend pagination
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", page.getContent());
+        response.put("totalElements", page.getTotalElements());
+        response.put("totalPages", page.getTotalPages());
+
+        return ResponseEntity.ok()
+            .header("X-Total-Count", String.valueOf(page.getTotalElements()))
+            .body(response);
     }
 
     /**
