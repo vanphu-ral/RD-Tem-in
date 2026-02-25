@@ -21,6 +21,7 @@ import { ChiTietLenhSanXuatDeleteDialogComponent } from "../delete/chi-tiet-lenh
 // import { doc } from 'prettier';
 import { faSquare, faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { PageEvent } from "@angular/material/paginator";
+import { environment } from "app/environments/environment";
 
 @Component({
   selector: "jhi-chi-tiet-lenh-san-xuat",
@@ -35,11 +36,15 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   totalDataUrl = this.applicationConfigService.getEndpointFor(
     "api/warehouse-note-infos/not-draft/totaldata",
   );
+  // resourceUrlApprove = `http://192.168.68.77:8085/api/warehouse-note-infos-approval`;
+  // totalDataUrl = `http://192.168.10.99:9040/api/warehouse-note-infos/not-draft/totaldata`;
   searchUrlApprove =
     this.applicationConfigService.getEndpointFor("api/lenh-san-xuat");
   // maLenhSanXuatResourceUrl = this.applicationConfigService.getEndpointFor(
   //   "api/lenhsx/ma-lenh-san-xuat",
   // );
+  scanBoxValue = "";
+  isScanLoading = false;
   versionResourceUrl =
     this.applicationConfigService.getEndpointFor("api/lenhsx/version");
   sapCodetResourceUrl = this.applicationConfigService.getEndpointFor(
@@ -152,6 +157,9 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   ngbPaginationPage = 1;
   pageSize = 10;
   pageIndex = 0;
+  private baseUrl = environment.baseInTemApiUrl;
+  private scanBoxBaseUrl =
+    "http://192.168.10.99:3000/api/warehouse-inbound-approvals/search-box";
   constructor(
     protected chiTietLenhSanXuatService: ChiTietLenhSanXuatService,
     protected activatedRoute: ActivatedRoute,
@@ -381,11 +389,45 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
         },
       });
   }
+  onScanBox(): void {
+    const reelId = this.scanBoxValue?.trim();
+    if (!reelId) {
+      return;
+    }
+
+    this.isScanLoading = true;
+
+    this.http.get<any>(`${this.scanBoxBaseUrl}/${reelId}`).subscribe({
+      next: (res) => {
+        this.isScanLoading = false;
+        if (res?.id) {
+          this.router.navigate([
+            "/warehouse-inbound-approvals",
+            res.id,
+            "edit",
+          ]);
+        } else {
+          this.alertTimeout("Không tìm thấy dữ liệu!", 2500);
+        }
+        this.scanBoxValue = "";
+      },
+      error: (err) => {
+        this.isScanLoading = false;
+        this.scanBoxValue = "";
+        if (err.status === 404) {
+          this.alertTimeout("Không tìm thấy mã box: " + reelId, 2500);
+        } else {
+          this.alertTimeout("Lỗi kết nối server!", 2500);
+        }
+      },
+    });
+  }
   getTotalData(): void {
     // Use the application's API endpoint for total count
     const totalDataUrl = this.applicationConfigService.getEndpointFor(
       "api/warehouse-note-infos/not-draft/totaldata",
     );
+    // const totalDataUrl = `http://192.168.68.77:8085/api/warehouse-note-infos/not-draft/totaldata`;
     this.http.get<any>(totalDataUrl).subscribe((res) => {
       this.totalData = res;
       if (this.totalData < this.itemPerPage) {

@@ -14,7 +14,16 @@ table {
 .text-end {
   width: 5rem;
 }
-
+.d-flex {
+  display: flex;
+}
+.scan-box-container {
+  display: flex;
+  gap: 5px;
+}
+.scan-box-container input {
+  padding: 10px;
+}
 th {
   color: #fff;
   background-color: #3d7bb9;

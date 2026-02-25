@@ -128,6 +128,7 @@
           </div>
         </div>
       </div>
+
       <button
         class="btn btn-info me-2"
         (click)="reloadPage()"
@@ -136,6 +137,26 @@
         <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
         <span>Refresh List</span>
       </button>
+      <div class="scan-box-container">
+        <input
+          #scanInput
+          type="text"
+          class="form-control scan-input"
+          placeholder="Scan mã box..."
+          [(ngModel)]="scanBoxValue"
+          [ngModelOptions]="{ standalone: true }"
+          (keydown.enter)="onScanBox()"
+          [disabled]="isScanLoading"
+        />
+        <button
+          class="btn btn-info me-2 d-flex align-items-center"
+          (click)="onScanBox()"
+          [disabled]="isScanLoading || !scanBoxValue"
+        >
+          <fa-icon icon="search" [spin]="isScanLoading"></fa-icon>
+          <span>Scan</span>
+        </button>
+      </div>
     </div>
   </h2>
 
