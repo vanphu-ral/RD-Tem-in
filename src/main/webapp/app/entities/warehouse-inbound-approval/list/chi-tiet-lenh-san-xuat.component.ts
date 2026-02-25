@@ -92,6 +92,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   firstPageBtn = true;
   @Input() itemPerPage = 10;
   @Input() pageNumber = 1;
+  page = 1; // Add page variable for ngx-pagination
   @Input() maLenhSanXuat = "";
   @Input() sapCode = "";
   @Input() sapName = "";
@@ -146,7 +147,6 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   isLoading = false;
   totalItems = 0;
   itemsPerPage = ITEMS_PER_PAGE;
-  page?: number;
   predicate!: string;
   ascending!: boolean;
   ngbPaginationPage = 1;
@@ -315,17 +315,21 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
 
   nextPage(): void {
     this.pageNumber++;
+    this.page = this.pageNumber; // Sync page variable for ngx-pagination
     this.mappingBodySearchAndPagination();
     this.backPageBtn = false;
     this.firstPageBtn = false;
-    if (this.pageNumber === Math.floor(this.totalData / this.itemPerPage) + 1) {
+    const totalPages = Math.ceil(this.totalData / this.itemPerPage);
+    if (this.pageNumber >= totalPages) {
       this.nextPageBtn = true;
       this.lastPageBtn = true;
     }
     this.getLenhSanXuatList();
   }
   lastPage(): void {
-    this.pageNumber = Math.floor(this.totalData / this.itemPerPage) + 1;
+    const totalPages = Math.ceil(this.totalData / this.itemPerPage);
+    this.pageNumber = totalPages;
+    this.page = this.pageNumber; // Sync page variable for ngx-pagination
     this.mappingBodySearchAndPagination();
     this.backPageBtn = false;
     this.firstPageBtn = false;
@@ -335,10 +339,12 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   }
   backPage(): void {
     this.pageNumber--;
+    this.page = this.pageNumber; // Sync page variable for ngx-pagination
     this.mappingBodySearchAndPagination();
     this.nextPageBtn = false;
     this.lastPageBtn = false;
-    if (this.pageNumber === 1) {
+    const totalPages = Math.ceil(this.totalData / this.itemPerPage);
+    if (this.pageNumber <= 1) {
       this.backPageBtn = true;
       this.firstPageBtn = true;
     }
@@ -346,6 +352,7 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   }
   firstPage(): void {
     this.pageNumber = 1;
+    this.page = this.pageNumber; // Sync page variable for ngx-pagination
     this.mappingBodySearchAndPagination();
     this.nextPageBtn = false;
     this.lastPageBtn = false;
@@ -354,10 +361,14 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     this.getLenhSanXuatList();
   }
   findFucntion(): void {
+    // Ensure itemPerPage is a number
+    this.itemPerPage = Number(this.itemPerPage);
+    // Reset to first page when search changes
+    this.pageNumber = 1;
+    this.page = 1;
     this.mappingBodySearchAndPagination();
     setTimeout(() => {
       this.getLenhSanXuatList();
-      this.getTotalData();
     }, 100);
   }
   loadPage(page?: number, dontNavigate?: boolean): void {
@@ -388,42 +399,52 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     );
     this.http.get<any>(totalDataUrl).subscribe((res) => {
       this.totalData = res;
-      if (this.totalData < this.itemPerPage) {
+      // Calculate total pages
+      const totalPages = Math.ceil(this.totalData / this.itemPerPage);
+      // If only 1 page, disable all navigation buttons
+      if (totalPages <= 1) {
         this.nextPageBtn = true;
         this.lastPageBtn = true;
+        this.backPageBtn = true;
+        this.firstPageBtn = true;
       } else {
+        // More than 1 page - enable next/last, disable back/first
         this.nextPageBtn = false;
         this.lastPageBtn = false;
+        this.backPageBtn = true;
+        this.firstPageBtn = true;
       }
       // console.log('total data', res, Math.floor(this.totalData / this.itemPerPage));
     });
   }
   ngOnInit(): void {
+    // Reset to page 1 on initial load (fresh start)
+    this.pageNumber = 1;
+    this.page = 1;
+
     const result = sessionStorage.getItem("tem-in-search-body");
     if (result) {
       this.body = JSON.parse(result);
-      this.maLenhSanXuat = this.body.maLenhSanXuat;
-      this.sapCode = this.body.sapCode;
-      this.sapName = this.body.sapName;
-      this.workOrderCode = this.body.workOrderCode;
-      this.version = this.body.version;
-      this.storageCode = this.body.storageCode;
-      this.createBy = this.body.createBy;
-      this.entryTime = this.body.timeUpdate;
-      this.timeUpdate = this.body.timeUpdate;
-      this.itemPerPage = this.body.itemPerPage;
-      this.pageNumber = this.body.pageNumber;
-      this.trangThai = this.body.trangThai;
-      // console.log('have result!');
-      this.getTotalData();
-      this.getLenhSanXuatList();
-      if (this.pageNumber > 1) {
-        this.backPageBtn = false;
-        this.firstPageBtn = false;
+      this.maLenhSanXuat = this.body.maLenhSanXuat ?? "";
+      this.sapCode = this.body.sapCode ?? "";
+      this.sapName = this.body.sapName ?? "";
+      this.workOrderCode = this.body.workOrderCode ?? "";
+      this.version = this.body.version ?? "";
+      this.storageCode = this.body.storageCode ?? "";
+      this.createBy = this.body.createBy ?? "";
+      this.entryTime = this.body.timeUpdate ?? null;
+      this.timeUpdate = this.body.timeUpdate ?? null;
+      this.itemPerPage = Number(this.body.itemPerPage) || 10;
+      // Only restore pageNumber if there's a valid saved value, otherwise keep at 1
+      if (this.body.pageNumber && this.body.pageNumber > 1) {
+        this.pageNumber = this.body.pageNumber;
+        this.page = this.pageNumber;
       }
+      this.trangThai = this.body.trangThai ?? "";
+      // console.log('have result!');
+      this.getLenhSanXuatList();
     } else {
       // console.log('no result');
-      this.getTotalData();
       this.getLenhSanXuatList();
     }
     // this.createListOfMaLenhSanXuat();
@@ -436,6 +457,22 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     window.location.reload();
   }
   getLenhSanXuatList(): void {
+    // Validate pageNumber doesn't exceed total pages
+    if (this.totalData > 0) {
+      const totalPages = Math.ceil(this.totalData / this.itemPerPage);
+      if (this.pageNumber > totalPages) {
+        this.pageNumber = totalPages;
+        this.page = this.pageNumber;
+      }
+      if (this.pageNumber < 1) {
+        this.pageNumber = 1;
+        this.page = 1;
+      }
+    } else {
+      this.pageNumber = 1;
+      this.page = 1;
+    }
+
     // Use the dedicated /not-draft endpoint which already filters non-draft statuses
     const params: any = {
       page: this.pageNumber - 1, // 0-based pagination
@@ -476,7 +513,36 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     }
 
     this.http.get<any>(this.resourceUrlApprove, { params }).subscribe((res) => {
-      this.lenhSanXuats = res.content || res; // Handle paginated response
+      // console.log('API Response:', res); // Debug log
+
+      // Handle new response format with content and totalElements
+      // Also handle old format (direct array) for backward compatibility
+      if (res && Array.isArray(res)) {
+        // Old format - direct array
+        this.lenhSanXuats = res;
+        this.totalData = res.length;
+      } else if (res && res.content) {
+        // New format - object with content
+        this.lenhSanXuats = res.content;
+        this.totalData = res.totalElements || res.content.length;
+      } else {
+        this.lenhSanXuats = [];
+        this.totalData = 0;
+      }
+
+      // Update pagination button states based on total count
+      const totalPages = Math.ceil(this.totalData / this.itemPerPage);
+      if (totalPages <= 1 || this.totalData === 0) {
+        this.nextPageBtn = true;
+        this.lastPageBtn = true;
+        this.backPageBtn = true;
+        this.firstPageBtn = true;
+      } else {
+        this.nextPageBtn = false;
+        this.lastPageBtn = false;
+        this.backPageBtn = this.pageNumber <= 1;
+        this.firstPageBtn = this.pageNumber <= 1;
+      }
 
       // Sau khi load danh sách thì đổi màu hiển thị
       this.changeColor();

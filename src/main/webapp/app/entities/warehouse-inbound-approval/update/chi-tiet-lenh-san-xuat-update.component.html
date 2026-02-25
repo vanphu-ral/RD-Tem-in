@@ -186,6 +186,17 @@
             <thead>
               <tr>
                 <th scope="col">STT</th>
+                <th scope="col">
+                  Checked
+                  <div class="btn-flex">
+                    <button class="btn btn-success" (click)="onCheckAll()">
+                      Chọn tất cả
+                    </button>
+                    <button class="btn btn-danger" (click)="onUnCheckAll()">
+                      Bỏ chọn tất cả
+                    </button>
+                  </div>
+                </th>
                 <th scope="col"><span class="custom-width">Status</span></th>
                 <th scope="col"><span class="custom-width">Reel ID</span></th>
                 <th scope="col">
@@ -238,17 +249,7 @@
                 <th scope="col">ManuFacturing Date</th>
                 <th scope="col">Part Class</th>
                 <th scope="col">Sap Code</th>
-                <th scope="col">
-                  Checked
-                  <div class="btn-flex">
-                    <button class="btn btn-success" (click)="onCheckAll()">
-                      Chọn tất cả
-                    </button>
-                    <button class="btn btn-danger" (click)="onUnCheckAll()">
-                      Bỏ chọn tất cả
-                    </button>
-                  </div>
-                </th>
+
                 <!-- <th scope="col" jhiSortBy=""></th> -->
               </tr>
             </thead>
@@ -265,6 +266,14 @@
             >
               <td>
                 {{ i + 1 }}
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="$any(data).checked"
+                  [ngModelOptions]="{ standalone: true }"
+                  (change)="onSelected(i, !!$any(data).checked)"
+                />
               </td>
               <td>
                 <select
@@ -375,14 +384,6 @@
               </td>
               <td>
                 {{ $any(data).sap_code }}
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  [(ngModel)]="$any(data).checked"
-                  [ngModelOptions]="{ standalone: true }"
-                  (change)="onSelected(i, !!$any(data).checked)"
-                />
               </td>
             </tr>
           </table>

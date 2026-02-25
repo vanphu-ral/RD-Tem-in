@@ -153,6 +153,18 @@ public class Partner3WarehouseStampInfoService {
     }
 
     /**
+     * Get the total count of warehouseStampInfos where trangThai is not
+     * 'Bản nháp'.
+     *
+     * @return the total count of records.
+     */
+    @Transactional(readOnly = true)
+    public Long getTotalCount() {
+        LOG.debug("Request to get total count from WarehouseStampInfos");
+        return partner3WarehouseStampInfoRepository.countByTrangThaiNotDraft();
+    }
+
+    /**
      * Update a warehouseStampInfo.
      *
      * @param warehouseStampInfoDTO the entity to update.

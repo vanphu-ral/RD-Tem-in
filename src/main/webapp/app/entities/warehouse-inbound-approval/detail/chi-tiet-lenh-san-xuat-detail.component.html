@@ -31,10 +31,8 @@
           class="btn export-btn"
           style="background-color: #2196f3; color: white"
           (click)="openConfirmModal(confirmModal)"
-          [disabled]="isDisable"
-          title="Xuất CSV đến Panacim"
+          [disabled]="!hasCheckedRecords"
         >
-          <i class="fa fa-cloud-upload" aria-hidden="true"></i>
           Xuất CSV đến Panacim
         </button>
       </div>
@@ -108,6 +106,8 @@
           <thead>
             <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending">
               <th scope="col" jhiSortBy="STT">STT</th>
+              <th scope="col" jhiSortBy="Checked">Checked</th>
+              <th scope="col" jhiSortBy="comments">Comments</th>
               <th scope="col" jhiSortBy="reelID">Reel ID</th>
               <th scope="col" jhiSortBy="partNumber">Part Number</th>
               <th scope="col" jhiSortBy="vendor">Vendor</th>
@@ -135,7 +135,7 @@
               <th scope="col" jhiSortBy="spMaterialName">SP Material Name</th>
               <th scope="col" jhiSortBy="warningLimit">Warning Limit</th>
               <th scope="col" jhiSortBy="maximumLimit">Maximum Limit</th>
-              <th scope="col" jhiSortBy="comments">Comments</th>
+
               <th scope="col" jhiSortBy="warmupTime">Warm Up Time</th>
               <th scope="col" jhiSortBy="storageUnit">Storage Unit</th>
               <th scope="col" jhiSortBy="subStorageUnit">Sub Storage Unit</th>
@@ -165,6 +165,11 @@
                   {{ i + 1 }}
                 </span>
               </td>
+              <td>
+                <span *ngIf="data.checked == 1">Đã Check</span>
+                <span *ngIf="data.checked == 0">Chưa Check</span>
+              </td>
+              <td>{{ $any(data).comments }}</td>
               <td>{{ $any(data).reel_id }}</td>
               <td>{{ $any(data).part_number }}</td>
               <td>{{ $any(data).vendor }}</td>
@@ -184,7 +189,7 @@
               <td>{{ $any(data).sp_material_name }}</td>
               <td>{{ $any(data).warning_limit }}</td>
               <td>{{ $any(data).maximum_limit }}</td>
-              <td>{{ $any(data).comments }}</td>
+
               <td>{{ $any(data).warmup_time }}</td>
               <td>
                 <span class="custom-width">
@@ -223,7 +228,7 @@
     <div class="modal-body">
       <p>Bạn có chắc chắn muốn nhập thông tin vào Panacim?</p>
       <p>
-        Số lượng tem: <strong>{{ data.length }}</strong>
+        Số lượng tem (đã check): <strong>{{ data.length }}</strong>
       </p>
     </div>
     <div class="modal-footer">

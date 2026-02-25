@@ -48,6 +48,86 @@ public class WarehouseNoteInfoApprovalService {
         WarehouseNoteInfoApprovalService.class
     );
 
+    /**
+     * Filter class for warehouse note info approval queries
+     */
+    public static class Filter {
+
+        private String maLenhSanXuat;
+        private String sapCode;
+        private String sapName;
+        private String workOrderCode;
+        private String version;
+        private String storageCode;
+        private String createBy;
+        private String trangThai;
+
+        // Getters and Setters
+        public String getMaLenhSanXuat() {
+            return maLenhSanXuat;
+        }
+
+        public void setMaLenhSanXuat(String maLenhSanXuat) {
+            this.maLenhSanXuat = maLenhSanXuat;
+        }
+
+        public String getSapCode() {
+            return sapCode;
+        }
+
+        public void setSapCode(String sapCode) {
+            this.sapCode = sapCode;
+        }
+
+        public String getSapName() {
+            return sapName;
+        }
+
+        public void setSapName(String sapName) {
+            this.sapName = sapName;
+        }
+
+        public String getWorkOrderCode() {
+            return workOrderCode;
+        }
+
+        public void setWorkOrderCode(String workOrderCode) {
+            this.workOrderCode = workOrderCode;
+        }
+
+        public String getVersion() {
+            return version;
+        }
+
+        public void setVersion(String version) {
+            this.version = version;
+        }
+
+        public String getStorageCode() {
+            return storageCode;
+        }
+
+        public void setStorageCode(String storageCode) {
+            this.storageCode = storageCode;
+        }
+
+        public String getCreateBy() {
+            return createBy;
+        }
+
+        public void setCreateBy(String createBy) {
+            this.createBy = createBy;
+        }
+
+        public String getTrangThai() {
+            return trangThai;
+        }
+
+        public void setTrangThai(String trangThai) {
+            this.trangThai = trangThai;
+        }
+    }
+
     private final Partner3WarehouseNoteInfoApprovalRepository warehouseNoteInfoApprovalRepository;
     private final Partner3ReelIdInWarehouseNoteInfoApprovalRepository reelIdRepository;
     private final Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository;
@@ -380,6 +460,37 @@ public class WarehouseNoteInfoApprovalService {
         log.debug("Request to get all WarehouseNoteInfoApprovals");
         return warehouseNoteInfoApprovalRepository
             .findAll(pageable)
+            .map(this::convertToDTO);
+    }
+
+    /**
+     * Get all warehouseNoteInfoApprovals with filtering and pagination.
+     *
+     * @param pageable the pagination information.
+     * @param filter the filter criteria.
+     * @return the page of entities.
+     */
+    @Transactional(readOnly = true)
+    public Page<WarehouseNoteInfoApprovalDTO> findAll(
+        Pageable pageable,
+        Filter filter
+    ) {
+        log.debug(
+            "Request to get WarehouseNoteInfoApprovals with filters: {}",
+            filter
+        );
+        return warehouseNoteInfoApprovalRepository
+            .findAllWithFilter(
+                pageable,
+                filter.getMaLenhSanXuat(),
+                filter.getSapCode(),
+                filter.getSapName(),
+                filter.getWorkOrderCode(),
+                filter.getVersion(),
+                filter.getStorageCode(),
+                filter.getCreateBy(),
+                filter.getTrangThai()
+            )
             .map(this::convertToDTO);
     }
 

@@ -364,11 +364,12 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
   onCheckAll(): void {
     this.selectedAll = 1;
     for (let i = 0; i < this.chiTietLenhSanXuatActive.length; i++) {
-      if (this.chiTietLenhSanXuatActive[i].trang_thai === "Active") {
-        this.chiTietLenhSanXuatActive[i].checked = this.selectedAll;
-      } else {
-        this.chiTietLenhSanXuatActive[i].checked = 0;
-      }
+      this.chiTietLenhSanXuatActive[i].checked = 1;
+      // if (this.chiTietLenhSanXuatActive[i].trang_thai === "Active") {
+      //   this.chiTietLenhSanXuatActive[i].checked = this.selectedAll;
+      // } else {
+      //   this.chiTietLenhSanXuatActive[i].checked = 0;
+      // }
     }
   }
 

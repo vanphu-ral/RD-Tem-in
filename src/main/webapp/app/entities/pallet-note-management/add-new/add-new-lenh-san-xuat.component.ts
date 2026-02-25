@@ -375,7 +375,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     { value: "RD-LED-19", label: "RD-LED-19 - Kho LKDT thủ công" },
     { value: "RD-LED-03", label: "RD-LED-03 - Kho vật tư TBCS" },
     { value: "RD-LED-02", label: "RD-LED-02 - Kho C Ha" },
-    { value: "RD-LED-05", label: "RD-LED-05 - Kho ngành DTTD" },
+    { value: "05-A01-01", label: "RD-LED-05 - Kho ngành DTTD" },
     { value: "RD-LED-12", label: "RD-LED-12 - Kho A Hai" },
     { value: "RD-LED-17", label: "RD-LED-17 - Kho C Huong-SKD" },
     { value: "RD-LED-09", label: "RD-LED-09 - Kho vật tư Xuất khẩu" },

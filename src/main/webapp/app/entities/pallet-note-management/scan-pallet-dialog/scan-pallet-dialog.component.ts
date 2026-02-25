@@ -562,7 +562,7 @@ export class ScanPalletDialogComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           // THÊM LOG ĐỂ XEM CẤU TRÚC RESPONSE
-          console.log("🔍 API Response:", response);
+          console.log("API Response:", response);
 
           if (isSuccessCase) {
             // Thử nhiều cách lấy ID
