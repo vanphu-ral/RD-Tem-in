@@ -158,8 +158,10 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
   pageSize = 10;
   pageIndex = 0;
   private baseUrl = environment.baseInTemApiUrl;
-  private scanBoxBaseUrl =
-    "http://192.168.10.99:3000/api/warehouse-inbound-approvals/search-box";
+  // private scanBoxBaseUrl = "http://192.168.10.99:3000/api/warehouse-inbound-approvals/search-box";
+  private scanBoxBaseUrl = this.applicationConfigService.getEndpointFor(
+    "api/warehouse-inbound-approvals/search-box",
+  );
   constructor(
     protected chiTietLenhSanXuatService: ChiTietLenhSanXuatService,
     protected activatedRoute: ActivatedRoute,
@@ -411,10 +413,10 @@ export class ChiTietLenhSanXuatComponent implements OnInit {
     this.http.get<any>(`${this.scanBoxBaseUrl}/${reelId}`).subscribe({
       next: (res) => {
         this.isScanLoading = false;
-        if (res?.id) {
+        if (res?.warehouseNoteInfoApprovalId) {
           this.router.navigate([
             "/warehouse-inbound-approvals",
-            res.id,
+            res.warehouseNoteInfoApprovalId,
             "edit",
           ]);
         } else {
