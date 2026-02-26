@@ -74,10 +74,10 @@ export const MY_DATE_FORMATS = {
   ],
   bootstrap: [MainComponent],
   imports: [
+    HomeModule,
     BrowserModule,
     BrowserAnimationsModule,
     SharedModule,
-    HomeModule,
     MatNativeDateModule,
     AppRoutingModule,
     ReactiveFormsModule,

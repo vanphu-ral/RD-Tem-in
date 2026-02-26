@@ -1,0 +1,31 @@
+{
+  "name": "Rạng Đông",
+  "short_name": "Tem In",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "icons": ["/content/images/logo-icon.png"],
+
+  "shortcuts": [
+    {
+      "name": "Scan vật tư",
+      "url": "/list-material/update-list",
+      "icons": [
+        {
+          "src": "/content/images/jhipster_family_member_0_head-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Quản lý mã vạch đóng gói",
+      "url": "/warehouse-note-infos",
+      "icons": [
+        {
+          "src": "/content/images/jhipster_family_member_0_head-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

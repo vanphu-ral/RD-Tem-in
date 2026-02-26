@@ -36,7 +36,7 @@ module.exports = async (config, options, targetOptions) => {
       new BrowserSyncPlugin(
         {
           host: "localhost",
-          port: 9000,
+          port: 9041,
           https: tls,
           proxy: {
             target: `http${tls ? "s" : ""}://localhost:${targetOptions.target === "serve" ? "4200" : "8085"}`,
@@ -64,6 +64,44 @@ module.exports = async (config, options, targetOptions) => {
         },
       ),
     );
+  }
+
+  // 1) Watchpack / webpack watch options (glob strings)
+  config.watchOptions = config.watchOptions || {};
+  config.watchOptions.ignored = [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/System Volume Information/**",
+    "D:/System Volume Information/**",
+    "C:/System Volume Information/**",
+    "**/Thumbs.db",
+  ];
+  config.watchOptions.poll = false; // hoặc 1000 nếu cần polling
+  config.watchOptions.aggregateTimeout = 300;
+
+  // 2) devServer.watchFiles (chỉ watch folder project, ignore rõ ràng)
+  if (config.devServer) {
+    config.devServer.watchFiles = config.devServer.watchFiles || {};
+    config.devServer.watchFiles.paths = [
+      path.resolve(__dirname, "../src/main/webapp") + "/**/*",
+    ];
+    config.devServer.watchFiles.options =
+      config.devServer.watchFiles.options || {};
+    config.devServer.watchFiles.options.ignored = [
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/System Volume Information/**",
+      "D:/System Volume Information/**",
+    ];
+    // tránh nhiều sự kiện: bật awaitWriteFinish để debounce
+    config.devServer.watchFiles.options.awaitWriteFinish = {
+      stabilityThreshold: 500,
+      pollInterval: 100,
+    };
+    // nếu bạn vẫn cần polling (network drive), bật nhưng cẩn thận
+    config.devServer.watchFiles.options.usePolling = false;
+    // nếu có symlink trong project, tắt followSymlinks (nếu devServer/chokidar hỗ trợ)
+    config.devServer.watchFiles.options.followSymlinks = false;
   }
 
   if (config.mode === "production") {

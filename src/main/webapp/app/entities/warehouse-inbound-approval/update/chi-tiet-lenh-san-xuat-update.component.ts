@@ -49,8 +49,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       "/api/warehouse-note-infos-approval",
     );
 
-  // resourceUrlQMS = 'http://192.168.18.124:8449/production/check-step';
-  resourceUrlQMS = "http://192.168.68.92/qms/production/check-step";
+  resourceUrlQMS = "http://192.168.18.124:8449/production/check-step";
+  // resourceUrlQMS = "http://192.168.68.92/qms/production/check-step";
   // resourceUrlWarehouseNoteApprovalInfo = "http://192.168.68.77:8085/api/warehouse-note-infos-approval";
   selectedAllResult?: boolean;
   selectedAll = 1;
@@ -559,12 +559,16 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
                         dataCheck: {},
                       };
                       //tạo nhập kho
-                      // this.http.post<any>('http://192.168.18.124:8449/store-check/create', requestPayload, {
                       this.http
                         .post<any>(
-                          "http://192.168.68.92/qms/store-check/create",
+                          "http://192.168.18.124:8449/store-check/create",
                           requestPayload,
                           {
+                            // this.http
+                            //   .post<any>(
+                            //     "http://192.168.68.92/qms/store-check/create",
+                            //     requestPayload,
+                            //     {
                             headers: {
                               "Content-Type": "application/json",
                               Accept: "application/json",

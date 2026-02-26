@@ -1,0 +1,14 @@
+{
+  "name": "Rạng Đông - Warehouse",
+  "short_name": "Warehouse",
+  "start_url": "/warehouse-note-infos",
+  "scope": "/",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/content/images/jhipster_family_member_2_head-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

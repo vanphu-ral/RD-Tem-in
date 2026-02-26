@@ -11,4 +11,5 @@ export const environment = {
     adminApiUsers: "/auth/admin/realms/QLSX/users",
   },
   baseInTemApiUrl: "http://192.168.68.77:8085/api",
+  // baseInTemApiUrl: "http://192.168.10.99:9040/api",
 };
