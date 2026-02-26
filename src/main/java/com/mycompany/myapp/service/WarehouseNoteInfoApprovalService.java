@@ -528,4 +528,68 @@ public class WarehouseNoteInfoApprovalService {
         dto.setDestinationWarehouse(entity.getDestinationWarehouse());
         return dto;
     }
+
+    /**
+     * Search for ReelIdInWarehouseNoteInfoApproval by reelId.
+     * First finds the WarehouseNoteInfoDetail by reelId, then uses its id to find
+     * the corresponding ReelIdInWarehouseNoteInfoApproval.
+     *
+     * @param reelId the reelId to search for
+     * @return the Optional containing ReelIdInWarehouseNoteInfoApprovalDTO if found
+     */
+    @Transactional(readOnly = true)
+    public Optional<ReelIdInWarehouseNoteInfoApprovalDTO> searchByReelId(
+        String reelId
+    ) {
+        log.debug(
+            "Request to search ReelIdInWarehouseNoteInfoApproval by reelId: {}",
+            reelId
+        );
+
+        // Step 1: Find WarehouseNoteInfoDetail by reelId
+        Optional<WarehouseNoteInfoDetail> warehouseNoteInfoDetail =
+            warehouseStampInfoDetailRepository.findByReelId(reelId);
+
+        if (warehouseNoteInfoDetail.isEmpty()) {
+            log.debug(
+                "No WarehouseNoteInfoDetail found for reelId: {}",
+                reelId
+            );
+            return Optional.empty();
+        }
+
+        // Step 2: Get the id from WarehouseNoteInfoDetail
+        Long detailId = warehouseNoteInfoDetail.get().getId();
+        log.debug(
+            "Found WarehouseNoteInfoDetail with id: {} for reelId: {}",
+            detailId,
+            reelId
+        );
+
+        // Step 3: Find ReelIdInWarehouseNoteInfoApproval by the detail id
+        Optional<ReelIdInWarehouseNoteInfoApproval> reelIdInApproval =
+            reelIdRepository.findById(detailId);
+
+        if (reelIdInApproval.isEmpty()) {
+            log.debug(
+                "No ReelIdInWarehouseNoteInfoApproval found for id: {}",
+                detailId
+            );
+            return Optional.empty();
+        }
+
+        // Step 4: Convert to DTO
+        ReelIdInWarehouseNoteInfoApproval entity = reelIdInApproval.get();
+        ReelIdInWarehouseNoteInfoApprovalDTO dto =
+            new ReelIdInWarehouseNoteInfoApprovalDTO();
+        dto.setId(entity.getId());
+        dto.setWarehouseNoteInfoApprovalId(
+            entity.getWarehouseNoteInfoApprovalId()
+        );
+        dto.setCreateAt(entity.getCreateAt());
+        dto.setCreateBy(entity.getCreateBy());
+        dto.setStatus(entity.getStatus());
+
+        return Optional.of(dto);
+    }
 }

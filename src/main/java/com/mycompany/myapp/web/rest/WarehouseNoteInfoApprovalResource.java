@@ -1,6 +1,7 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.service.WarehouseNoteInfoApprovalService;
+import com.mycompany.myapp.service.dto.ReelIdInWarehouseNoteInfoApprovalDTO;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalDTO;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalRequestDTO;
 import com.mycompany.myapp.service.dto.WarehouseNoteInfoApprovalWithChildrenDTO;
@@ -292,5 +293,30 @@ public class WarehouseNoteInfoApprovalResource {
                 )
             )
             .body(result);
+    }
+
+    /**
+     * {@code GET  /warehouse-inbound-approvals/search-box/:reelId} : Search for
+     * ReelIdInWarehouseNoteInfoApproval by reelId.
+     *
+     * Uses the reelId to find in warehouse_note_info_detail table,
+     * then uses the id to find in reelid_in_warehouse_note_info_approval table.
+     *
+     * @param reelId the reelId to search for.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the ReelIdInWarehouseNoteInfoApprovalDTO, or with status
+     *         {@code 404 (Not Found)}.
+     */
+    @GetMapping("/warehouse-inbound-approvals/search-box/{reelId}")
+    public ResponseEntity<ReelIdInWarehouseNoteInfoApprovalDTO> searchByReelId(
+        @PathVariable("reelId") String reelId
+    ) {
+        log.debug(
+            "REST request to search ReelIdInWarehouseNoteInfoApproval by reelId: {}",
+            reelId
+        );
+        Optional<ReelIdInWarehouseNoteInfoApprovalDTO> result =
+            warehouseNoteInfoApprovalService.searchByReelId(reelId);
+        return ResponseUtil.wrapOrNotFound(result);
     }
 }

@@ -1,68 +1,18 @@
-<div class="home-container">
-  <!-- BEFORE LOGIN -->
-  <div class="login-section" *ngIf="account === null">
-    <div class="login-content">
-      <img
-        src="../../content/images/logo-icon.png"
-        alt="logo-RangDong"
-        class="logo"
-      />
-      <h2 class="company-name">
-        Công ty cổ phần bóng đèn và phích nước rạng đông
-      </h2>
-      <p class="login-message">Vui lòng thực hiện đăng nhập!</p>
-      <button
-        (click)="login()"
-        data-cy="login"
-        id="loginButton"
-        class="login-btn"
-      >
-        Đăng nhập
-      </button>
-    </div>
+<div class="row" *ngIf="account === null">
+  <div>
+    <img src="../../content/images/logo-icon.png" alt="logo-RangDong" />
+    <h2>Công ty cổ phần bóng đèn và phích nước rạng đông</h2>
+    <p>Vui lòng thực hiện đăng nhập!</p>
+    <button (click)="login()" data-cy="login" id="loginButton">
+      Đăng nhập
+    </button>
   </div>
+</div>
 
-  <!-- AFTER LOGIN -->
-  <div class="dashboard-section" *ngIf="account">
-    <div class="dashboard-header">
-      <img
-        src="../../content/images/logo-icon.png"
-        alt="logo-RangDong"
-        class="logo-small"
-      />
-      <div class="header-content">
-        <h2 class="welcome-title">Chào mừng đến với hệ thống tem in</h2>
-        <p class="user-info">
-          Xin chào, <strong>{{ account.login }}</strong>
-        </p>
-      </div>
-    </div>
-
-    <!-- FEATURE GRID -->
-    <div class="features-container">
-      <h3 class="section-title">Danh sách chức năng</h3>
-
-      <div class="features-grid">
-        <!-- Profile Info -->
-        <div class="feature-card" *ngFor="let menu of menuList">
-          <div class="card-header">
-            <fa-icon [icon]="menu.icon" class="card-icon"></fa-icon>
-            <h4 class="card-title">{{ menu.title }}</h4>
-          </div>
-
-          <div class="card-body">
-            <a
-              *ngFor="let submenu of menu.submenus"
-              [routerLink]="submenu.link"
-              class="submenu-link"
-            >
-              <span class="bullet">•</span>
-              <span class="submenu-text">{{ submenu.title }}</span>
-              <fa-icon [icon]="faChevronRight" class="arrow-icon"></fa-icon>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="row" *ngIf="account">
+  <div>
+    <img src="../../content/images/logo-icon.png" alt="logo-RangDong" />
+    <h2>Công ty cổ phần bóng đèn và phích nước rạng đông</h2>
+    <p>Chào mừng đến với quản lí Tem In!</p>
   </div>
 </div>
