@@ -7,6 +7,97 @@
       >
         Duyệt yêu cầu
       </h2>
+      <div class="mobile-info-card">
+        <div class="mobile-info-card__header">Thông tin lệnh sản xuất</div>
+        <div class="mobile-info-card__body">
+          <div class="mobile-info-card__field">
+            <span class="mobile-info-card__label">Mã lệnh SX</span>
+            <span class="mobile-info-card__value">{{
+              editForm.get("maLenhSanXuat")?.value
+            }}</span>
+          </div>
+          <div class="mobile-info-card__field">
+            <span class="mobile-info-card__label">Mã SAP</span>
+            <span class="mobile-info-card__value">{{
+              editForm.get("sapCode")?.value
+            }}</span>
+          </div>
+          <div class="mobile-info-card__field">
+            <span class="mobile-info-card__label">Mã WO</span>
+            <span class="mobile-info-card__value">{{
+              editForm.get("workOrderCode")?.value
+            }}</span>
+          </div>
+          <div class="mobile-info-card__field">
+            <span class="mobile-info-card__label">Version</span>
+            <span class="mobile-info-card__value">{{
+              editForm.get("version")?.value
+            }}</span>
+          </div>
+          <div class="mobile-info-card__field full">
+            <span class="mobile-info-card__label">Tên hàng hoá</span>
+            <span class="mobile-info-card__value">{{
+              editForm.get("sapName")?.value
+            }}</span>
+          </div>
+          <div class="mobile-info-card__field">
+            <span class="mobile-info-card__label">Cập nhật bởi</span>
+            <span class="mobile-info-card__value">{{
+              editForm.get("createBy")?.value
+            }}</span>
+          </div>
+          <div class="mobile-info-card__field">
+            <span class="mobile-info-card__label">Trạng thái</span>
+            <span class="mobile-info-card__value">{{
+              editForm.get("trangThai")?.value
+            }}</span>
+          </div>
+          <div class="mobile-info-card__field full">
+            <span class="mobile-info-card__label">Mã kho nhập</span>
+            <div class="mobile-info-card__value">
+              <select
+                class="form-control form-select"
+                formControlName="storageCode"
+              >
+                <option value="RD-LED-01">01 - Kho linh kiện điện tử</option>
+                <option value="RD-LED-02">02 - Kho vật tư LED</option>
+                <option value="RD-LED-03">03 - Kho vật tư TBCS</option>
+                <option value="RD-LED-04">04 - Kho vật tư CLC</option>
+                <option value="05-A01-01">05 - Kho ngành ĐTTĐ</option>
+                <option value="RD-LED-06">06 - Kho ngành LRSP LED 1</option>
+                <option value="RD-LED-07">07 - Kho ngành SMART</option>
+                <option value="RD-LED-08">08 - Kho ngành LED2</option>
+                <option value="RD-LED-10">10 - Kho cơ khí xưởng</option>
+                <option value="RD-LED-11">11 - Kho ngành CNPT</option>
+                <option value="RD-LED-12">12 - Kho vật tư Smart</option>
+                <option value="RD-LED-13">13 - Kho ngành CNPT 2</option>
+                <option value="RD-LED-14">14 - Kho chị Hòa 2</option>
+                <option value="RD-LED-15">15 - Kho Pilot TTRD</option>
+                <option value="RD-LED-17">17 - Kho vật tư SKD</option>
+                <option value="RD-LED-18">18 - Kho trung tâm RD</option>
+                <option value="RD-LED-19">19 - Kho LKDT thủ công</option>
+                <option value="RD-LED-20">20 - Kho xuất khẩu</option>
+              </select>
+            </div>
+          </div>
+          <div class="mobile-info-card__field">
+            <span class="mobile-info-card__label">Tổng SL nhập</span>
+            <div class="mobile-info-card__value">
+              <input type="text" formControlName="totalQuantity" />
+            </div>
+          </div>
+          <div class="mobile-info-card__field">
+            <span class="mobile-info-card__label">Lưu ý</span>
+            <div class="mobile-info-card__value">
+              <input
+                type="text"
+                formControlName="comment"
+                placeholder="Ghi chú..."
+              />
+            </div>
+          </div>
+        </div>
+      </div>
       <div>
         <div class="table-scroll" style="overflow-x: auto; width: 100%">
           <table class="table table-striped" aria-describedby="page-heading">
@@ -180,7 +271,182 @@
             style="width: 15rem"
           />
         </div>
+        <!-- <div class="mobile-tab-switch">
+          <button class="active" (click)="switchMobileTab('active', $event)">Trong lệnh ({{ chiTietLenhSanXuatActive.length }})</button>
+          <button (click)="switchMobileTab('notlist', $event)">Ngoài lệnh ({{ chiTietLenhSanXuatNotList.length }})</button>
+        </div> -->
 
+        <!-- <div class="mobile-card-list" id="mobile-tab-active">
+          <div class="m-bulk-row">
+            <button class="m-check-all" (click)="onCheckAll()">Chọn tất cả</button>
+            <button class="m-uncheck-all" (click)="onUnCheckAll()">Bỏ chọn</button>
+          </div>
+
+          <div
+            *ngFor="let data of chiTietLenhSanXuatActive | filter: reelID; let i = index"
+            class="m-card"
+          >
+            <div class="m-card__head">
+              <span class="m-card__num">#{{ i + 1 }}</span>
+              <span class="m-card__reel">{{ $any(data).reel_id }}</span>
+              <span class="m-card__badge"
+                [ngClass]="{
+                  'm-card__badge--active':   $any(data).trang_thai === 'ACTIVE',
+                  'm-card__badge--inactive': $any(data).trang_thai === 'INACTIVE',
+                  'm-card__badge--notlist':  $any(data).trang_thai === 'not list'
+                }">
+                {{ $any(data).trang_thai }}
+              </span>
+              <input
+                class="m-card__check"
+                type="checkbox"
+                [(ngModel)]="$any(data).checked"
+                [ngModelOptions]="{ standalone: true }"
+                (change)="onSelected(i, !!$any(data).checked)"
+              />
+            </div>
+
+            <div class="m-card__body" [id]="'mcb-' + i">
+              <div class="m-card__row">
+                <span class="m-card__lbl">Part Number</span>
+                <span class="m-card__val">{{ $any(data).part_number }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Vendor</span>
+                <span class="m-card__val">{{ $any(data).vendor }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">LOT</span>
+                <span class="m-card__val">{{ $any(data).lot }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Trạng thái</span>
+                <div class="m-card__val">
+                  <select
+                    [(ngModel)]="$any(data).trang_thai"
+                    [ngModelOptions]="{ standalone: true }"
+                    (change)="changeQuantity()"
+                  >
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                    <option value="not list">NOT LIST</option>
+                  </select>
+                </div>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Initial Qty</span>
+                <div class="m-card__val">
+                  <input
+                    type="text"
+                    [(ngModel)]="$any(data).initial_quantity"
+                    [ngModelOptions]="{ standalone: true }"
+                    (change)="changeQuantity()"
+                  />
+                </div>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Storage Unit</span>
+                <span class="m-card__val">{{ $any(data).storage_unit }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">SAP Code</span>
+                <span class="m-card__val">{{ $any(data).sap_code }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Hết hạn</span>
+                <span class="m-card__val">{{ $any(data).expiration_date }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">MSD Level</span>
+                <span class="m-card__val">{{ $any(data).msd_level }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Part Class</span>
+                <span class="m-card__val">{{ $any(data).part_class }}</span>
+              </div>
+            </div>
+
+            <button class="m-card__toggle" (click)="toggleMobileCard('mcb-' + i, $event)">
+              ▼ Xem chi tiết
+            </button>
+          </div>
+        </div> -->
+
+        <!-- MOBILE ONLY: Card list "Ngoài lệnh" -->
+        <!-- <div class="mobile-card-list" id="mobile-tab-notlist" style="display:none">
+          <div
+            *ngFor="let data of chiTietLenhSanXuatNotList; let i = index"
+            class="m-card m-card--notlist"
+          >
+            <div class="m-card__head">
+              <span class="m-card__num">#{{ i + 1 }}</span>
+              <span class="m-card__reel">{{ $any(data).reel_id }}</span>
+              <span class="m-card__badge m-card__badge--notlist">NOT LIST</span>
+              <input
+                class="m-card__check"
+                type="checkbox"
+                [(ngModel)]="$any(data).checked"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </div>
+
+            <div class="m-card__body" [id]="'mcbnl-' + i">
+              <div class="m-card__row">
+                <span class="m-card__lbl">Part Number</span>
+                <span class="m-card__val">{{ $any(data).part_number }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Vendor</span>
+                <span class="m-card__val">{{ $any(data).vendor }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">LOT</span>
+                <span class="m-card__val">{{ $any(data).lot }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Initial Qty</span>
+                <div class="m-card__val">
+                  <input
+                    type="text"
+                    [(ngModel)]="$any(data).initial_quantity"
+                    [ngModelOptions]="{ standalone: true }"
+                    (change)="changeQuantity()"
+                  />
+                </div>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Storage Unit</span>
+                <div class="m-card__val">
+                  <input
+                    type="text"
+                    [(ngModel)]="$any(data).storage_unit"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                </div>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">SAP Code</span>
+                <span class="m-card__val">{{ $any(data).sap_code }}</span>
+              </div>
+              <div class="m-card__row">
+                <span class="m-card__lbl">Hết hạn</span>
+                <span class="m-card__val">{{ $any(data).expiration_date }}</span>
+              </div>
+            </div>
+
+            <button class="m-card__toggle" (click)="toggleMobileCard('mcbnl-' + i, $event)">
+              ▼ Xem chi tiết
+            </button>
+          </div>
+        </div> -->
+        <div class="mobile-bulk-btn-row m-bulk-row" style="display: none">
+          <button class="m-check-all" (click)="onCheckAll()">
+            Chọn tất cả
+          </button>
+          <button class="m-uncheck-all" (click)="onUnCheckAll()">
+            Bỏ chọn
+          </button>
+        </div>
         <div class="table-scroll height-table">
           <table class="table table-striped" aria-describedby="page-heading">
             <thead>
@@ -828,7 +1094,30 @@
     </button>
   </div>
 </ng-template>
-
+<div class="sticky-action-bar-mobile">
+  <button class="sab-approve" (click)="pheDuyetTem(confirmModal)">
+    <span class="sab-icon"><fa-icon icon="check"></fa-icon></span>Duyệt
+  </button>
+  <button
+    class="sab-save"
+    [disabled]="editForm.invalid || isSaving"
+    (click)="save()"
+  >
+    <span class="sab-icon"><fa-icon icon="save"></fa-icon></span>Lưu
+  </button>
+  <button class="sab-qms" (click)="createQMS(confirmModal)">
+    <span class="sab-icon"><fa-icon icon="check"></fa-icon></span>Gửi QMS
+  </button>
+  <button class="sab-reject" (click)="khoTuChoiStatus()">
+    <span class="sab-icon"><fa-icon icon="cancel"></fa-icon></span>Từ chối
+  </button>
+  <button class="sab-cancel" (click)="khoHuyStatus()">
+    <span class="sab-icon"><fa-icon icon="times"></fa-icon></span>Huỷ
+  </button>
+  <button class="sab-back" (click)="previousState()">
+    <span class="sab-icon"><fa-icon icon="arrow-left"></fa-icon></span>Trở lại
+  </button>
+</div>
 <div *ngIf="loading" class="loader-overlay">
   <div class="loader-box">
     <div class="spinner-border text-primary" role="status">

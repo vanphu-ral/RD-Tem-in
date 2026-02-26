@@ -2494,6 +2494,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
                 const body = (resp && (resp.body ?? resp)) as any;
                 this.details = body?.warehouse_note_info_details ?? [];
                 this.reelGroups = this.mapDetailsToReelData(this.details || []);
+                this.initCheckboxSelection();
                 this.reelDataList = this.buildReelDataListFromDetails(
                   this.details || [],
                 );
@@ -2511,6 +2512,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
                   this.reelGroups = this.mapDetailsToReelData(
                     this.details || [],
                   );
+                  this.initCheckboxSelection();
                   this.reelDataList = (this.reelDataList || []).filter(
                     (r: any) => r.reelID !== firstReelId,
                   );
@@ -3232,6 +3234,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           this.details =
             body?.warehouse_note_info_details ?? this.details ?? [];
           this.reelGroups = this.mapDetailsToReelData(this.details || []);
+          this.initCheckboxSelection();
           this.reelDataList = this.buildReelDataListFromDetails(
             this.details || [],
           );
@@ -3668,6 +3671,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         // Trigger change detection để UI cập nhật
         this.reelGroups = [...this.reelGroups];
         this.reelDataList = [...this.reelDataList];
+        this.initCheckboxSelection();
 
         console.log("✓ Đã map ID từ response vào UI state");
       }
@@ -4521,7 +4525,6 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         createdAt: createdAtForBatch,
         printStatus: false,
       };
-
       newReels.push(reelData);
       existingReelIDs.add(reelID);
       console.log("Thêm mới reelData (tạm):", reelData);
@@ -4939,7 +4942,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
   //  THÊM HÀM MAP CHO REEL DATA (Tem BTP)
   private mapDetailsToReelData(details: unknown[]): ReelGroup[] {
-    this.initCheckboxSelection();
+    // this.initCheckboxSelection();
     console.log("mapDetailsToReelData - Input:", details);
 
     const grouped: Record<string, ReelGroup & { id?: number }> = {};
@@ -5394,6 +5397,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         // Bán thành phẩm: map về nhóm (ReelGroup[]) rồi flatten về ReelData[] để dùng tiếp
         const groups = this.mapDetailsToReelData(this.details as unknown[]); // trả về ReelGroup[]
         this.reelGroups = groups;
+        this.initCheckboxSelection();
 
         // Flatten subItems thành danh sách ReelData (hoặc tương đương ReelData)
         // Flatten subItems thành danh sách ReelData (không dùng flatMap để tương thích TS target cũ)
@@ -5613,6 +5617,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             // Bán thành phẩm: map về nhóm (ReelGroup[]) rồi flatten về ReelData[] để dùng tiếp
             const groups = this.mapDetailsToReelData(this.details as unknown[]); // trả về ReelGroup[]
             this.reelGroups = groups;
+            this.initCheckboxSelection();
 
             // Flatten subItems thành danh sách ReelData (hoặc tương đương ReelData)
             const flatReels: ReelData[] = groups.reduce(
@@ -5734,7 +5739,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     // Map lại details thành ReelGroup
     this.reelGroups = this.mapDetailsToReelData(this.details as unknown[]);
-
+    this.initCheckboxSelection();
     console.log("ReelGroups after refresh:", this.reelGroups.length);
 
     // Flatten lại reelDataList từ reelGroups

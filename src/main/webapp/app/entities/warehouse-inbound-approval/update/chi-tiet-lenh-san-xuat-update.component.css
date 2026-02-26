@@ -7,7 +7,6 @@ table {
   border-radius: 8px;
   overflow: hidden;
 }
-
 .table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -539,4 +538,431 @@ input[type="checkbox"] {
 }
 
 .input-text {
+}
+@media (max-width: 767px) {
+  /* === Ẩn bảng thông tin lệnh SX trên mobile === */
+  .table-scroll:first-of-type {
+    display: none;
+  }
+
+  /* === Ẩn bảng danh sách tem - thay bằng card === */
+  /* .height-table {
+    display: none;
+  } */
+
+  /* === Ẩn bảng "không có trong lệnh" - thay bằng card === */
+  /* div[style*="overflow-x: auto"] > table {
+    display: none;
+  } */
+
+  /* === Scan bar wrap trên mobile === */
+  form .d-flex,
+  form > div[style*="display: flex"] {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  form > div[style*="display: flex"] input {
+    width: 100% !important;
+    border: 1.5px solid #ced4da !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+  }
+
+  /* === search-all stack dọc === */
+  .search-all {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .search-all input[type="text"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .search-all > div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* === MOVE button nhỏ lại === */
+  .move {
+    width: auto;
+    padding: 8px 14px;
+    height: auto;
+  }
+
+  /* === Popup Move: full screen === */
+  .popupMove {
+    left: 0 !important;
+    padding: 12px !important;
+    overflow-y: auto;
+  }
+
+  .move-title {
+    margin-top: 40px;
+    margin-left: 0;
+    max-width: 100%;
+    font-size: 16px;
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+
+  /* === Action buttons stack dọc === */
+  form > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* padding-bottom: 80px; */
+  }
+
+  form > div:last-child .btn {
+    float: none;
+    width: 100%;
+    margin: 0;
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  /* === STICKY ACTION BAR === */
+  .sticky-action-bar-mobile {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 2px solid #e8edf3;
+    padding: 8px 10px;
+    gap: 5px;
+    z-index: 500;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sticky-action-bar-mobile button {
+    flex: 0 0 auto;
+    min-width: 60px;
+    padding: 8px 5px;
+    font-size: 11px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: #fff;
+  }
+
+  .sticky-action-bar-mobile .sab-icon {
+    font-size: 15px;
+  }
+  .sab-approve {
+    background: #22c55e;
+  }
+  .sab-save {
+    background: #3d7bb9;
+  }
+  .sab-qms {
+    background: #f59e0b;
+  }
+  .sab-reject {
+    background: #ef4444;
+  }
+  .sab-cancel {
+    background: #6b7a8d;
+  }
+  .sab-back {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+    border: 1.5px solid #d1d9e0 !important;
+  }
+
+  /* === CARD styles === */
+  .mobile-card-list {
+    display: block !important;
+  }
+  .mobile-info-card {
+    display: block !important;
+  }
+
+  /* === Ẩn action buttons gốc vì đã có sticky bar === */
+  form > div:last-of-type {
+    display: none;
+  }
+  .height-table {
+    max-height: 50vh;
+  }
+  .btn-flex {
+    display: none;
+  }
+
+  .mobile-bulk-btn-row {
+    display: flex !important;
+  }
+  /* Padding bottom để content không bị che bởi sticky bar */
+  #entities {
+    padding-bottom: 80px;
+  }
+}
+
+/* Desktop: ẩn các element chỉ dành cho mobile */
+@media (min-width: 768px) {
+  .mobile-card-list {
+    display: none !important;
+  }
+  .mobile-info-card {
+    display: none !important;
+  }
+  .sticky-action-bar-mobile {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   CARD STYLES (dùng chung, chỉ hiện trên mobile)
+   ============================================================ */
+.mobile-info-card {
+  display: none;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8edf3;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.mobile-info-card__header {
+  background: linear-gradient(135deg, #3d7bb9, #2c5f8e);
+  padding: 11px 15px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mobile-info-card__body {
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mobile-info-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mobile-info-card__field.full {
+  grid-column: 1 / -1;
+}
+.mobile-info-card__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7a8d;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.mobile-info-card__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.mobile-info-card__value select,
+.mobile-info-card__value input[type="text"] {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1.5px solid #d1d9e0;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #f8fafc;
+}
+
+/* Card item (mỗi dòng tem) */
+.mobile-card-list {
+  display: none;
+}
+
+.m-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  margin-bottom: 10px;
+  border: 1px solid #e8edf3;
+  overflow: hidden;
+}
+
+.m-card--notlist .m-card__head {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
+}
+
+.m-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #3d7bb9, #2c5f8e);
+  padding: 9px 13px;
+  gap: 8px;
+}
+
+.m-card__num {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 22px;
+}
+.m-card__reel {
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  flex: 1;
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-card__badge {
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.m-card__badge--active {
+  background: #22c55e;
+  color: #fff;
+}
+.m-card__badge--inactive {
+  background: #ef4444;
+  color: #fff;
+}
+.m-card__badge--notlist {
+  background: #f59e0b;
+  color: #fff;
+}
+.m-card__check {
+  width: 18px;
+  height: 18px;
+  accent-color: #fff;
+  cursor: pointer;
+}
+
+.m-card__body {
+  padding: 10px 13px;
+}
+.m-card__body.collapsed {
+  display: none;
+}
+
+.m-card__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f4f8;
+  min-height: 28px;
+}
+.m-card__row:last-child {
+  border-bottom: none;
+}
+
+.m-card__lbl {
+  color: #6b7a8d;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  min-width: 100px;
+  max-width: 100px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+.m-card__val {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+}
+.m-card__val input,
+.m-card__val select {
+  width: 100%;
+  padding: 5px 9px;
+  border: 1.5px solid #d1d9e0;
+  border-radius: 7px;
+  font-size: 13px;
+  background: #f8fafc;
+}
+
+.m-card__toggle {
+  width: 100%;
+  background: #f8fafc;
+  border: none;
+  border-top: 1px solid #e8edf3;
+  padding: 7px;
+  font-size: 12px;
+  color: #3d7bb9;
+  cursor: pointer;
+  font-weight: 700;
+  text-align: center;
+}
+.m-card__toggle:hover {
+  background: #eef2f7;
+}
+
+/* Bulk select row */
+.m-bulk-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.m-bulk-row button {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  color: #fff;
+}
+.m-bulk-row .m-check-all {
+  background: #22c55e;
+}
+.m-bulk-row .m-uncheck-all {
+  background: #ef4444;
+}
+
+/* Tab switcher (mobile only - trong/ngoài lệnh) */
+.mobile-tab-switch {
+  display: none;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.mobile-tab-switch button {
+  flex: 1;
+  padding: 9px;
+  border: 1.5px solid #d1d9e0;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #6b7a8d;
+}
+.mobile-tab-switch button.active {
+  background: #3d7bb9;
+  color: #fff;
+  border-color: #3d7bb9;
+}
+
+@media (max-width: 767px) {
+  .mobile-tab-switch {
+    display: flex !important;
+  }
 }

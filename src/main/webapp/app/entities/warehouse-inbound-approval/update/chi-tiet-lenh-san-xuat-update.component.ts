@@ -314,6 +314,33 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
     test = "";
     // console.log('test:', test);
   }
+  toggleMobileCard(id: string, event: Event): void {
+    const btn = event.target as HTMLElement;
+    const body = document.getElementById(id);
+    if (!body) {
+      return;
+    }
+    const isCollapsed = body.classList.toggle("collapsed");
+    btn.textContent = isCollapsed ? "▼ Xem chi tiết" : "▲ Thu gọn";
+  }
+
+  /** Chuyển tab mobile: 'active' | 'notlist' */
+  switchMobileTab(tab: "active" | "notlist", event: Event): void {
+    // cập nhật active class cho buttons
+    const buttons = document.querySelectorAll(".mobile-tab-switch button");
+    buttons.forEach((b) => b.classList.remove("active"));
+    (event.target as HTMLElement).classList.add("active");
+
+    // show/hide tab content
+    const tabActive = document.getElementById("mobile-tab-active");
+    const tabNotlist = document.getElementById("mobile-tab-notlist");
+    if (tabActive) {
+      tabActive.style.display = tab === "active" ? "block" : "none";
+    }
+    if (tabNotlist) {
+      tabNotlist.style.display = tab === "notlist" ? "block" : "none";
+    }
+  }
   onPageChange(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
