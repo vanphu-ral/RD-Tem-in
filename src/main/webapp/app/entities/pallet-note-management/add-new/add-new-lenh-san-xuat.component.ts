@@ -4435,10 +4435,31 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     const newReels: ReelData[] = [];
 
+    const reelBaseDate: Date = (() => {
+      if (!data.mfg) {
+        return now; // fallback
+      }
+
+      const d = data.mfg instanceof Date ? data.mfg : new Date(data.mfg);
+      if (isNaN(d.getTime())) {
+        return now;
+      }
+
+      // Giữ ngày theo manufacturingDate, giờ theo hiện tại
+      d.setHours(
+        now.getHours(),
+        now.getMinutes(),
+        now.getSeconds(),
+        now.getMilliseconds(),
+      );
+
+      return d;
+    })();
+
     for (let i = 0; i < Number(data.soLuongThung || 0); i++) {
       // Sinh reelID và đảm bảo không trùng (so với existing + newReels)
       let reelID = this.generateReelID(
-        now,
+        reelBaseDate,
         productionOrder.maSAP ?? "",
         counter,
       );
@@ -4447,7 +4468,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         newReels.some((nr) => nr.reelID === reelID)
       ) {
         counter++;
-        reelID = this.generateReelID(now, productionOrder.maSAP ?? "", counter);
+        reelID = this.generateReelID(
+          reelBaseDate,
+          productionOrder.maSAP ?? "",
+          counter,
+        );
       }
       counter++;
 
