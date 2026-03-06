@@ -53,6 +53,7 @@ import { APOLLO_OPTIONS } from "apollo-angular";
 import { HttpLink } from "apollo-angular/http";
 import { InMemoryCache } from "@apollo/client/cache";
 import { environment } from "./environments/environment";
+import { TabBarComponent } from "./layouts/tab-bar/tab-bar.component";
 
 export const MY_DATE_FORMATS = {
   parse: { dateInput: "DD/MM/YYYY" },
@@ -71,6 +72,7 @@ export const MY_DATE_FORMATS = {
     ErrorComponent,
     PageRibbonComponent,
     FooterComponent,
+    TabBarComponent,
   ],
   bootstrap: [MainComponent],
   imports: [

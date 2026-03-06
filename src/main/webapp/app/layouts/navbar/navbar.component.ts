@@ -27,6 +27,7 @@ import {
 import { Observable, of } from "rxjs";
 import { ResponsiveService } from "app/shared/responsive/responsive.service";
 import { AuthEventService } from "app/core/auth/auth_event.service";
+import { TabService } from "../tab-bar/tab.service";
 
 @Component({
   selector: "jhi-navbar",
@@ -78,6 +79,7 @@ export class NavbarComponent implements OnInit {
     public navbarservice: NavbarService,
     public responsive: ResponsiveService,
     private authEvents: AuthEventService,
+    private tabService: TabService,
   ) {
     if (VERSION) {
       this.version = VERSION.toLowerCase().startsWith("v")
@@ -104,6 +106,13 @@ export class NavbarComponent implements OnInit {
     this.accountService.getAuthenticationState().subscribe((account) => {
       this.account = account;
     });
+  }
+
+  // navbar.component.ts
+  navigateWithTab(title: string, route: string): void {
+    // Chuẩn hóa route home
+    const normalizedRoute = route === "/home" || route === "home" ? "/" : route;
+    this.tabService.openTab(title, normalizedRoute);
   }
   getSideBarState(): Observable<boolean> {
     return of(this.navbarservice.getSidebarState());

@@ -1,0 +1,21 @@
+<div class="tab-bar" *ngIf="(tabs$ | async)?.length">
+  <div class="tab-bar__inner">
+    <div
+      *ngFor="let tab of tabs$ | async"
+      class="tab-item"
+      [class.tab-item--active]="tab.isActive"
+      [class.tab-item--new]="tab.isNew"
+      (click)="activateTab(tab)"
+    >
+      <span class="tab-item__title">{{ tab.title }}</span>
+      <button
+        *ngIf="tab.id !== 'home'"
+        class="tab-item__close"
+        (click)="closeTab(tab.id, $event)"
+        title="Đóng tab"
+      >
+        &#x2715;
+      </button>
+    </div>
+  </div>
+</div>

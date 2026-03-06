@@ -102,10 +102,15 @@
                   style="height: 50px"
                 >
                   <div
+                    style="display: flex; align-items: center"
+                    *ngIf="menu.type === 'home'"
+                    (click)="navigateWithTab(menu.title, '/home')"
+                  >
+                    <!-- <div
                     routerLink="/"
                     style="display: flex; align-items: center"
                     *ngIf="menu.type === 'home'"
-                  >
+                  > -->
                     <fa-icon
                       [icon]="faHome"
                       class="sidebar-menu-icon"
@@ -138,10 +143,22 @@
                       *ngFor="let submenu of menu.submenus"
                     >
                       <div class="sidebar-submenu-link">
-                        <a
+                        <!-- <a
                           class="sidebar-submenu-title"
                           [routerLink]="submenu.link"
                           (click)="toggleSidebar()"
+                          style="
+                            display: flex;
+                            align-items: center;
+                            height: 100%;
+                          "
+                        > -->
+                        <a
+                          class="sidebar-submenu-title"
+                          (click)="
+                            navigateWithTab(submenu.title, submenu.link);
+                            toggleSidebar()
+                          "
                           style="
                             display: flex;
                             align-items: center;

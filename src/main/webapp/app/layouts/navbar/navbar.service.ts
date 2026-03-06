@@ -18,7 +18,7 @@ export class NavbarService {
     {
       title: "Trang chủ",
       type: "home",
-      link: "/home",
+      link: "/",
     },
     {
       title: "Profile Info",
@@ -51,6 +51,7 @@ export class NavbarService {
         { title: "Thông tin tem sản xuất", link: "/lenh-san-xuat" },
         { title: "Quản lý phê duyệt", link: "/chi-tiet-lenh-san-xuat" },
         { title: "Quản lý TEM vật tư", link: "/generate-tem-in" },
+        { title: "Nhập thông tin TEM NCC", link: "/info-tem-ncc" },
       ],
     },
     {
