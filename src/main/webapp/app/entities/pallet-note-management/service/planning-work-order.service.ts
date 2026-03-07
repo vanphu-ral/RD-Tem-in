@@ -149,7 +149,7 @@ export class PlanningWorkOrderService {
 
   updateWarehouseNote(
     id: number,
-    payload: WarehouseNotePayload,
+    payload: Partial<WarehouseNotePayload>,
   ): Observable<any> {
     return this.http.patch(
       `${this.baseUrl}/warehouse-note-infos/${id}`,

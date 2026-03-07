@@ -2627,68 +2627,69 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     const currentUser = this.accountService.isAuthenticated()
       ? this.accountService["userIdentity"]?.login
       : "unknown";
-    let comment2 = "";
+
     this.productionOrders.forEach((order) => {
       if (!order.maKhoNhap || order.maKhoNhap.trim() === "") {
         this.snackBar.open("Vui lòng chọn mã kho nhập trước khi lưu!", "Đóng", {
           duration: 4000,
           panelClass: ["snackbar-error"],
         });
-        return; // dừng luôn, không gọi API cho order này
+        return;
       }
-      if (
-        order.loaiSanPham === "Bán thành phẩm" &&
-        this.reelDataList.length > 0
-      ) {
-        // Lấy comments từ reel đầu tiên (hoặc merge tất cả nếu cần)
-        const allComments = this.reelDataList
-          .map((r) => r.comments)
-          .filter((c) => c && c.trim() !== "")
-          .join("; ");
-        comment2 = allComments || "";
-      }
-      const payload: WarehouseNotePayload = {
-        id: order.id,
-        ma_lenh_san_xuat: order.maLenhSanXuat,
-        sap_code: order.maSAP,
-        sap_name: order.tenHangHoa,
-        work_order_code: order.maWO,
-        version: order.version,
-        storage_code: order.maKhoNhap,
-        total_quantity: order.tongSoLuong,
-        create_by: currentUser ?? "",
-        trang_thai: order.trangThai,
-        group_name: order.to,
-        lot_number: order.lotNumber,
-        comment_2: comment2,
-        approver_by: currentUser ?? "",
-        branch: order.nganh,
-        product_type: order.loaiSanPham,
-        destination_warehouse: 1,
-      };
 
-      // Nếu có id thì gọi update, nếu chưa có thì gọi create
-      const request$ = order.id
-        ? this.planningService.updateWarehouseNote(order.id, payload)
-        : this.planningService.createWarehouseNote(payload);
+      let request$;
+
+      if (order.id) {
+        // payload cho update chỉ gửi các field cần thay đổi
+        const updatePayload = {
+          storage_code: order.maKhoNhap,
+        };
+
+        request$ = this.planningService.updateWarehouseNote(
+          order.id,
+          updatePayload,
+        );
+      } else {
+        // payload cho create gửi đầy đủ
+        const createPayload: WarehouseNotePayload = {
+          ma_lenh_san_xuat: order.maLenhSanXuat,
+          sap_code: order.maSAP,
+          sap_name: order.tenHangHoa,
+          work_order_code: order.maWO,
+          version: order.version,
+          storage_code: order.maKhoNhap,
+          total_quantity: order.tongSoLuong,
+          create_by: currentUser ?? "",
+          trang_thai: order.trangThai,
+          group_name: order.to,
+          lot_number: order.lotNumber,
+          comment_2: "",
+          approver_by: currentUser ?? "",
+          branch: order.nganh,
+          product_type: order.loaiSanPham,
+          destination_warehouse: 1,
+        };
+
+        request$ = this.planningService.createWarehouseNote(createPayload);
+      }
 
       request$.subscribe({
         next: (res) => {
-          // ===== FIX: Extract ID from nested warehouse_note_info object =====
           const newId = res.warehouse_note_info?.id ?? res.id ?? order.id;
 
-          console.log(" Full response:", res);
-          console.log(" Extracted ID:", newId);
+          console.log("Full response:", res);
+          console.log("Extracted ID:", newId);
+
           const storageCodeFromRes =
             res.warehouse_note_info?.storage_code ?? res.storage_code ?? null;
+
           if (storageCodeFromRes) {
-            // lưu vào biến component để dùng khi build payload
             this.currentStorageCode = String(storageCodeFromRes);
             console.log("Saved currentStorageCode =", this.currentStorageCode);
-            // cũng cập nhật productionOrders nếu cần
+
             order.maKhoNhap = this.currentStorageCode;
           }
-          // Update maLenhSanXuatId and order.id
+
           this.maLenhSanXuatId = newId;
           order.id = newId;
 
