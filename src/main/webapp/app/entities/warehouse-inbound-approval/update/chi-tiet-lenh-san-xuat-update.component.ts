@@ -459,12 +459,22 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       (result) => {
         if (result === "confirm") {
           const id = this.editForm.get(["id"])!.value;
+
+          // Tính tổng initial_quantity của các bản ghi đã checked
+          const totalCheckedQuantity = this.chiTietLenhSanXuatActive
+            .filter((item: any) => item.checked === 1)
+            .reduce(
+              (sum: number, item: any) =>
+                sum + Number(item.initial_quantity ?? 0),
+              0,
+            );
+
           this.http
             .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
               trang_thai: "Đã phê duyệt",
+              total_quantity: totalCheckedQuantity,
             })
             .subscribe(() => {
-              // alert("Phê duyệt thành công");
               this.openMessageModal("Phê duyệt thành công");
               this.previousState();
             });
