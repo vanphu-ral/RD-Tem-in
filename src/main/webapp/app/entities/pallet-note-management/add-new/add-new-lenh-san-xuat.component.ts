@@ -2643,6 +2643,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         // payload cho update chỉ gửi các field cần thay đổi
         const updatePayload = {
           storage_code: order.maKhoNhap,
+          total_quantity: order.tongSoLuong,
         };
 
         request$ = this.planningService.updateWarehouseNote(
