@@ -1,4 +1,7 @@
 {
+  "annotations": {
+    "changelogDate": "20231017035300"
+  },
   "applications": "*",
   "changelogDate": "20231017035300",
   "dto": "no",
@@ -44,8 +47,10 @@
       "otherEntityName": "sanXuatHangNgay",
       "otherEntityRelationshipName": "chiTietSanXuat",
       "relationshipName": "sanXuatHangNgay",
+      "relationshipSide": "right",
       "relationshipType": "many-to-one"
     }
   ],
+  "searchEngine": "no",
   "service": "no"
 }

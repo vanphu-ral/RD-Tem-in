@@ -2644,6 +2644,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         const updatePayload = {
           storage_code: order.maKhoNhap,
           total_quantity: order.tongSoLuong,
+          time_update: new Date().toISOString(),
         };
 
         request$ = this.planningService.updateWarehouseNote(

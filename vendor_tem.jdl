@@ -1,0 +1,121 @@
+/**
+ * Entity ImportVendorTemTransactions
+ */
+entity ImportVendorTemTransactions {
+    poNumber String maxlength(20),
+    vendorCode String maxlength(20),
+    vendorName String maxlength(255),
+    entryDate LocalDate,
+    storageUnit String maxlength(50),
+    importTemProfile String,
+    status String maxlength(50),
+    createdBy String maxlength(20),
+    createdAt ZonedDateTime,
+    updatedBy String maxlength(20),
+    updatedAt ZonedDateTime,
+    deletedBy String maxlength(20),
+    deletedAt ZonedDateTime
+}
+
+/**
+ * Entity PoDetail
+ */
+entity PoDetail {
+    sapCode String maxlength(20),
+    sapName String maxlength(255),
+    quantityContainer Integer,
+    totalQuantity Integer,
+    partNumber String maxlength(50)
+}
+
+/**
+ * Entity VendorTemDetail
+ */
+entity VendorTemDetail {
+    reelId String maxlength(30),
+    partNumber String maxlength(50),
+    vendor String maxlength(20),
+    lot String maxlength(30),
+    userData1 String maxlength(20),
+    userData2 String maxlength(255),
+    userData3 String maxlength(100),
+    userData4 String maxlength(20),
+    userData5 String maxlength(20),
+    initialQuantity Integer,
+    msdLevel String maxlength(20),
+    msdInitialFloorTime String maxlength(20),
+    msdBagSealDate String maxlength(20),
+    marketUsage String maxlength(20),
+    quantityOverride Integer,
+    shelfTime String maxlength(20),
+    spMaterialName String maxlength(20),
+    warningLimit String maxlength(20),
+    maximumLimit String maxlength(20),
+    comments String maxlength(50),
+    warmupTime String maxlength(20),
+    storageUnit String maxlength(20),
+    subStorageUnit String maxlength(20),
+    locationOverride String maxlength(20),
+    expirationDate String maxlength(20),
+    manufacturingDate String maxlength(20),
+    partClass String maxlength(20),
+    sapCode String maxlength(20),
+    vendorQrCode String,
+    status String maxlength(50),
+    createdBy String maxlength(20),
+    createdAt ZonedDateTime,
+    updatedBy String maxlength(20),
+    updatedAt ZonedDateTime
+}
+
+/**
+ * Entity TemIdentificationScenario
+ */
+entity TemIdentificationScenario {
+    vendorCode String maxlength(50),
+    vendorName String maxlength(255),
+    mappingConfig String,
+    createdBy String maxlength(20),
+    createdAt ZonedDateTime,
+    updatedBy String maxlength(20),
+    updatedAt ZonedDateTime
+}
+
+/**
+ * Entity RdMaterialAttributes
+ */
+entity RdMaterialAttributes {
+    attributes String maxlength(50),
+    description String maxlength(255),
+    attributesTypeId Integer,
+    createdBy String maxlength(20),
+    createdAt ZonedDateTime,
+    updatedBy String maxlength(20),
+    updatedAt ZonedDateTime
+}
+
+/**
+ * Entity AttributesType
+ */
+entity AttributesType {
+    description String
+}
+
+// Định nghĩa quan hệ (Relationships)
+relationship OneToMany {
+    ImportVendorTemTransactions{poDetail} to PoDetail{importVendorTemTransactions},
+    PoDetail{vendorTemDetail} to VendorTemDetail{poDetail},
+    AttributesType{rdMaterialAttribute} to RdMaterialAttributes{attributesType}
+}
+
+
+paginate ImportVendorTemTransactions with pagination
+
+// Áp dụng Service Implementation cho tất cả
+service all with serviceImpl
+
+// Sử dụng DTO Mapstruct cho tất cả
+dto all with mapstruct
+
+// Bật bộ lọc tìm kiếm cho tất cả
+filter *

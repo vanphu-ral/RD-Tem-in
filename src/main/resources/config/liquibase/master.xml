@@ -363,7 +363,16 @@
     <include file="config/liquibase/changelog/20251127043950_updated_schema.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 
+    <include file="config/liquibase/changelog/20260309010237_added_entity_ImportVendorTemTransactions.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260309010238_added_entity_PoDetail.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260309010239_added_entity_VendorTemDetail.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260309010240_added_entity_TemIdentificationScenario.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260309010241_added_entity_RdMaterialAttributes.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260309010242_added_entity_AttributesType.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
+    <include file="config/liquibase/changelog/20260309010238_added_entity_constraints_PoDetail.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260309010239_added_entity_constraints_VendorTemDetail.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260309010241_added_entity_constraints_RdMaterialAttributes.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
 
 </databaseChangeLog>

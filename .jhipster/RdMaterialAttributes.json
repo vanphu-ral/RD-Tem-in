@@ -1,0 +1,59 @@
+{
+  "annotations": {
+    "changelogDate": "20260309010241"
+  },
+  "applications": "*",
+  "documentation": "Entity RdMaterialAttributes",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "attributes",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "50"
+    },
+    {
+      "fieldName": "description",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "255"
+    },
+    {
+      "fieldName": "attributesTypeId",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "createdBy",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "20"
+    },
+    {
+      "fieldName": "createdAt",
+      "fieldType": "ZonedDateTime"
+    },
+    {
+      "fieldName": "updatedBy",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "20"
+    },
+    {
+      "fieldName": "updatedAt",
+      "fieldType": "ZonedDateTime"
+    }
+  ],
+  "jpaMetamodelFiltering": true,
+  "name": "RdMaterialAttributes",
+  "relationships": [
+    {
+      "otherEntityName": "attributesType",
+      "otherEntityRelationshipName": "rdMaterialAttribute",
+      "relationshipName": "attributesType",
+      "relationshipSide": "right",
+      "relationshipType": "many-to-one"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}
