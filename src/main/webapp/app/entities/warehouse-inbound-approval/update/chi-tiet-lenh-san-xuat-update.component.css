@@ -13,6 +13,13 @@ table {
   width: 100%;
   max-width: 100%;
 }
+/* Trong file CSS */
+td.STT,
+th.STT {
+  width: 1%;
+  white-space: nowrap;
+  min-width: none !important;
+}
 
 /* Toast */
 .toast {

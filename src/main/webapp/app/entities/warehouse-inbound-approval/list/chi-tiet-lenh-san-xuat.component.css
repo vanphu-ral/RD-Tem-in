@@ -57,6 +57,52 @@ h2#page-heading {
   gap: 8px;
   align-items: center;
 }
+
+/* Responsive styles for action buttons row */
+@media (max-width: 768px) {
+  .scan-box-container {
+    flex-wrap: nowrap;
+  }
+
+  .scan-box-container .scan-input {
+    width: 100px;
+    min-width: 80px;
+  }
+
+  .scan-box-container .btn {
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .toggle-columns-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .scan-box-container {
+    flex-wrap: nowrap;
+  }
+
+  .scan-box-container .scan-input {
+    width: 80px;
+    min-width: 60px;
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  .scan-box-container .btn {
+    padding: 0 6px;
+    font-size: 11px;
+    height: 34px;
+  }
+
+  .toggle-columns-btn {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+}
 th {
   color: #fff;
   background-color: #3d7bb9;

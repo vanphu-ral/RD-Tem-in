@@ -139,6 +139,24 @@ partner4:
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 
+partner5:
+  enabled: true
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/VENDOR_TEM_DB
+    username: postgres
+    password: admin123
+    hikari:
+      poolName: HikariCP-Partner5
+      auto-commit: false
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+      data-source-properties:
+        reWriteBatchedInserts: true
   #renderqr:
   #  datasource:
   #    type: com.zaxxer.hikari.HikariDataSource

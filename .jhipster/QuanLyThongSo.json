@@ -1,4 +1,7 @@
 {
+  "annotations": {
+    "changelogDate": "20231017035305"
+  },
   "applications": "*",
   "changelogDate": "20231017035305",
   "dto": "no",
@@ -40,5 +43,6 @@
   "pagination": "pagination",
   "readOnly": false,
   "relationships": [],
+  "searchEngine": "no",
   "service": "no"
 }

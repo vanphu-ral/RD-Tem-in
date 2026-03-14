@@ -1,4 +1,7 @@
 {
+  "annotations": {
+    "changelogDate": "20231017035258"
+  },
   "applications": "*",
   "changelogDate": "20231017035258",
   "dto": "no",
@@ -44,8 +47,10 @@
       "otherEntityName": "thietBi",
       "otherEntityRelationshipName": "thongSoMay",
       "relationshipName": "thietBi",
+      "relationshipSide": "right",
       "relationshipType": "many-to-one"
     }
   ],
+  "searchEngine": "no",
   "service": "no"
 }

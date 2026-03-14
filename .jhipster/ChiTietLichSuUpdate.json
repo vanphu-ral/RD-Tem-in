@@ -1,4 +1,7 @@
 {
+  "annotations": {
+    "changelogDate": "20231017035302"
+  },
   "applications": "*",
   "changelogDate": "20231017035302",
   "dto": "no",
@@ -44,8 +47,10 @@
       "otherEntityName": "lichSuUpdate",
       "otherEntityRelationshipName": "chiTietLichSu",
       "relationshipName": "lichSuUpdate",
+      "relationshipSide": "right",
       "relationshipType": "many-to-one"
     }
   ],
+  "searchEngine": "no",
   "service": "no"
 }

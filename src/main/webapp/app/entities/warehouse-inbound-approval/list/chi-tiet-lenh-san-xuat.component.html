@@ -1,138 +1,20 @@
 <div style="overflow: auto">
-  <h2 id="page-heading" data-cy="ChiTietLenhSanXuatHeading">
-    <span>Quản lý phê duyệt</span>
-
-    <div class="d-flex justify-content-end" style="width: 100%">
+  <h2
+    id="page-heading"
+    data-cy="ChiTietLenhSanXuatHeading"
+    style="display: contents; margin-bottom: 5px"
+  >
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 5px;
+      "
+    >
+      <div><span>Quản lý phê duyệt</span></div>
       <div>
-        <div>
-          <button class="toggle-columns-btn" (click)="toggleColumnsList()">
-            <span>Tùy chọn</span><fa-icon [icon]="faChevronDown"></fa-icon>
-          </button>
-        </div>
-        <div
-          class="toggle-columns"
-          id="toggle-columns"
-          *ngIf="toggleColumns === true"
-        >
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableMaLenhSanXuat"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Lệnh sản xuất</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableSapCode"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Mã SAP</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableSapName"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Tên hàng hóa</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableGroup"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Tổ sản xuất</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableWorkOrderCode"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Mã WO</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableVersion"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Version</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableStorageCode"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Mã kho nhập</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableTotalQuantity"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Tổng nhập</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableDetailQuantity"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Chi tiết</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableCreateBy"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Nhân viên</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableEntryTime"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Ngày tạo tem</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableUpdateTime"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Ngày cập nhật</span>
-          </div>
-          <div class="toggle-columns-container">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableTrangThai"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Trạng thái</span>
-          </div>
-          <div class="toggle-columns-container" style="margin-bottom: 6px">
-            <input
-              type="checkbox"
-              [(ngModel)]="disableComment"
-              [ngModelOptions]="{ standalone: true }"
-              style="width: 30px; height: 30px"
-            /><span class="toggle-columns-item">Lưu ý</span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        class="d-flex align-items-center"
-        style="gap: 6px; flex-wrap: nowrap"
-      >
         <button
           class="btn btn-info"
           (click)="reloadPage()"
@@ -141,31 +23,168 @@
           <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
           <span>Refresh List</span>
         </button>
-
-        <div class="scan-box-container">
-          <input
-            #scanInput
-            type="text"
-            class="form-control scan-input"
-            placeholder="Scan mã box..."
-            [(ngModel)]="scanBoxValue"
-            [ngModelOptions]="{ standalone: true }"
-            (keydown.enter)="onScanBox()"
-            [disabled]="isScanLoading"
-          />
-          <button
-            class="btn btn-info d-flex align-items-center"
-            (click)="onScanBox()"
-            [disabled]="isScanLoading || !scanBoxValue"
-          >
-            <fa-icon icon="search" [spin]="isScanLoading"></fa-icon>
-            <span>Scan</span>
-          </button>
-        </div>
       </div>
     </div>
   </h2>
+  <div
+    style="
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 10px;
+    "
+  >
+    <div>
+      <div>
+        <button class="toggle-columns-btn" (click)="toggleColumnsList()">
+          <span>Tùy chọn</span><fa-icon [icon]="faChevronDown"></fa-icon>
+        </button>
+      </div>
+      <div
+        class="toggle-columns"
+        id="toggle-columns"
+        *ngIf="toggleColumns === true"
+      >
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableMaLenhSanXuat"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Lệnh sản xuất</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableSapCode"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Mã SAP</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableSapName"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Tên hàng hóa</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableGroup"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Tổ sản xuất</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableWorkOrderCode"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Mã WO</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableVersion"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Version</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableStorageCode"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Mã kho nhập</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableTotalQuantity"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Tổng nhập</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableDetailQuantity"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Chi tiết</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableCreateBy"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Nhân viên</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableEntryTime"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Ngày tạo tem</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableUpdateTime"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Ngày cập nhật</span>
+        </div>
+        <div class="toggle-columns-container">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableTrangThai"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Trạng thái</span>
+        </div>
+        <div class="toggle-columns-container" style="margin-bottom: 6px">
+          <input
+            type="checkbox"
+            [(ngModel)]="disableComment"
+            [ngModelOptions]="{ standalone: true }"
+            style="width: 30px; height: 30px"
+          /><span class="toggle-columns-item">Lưu ý</span>
+        </div>
+      </div>
+    </div>
 
+    <div class="d-flex align-items-center" style="gap: 6px; flex-wrap: nowrap">
+      <div class="scan-box-container">
+        <input
+          #scanInput
+          type="text"
+          class="form-control scan-input"
+          placeholder="Scan mã box..."
+          [(ngModel)]="scanBoxValue"
+          [ngModelOptions]="{ standalone: true }"
+          (keydown.enter)="onScanBox()"
+          [disabled]="isScanLoading"
+        />
+        <button
+          class="btn btn-info d-flex align-items-center"
+          (click)="onScanBox()"
+          [disabled]="isScanLoading || !scanBoxValue"
+        >
+          <fa-icon icon="search" [spin]="isScanLoading"></fa-icon>
+          <span>Scan</span>
+        </button>
+      </div>
+    </div>
+  </div>
   <!-- <jhi-alert-error></jhi-alert-error> -->
 
   <!-- <div class="alert" id="no-result" *ngIf="lenhSanXuats?.length === 0">

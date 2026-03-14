@@ -451,7 +451,7 @@
           <table class="table table-striped" aria-describedby="page-heading">
             <thead>
               <tr>
-                <th scope="col">STT</th>
+                <th scope="col" class="STT" style="width: fit-content">STT</th>
                 <th scope="col">
                   Checked
                   <div class="btn-flex">
@@ -463,6 +463,7 @@
                     </button>
                   </div>
                 </th>
+                <th scope="col">Ghi chú</th>
                 <th scope="col"><span class="custom-width">Status</span></th>
                 <th scope="col"><span class="custom-width">Reel ID</span></th>
                 <th scope="col">
@@ -489,7 +490,7 @@
                 <th scope="col">SP Material Name</th>
                 <th scope="col">Warning Limit</th>
                 <th scope="col">Maximum Limit</th>
-                <th scope="col">Comments</th>
+
                 <th scope="col">Warm Up Time</th>
                 <th scope="col">
                   <span class="custom-width">Storage Unit</span>
@@ -521,6 +522,7 @@
             </thead>
 
             <tr
+              class="STT"
               *ngFor="
                 let data of chiTietLenhSanXuatActive
                   | filter: reelID
@@ -530,7 +532,7 @@
               "
               class="editable-row"
             >
-              <td>
+              <td style="width: fit-content">
                 {{ i + 1 }}
               </td>
               <td>
@@ -540,6 +542,9 @@
                   [ngModelOptions]="{ standalone: true }"
                   (change)="onSelected(i, !!$any(data).checked)"
                 />
+              </td>
+              <td>
+                {{ $any(data).comments }}
               </td>
               <td>
                 <select
@@ -624,9 +629,7 @@
               <td>
                 {{ $any(data).maximum_limit }}
               </td>
-              <td>
-                {{ $any(data).comments }}
-              </td>
+
               <td>
                 {{ $any(data).warmup_time }}
               </td>

@@ -1,4 +1,7 @@
 {
+  "annotations": {
+    "changelogDate": "20231017035303"
+  },
   "applications": "*",
   "changelogDate": "20231017035303",
   "dto": "no",
@@ -56,8 +59,10 @@
       "otherEntityName": "chiTietKichBan",
       "otherEntityRelationshipName": "kichBan",
       "relationshipName": "chiTietKichBan",
+      "relationshipSide": "left",
       "relationshipType": "one-to-many"
     }
   ],
+  "searchEngine": "no",
   "service": "no"
 }

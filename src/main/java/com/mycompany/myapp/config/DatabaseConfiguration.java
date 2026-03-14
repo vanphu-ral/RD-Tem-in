@@ -35,6 +35,17 @@ import tech.jhipster.config.JHipsterConstants;
                 .Partner3SerialBoxPalletMappingRepository.class,
             com.mycompany.myapp.repository.partner3
                 .Partner3WarehouseStampInfoDetailRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .ImportVendorTemTransactionsRepository.class,
+            com.mycompany.myapp.repository.partner5.PoDetailRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .VendorTemDetailRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .TemIdentificationScenarioRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .RdMaterialAttributesRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .AttributesTypeRepository.class,
         }
     )
 )
