@@ -1,0 +1,345 @@
+// ==================== LAYOUT ====================
+
+.container {
+  padding: 16px;
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 80px);
+  max-width: calc(95vw);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: #1f2937;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+}
+
+.my-3 {
+  margin: 12px 0;
+}
+
+// ==================== TABLE CONTAINER ====================
+
+.table-container {
+  width: 100%;
+  height: calc(100vh - 240px);
+  overflow-x: auto;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.main-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+// ==================== HEADER ROW ====================
+
+.main-table .mat-mdc-header-row {
+  background: #3d7bb9;
+  color: #fff;
+  font-weight: 600;
+}
+
+.main-table .mat-mdc-header-cell {
+  color: #fff;
+  font-weight: 600;
+  padding: 0 8px !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  vertical-align: top;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+// Sticky header
+.main-table .mat-mdc-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+// ==================== TH WRAP ====================
+
+.th-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0 6px;
+
+  > span {
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+
+    // sort arrow color
+    ::ng-deep .mat-sort-header-arrow {
+      color: white !important;
+    }
+  }
+
+  &.no-filter {
+    padding: 8px 0;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 60px;
+  }
+}
+
+::ng-deep .mat-sort-header-container {
+  border: none !important;
+}
+::ng-deep .mat-sort-header-content {
+  color: white !important;
+}
+::ng-deep .mat-sort-header-arrow {
+  color: white !important;
+}
+
+// ==================== INLINE FILTER INPUT ====================
+
+.filter-input-wrap {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  padding: 2px 6px;
+  gap: 4px;
+  height: 28px;
+
+  &:focus-within {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+
+  .search-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    flex-shrink: 0;
+  }
+}
+
+.inline-filter {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 12px;
+  width: 100%;
+  min-width: 0;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+// ==================== DATA ROWS ====================
+
+.main-table .mat-mdc-cell {
+  padding: 8px 12px !important;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+  border-right: 1px solid #f0f0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.data-row:hover {
+  background: rgba(61, 123, 185, 0.06);
+}
+
+// ==================== COLUMN WIDTHS ====================
+
+.col-stt {
+  width: 52px;
+  min-width: 52px;
+}
+.col-actions {
+  width: 100px;
+  min-width: 100px;
+}
+.col-po {
+  width: 120px;
+  min-width: 100px;
+}
+.col-vendor {
+  width: 180px;
+  min-width: 140px;
+}
+.col-date {
+  width: 130px;
+  min-width: 110px;
+}
+.col-datetime {
+  width: 180px;
+  min-width: 160px;
+}
+.col-user {
+  width: 120px;
+  min-width: 100px;
+}
+.col-warehouse {
+  width: 110px;
+  min-width: 90px;
+}
+.col-status {
+  width: 160px;
+  min-width: 130px;
+}
+
+.mat-column-stt,
+.mat-column-actions {
+  text-align: center;
+}
+
+// ==================== ACTION BUTTONS ====================
+
+.action-buttons {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+}
+
+.icon-view {
+  color: #3d7bb9;
+}
+
+// ==================== NO DATA ====================
+
+.no-data {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #999;
+
+  mat-icon {
+    font-size: 3.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    color: #ccc;
+    display: block;
+    margin: 0 auto 8px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+// ==================== MOBILE ====================
+
+.mobile-filters {
+  display: none;
+  margin-bottom: 1rem;
+}
+.mobile-view {
+  display: none;
+}
+.desktop-view {
+  display: block;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.mobile-card {
+  margin-bottom: 1rem;
+
+  mat-card-actions {
+    display: flex;
+    justify-content: space-around;
+    padding: 0.5rem;
+    button {
+      flex: 1;
+    }
+  }
+}
+
+.stt-badge {
+  display: inline-block;
+  background: #3d7bb9;
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .label {
+    font-weight: 500;
+    color: #666;
+    font-size: 13px;
+  }
+  .value {
+    text-align: right;
+    font-size: 13px;
+  }
+}
+
+// ==================== RESPONSIVE ====================
+
+@media (max-width: 768px) {
+  .desktop-view {
+    display: none;
+  }
+  .mobile-view {
+    display: block;
+  }
+  .mobile-filters {
+    display: block;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+
+    h1 {
+      font-size: 1.2rem;
+    }
+    button {
+      width: 100%;
+    }
+  }
+}

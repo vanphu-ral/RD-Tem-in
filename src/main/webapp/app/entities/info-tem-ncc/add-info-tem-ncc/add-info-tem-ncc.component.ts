@@ -1,0 +1,372 @@
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ViewChild,
+  ChangeDetectorRef,
+} from "@angular/core";
+import { CommonModule, DatePipe } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import {
+  animate,
+  state,
+  style,
+  transition,
+  trigger,
+} from "@angular/animations";
+
+import { MatTableModule, MatTableDataSource } from "@angular/material/table";
+import { MatPaginator, MatPaginatorModule } from "@angular/material/paginator";
+import { MatSort, MatSortModule } from "@angular/material/sort";
+import { MatDialog } from "@angular/material/dialog";
+
+import { AlertService } from "app/core/util/alert.service";
+
+// ==================== INTERFACES ====================
+
+export interface LotItem {
+  lotNumber: string;
+  boxCount: number;
+  totalQty: number;
+}
+
+export interface ChildItem {
+  sapCode: string;
+  productName: string;
+  partNumber: string;
+  boxCount: number;
+  totalQty: number;
+  orderBoxCount: number;
+  orderQty: number;
+  lots: LotItem[];
+}
+
+export interface ParentItem {
+  id: number;
+  status: string;
+  vendorCode: string;
+  vendorName: string;
+  poCode: string;
+  createdDate: string;
+  createdBy: string;
+  itemCount: number;
+  totalQuantity: number;
+  children: ChildItem[];
+}
+
+export interface FilterValues {
+  status: string;
+  vendorCode: string;
+  vendorName: string;
+  poCode: string;
+  createdDate: any;
+  createdBy: string;
+}
+
+// ==================== COMPONENT ====================
+
+@Component({
+  selector: "jhi-info-tem-ncc",
+  standalone: false,
+  templateUrl: "./add-info-tem-ncc.component.html",
+  styleUrls: ["./add-info-tem-ncc.component.scss"],
+  animations: [
+    trigger("detailExpand", [
+      state(
+        "collapsed",
+        style({ height: "0px", minHeight: "0", overflow: "hidden" }),
+      ),
+      state("expanded", style({ height: "*", overflow: "hidden" })),
+      transition(
+        "expanded <=> collapsed",
+        animate("220ms cubic-bezier(0.4, 0.0, 0.2, 1)"),
+      ),
+    ]),
+  ],
+})
+export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
+  displayedColumns: string[] = [
+    "expand",
+    "status",
+    "poCode",
+    "vendorCode",
+    "vendorName",
+    "createdDate",
+    "createdBy",
+    "itemCount",
+    "totalQuantity",
+    "actions",
+  ];
+
+  statusOptions = ["Đã tạo mã QR", "Bản nháp"];
+
+  filterValues: FilterValues = {
+    status: "",
+    vendorCode: "",
+    vendorName: "",
+    poCode: "",
+    createdDate: null,
+    createdBy: "",
+  };
+
+  orderInfo = {
+    poCode: "",
+    vendorName: "",
+    arrivalDate: null as Date | null,
+    importScenario: "",
+    warehouse: "",
+    approver: "",
+  };
+
+  dataSource = new MatTableDataSource<ParentItem>([]);
+  totalItems = 0;
+  isLoading = false;
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+  /** Tracks which parent rows are expanded */
+  private expandedRows = new Set<number>();
+
+  /** Tracks which child items are expanded */
+  private expandedChildren = new Set<string>();
+
+  constructor(
+    private dialog: MatDialog,
+    private alertService: AlertService,
+    private datePipe: DatePipe,
+    private cdr: ChangeDetectorRef,
+  ) {}
+
+  // ==================== LIFECYCLE ====================
+
+  ngOnInit(): void {
+    this.loadData();
+  }
+
+  ngAfterViewInit(): void {
+    this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.filterPredicate = this.buildFilterPredicate();
+  }
+
+  // ==================== EXPAND LOGIC ====================
+
+  toggleRow(row: ParentItem): void {
+    if (this.expandedRows.has(row.id)) {
+      this.expandedRows.delete(row.id);
+    } else {
+      this.expandedRows.add(row.id);
+    }
+  }
+
+  onApply(): void {
+    // Filter/load danh sách vật tư theo orderInfo
+  }
+
+  onScan(): void {
+    // Mở dialog scan QR
+  }
+
+  onSubmitApproval(): void {
+    // Gửi phê duyệt
+  }
+
+  isExpanded(row: ParentItem): boolean {
+    return this.expandedRows.has(row.id);
+  }
+
+  toggleChild(child: ChildItem): void {
+    const key = child.sapCode + "_" + child.partNumber;
+    if (this.expandedChildren.has(key)) {
+      this.expandedChildren.delete(key);
+    } else {
+      this.expandedChildren.add(key);
+    }
+  }
+
+  isChildExpanded(child: ChildItem): boolean {
+    const key = child.sapCode + "_" + child.partNumber;
+    return this.expandedChildren.has(key);
+  }
+
+  // ==================== FILTER ====================
+
+  applyFilter(): void {
+    this.dataSource.filterPredicate = this.buildFilterPredicate();
+    this.dataSource.filter = JSON.stringify(this.filterValues);
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
+  }
+
+  applyDateFilter(): void {
+    this.applyFilter();
+  }
+
+  // ==================== MOBILE DATA ====================
+
+  get mobileDataSource(): ParentItem[] {
+    const data = this.dataSource.filteredData ?? this.dataSource.data ?? [];
+    if (!this.paginator) {
+      return data;
+    }
+    const start = this.paginator.pageIndex * this.paginator.pageSize;
+    return data.slice(start, start + this.paginator.pageSize);
+  }
+
+  // ==================== STATUS COLOR ====================
+
+  statusColor(status: string): { [key: string]: string } {
+    switch ((status ?? "").toLowerCase().trim()) {
+      case "bản nháp":
+        return {
+          backgroundColor: "#FFF9B0",
+          color: "#7A6A00",
+          border: "1px solid #F0E68C",
+        };
+      case "đã tạo mã qr":
+      case "đã tạo mã":
+      case "đã gen mã":
+        return {
+          backgroundColor: "#2be265",
+          color: "#1B5E35",
+          border: "1px solid #A3D9B8",
+        };
+      default:
+        return {
+          backgroundColor: "#E0E0E0",
+          color: "#333",
+          border: "1px solid #CCC",
+        };
+    }
+  }
+
+  // ==================== ACTIONS ====================
+
+  onDelete(item: ParentItem): void {}
+
+  onEditChild(child: ChildItem): void {
+    // Implement edit child logic
+  }
+
+  onViewLot(lot: LotItem): void {
+    // Implement view lot logic
+  }
+
+  // ==================== PRIVATE ====================
+
+  private performDelete(item: ParentItem): void {
+    // Call service to delete, then reload
+  }
+
+  private loadData(): void {
+    // Example mock data — replace with real service call
+    const mockData: ParentItem[] = [
+      {
+        id: 1,
+        status: "Đã tạo mã QR",
+        vendorCode: "NCC001",
+        vendorName: "Yankon Vietnam",
+        poCode: "PO-2024-0001",
+        createdDate: new Date().toISOString(),
+        createdBy: "admin",
+        itemCount: 3,
+        totalQuantity: 50000,
+        children: [
+          {
+            sapCode: "00098081",
+            productName: "Module DR-ML MXL1142 24W-TC (Yankon)",
+            partNumber: "31120166",
+            boxCount: 3,
+            totalQty: 30000,
+            orderBoxCount: 3,
+            orderQty: 30000,
+            lots: [
+              { lotNumber: "31120166", boxCount: 1, totalQty: 20280228 },
+              { lotNumber: "31120166", boxCount: 1, totalQty: 20280228 },
+              { lotNumber: "31120166", boxCount: 1, totalQty: 20280228 },
+            ],
+          },
+          {
+            sapCode: "00098081",
+            productName: "Module LED ZDL1356 0.1W 3000K",
+            partNumber: "00098081_V1.1",
+            boxCount: 0,
+            totalQty: 0,
+            orderBoxCount: 1,
+            orderQty: 10000,
+            lots: [],
+          },
+          {
+            sapCode: "00012345",
+            productName: "Driver MTSL1056 3W SMT (Yankon)",
+            partNumber: "00088021_V1.1",
+            boxCount: 0,
+            totalQty: 0,
+            orderBoxCount: 1,
+            orderQty: 10000,
+            lots: [],
+          },
+        ],
+      },
+      {
+        id: 2,
+        status: "Bản nháp",
+        vendorCode: "NCC002",
+        vendorName: "Supplier B",
+        poCode: "PO-2024-0002",
+        createdDate: new Date().toISOString(),
+        createdBy: "user01",
+        itemCount: 1,
+        totalQuantity: 5000,
+        children: [
+          {
+            sapCode: "00011111",
+            productName: "Component XYZ",
+            partNumber: "XYZ_V2",
+            boxCount: 2,
+            totalQty: 5000,
+            orderBoxCount: 2,
+            orderQty: 5000,
+            lots: [
+              { lotNumber: "LOT-A", boxCount: 1, totalQty: 2500 },
+              { lotNumber: "LOT-B", boxCount: 1, totalQty: 2500 },
+            ],
+          },
+        ],
+      },
+    ];
+
+    this.dataSource.data = mockData;
+    this.totalItems = mockData.length;
+  }
+
+  private buildFilterPredicate() {
+    return (item: ParentItem, filterJson: string): boolean => {
+      const f: FilterValues = JSON.parse(filterJson);
+      const match = (field: string, query: string): boolean =>
+        !query || (field ?? "").toLowerCase().includes(query.toLowerCase());
+
+      const okDate =
+        !f.createdDate || this.sameDate(item.createdDate, f.createdDate);
+
+      return (
+        (!f.status || item.status === f.status) &&
+        match(item.vendorCode, f.vendorCode) &&
+        match(item.vendorName, f.vendorName) &&
+        match(item.poCode, f.poCode) &&
+        match(item.createdBy, f.createdBy) &&
+        okDate
+      );
+    };
+  }
+
+  private sameDate(a: Date | string, b: Date): boolean {
+    const d = new Date(a);
+    return (
+      d.getFullYear() === b.getFullYear() &&
+      d.getMonth() === b.getMonth() &&
+      d.getDate() === b.getDate()
+    );
+  }
+}

@@ -1,0 +1,166 @@
+<div class="dialog-wrapper">
+  <!-- Header -->
+  <div class="dialog-header">
+    <div>
+      <h2 class="dialog-title">Cấu hình nhà cung cấp</h2>
+      <p class="dialog-subtitle">Cấu hình quy cách bóc tách mã QR</p>
+    </div>
+    <button mat-icon-button (click)="onCancel()" class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="dialog-body" mat-dialog-content>
+    <!-- Vendor Name & Code -->
+    <div class="two-col">
+      <div class="field-group">
+        <label class="field-label">Tên nhà cung cấp</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input
+            matInput
+            [(ngModel)]="form.vendorName"
+            placeholder="Tên nhà cung cấp..."
+          />
+        </mat-form-field>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Mã nhà cung cấp</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input
+            matInput
+            [(ngModel)]="form.vendorCode"
+            placeholder="Mã nhà cung cấp..."
+          />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Separator -->
+    <div class="separator-section">
+      <div class="separator-info">
+        <mat-icon class="info-icon">info</mat-icon>
+        <div>
+          <p class="separator-title">Ký tự phân cách</p>
+          <p class="separator-desc">
+            Ký tự dùng để tách các trường dữ liệu trong chuỗi QR (Mặc định là #)
+          </p>
+        </div>
+      </div>
+      <div class="separator-input">
+        <input
+          [(ngModel)]="form.separator"
+          maxlength="1"
+          class="separator-char-input"
+        />
+      </div>
+    </div>
+
+    <!-- Config Table -->
+    <div class="config-table-section">
+      <div class="config-table-header">
+        <h3 class="section-title">Bảng cấu hình</h3>
+        <button
+          mat-flat-button
+          color="primary"
+          class="add-field-btn"
+          (click)="addField()"
+        >
+          <mat-icon>add</mat-icon> Thêm trường
+        </button>
+      </div>
+
+      <div class="config-table-container">
+        <!-- Column headers -->
+        <div class="config-table-cols">
+          <span class="col-header col-pos">Vị trí</span>
+          <span class="col-header col-ncc">Mô tả trường NCC</span>
+          <span class="col-header col-data">Trường dữ liệu</span>
+          <span class="col-header col-action">Thao tác</span>
+        </div>
+
+        <!-- Rows -->
+        <div class="config-rows">
+          <div
+            *ngFor="let row of form.fieldMappings; let i = index"
+            class="config-row"
+          >
+            <div class="col-pos">
+              <div class="position-badge">{{ row.position }}</div>
+            </div>
+            <div class="col-ncc">
+              <mat-form-field appearance="outline" class="full-width">
+                <input
+                  matInput
+                  [(ngModel)]="row.nccFieldDesc"
+                  placeholder="Mô tả trường..."
+                />
+              </mat-form-field>
+              <!-- <mat-form-field appearance="outline" class="full-width">
+                                <mat-select [(ngModel)]="row.nccFieldDesc" placeholder="Chọn hoặc nhập tên trường">
+                                    <mat-option value="Real ID">Real ID</mat-option>
+                                    <mat-option value="Part Number">Part Number</mat-option>
+                                    <mat-option value="Quantity">Quantity</mat-option>
+                                    <mat-option value="Lot">Lot</mat-option>
+                                    <mat-option value="Date">Date</mat-option>
+                                </mat-select>
+                            </mat-form-field> -->
+            </div>
+            <div class="col-data">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-select [(ngModel)]="row.dataField">
+                  <mat-option *ngFor="let f of dataFields" [value]="f">{{
+                    f
+                  }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="col-action">
+              <button
+                mat-icon-button
+                class="delete-row-btn"
+                (click)="removeField(i)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="form.fieldMappings.length === 0" class="empty-rows">
+            <mat-icon>table_rows</mat-icon>
+            <p>Chưa có trường nào. Nhấn "+ Thêm trường" để bắt đầu.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unmapped Fields -->
+    <div class="unmapped-section">
+      <div class="unmapped-header">
+        <mat-icon class="unmapped-icon">info</mat-icon>
+        <div>
+          <p class="unmapped-title">Danh sách hệ thống chưa được ánh xạ</p>
+          <p class="unmapped-desc">
+            Các trường này sẽ không có dữ liệu từ QR và cần người dùng nhập tay
+            khi quét
+          </p>
+        </div>
+      </div>
+      <div class="unmapped-chips">
+        <span *ngFor="let field of unmappedFields" class="unmapped-chip">{{
+          field
+        }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="dialog-footer" mat-dialog-actions>
+    <button mat-stroked-button (click)="onCancel()" class="cancel-btn">
+      Huỷ
+    </button>
+    <button mat-flat-button color="primary" (click)="onSave()" class="save-btn">
+      Lưu
+    </button>
+  </div>
+</div>

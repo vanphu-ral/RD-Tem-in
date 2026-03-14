@@ -1,0 +1,583 @@
+@use "@angular/material" as mat;
+
+// ==================== INPUT FILTER IN HEADER ====================
+
+.input-filter.mat-mdc-form-field {
+  --mdc-outlined-text-field-container-color: transparent;
+  --mdc-outlined-text-field-outline-color: white;
+  --mdc-outlined-text-field-label-text-color: white;
+  --mdc-outlined-text-field-input-text-color: white;
+  --mdc-outlined-text-field-hover-outline-color: white;
+  --mdc-outlined-text-field-focus-outline-color: white;
+  --mdc-outlined-text-field-placeholder-color: rgba(255, 255, 255, 0.7);
+  width: 100%;
+}
+
+// ==================== LAYOUT ====================
+::ng-deep .small-form-field {
+  @include mat.form-field-density(-5);
+  @include mat.icon-button-density(-5);
+  @include mat.datepicker-density(-5);
+  margin-bottom: -26px;
+}
+.d-flex {
+  display: flex;
+  align-items: center;
+}
+.container {
+  padding: 16px;
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 80px);
+  max-width: calc(95vw);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #1f2937;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+.my-3 {
+  margin: 16px 0;
+}
+.min-w-24 {
+  min-width: 96px;
+  justify-content: center;
+}
+
+// ==================== PARENT TABLE ====================
+
+.table-container {
+  max-width: 100%;
+  height: calc(100vh - 260px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.table-no-scroll {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table-container table[mat-table] {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.table-container .mat-mdc-header-cell,
+.table-container .mat-mdc-cell {
+  padding: 8px 12px;
+  white-space: nowrap;
+  border: 1px solid #eee;
+}
+
+.table-container .mat-mdc-header-row {
+  background: #3d7bb9;
+  color: #fff;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.table-container .mat-mdc-header-cell:first-child {
+  border-top-left-radius: 6px;
+}
+.table-container .mat-mdc-header-cell:last-child {
+  border-top-right-radius: 6px;
+}
+
+.table-container .mat-sort-header-content {
+  color: inherit;
+}
+
+::ng-deep .mat-sort-header-container {
+  border: none !important;
+}
+
+.table-container .mat-mdc-row:hover {
+  background: rgba(49, 110, 241, 0.06);
+}
+
+.parent-row {
+  cursor: default;
+}
+.expanded-row {
+  background: #e8f0fe;
+}
+
+// Detail row — zero-height host, actual height animated inside
+.detail-row {
+  height: 0;
+  td {
+    padding: 0 !important;
+    border-bottom: none !important;
+  }
+}
+
+// ==================== COLUMN WIDTHS ====================
+
+.mat-column-expand {
+  width: 48px;
+  max-width: 48px;
+}
+.mat-column-status {
+  width: 130px;
+  max-width: 130px;
+}
+.mat-column-poCode {
+  width: 130px;
+  max-width: 130px;
+}
+.mat-column-vendorCode {
+  width: 110px;
+  max-width: 110px;
+}
+.mat-column-vendorName {
+  width: 160px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mat-column-createdDate {
+  width: 150px;
+  max-width: 150px;
+}
+.mat-column-createdBy {
+  width: 120px;
+  max-width: 120px;
+}
+.mat-column-itemCount {
+  width: 110px;
+  max-width: 110px;
+  text-align: center;
+}
+.mat-column-totalQuantity {
+  width: 130px;
+  max-width: 130px;
+  text-align: center;
+}
+.mat-column-actions {
+  width: 140px;
+  max-width: 140px;
+}
+
+.mat-cell,
+.mat-header-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 8px !important;
+}
+
+// ==================== HEADER WITH FILTER ====================
+
+.header-with-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: baseline;
+
+  > span {
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .input-filter {
+    @include mat.form-field-density(-5);
+    @include mat.icon-button-density(-5);
+    @include mat.datepicker-density(-5);
+
+    input {
+      color: white;
+      caret-color: white;
+    }
+
+    ::ng-deep .mdc-floating-label {
+      color: white !important;
+    }
+    ::ng-deep .mdc-notched-outline {
+      border-color: white !important;
+    }
+    ::ng-deep .mat-mdc-select-value {
+      color: white !important;
+    }
+    ::ng-deep .mat-mdc-select-arrow {
+      color: white !important;
+    }
+    ::ng-deep .mdc-text-field__input::placeholder {
+      color: rgba(255, 255, 255, 0.7) !important;
+      opacity: 1 !important;
+    }
+    ::ng-deep .mat-datepicker-toggle .mdc-icon-button {
+      color: white !important;
+    }
+  }
+
+  ::ng-deep .mat-mdc-form-field-flex {
+    height: 32px !important;
+  }
+  ::ng-deep .mat-mdc-form-field-bottom-align {
+    display: none;
+  }
+}
+
+// ==================== ACTION BUTTONS ====================
+
+.action-buttons {
+  display: flex;
+  gap: 1px;
+}
+
+// ==================== LEVEL-1 EXPAND ANIMATION ====================
+
+.row-detail {
+  overflow: hidden;
+}
+
+// ==================== CHILD TABLE (Level 1) ====================
+
+.child-table-wrapper {
+  padding: 8px 16px 12px 48px;
+  background: #f0f4fc;
+}
+
+.child-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead tr {
+    background: #2e6da4;
+    color: white;
+  }
+
+  thead th {
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  tbody .child-row {
+    background: white;
+    transition: background 0.15s;
+
+    &:hover {
+      background: #e8f0fe;
+    }
+  }
+
+  tbody td {
+    padding: 6px 12px;
+    border: 1px solid #e0e0e0;
+    white-space: nowrap;
+  }
+}
+
+.child-expand-col {
+  width: 48px;
+  min-width: 48px;
+}
+
+.expand-btn-sm {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+// ==================== GRANDCHILD TABLE (Level 2) ====================
+
+.grandchild-wrapper-row td {
+  padding: 0 !important;
+  border: none !important;
+  background: #fafcff;
+}
+
+.grandchild-table-wrapper {
+  padding: 6px 16px 12px 64px;
+  background: #f7faff;
+  border-left: 3px solid #3d7bb9;
+}
+
+.grandchild-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+
+  thead tr {
+    background: #1a5276;
+    color: white;
+  }
+
+  thead th {
+    padding: 7px 12px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  tbody .grandchild-row {
+    background: #ffffff;
+
+    &:nth-child(even) {
+      background: #f4f8ff;
+    }
+    &:hover {
+      background: #ddeeff;
+    }
+  }
+
+  tbody td {
+    padding: 5px 12px;
+    border: 1px solid #e8eef5;
+    white-space: nowrap;
+  }
+}
+
+// ==================== NO DATA ====================
+
+.no-data-cell {
+  text-align: center;
+  color: #999;
+  padding: 12px !important;
+  font-style: italic;
+}
+
+// ==================== STATUS CHIP ====================
+
+.min-w-24 {
+  min-width: 96px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+// ==================== MOBILE ====================
+
+.mobile-filters {
+  display: none;
+  margin-bottom: 1rem;
+}
+.mobile-view {
+  display: none;
+}
+.desktop-view {
+  display: block;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.mobile-card {
+  margin-bottom: 1rem;
+
+  mat-card-actions {
+    display: flex;
+    justify-content: space-around;
+    padding: 0.5rem;
+
+    button {
+      flex: 1;
+    }
+  }
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .label {
+    font-weight: 500;
+    color: #666;
+  }
+  .value {
+    text-align: right;
+  }
+}
+
+.no-data {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #999;
+
+  mat-icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    color: #ccc;
+  }
+}
+.order-info-card {
+  margin-bottom: 16px;
+
+  mat-card-header {
+    padding-bottom: 8px;
+    mat-card-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+}
+
+.order-info-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+
+  mat-form-field {
+    min-width: 200px;
+    flex: 1;
+  }
+
+  .apply-btn {
+    height: 38px;
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+}
+
+.material-list-card {
+  margin-bottom: 16px;
+
+  mat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+
+    mat-card-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+
+  .card-header-actions {
+    margin-left: auto;
+  }
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+
+  .footer-left {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    .footer-field {
+      min-width: 200px;
+    }
+  }
+
+  .footer-right button {
+    background-color: #1a8a4a;
+    color: white;
+    height: 56px;
+    min-width: 140px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+}
+
+// ==================== RESPONSIVE ====================
+
+@media (max-width: 768px) {
+  .desktop-view {
+    display: none;
+  }
+  .mobile-view {
+    display: block;
+  }
+  .mobile-filters {
+    display: block;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+
+    h1 {
+      font-size: 1.25rem;
+    }
+
+    .header-actions {
+      width: 100%;
+    }
+    .header-actions button {
+      width: 100%;
+    }
+  }
+
+  .button-text {
+    margin-left: 0.5rem;
+  }
+  .order-info-fields {
+    flex-direction: column;
+    mat-form-field {
+      width: 100%;
+    }
+  }
+  .footer-actions {
+    flex-direction: column;
+  }
+  .footer-left {
+    flex-direction: column;
+    width: 100%;
+  }
+  .footer-right {
+    width: 100%;
+    button {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 1.1rem;
+  }
+
+  .mobile-card mat-card-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    button {
+      width: 100%;
+    }
+  }
+}

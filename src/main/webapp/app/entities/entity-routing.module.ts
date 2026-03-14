@@ -155,6 +155,14 @@ import { RouterModule } from "@angular/router";
           ),
       },
       {
+        path: "info-tem-ncc",
+        data: { pageTitle: "Thông tin tem nhà cung cấp" },
+        loadChildren: () =>
+          import("./info-tem-ncc/info-tem-ncc.module").then(
+            (m) => m.InfoTemNccModule,
+          ),
+      },
+      {
         path: "lenh-san-xuat",
         data: { pageTitle: "Thông tin tem sản xuất" },
         loadChildren: () =>

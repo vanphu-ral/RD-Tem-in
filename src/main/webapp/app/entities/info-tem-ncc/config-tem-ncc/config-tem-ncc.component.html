@@ -1,0 +1,139 @@
+<div class="page-wrapper">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <button
+        mat-icon-button
+        class="back-btn"
+        matTooltip="Quay lại"
+        [routerLink]="['/info-tem-ncc']"
+      >
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h1 class="page-title">Quản lí quy cách nhà cung cấp</h1>
+    </div>
+    <button mat-flat-button class="add-vendor-btn" (click)="openAddDialog()">
+      <mat-icon>add</mat-icon>
+      Thêm nhà cung cấp
+    </button>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card">
+    <!-- Table -->
+    <div class="table-container">
+      <table mat-table [dataSource]="pagedData" class="vendor-table">
+        <!-- Vendor Code -->
+        <ng-container matColumnDef="vendorCode">
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="header-cell">
+              <span>Vendor</span>
+              <mat-icon class="sort-icon">filter_list</mat-icon>
+            </div>
+            <div class="search-cell">
+              <mat-form-field appearance="outline" class="search-field">
+                <mat-icon matPrefix class="search-prefix-icon">search</mat-icon>
+                <input
+                  matInput
+                  [(ngModel)]="filters.vendorCode"
+                  (ngModelChange)="applyFilter()"
+                />
+              </mat-form-field>
+            </div>
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.vendorCode }}</td>
+        </ng-container>
+
+        <!-- Vendor Name -->
+        <ng-container matColumnDef="vendorName">
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="header-cell">
+              <span>Tên nhà cung cấp</span>
+              <mat-icon class="sort-icon">filter_list</mat-icon>
+            </div>
+            <div class="search-cell">
+              <mat-form-field appearance="outline" class="search-field">
+                <mat-icon matPrefix class="search-prefix-icon">search</mat-icon>
+                <input
+                  matInput
+                  [(ngModel)]="filters.vendorName"
+                  (ngModelChange)="applyFilter()"
+                />
+              </mat-form-field>
+            </div>
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.vendorName }}</td>
+        </ng-container>
+
+        <!-- Separator -->
+        <ng-container matColumnDef="separator">
+          <th mat-header-cell *matHeaderCellDef>Dấu phân cách</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="separator-badge">{{ row.separator }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Field Count -->
+        <ng-container matColumnDef="fieldCount">
+          <th mat-header-cell *matHeaderCellDef>Số trường ánh xạ</th>
+          <td mat-cell *matCellDef="let row">{{ row.fieldCount }} trường</td>
+        </ng-container>
+
+        <!-- Actions -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="center">Tuỳ chọn</th>
+          <td mat-cell *matCellDef="let row" class="center">
+            <button
+              mat-icon-button
+              class="action-edit"
+              matTooltip="Chỉnh sửa"
+              (click)="openEditDialog(row)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              class="action-delete"
+              matTooltip="Xoá"
+              (click)="deleteVendor(row)"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="displayedColumns; sticky: true"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          class="data-row"
+        ></tr>
+
+        <!-- Empty state -->
+        <tr class="mat-row" *matNoDataRow>
+          <td
+            class="mat-cell empty-state"
+            [attr.colspan]="displayedColumns.length"
+          >
+            <mat-icon>inventory_2</mat-icon>
+            <p>Không có dữ liệu</p>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Paginator -->
+    <div class="paginator-row">
+      <mat-paginator
+        [length]="filteredData.length"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[3, 10, 25, 50]"
+        (page)="onPage($event)"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  </div>
+</div>
