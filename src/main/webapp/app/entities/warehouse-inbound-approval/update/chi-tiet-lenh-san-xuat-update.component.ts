@@ -348,19 +348,27 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
   //Cập nhật tất cả mã kho panacim
   changeAllStorageUnit(): void {
-    const positionSL = this.storageUnit.indexOf("-SL");
-    // console.log('check SL', positionSL);
-    const storageUnit = this.storageUnit.slice(2, positionSL);
-    const subsStorageUnit = this.storageUnit.slice(positionSL + 3);
-    // // console.log("test: ", this.storageUnit)
+    // Bỏ 2 ký tự prefix (LO, SL, ...) ở đầu nếu có
+    const cleanedInput = this.stripPrefix(this.storageUnit);
+
+    const positionSL = cleanedInput.indexOf("-SL");
+
     for (let i = 0; i < this.chiTietLenhSanXuats.length; i++) {
       if (positionSL === -1) {
-        this.chiTietLenhSanXuats[i].storageUnit = this.storageUnit.slice(2);
+        // Không có "-SL" → gán thẳng vào storage_unit
+        this.chiTietLenhSanXuats[i].storage_unit = cleanedInput;
       } else {
-        this.chiTietLenhSanXuats[i].storageUnit = storageUnit;
-        this.chiTietLenhSanXuats[i].subStorageUnit = subsStorageUnit;
+        // Có "-SL" → tách storage_unit và sub_storage_unit
+        this.chiTietLenhSanXuats[i].storage_unit = cleanedInput.slice(
+          0,
+          positionSL,
+        );
+        this.chiTietLenhSanXuats[i].sub_storage_unit = cleanedInput.slice(
+          positionSL + 3,
+        );
       }
     }
+
     this.storageUnit = "";
   }
 
@@ -459,8 +467,8 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       (result) => {
         if (result === "confirm") {
           const id = this.editForm.get(["id"])!.value;
+          const storageCode = this.editForm.get(["storageCode"])!.value;
 
-          // Tính tổng initial_quantity của các bản ghi đã checked
           const totalCheckedQuantity = this.chiTietLenhSanXuatActive
             .filter((item: any) => item.checked === 1)
             .reduce(
@@ -468,15 +476,36 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
                 sum + Number(item.initial_quantity ?? 0),
               0,
             );
+          this.chiTietLenhSanXuats.forEach((item: any) => {
+            item.storage_unit = storageCode;
+          });
 
           this.http
-            .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
-              trang_thai: "Đã phê duyệt",
-              total_quantity: totalCheckedQuantity,
-            })
-            .subscribe(() => {
-              this.openMessageModal("Phê duyệt thành công");
-              this.previousState();
+            .put<any>(
+              `${this.resourceUrlUpdateDetail}`,
+              this.chiTietLenhSanXuats,
+            )
+            .subscribe({
+              next: () => {
+                this.http
+                  .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
+                    trang_thai: "Đã phê duyệt",
+                    total_quantity: totalCheckedQuantity,
+                    storage_code: storageCode,
+                  })
+                  .subscribe({
+                    next: () => {
+                      this.openMessageModal("Phê duyệt thành công");
+                      this.previousState();
+                    },
+                    error: () => {
+                      this.openMessageModal("Phê duyệt thất bại");
+                    },
+                  });
+              },
+              error: () => {
+                this.openMessageModal("Cập nhật mã kho thất bại");
+              },
             });
         }
       },
@@ -1163,5 +1192,14 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       result.push(segment);
     }
     return result.join("-");
+  }
+  private stripPrefix(value: string): string {
+    const prefixes = ["LO", "SL"];
+    for (const prefix of prefixes) {
+      if (value.startsWith(prefix)) {
+        return value.slice(prefix.length);
+      }
+    }
+    return value;
   }
 }
