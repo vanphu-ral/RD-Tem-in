@@ -12,7 +12,7 @@ import { HttpResponse, HttpClient } from "@angular/common/http";
 import { UntypedFormBuilder, Validators } from "@angular/forms";
 import { ActivatedRoute } from "@angular/router";
 import { Observable } from "rxjs";
-import { finalize } from "rxjs/operators";
+import { finalize, switchMap } from "rxjs/operators";
 import { IChiTietLenhSanXuat } from "../chi-tiet-lenh-san-xuat.model";
 import { ChiTietLenhSanXuatService } from "../service/chi-tiet-lenh-san-xuat.service";
 import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
@@ -463,54 +463,53 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
   // ================================  các button ======================================================
   pheDuyetTem(content: any): void {
-    this.modalService.open(content, { centered: true }).result.then(
-      (result) => {
-        if (result === "confirm") {
-          const id = this.editForm.get(["id"])!.value;
-          const storageCode = this.editForm.get(["storageCode"])!.value;
+    this.loading = true;
 
-          const totalCheckedQuantity = this.chiTietLenhSanXuatActive
-            .filter((item: any) => item.checked === 1)
-            .reduce(
-              (sum: number, item: any) =>
-                sum + Number(item.initial_quantity ?? 0),
-              0,
-            );
-          this.chiTietLenhSanXuats.forEach((item: any) => {
-            item.storage_unit = storageCode;
-          });
+    // Tự động lưu trước
+    this.saveData().subscribe({
+      next: () => {
+        this.loading = false;
 
-          this.http
-            .put<any>(
-              `${this.resourceUrlUpdateDetail}`,
-              this.chiTietLenhSanXuats,
-            )
-            .subscribe({
-              next: () => {
-                this.http
-                  .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
-                    trang_thai: "Đã phê duyệt",
-                    total_quantity: totalCheckedQuantity,
-                    storage_code: storageCode,
-                  })
-                  .subscribe({
-                    next: () => {
-                      this.openMessageModal("Phê duyệt thành công");
-                      this.previousState();
-                    },
-                    error: () => {
-                      this.openMessageModal("Phê duyệt thất bại");
-                    },
-                  });
-              },
-              error: () => {
-                this.openMessageModal("Cập nhật mã kho thất bại");
-              },
-            });
-        }
+        // Sau khi lưu xong mới mở modal xác nhận phê duyệt
+        this.modalService.open(content, { centered: true }).result.then(
+          (result) => {
+            if (result === "confirm") {
+              const id = this.editForm.get(["id"])!.value;
+              const storageCode = this.editForm.get(["storageCode"])!.value;
+
+              const totalCheckedQuantity = this.chiTietLenhSanXuatActive
+                .filter((item: any) => item.checked === 1)
+                .reduce(
+                  (sum: number, item: any) =>
+                    sum + Number(item.initial_quantity ?? 0),
+                  0,
+                );
+
+              this.http
+                .patch(`${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`, {
+                  trang_thai: "Đã phê duyệt",
+                  total_quantity: totalCheckedQuantity,
+                  storage_code: storageCode,
+                })
+                .subscribe({
+                  next: () => {
+                    this.openMessageModal("Phê duyệt thành công");
+                    this.previousState();
+                  },
+                  error: () => {
+                    this.openMessageModal("Phê duyệt thất bại");
+                  },
+                });
+            }
+          },
+          () => {},
+        );
       },
-      () => {},
-    );
+      error: () => {
+        this.loading = false;
+        this.openMessageModal("Lưu dữ liệu thất bại, không thể phê duyệt!");
+      },
+    });
   }
 
   khoHuyStatus(): void {
@@ -717,61 +716,20 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
 
   save(): void {
     this.isSaving = true;
-    this.editForm.patchValue({
-      timeUpdate: dayjs().startOf("second").format(DATE_TIME_FORMAT),
-    });
-
     const id = this.editForm.get(["id"])!.value;
+
     if (id !== undefined && id !== null) {
-      const storageCode = this.editForm.get(["storageCode"])!.value;
-
-      this.chiTietLenhSanXuats.forEach((item: any) => {
-        item.storage_unit = storageCode;
+      this.saveData().subscribe({
+        next: () => {
+          this.isSaving = false;
+          this.openMessageModal("Cập nhật chi tiết lệnh sản xuất thành công!");
+          window.location.reload();
+        },
+        error: () => {
+          this.isSaving = false;
+          this.openMessageModal("Cập nhật thất bại!");
+        },
       });
-      // Create DTO with only necessary fields to avoid data loss
-      const updateDTO = {
-        id: id,
-        maLenhSanXuat: this.editForm.get(["maLenhSanXuat"])!.value,
-        sapCode: this.editForm.get(["sapCode"])!.value,
-        sapName: this.editForm.get(["sapName"])!.value,
-        workOrderCode: this.editForm.get(["workOrderCode"])!.value,
-        version: this.editForm.get(["version"])!.value,
-        storageCode: this.editForm.get(["storageCode"])!.value,
-        storage_code: this.editForm.get(["storageCode"])!.value,
-        totalQuantity: this.editForm.get(["totalQuantity"])!.value,
-        createBy: this.editForm.get(["createBy"])!.value,
-        entryTime: this.editForm.get(["entryTime"])!.value,
-        trangThai: this.editForm.get(["trangThai"])!.value,
-        comment: this.editForm.get(["comment"])!.value,
-        timeUpdate: dayjs().toISOString(),
-        groupName: this.editForm.get(["groupName"])!.value,
-        comment2: this.editForm.get(["comment2"])!.value,
-      };
-
-      // Update warehouse_note_info
-      this.http
-        .patch<any>(
-          // `${this.resourceUrlWarehouseNoteApprovalInfo}/${id}`,
-          `http://192.168.68.77:8085/api/warehouse-note-infos-approval/${id}`,
-          updateDTO,
-        )
-        .subscribe(() => {
-          // Update warehouse_note_info_details
-          this.http
-            // .put<any>(this.resourceUrlUpdateDetail, this.chiTietLenhSanXuats)
-            .put<any>(
-              `http://192.168.68.77:8085/api/warehouse-stamp-info-details`,
-              this.chiTietLenhSanXuats,
-            )
-            .subscribe(() => {
-              this.isSaving = false;
-              // alert("cập nhật chi tiết lệnh sản xuất thành công!");
-              this.openMessageModal(
-                "Cập nhật chi tiết lệnh sản xuất thành công!",
-              );
-              window.location.reload();
-            });
-        });
     } else {
       const lenhSanXuat = this.createFromForm();
       this.subscribeToSaveResponse(this.lenhSanXuatService.create(lenhSanXuat));
@@ -1201,5 +1159,50 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       }
     }
     return value;
+  }
+  private saveData(): Observable<any> {
+    this.editForm.patchValue({
+      timeUpdate: dayjs().startOf("second").format(DATE_TIME_FORMAT),
+    });
+
+    const id = this.editForm.get(["id"])!.value;
+    const storageCode = this.editForm.get(["storageCode"])!.value;
+
+    this.chiTietLenhSanXuats.forEach((item: any) => {
+      item.storage_unit = storageCode;
+    });
+
+    const updateDTO = {
+      id: id,
+      maLenhSanXuat: this.editForm.get(["maLenhSanXuat"])!.value,
+      sapCode: this.editForm.get(["sapCode"])!.value,
+      sapName: this.editForm.get(["sapName"])!.value,
+      workOrderCode: this.editForm.get(["workOrderCode"])!.value,
+      version: this.editForm.get(["version"])!.value,
+      storageCode: storageCode,
+      storage_code: storageCode,
+      totalQuantity: this.editForm.get(["totalQuantity"])!.value,
+      createBy: this.editForm.get(["createBy"])!.value,
+      entryTime: this.editForm.get(["entryTime"])!.value,
+      trangThai: this.editForm.get(["trangThai"])!.value,
+      comment: this.editForm.get(["comment"])!.value,
+      timeUpdate: dayjs().toISOString(),
+      groupName: this.editForm.get(["groupName"])!.value,
+      comment2: this.editForm.get(["comment2"])!.value,
+    };
+
+    return this.http
+      .patch<any>(
+        `http://192.168.68.77:8085/api/warehouse-note-infos-approval/${id}`,
+        updateDTO,
+      )
+      .pipe(
+        switchMap(() =>
+          this.http.put<any>(
+            `http://192.168.68.77:8085/api/warehouse-stamp-info-details`,
+            this.chiTietLenhSanXuats,
+          ),
+        ),
+      );
   }
 }

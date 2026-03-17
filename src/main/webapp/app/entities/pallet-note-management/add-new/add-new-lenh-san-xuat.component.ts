@@ -412,6 +412,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   // Danh sách động cho Thành phẩm
   maKhoNhapOptionsTP: { value: string; label: string }[] = [];
 
+  isUnsaved = false;
+
   // Data source
   productionOrders: ProductionOrder[] = [];
 
@@ -1101,6 +1103,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             }
 
             this.handleExistingWarehouseNote(payload);
+            this.isUnsaved = false;
             this.loading = false;
             return;
           }
@@ -1115,7 +1118,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
               this.loading = false;
               return;
             }
-
+            this.isUnsaved = true;
             this.handleNewProductionOrder(res.data, woId!);
             return; // loading sẽ được set false trong getHierarchy subscribe
           }
@@ -2702,6 +2705,7 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             panelClass: ["snackbar-success"],
           });
 
+          this.isUnsaved = false;
           this.router.navigate([`/warehouse-note-infos/${newId}/add-new`]);
         },
         error: (err) => {
@@ -2713,6 +2717,13 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         },
       });
     });
+  }
+  showUnsavedWarning(): void {
+    this.snackBar.open(
+      "Vui lòng lưu ghi chú kho trước khi thực hiện thao tác này",
+      "Đóng",
+      { duration: 3000, panelClass: ["snackbar-warning"] },
+    );
   }
   // Xóa Box
   deleteBox(index: number): void {

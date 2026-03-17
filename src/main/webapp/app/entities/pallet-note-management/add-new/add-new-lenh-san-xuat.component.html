@@ -1137,7 +1137,7 @@
         mat-raised-button
         color="primary"
         class="add-box-btn"
-        (click)="openCreateBoxDialog()"
+        (click)="isUnsaved ? showUnsavedWarning() : openCreateBoxDialog()"
       >
         <mat-icon>add</mat-icon>
         Tạo thùng mới
@@ -1146,7 +1146,7 @@
         mat-raised-button
         color="primary"
         class="add-box-btn"
-        (click)="openCreatePalletDialog()"
+        (click)="isUnsaved ? showUnsavedWarning() : openCreatePalletDialog()"
       >
         <mat-icon>add</mat-icon>
         Tạo Pallet mới
