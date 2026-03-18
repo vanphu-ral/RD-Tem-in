@@ -20,7 +20,7 @@ public class RdMaterialAttributesTestSamples {
             .id(1L)
             .attributes("attributes1")
             .description("description1")
-            .attributesTypeId(1)
+            .attributesType("TYPE1")
             .createdBy("createdBy1")
             .updatedBy("updatedBy1");
     }
@@ -30,7 +30,7 @@ public class RdMaterialAttributesTestSamples {
             .id(2L)
             .attributes("attributes2")
             .description("description2")
-            .attributesTypeId(2)
+            .attributesType("TYPE2")
             .createdBy("createdBy2")
             .updatedBy("updatedBy2");
     }
@@ -40,7 +40,7 @@ public class RdMaterialAttributesTestSamples {
             .id(longCount.incrementAndGet())
             .attributes(UUID.randomUUID().toString())
             .description(UUID.randomUUID().toString())
-            .attributesTypeId(intCount.incrementAndGet())
+            .attributesType(UUID.randomUUID().toString())
             .createdBy(UUID.randomUUID().toString())
             .updatedBy(UUID.randomUUID().toString());
     }

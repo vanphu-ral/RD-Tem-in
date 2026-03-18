@@ -5,6 +5,8 @@ import com.mycompany.myapp.service.ImportVendorTemTransactionsQueryService;
 import com.mycompany.myapp.service.ImportVendorTemTransactionsService;
 import com.mycompany.myapp.service.criteria.ImportVendorTemTransactionsCriteria;
 import com.mycompany.myapp.service.dto.ImportVendorTemTransactionsDTO;
+import com.mycompany.myapp.service.dto.ImportVendorTemTransactionsDetailDTO;
+import com.mycompany.myapp.service.dto.ImportVendorTemTransactionsWithPoDetailsRequestDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,7 +29,8 @@ import tech.jhipster.web.util.PaginationUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
 /**
- * REST controller for managing {@link com.mycompany.myapp.domain.ImportVendorTemTransactions}.
+ * REST controller for managing
+ * {@link com.mycompany.myapp.domain.ImportVendorTemTransactions}.
  */
 @RestController
 @RequestMapping("/api/import-vendor-tem-transactions")
@@ -62,10 +65,15 @@ public class ImportVendorTemTransactionsResource {
     }
 
     /**
-     * {@code POST  /import-vendor-tem-transactions} : Create a new importVendorTemTransactions.
+     * {@code POST  /import-vendor-tem-transactions} : Create a new
+     * importVendorTemTransactions.
      *
-     * @param importVendorTemTransactionsDTO the importVendorTemTransactionsDTO to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new importVendorTemTransactionsDTO, or with status {@code 400 (Bad Request)} if the importVendorTemTransactions has already an ID.
+     * @param importVendorTemTransactionsDTO the importVendorTemTransactionsDTO to
+     *                                       create.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
+     *         body the new importVendorTemTransactionsDTO, or with status
+     *         {@code 400 (Bad Request)} if the importVendorTemTransactions has
+     *         already an ID.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("")
@@ -107,13 +115,70 @@ public class ImportVendorTemTransactionsResource {
     }
 
     /**
-     * {@code PUT  /import-vendor-tem-transactions/:id} : Updates an existing importVendorTemTransactions.
+     * {@code POST  /import-vendor-tem-transactions/with-po-details} : Create a new
+     * importVendorTemTransactions with poDetails in a single request.
      *
-     * @param id the id of the importVendorTemTransactionsDTO to save.
-     * @param importVendorTemTransactionsDTO the importVendorTemTransactionsDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated importVendorTemTransactionsDTO,
-     * or with status {@code 400 (Bad Request)} if the importVendorTemTransactionsDTO is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the importVendorTemTransactionsDTO couldn't be updated.
+     * @param requestDTO the request containing transaction and poDetails data.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
+     *         body the new importVendorTemTransactionsDetailDTO containing both
+     *         transaction and poDetails, or with status {@code 400 (Bad Request)}
+     *         if
+     *         the request is invalid.
+     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     */
+    @PostMapping("/with-po-details")
+    public ResponseEntity<
+        ImportVendorTemTransactionsDetailDTO
+    > createImportVendorTemTransactionsWithPoDetails(
+        @Valid @RequestBody ImportVendorTemTransactionsWithPoDetailsRequestDTO requestDTO
+    ) throws URISyntaxException {
+        LOG.debug(
+            "REST request to save ImportVendorTemTransactions with PoDetails : {}",
+            requestDTO
+        );
+        if (
+            requestDTO.getTransaction() != null &&
+            requestDTO.getTransaction().getId() != null
+        ) {
+            throw new BadRequestAlertException(
+                "A new importVendorTemTransactions cannot already have an ID",
+                ENTITY_NAME,
+                "idexists"
+            );
+        }
+        ImportVendorTemTransactionsDetailDTO result =
+            importVendorTemTransactionsService.createWithPoDetails(requestDTO);
+        return ResponseEntity.created(
+            new URI(
+                "/api/import-vendor-tem-transactions/with-po-details/" +
+                result.getTransaction().getId()
+            )
+        )
+            .headers(
+                HeaderUtil.createEntityCreationAlert(
+                    applicationName,
+                    false,
+                    ENTITY_NAME,
+                    result.getTransaction().getId().toString()
+                )
+            )
+            .body(result);
+    }
+
+    /**
+     * {@code PUT  /import-vendor-tem-transactions/:id} : Updates an existing
+     * importVendorTemTransactions.
+     *
+     * @param id                             the id of the
+     *                                       importVendorTemTransactionsDTO to save.
+     * @param importVendorTemTransactionsDTO the importVendorTemTransactionsDTO to
+     *                                       update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated importVendorTemTransactionsDTO,
+     *         or with status {@code 400 (Bad Request)} if the
+     *         importVendorTemTransactionsDTO is not valid,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         importVendorTemTransactionsDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/{id}")
@@ -168,14 +233,22 @@ public class ImportVendorTemTransactionsResource {
     }
 
     /**
-     * {@code PATCH  /import-vendor-tem-transactions/:id} : Partial updates given fields of an existing importVendorTemTransactions, field will ignore if it is null
+     * {@code PATCH  /import-vendor-tem-transactions/:id} : Partial updates given
+     * fields of an existing importVendorTemTransactions, field will ignore if it is
+     * null
      *
-     * @param id the id of the importVendorTemTransactionsDTO to save.
-     * @param importVendorTemTransactionsDTO the importVendorTemTransactionsDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated importVendorTemTransactionsDTO,
-     * or with status {@code 400 (Bad Request)} if the importVendorTemTransactionsDTO is not valid,
-     * or with status {@code 404 (Not Found)} if the importVendorTemTransactionsDTO is not found,
-     * or with status {@code 500 (Internal Server Error)} if the importVendorTemTransactionsDTO couldn't be updated.
+     * @param id                             the id of the
+     *                                       importVendorTemTransactionsDTO to save.
+     * @param importVendorTemTransactionsDTO the importVendorTemTransactionsDTO to
+     *                                       update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated importVendorTemTransactionsDTO,
+     *         or with status {@code 400 (Bad Request)} if the
+     *         importVendorTemTransactionsDTO is not valid,
+     *         or with status {@code 404 (Not Found)} if the
+     *         importVendorTemTransactionsDTO is not found,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         importVendorTemTransactionsDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(
@@ -233,11 +306,13 @@ public class ImportVendorTemTransactionsResource {
     }
 
     /**
-     * {@code GET  /import-vendor-tem-transactions} : get all the importVendorTemTransactions.
+     * {@code GET  /import-vendor-tem-transactions} : get all the
+     * importVendorTemTransactions.
      *
      * @param pageable the pagination information.
      * @param criteria the criteria which the requested entities should match.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of importVendorTemTransactions in body.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of importVendorTemTransactions in body.
      */
     @GetMapping("")
     public ResponseEntity<
@@ -264,10 +339,12 @@ public class ImportVendorTemTransactionsResource {
     }
 
     /**
-     * {@code GET  /import-vendor-tem-transactions/count} : count all the importVendorTemTransactions.
+     * {@code GET  /import-vendor-tem-transactions/count} : count all the
+     * importVendorTemTransactions.
      *
      * @param criteria the criteria which the requested entities should match.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count in body.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count
+     *         in body.
      */
     @GetMapping("/count")
     public ResponseEntity<Long> countImportVendorTemTransactions(
@@ -283,10 +360,13 @@ public class ImportVendorTemTransactionsResource {
     }
 
     /**
-     * {@code GET  /import-vendor-tem-transactions/:id} : get the "id" importVendorTemTransactions.
+     * {@code GET  /import-vendor-tem-transactions/:id} : get the "id"
+     * importVendorTemTransactions.
      *
      * @param id the id of the importVendorTemTransactionsDTO to retrieve.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the importVendorTemTransactionsDTO, or with status {@code 404 (Not Found)}.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the importVendorTemTransactionsDTO, or with status
+     *         {@code 404 (Not Found)}.
      */
     @GetMapping("/{id}")
     public ResponseEntity<
@@ -301,7 +381,35 @@ public class ImportVendorTemTransactionsResource {
     }
 
     /**
-     * {@code DELETE  /import-vendor-tem-transactions/:id} : delete the "id" importVendorTemTransactions.
+     * {@code GET  /import-vendor-tem-transactions/:id/details} : get the "id"
+     * importVendorTemTransactions with all related data (poDetails and
+     * vendorTemDetails).
+     *
+     * @param id the id of the importVendorTemTransactions to retrieve.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the importVendorTemTransactionsDetailDTO, or with status
+     *         {@code 404 (Not Found)}.
+     */
+    @GetMapping("/{id}/details")
+    public ResponseEntity<
+        ImportVendorTemTransactionsDetailDTO
+    > getImportVendorTemTransactionsDetails(@PathVariable("id") Long id) {
+        LOG.debug(
+            "REST request to get ImportVendorTemTransactions details : {}",
+            id
+        );
+        Optional<
+            ImportVendorTemTransactionsDetailDTO
+        > importVendorTemTransactionsDetailDTO =
+            importVendorTemTransactionsService.findOneWithDetails(id);
+        return ResponseUtil.wrapOrNotFound(
+            importVendorTemTransactionsDetailDTO
+        );
+    }
+
+    /**
+     * {@code DELETE  /import-vendor-tem-transactions/:id} : delete the "id"
+     * importVendorTemTransactions.
      *
      * @param id the id of the importVendorTemTransactionsDTO to delete.
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.

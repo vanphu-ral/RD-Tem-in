@@ -11,7 +11,7 @@
     -->
     <changeSet id="20260309010237-1" author="jhipster">
         <createTable tableName="import_vendor_tem_transactions" remarks="Entity ImportVendorTemTransactions">
-            <column name="id" type="bigint">
+            <column name="id" type="bigint" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="po_number" type="varchar(20)">
@@ -29,7 +29,10 @@
             <column name="storage_unit" type="varchar(50)">
                 <constraints nullable="true" />
             </column>
-            <column name="import_tem_profile" type="varchar(255)">
+            <column name="tem_identification_scenario_id" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="mapping_config" type="text">
                 <constraints nullable="true" />
             </column>
             <column name="status" type="varchar(50)">
@@ -82,7 +85,8 @@
             <column name="vendor_name" type="string"/>
             <column name="entry_date" type="date"/>
             <column name="storage_unit" type="string"/>
-            <column name="import_tem_profile" type="string"/>
+            <column name="tem_identification_scenario_id" type="numeric"/>
+            <column name="mapping_config" type="string"/>
             <column name="status" type="string"/>
             <column name="created_by" type="string"/>
             <column name="created_at" type="date"/>

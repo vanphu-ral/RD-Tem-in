@@ -1,11 +1,11 @@
-id;attributes;description;attributes_type_id;created_by;created_at;updated_by;updated_at
-1;intent almost usefully;almighty an;7035;phooey;2026-03-08T02:27:17;provision boo govern;2026-03-08T12:12:39
-2;disk;fatally;8522;meanwhile so;2026-03-08T16:18:05;platypus;2026-03-08T10:19:14
-3;coolly pillow badly;optimal outrun legislature;9510;hence;2026-03-08T16:33:01;formal whose;2026-03-08T22:14:31
-4;sedately going;softly reservation;1888;rebel thunderbolt wh;2026-03-08T16:00:38;brr boohoo;2026-03-09T00:31:01
-5;worth tomb whopping;courageously;662;ample;2026-03-08T14:10:42;sniff upward;2026-03-08T02:35:34
-6;including now immediately;curiously queasily;8222;whereas and inasmuch;2026-03-08T12:15:12;bare carefully thoug;2026-03-08T21:08:39
-7;zowie drat yippee;emulsify rule meh;22740;though sunny;2026-03-09T00:55:00;rudely gad whether;2026-03-08T17:33:37
-8;truthfully;duh;18401;instead amongst outs;2026-03-08T21:11:40;sociable;2026-03-08T20:05:31
-9;aha quicker;around labourer;22018;solidly;2026-03-08T16:01:39;abaft compromise;2026-03-08T20:27:35
-10;hmph;lay finally nearly;15529;embossing barring ap;2026-03-08T03:52:58;blah ill;2026-03-08T13:33:14
+id;attributes;description;attributes_type;created_by;created_at;updated_by;updated_at
+1;intent almost usefully;almighty an;type_A;phooey;2026-03-08T02:27:17;provision boo govern;2026-03-08T12:12:39
+2;disk;fatally;type_B;meanwhile so;2026-03-08T16:18:05;platypus;2026-03-08T10:19:14
+3;coolly pillow badly;optimal outrun legislature;type_C;hence;2026-03-08T16:33:01;formal whose;2026-03-08T22:14:31
+4;sedately going;softly reservation;type_A;rebel thunderbolt wh;2026-03-08T16:00:38;brr boohoo;2026-03-09T00:31:01
+5;worth tomb whopping;courageously;type_B;ample;2026-03-08T14:10:42;sniff upward;2026-03-08T02:35:34
+6;including now immediately;curiously queasily;type_C;whereas and incumb;2026-03-08T12:15:12;bare carefully thoug;2026-03-08T21:08:39
+7;zowie drat yippee;emulsify rule meh;type_A;though sunny;2026-03-09T00:55:00;rudely gad whether;2026-03-08T17:33:37
+8;truthfully;duh;type_B;instead amongst outs;2026-03-08T21:11:40;sociable;2026-03-08T20:05:31
+9;aha quicker;around labourer;type_C;solidly;2026-03-08T16:01:39;abaft compromise;2026-03-08T20:27:35
+10;hmph;lay finally nearly;type_A;embossing barring ap;2026-03-08T03:52:58;blah ill;2026-03-08T13:33:14

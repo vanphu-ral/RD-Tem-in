@@ -8,7 +8,8 @@ import java.util.Objects;
 import javax.validation.constraints.*;
 
 /**
- * A DTO for the {@link com.mycompany.myapp.domain.ImportVendorTemTransactions} entity.
+ * A DTO for the {@link com.mycompany.myapp.domain.ImportVendorTemTransactions}
+ * entity.
  */
 @Schema(description = "Entity ImportVendorTemTransactions")
 @SuppressWarnings("common-java:DuplicatedBlocks")
@@ -30,7 +31,9 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
     @Size(max = 50)
     private String storageUnit;
 
-    private String importTemProfile;
+    private Integer temIdentificationScenarioId;
+
+    private String mappingConfig;
 
     @Size(max = 50)
     private String status;
@@ -98,12 +101,22 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
         this.storageUnit = storageUnit;
     }
 
-    public String getImportTemProfile() {
-        return importTemProfile;
+    public Integer getTemIdentificationScenarioId() {
+        return temIdentificationScenarioId;
     }
 
-    public void setImportTemProfile(String importTemProfile) {
-        this.importTemProfile = importTemProfile;
+    public void setTemIdentificationScenarioId(
+        Integer temIdentificationScenarioId
+    ) {
+        this.temIdentificationScenarioId = temIdentificationScenarioId;
+    }
+
+    public String getMappingConfig() {
+        return mappingConfig;
+    }
+
+    public void setMappingConfig(String mappingConfig) {
+        this.mappingConfig = mappingConfig;
     }
 
     public String getStatus() {
@@ -188,20 +201,21 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
     @Override
     public String toString() {
         return "ImportVendorTemTransactionsDTO{" +
-            "id=" + getId() +
-            ", poNumber='" + getPoNumber() + "'" +
-            ", vendorCode='" + getVendorCode() + "'" +
-            ", vendorName='" + getVendorName() + "'" +
-            ", entryDate='" + getEntryDate() + "'" +
-            ", storageUnit='" + getStorageUnit() + "'" +
-            ", importTemProfile='" + getImportTemProfile() + "'" +
-            ", status='" + getStatus() + "'" +
-            ", createdBy='" + getCreatedBy() + "'" +
-            ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedBy='" + getUpdatedBy() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
-            ", deletedBy='" + getDeletedBy() + "'" +
-            ", deletedAt='" + getDeletedAt() + "'" +
-            "}";
+                "id=" + getId() +
+                ", poNumber='" + getPoNumber() + "'" +
+                ", vendorCode='" + getVendorCode() + "'" +
+                ", vendorName='" + getVendorName() + "'" +
+                ", entryDate='" + getEntryDate() + "'" +
+                ", storageUnit='" + getStorageUnit() + "'" +
+                ", temIdentificationScenarioId=" + getTemIdentificationScenarioId() +
+                ", mappingConfig='" + getMappingConfig() + "'" +
+                ", status='" + getStatus() + "'" +
+                ", createdBy='" + getCreatedBy() + "'" +
+                ", createdAt='" + getCreatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                ", deletedBy='" + getDeletedBy() + "'" +
+                ", deletedAt='" + getDeletedAt() + "'" +
+                "}";
     }
 }

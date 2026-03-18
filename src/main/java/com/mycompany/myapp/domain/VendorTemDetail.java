@@ -17,13 +17,15 @@ public class VendorTemDetail implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "sequenceGenerator"
-    )
-    @SequenceGenerator(name = "sequenceGenerator")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
+
+    @Column(name = "po_detail_id")
+    private Long poDetailId;
+
+    @Column(name = "import_vendor_tem_transactions_id")
+    private Long importVendorTemTransactionsId;
 
     @Size(max = 30)
     @Column(name = "reel_id", length = 30)
@@ -161,6 +163,7 @@ public class VendorTemDetail implements Serializable {
         value = { "vendorTemDetails", "importVendorTemTransactions" },
         allowSetters = true
     )
+    @JoinColumn(name = "po_detail_id", insertable = false, updatable = false)
     private PoDetail poDetail;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
@@ -176,6 +179,36 @@ public class VendorTemDetail implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getPoDetailId() {
+        return this.poDetailId;
+    }
+
+    public VendorTemDetail poDetailId(Long poDetailId) {
+        this.setPoDetailId(poDetailId);
+        return this;
+    }
+
+    public void setPoDetailId(Long poDetailId) {
+        this.poDetailId = poDetailId;
+    }
+
+    public Long getImportVendorTemTransactionsId() {
+        return this.importVendorTemTransactionsId;
+    }
+
+    public VendorTemDetail importVendorTemTransactionsId(
+        Long importVendorTemTransactionsId
+    ) {
+        this.setImportVendorTemTransactionsId(importVendorTemTransactionsId);
+        return this;
+    }
+
+    public void setImportVendorTemTransactionsId(
+        Long importVendorTemTransactionsId
+    ) {
+        this.importVendorTemTransactionsId = importVendorTemTransactionsId;
     }
 
     public String getReelId() {
@@ -633,7 +666,16 @@ public class VendorTemDetail implements Serializable {
         return this;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
+    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
+    // setters here
+    @ManyToOne
+    @JoinColumn(
+        name = "import_vendor_tem_transactions_id",
+        insertable = false,
+        updatable = false
+    ) // Thêm 2 thuộc tính
+    // này
+    private ImportVendorTemTransactions importVendorTemTransactions;
 
     @Override
     public boolean equals(Object o) {
@@ -648,7 +690,8 @@ public class VendorTemDetail implements Serializable {
 
     @Override
     public int hashCode() {
-        // see https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
+        // see
+        // https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
         return getClass().hashCode();
     }
 
@@ -656,41 +699,43 @@ public class VendorTemDetail implements Serializable {
     @Override
     public String toString() {
         return "VendorTemDetail{" +
-            "id=" + getId() +
-            ", reelId='" + getReelId() + "'" +
-            ", partNumber='" + getPartNumber() + "'" +
-            ", vendor='" + getVendor() + "'" +
-            ", lot='" + getLot() + "'" +
-            ", userData1='" + getUserData1() + "'" +
-            ", userData2='" + getUserData2() + "'" +
-            ", userData3='" + getUserData3() + "'" +
-            ", userData4='" + getUserData4() + "'" +
-            ", userData5='" + getUserData5() + "'" +
-            ", initialQuantity=" + getInitialQuantity() +
-            ", msdLevel='" + getMsdLevel() + "'" +
-            ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
-            ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
-            ", marketUsage='" + getMarketUsage() + "'" +
-            ", quantityOverride=" + getQuantityOverride() +
-            ", shelfTime='" + getShelfTime() + "'" +
-            ", spMaterialName='" + getSpMaterialName() + "'" +
-            ", warningLimit='" + getWarningLimit() + "'" +
-            ", maximumLimit='" + getMaximumLimit() + "'" +
-            ", comments='" + getComments() + "'" +
-            ", warmupTime='" + getWarmupTime() + "'" +
-            ", storageUnit='" + getStorageUnit() + "'" +
-            ", subStorageUnit='" + getSubStorageUnit() + "'" +
-            ", locationOverride='" + getLocationOverride() + "'" +
-            ", expirationDate='" + getExpirationDate() + "'" +
-            ", manufacturingDate='" + getManufacturingDate() + "'" +
-            ", partClass='" + getPartClass() + "'" +
-            ", sapCode='" + getSapCode() + "'" +
-            ", vendorQrCode='" + getVendorQrCode() + "'" +
-            ", status='" + getStatus() + "'" +
-            ", createdBy='" + getCreatedBy() + "'" +
-            ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedBy='" + getUpdatedBy() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
-            "}";
+                "id=" + getId() +
+                ", poDetailId=" + getPoDetailId() +
+                ", importVendorTemTransactionsId=" + getImportVendorTemTransactionsId() +
+                ", reelId='" + getReelId() + "'" +
+                ", partNumber='" + getPartNumber() + "'" +
+                ", vendor='" + getVendor() + "'" +
+                ", lot='" + getLot() + "'" +
+                ", userData1='" + getUserData1() + "'" +
+                ", userData2='" + getUserData2() + "'" +
+                ", userData3='" + getUserData3() + "'" +
+                ", userData4='" + getUserData4() + "'" +
+                ", userData5='" + getUserData5() + "'" +
+                ", initialQuantity=" + getInitialQuantity() +
+                ", msdLevel='" + getMsdLevel() + "'" +
+                ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
+                ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
+                ", marketUsage='" + getMarketUsage() + "'" +
+                ", quantityOverride=" + getQuantityOverride() +
+                ", shelfTime='" + getShelfTime() + "'" +
+                ", spMaterialName='" + getSpMaterialName() + "'" +
+                ", warningLimit='" + getWarningLimit() + "'" +
+                ", maximumLimit='" + getMaximumLimit() + "'" +
+                ", comments='" + getComments() + "'" +
+                ", warmupTime='" + getWarmupTime() + "'" +
+                ", storageUnit='" + getStorageUnit() + "'" +
+                ", subStorageUnit='" + getSubStorageUnit() + "'" +
+                ", locationOverride='" + getLocationOverride() + "'" +
+                ", expirationDate='" + getExpirationDate() + "'" +
+                ", manufacturingDate='" + getManufacturingDate() + "'" +
+                ", partClass='" + getPartClass() + "'" +
+                ", sapCode='" + getSapCode() + "'" +
+                ", vendorQrCode='" + getVendorQrCode() + "'" +
+                ", status='" + getStatus() + "'" +
+                ", createdBy='" + getCreatedBy() + "'" +
+                ", createdAt='" + getCreatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                "}";
     }
 }

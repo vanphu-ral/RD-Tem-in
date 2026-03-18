@@ -17,10 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import tech.jhipster.service.QueryService;
 
 /**
- * Service for executing complex queries for {@link ImportVendorTemTransactions} entities in the database.
- * The main input is a {@link ImportVendorTemTransactionsCriteria} which gets converted to {@link Specification},
+ * Service for executing complex queries for {@link ImportVendorTemTransactions}
+ * entities in the database.
+ * The main input is a {@link ImportVendorTemTransactionsCriteria} which gets
+ * converted to {@link Specification},
  * in a way that all the filters must apply.
- * It returns a {@link Page} of {@link ImportVendorTemTransactionsDTO} which fulfills the criteria.
+ * It returns a {@link Page} of {@link ImportVendorTemTransactionsDTO} which
+ * fulfills the criteria.
  */
 @Service
 @Transactional(readOnly = true)
@@ -46,9 +49,12 @@ public class ImportVendorTemTransactionsQueryService
     }
 
     /**
-     * Return a {@link Page} of {@link ImportVendorTemTransactionsDTO} which matches the criteria from the database.
-     * @param criteria The object which holds all the filters, which the entities should match.
-     * @param page The page, which should be returned.
+     * Return a {@link Page} of {@link ImportVendorTemTransactionsDTO} which matches
+     * the criteria from the database.
+     *
+     * @param criteria The object which holds all the filters, which the entities
+     *                 should match.
+     * @param page     The page, which should be returned.
      * @return the matching entities.
      */
     @Transactional(readOnly = true)
@@ -66,7 +72,9 @@ public class ImportVendorTemTransactionsQueryService
 
     /**
      * Return the number of matching entities in the database.
-     * @param criteria The object which holds all the filters, which the entities should match.
+     *
+     * @param criteria The object which holds all the filters, which the entities
+     *                 should match.
      * @return the number of matching entities.
      */
     @Transactional(readOnly = true)
@@ -78,8 +86,11 @@ public class ImportVendorTemTransactionsQueryService
     }
 
     /**
-     * Function to convert {@link ImportVendorTemTransactionsCriteria} to a {@link Specification}
-     * @param criteria The object which holds all the filters, which the entities should match.
+     * Function to convert {@link ImportVendorTemTransactionsCriteria} to a
+     * {@link Specification}
+     *
+     * @param criteria The object which holds all the filters, which the entities
+     *                 should match.
      * @return the matching {@link Specification} of the entity.
      */
     protected Specification<ImportVendorTemTransactions> createSpecification(
@@ -138,11 +149,11 @@ public class ImportVendorTemTransactionsQueryService
                 )
             );
         }
-        if (criteria.getImportTemProfile() != null) {
+        if (criteria.getTemIdentificationScenarioId() != null) {
             specification = specification.and(
-                buildStringSpecification(
-                    criteria.getImportTemProfile(),
-                    ImportVendorTemTransactions_.importTemProfile
+                buildRangeSpecification(
+                    criteria.getTemIdentificationScenarioId(),
+                    ImportVendorTemTransactions_.temIdentificationScenarioId
                 )
             );
         }

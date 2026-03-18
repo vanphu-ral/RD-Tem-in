@@ -110,7 +110,6 @@ class ImportVendorTemTransactionsCriteriaTest {
         importVendorTemTransactionsCriteria.vendorName();
         importVendorTemTransactionsCriteria.entryDate();
         importVendorTemTransactionsCriteria.storageUnit();
-        importVendorTemTransactionsCriteria.importTemProfile();
         importVendorTemTransactionsCriteria.status();
         importVendorTemTransactionsCriteria.createdBy();
         importVendorTemTransactionsCriteria.createdAt();
@@ -133,7 +132,6 @@ class ImportVendorTemTransactionsCriteriaTest {
                 condition.apply(criteria.getVendorName()) &&
                 condition.apply(criteria.getEntryDate()) &&
                 condition.apply(criteria.getStorageUnit()) &&
-                condition.apply(criteria.getImportTemProfile()) &&
                 condition.apply(criteria.getStatus()) &&
                 condition.apply(criteria.getCreatedBy()) &&
                 condition.apply(criteria.getCreatedAt()) &&
@@ -169,10 +167,6 @@ class ImportVendorTemTransactionsCriteriaTest {
                 condition.apply(
                     criteria.getStorageUnit(),
                     copy.getStorageUnit()
-                ) &&
-                condition.apply(
-                    criteria.getImportTemProfile(),
-                    copy.getImportTemProfile()
                 ) &&
                 condition.apply(criteria.getStatus(), copy.getStatus()) &&
                 condition.apply(criteria.getCreatedBy(), copy.getCreatedBy()) &&

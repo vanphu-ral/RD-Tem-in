@@ -1,6 +1,5 @@
 package com.mycompany.myapp.domain;
 
-import static com.mycompany.myapp.domain.AttributesTypeTestSamples.*;
 import static com.mycompany.myapp.domain.RdMaterialAttributesTestSamples.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,12 +27,11 @@ class RdMaterialAttributesTest {
     void attributesTypeTest() {
         RdMaterialAttributes rdMaterialAttributes =
             getRdMaterialAttributesRandomSampleGenerator();
-        AttributesType attributesTypeBack =
-            getAttributesTypeRandomSampleGenerator();
 
-        rdMaterialAttributes.setAttributesType(attributesTypeBack);
+        String attributesType = "TEST_TYPE";
+        rdMaterialAttributes.setAttributesType(attributesType);
         assertThat(rdMaterialAttributes.getAttributesType()).isEqualTo(
-            attributesTypeBack
+            attributesType
         );
 
         rdMaterialAttributes.attributesType(null);

@@ -33,8 +33,9 @@ public class RdMaterialAttributes implements Serializable {
     @Column(name = "description", length = 255)
     private String description;
 
-    @Column(name = "attributes_type_id")
-    private Integer attributesTypeId;
+    @Size(max = 50)
+    @Column(name = "attributes_type", length = 50)
+    private String attributesType;
 
     @Size(max = 20)
     @Column(name = "created_by", length = 20)
@@ -49,18 +50,6 @@ public class RdMaterialAttributes implements Serializable {
 
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-        name = "attributes_type_id",
-        insertable = false,
-        updatable = false
-    )
-    @JsonIgnoreProperties(
-        value = { "rdMaterialAttributes" },
-        allowSetters = true
-    )
-    private AttributesType attributesType;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
@@ -103,17 +92,17 @@ public class RdMaterialAttributes implements Serializable {
         this.description = description;
     }
 
-    public Integer getAttributesTypeId() {
-        return this.attributesTypeId;
+    public String getAttributesType() {
+        return this.attributesType;
     }
 
-    public RdMaterialAttributes attributesTypeId(Integer attributesTypeId) {
-        this.setAttributesTypeId(attributesTypeId);
+    public RdMaterialAttributes attributesType(String attributesType) {
+        this.setAttributesType(attributesType);
         return this;
     }
 
-    public void setAttributesTypeId(Integer attributesTypeId) {
-        this.attributesTypeId = attributesTypeId;
+    public void setAttributesType(String attributesType) {
+        this.attributesType = attributesType;
     }
 
     public String getCreatedBy() {
@@ -168,20 +157,8 @@ public class RdMaterialAttributes implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public AttributesType getAttributesType() {
-        return this.attributesType;
-    }
-
-    public void setAttributesType(AttributesType attributesType) {
-        this.attributesType = attributesType;
-    }
-
-    public RdMaterialAttributes attributesType(AttributesType attributesType) {
-        this.setAttributesType(attributesType);
-        return this;
-    }
-
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
+    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
+    // setters here
 
     @Override
     public boolean equals(Object o) {
@@ -199,7 +176,8 @@ public class RdMaterialAttributes implements Serializable {
 
     @Override
     public int hashCode() {
-        // see https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
+        // see
+        // https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
         return getClass().hashCode();
     }
 
@@ -207,14 +185,14 @@ public class RdMaterialAttributes implements Serializable {
     @Override
     public String toString() {
         return "RdMaterialAttributes{" +
-            "id=" + getId() +
-            ", attributes='" + getAttributes() + "'" +
-            ", description='" + getDescription() + "'" +
-            ", attributesTypeId=" + getAttributesTypeId() +
-            ", createdBy='" + getCreatedBy() + "'" +
-            ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedBy='" + getUpdatedBy() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
-            "}";
+                "id=" + getId() +
+                ", attributes='" + getAttributes() + "'" +
+                ", description='" + getDescription() + "'" +
+                ", attributesType='" + getAttributesType() + "'" +
+                ", createdBy='" + getCreatedBy() + "'" +
+                ", createdAt='" + getCreatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                "}";
     }
 }

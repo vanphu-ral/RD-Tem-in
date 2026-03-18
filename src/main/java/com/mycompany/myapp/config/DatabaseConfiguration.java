@@ -44,8 +44,6 @@ import tech.jhipster.config.JHipsterConstants;
                 .TemIdentificationScenarioRepository.class,
             com.mycompany.myapp.repository.partner5
                 .RdMaterialAttributesRepository.class,
-            com.mycompany.myapp.repository.partner5
-                .AttributesTypeRepository.class,
         }
     )
 )

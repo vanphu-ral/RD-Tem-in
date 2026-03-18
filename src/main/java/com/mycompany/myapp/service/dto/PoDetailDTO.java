@@ -29,6 +29,8 @@ public class PoDetailDTO implements Serializable {
 
     private ImportVendorTemTransactionsDTO importVendorTemTransactions;
 
+    private Long importVendorTemTransactionsId;
+
     public Long getId() {
         return id;
     }
@@ -87,6 +89,16 @@ public class PoDetailDTO implements Serializable {
         this.importVendorTemTransactions = importVendorTemTransactions;
     }
 
+    public Long getImportVendorTemTransactionsId() {
+        return importVendorTemTransactionsId;
+    }
+
+    public void setImportVendorTemTransactionsId(
+        Long importVendorTemTransactionsId
+    ) {
+        this.importVendorTemTransactionsId = importVendorTemTransactionsId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -112,13 +124,13 @@ public class PoDetailDTO implements Serializable {
     @Override
     public String toString() {
         return "PoDetailDTO{" +
-            "id=" + getId() +
-            ", sapCode='" + getSapCode() + "'" +
-            ", sapName='" + getSapName() + "'" +
-            ", quantityContainer=" + getQuantityContainer() +
-            ", totalQuantity=" + getTotalQuantity() +
-            ", partNumber='" + getPartNumber() + "'" +
-            ", importVendorTemTransactions=" + getImportVendorTemTransactions() +
-            "}";
+                "id=" + getId() +
+                ", sapCode='" + getSapCode() + "'" +
+                ", sapName='" + getSapName() + "'" +
+                ", quantityContainer=" + getQuantityContainer() +
+                ", totalQuantity=" + getTotalQuantity() +
+                ", partNumber='" + getPartNumber() + "'" +
+                ", importVendorTemTransactions=" + getImportVendorTemTransactions() +
+                "}";
     }
 }

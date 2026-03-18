@@ -8,12 +8,16 @@ import tech.jhipster.service.Criteria;
 import tech.jhipster.service.filter.*;
 
 /**
- * Criteria class for the {@link com.mycompany.myapp.domain.RdMaterialAttributes} entity. This class is used
- * in {@link com.mycompany.myapp.web.rest.RdMaterialAttributesResource} to receive all the possible filtering options from
+ * Criteria class for the
+ * {@link com.mycompany.myapp.domain.RdMaterialAttributes} entity. This class is
+ * used
+ * in {@link com.mycompany.myapp.web.rest.RdMaterialAttributesResource} to
+ * receive all the possible filtering options from
  * the Http GET request parameters.
  * For example the following could be a valid request:
  * {@code /rd-material-attributes?id.greaterThan=5&attr1.contains=something&attr2.specified=false}
- * As Spring is unable to properly convert the types, unless specific {@link Filter} class are used, we need to use
+ * As Spring is unable to properly convert the types, unless specific
+ * {@link Filter} class are used, we need to use
  * fix type specific filters.
  */
 // @ParameterObject
@@ -28,7 +32,7 @@ public class RdMaterialAttributesCriteria implements Serializable, Criteria {
 
     private StringFilter description;
 
-    private IntegerFilter attributesTypeId;
+    private StringFilter attributesType;
 
     private StringFilter createdBy;
 
@@ -52,9 +56,9 @@ public class RdMaterialAttributesCriteria implements Serializable, Criteria {
             .optionalDescription()
             .map(StringFilter::copy)
             .orElse(null);
-        this.attributesTypeId = other
-            .optionalAttributesTypeId()
-            .map(IntegerFilter::copy)
+        this.attributesType = other
+            .optionalAttributesType()
+            .map(StringFilter::copy)
             .orElse(null);
         this.createdBy = other
             .optionalCreatedBy()
@@ -71,10 +75,6 @@ public class RdMaterialAttributesCriteria implements Serializable, Criteria {
         this.updatedAt = other
             .optionalUpdatedAt()
             .map(ZonedDateTimeFilter::copy)
-            .orElse(null);
-        this.attributesTypeId = other
-            .optionalAttributesTypeId()
-            .map(IntegerFilter::copy)
             .orElse(null);
         this.distinct = other.distinct;
     }
@@ -141,23 +141,23 @@ public class RdMaterialAttributesCriteria implements Serializable, Criteria {
         this.description = description;
     }
 
-    public IntegerFilter getAttributesTypeId() {
-        return attributesTypeId;
+    public StringFilter getAttributesType() {
+        return attributesType;
     }
 
-    public Optional<IntegerFilter> optionalAttributesTypeId() {
-        return Optional.ofNullable(attributesTypeId);
+    public Optional<StringFilter> optionalAttributesType() {
+        return Optional.ofNullable(attributesType);
     }
 
-    public IntegerFilter attributesTypeId() {
-        if (attributesTypeId == null) {
-            setAttributesTypeId(new IntegerFilter());
+    public StringFilter attributesType() {
+        if (attributesType == null) {
+            setAttributesType(new StringFilter());
         }
-        return attributesTypeId;
+        return attributesType;
     }
 
-    public void setAttributesTypeId(IntegerFilter attributesTypeId) {
-        this.attributesTypeId = attributesTypeId;
+    public void setAttributesType(StringFilter attributesType) {
+        this.attributesType = attributesType;
     }
 
     public StringFilter getCreatedBy() {
@@ -269,12 +269,11 @@ public class RdMaterialAttributesCriteria implements Serializable, Criteria {
             Objects.equals(id, that.id) &&
             Objects.equals(attributes, that.attributes) &&
             Objects.equals(description, that.description) &&
-            Objects.equals(attributesTypeId, that.attributesTypeId) &&
+            Objects.equals(attributesType, that.attributesType) &&
             Objects.equals(createdBy, that.createdBy) &&
             Objects.equals(createdAt, that.createdAt) &&
             Objects.equals(updatedBy, that.updatedBy) &&
             Objects.equals(updatedAt, that.updatedAt) &&
-            Objects.equals(attributesTypeId, that.attributesTypeId) &&
             Objects.equals(distinct, that.distinct)
         );
     }
@@ -285,12 +284,11 @@ public class RdMaterialAttributesCriteria implements Serializable, Criteria {
             id,
             attributes,
             description,
-            attributesTypeId,
+            attributesType,
             createdBy,
             createdAt,
             updatedBy,
             updatedAt,
-            attributesTypeId,
             distinct
         );
     }
@@ -299,16 +297,15 @@ public class RdMaterialAttributesCriteria implements Serializable, Criteria {
     @Override
     public String toString() {
         return "RdMaterialAttributesCriteria{" +
-            optionalId().map(f -> "id=" + f + ", ").orElse("") +
-            optionalAttributes().map(f -> "attributes=" + f + ", ").orElse("") +
-            optionalDescription().map(f -> "description=" + f + ", ").orElse("") +
-            optionalAttributesTypeId().map(f -> "attributesTypeId=" + f + ", ").orElse("") +
-            optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
-            optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
-            optionalUpdatedBy().map(f -> "updatedBy=" + f + ", ").orElse("") +
-            optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
-            optionalAttributesTypeId().map(f -> "attributesTypeId=" + f + ", ").orElse("") +
-            optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
-        "}";
+                optionalId().map(f -> "id=" + f + ", ").orElse("") +
+                optionalAttributes().map(f -> "attributes=" + f + ", ").orElse("") +
+                optionalDescription().map(f -> "description=" + f + ", ").orElse("") +
+                optionalAttributesType().map(f -> "attributesType=" + f + ", ").orElse("") +
+                optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
+                optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
+                optionalUpdatedBy().map(f -> "updatedBy=" + f + ", ").orElse("") +
+                optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
+                optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
+                "}";
     }
 }

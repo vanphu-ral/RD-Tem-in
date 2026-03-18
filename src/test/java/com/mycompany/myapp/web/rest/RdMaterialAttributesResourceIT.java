@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mycompany.myapp.IntegrationTest;
-import com.mycompany.myapp.domain.AttributesType;
 import com.mycompany.myapp.domain.RdMaterialAttributes;
 import com.mycompany.myapp.repository.partner5.RdMaterialAttributesRepository;
 import com.mycompany.myapp.service.dto.RdMaterialAttributesDTO;
@@ -34,7 +33,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Integration tests for the {@link RdMaterialAttributesResource} REST controller.
+ * Integration tests for the {@link RdMaterialAttributesResource} REST
+ * controller.
  */
 @IntegrationTest
 @AutoConfigureMockMvc
@@ -47,9 +47,9 @@ class RdMaterialAttributesResourceIT {
     private static final String DEFAULT_DESCRIPTION = "AAAAAAAAAA";
     private static final String UPDATED_DESCRIPTION = "BBBBBBBBBB";
 
-    private static final Integer DEFAULT_ATTRIBUTES_TYPE_ID = 1;
-    private static final Integer UPDATED_ATTRIBUTES_TYPE_ID = 2;
-    private static final Integer SMALLER_ATTRIBUTES_TYPE_ID = 1 - 1;
+    private static final String DEFAULT_ATTRIBUTES_TYPE = "AAAAAAAAAA";
+    private static final String UPDATED_ATTRIBUTES_TYPE = "BBBBBBBBBB";
+    private static final String SMALLER_ATTRIBUTES_TYPE = "AAAAAAAAA";
 
     private static final String DEFAULT_CREATED_BY = "AAAAAAAAAA";
     private static final String UPDATED_CREATED_BY = "BBBBBBBBBB";
@@ -110,7 +110,7 @@ class RdMaterialAttributesResourceIT {
         return new RdMaterialAttributes()
             .attributes(DEFAULT_ATTRIBUTES)
             .description(DEFAULT_DESCRIPTION)
-            .attributesTypeId(DEFAULT_ATTRIBUTES_TYPE_ID)
+            .attributesType(DEFAULT_ATTRIBUTES_TYPE)
             .createdBy(DEFAULT_CREATED_BY)
             .createdAt(DEFAULT_CREATED_AT)
             .updatedBy(DEFAULT_UPDATED_BY)
@@ -127,7 +127,7 @@ class RdMaterialAttributesResourceIT {
         return new RdMaterialAttributes()
             .attributes(UPDATED_ATTRIBUTES)
             .description(UPDATED_DESCRIPTION)
-            .attributesTypeId(UPDATED_ATTRIBUTES_TYPE_ID)
+            .attributesType(UPDATED_ATTRIBUTES_TYPE)
             .createdBy(UPDATED_CREATED_BY)
             .createdAt(UPDATED_CREATED_AT)
             .updatedBy(UPDATED_UPDATED_BY)
@@ -232,8 +232,8 @@ class RdMaterialAttributesResourceIT {
                 )
             )
             .andExpect(
-                jsonPath("$.[*].attributesTypeId").value(
-                    hasItem(DEFAULT_ATTRIBUTES_TYPE_ID)
+                jsonPath("$.[*].attributesType").value(
+                    hasItem(DEFAULT_ATTRIBUTES_TYPE)
                 )
             )
             .andExpect(
@@ -272,7 +272,7 @@ class RdMaterialAttributesResourceIT {
             .andExpect(jsonPath("$.attributes").value(DEFAULT_ATTRIBUTES))
             .andExpect(jsonPath("$.description").value(DEFAULT_DESCRIPTION))
             .andExpect(
-                jsonPath("$.attributesTypeId").value(DEFAULT_ATTRIBUTES_TYPE_ID)
+                jsonPath("$.attributesType").value(DEFAULT_ATTRIBUTES_TYPE)
             )
             .andExpect(jsonPath("$.createdBy").value(DEFAULT_CREATED_BY))
             .andExpect(
@@ -461,109 +461,111 @@ class RdMaterialAttributesResourceIT {
 
     @Test
     @Transactional
-    void getAllRdMaterialAttributesByAttributesTypeIdIsEqualToSomething()
+    void getAllRdMaterialAttributesByAttributesTypeIsEqualToSomething()
         throws Exception {
         // Initialize the database
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where attributesTypeId equals to
+        // Get all the rdMaterialAttributesList where attributesType equals to
         defaultRdMaterialAttributesFiltering(
-            "attributesTypeId.equals=" + DEFAULT_ATTRIBUTES_TYPE_ID,
-            "attributesTypeId.equals=" + UPDATED_ATTRIBUTES_TYPE_ID
+            "attributesType.equals=" + DEFAULT_ATTRIBUTES_TYPE,
+            "attributesType.equals=" + UPDATED_ATTRIBUTES_TYPE
         );
     }
 
     @Test
     @Transactional
-    void getAllRdMaterialAttributesByAttributesTypeIdIsInShouldWork()
+    void getAllRdMaterialAttributesByAttributesTypeIsInShouldWork()
         throws Exception {
         // Initialize the database
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where attributesTypeId in
+        // Get all the rdMaterialAttributesList where attributesType in
         defaultRdMaterialAttributesFiltering(
-            "attributesTypeId.in=" +
-            DEFAULT_ATTRIBUTES_TYPE_ID +
+            "attributesType.in=" +
+            DEFAULT_ATTRIBUTES_TYPE +
             "," +
-            UPDATED_ATTRIBUTES_TYPE_ID,
-            "attributesTypeId.in=" + UPDATED_ATTRIBUTES_TYPE_ID
+            UPDATED_ATTRIBUTES_TYPE,
+            "attributesType.in=" + UPDATED_ATTRIBUTES_TYPE
         );
     }
 
     @Test
     @Transactional
-    void getAllRdMaterialAttributesByAttributesTypeIdIsNullOrNotNull()
+    void getAllRdMaterialAttributesByAttributesTypeIsNullOrNotNull()
         throws Exception {
         // Initialize the database
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where attributesTypeId is not null
+        // Get all the rdMaterialAttributesList where attributesType is not null
         defaultRdMaterialAttributesFiltering(
-            "attributesTypeId.specified=true",
-            "attributesTypeId.specified=false"
+            "attributesType.specified=true",
+            "attributesType.specified=false"
         );
     }
 
     @Test
     @Transactional
-    void getAllRdMaterialAttributesByAttributesTypeIdIsGreaterThanOrEqualToSomething()
+    void getAllRdMaterialAttributesByAttributesTypeIsGreaterThanOrEqualToSomething()
         throws Exception {
         // Initialize the database
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where attributesTypeId is greater than or equal to
+        // Get all the rdMaterialAttributesList where attributesType is greater than
+        // or equal to
         defaultRdMaterialAttributesFiltering(
-            "attributesTypeId.greaterThanOrEqual=" + DEFAULT_ATTRIBUTES_TYPE_ID,
-            "attributesTypeId.greaterThanOrEqual=" + UPDATED_ATTRIBUTES_TYPE_ID
+            "attributesType.greaterThanOrEqual=" + DEFAULT_ATTRIBUTES_TYPE,
+            "attributesType.greaterThanOrEqual=" + UPDATED_ATTRIBUTES_TYPE
         );
     }
 
     @Test
     @Transactional
-    void getAllRdMaterialAttributesByAttributesTypeIdIsLessThanOrEqualToSomething()
+    void getAllRdMaterialAttributesByAttributesTypeIsLessThanOrEqualToSomething()
         throws Exception {
         // Initialize the database
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where attributesTypeId is less than or equal to
+        // Get all the rdMaterialAttributesList where attributesType is less than or
+        // equal to
         defaultRdMaterialAttributesFiltering(
-            "attributesTypeId.lessThanOrEqual=" + DEFAULT_ATTRIBUTES_TYPE_ID,
-            "attributesTypeId.lessThanOrEqual=" + SMALLER_ATTRIBUTES_TYPE_ID
+            "attributesType.lessThanOrEqual=" + DEFAULT_ATTRIBUTES_TYPE,
+            "attributesType.lessThanOrEqual=" + SMALLER_ATTRIBUTES_TYPE
         );
     }
 
     @Test
     @Transactional
-    void getAllRdMaterialAttributesByAttributesTypeIdIsLessThanSomething()
+    void getAllRdMaterialAttributesByAttributesTypeIsLessThanSomething()
         throws Exception {
         // Initialize the database
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where attributesTypeId is less than
+        // Get all the rdMaterialAttributesList where attributesType is less than
         defaultRdMaterialAttributesFiltering(
-            "attributesTypeId.lessThan=" + UPDATED_ATTRIBUTES_TYPE_ID,
-            "attributesTypeId.lessThan=" + DEFAULT_ATTRIBUTES_TYPE_ID
+            "attributesType.lessThan=" + UPDATED_ATTRIBUTES_TYPE,
+            "attributesType.lessThan=" + DEFAULT_ATTRIBUTES_TYPE
         );
     }
 
     @Test
     @Transactional
-    void getAllRdMaterialAttributesByAttributesTypeIdIsGreaterThanSomething()
+    void getAllRdMaterialAttributesByAttributesTypeIsGreaterThanSomething()
         throws Exception {
         // Initialize the database
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where attributesTypeId is greater than
+        // Get all the rdMaterialAttributesList where attributesType is greater than
         defaultRdMaterialAttributesFiltering(
-            "attributesTypeId.greaterThan=" + SMALLER_ATTRIBUTES_TYPE_ID,
-            "attributesTypeId.greaterThan=" + DEFAULT_ATTRIBUTES_TYPE_ID
+            "attributesType.greaterThan=" + SMALLER_ATTRIBUTES_TYPE,
+            "attributesType.greaterThan=" + DEFAULT_ATTRIBUTES_TYPE
         );
     }
 
@@ -695,7 +697,8 @@ class RdMaterialAttributesResourceIT {
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where createdAt is greater than or equal to
+        // Get all the rdMaterialAttributesList where createdAt is greater than or equal
+        // to
         defaultRdMaterialAttributesFiltering(
             "createdAt.greaterThanOrEqual=" + DEFAULT_CREATED_AT,
             "createdAt.greaterThanOrEqual=" + UPDATED_CREATED_AT
@@ -875,7 +878,8 @@ class RdMaterialAttributesResourceIT {
         insertedRdMaterialAttributes =
             rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
 
-        // Get all the rdMaterialAttributesList where updatedAt is greater than or equal to
+        // Get all the rdMaterialAttributesList where updatedAt is greater than or equal
+        // to
         defaultRdMaterialAttributesFiltering(
             "updatedAt.greaterThanOrEqual=" + DEFAULT_UPDATED_AT,
             "updatedAt.greaterThanOrEqual=" + UPDATED_UPDATED_AT
@@ -927,33 +931,6 @@ class RdMaterialAttributesResourceIT {
         );
     }
 
-    @Test
-    @Transactional
-    void getAllRdMaterialAttributesByAttributesTypeIsEqualToSomething()
-        throws Exception {
-        AttributesType attributesType;
-        if (TestUtil.findAll(em, AttributesType.class).isEmpty()) {
-            rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
-            attributesType = AttributesTypeResourceIT.createEntity();
-        } else {
-            attributesType = TestUtil.findAll(em, AttributesType.class).get(0);
-        }
-        em.persist(attributesType);
-        em.flush();
-        rdMaterialAttributes.setAttributesType(attributesType);
-        rdMaterialAttributesRepository.saveAndFlush(rdMaterialAttributes);
-        Long attributesTypeId = attributesType.getId();
-        // Get all the rdMaterialAttributesList where attributesType equals to attributesTypeId
-        defaultRdMaterialAttributesShouldBeFound(
-            "attributesTypeId.equals=" + attributesTypeId
-        );
-
-        // Get all the rdMaterialAttributesList where attributesType equals to (attributesTypeId + 1)
-        defaultRdMaterialAttributesShouldNotBeFound(
-            "attributesTypeId.equals=" + (attributesTypeId + 1)
-        );
-    }
-
     private void defaultRdMaterialAttributesFiltering(
         String shouldBeFound,
         String shouldNotBeFound
@@ -985,8 +962,8 @@ class RdMaterialAttributesResourceIT {
                 )
             )
             .andExpect(
-                jsonPath("$.[*].attributesTypeId").value(
-                    hasItem(DEFAULT_ATTRIBUTES_TYPE_ID)
+                jsonPath("$.[*].attributesType").value(
+                    hasItem(DEFAULT_ATTRIBUTES_TYPE)
                 )
             )
             .andExpect(
@@ -1057,12 +1034,13 @@ class RdMaterialAttributesResourceIT {
             rdMaterialAttributesRepository
                 .findById(rdMaterialAttributes.getId())
                 .orElseThrow();
-        // Disconnect from session so that the updates on updatedRdMaterialAttributes are not directly saved in db
+        // Disconnect from session so that the updates on updatedRdMaterialAttributes
+        // are not directly saved in db
         em.detach(updatedRdMaterialAttributes);
         updatedRdMaterialAttributes
             .attributes(UPDATED_ATTRIBUTES)
             .description(UPDATED_DESCRIPTION)
-            .attributesTypeId(UPDATED_ATTRIBUTES_TYPE_ID)
+            .attributesType(UPDATED_ATTRIBUTES_TYPE)
             .createdBy(UPDATED_CREATED_BY)
             .createdAt(UPDATED_CREATED_AT)
             .updatedBy(UPDATED_UPDATED_BY)
@@ -1175,7 +1153,7 @@ class RdMaterialAttributesResourceIT {
         partialUpdatedRdMaterialAttributes
             .attributes(UPDATED_ATTRIBUTES)
             .description(UPDATED_DESCRIPTION)
-            .attributesTypeId(UPDATED_ATTRIBUTES_TYPE_ID)
+            .attributesType(UPDATED_ATTRIBUTES_TYPE)
             .updatedBy(UPDATED_UPDATED_BY)
             .updatedAt(UPDATED_UPDATED_AT);
 
@@ -1222,7 +1200,7 @@ class RdMaterialAttributesResourceIT {
         partialUpdatedRdMaterialAttributes
             .attributes(UPDATED_ATTRIBUTES)
             .description(UPDATED_DESCRIPTION)
-            .attributesTypeId(UPDATED_ATTRIBUTES_TYPE_ID)
+            .attributesType(UPDATED_ATTRIBUTES_TYPE)
             .createdBy(UPDATED_CREATED_BY)
             .createdAt(UPDATED_CREATED_AT)
             .updatedBy(UPDATED_UPDATED_BY)

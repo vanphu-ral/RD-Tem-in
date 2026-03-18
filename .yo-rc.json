@@ -37,13 +37,14 @@
       "VendorTemDetail",
       "TemIdentificationScenario",
       "RdMaterialAttributes",
-      "AttributesType"
+      "AttributesType",
+      "SapOcrd"
     ],
     "entitySuffix": "",
     "jhiPrefix": "jhi",
     "jhipsterVersion": "8.11.0",
     "languages": ["en", "fr"],
-    "lastLiquibaseTimestamp": 1773018162000,
+    "lastLiquibaseTimestamp": 1773805917000,
     "messageBroker": false,
     "nativeLanguage": "en",
     "otherModules": [],

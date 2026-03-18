@@ -98,12 +98,12 @@ class RdMaterialAttributesCriteriaTest {
         rdMaterialAttributesCriteria.id();
         rdMaterialAttributesCriteria.attributes();
         rdMaterialAttributesCriteria.description();
-        rdMaterialAttributesCriteria.attributesTypeId();
+        rdMaterialAttributesCriteria.attributesType();
         rdMaterialAttributesCriteria.createdBy();
         rdMaterialAttributesCriteria.createdAt();
         rdMaterialAttributesCriteria.updatedBy();
         rdMaterialAttributesCriteria.updatedAt();
-        rdMaterialAttributesCriteria.attributesTypeId();
+        rdMaterialAttributesCriteria.attributesType();
         rdMaterialAttributesCriteria.distinct();
     }
 
@@ -115,12 +115,12 @@ class RdMaterialAttributesCriteriaTest {
                 condition.apply(criteria.getId()) &&
                 condition.apply(criteria.getAttributes()) &&
                 condition.apply(criteria.getDescription()) &&
-                condition.apply(criteria.getAttributesTypeId()) &&
+                condition.apply(criteria.getAttributesType()) &&
                 condition.apply(criteria.getCreatedBy()) &&
                 condition.apply(criteria.getCreatedAt()) &&
                 condition.apply(criteria.getUpdatedBy()) &&
                 condition.apply(criteria.getUpdatedAt()) &&
-                condition.apply(criteria.getAttributesTypeId()) &&
+                condition.apply(criteria.getAttributesType()) &&
                 condition.apply(criteria.getDistinct()),
             "every filter matches"
         );
@@ -142,16 +142,16 @@ class RdMaterialAttributesCriteriaTest {
                     copy.getDescription()
                 ) &&
                 condition.apply(
-                    criteria.getAttributesTypeId(),
-                    copy.getAttributesTypeId()
+                    criteria.getAttributesType(),
+                    copy.getAttributesType()
                 ) &&
                 condition.apply(criteria.getCreatedBy(), copy.getCreatedBy()) &&
                 condition.apply(criteria.getCreatedAt(), copy.getCreatedAt()) &&
                 condition.apply(criteria.getUpdatedBy(), copy.getUpdatedBy()) &&
                 condition.apply(criteria.getUpdatedAt(), copy.getUpdatedAt()) &&
                 condition.apply(
-                    criteria.getAttributesTypeId(),
-                    copy.getAttributesTypeId()
+                    criteria.getAttributesType(),
+                    copy.getAttributesType()
                 ) &&
                 condition.apply(criteria.getDistinct(), copy.getDistinct()),
             "every filter matches"

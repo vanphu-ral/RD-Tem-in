@@ -21,7 +21,8 @@ public class RdMaterialAttributesDTO implements Serializable {
     @Size(max = 255)
     private String description;
 
-    private Integer attributesTypeId;
+    @Size(max = 50)
+    private String attributesType;
 
     @Size(max = 20)
     private String createdBy;
@@ -32,8 +33,6 @@ public class RdMaterialAttributesDTO implements Serializable {
     private String updatedBy;
 
     private ZonedDateTime updatedAt;
-
-    private AttributesTypeDTO attributesType;
 
     public Long getId() {
         return id;
@@ -59,12 +58,12 @@ public class RdMaterialAttributesDTO implements Serializable {
         this.description = description;
     }
 
-    public Integer getAttributesTypeId() {
-        return attributesTypeId;
+    public String getAttributesType() {
+        return attributesType;
     }
 
-    public void setAttributesTypeId(Integer attributesTypeId) {
-        this.attributesTypeId = attributesTypeId;
+    public void setAttributesType(String attributesType) {
+        this.attributesType = attributesType;
     }
 
     public String getCreatedBy() {
@@ -99,14 +98,6 @@ public class RdMaterialAttributesDTO implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public AttributesTypeDTO getAttributesType() {
-        return attributesType;
-    }
-
-    public void setAttributesType(AttributesTypeDTO attributesType) {
-        this.attributesType = attributesType;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -133,15 +124,14 @@ public class RdMaterialAttributesDTO implements Serializable {
     @Override
     public String toString() {
         return "RdMaterialAttributesDTO{" +
-            "id=" + getId() +
-            ", attributes='" + getAttributes() + "'" +
-            ", description='" + getDescription() + "'" +
-            ", attributesTypeId=" + getAttributesTypeId() +
-            ", createdBy='" + getCreatedBy() + "'" +
-            ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedBy='" + getUpdatedBy() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
-            ", attributesType=" + getAttributesType() +
-            "}";
+                "id=" + getId() +
+                ", attributes='" + getAttributes() + "'" +
+                ", description='" + getDescription() + "'" +
+                ", attributesType='" + getAttributesType() + "'" +
+                ", createdBy='" + getCreatedBy() + "'" +
+                ", createdAt='" + getCreatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                "}";
     }
 }

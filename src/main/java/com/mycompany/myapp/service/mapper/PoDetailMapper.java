@@ -16,7 +16,18 @@ public interface PoDetailMapper extends EntityMapper<PoDetailDTO, PoDetail> {
         source = "importVendorTemTransactions",
         qualifiedByName = "importVendorTemTransactionsId"
     )
+    @Mapping(
+        target = "importVendorTemTransactionsId",
+        source = "importVendorTemTransactionsId"
+    )
     PoDetailDTO toDto(PoDetail s);
+
+    @Mapping(target = "importVendorTemTransactions", ignore = true)
+    @Mapping(
+        target = "importVendorTemTransactionsId",
+        source = "importVendorTemTransactionsId"
+    )
+    PoDetail toEntity(PoDetailDTO dto);
 
     @Named("importVendorTemTransactionsId")
     @BeanMapping(ignoreByDefault = true)

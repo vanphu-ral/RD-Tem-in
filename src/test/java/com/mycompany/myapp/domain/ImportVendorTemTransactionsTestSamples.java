@@ -18,7 +18,8 @@ public class ImportVendorTemTransactionsTestSamples {
             .vendorCode("vendorCode1")
             .vendorName("vendorName1")
             .storageUnit("storageUnit1")
-            .importTemProfile("importTemProfile1")
+            .temIdentificationScenarioId(1)
+            .mappingConfig("mappingConfig1")
             .status("status1")
             .createdBy("createdBy1")
             .updatedBy("updatedBy1")
@@ -32,7 +33,8 @@ public class ImportVendorTemTransactionsTestSamples {
             .vendorCode("vendorCode2")
             .vendorName("vendorName2")
             .storageUnit("storageUnit2")
-            .importTemProfile("importTemProfile2")
+            .temIdentificationScenarioId(2)
+            .mappingConfig("mappingConfig2")
             .status("status2")
             .createdBy("createdBy2")
             .updatedBy("updatedBy2")
@@ -46,7 +48,13 @@ public class ImportVendorTemTransactionsTestSamples {
             .vendorCode(UUID.randomUUID().toString())
             .vendorName(UUID.randomUUID().toString())
             .storageUnit(UUID.randomUUID().toString())
-            .importTemProfile(UUID.randomUUID().toString())
+            .temIdentificationScenarioId(
+                Integer.valueOf(
+                    UUID.randomUUID().toString().substring(0, 8),
+                    16
+                )
+            )
+            .mappingConfig(UUID.randomUUID().toString())
             .status(UUID.randomUUID().toString())
             .createdBy(UUID.randomUUID().toString())
             .updatedBy(UUID.randomUUID().toString())

@@ -49,8 +49,16 @@ public class PoDetail implements Serializable {
     private Set<VendorTemDetail> vendorTemDetails = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+        name = "import_vendor_tem_transactions_id",
+        insertable = false,
+        updatable = false
+    )
     @JsonIgnoreProperties(value = { "poDetails" }, allowSetters = true)
     private ImportVendorTemTransactions importVendorTemTransactions;
+
+    @Column(name = "import_vendor_tem_transactions_id")
+    private Long importVendorTemTransactionsId;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
@@ -180,7 +188,22 @@ public class PoDetail implements Serializable {
         return this;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
+    public Long getImportVendorTemTransactionsId() {
+        return this.importVendorTemTransactionsId;
+    }
+
+    public void setImportVendorTemTransactionsId(
+        Long importVendorTemTransactionsId
+    ) {
+        this.importVendorTemTransactionsId = importVendorTemTransactionsId;
+    }
+
+    public PoDetail importVendorTemTransactionsId(
+        Long importVendorTemTransactionsId
+    ) {
+        this.setImportVendorTemTransactionsId(importVendorTemTransactionsId);
+        return this;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -195,7 +218,8 @@ public class PoDetail implements Serializable {
 
     @Override
     public int hashCode() {
-        // see https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
+        // see
+        // https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
         return getClass().hashCode();
     }
 
@@ -203,12 +227,12 @@ public class PoDetail implements Serializable {
     @Override
     public String toString() {
         return "PoDetail{" +
-            "id=" + getId() +
-            ", sapCode='" + getSapCode() + "'" +
-            ", sapName='" + getSapName() + "'" +
-            ", quantityContainer=" + getQuantityContainer() +
-            ", totalQuantity=" + getTotalQuantity() +
-            ", partNumber='" + getPartNumber() + "'" +
-            "}";
+                "id=" + getId() +
+                ", sapCode='" + getSapCode() + "'" +
+                ", sapName='" + getSapName() + "'" +
+                ", quantityContainer=" + getQuantityContainer() +
+                ", totalQuantity=" + getTotalQuantity() +
+                ", partNumber='" + getPartNumber() + "'" +
+                "}";
     }
 }

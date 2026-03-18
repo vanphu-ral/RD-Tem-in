@@ -44,8 +44,11 @@ public class ImportVendorTemTransactions implements Serializable {
     @Column(name = "storage_unit", length = 50)
     private String storageUnit;
 
-    @Column(name = "import_tem_profile")
-    private String importTemProfile;
+    @Column(name = "tem_identification_scenario_id")
+    private Integer temIdentificationScenarioId;
+
+    @Column(name = "mapping_config", columnDefinition = "TEXT")
+    private String mappingConfig;
 
     @Size(max = 50)
     @Column(name = "status", length = 50)
@@ -159,19 +162,34 @@ public class ImportVendorTemTransactions implements Serializable {
         this.storageUnit = storageUnit;
     }
 
-    public String getImportTemProfile() {
-        return this.importTemProfile;
+    public Integer getTemIdentificationScenarioId() {
+        return this.temIdentificationScenarioId;
     }
 
-    public ImportVendorTemTransactions importTemProfile(
-        String importTemProfile
+    public ImportVendorTemTransactions temIdentificationScenarioId(
+        Integer temIdentificationScenarioId
     ) {
-        this.setImportTemProfile(importTemProfile);
+        this.setTemIdentificationScenarioId(temIdentificationScenarioId);
         return this;
     }
 
-    public void setImportTemProfile(String importTemProfile) {
-        this.importTemProfile = importTemProfile;
+    public void setTemIdentificationScenarioId(
+        Integer temIdentificationScenarioId
+    ) {
+        this.temIdentificationScenarioId = temIdentificationScenarioId;
+    }
+
+    public String getMappingConfig() {
+        return this.mappingConfig;
+    }
+
+    public ImportVendorTemTransactions mappingConfig(String mappingConfig) {
+        this.setMappingConfig(mappingConfig);
+        return this;
+    }
+
+    public void setMappingConfig(String mappingConfig) {
+        this.mappingConfig = mappingConfig;
     }
 
     public String getStatus() {
@@ -296,7 +314,8 @@ public class ImportVendorTemTransactions implements Serializable {
         return this;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
+    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
+    // setters here
 
     @Override
     public boolean equals(Object o) {
@@ -314,7 +333,8 @@ public class ImportVendorTemTransactions implements Serializable {
 
     @Override
     public int hashCode() {
-        // see https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
+        // see
+        // https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
         return getClass().hashCode();
     }
 
@@ -322,20 +342,21 @@ public class ImportVendorTemTransactions implements Serializable {
     @Override
     public String toString() {
         return "ImportVendorTemTransactions{" +
-            "id=" + getId() +
-            ", poNumber='" + getPoNumber() + "'" +
-            ", vendorCode='" + getVendorCode() + "'" +
-            ", vendorName='" + getVendorName() + "'" +
-            ", entryDate='" + getEntryDate() + "'" +
-            ", storageUnit='" + getStorageUnit() + "'" +
-            ", importTemProfile='" + getImportTemProfile() + "'" +
-            ", status='" + getStatus() + "'" +
-            ", createdBy='" + getCreatedBy() + "'" +
-            ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedBy='" + getUpdatedBy() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
-            ", deletedBy='" + getDeletedBy() + "'" +
-            ", deletedAt='" + getDeletedAt() + "'" +
-            "}";
+                "id=" + getId() +
+                ", poNumber='" + getPoNumber() + "'" +
+                ", vendorCode='" + getVendorCode() + "'" +
+                ", vendorName='" + getVendorName() + "'" +
+                ", entryDate='" + getEntryDate() + "'" +
+                ", storageUnit='" + getStorageUnit() + "'" +
+                ", temIdentificationScenarioId='" + getTemIdentificationScenarioId() + "'" +
+                ", mappingConfig='" + getMappingConfig() + "'" +
+                ", status='" + getStatus() + "'" +
+                ", createdBy='" + getCreatedBy() + "'" +
+                ", createdAt='" + getCreatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                ", deletedBy='" + getDeletedBy() + "'" +
+                ", deletedAt='" + getDeletedAt() + "'" +
+                "}";
     }
 }

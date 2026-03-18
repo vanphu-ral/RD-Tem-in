@@ -112,7 +112,9 @@ public class VendorTemDetailDTO implements Serializable {
 
     private ZonedDateTime updatedAt;
 
-    private PoDetailDTO poDetail;
+    private Long poDetailId;
+
+    private Long importVendorTemTransactionsId;
 
     public Long getId() {
         return id;
@@ -394,12 +396,22 @@ public class VendorTemDetailDTO implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public PoDetailDTO getPoDetail() {
-        return poDetail;
+    public Long getPoDetailId() {
+        return poDetailId;
     }
 
-    public void setPoDetail(PoDetailDTO poDetail) {
-        this.poDetail = poDetail;
+    public void setPoDetailId(Long poDetailId) {
+        this.poDetailId = poDetailId;
+    }
+
+    public Long getImportVendorTemTransactionsId() {
+        return importVendorTemTransactionsId;
+    }
+
+    public void setImportVendorTemTransactionsId(
+        Long importVendorTemTransactionsId
+    ) {
+        this.importVendorTemTransactionsId = importVendorTemTransactionsId;
     }
 
     @Override
@@ -427,42 +439,43 @@ public class VendorTemDetailDTO implements Serializable {
     @Override
     public String toString() {
         return "VendorTemDetailDTO{" +
-            "id=" + getId() +
-            ", reelId='" + getReelId() + "'" +
-            ", partNumber='" + getPartNumber() + "'" +
-            ", vendor='" + getVendor() + "'" +
-            ", lot='" + getLot() + "'" +
-            ", userData1='" + getUserData1() + "'" +
-            ", userData2='" + getUserData2() + "'" +
-            ", userData3='" + getUserData3() + "'" +
-            ", userData4='" + getUserData4() + "'" +
-            ", userData5='" + getUserData5() + "'" +
-            ", initialQuantity=" + getInitialQuantity() +
-            ", msdLevel='" + getMsdLevel() + "'" +
-            ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
-            ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
-            ", marketUsage='" + getMarketUsage() + "'" +
-            ", quantityOverride=" + getQuantityOverride() +
-            ", shelfTime='" + getShelfTime() + "'" +
-            ", spMaterialName='" + getSpMaterialName() + "'" +
-            ", warningLimit='" + getWarningLimit() + "'" +
-            ", maximumLimit='" + getMaximumLimit() + "'" +
-            ", comments='" + getComments() + "'" +
-            ", warmupTime='" + getWarmupTime() + "'" +
-            ", storageUnit='" + getStorageUnit() + "'" +
-            ", subStorageUnit='" + getSubStorageUnit() + "'" +
-            ", locationOverride='" + getLocationOverride() + "'" +
-            ", expirationDate='" + getExpirationDate() + "'" +
-            ", manufacturingDate='" + getManufacturingDate() + "'" +
-            ", partClass='" + getPartClass() + "'" +
-            ", sapCode='" + getSapCode() + "'" +
-            ", vendorQrCode='" + getVendorQrCode() + "'" +
-            ", status='" + getStatus() + "'" +
-            ", createdBy='" + getCreatedBy() + "'" +
-            ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedBy='" + getUpdatedBy() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
-            ", poDetail=" + getPoDetail() +
-            "}";
+                "id=" + getId() +
+                ", reelId='" + getReelId() + "'" +
+                ", partNumber='" + getPartNumber() + "'" +
+                ", vendor='" + getVendor() + "'" +
+                ", lot='" + getLot() + "'" +
+                ", userData1='" + getUserData1() + "'" +
+                ", userData2='" + getUserData2() + "'" +
+                ", userData3='" + getUserData3() + "'" +
+                ", userData4='" + getUserData4() + "'" +
+                ", userData5='" + getUserData5() + "'" +
+                ", initialQuantity=" + getInitialQuantity() +
+                ", msdLevel='" + getMsdLevel() + "'" +
+                ", msdInitialFloorTime='" + getMsdInitialFloorTime() + "'" +
+                ", msdBagSealDate='" + getMsdBagSealDate() + "'" +
+                ", marketUsage='" + getMarketUsage() + "'" +
+                ", quantityOverride=" + getQuantityOverride() +
+                ", shelfTime='" + getShelfTime() + "'" +
+                ", spMaterialName='" + getSpMaterialName() + "'" +
+                ", warningLimit='" + getWarningLimit() + "'" +
+                ", maximumLimit='" + getMaximumLimit() + "'" +
+                ", comments='" + getComments() + "'" +
+                ", warmupTime='" + getWarmupTime() + "'" +
+                ", storageUnit='" + getStorageUnit() + "'" +
+                ", subStorageUnit='" + getSubStorageUnit() + "'" +
+                ", locationOverride='" + getLocationOverride() + "'" +
+                ", expirationDate='" + getExpirationDate() + "'" +
+                ", manufacturingDate='" + getManufacturingDate() + "'" +
+                ", partClass='" + getPartClass() + "'" +
+                ", sapCode='" + getSapCode() + "'" +
+                ", vendorQrCode='" + getVendorQrCode() + "'" +
+                ", status='" + getStatus() + "'" +
+                ", createdBy='" + getCreatedBy() + "'" +
+                ", createdAt='" + getCreatedAt() + "'" +
+                ", updatedBy='" + getUpdatedBy() + "'" +
+                ", updatedAt='" + getUpdatedAt() + "'" +
+                ", poDetailId=" + getPoDetailId() +
+                ", importVendorTemTransactionsId=" + getImportVendorTemTransactionsId() +
+                "}";
     }
 }

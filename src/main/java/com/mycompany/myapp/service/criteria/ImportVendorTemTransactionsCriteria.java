@@ -8,12 +8,16 @@ import tech.jhipster.service.Criteria;
 import tech.jhipster.service.filter.*;
 
 /**
- * Criteria class for the {@link com.mycompany.myapp.domain.ImportVendorTemTransactions} entity. This class is used
- * in {@link com.mycompany.myapp.web.rest.ImportVendorTemTransactionsResource} to receive all the possible filtering options from
+ * Criteria class for the
+ * {@link com.mycompany.myapp.domain.ImportVendorTemTransactions} entity. This
+ * class is used
+ * in {@link com.mycompany.myapp.web.rest.ImportVendorTemTransactionsResource}
+ * to receive all the possible filtering options from
  * the Http GET request parameters.
  * For example the following could be a valid request:
  * {@code /import-vendor-tem-transactions?id.greaterThan=5&attr1.contains=something&attr2.specified=false}
- * As Spring is unable to properly convert the types, unless specific {@link Filter} class are used, we need to use
+ * As Spring is unable to properly convert the types, unless specific
+ * {@link Filter} class are used, we need to use
  * fix type specific filters.
  */
 // @ParameterObject
@@ -35,7 +39,9 @@ public class ImportVendorTemTransactionsCriteria
 
     private StringFilter storageUnit;
 
-    private StringFilter importTemProfile;
+    private IntegerFilter temIdentificationScenarioId;
+
+    private StringFilter mappingConfig;
 
     private StringFilter status;
 
@@ -81,8 +87,12 @@ public class ImportVendorTemTransactionsCriteria
             .optionalStorageUnit()
             .map(StringFilter::copy)
             .orElse(null);
-        this.importTemProfile = other
-            .optionalImportTemProfile()
+        this.temIdentificationScenarioId = other
+            .optionalTemIdentificationScenarioId()
+            .map(IntegerFilter::copy)
+            .orElse(null);
+        this.mappingConfig = other
+            .optionalMappingConfig()
             .map(StringFilter::copy)
             .orElse(null);
         this.status = other
@@ -239,23 +249,44 @@ public class ImportVendorTemTransactionsCriteria
         this.storageUnit = storageUnit;
     }
 
-    public StringFilter getImportTemProfile() {
-        return importTemProfile;
+    public IntegerFilter getTemIdentificationScenarioId() {
+        return temIdentificationScenarioId;
     }
 
-    public Optional<StringFilter> optionalImportTemProfile() {
-        return Optional.ofNullable(importTemProfile);
+    public Optional<IntegerFilter> optionalTemIdentificationScenarioId() {
+        return Optional.ofNullable(temIdentificationScenarioId);
     }
 
-    public StringFilter importTemProfile() {
-        if (importTemProfile == null) {
-            setImportTemProfile(new StringFilter());
+    public IntegerFilter temIdentificationScenarioId() {
+        if (temIdentificationScenarioId == null) {
+            setTemIdentificationScenarioId(new IntegerFilter());
         }
-        return importTemProfile;
+        return temIdentificationScenarioId;
     }
 
-    public void setImportTemProfile(StringFilter importTemProfile) {
-        this.importTemProfile = importTemProfile;
+    public void setTemIdentificationScenarioId(
+        IntegerFilter temIdentificationScenarioId
+    ) {
+        this.temIdentificationScenarioId = temIdentificationScenarioId;
+    }
+
+    public StringFilter getMappingConfig() {
+        return mappingConfig;
+    }
+
+    public Optional<StringFilter> optionalMappingConfig() {
+        return Optional.ofNullable(mappingConfig);
+    }
+
+    public StringFilter mappingConfig() {
+        if (mappingConfig == null) {
+            setMappingConfig(new StringFilter());
+        }
+        return mappingConfig;
+    }
+
+    public void setMappingConfig(StringFilter mappingConfig) {
+        this.mappingConfig = mappingConfig;
     }
 
     public StringFilter getStatus() {
@@ -446,7 +477,11 @@ public class ImportVendorTemTransactionsCriteria
             Objects.equals(vendorName, that.vendorName) &&
             Objects.equals(entryDate, that.entryDate) &&
             Objects.equals(storageUnit, that.storageUnit) &&
-            Objects.equals(importTemProfile, that.importTemProfile) &&
+            Objects.equals(
+                temIdentificationScenarioId,
+                that.temIdentificationScenarioId
+            ) &&
+            Objects.equals(mappingConfig, that.mappingConfig) &&
             Objects.equals(status, that.status) &&
             Objects.equals(createdBy, that.createdBy) &&
             Objects.equals(createdAt, that.createdAt) &&
@@ -468,7 +503,8 @@ public class ImportVendorTemTransactionsCriteria
             vendorName,
             entryDate,
             storageUnit,
-            importTemProfile,
+            temIdentificationScenarioId,
+            mappingConfig,
             status,
             createdBy,
             createdAt,
@@ -485,22 +521,23 @@ public class ImportVendorTemTransactionsCriteria
     @Override
     public String toString() {
         return "ImportVendorTemTransactionsCriteria{" +
-            optionalId().map(f -> "id=" + f + ", ").orElse("") +
-            optionalPoNumber().map(f -> "poNumber=" + f + ", ").orElse("") +
-            optionalVendorCode().map(f -> "vendorCode=" + f + ", ").orElse("") +
-            optionalVendorName().map(f -> "vendorName=" + f + ", ").orElse("") +
-            optionalEntryDate().map(f -> "entryDate=" + f + ", ").orElse("") +
-            optionalStorageUnit().map(f -> "storageUnit=" + f + ", ").orElse("") +
-            optionalImportTemProfile().map(f -> "importTemProfile=" + f + ", ").orElse("") +
-            optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
-            optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
-            optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
-            optionalUpdatedBy().map(f -> "updatedBy=" + f + ", ").orElse("") +
-            optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
-            optionalDeletedBy().map(f -> "deletedBy=" + f + ", ").orElse("") +
-            optionalDeletedAt().map(f -> "deletedAt=" + f + ", ").orElse("") +
-            optionalPoDetailId().map(f -> "poDetailId=" + f + ", ").orElse("") +
-            optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
-        "}";
+                optionalId().map(f -> "id=" + f + ", ").orElse("") +
+                optionalPoNumber().map(f -> "poNumber=" + f + ", ").orElse("") +
+                optionalVendorCode().map(f -> "vendorCode=" + f + ", ").orElse("") +
+                optionalVendorName().map(f -> "vendorName=" + f + ", ").orElse("") +
+                optionalEntryDate().map(f -> "entryDate=" + f + ", ").orElse("") +
+                optionalStorageUnit().map(f -> "storageUnit=" + f + ", ").orElse("") +
+                optionalTemIdentificationScenarioId().map(f -> "temIdentificationScenarioId=" + f + ", ").orElse("") +
+                optionalMappingConfig().map(f -> "mappingConfig=" + f + ", ").orElse("") +
+                optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
+                optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
+                optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
+                optionalUpdatedBy().map(f -> "updatedBy=" + f + ", ").orElse("") +
+                optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
+                optionalDeletedBy().map(f -> "deletedBy=" + f + ", ").orElse("") +
+                optionalDeletedAt().map(f -> "deletedAt=" + f + ", ").orElse("") +
+                optionalPoDetailId().map(f -> "poDetailId=" + f + ", ").orElse("") +
+                optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
+                "}";
     }
 }

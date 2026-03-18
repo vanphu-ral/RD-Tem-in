@@ -23,6 +23,8 @@ import java.time.ZonedDateTime;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.persistence.EntityManager;
+import liquibase.pro.packaged.D;
+import liquibase.pro.packaged.de;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +36,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Integration tests for the {@link ImportVendorTemTransactionsResource} REST controller.
+ * Integration tests for the {@link ImportVendorTemTransactionsResource} REST
+ * controller.
  */
 @IntegrationTest
 @AutoConfigureMockMvc
@@ -63,8 +66,8 @@ class ImportVendorTemTransactionsResourceIT {
     private static final String DEFAULT_STORAGE_UNIT = "AAAAAAAAAA";
     private static final String UPDATED_STORAGE_UNIT = "BBBBBBBBBB";
 
-    private static final String DEFAULT_IMPORT_TEM_PROFILE = "AAAAAAAAAA";
-    private static final String UPDATED_IMPORT_TEM_PROFILE = "BBBBBBBBBB";
+    private static final Integer DEFAULT_TEM_IDENTIFICATION_SCENARIO_ID = 1;
+    private static final Integer UPDATED_TEM_IDENTIFICATION_SCENARIO_ID = 2;
 
     private static final String DEFAULT_STATUS = "AAAAAAAAAA";
     private static final String UPDATED_STATUS = "BBBBBBBBBB";
@@ -143,7 +146,7 @@ class ImportVendorTemTransactionsResourceIT {
             .vendorName(DEFAULT_VENDOR_NAME)
             .entryDate(DEFAULT_ENTRY_DATE)
             .storageUnit(DEFAULT_STORAGE_UNIT)
-            .importTemProfile(DEFAULT_IMPORT_TEM_PROFILE)
+            .temIdentificationScenarioId(DEFAULT_TEM_IDENTIFICATION_SCENARIO_ID)
             .status(DEFAULT_STATUS)
             .createdBy(DEFAULT_CREATED_BY)
             .createdAt(DEFAULT_CREATED_AT)
@@ -166,7 +169,7 @@ class ImportVendorTemTransactionsResourceIT {
             .vendorName(UPDATED_VENDOR_NAME)
             .entryDate(UPDATED_ENTRY_DATE)
             .storageUnit(UPDATED_STORAGE_UNIT)
-            .importTemProfile(UPDATED_IMPORT_TEM_PROFILE)
+            .temIdentificationScenarioId(UPDATED_TEM_IDENTIFICATION_SCENARIO_ID)
             .status(UPDATED_STATUS)
             .createdBy(UPDATED_CREATED_BY)
             .createdAt(UPDATED_CREATED_AT)
@@ -301,8 +304,8 @@ class ImportVendorTemTransactionsResourceIT {
                 )
             )
             .andExpect(
-                jsonPath("$.[*].importTemProfile").value(
-                    hasItem(DEFAULT_IMPORT_TEM_PROFILE)
+                jsonPath("$.[*].temIdentificationScenarioId").value(
+                    hasItem(DEFAULT_TEM_IDENTIFICATION_SCENARIO_ID)
                 )
             )
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS)))
@@ -360,9 +363,6 @@ class ImportVendorTemTransactionsResourceIT {
                 jsonPath("$.entryDate").value(DEFAULT_ENTRY_DATE.toString())
             )
             .andExpect(jsonPath("$.storageUnit").value(DEFAULT_STORAGE_UNIT))
-            .andExpect(
-                jsonPath("$.importTemProfile").value(DEFAULT_IMPORT_TEM_PROFILE)
-            )
             .andExpect(jsonPath("$.status").value(DEFAULT_STATUS))
             .andExpect(jsonPath("$.createdBy").value(DEFAULT_CREATED_BY))
             .andExpect(
@@ -721,7 +721,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where entryDate is greater than or equal to
+        // Get all the importVendorTemTransactionsList where entryDate is greater than
+        // or equal to
         defaultImportVendorTemTransactionsFiltering(
             "entryDate.greaterThanOrEqual=" + DEFAULT_ENTRY_DATE,
             "entryDate.greaterThanOrEqual=" + UPDATED_ENTRY_DATE
@@ -738,7 +739,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where entryDate is less than or equal to
+        // Get all the importVendorTemTransactionsList where entryDate is less than or
+        // equal to
         defaultImportVendorTemTransactionsFiltering(
             "entryDate.lessThanOrEqual=" + DEFAULT_ENTRY_DATE,
             "entryDate.lessThanOrEqual=" + SMALLER_ENTRY_DATE
@@ -860,7 +862,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where storageUnit does not contain
+        // Get all the importVendorTemTransactionsList where storageUnit does not
+        // contain
         defaultImportVendorTemTransactionsFiltering(
             "storageUnit.doesNotContain=" + UPDATED_STORAGE_UNIT,
             "storageUnit.doesNotContain=" + DEFAULT_STORAGE_UNIT
@@ -879,8 +882,10 @@ class ImportVendorTemTransactionsResourceIT {
 
         // Get all the importVendorTemTransactionsList where importTemProfile equals to
         defaultImportVendorTemTransactionsFiltering(
-            "importTemProfile.equals=" + DEFAULT_IMPORT_TEM_PROFILE,
-            "importTemProfile.equals=" + UPDATED_IMPORT_TEM_PROFILE
+            "temIdentificationScenarioId.equals=" +
+            DEFAULT_TEM_IDENTIFICATION_SCENARIO_ID,
+            "temIdentificationScenarioId.equals=" +
+            UPDATED_TEM_IDENTIFICATION_SCENARIO_ID
         );
     }
 
@@ -896,11 +901,12 @@ class ImportVendorTemTransactionsResourceIT {
 
         // Get all the importVendorTemTransactionsList where importTemProfile in
         defaultImportVendorTemTransactionsFiltering(
-            "importTemProfile.in=" +
-            DEFAULT_IMPORT_TEM_PROFILE +
+            "temIdentificationScenarioId.in=" +
+            DEFAULT_TEM_IDENTIFICATION_SCENARIO_ID +
             "," +
-            UPDATED_IMPORT_TEM_PROFILE,
-            "importTemProfile.in=" + UPDATED_IMPORT_TEM_PROFILE
+            UPDATED_TEM_IDENTIFICATION_SCENARIO_ID,
+            "temIdentificationScenarioId.in=" +
+            UPDATED_TEM_IDENTIFICATION_SCENARIO_ID
         );
     }
 
@@ -914,7 +920,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where importTemProfile is not null
+        // Get all the importVendorTemTransactionsList where importTemProfile is not
+        // null
         defaultImportVendorTemTransactionsFiltering(
             "importTemProfile.specified=true",
             "importTemProfile.specified=false"
@@ -933,8 +940,10 @@ class ImportVendorTemTransactionsResourceIT {
 
         // Get all the importVendorTemTransactionsList where importTemProfile contains
         defaultImportVendorTemTransactionsFiltering(
-            "importTemProfile.contains=" + DEFAULT_IMPORT_TEM_PROFILE,
-            "importTemProfile.contains=" + UPDATED_IMPORT_TEM_PROFILE
+            "temIdentificationScenarioId.contains=" +
+            DEFAULT_TEM_IDENTIFICATION_SCENARIO_ID,
+            "temIdentificationScenarioId.contains=" +
+            UPDATED_TEM_IDENTIFICATION_SCENARIO_ID
         );
     }
 
@@ -948,10 +957,13 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where importTemProfile does not contain
+        // Get all the importVendorTemTransactionsList where importTemProfile does not
+        // contain
         defaultImportVendorTemTransactionsFiltering(
-            "importTemProfile.doesNotContain=" + UPDATED_IMPORT_TEM_PROFILE,
-            "importTemProfile.doesNotContain=" + DEFAULT_IMPORT_TEM_PROFILE
+            "temIdentificationScenarioId.doesNotContain=" +
+            UPDATED_TEM_IDENTIFICATION_SCENARIO_ID,
+            "temIdentificationScenarioId.doesNotContain=" +
+            DEFAULT_TEM_IDENTIFICATION_SCENARIO_ID
         );
     }
 
@@ -1186,7 +1198,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where createdAt is greater than or equal to
+        // Get all the importVendorTemTransactionsList where createdAt is greater than
+        // or equal to
         defaultImportVendorTemTransactionsFiltering(
             "createdAt.greaterThanOrEqual=" + DEFAULT_CREATED_AT,
             "createdAt.greaterThanOrEqual=" + UPDATED_CREATED_AT
@@ -1203,7 +1216,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where createdAt is less than or equal to
+        // Get all the importVendorTemTransactionsList where createdAt is less than or
+        // equal to
         defaultImportVendorTemTransactionsFiltering(
             "createdAt.lessThanOrEqual=" + DEFAULT_CREATED_AT,
             "createdAt.lessThanOrEqual=" + SMALLER_CREATED_AT
@@ -1390,7 +1404,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where updatedAt is greater than or equal to
+        // Get all the importVendorTemTransactionsList where updatedAt is greater than
+        // or equal to
         defaultImportVendorTemTransactionsFiltering(
             "updatedAt.greaterThanOrEqual=" + DEFAULT_UPDATED_AT,
             "updatedAt.greaterThanOrEqual=" + UPDATED_UPDATED_AT
@@ -1407,7 +1422,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where updatedAt is less than or equal to
+        // Get all the importVendorTemTransactionsList where updatedAt is less than or
+        // equal to
         defaultImportVendorTemTransactionsFiltering(
             "updatedAt.lessThanOrEqual=" + DEFAULT_UPDATED_AT,
             "updatedAt.lessThanOrEqual=" + SMALLER_UPDATED_AT
@@ -1594,7 +1610,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where deletedAt is greater than or equal to
+        // Get all the importVendorTemTransactionsList where deletedAt is greater than
+        // or equal to
         defaultImportVendorTemTransactionsFiltering(
             "deletedAt.greaterThanOrEqual=" + DEFAULT_DELETED_AT,
             "deletedAt.greaterThanOrEqual=" + UPDATED_DELETED_AT
@@ -1611,7 +1628,8 @@ class ImportVendorTemTransactionsResourceIT {
                 importVendorTemTransactions
             );
 
-        // Get all the importVendorTemTransactionsList where deletedAt is less than or equal to
+        // Get all the importVendorTemTransactionsList where deletedAt is less than or
+        // equal to
         defaultImportVendorTemTransactionsFiltering(
             "deletedAt.lessThanOrEqual=" + DEFAULT_DELETED_AT,
             "deletedAt.lessThanOrEqual=" + SMALLER_DELETED_AT
@@ -1694,8 +1712,8 @@ class ImportVendorTemTransactionsResourceIT {
                 )
             )
             .andExpect(
-                jsonPath("$.[*].importTemProfile").value(
-                    hasItem(DEFAULT_IMPORT_TEM_PROFILE)
+                jsonPath("$.[*].temIdentificationScenarioId").value(
+                    hasItem(DEFAULT_TEM_IDENTIFICATION_SCENARIO_ID)
                 )
             )
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS)))
@@ -1778,7 +1796,8 @@ class ImportVendorTemTransactionsResourceIT {
             importVendorTemTransactionsRepository
                 .findById(importVendorTemTransactions.getId())
                 .orElseThrow();
-        // Disconnect from session so that the updates on updatedImportVendorTemTransactions are not directly saved in db
+        // Disconnect from session so that the updates on
+        // updatedImportVendorTemTransactions are not directly saved in db
         em.detach(updatedImportVendorTemTransactions);
         updatedImportVendorTemTransactions
             .poNumber(UPDATED_PO_NUMBER)
@@ -1786,7 +1805,6 @@ class ImportVendorTemTransactionsResourceIT {
             .vendorName(UPDATED_VENDOR_NAME)
             .entryDate(UPDATED_ENTRY_DATE)
             .storageUnit(UPDATED_STORAGE_UNIT)
-            .importTemProfile(UPDATED_IMPORT_TEM_PROFILE)
             .status(UPDATED_STATUS)
             .createdBy(UPDATED_CREATED_BY)
             .createdAt(UPDATED_CREATED_AT)
@@ -1924,7 +1942,6 @@ class ImportVendorTemTransactionsResourceIT {
             .poNumber(UPDATED_PO_NUMBER)
             .vendorCode(UPDATED_VENDOR_CODE)
             .storageUnit(UPDATED_STORAGE_UNIT)
-            .importTemProfile(UPDATED_IMPORT_TEM_PROFILE)
             .status(UPDATED_STATUS)
             .createdBy(UPDATED_CREATED_BY)
             .createdAt(UPDATED_CREATED_AT)
@@ -1982,7 +1999,6 @@ class ImportVendorTemTransactionsResourceIT {
             .vendorName(UPDATED_VENDOR_NAME)
             .entryDate(UPDATED_ENTRY_DATE)
             .storageUnit(UPDATED_STORAGE_UNIT)
-            .importTemProfile(UPDATED_IMPORT_TEM_PROFILE)
             .status(UPDATED_STATUS)
             .createdBy(UPDATED_CREATED_BY)
             .createdAt(UPDATED_CREATED_AT)
