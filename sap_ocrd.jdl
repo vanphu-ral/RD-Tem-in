@@ -1,0 +1,21 @@
+/**
+ * Entity SapOcrd
+ */
+entity SapOcrd {
+    cardCode String maxlength(510),
+    cardType String maxlength(510),
+    cardName String maxlength(510),
+    cardFName String maxlength(510),
+    groupCode String maxlength(510),
+    currency String maxlength(510),
+    licTradNum String maxlength(510),
+    dddId String maxlength(510),
+    eMail String maxlength(510)
+}
+
+
+// Áp dụng Service Implementation cho tất cả
+service all with serviceImpl
+
+// Sử dụng DTO Mapstruct cho tất cả
+dto all with mapstruct
