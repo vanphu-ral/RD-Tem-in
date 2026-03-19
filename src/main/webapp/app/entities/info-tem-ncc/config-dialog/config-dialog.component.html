@@ -65,8 +65,10 @@
           color="primary"
           class="add-field-btn"
           (click)="addField()"
+          [disabled]="isLoadingFields"
         >
-          <mat-icon>add</mat-icon> Thêm trường
+          <mat-icon>add</mat-icon>
+          {{ isLoadingFields ? "Đang tải..." : "Thêm trường" }}
         </button>
       </div>
 
@@ -86,7 +88,14 @@
             class="config-row"
           >
             <div class="col-pos">
-              <div class="position-badge">{{ row.position }}</div>
+              <mat-form-field appearance="outline" class="pos-field">
+                <input
+                  matInput
+                  type="number"
+                  [(ngModel)]="row.position"
+                  min="0"
+                />
+              </mat-form-field>
             </div>
             <div class="col-ncc">
               <mat-form-field appearance="outline" class="full-width">
@@ -108,11 +117,34 @@
             </div>
             <div class="col-data">
               <mat-form-field appearance="outline" class="full-width">
-                <mat-select [(ngModel)]="row.dataField">
-                  <mat-option *ngFor="let f of dataFields" [value]="f">{{
-                    f
-                  }}</mat-option>
-                </mat-select>
+                <input
+                  matInput
+                  [(ngModel)]="row.dataField"
+                  [matAutocomplete]="autoField"
+                  (input)="
+                    onFieldInput($any($event.target).value, i);
+                    updateUnmappedFields()
+                  "
+                  (focus)="onFieldInput(row.dataField, i)"
+                  placeholder="Tìm hoặc chọn trường..."
+                />
+                <mat-autocomplete
+                  #autoField="matAutocomplete"
+                  (optionSelected)="updateUnmappedFields()"
+                >
+                  <mat-option
+                    *ngFor="let f of filteredFieldOptions[i]"
+                    [value]="f"
+                  >
+                    {{ f }}
+                  </mat-option>
+                  <mat-option
+                    *ngIf="filteredFieldOptions[i]?.length === 0"
+                    disabled
+                  >
+                    Không tìm thấy
+                  </mat-option>
+                </mat-autocomplete>
               </mat-form-field>
             </div>
             <div class="col-action">
@@ -159,8 +191,14 @@
     <button mat-stroked-button (click)="onCancel()" class="cancel-btn">
       Huỷ
     </button>
-    <button mat-flat-button color="primary" (click)="onSave()" class="save-btn">
-      Lưu
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onSave()"
+      class="save-btn"
+      [disabled]="isSaving"
+    >
+      {{ isSaving ? "Đang lưu..." : "Lưu" }}
     </button>
   </div>
 </div>

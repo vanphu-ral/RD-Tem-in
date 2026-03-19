@@ -22,6 +22,7 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
+import { ManagerTemNccService } from "app/entities/list-material/services/info-tem-ncc.service";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -30,6 +31,9 @@ import {
 
 // Models and Services
 import { AlertService } from "app/core/util/alert.service";
+import { AccountService } from "app/core/auth/account.service";
+import { take } from "rxjs";
+import { NotificationService } from "app/entities/list-material/services/notification.service";
 
 export interface VendorConfig {
   id: string;
@@ -64,22 +68,6 @@ const DATA_FIELDS = [
   "Storage Unit",
   "Lot Number",
 ];
-
-const UNMAPPED_SYSTEM_FIELDS = [
-  "SAP Code",
-  "Initial quantity",
-  "Vendor",
-  "Quantity Override",
-  "ManufacturingDate",
-  "ExpirationDate",
-  "UserData1",
-  "UserData2",
-  "UserData3",
-  "UserData4",
-  "UserData5",
-  "Storage Unit",
-  "Lot Number",
-];
 @Component({
   selector: "jhi-config-tem-ncc",
   standalone: false,
@@ -87,6 +75,11 @@ const UNMAPPED_SYSTEM_FIELDS = [
   styleUrls: ["./config-dialog.component.scss"],
 })
 export class ConfigDialogComponent implements OnInit {
+  allAttributes: string[] = [];
+  unmappedFields: string[] = [];
+  //dem vi tri
+  nextPosition = 0;
+
   form: VendorConfig = {
     id: "",
     vendorCode: "",
@@ -99,8 +92,11 @@ export class ConfigDialogComponent implements OnInit {
     ],
   };
 
-  dataFields = DATA_FIELDS;
-  unmappedFields = UNMAPPED_SYSTEM_FIELDS;
+  dataFields: string[] = [];
+  isLoadingFields = false;
+  isSaving = false;
+  filteredFieldOptions: string[][] = [];
+  currentUser = "unknown";
 
   constructor(
     private dialog: MatDialog,
@@ -109,6 +105,9 @@ export class ConfigDialogComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<ConfigDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: VendorConfig | null,
+    private managerTemNccService: ManagerTemNccService,
+    private accountService: AccountService,
+    private notificationService: NotificationService,
   ) {}
 
   ngOnInit(): void {
@@ -118,20 +117,35 @@ export class ConfigDialogComponent implements OnInit {
         fieldMappings: [...(this.data.fieldMappings || [])],
       };
     }
+    //tinh vi tri moi tu vi tri moi nhat
+    this.nextPosition =
+      this.form.fieldMappings.length > 0
+        ? Math.max(...this.form.fieldMappings.map((f) => f.position)) + 1
+        : 0;
+    this.accountService
+      .getAuthenticationState()
+      .pipe(take(1))
+      .subscribe((account) => {
+        this.currentUser = account?.login ?? "unknown";
+      });
+    this.loadMaterialAttributes();
   }
 
   addField(): void {
-    const nextPos = this.form.fieldMappings.length;
     this.form.fieldMappings.push({
-      position: nextPos,
+      position: this.nextPosition,
       nccFieldDesc: "",
       dataField: "",
     });
+    this.nextPosition++;
+    this.filteredFieldOptions.push([...this.dataFields]);
+    this.updateUnmappedFields();
   }
-
   removeField(index: number): void {
     this.form.fieldMappings.splice(index, 1);
-    this.form.fieldMappings.forEach((f, i) => (f.position = i));
+    // this.form.fieldMappings.forEach((f, i) => (f.position = i));
+    this.filteredFieldOptions.splice(index, 1);
+    this.updateUnmappedFields();
   }
 
   onCancel(): void {
@@ -140,6 +154,90 @@ export class ConfigDialogComponent implements OnInit {
 
   onSave(): void {
     this.form.fieldCount = this.form.fieldMappings.length;
-    this.dialogRef.close(this.form);
+
+    const mappingConfig = JSON.stringify({
+      separator: this.form.separator,
+      fieldMappings: this.form.fieldMappings,
+    });
+
+    const now = new Date().toISOString();
+    const currentUser = this.currentUser;
+
+    const payload = {
+      vendorCode: this.form.vendorCode,
+      vendorName: this.form.vendorName,
+      mappingConfig,
+      createdBy: currentUser,
+      createdAt: now,
+      updatedBy: currentUser,
+      updatedAt: now,
+    };
+
+    this.isSaving = true;
+    this.managerTemNccService
+      .createTemIdentificationScenario(payload)
+      .subscribe({
+        next: () => {
+          this.isSaving = false;
+          this.notificationService.success("Lưu cấu hình thành công!");
+          this.dialogRef.close(this.form);
+        },
+        error: () => {
+          this.isSaving = false;
+          this.notificationService.error(
+            "Lưu cấu hình thất bại, vui lòng thử lại!",
+          );
+        },
+      });
+  }
+
+  updateUnmappedFields(): void {
+    const mappedFields = new Set(
+      this.form.fieldMappings
+        .map((f) => f.dataField)
+        .filter((f) => f && f !== "Không lấy"),
+    );
+    this.unmappedFields = this.allAttributes.filter(
+      (f) => !mappedFields.has(f),
+    );
+  }
+
+  onFieldInput(value: string, index: number): void {
+    const lower = (value ?? "").toLowerCase().trim();
+    this.filteredFieldOptions[index] = lower
+      ? this.dataFields.filter((f) => f.toLowerCase().includes(lower))
+      : [...this.dataFields];
+  }
+
+  private loadMaterialAttributes(): void {
+    this.isLoadingFields = true;
+    this.managerTemNccService.getMaterialAttributes().subscribe({
+      next: (attrs) => {
+        this.allAttributes = attrs.map((a) => a.attributes);
+        this.dataFields = ["Không lấy", ...this.allAttributes];
+
+        // khởi tạo đủ slot cho cả các row đang có khi edit
+        this.filteredFieldOptions = this.form.fieldMappings.map(() => [
+          ...this.dataFields,
+        ]);
+
+        this.isLoadingFields = false;
+        this.updateUnmappedFields();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.dataFields = DATA_FIELDS;
+        // tương tự fallback
+        this.filteredFieldOptions = this.form.fieldMappings.map(() => [
+          ...this.dataFields,
+        ]);
+        this.isLoadingFields = false;
+      },
+    });
+  }
+  private initFilteredOptions(): void {
+    this.filteredFieldOptions = this.form.fieldMappings.map(() => [
+      ...this.dataFields,
+    ]);
   }
 }
