@@ -38,13 +38,16 @@
       "TemIdentificationScenario",
       "RdMaterialAttributes",
       "AttributesType",
-      "SapOcrd"
+      "SapOcrd",
+      "SapPoInfo",
+      "PoImportTemId",
+      "PoImportTem"
     ],
     "entitySuffix": "",
     "jhiPrefix": "jhi",
     "jhipsterVersion": "8.11.0",
     "languages": ["en", "fr"],
-    "lastLiquibaseTimestamp": 1773805917000,
+    "lastLiquibaseTimestamp": 1773861147000,
     "messageBroker": false,
     "nativeLanguage": "en",
     "otherModules": [],

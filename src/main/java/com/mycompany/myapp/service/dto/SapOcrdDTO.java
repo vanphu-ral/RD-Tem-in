@@ -36,7 +36,7 @@ public class SapOcrdDTO implements Serializable {
     private String licTradNum;
 
     @Size(max = 510)
-    private String dddId;
+    private String addId;
 
     @Size(max = 510)
     private String eMail;
@@ -105,12 +105,12 @@ public class SapOcrdDTO implements Serializable {
         this.licTradNum = licTradNum;
     }
 
-    public String getDddId() {
-        return dddId;
+    public String getaddId() {
+        return addId;
     }
 
-    public void setDddId(String dddId) {
-        this.dddId = dddId;
+    public void setaddId(String addId) {
+        this.addId = addId;
     }
 
     public String geteMail() {
@@ -146,16 +146,16 @@ public class SapOcrdDTO implements Serializable {
     @Override
     public String toString() {
         return "SapOcrdDTO{" +
-            "id=" + getId() +
-            ", cardCode='" + getCardCode() + "'" +
-            ", cardType='" + getCardType() + "'" +
-            ", cardName='" + getCardName() + "'" +
-            ", cardFName='" + getCardFName() + "'" +
-            ", groupCode='" + getGroupCode() + "'" +
-            ", currency='" + getCurrency() + "'" +
-            ", licTradNum='" + getLicTradNum() + "'" +
-            ", dddId='" + getDddId() + "'" +
-            ", eMail='" + geteMail() + "'" +
-            "}";
+                "id=" + getId() +
+                ", cardCode='" + getCardCode() + "'" +
+                ", cardType='" + getCardType() + "'" +
+                ", cardName='" + getCardName() + "'" +
+                ", cardFName='" + getCardFName() + "'" +
+                ", groupCode='" + getGroupCode() + "'" +
+                ", currency='" + getCurrency() + "'" +
+                ", licTradNum='" + getLicTradNum() + "'" +
+                ", addId='" + getaddId() + "'" +
+                ", eMail='" + geteMail() + "'" +
+                "}";
     }
 }

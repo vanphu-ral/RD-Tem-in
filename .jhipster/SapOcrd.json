@@ -49,7 +49,7 @@
       "fieldValidateRulesMaxlength": "510"
     },
     {
-      "fieldName": "dddId",
+      "fieldName": "addId",
       "fieldType": "String",
       "fieldValidateRules": ["maxlength"],
       "fieldValidateRulesMaxlength": "510"

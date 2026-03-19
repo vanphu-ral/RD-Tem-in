@@ -137,7 +137,11 @@ public class VendorTemDetail implements Serializable {
     @Column(name = "sap_code", length = 20)
     private String sapCode;
 
-    @Column(name = "vendor_qr_code")
+    @Size(max = 510)
+    @Column(name = "vendor_additional_data", length = 510)
+    private String vendorAdditionalData;
+
+    @Column(name = "vendor_qr_code", columnDefinition = "TEXT")
     private String vendorQrCode;
 
     @Size(max = 50)
@@ -575,6 +579,19 @@ public class VendorTemDetail implements Serializable {
         this.sapCode = sapCode;
     }
 
+    public String getVendorAdditionalData() {
+        return this.vendorAdditionalData;
+    }
+
+    public VendorTemDetail vendorAdditionalData(String vendorAdditionalData) {
+        this.setVendorAdditionalData(vendorAdditionalData);
+        return this;
+    }
+
+    public void setVendorAdditionalData(String vendorAdditionalData) {
+        this.vendorAdditionalData = vendorAdditionalData;
+    }
+
     public String getVendorQrCode() {
         return this.vendorQrCode;
     }
@@ -730,6 +747,7 @@ public class VendorTemDetail implements Serializable {
                 ", manufacturingDate='" + getManufacturingDate() + "'" +
                 ", partClass='" + getPartClass() + "'" +
                 ", sapCode='" + getSapCode() + "'" +
+                ", vendorAdditionalData='" + getVendorAdditionalData() + "'" +
                 ", vendorQrCode='" + getVendorQrCode() + "'" +
                 ", status='" + getStatus() + "'" +
                 ", createdBy='" + getCreatedBy() + "'" +

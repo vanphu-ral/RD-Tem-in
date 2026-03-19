@@ -104,7 +104,7 @@ class SapOcrdResourceIT {
             .groupCode(DEFAULT_GROUP_CODE)
             .currency(DEFAULT_CURRENCY)
             .licTradNum(DEFAULT_LIC_TRAD_NUM)
-            .dddId(DEFAULT_DDD_ID)
+            .addId(DEFAULT_DDD_ID)
             .eMail(DEFAULT_E_MAIL);
     }
 
@@ -123,7 +123,7 @@ class SapOcrdResourceIT {
             .groupCode(UPDATED_GROUP_CODE)
             .currency(UPDATED_CURRENCY)
             .licTradNum(UPDATED_LIC_TRAD_NUM)
-            .dddId(UPDATED_DDD_ID)
+            .addId(UPDATED_DDD_ID)
             .eMail(UPDATED_E_MAIL);
     }
 
@@ -232,7 +232,7 @@ class SapOcrdResourceIT {
                     hasItem(DEFAULT_LIC_TRAD_NUM)
                 )
             )
-            .andExpect(jsonPath("$.[*].dddId").value(hasItem(DEFAULT_DDD_ID)))
+            .andExpect(jsonPath("$.[*].addId").value(hasItem(DEFAULT_DDD_ID)))
             .andExpect(jsonPath("$.[*].eMail").value(hasItem(DEFAULT_E_MAIL)));
     }
 
@@ -255,7 +255,7 @@ class SapOcrdResourceIT {
             .andExpect(jsonPath("$.groupCode").value(DEFAULT_GROUP_CODE))
             .andExpect(jsonPath("$.currency").value(DEFAULT_CURRENCY))
             .andExpect(jsonPath("$.licTradNum").value(DEFAULT_LIC_TRAD_NUM))
-            .andExpect(jsonPath("$.dddId").value(DEFAULT_DDD_ID))
+            .andExpect(jsonPath("$.addId").value(DEFAULT_DDD_ID))
             .andExpect(jsonPath("$.eMail").value(DEFAULT_E_MAIL));
     }
 
@@ -280,7 +280,8 @@ class SapOcrdResourceIT {
         SapOcrd updatedSapOcrd = sapOcrdRepository
             .findById(sapOcrd.getId())
             .orElseThrow();
-        // Disconnect from session so that the updates on updatedSapOcrd are not directly saved in db
+        // Disconnect from session so that the updates on updatedSapOcrd are not
+        // directly saved in db
         em.detach(updatedSapOcrd);
         updatedSapOcrd
             .cardCode(UPDATED_CARD_CODE)
@@ -290,7 +291,7 @@ class SapOcrdResourceIT {
             .groupCode(UPDATED_GROUP_CODE)
             .currency(UPDATED_CURRENCY)
             .licTradNum(UPDATED_LIC_TRAD_NUM)
-            .dddId(UPDATED_DDD_ID)
+            .addId(UPDATED_DDD_ID)
             .eMail(UPDATED_E_MAIL);
         SapOcrdDTO sapOcrdDTO = sapOcrdMapper.toDto(updatedSapOcrd);
 
@@ -433,7 +434,7 @@ class SapOcrdResourceIT {
             .groupCode(UPDATED_GROUP_CODE)
             .currency(UPDATED_CURRENCY)
             .licTradNum(UPDATED_LIC_TRAD_NUM)
-            .dddId(UPDATED_DDD_ID)
+            .addId(UPDATED_DDD_ID)
             .eMail(UPDATED_E_MAIL);
 
         restSapOcrdMockMvc

@@ -371,6 +371,9 @@
     <include file="config/liquibase/changelog/20260309010242_added_entity_AttributesType.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260315010000_update_import_vendor_tem_transactions.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260318035157_added_entity_SapOcrd.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260318161655_added_entity_SapPoInfo.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260318190810_added_entity_PoImportTemId.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260318191227_added_entity_PoImportTem.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <include file="config/liquibase/changelog/20260309010238_added_entity_constraints_PoDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260309010239_added_entity_constraints_VendorTemDetail.xml" relativeToChangelogFile="false"/>

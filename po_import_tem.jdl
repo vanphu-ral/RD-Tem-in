@@ -1,0 +1,29 @@
+/**
+ * Entity ImportVendorTemTransactions
+ */
+entity PoImportTem {
+    poNumber String maxlength(20),
+    vendorCode String maxlength(20),
+    vendorName String maxlength(255),
+    entryDate LocalDate,
+    storageUnit String maxlength(50),
+    quantityContainer Integer,
+    totalQuantity Integer,
+    status String maxlength(50),
+    createdBy String maxlength(20),
+    createdAt ZonedDateTime,
+    updatedBy String maxlength(20),
+    updatedAt ZonedDateTime,
+    deletedBy String maxlength(20),
+    deletedAt ZonedDateTime
+}
+paginate PoImportTem with pagination
+
+// Áp dụng Service Implementation cho tất cả
+service all with serviceImpl
+
+// Sử dụng DTO Mapstruct cho tất cả
+dto all with mapstruct
+
+// Bật bộ lọc tìm kiếm cho tất cả
+filter *

@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Added the entity SapPoInfo.
+    -->
+    <changeSet id="20260318161655-1" author="jhipster">
+        <createTable tableName="SAP_PO_Info">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="opor_branch" type="varchar(510)" remarks="Header Fields (OPOR)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_canceled" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_card_code" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_card_name" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_comments" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_create_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_department" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_doc_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_doc_due_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_doc_entry" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_doc_num" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_doc_status" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_invnt_sttus" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_jrnl_memo" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_co_add" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_code_inv" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_code_serial" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_contract_date" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_declare_pd" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_doc_num" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_inv_code" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_inv_code_2" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_inv_serial" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_pur_nv_giao" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_update_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_user_sign" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_tax_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_cntct_code" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_num_at_card" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_slp_code" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_owner_code" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_vat_sum" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_doc_total" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_vat_sum_sy" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_ht" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="opor_u_payment" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_base_doc_num" type="varchar(510)" remarks="Line Fields (POR1)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_base_entry" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_base_line" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_base_ref" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_currency" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_disc_prcnt" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="po_doc_entry" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_dscription" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_item_code" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_line_num" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_line_status" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_line_vendor" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_open_sum_sys" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_price" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_quantity" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_ship_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_total_frgn" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_total_sumsy" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_trget_entry" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_u_mcode" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_u_so" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_u_tenkythuat" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_unit_msr" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_uom_code" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_vat_group" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_line_total" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_vat_prcnt" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_price_af_vat" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="por_1_whs_code" type="varchar(510)">
+                <constraints nullable="true" />
+            </column>
+            <column name="pr_map_po" type="varchar(255)" remarks="Other Fields">
+                <constraints nullable="true" />
+            </column>
+            <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here -->
+        </createTable>
+        <dropDefaultValue tableName="SAP_PO_Info" columnName="opor_create_date" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="SAP_PO_Info" columnName="opor_doc_date" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="SAP_PO_Info" columnName="opor_doc_due_date" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="SAP_PO_Info" columnName="opor_update_date" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="SAP_PO_Info" columnName="opor_tax_date" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="SAP_PO_Info" columnName="por_1_ship_date" columnDataType="${datetimeType}"/>
+    </changeSet>
+
+    <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here -->
+
+    <!--
+        Load sample data generated with Faker.js
+        - This data can be easily edited using a CSV editor (or even MS Excel) and
+          is located in the 'src/main/resources/config/liquibase/fake-data' directory
+        - By default this data is applied when running with the JHipster 'dev' profile.
+          This can be customized by adding or removing 'faker' in the 'spring.liquibase.contexts'
+          Spring Boot configuration key.
+    -->
+    <changeSet id="20260318161655-1-data" author="jhipster" context="faker">
+        <loadData
+                  file="config/liquibase/fake-data/SAP_PO_Info.csv"
+                  separator=";"
+                  tableName="SAP_PO_Info"
+                  usePreparedStatements="true">
+            <column name="id" type="numeric"/>
+            <column name="opor_branch" type="string"/>
+            <column name="opor_canceled" type="string"/>
+            <column name="opor_card_code" type="string"/>
+            <column name="opor_card_name" type="string"/>
+            <column name="opor_comments" type="string"/>
+            <column name="opor_create_date" type="date"/>
+            <column name="opor_department" type="string"/>
+            <column name="opor_doc_date" type="date"/>
+            <column name="opor_doc_due_date" type="date"/>
+            <column name="opor_doc_entry" type="string"/>
+            <column name="opor_doc_num" type="string"/>
+            <column name="opor_doc_status" type="string"/>
+            <column name="opor_invnt_sttus" type="string"/>
+            <column name="opor_jrnl_memo" type="string"/>
+            <column name="opor_u_co_add" type="string"/>
+            <column name="opor_u_code_inv" type="string"/>
+            <column name="opor_u_code_serial" type="string"/>
+            <column name="opor_u_contract_date" type="string"/>
+            <column name="opor_u_declare_pd" type="string"/>
+            <column name="opor_u_doc_num" type="string"/>
+            <column name="opor_u_inv_code" type="string"/>
+            <column name="opor_u_inv_code_2" type="string"/>
+            <column name="opor_u_inv_serial" type="string"/>
+            <column name="opor_u_pur_nv_giao" type="string"/>
+            <column name="opor_update_date" type="date"/>
+            <column name="opor_user_sign" type="string"/>
+            <column name="opor_tax_date" type="date"/>
+            <column name="opor_cntct_code" type="numeric"/>
+            <column name="opor_num_at_card" type="string"/>
+            <column name="opor_slp_code" type="numeric"/>
+            <column name="opor_owner_code" type="numeric"/>
+            <column name="opor_vat_sum" type="numeric"/>
+            <column name="opor_doc_total" type="numeric"/>
+            <column name="opor_vat_sum_sy" type="numeric"/>
+            <column name="opor_u_ht" type="string"/>
+            <column name="opor_u_payment" type="string"/>
+            <column name="por_1_base_doc_num" type="string"/>
+            <column name="por_1_base_entry" type="string"/>
+            <column name="por_1_base_line" type="string"/>
+            <column name="por_1_base_ref" type="string"/>
+            <column name="por_1_currency" type="string"/>
+            <column name="por_1_disc_prcnt" type="string"/>
+            <column name="po_doc_entry" type="string"/>
+            <column name="por_1_dscription" type="string"/>
+            <column name="por_1_item_code" type="string"/>
+            <column name="por_1_line_num" type="string"/>
+            <column name="por_1_line_status" type="string"/>
+            <column name="por_1_line_vendor" type="string"/>
+            <column name="por_1_open_sum_sys" type="string"/>
+            <column name="por_1_price" type="string"/>
+            <column name="por_1_quantity" type="string"/>
+            <column name="por_1_ship_date" type="date"/>
+            <column name="por_1_total_frgn" type="string"/>
+            <column name="por_1_total_sumsy" type="string"/>
+            <column name="por_1_trget_entry" type="string"/>
+            <column name="por_1_u_mcode" type="string"/>
+            <column name="por_1_u_so" type="string"/>
+            <column name="por_1_u_tenkythuat" type="string"/>
+            <column name="por_1_unit_msr" type="string"/>
+            <column name="por_1_uom_code" type="string"/>
+            <column name="por_1_vat_group" type="string"/>
+            <column name="por_1_line_total" type="numeric"/>
+            <column name="por_1_vat_prcnt" type="numeric"/>
+            <column name="por_1_price_af_vat" type="numeric"/>
+            <column name="por_1_whs_code" type="string"/>
+            <column name="pr_map_po" type="string"/>
+            <!-- jhipster-needle-liquibase-add-loadcolumn - JHipster (and/or extensions) can add load columns here -->
+        </loadData>
+    </changeSet>
+</databaseChangeLog>

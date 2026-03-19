@@ -8,12 +8,15 @@ import tech.jhipster.service.Criteria;
 import tech.jhipster.service.filter.*;
 
 /**
- * Criteria class for the {@link com.mycompany.myapp.domain.VendorTemDetail} entity. This class is used
- * in {@link com.mycompany.myapp.web.rest.VendorTemDetailResource} to receive all the possible filtering options from
+ * Criteria class for the {@link com.mycompany.myapp.domain.VendorTemDetail}
+ * entity. This class is used
+ * in {@link com.mycompany.myapp.web.rest.VendorTemDetailResource} to receive
+ * all the possible filtering options from
  * the Http GET request parameters.
  * For example the following could be a valid request:
  * {@code /vendor-tem-details?id.greaterThan=5&attr1.contains=something&attr2.specified=false}
- * As Spring is unable to properly convert the types, unless specific {@link Filter} class are used, we need to use
+ * As Spring is unable to properly convert the types, unless specific
+ * {@link Filter} class are used, we need to use
  * fix type specific filters.
  */
 // @ParameterObject
@@ -79,6 +82,8 @@ public class VendorTemDetailCriteria implements Serializable, Criteria {
     private StringFilter partClass;
 
     private StringFilter sapCode;
+
+    private StringFilter vendorAdditionalData;
 
     private StringFilter vendorQrCode;
 
@@ -207,6 +212,10 @@ public class VendorTemDetailCriteria implements Serializable, Criteria {
             .orElse(null);
         this.sapCode = other
             .optionalSapCode()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.vendorAdditionalData = other
+            .optionalVendorAdditionalData()
             .map(StringFilter::copy)
             .orElse(null);
         this.vendorQrCode = other
@@ -796,6 +805,25 @@ public class VendorTemDetailCriteria implements Serializable, Criteria {
         this.sapCode = sapCode;
     }
 
+    public StringFilter getVendorAdditionalData() {
+        return vendorAdditionalData;
+    }
+
+    public Optional<StringFilter> optionalVendorAdditionalData() {
+        return Optional.ofNullable(vendorAdditionalData);
+    }
+
+    public StringFilter vendorAdditionalData() {
+        if (vendorAdditionalData == null) {
+            setVendorAdditionalData(new StringFilter());
+        }
+        return vendorAdditionalData;
+    }
+
+    public void setVendorAdditionalData(StringFilter vendorAdditionalData) {
+        this.vendorAdditionalData = vendorAdditionalData;
+    }
+
     public StringFilter getVendorQrCode() {
         return vendorQrCode;
     }
@@ -987,6 +1015,7 @@ public class VendorTemDetailCriteria implements Serializable, Criteria {
             Objects.equals(manufacturingDate, that.manufacturingDate) &&
             Objects.equals(partClass, that.partClass) &&
             Objects.equals(sapCode, that.sapCode) &&
+            Objects.equals(vendorAdditionalData, that.vendorAdditionalData) &&
             Objects.equals(vendorQrCode, that.vendorQrCode) &&
             Objects.equals(status, that.status) &&
             Objects.equals(createdBy, that.createdBy) &&
@@ -1045,43 +1074,44 @@ public class VendorTemDetailCriteria implements Serializable, Criteria {
     @Override
     public String toString() {
         return "VendorTemDetailCriteria{" +
-            optionalId().map(f -> "id=" + f + ", ").orElse("") +
-            optionalReelId().map(f -> "reelId=" + f + ", ").orElse("") +
-            optionalPartNumber().map(f -> "partNumber=" + f + ", ").orElse("") +
-            optionalVendor().map(f -> "vendor=" + f + ", ").orElse("") +
-            optionalLot().map(f -> "lot=" + f + ", ").orElse("") +
-            optionalUserData1().map(f -> "userData1=" + f + ", ").orElse("") +
-            optionalUserData2().map(f -> "userData2=" + f + ", ").orElse("") +
-            optionalUserData3().map(f -> "userData3=" + f + ", ").orElse("") +
-            optionalUserData4().map(f -> "userData4=" + f + ", ").orElse("") +
-            optionalUserData5().map(f -> "userData5=" + f + ", ").orElse("") +
-            optionalInitialQuantity().map(f -> "initialQuantity=" + f + ", ").orElse("") +
-            optionalMsdLevel().map(f -> "msdLevel=" + f + ", ").orElse("") +
-            optionalMsdInitialFloorTime().map(f -> "msdInitialFloorTime=" + f + ", ").orElse("") +
-            optionalMsdBagSealDate().map(f -> "msdBagSealDate=" + f + ", ").orElse("") +
-            optionalMarketUsage().map(f -> "marketUsage=" + f + ", ").orElse("") +
-            optionalQuantityOverride().map(f -> "quantityOverride=" + f + ", ").orElse("") +
-            optionalShelfTime().map(f -> "shelfTime=" + f + ", ").orElse("") +
-            optionalSpMaterialName().map(f -> "spMaterialName=" + f + ", ").orElse("") +
-            optionalWarningLimit().map(f -> "warningLimit=" + f + ", ").orElse("") +
-            optionalMaximumLimit().map(f -> "maximumLimit=" + f + ", ").orElse("") +
-            optionalComments().map(f -> "comments=" + f + ", ").orElse("") +
-            optionalWarmupTime().map(f -> "warmupTime=" + f + ", ").orElse("") +
-            optionalStorageUnit().map(f -> "storageUnit=" + f + ", ").orElse("") +
-            optionalSubStorageUnit().map(f -> "subStorageUnit=" + f + ", ").orElse("") +
-            optionalLocationOverride().map(f -> "locationOverride=" + f + ", ").orElse("") +
-            optionalExpirationDate().map(f -> "expirationDate=" + f + ", ").orElse("") +
-            optionalManufacturingDate().map(f -> "manufacturingDate=" + f + ", ").orElse("") +
-            optionalPartClass().map(f -> "partClass=" + f + ", ").orElse("") +
-            optionalSapCode().map(f -> "sapCode=" + f + ", ").orElse("") +
-            optionalVendorQrCode().map(f -> "vendorQrCode=" + f + ", ").orElse("") +
-            optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
-            optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
-            optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
-            optionalUpdatedBy().map(f -> "updatedBy=" + f + ", ").orElse("") +
-            optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
-            optionalPoDetailId().map(f -> "poDetailId=" + f + ", ").orElse("") +
-            optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
-        "}";
+                optionalId().map(f -> "id=" + f + ", ").orElse("") +
+                optionalReelId().map(f -> "reelId=" + f + ", ").orElse("") +
+                optionalPartNumber().map(f -> "partNumber=" + f + ", ").orElse("") +
+                optionalVendor().map(f -> "vendor=" + f + ", ").orElse("") +
+                optionalLot().map(f -> "lot=" + f + ", ").orElse("") +
+                optionalUserData1().map(f -> "userData1=" + f + ", ").orElse("") +
+                optionalUserData2().map(f -> "userData2=" + f + ", ").orElse("") +
+                optionalUserData3().map(f -> "userData3=" + f + ", ").orElse("") +
+                optionalUserData4().map(f -> "userData4=" + f + ", ").orElse("") +
+                optionalUserData5().map(f -> "userData5=" + f + ", ").orElse("") +
+                optionalInitialQuantity().map(f -> "initialQuantity=" + f + ", ").orElse("") +
+                optionalMsdLevel().map(f -> "msdLevel=" + f + ", ").orElse("") +
+                optionalMsdInitialFloorTime().map(f -> "msdInitialFloorTime=" + f + ", ").orElse("") +
+                optionalMsdBagSealDate().map(f -> "msdBagSealDate=" + f + ", ").orElse("") +
+                optionalMarketUsage().map(f -> "marketUsage=" + f + ", ").orElse("") +
+                optionalQuantityOverride().map(f -> "quantityOverride=" + f + ", ").orElse("") +
+                optionalShelfTime().map(f -> "shelfTime=" + f + ", ").orElse("") +
+                optionalSpMaterialName().map(f -> "spMaterialName=" + f + ", ").orElse("") +
+                optionalWarningLimit().map(f -> "warningLimit=" + f + ", ").orElse("") +
+                optionalMaximumLimit().map(f -> "maximumLimit=" + f + ", ").orElse("") +
+                optionalComments().map(f -> "comments=" + f + ", ").orElse("") +
+                optionalWarmupTime().map(f -> "warmupTime=" + f + ", ").orElse("") +
+                optionalStorageUnit().map(f -> "storageUnit=" + f + ", ").orElse("") +
+                optionalSubStorageUnit().map(f -> "subStorageUnit=" + f + ", ").orElse("") +
+                optionalLocationOverride().map(f -> "locationOverride=" + f + ", ").orElse("") +
+                optionalExpirationDate().map(f -> "expirationDate=" + f + ", ").orElse("") +
+                optionalManufacturingDate().map(f -> "manufacturingDate=" + f + ", ").orElse("") +
+                optionalPartClass().map(f -> "partClass=" + f + ", ").orElse("") +
+                optionalSapCode().map(f -> "sapCode=" + f + ", ").orElse("") +
+                optionalVendorAdditionalData().map(f -> "vendorAdditionalData=" + f + ", ").orElse("") +
+                optionalVendorQrCode().map(f -> "vendorQrCode=" + f + ", ").orElse("") +
+                optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
+                optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
+                optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
+                optionalUpdatedBy().map(f -> "updatedBy=" + f + ", ").orElse("") +
+                optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
+                optionalPoDetailId().map(f -> "poDetailId=" + f + ", ").orElse("") +
+                optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
+                "}";
     }
 }

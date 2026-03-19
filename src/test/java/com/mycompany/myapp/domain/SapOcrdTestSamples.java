@@ -21,7 +21,7 @@ public class SapOcrdTestSamples {
             .groupCode("groupCode1")
             .currency("currency1")
             .licTradNum("licTradNum1")
-            .dddId("dddId1")
+            .addId("addId1")
             .eMail("eMail1");
     }
 
@@ -35,7 +35,7 @@ public class SapOcrdTestSamples {
             .groupCode("groupCode2")
             .currency("currency2")
             .licTradNum("licTradNum2")
-            .dddId("dddId2")
+            .addId("addId2")
             .eMail("eMail2");
     }
 
@@ -49,7 +49,7 @@ public class SapOcrdTestSamples {
             .groupCode(UUID.randomUUID().toString())
             .currency(UUID.randomUUID().toString())
             .licTradNum(UUID.randomUUID().toString())
-            .dddId(UUID.randomUUID().toString())
+            .addId(UUID.randomUUID().toString())
             .eMail(UUID.randomUUID().toString());
     }
 }

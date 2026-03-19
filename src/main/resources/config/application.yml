@@ -29,7 +29,8 @@ springdoc:
     enabled: false
 ---
 keycloak:
-  server-url: http://localhost:9080/auth
+  # server-url: http://localhost:9080/auth
+  server-url: http://192.168.68.90:8080/auth
   realm: QLSX
   client-id: tem_in
   username: admin
@@ -169,7 +170,8 @@ spring:
       client:
         provider:
           oidc:
-            issuer-uri: http://localhost:9080/auth/realms/QLSX
+            # issuer-uri: http://localhost:9080/auth/realms/QLSX
+            issuer-uri: http://192.168.68.90:8080/auth/realms/QLSX
         #            issuer-uri: http://localhost:8080/auth/realms/jhipster
         registration:
           oidc:

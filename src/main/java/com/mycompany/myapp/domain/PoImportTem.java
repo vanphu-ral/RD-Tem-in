@@ -1,11 +1,8 @@
 package com.mycompany.myapp.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
-import java.util.HashSet;
-import java.util.Set;
 import javax.persistence.*;
 import javax.validation.constraints.*;
 
@@ -13,15 +10,18 @@ import javax.validation.constraints.*;
  * Entity ImportVendorTemTransactions
  */
 @Entity
-@Table(name = "import_vendor_tem_transactions")
+@Table(name = "po_import_tem")
 @SuppressWarnings("common-java:DuplicatedBlocks")
-public class ImportVendorTemTransactions implements Serializable {
+public class PoImportTem implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "sequenceGenerator"
+    )
+    @SequenceGenerator(name = "sequenceGenerator")
     @Column(name = "id")
     private Long id;
 
@@ -44,11 +44,11 @@ public class ImportVendorTemTransactions implements Serializable {
     @Column(name = "storage_unit", length = 50)
     private String storageUnit;
 
-    @Column(name = "tem_identification_scenario_id")
-    private Integer temIdentificationScenarioId;
+    @Column(name = "quantity_container")
+    private Integer quantityContainer;
 
-    @Column(name = "mapping_config", columnDefinition = "TEXT")
-    private String mappingConfig;
+    @Column(name = "total_quantity")
+    private Integer totalQuantity;
 
     @Size(max = 50)
     @Column(name = "status", length = 50)
@@ -75,35 +75,13 @@ public class ImportVendorTemTransactions implements Serializable {
     @Column(name = "deleted_at")
     private ZonedDateTime deletedAt;
 
-    @Column(name = "po_import_tem_id")
-    private Long poImportTemId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JsonIgnoreProperties(
-        value = { "importVendorTemTransactions" },
-        allowSetters = true
-    )
-    @JoinColumn(
-        name = "po_import_tem_id",
-        insertable = false,
-        updatable = false
-    )
-    private PoImportTem poImportTem;
-
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "importVendorTemTransactions")
-    @JsonIgnoreProperties(
-        value = { "vendorTemDetails", "importVendorTemTransactions" },
-        allowSetters = true
-    )
-    private Set<PoDetail> poDetails = new HashSet<>();
-
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
         return this.id;
     }
 
-    public ImportVendorTemTransactions id(Long id) {
+    public PoImportTem id(Long id) {
         this.setId(id);
         return this;
     }
@@ -116,7 +94,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.poNumber;
     }
 
-    public ImportVendorTemTransactions poNumber(String poNumber) {
+    public PoImportTem poNumber(String poNumber) {
         this.setPoNumber(poNumber);
         return this;
     }
@@ -129,7 +107,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.vendorCode;
     }
 
-    public ImportVendorTemTransactions vendorCode(String vendorCode) {
+    public PoImportTem vendorCode(String vendorCode) {
         this.setVendorCode(vendorCode);
         return this;
     }
@@ -142,7 +120,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.vendorName;
     }
 
-    public ImportVendorTemTransactions vendorName(String vendorName) {
+    public PoImportTem vendorName(String vendorName) {
         this.setVendorName(vendorName);
         return this;
     }
@@ -155,7 +133,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.entryDate;
     }
 
-    public ImportVendorTemTransactions entryDate(LocalDate entryDate) {
+    public PoImportTem entryDate(LocalDate entryDate) {
         this.setEntryDate(entryDate);
         return this;
     }
@@ -168,7 +146,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.storageUnit;
     }
 
-    public ImportVendorTemTransactions storageUnit(String storageUnit) {
+    public PoImportTem storageUnit(String storageUnit) {
         this.setStorageUnit(storageUnit);
         return this;
     }
@@ -177,41 +155,37 @@ public class ImportVendorTemTransactions implements Serializable {
         this.storageUnit = storageUnit;
     }
 
-    public Integer getTemIdentificationScenarioId() {
-        return this.temIdentificationScenarioId;
+    public Integer getQuantityContainer() {
+        return this.quantityContainer;
     }
 
-    public ImportVendorTemTransactions temIdentificationScenarioId(
-        Integer temIdentificationScenarioId
-    ) {
-        this.setTemIdentificationScenarioId(temIdentificationScenarioId);
+    public PoImportTem quantityContainer(Integer quantityContainer) {
+        this.setQuantityContainer(quantityContainer);
         return this;
     }
 
-    public void setTemIdentificationScenarioId(
-        Integer temIdentificationScenarioId
-    ) {
-        this.temIdentificationScenarioId = temIdentificationScenarioId;
+    public void setQuantityContainer(Integer quantityContainer) {
+        this.quantityContainer = quantityContainer;
     }
 
-    public String getMappingConfig() {
-        return this.mappingConfig;
+    public Integer getTotalQuantity() {
+        return this.totalQuantity;
     }
 
-    public ImportVendorTemTransactions mappingConfig(String mappingConfig) {
-        this.setMappingConfig(mappingConfig);
+    public PoImportTem totalQuantity(Integer totalQuantity) {
+        this.setTotalQuantity(totalQuantity);
         return this;
     }
 
-    public void setMappingConfig(String mappingConfig) {
-        this.mappingConfig = mappingConfig;
+    public void setTotalQuantity(Integer totalQuantity) {
+        this.totalQuantity = totalQuantity;
     }
 
     public String getStatus() {
         return this.status;
     }
 
-    public ImportVendorTemTransactions status(String status) {
+    public PoImportTem status(String status) {
         this.setStatus(status);
         return this;
     }
@@ -224,7 +198,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.createdBy;
     }
 
-    public ImportVendorTemTransactions createdBy(String createdBy) {
+    public PoImportTem createdBy(String createdBy) {
         this.setCreatedBy(createdBy);
         return this;
     }
@@ -237,7 +211,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.createdAt;
     }
 
-    public ImportVendorTemTransactions createdAt(ZonedDateTime createdAt) {
+    public PoImportTem createdAt(ZonedDateTime createdAt) {
         this.setCreatedAt(createdAt);
         return this;
     }
@@ -250,7 +224,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.updatedBy;
     }
 
-    public ImportVendorTemTransactions updatedBy(String updatedBy) {
+    public PoImportTem updatedBy(String updatedBy) {
         this.setUpdatedBy(updatedBy);
         return this;
     }
@@ -263,7 +237,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.updatedAt;
     }
 
-    public ImportVendorTemTransactions updatedAt(ZonedDateTime updatedAt) {
+    public PoImportTem updatedAt(ZonedDateTime updatedAt) {
         this.setUpdatedAt(updatedAt);
         return this;
     }
@@ -276,7 +250,7 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.deletedBy;
     }
 
-    public ImportVendorTemTransactions deletedBy(String deletedBy) {
+    public PoImportTem deletedBy(String deletedBy) {
         this.setDeletedBy(deletedBy);
         return this;
     }
@@ -289,70 +263,13 @@ public class ImportVendorTemTransactions implements Serializable {
         return this.deletedAt;
     }
 
-    public ImportVendorTemTransactions deletedAt(ZonedDateTime deletedAt) {
+    public PoImportTem deletedAt(ZonedDateTime deletedAt) {
         this.setDeletedAt(deletedAt);
         return this;
     }
 
     public void setDeletedAt(ZonedDateTime deletedAt) {
         this.deletedAt = deletedAt;
-    }
-
-    public Long getPoImportTemId() {
-        return this.poImportTemId;
-    }
-
-    public ImportVendorTemTransactions poImportTemId(Long poImportTemId) {
-        this.setPoImportTemId(poImportTemId);
-        return this;
-    }
-
-    public void setPoImportTemId(Long poImportTemId) {
-        this.poImportTemId = poImportTemId;
-    }
-
-    public PoImportTem getPoImportTem() {
-        return this.poImportTem;
-    }
-
-    public void setPoImportTem(PoImportTem poImportTem) {
-        this.poImportTem = poImportTem;
-    }
-
-    public ImportVendorTemTransactions poImportTem(PoImportTem poImportTem) {
-        this.setPoImportTem(poImportTem);
-        return this;
-    }
-
-    public Set<PoDetail> getPoDetails() {
-        return this.poDetails;
-    }
-
-    public void setPoDetails(Set<PoDetail> poDetails) {
-        if (this.poDetails != null) {
-            this.poDetails.forEach(i -> i.setImportVendorTemTransactions(null));
-        }
-        if (poDetails != null) {
-            poDetails.forEach(i -> i.setImportVendorTemTransactions(this));
-        }
-        this.poDetails = poDetails;
-    }
-
-    public ImportVendorTemTransactions poDetails(Set<PoDetail> poDetails) {
-        this.setPoDetails(poDetails);
-        return this;
-    }
-
-    public ImportVendorTemTransactions addPoDetail(PoDetail poDetail) {
-        this.poDetails.add(poDetail);
-        poDetail.setImportVendorTemTransactions(this);
-        return this;
-    }
-
-    public ImportVendorTemTransactions removePoDetail(PoDetail poDetail) {
-        this.poDetails.remove(poDetail);
-        poDetail.setImportVendorTemTransactions(null);
-        return this;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
@@ -363,13 +280,10 @@ public class ImportVendorTemTransactions implements Serializable {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ImportVendorTemTransactions)) {
+        if (!(o instanceof PoImportTem)) {
             return false;
         }
-        return (
-            getId() != null &&
-            getId().equals(((ImportVendorTemTransactions) o).getId())
-        );
+        return getId() != null && getId().equals(((PoImportTem) o).getId());
     }
 
     @Override
@@ -382,15 +296,15 @@ public class ImportVendorTemTransactions implements Serializable {
     // prettier-ignore
     @Override
     public String toString() {
-        return "ImportVendorTemTransactions{" +
+        return "PoImportTem{" +
                 "id=" + getId() +
                 ", poNumber='" + getPoNumber() + "'" +
                 ", vendorCode='" + getVendorCode() + "'" +
                 ", vendorName='" + getVendorName() + "'" +
                 ", entryDate='" + getEntryDate() + "'" +
                 ", storageUnit='" + getStorageUnit() + "'" +
-                ", temIdentificationScenarioId='" + getTemIdentificationScenarioId() + "'" +
-                ", mappingConfig='" + getMappingConfig() + "'" +
+                ", quantityContainer=" + getQuantityContainer() +
+                ", totalQuantity=" + getTotalQuantity() +
                 ", status='" + getStatus() + "'" +
                 ", createdBy='" + getCreatedBy() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
@@ -398,7 +312,6 @@ public class ImportVendorTemTransactions implements Serializable {
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", deletedBy='" + getDeletedBy() + "'" +
                 ", deletedAt='" + getDeletedAt() + "'" +
-                ", poImportTemId='" + getPoImportTemId() + "'" +
                 "}";
     }
 }

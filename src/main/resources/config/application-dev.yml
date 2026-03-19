@@ -43,9 +43,13 @@ spring:
   datasource:
     # enabled: false
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://localhost:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
-    username: sa
-    password: Led@R@ngDong123
+    # url: jdbc:sqlserver://localhost:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
+    # username: sa
+    # password: Led@R@ngDong123
+    url: jdbc:sqlserver://172.168.6.99:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
+    username: SA
+    password: Led@R@ngDong
+
     hikari:
       poolName: Hikari
       auto-commit: false
@@ -66,7 +70,7 @@ jasper:
     compiler: net.sf.jasperreports.engine.design.JRJdtCompiler
 
 partner:
-  enabled: false
+  # enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:sqlserver://172.168.6.3:1433;database=PanaCIMMC;encrypt=true;trustServerCertificate=true;
@@ -84,7 +88,7 @@ partner:
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 partner2:
-  enabled: false
+  # enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:sqlserver://172.168.6.99:1433;database=WMSRAL;encrypt=true;trustServerCertificate=true;
@@ -125,9 +129,13 @@ partner4:
   # enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://localhost:1433;database=DWH;encrypt=true;trustServerCertificate=true;
-    username: sa
-    password: Led@R@ngDong123
+    # url: jdbc:sqlserver://localhost:1433;database=DWH;encrypt=true;trustServerCertificate=true;
+    # username: sa
+    # password: Led@R@ngDong123
+    url: jdbc:sqlserver://192.168.68.62:1433;database=DWH;encrypt=true;trustServerCertificate=true;
+    username: technical
+    password: QLHT-CNTT@2022
+
     hikari:
       poolName: Hikari
       auto-commit: false
@@ -146,7 +154,7 @@ partner5:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/VENDOR_TEM_DB
-    username: postgres
+    username: admin
     password: admin123
     hikari:
       poolName: HikariCP-Partner5
@@ -163,9 +171,13 @@ partner6:
   enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:sqlserver://localhost:1433;database=Work_Zone;encrypt=true;trustServerCertificate=true;
-    username: sa
-    password: Led@R@ngDong123
+    # url: jdbc:sqlserver://localhost:1433;database=Work_Zone;encrypt=true;trustServerCertificate=true;
+    # username: sa
+    # password: Led@R@ngDong123
+    url: jdbc:sqlserver://192.168.68.62:1433;database=DWH;encrypt=true;trustServerCertificate=true;
+    username: technical
+    password: QLHT-CNTT@2022
+
     hikari:
       poolName: Hikari
       auto-commit: false

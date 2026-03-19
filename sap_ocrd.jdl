@@ -9,7 +9,7 @@ entity SapOcrd {
     groupCode String maxlength(510),
     currency String maxlength(510),
     licTradNum String maxlength(510),
-    dddId String maxlength(510),
+    addId String maxlength(510),
     eMail String maxlength(510)
 }
 

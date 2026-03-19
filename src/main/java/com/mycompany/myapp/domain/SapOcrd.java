@@ -24,39 +24,39 @@ public class SapOcrd implements Serializable {
     private Long id;
 
     @Size(max = 510)
-    @Column(name = "card_code", length = 510)
+    @Column(name = "CardCode", length = 510)
     private String cardCode;
 
     @Size(max = 510)
-    @Column(name = "card_type", length = 510)
+    @Column(name = "CardType", length = 510)
     private String cardType;
 
     @Size(max = 510)
-    @Column(name = "card_name", length = 510)
+    @Column(name = "CardName", length = 510)
     private String cardName;
 
     @Size(max = 510)
-    @Column(name = "card_f_name", length = 510)
+    @Column(name = "CardFName", length = 510)
     private String cardFName;
 
     @Size(max = 510)
-    @Column(name = "group_code", length = 510)
+    @Column(name = "GroupCode", length = 510)
     private String groupCode;
 
     @Size(max = 510)
-    @Column(name = "currency", length = 510)
+    @Column(name = "Currency", length = 510)
     private String currency;
 
     @Size(max = 510)
-    @Column(name = "lic_trad_num", length = 510)
+    @Column(name = "LicTradNum", length = 510)
     private String licTradNum;
 
     @Size(max = 510)
-    @Column(name = "ddd_id", length = 510)
-    private String dddId;
+    @Column(name = "AddID", length = 510)
+    private String addId;
 
     @Size(max = 510)
-    @Column(name = "e_mail", length = 510)
+    @Column(name = "E_Mail", length = 510)
     private String eMail;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
@@ -165,17 +165,17 @@ public class SapOcrd implements Serializable {
         this.licTradNum = licTradNum;
     }
 
-    public String getDddId() {
-        return this.dddId;
+    public String getaddId() {
+        return this.addId;
     }
 
-    public SapOcrd dddId(String dddId) {
-        this.setDddId(dddId);
+    public SapOcrd addId(String addId) {
+        this.setaddId(addId);
         return this;
     }
 
-    public void setDddId(String dddId) {
-        this.dddId = dddId;
+    public void setaddId(String addId) {
+        this.addId = addId;
     }
 
     public String geteMail() {
@@ -191,7 +191,8 @@ public class SapOcrd implements Serializable {
         this.eMail = eMail;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
+    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
+    // setters here
 
     @Override
     public boolean equals(Object o) {
@@ -206,7 +207,8 @@ public class SapOcrd implements Serializable {
 
     @Override
     public int hashCode() {
-        // see https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
+        // see
+        // https://vladmihalcea.com/how-to-implement-equals-and-hashcode-using-the-jpa-entity-identifier/
         return getClass().hashCode();
     }
 
@@ -214,16 +216,16 @@ public class SapOcrd implements Serializable {
     @Override
     public String toString() {
         return "SapOcrd{" +
-            "id=" + getId() +
-            ", cardCode='" + getCardCode() + "'" +
-            ", cardType='" + getCardType() + "'" +
-            ", cardName='" + getCardName() + "'" +
-            ", cardFName='" + getCardFName() + "'" +
-            ", groupCode='" + getGroupCode() + "'" +
-            ", currency='" + getCurrency() + "'" +
-            ", licTradNum='" + getLicTradNum() + "'" +
-            ", dddId='" + getDddId() + "'" +
-            ", eMail='" + geteMail() + "'" +
-            "}";
+                "id=" + getId() +
+                ", cardCode='" + getCardCode() + "'" +
+                ", cardType='" + getCardType() + "'" +
+                ", cardName='" + getCardName() + "'" +
+                ", cardFName='" + getCardFName() + "'" +
+                ", groupCode='" + getGroupCode() + "'" +
+                ", currency='" + getCurrency() + "'" +
+                ", licTradNum='" + getLicTradNum() + "'" +
+                ", addId='" + getaddId() + "'" +
+                ", eMail='" + geteMail() + "'" +
+                "}";
     }
 }
