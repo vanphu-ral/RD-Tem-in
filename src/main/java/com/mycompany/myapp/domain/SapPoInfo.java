@@ -54,113 +54,113 @@ public class SapPoInfo implements Serializable {
     private Instant oporCreateDate;
 
     @Size(max = 510)
-    @Column(name = "opor_department", length = 510)
+    @Column(name = "OPOR_Department", length = 510)
     private String oporDepartment;
 
-    @Column(name = "opor_doc_date")
+    @Column(name = "OPOR_DocDate")
     private Instant oporDocDate;
 
-    @Column(name = "opor_doc_due_date")
+    @Column(name = "OPOR_DocDueDate")
     private Instant oporDocDueDate;
 
     @Size(max = 510)
-    @Column(name = "opor_doc_entry", length = 510)
+    @Column(name = "OPOR_DocEntry", length = 510)
     private String oporDocEntry;
 
     @Size(max = 510)
-    @Column(name = "opor_doc_num", length = 510)
+    @Column(name = "OPOR_DocNum", length = 510)
     private String oporDocNum;
 
     @Size(max = 510)
-    @Column(name = "opor_doc_status", length = 510)
+    @Column(name = "OPOR_DocStatus", length = 510)
     private String oporDocStatus;
 
     @Size(max = 510)
-    @Column(name = "opor_invnt_sttus", length = 510)
+    @Column(name = "OPOR_InvntSttus", length = 510)
     private String oporInvntSttus;
 
     @Size(max = 510)
-    @Column(name = "opor_jrnl_memo", length = 510)
+    @Column(name = "OPOR_JrnlMemo", length = 510)
     private String oporJrnlMemo;
 
     @Size(max = 510)
-    @Column(name = "opor_u_co_add", length = 510)
+    @Column(name = "OPOR_U_CoAdd", length = 510)
     private String oporUCoAdd;
 
     @Size(max = 510)
-    @Column(name = "opor_u_code_inv", length = 510)
+    @Column(name = "OPOR_U_CodeInv", length = 510)
     private String oporUCodeInv;
 
     @Size(max = 510)
-    @Column(name = "opor_u_code_serial", length = 510)
+    @Column(name = "OPOR_U_CodeSerial", length = 510)
     private String oporUCodeSerial;
 
     @Size(max = 510)
-    @Column(name = "opor_u_contract_date", length = 510)
+    @Column(name = "OPOR_U_ContractDate", length = 510)
     private String oporUContractDate;
 
     @Size(max = 510)
-    @Column(name = "opor_u_declare_pd", length = 510)
+    @Column(name = "OPOR_U_DeclarePd", length = 510)
     private String oporUDeclarePd;
 
     @Size(max = 510)
-    @Column(name = "opor_u_doc_num", length = 510)
+    @Column(name = "OPOR_U_DocNum", length = 510)
     private String oporUDocNum;
 
     @Size(max = 510)
-    @Column(name = "opor_u_inv_code", length = 510)
+    @Column(name = "OPOR_U_InvCode", length = 510)
     private String oporUInvCode;
 
     @Size(max = 510)
-    @Column(name = "opor_u_inv_code_2", length = 510)
+    @Column(name = "OPOR_U_InvCode2", length = 510)
     private String oporUInvCode2;
 
     @Size(max = 510)
-    @Column(name = "opor_u_inv_serial", length = 510)
+    @Column(name = "OPOR_U_InvSerial", length = 510)
     private String oporUInvSerial;
 
     @Size(max = 510)
-    @Column(name = "opor_u_pur_nv_giao", length = 510)
+    @Column(name = "OPOR_U_Pur_NVGiao", length = 510)
     private String oporUPurNVGiao;
 
-    @Column(name = "opor_update_date")
+    @Column(name = "OPOR_UpdateDate")
     private Instant oporUpdateDate;
 
     @Size(max = 510)
-    @Column(name = "opor_user_sign", length = 510)
+    @Column(name = "OPOR_UserSign", length = 510)
     private String oporUserSign;
 
-    @Column(name = "opor_tax_date")
+    @Column(name = "OPOR_TaxDate")
     private Instant oporTaxDate;
 
-    @Column(name = "opor_cntct_code")
+    @Column(name = "OPOR_CntctCode")
     private Integer oporCntctCode;
 
     @Size(max = 510)
-    @Column(name = "opor_num_at_card", length = 510)
+    @Column(name = "OPOR_NumAtCard", length = 510)
     private String oporNumAtCard;
 
-    @Column(name = "opor_slp_code")
+    @Column(name = "OPOR_SlpCode")
     private Integer oporSlpCode;
 
-    @Column(name = "opor_owner_code")
+    @Column(name = "OPOR_OwnerCode")
     private Integer oporOwnerCode;
 
-    @Column(name = "opor_vat_sum", precision = 21, scale = 2)
+    @Column(name = "OPOR_VatSum", precision = 21, scale = 2)
     private BigDecimal oporVatSum;
 
-    @Column(name = "opor_doc_total", precision = 21, scale = 2)
+    @Column(name = "OPOR_DocTotal", precision = 21, scale = 2)
     private BigDecimal oporDocTotal;
 
-    @Column(name = "opor_vat_sum_sy", precision = 21, scale = 2)
+    @Column(name = "OPOR_VatSumSy", precision = 21, scale = 2)
     private BigDecimal oporVatSumSy;
 
     @Size(max = 510)
-    @Column(name = "opor_u_ht", length = 510)
+    @Column(name = "OPOR_U_ht", length = 510)
     private String oporUHt;
 
     @Size(max = 510)
-    @Column(name = "opor_u_payment", length = 510)
+    @Column(name = "OPOR_U_Payment", length = 510)
     private String oporUPayment;
 
     /**
@@ -168,122 +168,122 @@ public class SapPoInfo implements Serializable {
      */
     @Schema(description = "Line Fields (POR1)")
     @Size(max = 510)
-    @Column(name = "por_1_base_doc_num", length = 510)
+    @Column(name = "POR1_BaseDocNum", length = 510)
     private String por1BaseDocNum;
 
     @Size(max = 510)
-    @Column(name = "por_1_base_entry", length = 510)
+    @Column(name = "POR1_BaseEntry", length = 510)
     private String por1BaseEntry;
 
     @Size(max = 510)
-    @Column(name = "por_1_base_line", length = 510)
+    @Column(name = "POR1_BaseLine", length = 510)
     private String por1BaseLine;
 
     @Size(max = 510)
-    @Column(name = "por_1_base_ref", length = 510)
+    @Column(name = "POR1_BaseRef", length = 510)
     private String por1BaseRef;
 
     @Size(max = 510)
-    @Column(name = "por_1_currency", length = 510)
+    @Column(name = "POR1_Currency", length = 510)
     private String por1Currency;
 
     @Size(max = 510)
-    @Column(name = "por_1_disc_prcnt", length = 510)
+    @Column(name = "POR1_DiscPrcnt", length = 510)
     private String por1DiscPrcnt;
 
     @Size(max = 510)
-    @Column(name = "po_doc_entry", length = 510)
+    @Column(name = "PO_DocEntry", length = 510)
     private String poDocEntry;
 
     @Size(max = 510)
-    @Column(name = "por_1_dscription", length = 510)
+    @Column(name = "POR1_Dscription", length = 510)
     private String por1Dscription;
 
     @Size(max = 510)
-    @Column(name = "por_1_item_code", length = 510)
+    @Column(name = "POR1_ItemCode", length = 510)
     private String por1ItemCode;
 
     @Size(max = 510)
-    @Column(name = "por_1_line_num", length = 510)
+    @Column(name = "POR1_LineNum", length = 510)
     private String por1LineNum;
 
     @Size(max = 510)
-    @Column(name = "por_1_line_status", length = 510)
+    @Column(name = "POR1_LineStatus", length = 510)
     private String por1LineStatus;
 
     @Size(max = 510)
-    @Column(name = "por_1_line_vendor", length = 510)
+    @Column(name = "POR1_LineVendor", length = 510)
     private String por1LineVendor;
 
     @Size(max = 510)
-    @Column(name = "por_1_open_sum_sys", length = 510)
+    @Column(name = "POR1_OpenSumSys", length = 510)
     private String por1OpenSumSys;
 
     @Size(max = 510)
-    @Column(name = "por_1_price", length = 510)
+    @Column(name = "POR1_Price", length = 510)
     private String por1Price;
 
     @Size(max = 510)
-    @Column(name = "por_1_quantity", length = 510)
+    @Column(name = "POR1_Quantity", length = 510)
     private String por1Quantity;
 
-    @Column(name = "por_1_ship_date")
+    @Column(name = "POR1_ShipDate")
     private Instant por1ShipDate;
 
     @Size(max = 510)
-    @Column(name = "por_1_total_frgn", length = 510)
+    @Column(name = "POR1_TotalFrgn", length = 510)
     private String por1TotalFrgn;
 
     @Size(max = 510)
-    @Column(name = "por_1_total_sumsy", length = 510)
+    @Column(name = "POR1_TotalSumsy", length = 510)
     private String por1TotalSumsy;
 
     @Size(max = 510)
-    @Column(name = "por_1_trget_entry", length = 510)
+    @Column(name = "POR1_TrgetEntry", length = 510)
     private String por1TrgetEntry;
 
     @Size(max = 510)
-    @Column(name = "por_1_u_mcode", length = 510)
+    @Column(name = "POR1_U_Mcode", length = 510)
     private String por1UMcode;
 
     @Size(max = 510)
-    @Column(name = "por_1_u_so", length = 510)
+    @Column(name = "POR1_U_SO", length = 510)
     private String por1USo;
 
     @Size(max = 510)
-    @Column(name = "por_1_u_tenkythuat", length = 510)
+    @Column(name = "POR1_U_Tenkythuat", length = 510)
     private String por1UTenkythuat;
 
     @Size(max = 510)
-    @Column(name = "por_1_unit_msr", length = 510)
+    @Column(name = "POR1_UnitMsr", length = 510)
     private String por1UnitMsr;
 
     @Size(max = 510)
-    @Column(name = "por_1_uom_code", length = 510)
+    @Column(name = "POR1_UOMCode", length = 510)
     private String por1UOMCode;
 
     @Size(max = 510)
-    @Column(name = "por_1_vat_group", length = 510)
+    @Column(name = "POR1_VatGroup", length = 510)
     private String por1VatGroup;
 
-    @Column(name = "por_1_line_total", precision = 21, scale = 2)
+    @Column(name = "POR1_LineTotal", precision = 21, scale = 2)
     private BigDecimal por1LineTotal;
 
-    @Column(name = "por_1_vat_prcnt", precision = 21, scale = 2)
+    @Column(name = "POR1_VatPrcnt", precision = 21, scale = 2)
     private BigDecimal por1VatPrcnt;
 
-    @Column(name = "por_1_price_af_vat", precision = 21, scale = 2)
+    @Column(name = "POR1_PriceAfVat", precision = 21, scale = 2)
     private BigDecimal por1PriceAfVat;
 
     @Size(max = 510)
-    @Column(name = "por_1_whs_code", length = 510)
+    @Column(name = "POR1_WhsCode", length = 510)
     private String por1WhsCode;
 
     /**
      * Other Fields
      */
     @Schema(description = "Other Fields")
-    @Column(name = "pr_map_po")
+    @Column(name = "PrMapPo")
     private String prMapPo;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here

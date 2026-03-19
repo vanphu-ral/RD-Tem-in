@@ -1,6 +1,7 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.service.dto.PoDetailDTO;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -45,4 +46,12 @@ public interface PoDetailService {
      * @param id the id of the entity.
      */
     void delete(Long id);
+
+    /**
+     * Save multiple poDetails.
+     *
+     * @param poDetailDTOs the list of entities to save.
+     * @return the list of persisted entities.
+     */
+    List<PoDetailDTO> saveAll(List<PoDetailDTO> poDetailDTOs);
 }

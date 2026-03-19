@@ -269,4 +269,31 @@ public class PoDetailResource {
             )
             .build();
     }
+
+    /**
+     * {@code POST  /po-details/batch} : Create multiple new poDetails.
+     *
+     * @param poDetailDTOs the list of poDetailDTOs to create.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the created poDetailDTOs.
+     */
+    @PostMapping("/batch")
+    public ResponseEntity<List<PoDetailDTO>> createPoDetailsBatch(
+        @Valid @RequestBody List<PoDetailDTO> poDetailDTOs
+    ) {
+        LOG.debug("REST request to save multiple PoDetails : {}", poDetailDTOs);
+
+        // Validate that none of the items have an ID
+        for (PoDetailDTO poDetailDTO : poDetailDTOs) {
+            if (poDetailDTO.getId() != null) {
+                throw new BadRequestAlertException(
+                    "A new poDetail cannot already have an ID",
+                    ENTITY_NAME,
+                    "idexists"
+                );
+            }
+        }
+
+        List<PoDetailDTO> result = poDetailService.saveAll(poDetailDTOs);
+        return ResponseEntity.ok().body(result);
+    }
 }

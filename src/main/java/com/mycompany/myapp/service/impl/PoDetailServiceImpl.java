@@ -5,7 +5,9 @@ import com.mycompany.myapp.repository.partner5.PoDetailRepository;
 import com.mycompany.myapp.service.PoDetailService;
 import com.mycompany.myapp.service.dto.PoDetailDTO;
 import com.mycompany.myapp.service.mapper.PoDetailMapper;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -76,5 +78,19 @@ public class PoDetailServiceImpl implements PoDetailService {
     public void delete(Long id) {
         LOG.debug("Request to delete PoDetail : {}", id);
         poDetailRepository.deleteById(id);
+    }
+
+    @Override
+    public List<PoDetailDTO> saveAll(List<PoDetailDTO> poDetailDTOs) {
+        LOG.debug("Request to save all PoDetails : {}", poDetailDTOs);
+        List<PoDetail> poDetails = poDetailDTOs
+            .stream()
+            .map(poDetailMapper::toEntity)
+            .collect(Collectors.toList());
+        poDetails = poDetailRepository.saveAll(poDetails);
+        return poDetails
+            .stream()
+            .map(poDetailMapper::toDto)
+            .collect(Collectors.toList());
     }
 }

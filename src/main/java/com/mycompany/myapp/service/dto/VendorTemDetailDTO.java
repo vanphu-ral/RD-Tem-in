@@ -97,6 +97,9 @@ public class VendorTemDetailDTO implements Serializable {
     @Size(max = 20)
     private String sapCode;
 
+    @Size(max = 510)
+    private String vendorAdditionalData;
+
     private String vendorQrCode;
 
     @Size(max = 50)
