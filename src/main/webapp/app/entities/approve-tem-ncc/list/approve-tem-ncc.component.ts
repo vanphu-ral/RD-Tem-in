@@ -22,6 +22,7 @@ import {
   trigger,
 } from "@angular/animations";
 import { OrderSummaryDialogComponent } from "./order-summary-dialog/order-summary-dialog.component";
+import { SelectionModel } from "@angular/cdk/collections";
 
 // ==================== INTERFACES ====================
 
@@ -60,10 +61,10 @@ export interface FilterValues {
 // ==================== COMPONENT ====================
 
 @Component({
-  selector: "jhi-info-tem-ncc",
+  selector: "jhi-approve-tem-ncc",
   standalone: false,
-  templateUrl: "./info-tem-ncc.component.html",
-  styleUrls: ["./info-tem-ncc.component.scss"],
+  templateUrl: "./approve-tem-ncc.component.html",
+  styleUrls: ["./approve-tem-ncc.component.scss"],
   animations: [
     trigger("detailExpand", [
       state(
@@ -78,7 +79,7 @@ export interface FilterValues {
     ]),
   ],
 })
-export class InfoTemNccComponent implements OnInit, AfterViewInit {
+export class ApproveTemNccComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "stt",
     "actions",
@@ -107,7 +108,8 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     warehouse: "",
     status: "",
   };
-
+  // key: rowId_sessionIndex (global), value: checked
+  sessionSelection = new Map<string, SelectionModel<number>>();
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   readonly sessionPageSize = 5;
@@ -218,6 +220,68 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       (this.getSessionPage(row) + 1) * this.sessionPageSize,
       row.sessions?.length ?? 0,
     );
+  }
+
+  // tạo hoặc lấy SelectionModel cho từng row
+  getSessionSelection(row: TemNccItem): SelectionModel<number> {
+    if (!this.sessionSelection.has(String(row.id))) {
+      this.sessionSelection.set(
+        String(row.id),
+        new SelectionModel<number>(true, []),
+      );
+    }
+    return this.sessionSelection.get(String(row.id))!;
+  }
+
+  isSessionSelected(row: TemNccItem, index: number): boolean {
+    return this.getSessionSelection(row).isSelected(index);
+  }
+
+  toggleSessionSelect(row: TemNccItem, index: number): void {
+    this.getSessionSelection(row).toggle(index);
+  }
+
+  isAllSessionsSelected(row: TemNccItem): boolean {
+    const sel = this.getSessionSelection(row);
+    const total = row.sessions?.length ?? 0;
+    return total > 0 && sel.selected.length === total;
+  }
+
+  isSomeSessionSelected(row: TemNccItem): boolean {
+    const sel = this.getSessionSelection(row);
+    return sel.selected.length > 0 && !this.isAllSessionsSelected(row);
+  }
+
+  toggleAllSessions(row: TemNccItem): void {
+    if (this.isAllSessionsSelected(row)) {
+      this.getSessionSelection(row).clear();
+    } else {
+      const allIndexes = (row.sessions ?? []).map((_, i) => i);
+      this.getSessionSelection(row).select(...allIndexes);
+    }
+  }
+
+  getSelectedSessions(row: TemNccItem): SessionItem[] {
+    const selected = this.getSessionSelection(row).selected;
+    return (row.sessions ?? []).filter((_, i) => selected.includes(i));
+  }
+
+  onApprove(row: TemNccItem): void {
+    const selected = this.getSelectedSessions(row);
+    if (selected.length === 0) {
+      return;
+    }
+    // TODO: gọi service phê duyệt với selected
+    console.log("Approve:", selected);
+  }
+
+  onReject(row: TemNccItem): void {
+    const selected = this.getSelectedSessions(row);
+    if (selected.length === 0) {
+      return;
+    }
+    // TODO: gọi service từ chối với selected
+    console.log("Reject:", selected);
   }
 
   // ==================== ACTIONS ====================

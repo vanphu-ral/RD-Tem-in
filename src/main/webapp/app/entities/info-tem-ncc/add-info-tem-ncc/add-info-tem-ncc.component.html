@@ -10,7 +10,7 @@
         <mat-icon>arrow_back</mat-icon>
       </button>
       <div class="header-title">
-        <h1>Thêm mới đơn nhập</h1>
+        <h1>Nhập thông tin TEM từ NCC</h1>
       </div>
     </div>
   </div>
@@ -20,6 +20,16 @@
     <mat-card-header>
       <mat-card-title>Thông tin đơn hàng</mat-card-title>
     </mat-card-header>
+    <div class="scan-banner" *ngIf="isScanning" (click)="onCancelScan()">
+      <div class="scan-banner-inner">
+        <div class="scan-pulse-ring"></div>
+        <mat-icon class="scan-icon">qr_code_scanner</mat-icon>
+        <div class="scan-text">
+          <span class="scan-label">{{ scanMessage }}</span>
+          <span class="scan-hint">Nhấn để hủy</span>
+        </div>
+      </div>
+    </div>
     <mat-card-content>
       <div class="order-info-fields">
         <mat-form-field appearance="outline" class="small-form-field">
@@ -72,6 +82,10 @@
         >
           Apply
         </button>
+        <button mat-raised-button color="primary" (click)="onScan()">
+          <mat-icon>qr_code_scanner</mat-icon>
+          Scan
+        </button>
       </div>
     </mat-card-content>
   </mat-card>
@@ -79,15 +93,11 @@
   <mat-card class="material-list-card">
     <mat-card-header>
       <mat-card-title>Danh sách vật tư</mat-card-title>
-      <div class="card-header-actions">
-        <button mat-raised-button color="primary" (click)="onScan()">
-          <mat-icon>qr_code_scanner</mat-icon>
-          Scan
-        </button>
-      </div>
+      <!-- <div class="card-header-actions">
+      </div> -->
     </mat-card-header>
     <mat-card-content>
-      <div class="mobile-filters">
+      <!-- <div class="mobile-filters">
         <mat-expansion-panel>
           <mat-expansion-panel-header>
             <mat-panel-title>
@@ -161,7 +171,7 @@
             </mat-form-field>
           </div>
         </mat-expansion-panel>
-      </div>
+      </div> -->
 
       <!-- Desktop Table View -->
       <div class="table-container desktop-view">
@@ -188,44 +198,11 @@
             </td>
           </ng-container>
 
-          <!-- Status -->
-          <ng-container matColumnDef="status">
+          <!-- SAP Code -->
+          <ng-container matColumnDef="sapCode">
             <th mat-header-cell *matHeaderCellDef>
               <div class="header-with-filter">
-                <span mat-sort-header>Trạng thái</span>
-                <mat-form-field
-                  appearance="outline"
-                  class="w-full mt-1 input-filter"
-                  (click)="$event.stopPropagation()"
-                >
-                  <mat-select
-                    [(value)]="filterValues.status"
-                    (selectionChange)="applyFilter()"
-                  >
-                    <mat-option value="">Tất cả</mat-option>
-                    <mat-option *ngFor="let s of statusOptions" [value]="s">{{
-                      s
-                    }}</mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let row">
-              <mat-chip
-                [ngStyle]="statusColor(row.status)"
-                selected
-                class="min-w-24 text-center"
-              >
-                {{ row.status }}
-              </mat-chip>
-            </td>
-          </ng-container>
-
-          <!-- Vendor Code -->
-          <ng-container matColumnDef="vendorCode">
-            <th mat-header-cell *matHeaderCellDef>
-              <div class="header-with-filter">
-                <span mat-sort-header>Mã NCC</span>
+                <span mat-sort-header>Mã SAP</span>
                 <mat-form-field
                   appearance="outline"
                   class="w-full mt-1 input-filter"
@@ -233,7 +210,7 @@
                 >
                   <input
                     matInput
-                    [(ngModel)]="filterValues.vendorCode"
+                    [(ngModel)]="filterValues.sapCode"
                     (ngModelChange)="applyFilter()"
                     placeholder="Tìm kiếm"
                     (keydown)="$event.stopPropagation()"
@@ -241,37 +218,14 @@
                 </mat-form-field>
               </div>
             </th>
-            <td mat-cell *matCellDef="let row">{{ row.vendorCode }}</td>
+            <td mat-cell *matCellDef="let row">{{ row.sapCode }}</td>
           </ng-container>
 
-          <!-- Vendor Name -->
-          <ng-container matColumnDef="vendorName">
+          <!-- Material Name -->
+          <ng-container matColumnDef="materialName">
             <th mat-header-cell *matHeaderCellDef>
               <div class="header-with-filter">
-                <span mat-sort-header>Tên NCC</span>
-                <mat-form-field
-                  appearance="outline"
-                  class="mt-1 input-filter"
-                  (click)="$event.stopPropagation()"
-                >
-                  <input
-                    matInput
-                    [(ngModel)]="filterValues.vendorName"
-                    (ngModelChange)="applyFilter()"
-                    placeholder="Tìm kiếm"
-                    (keydown)="$event.stopPropagation()"
-                  />
-                </mat-form-field>
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let row">{{ row.vendorName }}</td>
-          </ng-container>
-
-          <!-- PO Code -->
-          <ng-container matColumnDef="poCode">
-            <th mat-header-cell *matHeaderCellDef>
-              <div class="header-with-filter">
-                <span mat-sort-header>Mã PO</span>
+                <span mat-sort-header>Tên hàng hóa</span>
                 <mat-form-field
                   appearance="outline"
                   class="w-full mt-1 input-filter"
@@ -279,7 +233,7 @@
                 >
                   <input
                     matInput
-                    [(ngModel)]="filterValues.poCode"
+                    [(ngModel)]="filterValues.materialName"
                     (ngModelChange)="applyFilter()"
                     placeholder="Tìm kiếm"
                     (keydown)="$event.stopPropagation()"
@@ -287,14 +241,14 @@
                 </mat-form-field>
               </div>
             </th>
-            <td mat-cell *matCellDef="let row">{{ row.poCode }}</td>
+            <td mat-cell *matCellDef="let row">{{ row.materialName }}</td>
           </ng-container>
 
-          <!-- Created Date -->
-          <ng-container matColumnDef="createdDate">
+          <!-- Part Number -->
+          <ng-container matColumnDef="partNumber">
             <th mat-header-cell *matHeaderCellDef>
               <div class="header-with-filter">
-                <span mat-sort-header>Ngày tạo</span>
+                <span mat-sort-header>Part Number</span>
                 <mat-form-field
                   appearance="outline"
                   class="w-full mt-1 input-filter"
@@ -302,38 +256,7 @@
                 >
                   <input
                     matInput
-                    [matDatepicker]="picker"
-                    [(ngModel)]="filterValues.createdDate"
-                    (dateChange)="applyDateFilter()"
-                    placeholder="dd/MM/yyyy"
-                    (keydown)="$event.stopPropagation()"
-                  />
-                  <mat-datepicker-toggle
-                    matSuffix
-                    [for]="picker"
-                  ></mat-datepicker-toggle>
-                  <mat-datepicker #picker></mat-datepicker>
-                </mat-form-field>
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.createdDate | date: "dd/MM/yyyy HH:mm" }}
-            </td>
-          </ng-container>
-
-          <!-- Created By -->
-          <ng-container matColumnDef="createdBy">
-            <th mat-header-cell *matHeaderCellDef>
-              <div class="header-with-filter">
-                <span mat-sort-header>Tạo bởi</span>
-                <mat-form-field
-                  appearance="outline"
-                  class="w-full mt-1 input-filter"
-                  (click)="$event.stopPropagation()"
-                >
-                  <input
-                    matInput
-                    [(ngModel)]="filterValues.createdBy"
+                    [(ngModel)]="filterValues.partNumber"
                     (ngModelChange)="applyFilter()"
                     placeholder="Tìm kiếm"
                     (keydown)="$event.stopPropagation()"
@@ -341,15 +264,13 @@
                 </mat-form-field>
               </div>
             </th>
-            <td mat-cell *matCellDef="let row">{{ row.createdBy }}</td>
+            <td mat-cell *matCellDef="let row">{{ row.partNumber }}</td>
           </ng-container>
 
-          <!-- Item Count -->
-          <ng-container matColumnDef="itemCount">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Số hàng hóa
-            </th>
-            <td mat-cell *matCellDef="let row">{{ row.itemCount }}</td>
+          <!-- Box Scan -->
+          <ng-container matColumnDef="boxScan">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Số thùng</th>
+            <td mat-cell *matCellDef="let row">{{ row.boxScan }}</td>
           </ng-container>
 
           <!-- Total Quantity -->
@@ -360,29 +281,20 @@
             <td mat-cell *matCellDef="let row">{{ row.totalQuantity }}</td>
           </ng-container>
 
-          <!-- Actions -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Thao tác</th>
-            <td mat-cell *matCellDef="let row">
-              <div class="action-buttons">
-                <button
-                  mat-icon-button
-                  [routerLink]="['detail', row.id]"
-                  matTooltip="Chi tiết"
-                >
-                  <mat-icon>visibility</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  color="warn"
-                  (click)="onDelete(row)"
-                  matTooltip="Xóa"
-                  *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
-            </td>
+          <!-- Quantity Box Order -->
+          <ng-container matColumnDef="quantityBoxOrder">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              Số thùng trong đơn hàng
+            </th>
+            <td mat-cell *matCellDef="let row">{{ row.quantityBoxOrder }}</td>
+          </ng-container>
+
+          <!-- Total Quantity Order -->
+          <ng-container matColumnDef="totalQuantityOrder">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              Số lượng trong đơn hàng
+            </th>
+            <td mat-cell *matCellDef="let row">{{ row.totalQuantityOrder }}</td>
           </ng-container>
 
           <!-- ===== LEVEL-1 EXPANDED ROW (child items) ===== -->
@@ -397,113 +309,115 @@
                 [@detailExpand]="isExpanded(row) ? 'expanded' : 'collapsed'"
               >
                 <div class="child-table-wrapper">
-                  <table class="child-table">
-                    <thead>
-                      <tr>
-                        <th class="child-expand-col"></th>
-                        <th>Thao tác</th>
-                        <th>Mã SAP</th>
-                        <th>Tên hàng hóa</th>
-                        <th>Part Number</th>
-                        <th>Số thùng</th>
-                        <th>Tổng số lượng</th>
-                        <th>Số thùng trong đơn hàng</th>
-                        <th>Số lượng trong đơn hàng</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <ng-container *ngFor="let child of row.children">
-                        <tr class="child-row">
-                          <td class="child-expand-col">
-                            <button
-                              mat-icon-button
-                              (click)="
-                                toggleChild(child); $event.stopPropagation()
-                              "
-                              class="expand-btn-sm"
-                            >
-                              <mat-icon>{{
-                                isChildExpanded(child)
-                                  ? "expand_less"
-                                  : "expand_more"
-                              }}</mat-icon>
-                            </button>
-                          </td>
-                          <td>
-                            <button
-                              mat-icon-button
-                              (click)="onEditChild(child)"
-                              matTooltip="Chỉnh sửa"
-                            >
-                              <mat-icon color="primary">edit</mat-icon>
-                            </button>
-                          </td>
-                          <td>{{ child.sapCode }}</td>
-                          <td>{{ child.productName }}</td>
-                          <td>{{ child.partNumber }}</td>
-                          <td>{{ child.boxCount }}</td>
-                          <td>{{ child.totalQty }}</td>
-                          <td>{{ child.orderBoxCount }}</td>
-                          <td>{{ child.orderQty }}</td>
+                  <!-- Apply row + data table giống dialog -->
+                  <div class="table-scroll-wrapper">
+                    <table class="edit-table">
+                      <thead>
+                        <!-- Header -->
+                        <tr class="header-row">
+                          <!-- <th class="col-action-th">Thao tác</th> -->
+                          <th
+                            *ngFor="let col of lotColumns"
+                            [style.min-width.px]="col.minWidth"
+                          >
+                            <div class="th-content">
+                              <span>{{ col.label }}</span>
+                            </div>
+                          </th>
                         </tr>
 
-                        <!-- ===== LEVEL-2 EXPANDED ROW (grandchild lots) ===== -->
-                        <tr
-                          *ngIf="isChildExpanded(child)"
-                          class="grandchild-wrapper-row"
-                        >
-                          <td [attr.colspan]="9">
-                            <div class="grandchild-table-wrapper">
-                              <table class="grandchild-table">
-                                <thead>
-                                  <tr>
-                                    <th>Thao tác</th>
-                                    <th>Lot</th>
-                                    <th>Số thùng</th>
-                                    <th>Tổng số lượng</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  <tr
-                                    *ngFor="let lot of child.lots"
-                                    class="grandchild-row"
-                                  >
-                                    <td>
-                                      <button
-                                        mat-icon-button
-                                        (click)="onViewLot(lot)"
-                                        matTooltip="Xem"
-                                      >
-                                        <mat-icon>visibility</mat-icon>
-                                      </button>
-                                    </td>
-                                    <td>{{ lot.lotNumber }}</td>
-                                    <td>{{ lot.boxCount }}</td>
-                                    <td>{{ lot.totalQty }}</td>
-                                  </tr>
-                                  <tr
-                                    *ngIf="
-                                      !child.lots || child.lots.length === 0
-                                    "
-                                  >
-                                    <td colspan="4" class="no-data-cell">
-                                      Không có dữ liệu
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
+                        <!-- Apply row -->
+                        <tr class="apply-row">
+                          <!-- <td class="col-action-th"></td> -->
+                          <td *ngFor="let col of lotColumns">
+                            <div class="apply-cell">
+                              <input
+                                class="apply-input"
+                                [(ngModel)]="
+                                  lotBulkValues[row.id + '_' + col.key]
+                                "
+                                (keydown.enter)="applyLotColumn(row, col.key)"
+                              />
+                              <button
+                                mat-icon-button
+                                class="apply-icon-btn"
+                                (click)="applyLotColumn(row, col.key)"
+                                matTooltip="Áp dụng cho cả cột"
+                              >
+                                <mat-icon>save</mat-icon>
+                              </button>
                             </div>
                           </td>
                         </tr>
-                      </ng-container>
+                      </thead>
 
-                      <tr *ngIf="!row.children || row.children.length === 0">
-                        <td colspan="9" class="no-data-cell">
-                          Không có dữ liệu
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                      <tbody>
+                        <ng-container *ngIf="hasLots(row); else noLotData">
+                          <tr
+                            *ngFor="let lot of row.lots; let i = index"
+                            class="data-row"
+                            [class.editing-row]="
+                              lotEditingCell?.rowId === row.id &&
+                              lotEditingCell?.lotIdx === i
+                            "
+                          >
+                            <!-- Action -->
+                            <!-- <td class="col-action-th">
+                              <button mat-icon-button (click)="onViewLot(lot)" matTooltip="Xem chi tiết">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                            </td> -->
+                            <!-- Data cells -->
+                            <td
+                              *ngFor="let col of lotColumns"
+                              class="data-cell editable-cell"
+                              [class.active-edit]="
+                                lotEditingCell?.rowId === row.id &&
+                                lotEditingCell?.lotIdx === i &&
+                                lotEditingCell?.col === col.key
+                              "
+                              (dblclick)="startLotEdit(row.id, i, col.key)"
+                            >
+                              <ng-container
+                                *ngIf="
+                                  lotEditingCell?.rowId === row.id &&
+                                    lotEditingCell?.lotIdx === i &&
+                                    lotEditingCell?.col === col.key;
+                                  else lotDisplay
+                                "
+                              >
+                                <input
+                                  class="cell-input"
+                                  [(ngModel)]="lot[col.key]"
+                                  (blur)="stopLotEdit()"
+                                  (keydown.enter)="stopLotEdit()"
+                                  (keydown.escape)="stopLotEdit()"
+                                />
+                              </ng-container>
+                              <ng-template #lotDisplay>
+                                <span
+                                  class="cell-value"
+                                  [title]="lot[col.key]"
+                                  >{{ lot[col.key] }}</span
+                                >
+                              </ng-template>
+                            </td>
+                          </tr>
+                        </ng-container>
+
+                        <ng-template #noLotData>
+                          <tr>
+                            <td
+                              [attr.colspan]="lotColumns.length + 1"
+                              class="no-data-cell"
+                            >
+                              Không có dữ liệu
+                            </td>
+                          </tr>
+                        </ng-template>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </td>
@@ -529,67 +443,105 @@
         <ng-container
           *ngIf="mobileDataSource && mobileDataSource.length > 0; else noData"
         >
-          <mat-card *ngFor="let item of mobileDataSource" class="mobile-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-chip
-                  [ngStyle]="statusColor(item.status)"
-                  selected
-                  class="status-chip"
-                >
-                  {{ item.status }}
-                </mat-chip>
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
+          <mat-card
+            *ngFor="let item of mobileDataSource; let i = index"
+            class="mobile-card"
+          >
+            <!-- Card Header -->
+            <div class="mobile-card-header">
+              <div class="mobile-card-header-left">
+                <span class="stt-badge">{{ i + 1 }}</span>
+                <div class="mobile-card-title-info">
+                  <span class="mobile-sap">{{ item.sapCode }}</span>
+                  <span class="mobile-part">{{ item.partNumber }}</span>
+                </div>
+              </div>
+              <button
+                mat-icon-button
+                (click)="toggleMobileRow(item)"
+                [matTooltip]="isMobileExpanded(item) ? 'Thu gọn' : 'Xem lot'"
+              >
+                <mat-icon>{{
+                  isMobileExpanded(item) ? "expand_less" : "expand_more"
+                }}</mat-icon>
+              </button>
+            </div>
+
+            <!-- Card Content -->
+            <mat-card-content class="mobile-card-content">
               <div class="info-row">
-                <span class="label">Mã PO:</span
-                ><span class="value">{{ item.poCode }}</span>
+                <span class="label">Tên hàng hóa:</span
+                ><span class="value">{{ item.materialName }}</span>
               </div>
               <div class="info-row">
-                <span class="label">Mã NCC:</span
-                ><span class="value">{{ item.vendorCode }}</span>
+                <span class="label">Số thùng:</span
+                ><span class="value">{{ item.boxScan }}</span>
               </div>
               <div class="info-row">
-                <span class="label">Tên NCC:</span
-                ><span class="value">{{ item.vendorName }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Ngày tạo:</span
-                ><span class="value">{{
-                  item.createdDate | date: "dd/MM/yyyy"
-                }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Tạo bởi:</span
-                ><span class="value">{{ item.createdBy }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Số hàng hóa:</span
-                ><span class="value">{{ item.itemCount }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Tổng số lượng:</span
+                <span class="label">Tổng SL:</span
                 ><span class="value">{{ item.totalQuantity }}</span>
               </div>
+              <div class="info-row">
+                <span class="label">Số thùng ĐH:</span
+                ><span class="value">{{ item.quantityBoxOrder }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">SL trong ĐH:</span
+                ><span class="value">{{ item.totalQuantityOrder }}</span>
+              </div>
             </mat-card-content>
-            <mat-card-actions>
-              <button
-                mat-button
-                color="accent"
-                [routerLink]="['detail', item.id]"
-              >
-                <mat-icon>visibility</mat-icon> Chi tiết
-              </button>
-              <button
-                mat-button
-                color="warn"
-                (click)="onDelete(item)"
-                *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
-              >
-                <mat-icon>delete</mat-icon> Xóa
-              </button>
-            </mat-card-actions>
+
+            <!-- Expanded Lots -->
+            <div class="mobile-lots" *ngIf="isMobileExpanded(item)">
+              <div class="mobile-lot-label">DANH SÁCH LOT</div>
+              <ng-container *ngIf="hasLots(item); else noLotMobile">
+                <div
+                  *ngFor="let lot of item.lots; let li = index"
+                  class="mobile-lot-item"
+                >
+                  <div class="mobile-lot-row">
+                    <span class="mobile-lot-index">{{ li + 1 }}</span>
+                    <span class="mobile-lot-number">{{ lot.lotNumber }}</span>
+                  </div>
+                  <!-- Editable fields as stacked rows -->
+                  <div class="mobile-lot-fields">
+                    <div
+                      class="mobile-lot-field"
+                      *ngFor="let col of lotColumns"
+                    >
+                      <span class="lot-field-label">{{ col.label }}:</span>
+                      <span
+                        class="lot-field-value"
+                        (dblclick)="startLotEdit(item.id, li, col.key)"
+                      >
+                        <ng-container
+                          *ngIf="
+                            lotEditingCell?.rowId === item.id &&
+                              lotEditingCell?.lotIdx === li &&
+                              lotEditingCell?.col === col.key;
+                            else mobileDisplay
+                          "
+                        >
+                          <input
+                            class="mobile-cell-input"
+                            [(ngModel)]="lot[col.key]"
+                            (blur)="stopLotEdit()"
+                            (keydown.enter)="stopLotEdit()"
+                            (keydown.escape)="stopLotEdit()"
+                          />
+                        </ng-container>
+                        <ng-template #mobileDisplay>{{
+                          lot[col.key]
+                        }}</ng-template>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+              <ng-template #noLotMobile>
+                <div class="no-lot-mobile">Không có dữ liệu lot</div>
+              </ng-template>
+            </div>
           </mat-card>
         </ng-container>
         <ng-template #noData>
@@ -626,7 +578,7 @@
 
     <div class="footer-right">
       <button mat-raised-button color="primary" (click)="onSubmitApproval()">
-        Tạo đơn
+        Gửi phê duyệt
       </button>
     </div>
   </div>

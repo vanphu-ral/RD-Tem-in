@@ -1,0 +1,165 @@
+<div class="scan-dialog-wrapper">
+  <!-- Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">qr_code_scanner</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">Scan mã vạch</h2>
+        <p class="dialog-subtitle">Scan hoặc nhập mã để thêm vào danh sách</p>
+      </div>
+    </div>
+    <button
+      mat-icon-button
+      class="close-btn"
+      (click)="onCancel()"
+      matTooltip="Đóng"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Scan Input Area -->
+  <div class="scan-input-section">
+    <div class="input-row">
+      <mat-form-field appearance="outline" class="scan-field">
+        <mat-label>Nhập mã scan</mat-label>
+        <input
+          #scanInputRef
+          matInput
+          [value]="scanInput"
+          (input)="onScanInputChange(scanInputRef.value)"
+          (keydown)="onKeyDown($event)"
+          (focus)="onInputFocus()"
+          (blur)="onInputBlur()"
+          placeholder="Đưa máy scan vào đây hoặc gõ mã..."
+          autocomplete="off"
+          autofocus
+        />
+        <mat-icon
+          matSuffix
+          class="input-suffix-icon"
+          [class.focused]="isInputFocused"
+          >qr_code</mat-icon
+        >
+      </mat-form-field>
+
+      <button
+        mat-raised-button
+        color="primary"
+        class="add-btn"
+        (click)="submitScan()"
+        [disabled]="!scanInput.trim()"
+      >
+        Thêm
+      </button>
+    </div>
+
+    <!-- Error message -->
+    <div class="error-bar" *ngIf="errorMessage">
+      <mat-icon class="error-icon">warning</mat-icon>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <!-- Last scanned feedback -->
+    <div class="success-bar" *ngIf="lastScannedCode && !errorMessage">
+      <mat-icon class="success-icon">check_circle</mat-icon>
+      <span
+        >Đã thêm: <strong>{{ lastScannedCode }}</strong></span
+      >
+    </div>
+  </div>
+
+  <!-- List Header -->
+  <div class="list-header">
+    <div class="list-title">
+      Danh sách đã scan
+      <span class="count-badge">{{ totalCount }}</span>
+    </div>
+    <button
+      mat-stroked-button
+      class="clear-btn"
+      (click)="clearAll()"
+      *ngIf="scannedList.length > 0"
+    >
+      Xóa tất cả
+    </button>
+  </div>
+
+  <!-- Scanned List -->
+  <div class="list-container" (click)="focusInput()">
+    <ng-container *ngIf="scannedList.length > 0; else emptyState">
+      <div class="table-scroll-wrapper">
+        <table class="scan-table">
+          <thead>
+            <tr>
+              <th class="col-stt">#</th>
+              <th class="col-time">Thời gian</th>
+              <th
+                *ngFor="let col of lotColumns"
+                [style.min-width.px]="col.minWidth"
+              >
+                {{ col.label }}
+              </th>
+              <th class="col-action"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let item of scannedList"
+              [class.duplicate-flash]="duplicateHighlightId === item.id"
+            >
+              <td class="col-stt">{{ item.index }}</td>
+              <td class="col-time">{{ item.scannedAt | date: "HH:mm:ss" }}</td>
+              <td *ngFor="let col of lotColumns">
+                <span class="cell-text" [title]="$any(item)[col.key]">{{
+                  $any(item)[col.key]
+                }}</span>
+              </td>
+              <td class="col-action">
+                <button
+                  mat-icon-button
+                  class="remove-btn"
+                  (click)="removeItem(item.id); $event.stopPropagation()"
+                  matTooltip="Xóa"
+                >
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+
+    <ng-template #emptyState>
+      <div class="empty-state">
+        <mat-icon class="empty-icon">inbox</mat-icon>
+        <p>Chưa có mã nào được scan</p>
+        <span>Nhấp vào ô nhập và scan hoặc gõ mã</span>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Footer -->
+  <mat-divider></mat-divider>
+  <div class="dialog-footer">
+    <span class="footer-info" *ngIf="totalCount > 0">
+      Tổng cộng {{ totalCount }} mã
+    </span>
+    <div class="footer-actions">
+      <button mat-stroked-button (click)="onCancel()">Hủy</button>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onConfirm()"
+        [disabled]="scannedList.length === 0"
+      >
+        Xác nhận ({{ totalCount }})
+      </button>
+    </div>
+  </div>
+</div>

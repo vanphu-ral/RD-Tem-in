@@ -1,0 +1,121 @@
+<div class="summary-dialog-wrapper">
+  <!-- Header -->
+  <div class="summary-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">summarize</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">Tổng hợp đơn hàng</h2>
+        <p class="dialog-subtitle">
+          PO: <strong>{{ item.poCode }}</strong> &nbsp;|&nbsp;
+          {{ item.vendorName }}
+        </p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="onClose()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- KPI Cards -->
+  <div class="kpi-section">
+    <div class="kpi-card kpi-blue">
+      <span class="kpi-value">{{ totalSessions }}</span>
+      <span class="kpi-label">Ngày nhập</span>
+    </div>
+    <div class="kpi-card kpi-green">
+      <span class="kpi-value">{{ totalScannedQty | number }}</span>
+      <span class="kpi-label">Tổng SL đã scan</span>
+    </div>
+    <div class="kpi-card kpi-orange">
+      <span class="kpi-value">{{ totalItemCount }}</span>
+      <span class="kpi-label">Tổng mã Items</span>
+    </div>
+    <div class="kpi-card kpi-purple">
+      <span class="kpi-value">{{ uniqueWarehouses.length }}</span>
+      <span class="kpi-label">Kho sử dụng</span>
+    </div>
+  </div>
+
+  <!-- Order Meta -->
+  <div class="meta-section">
+    <div class="meta-row">
+      <span class="meta-label">Trạng thái</span>
+      <span class="meta-value status-badge">{{ item.status }}</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Ngày về</span>
+      <span class="meta-value">{{
+        item.arrivalDate | date: "dd/MM/yyyy"
+      }}</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Người tạo</span>
+      <span class="meta-value">{{ item.createdBy }}</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Ngày tạo</span>
+      <span class="meta-value">{{
+        item.createdDate | date: "dd/MM/yyyy HH:mm"
+      }}</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Kho nhập</span>
+      <span class="meta-value">{{ item.warehouse }}</span>
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Sessions Table -->
+  <div class="sessions-section">
+    <div class="sessions-title">Chi tiết theo ngày nhập</div>
+    <div class="sessions-table-wrap">
+      <table class="sessions-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Ngày nhập</th>
+            <th>Kho</th>
+            <th>Loại kho</th>
+            <th class="col-num">SL scan</th>
+            <th class="col-num">Mã Items</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngIf="sessions.length > 0; else noData">
+            <tr *ngFor="let s of sessions; let i = index">
+              <td class="col-idx">{{ i + 1 }}</td>
+              <td>{{ s.importDate }}</td>
+              <td>{{ s.warehouse }}</td>
+              <td>{{ s.warehouseType }}</td>
+              <td class="col-num green-val">{{ s.totalQty | number }}</td>
+              <td class="col-num">{{ s.itemCount }}</td>
+            </tr>
+          </ng-container>
+          <ng-template #noData>
+            <tr>
+              <td colspan="6" class="no-data-cell">Chưa có dữ liệu nhập</td>
+            </tr>
+          </ng-template>
+        </tbody>
+        <tfoot *ngIf="sessions.length > 0">
+          <tr class="total-row">
+            <td colspan="4" class="total-label">Tổng cộng</td>
+            <td class="col-num green-val">{{ totalScannedQty | number }}</td>
+            <td class="col-num">{{ totalItemCount }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <mat-divider></mat-divider>
+  <div class="summary-footer">
+    <button mat-raised-button color="primary" (click)="onClose()">Đóng</button>
+  </div>
+</div>

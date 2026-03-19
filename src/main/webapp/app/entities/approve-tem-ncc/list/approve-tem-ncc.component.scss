@@ -397,7 +397,13 @@
   max-height: 260px;
   padding: 0 16px;
 }
-
+table {
+  td {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+}
 .session-table {
   width: 100%;
   min-width: 500px;
@@ -421,11 +427,29 @@
   }
 
   tbody .session-tr {
-    &:nth-child(even) {
-      background: #f0f5ff;
+    transition:
+      opacity 0.2s ease,
+      background 0.2s ease;
+
+    &.row-dimmed {
+      opacity: 0.4;
+
+      td {
+        color: #5f6368;
+      }
     }
+
+    &.row-selected {
+      opacity: 1;
+      background: #e8f0fe !important;
+
+      td {
+        color: #202124;
+      }
+    }
+
     &:hover {
-      background: #dbeafe;
+      opacity: 1 !important;
     }
   }
 
@@ -487,6 +511,51 @@
       height: 18px;
     }
   }
+} // Session header với actions
+.session-header-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px 8px;
+
+  .session-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .session-header-actions {
+    display: flex;
+    gap: 8px;
+
+    button {
+      height: 32px;
+      line-height: 32px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 0 12px;
+
+      .sel-count {
+        margin-left: 2px;
+        opacity: 0.85;
+      }
+    }
+  }
+}
+
+// Checkbox column
+.col-chk {
+  width: 40px;
+  text-align: center;
+  padding: 0 4px !important;
+}
+
+// Selected row highlight
+.session-tr.row-selected {
+  background: #e8f0fe !important;
 }
 
 // ==================== RESPONSIVE ====================

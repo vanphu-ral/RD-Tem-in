@@ -21,6 +21,14 @@ import { MatSort, MatSortModule } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
 
 import { AlertService } from "app/core/util/alert.service";
+import {
+  LotDetailDialogComponent,
+  LotDetailDialogData,
+} from "../lot-detail-dialog/lot-detail-dialog.component";
+import {
+  ScanItemDialogComponent,
+  ScannedItem,
+} from "../scan-item-dialog/scan-item-dialog.component";
 
 // ==================== INTERFACES ====================
 
@@ -28,6 +36,8 @@ export interface LotItem {
   lotNumber: string;
   boxCount: number;
   totalQty: number;
+  details: [];
+  [key: string]: any;
 }
 
 export interface ChildItem {
@@ -43,24 +53,20 @@ export interface ChildItem {
 
 export interface ParentItem {
   id: number;
-  status: string;
-  vendorCode: string;
-  vendorName: string;
-  poCode: string;
-  createdDate: string;
-  createdBy: string;
-  itemCount: number;
+  sapCode: string;
+  materialName: string;
+  partNumber: string;
+  boxScan: number;
   totalQuantity: number;
-  children: ChildItem[];
+  quantityBoxOrder: number;
+  totalQuantityOrder: number;
+  lots: LotItem[];
 }
 
 export interface FilterValues {
-  status: string;
-  vendorCode: string;
-  vendorName: string;
-  poCode: string;
-  createdDate: any;
-  createdBy: string;
+  sapCode: string;
+  materialName: string;
+  partNumber: string;
 }
 
 // ==================== COMPONENT ====================
@@ -87,26 +93,45 @@ export interface FilterValues {
 export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "expand",
-    "status",
-    "poCode",
-    "vendorCode",
-    "vendorName",
-    "createdDate",
-    "createdBy",
-    "itemCount",
+    "sapCode",
+    "materialName",
+    "partNumber",
+    "boxScan",
     "totalQuantity",
-    "actions",
+    "quantityBoxOrder",
+    "totalQuantityOrder",
+  ];
+  isScanning = false;
+  scanMessage = "";
+  lotColumns = [
+    { key: "lotNumber", label: "Lot", minWidth: 130 },
+    { key: "reelId", label: "ReelId", minWidth: 190 },
+    { key: "partNumber", label: "Part Number", minWidth: 140 },
+    { key: "vendor", label: "Vendor", minWidth: 110 },
+    { key: "boxCount", label: "Số thùng", minWidth: 90 },
+    { key: "totalQty", label: "Tổng SL", minWidth: 90 },
+    { key: "initialQuantity", label: "Quantity", minWidth: 100 },
+    { key: "userData1", label: "Userdata1", minWidth: 110 },
+    { key: "userData2", label: "Userdata2", minWidth: 110 },
+    { key: "userData3", label: "Userdata3", minWidth: 110 },
+    { key: "userData4", label: "Userdata4", minWidth: 110 },
+    { key: "userData5", label: "Userdata5", minWidth: 110 },
+    { key: "msl", label: "MSL", minWidth: 80 },
+    { key: "storageUnit", label: "StorageUnit", minWidth: 120 },
+    { key: "manufacturingDate", label: "ManufacturingDate", minWidth: 150 },
+    { key: "expirationDate", label: "ExpirationDate", minWidth: 150 },
   ];
 
   statusOptions = ["Đã tạo mã QR", "Bản nháp"];
 
+  lotBulkValues: { [key: string]: any } = {};
+
+  lotEditingCell: { rowId: number; lotIdx: number; col: string } | null = null;
+
   filterValues: FilterValues = {
-    status: "",
-    vendorCode: "",
-    vendorName: "",
-    poCode: "",
-    createdDate: null,
-    createdBy: "",
+    sapCode: "",
+    materialName: "",
+    partNumber: "",
   };
 
   orderInfo = {
@@ -129,6 +154,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
 
   /** Tracks which child items are expanded */
   private expandedChildren = new Set<string>();
+
+  private expandedMobileRows = new Set<number>();
 
   constructor(
     private dialog: MatDialog,
@@ -159,12 +186,48 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     }
   }
 
+  toggleMobileRow(item: ParentItem): void {
+    if (this.expandedMobileRows.has(item.id)) {
+      this.expandedMobileRows.delete(item.id);
+    } else {
+      this.expandedMobileRows.add(item.id);
+    }
+  }
+
+  isMobileExpanded(item: ParentItem): boolean {
+    return this.expandedMobileRows.has(item.id);
+  }
+
   onApply(): void {
     // Filter/load danh sách vật tư theo orderInfo
   }
 
   onScan(): void {
-    // Mở dialog scan QR
+    const dialogRef = this.dialog.open(ScanItemDialogComponent, {
+      width: "95vw",
+      maxWidth: "1400px",
+      panelClass: "scan-dialog-panel",
+      autoFocus: false,
+    });
+
+    dialogRef.afterClosed().subscribe((result: ScannedItem[] | null) => {
+      if (!result) {
+        return;
+      } // user cancelled
+
+      // result is the confirmed list of scanned items
+      console.log("Scanned items:", result);
+
+      // TODO: map result to your component's data model
+      // e.g. result.forEach(item => this.processScan(item.code));
+    });
+  }
+  onCancelScan(): void {
+    this.isScanning = false;
+    this.scanMessage = "";
+  }
+  hasLots(row: ParentItem): boolean {
+    return row.lots && row.lots.length > 0;
   }
 
   onSubmitApproval(): void {
@@ -174,7 +237,21 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   isExpanded(row: ParentItem): boolean {
     return this.expandedRows.has(row.id);
   }
+  applyLotColumn(row: ParentItem, colKey: string): void {
+    const value = this.lotBulkValues[row.id + "_" + colKey];
+    if (value === "" || value === null || value === undefined) {
+      return;
+    }
+    row.lots = row.lots.map((lot) => ({ ...lot, [colKey]: value }));
+  }
 
+  startLotEdit(rowId: number, lotIdx: number, col: string): void {
+    this.lotEditingCell = { rowId, lotIdx, col };
+  }
+
+  stopLotEdit(): void {
+    this.lotEditingCell = null;
+  }
   toggleChild(child: ChildItem): void {
     const key = child.sapCode + "_" + child.partNumber;
     if (this.expandedChildren.has(key)) {
@@ -250,7 +327,18 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   onViewLot(lot: LotItem): void {
-    // Implement view lot logic
+    this.dialog.open(LotDetailDialogComponent, {
+      width: "100vw",
+      height: "100vh",
+      maxWidth: "100vw",
+      maxHeight: "100vh",
+      panelClass: "lot-detail-dialog-panel",
+      data: {
+        partNumber: lot.lotNumber,
+        manufacturingDate: "20250603",
+        rows: lot.details ?? [],
+      } as LotDetailDialogData,
+    });
   }
 
   // ==================== PRIVATE ====================
@@ -264,79 +352,42 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     const mockData: ParentItem[] = [
       {
         id: 1,
-        status: "Đã tạo mã QR",
-        vendorCode: "NCC001",
-        vendorName: "Yankon Vietnam",
-        poCode: "PO-2024-0001",
-        createdDate: new Date().toISOString(),
-        createdBy: "admin",
-        itemCount: 3,
-        totalQuantity: 50000,
-        children: [
-          {
-            sapCode: "00098081",
-            productName: "Module DR-ML MXL1142 24W-TC (Yankon)",
-            partNumber: "31120166",
-            boxCount: 3,
-            totalQty: 30000,
-            orderBoxCount: 3,
-            orderQty: 30000,
-            lots: [
-              { lotNumber: "31120166", boxCount: 1, totalQty: 20280228 },
-              { lotNumber: "31120166", boxCount: 1, totalQty: 20280228 },
-              { lotNumber: "31120166", boxCount: 1, totalQty: 20280228 },
-            ],
-          },
-          {
-            sapCode: "00098081",
-            productName: "Module LED ZDL1356 0.1W 3000K",
-            partNumber: "00098081_V1.1",
-            boxCount: 0,
-            totalQty: 0,
-            orderBoxCount: 1,
-            orderQty: 10000,
-            lots: [],
-          },
-          {
-            sapCode: "00012345",
-            productName: "Driver MTSL1056 3W SMT (Yankon)",
-            partNumber: "00088021_V1.1",
-            boxCount: 0,
-            totalQty: 0,
-            orderBoxCount: 1,
-            orderQty: 10000,
-            lots: [],
-          },
+        sapCode: "00098081",
+        materialName: "Module DR-ML MXL1142 24W-TC (Yankon)",
+        partNumber: "31120166",
+        boxScan: 3,
+        totalQuantity: 30000,
+        quantityBoxOrder: 3,
+        totalQuantityOrder: 30000,
+        lots: [
+          { lotNumber: "31120166", boxCount: 1, totalQty: 10000, details: [] },
+          { lotNumber: "31120166", boxCount: 1, totalQty: 10000, details: [] },
+          { lotNumber: "31120166", boxCount: 1, totalQty: 10000, details: [] },
         ],
       },
       {
         id: 2,
-        status: "Bản nháp",
-        vendorCode: "NCC002",
-        vendorName: "Supplier B",
-        poCode: "PO-2024-0002",
-        createdDate: new Date().toISOString(),
-        createdBy: "user01",
-        itemCount: 1,
-        totalQuantity: 5000,
-        children: [
-          {
-            sapCode: "00011111",
-            productName: "Component XYZ",
-            partNumber: "XYZ_V2",
-            boxCount: 2,
-            totalQty: 5000,
-            orderBoxCount: 2,
-            orderQty: 5000,
-            lots: [
-              { lotNumber: "LOT-A", boxCount: 1, totalQty: 2500 },
-              { lotNumber: "LOT-B", boxCount: 1, totalQty: 2500 },
-            ],
-          },
-        ],
+        sapCode: "00098081",
+        materialName: "Module LED ZDL1356 0.1W 3000K",
+        partNumber: "00098081_V1.1",
+        boxScan: 0,
+        totalQuantity: 0,
+        quantityBoxOrder: 1,
+        totalQuantityOrder: 10000,
+        lots: [],
+      },
+      {
+        id: 3,
+        sapCode: "00012345",
+        materialName: "Driver MTSL1056 3W SMT (Yankon)",
+        partNumber: "00088021_V1.1",
+        boxScan: 0,
+        totalQuantity: 0,
+        quantityBoxOrder: 1,
+        totalQuantityOrder: 10000,
+        lots: [],
       },
     ];
-
     this.dataSource.data = mockData;
     this.totalItems = mockData.length;
   }
@@ -346,17 +397,10 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       const f: FilterValues = JSON.parse(filterJson);
       const match = (field: string, query: string): boolean =>
         !query || (field ?? "").toLowerCase().includes(query.toLowerCase());
-
-      const okDate =
-        !f.createdDate || this.sameDate(item.createdDate, f.createdDate);
-
       return (
-        (!f.status || item.status === f.status) &&
-        match(item.vendorCode, f.vendorCode) &&
-        match(item.vendorName, f.vendorName) &&
-        match(item.poCode, f.poCode) &&
-        match(item.createdBy, f.createdBy) &&
-        okDate
+        match(item.sapCode, f.sapCode) &&
+        match(item.materialName, f.materialName) &&
+        match(item.partNumber, f.partNumber)
       );
     };
   }

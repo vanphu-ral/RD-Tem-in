@@ -48,24 +48,20 @@ export interface ChildItem {
 
 export interface ParentItem {
   id: number;
-  status: string;
-  vendorCode: string;
-  vendorName: string;
-  poCode: string;
-  createdDate: string;
-  createdBy: string;
-  itemCount: number;
+  sapCode: string;
+  materialName: string;
+  partNumber: string;
+  boxScan: number;
   totalQuantity: number;
+  quantityBoxOrder: number;
+  totalQuantityOrder: number;
   children: ChildItem[];
 }
 
 export interface FilterValues {
-  status: string;
-  vendorCode: string;
-  vendorName: string;
-  poCode: string;
-  createdDate: any;
-  createdBy: string;
+  sapCode: string;
+  materialName: string;
+  partNumber: string;
 }
 
 // ==================== COMPONENT ====================
@@ -92,26 +88,21 @@ export interface FilterValues {
 export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "expand",
-    "status",
-    "poCode",
-    "vendorCode",
-    "vendorName",
-    "createdDate",
-    "createdBy",
-    "itemCount",
+    "sapCode",
+    "materialName",
+    "partNumber",
+    "boxScan",
     "totalQuantity",
-    "actions",
+    "quantityBoxOrder",
+    "totalQuantityOrder",
   ];
 
   statusOptions = ["Đã tạo mã QR", "Bản nháp"];
 
   filterValues: FilterValues = {
-    status: "",
-    vendorCode: "",
-    vendorName: "",
-    poCode: "",
-    createdDate: null,
-    createdBy: "",
+    sapCode: "",
+    materialName: "",
+    partNumber: "",
   };
 
   orderInfo = {
@@ -269,14 +260,13 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
     const mockData: ParentItem[] = [
       {
         id: 1,
-        status: "Đã tạo mã QR",
-        vendorCode: "NCC001",
-        vendorName: "Yankon Vietnam",
-        poCode: "PO-2024-0001",
-        createdDate: new Date().toISOString(),
-        createdBy: "admin",
-        itemCount: 3,
-        totalQuantity: 50000,
+        sapCode: "00098081",
+        materialName: "Module DR-ML MXL1142 24W-TC (Yankon)",
+        partNumber: "31120166",
+        boxScan: 3,
+        totalQuantity: 30000,
+        quantityBoxOrder: 3,
+        totalQuantityOrder: 30000,
         children: [
           {
             sapCode: "00098081",
@@ -331,14 +321,13 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
       },
       {
         id: 2,
-        status: "Bản nháp",
-        vendorCode: "NCC002",
-        vendorName: "Supplier B",
-        poCode: "PO-2024-0002",
-        createdDate: new Date().toISOString(),
-        createdBy: "user01",
-        itemCount: 1,
-        totalQuantity: 5000,
+        sapCode: "00098081",
+        materialName: "Module LED ZDL1356 0.1W 3000K",
+        partNumber: "00098081_V1.1",
+        boxScan: 0,
+        totalQuantity: 0,
+        quantityBoxOrder: 1,
+        totalQuantityOrder: 10000,
         children: [
           {
             sapCode: "00011111",
@@ -366,17 +355,10 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
       const f: FilterValues = JSON.parse(filterJson);
       const match = (field: string, query: string): boolean =>
         !query || (field ?? "").toLowerCase().includes(query.toLowerCase());
-
-      const okDate =
-        !f.createdDate || this.sameDate(item.createdDate, f.createdDate);
-
       return (
-        (!f.status || item.status === f.status) &&
-        match(item.vendorCode, f.vendorCode) &&
-        match(item.vendorName, f.vendorName) &&
-        match(item.poCode, f.poCode) &&
-        match(item.createdBy, f.createdBy) &&
-        okDate
+        match(item.sapCode, f.sapCode) &&
+        match(item.materialName, f.materialName) &&
+        match(item.partNumber, f.partNumber)
       );
     };
   }

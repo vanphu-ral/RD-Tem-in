@@ -1,8 +1,8 @@
 <div class="container mat-elevation-z2">
   <!-- Header -->
   <div class="header">
-    <h1>Nhập thông tin TEM từ NCC</h1>
-    <div>
+    <h1>Phê duyệt TEM NCC</h1>
+    <!-- <div>
       <button
         mat-raised-button
         color="primary"
@@ -11,7 +11,7 @@
         <mat-icon>add</mat-icon>
         <span class="button-text">Thêm mới</span>
       </button>
-    </div>
+    </div> -->
   </div>
 
   <!-- Mobile Filters -->
@@ -116,14 +116,6 @@
               matTooltip="Tổng hợp"
             >
               <mat-icon class="icon-info">info_outline</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="onDelete(row)"
-              matTooltip="Xóa"
-            >
-              <mat-icon>delete</mat-icon>
             </button>
           </div>
         </td>
@@ -281,11 +273,45 @@
           >
             <!-- Sub-table header label -->
             <div class="session-header-label">
-              <mat-icon class="session-label-icon">reorder</mat-icon>
-              <span>DANH SÁCH CÁC LẦN NHẬP (SESSIONS)</span>
-              <span class="session-count-badge">{{
-                row.sessions?.length ?? 0
-              }}</span>
+              <div class="session-header-left">
+                <mat-icon class="session-label-icon">reorder</mat-icon>
+                <span>DANH SÁCH CÁC LẦN NHẬP (SESSIONS)</span>
+                <span class="session-count-badge">{{
+                  row.sessions?.length ?? 0
+                }}</span>
+              </div>
+              <div class="session-header-actions">
+                <button
+                  mat-raised-button
+                  color="primary"
+                  class="approve-btn"
+                  [disabled]="getSessionSelection(row).selected.length === 0"
+                  (click)="onApprove(row)"
+                >
+                  Phê duyệt
+                  <span
+                    class="sel-count"
+                    *ngIf="getSessionSelection(row).selected.length > 0"
+                  >
+                    ({{ getSessionSelection(row).selected.length }})
+                  </span>
+                </button>
+                <button
+                  mat-raised-button
+                  color="warn"
+                  class="reject-btn"
+                  [disabled]="getSessionSelection(row).selected.length === 0"
+                  (click)="onReject(row)"
+                >
+                  Từ chối
+                  <span
+                    class="sel-count"
+                    *ngIf="getSessionSelection(row).selected.length > 0"
+                  >
+                    ({{ getSessionSelection(row).selected.length }})
+                  </span>
+                </button>
+              </div>
             </div>
 
             <!-- Scrollable table wrapper -->
@@ -293,6 +319,15 @@
               <table class="session-table">
                 <thead>
                   <tr>
+                    <th class="col-chk">
+                      <mat-checkbox
+                        [checked]="isAllSessionsSelected(row)"
+                        [indeterminate]="isSomeSessionSelected(row)"
+                        (change)="toggleAllSessions(row)"
+                        color="primary"
+                      >
+                      </mat-checkbox>
+                    </th>
                     <th class="col-stt-s">STT</th>
                     <th class="col-stt-s">Thao tác</th>
                     <th>Ngày nhập</th>
@@ -315,7 +350,37 @@
                         let si = index
                       "
                       class="session-tr"
+                      [class.row-selected]="
+                        isSessionSelected(
+                          row,
+                          getSessionPage(row) * sessionPageSize + si
+                        )
+                      "
+                      [class.row-dimmed]="
+                        !isSessionSelected(
+                          row,
+                          getSessionPage(row) * sessionPageSize + si
+                        )
+                      "
                     >
+                      <td class="col-chk">
+                        <mat-checkbox
+                          [checked]="
+                            isSessionSelected(
+                              row,
+                              getSessionPage(row) * sessionPageSize + si
+                            )
+                          "
+                          (change)="
+                            toggleSessionSelect(
+                              row,
+                              getSessionPage(row) * sessionPageSize + si
+                            )
+                          "
+                          color="primary"
+                        >
+                        </mat-checkbox>
+                      </td>
                       <td class="col-stt-s">{{ getSessionIndex(row, si) }}</td>
                       <td class="col-stt-s">
                         <button
@@ -337,7 +402,7 @@
                   </ng-container>
                   <ng-template #noSession>
                     <tr>
-                      <td colspan="6" class="no-session">Không có dữ liệu</td>
+                      <td colspan="8" class="no-session">Không có dữ liệu</td>
                     </tr>
                   </ng-template>
                 </tbody>
@@ -434,14 +499,6 @@
               matTooltip="Tổng hợp"
             >
               <mat-icon class="icon-info">info_outline</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="onDelete(item)"
-              matTooltip="Xóa"
-            >
-              <mat-icon>delete</mat-icon>
             </button>
           </div>
         </div>
