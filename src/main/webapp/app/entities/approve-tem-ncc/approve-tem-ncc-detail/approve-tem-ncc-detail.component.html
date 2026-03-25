@@ -5,12 +5,12 @@
         mat-icon-button
         class="back-btn"
         matTooltip="Quay lại"
-        [routerLink]="['/info-tem-ncc']"
+        [routerLink]="['/approve-tem-ncc']"
       >
         <mat-icon>arrow_back</mat-icon>
       </button>
       <div class="header-title d-flex">
-        <h1>Quản lí đơn hàng PO</h1>
+        <h1>Phê duyệt đơn hàng PO</h1>
         <mat-chip class="min-w-24 text-center chip-PO">
           <span>{{ orderInfo.poCode || "..." }}</span>
         </mat-chip>
@@ -353,9 +353,9 @@
   </mat-card>
 
   <!-- Footer Actions -->
-  <!-- <div class="footer-actions">
+  <div class="footer-actions">
     <div class="footer-left">
-      <mat-form-field appearance="outline" class="footer-field">
+      <!-- <mat-form-field appearance="outline" class="footer-field">
         <mat-label>Kho nhập</mat-label>
         <input
           matInput
@@ -371,15 +371,28 @@
           [(ngModel)]="orderInfo.approver"
           placeholder="Chọn người duyệt...."
         />
-      </mat-form-field>
+      </mat-form-field> -->
     </div>
 
     <div class="footer-right">
-      <button mat-raised-button color="primary" (click)="onSubmitApproval()">
-        Gửi phê duyệt
+      <button
+        mat-raised-button
+        color="warn"
+        class="reject-btn"
+        (click)="onSubmitApproval()"
+      >
+        Từ chối
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        class="approve-btn"
+        (click)="onSubmitApproval()"
+      >
+        Phê duyệt
       </button>
     </div>
-  </div> -->
+  </div>
   <mat-divider class="my-3"></mat-divider>
   <mat-paginator
     [length]="totalItems"

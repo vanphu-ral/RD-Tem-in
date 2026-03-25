@@ -35,6 +35,7 @@ import { MatDividerModule } from "@angular/material/divider";
 import { ApproveTemNccComponent } from "./list/approve-tem-ncc.component";
 import { OrderSummaryDialogComponent } from "./list/order-summary-dialog/order-summary-dialog.component";
 import { ApproveTemNccRoutingModule } from "./route/approve-tem-ncc-routing.module";
+import { ApproveTemNccDetailComponent } from "./approve-tem-ncc-detail/approve-tem-ncc-detail.component";
 @NgModule({
   imports: [
     // MatDialogModule,
@@ -72,8 +73,16 @@ import { ApproveTemNccRoutingModule } from "./route/approve-tem-ncc-routing.modu
     MatExpansionModule,
   ],
 
-  declarations: [ApproveTemNccComponent, OrderSummaryDialogComponent],
+  declarations: [
+    ApproveTemNccComponent,
+    OrderSummaryDialogComponent,
+    ApproveTemNccDetailComponent,
+  ],
 
-  exports: [ApproveTemNccComponent, OrderSummaryDialogComponent],
+  exports: [
+    ApproveTemNccComponent,
+    OrderSummaryDialogComponent,
+    ApproveTemNccDetailComponent,
+  ],
 })
 export class ApproveTemNccModule {}

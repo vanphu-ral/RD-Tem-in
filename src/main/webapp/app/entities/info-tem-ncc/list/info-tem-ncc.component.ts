@@ -22,6 +22,12 @@ import {
   trigger,
 } from "@angular/animations";
 import { OrderSummaryDialogComponent } from "./order-summary-dialog/order-summary-dialog.component";
+import { NotificationService } from "app/entities/list-material/services/notification.service";
+import {
+  ImportVendorTemTransaction,
+  ManagerTemNccService,
+  PoImportTem,
+} from "app/entities/list-material/services/info-tem-ncc.service";
 
 // ==================== INTERFACES ====================
 
@@ -32,15 +38,16 @@ export interface TemNccItem {
   arrivalDate: string; // ISO date string
   createdDate: string; // ISO datetime string
   createdBy: string;
-  warehouse: string;
+  // warehouse: string;
   status: string;
   sessions?: SessionItem[];
+  _raw?: PoImportTem;
 }
 
 export interface SessionItem {
   importDate: string;
   warehouse: string;
-  warehouseType: string;
+  status: string;
   totalQty: number;
   itemCount: number;
 }
@@ -87,12 +94,11 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     "arrivalDate",
     "createdDate",
     "createdBy",
-    "warehouse",
+    // "warehouse",
     "status",
   ];
 
   dataSource = new MatTableDataSource<TemNccItem>([]);
-  totalItems = 0;
   pageSize = 10;
   isLoading = false;
 
@@ -107,10 +113,17 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     warehouse: "",
     status: "",
   };
+  loadingDetailIds = new Set<number>();
+
+  currentPage = 0;
+  totalItems: number = 0;
+  totalPages: number = 0;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+  readonly SERVER_PAGE_SIZE = 20;
   readonly sessionPageSize = 5;
+  private detailCache = new Map<number, PoImportTem>();
   private sessionPages = new Map<number, number>();
   private expandedRows = new Set<number>();
   private expandedSessions = new Set<string>();
@@ -121,12 +134,19 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     private datePipe: DatePipe,
     private cdr: ChangeDetectorRef,
     private router: Router,
+    private managerTemNccService: ManagerTemNccService,
+    private notificationService: NotificationService,
   ) {}
 
   // ==================== LIFECYCLE ====================
 
   ngOnInit(): void {
     this.loadData();
+  }
+  onViewDetail(row: TemNccItem): void {
+    this.router.navigate(["/info-tem-ncc/info-tem-ncc-detail"], {
+      state: { data: row._raw },
+    });
   }
 
   ngAfterViewInit(): void {
@@ -149,7 +169,12 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       this.expandedRows.delete(row.id);
     } else {
       this.expandedRows.add(row.id);
+      this.loadDetailIfNeeded(row);
     }
+  }
+
+  isLoadingDetail(row: TemNccItem): boolean {
+    return this.loadingDetailIds.has(row.id);
   }
 
   isExpanded(row: TemNccItem): boolean {
@@ -265,214 +290,26 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     // this.service.delete(item.id).subscribe(() => this.loadData());
   }
 
-  private loadData(): void {
-    // Replace with real service call, e.g.:
-    // this.service.getAll().subscribe(data => { this.dataSource.data = data; this.totalItems = data.length; });
-
-    // Mock data matching the screenshot
-    const mock: TemNccItem[] = [
-      {
-        id: 1,
-        poCode: "124578",
-        vendorName: "SS",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd00013",
-        warehouse: "RD-01",
-        status: "Đang nhập",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "RD-LED-05",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-          {
-            importDate: "2024-03-16",
-            warehouse: "RD-LED-04",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 2,
-        poCode: "125845",
-        vendorName: "Thanh An",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd02358",
-        warehouse: "RD-01",
-        status: "Đang nhập",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 3,
-        poCode: "125482",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd05125",
-        warehouse: "RD-01",
-        status: "Đang nhập",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 4,
-        poCode: "125482",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd01584",
-        warehouse: "RD-01",
-        status: "Chờ duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 5,
-        poCode: "124548",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd01548",
-        warehouse: "RD-01",
-        status: "Chờ duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 6,
-        poCode: "125482",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd02452",
-        warehouse: "RD-01",
-        status: "Chờ duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 7,
-        poCode: "12548",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd01548",
-        warehouse: "RD-02",
-        status: "Đã phê duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 8,
-        poCode: "12548",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd02462",
-        warehouse: "RD-01",
-        status: "Đã phê duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 9,
-        poCode: "35659",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd04574",
-        warehouse: "RD-01",
-        status: "Đã gửi panacim",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 10,
-        poCode: "35974",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd05714",
-        warehouse: "RD-01",
-        status: "Đã gửi panacim",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-    ];
-
-    this.dataSource.data = mock;
-    this.totalItems = mock.length;
+  private loadData(page = 0): void {
+    this.isLoading = true;
+    this.managerTemNccService
+      .getPoImportTems(page, this.SERVER_PAGE_SIZE)
+      .subscribe({
+        next: (response) => {
+          this.dataSource.data = response.datas.map((item: PoImportTem) =>
+            this.mapToTemNccItem(item),
+          );
+          this.totalItems = response.pagination.totalItems;
+          this.totalPages = response.pagination.totalPages;
+          this.isLoading = false;
+        },
+        error: () => {
+          this.notificationService.error("Không thể tải danh sách đơn hàng!");
+          this.isLoading = false;
+        },
+      });
   }
+
   private buildFilterPredicate() {
     return (item: TemNccItem, filterJson: string): boolean => {
       const f: FilterValues = JSON.parse(filterJson);
@@ -487,7 +324,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         match(item.poCode, f.poCode) &&
         match(item.vendorName, f.vendorName) &&
         match(item.createdBy, f.createdBy) &&
-        match(item.warehouse, f.warehouse) &&
+        // match(item.warehouse, f.warehouse) &&
         match(item.status, f.status) &&
         match(
           this.datePipe.transform(item.arrivalDate, "yyyy-MM-dd") ?? "",
@@ -499,5 +336,72 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         )
       );
     };
+  }
+  private mapToTemNccItem(item: PoImportTem): TemNccItem {
+    return {
+      id: item.id,
+      poCode: item.poNumber,
+      vendorName: item.vendorName,
+      arrivalDate: item.entryDate,
+      createdDate: item.createdAt,
+      createdBy: item.createdBy,
+      status: item.status,
+      sessions: (item.importVendorTemTransactions ?? []).map((t) =>
+        this.mapToSessionItem(t),
+      ),
+      _raw: item,
+    };
+  }
+
+  private mapToSessionItem(t: ImportVendorTemTransaction): SessionItem {
+    const totalQty = t.poDetails.reduce(
+      (sum, d) => sum + (d.totalQuantity ?? 0),
+      0,
+    );
+    const itemCount = t.poDetails.reduce(
+      (sum, d) => sum + (d.vendorTemDetails?.length ?? 0),
+      0,
+    );
+    return {
+      importDate: t.entryDate,
+      warehouse: t.storageUnit,
+      status: t.status,
+      totalQty,
+      itemCount,
+    };
+  }
+
+  private loadDetailIfNeeded(row: TemNccItem): void {
+    if (this.detailCache.has(row.id)) {
+      this.applyDetailToRow(row, this.detailCache.get(row.id)!);
+      return;
+    }
+
+    this.loadingDetailIds.add(row.id);
+    this.managerTemNccService.getPoImportTemDetail(row.id).subscribe({
+      next: (detail) => {
+        this.detailCache.set(row.id, detail);
+        this.applyDetailToRow(row, detail);
+        this.loadingDetailIds.delete(row.id);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingDetailIds.delete(row.id);
+        this.notificationService.error("Không thể tải chi tiết đơn hàng!");
+      },
+    });
+  }
+  private applyDetailToRow(row: TemNccItem, detail: PoImportTem): void {
+    const sessions = (detail.importVendorTemTransactions ?? []).map((t) =>
+      this.mapToSessionItem(t),
+    );
+    // cập nhật sessions vào row trong dataSource
+    const idx = this.dataSource.data.findIndex((r) => r.id === row.id);
+    if (idx >= 0) {
+      const updated = { ...this.dataSource.data[idx], sessions, _raw: detail };
+      const newData = [...this.dataSource.data];
+      newData[idx] = updated;
+      this.dataSource.data = newData;
+    }
   }
 }

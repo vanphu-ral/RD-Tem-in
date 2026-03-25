@@ -8,10 +8,17 @@ import {
   AfterViewChecked,
 } from "@angular/core";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { AccountService } from "app/core/auth/account.service";
+import {
+  CreateVendorTemDetailPayload,
+  ManagerTemNccService,
+} from "app/entities/list-material/services/info-tem-ncc.service";
+import { NotificationService } from "app/entities/list-material/services/notification.service";
 
 // ==================== INTERFACES ====================
 
 export interface LotDetailRow {
+  id: number;
   reelId: string;
   partNumber: string;
   vendor: string;
@@ -27,6 +34,13 @@ export interface LotDetailRow {
   manufacturingDate: string;
   expirationDate: string;
   sapCode: string;
+  vendorQrCode?: string;
+  status?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedBy?: string;
+  poDetailId: number;
+  importVendorTemTransactionsId: number;
   [key: string]: any;
 }
 
@@ -110,70 +124,13 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
   constructor(
     public dialogRef: MatDialogRef<LotDetailDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: LotDetailDialogData,
+    private managerTemNccService: ManagerTemNccService,
+    private accountService: AccountService,
+    private notificationService: NotificationService,
   ) {}
 
   ngOnInit(): void {
     this.rows = this.data.rows.map((r) => ({ ...r }));
-
-    // Mock data for testing — xóa khi có data thật
-    if (this.rows.length === 0) {
-      this.rows = [
-        {
-          sapCode: "00098081",
-          productName: "Module DR-ML MXL1142 24W-TC (Yankon)",
-          reelId: "26022808503400029",
-          partNumber: "00098081_V1.1",
-          lot: "NXS-Part",
-          vendor: "RD",
-          initialQuantity: 10000,
-          userData1: "10000",
-          userData2: "10000",
-          userData3: "10000",
-          userData4: "10000",
-          userData5: "10000",
-          msl: "2a",
-          storageUnit: "EA",
-          manufacturingDate: "20250603",
-          expirationDate: "20271203",
-        },
-        {
-          sapCode: "00098081",
-          productName: "Module DR-ML MXL1142 24W-TC (Yankon)",
-          reelId: "26022808503400030",
-          partNumber: "00098081_V1.1",
-          lot: "NXS-Part",
-          vendor: "RD",
-          initialQuantity: 10000,
-          userData1: "10000",
-          userData2: "",
-          userData3: "",
-          userData4: "10000",
-          userData5: "",
-          msl: "2a",
-          storageUnit: "EA",
-          manufacturingDate: "20250603",
-          expirationDate: "20271203",
-        },
-        {
-          sapCode: "00098081",
-          productName: "Module DR-ML MXL1142 24W-TC (Yankon)",
-          reelId: "26022808503400028",
-          partNumber: "00098081_V1.1",
-          lot: "NXS-Part",
-          vendor: "RD",
-          initialQuantity: 10000,
-          userData1: "",
-          userData2: "10000",
-          userData3: "10000",
-          userData4: "",
-          userData5: "10000",
-          msl: "3",
-          storageUnit: "EA",
-          manufacturingDate: "20250501",
-          expirationDate: "20271101",
-        },
-      ];
-    }
 
     this.columns.forEach((col) => (this.bulkValues[col.key] = ""));
   }
@@ -238,7 +195,57 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
   // ==================== DIALOG ACTIONS ====================
 
   onSave(): void {
-    this.dialogRef.close(this.rows);
+    const now = new Date().toISOString();
+
+    const payload: CreateVendorTemDetailPayload[] = this.rows.map((row) => ({
+      id: row.id,
+      reelId: row.reelId ?? "",
+      partNumber: row.partNumber ?? "",
+      vendor: row.vendor ?? "",
+      lot: row.lot ?? "",
+      userData1: row.userData1 ?? "",
+      userData2: row.userData2 ?? "",
+      userData3: row.userData3 ?? "",
+      userData4: row.userData4 ?? "",
+      userData5: row.userData5 ?? "",
+      initialQuantity: Number(row.initialQuantity) || 0,
+      msdLevel: row.msl ?? "",
+      msdInitialFloorTime: row.msdInitialFloorTime ?? "",
+      msdBagSealDate: row.msdBagSealDate ?? "",
+      marketUsage: row.marketUsage ?? "",
+      quantityOverride: Number(row.quantityOverride) || 0,
+      shelfTime: row.shelfTime ?? "",
+      spMaterialName: row.spMaterialName ?? "",
+      warningLimit: row.warningLimit ?? "",
+      maximumLimit: row.maximumLimit ?? "",
+      comments: row.comments ?? "",
+      warmupTime: row.warmupTime ?? "",
+      storageUnit: row.storageUnit ?? "",
+      subStorageUnit: row.subStorageUnit ?? "",
+      locationOverride: row.locationOverride ?? "",
+      expirationDate: row.expirationDate ?? "",
+      manufacturingDate: row.manufacturingDate ?? "",
+      partClass: row.partClass ?? "",
+      sapCode: row.sapCode ?? "",
+      vendorQrCode: row.vendorQrCode ?? "",
+      status: row.status ?? "NEW",
+      createdBy: row.createdBy ?? "",
+      createdAt: row.createdAt ?? now,
+      updatedBy: row.updatedBy ?? "",
+      updatedAt: now,
+      poDetailId: row.poDetailId,
+      importVendorTemTransactionsId: row.importVendorTemTransactionsId,
+    }));
+
+    this.managerTemNccService.batchUpdateVendorTemDetails(payload).subscribe({
+      next: () => {
+        this.notificationService.success("Cập nhật vật tư thành công.");
+        this.dialogRef.close(true);
+      },
+      error: () => {
+        this.notificationService.error("Cập nhật vật tư thất bại.");
+      },
+    });
   }
 
   onClose(): void {

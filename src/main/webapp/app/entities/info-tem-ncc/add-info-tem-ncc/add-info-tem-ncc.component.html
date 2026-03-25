@@ -70,22 +70,62 @@
           <input
             matInput
             [(ngModel)]="orderInfo.importScenario"
-            placeholder=""
+            [matAutocomplete]="autoScenario"
+            (input)="onScenarioSearch($any($event.target).value)"
+            (focus)="onScenarioSearch(orderInfo.importScenario)"
+            placeholder="Tìm theo tên hoặc mã NCC..."
+            [disabled]="isLoadingScenarios"
+          />
+          <mat-spinner
+            matSuffix
+            diameter="16"
+            *ngIf="isLoadingScenarios"
+          ></mat-spinner>
+          <mat-autocomplete
+            #autoScenario="matAutocomplete"
+            (optionSelected)="onScenarioSelected($event.option.value)"
+          >
+            <mat-option *ngFor="let s of filteredScenarioOptions" [value]="s">
+              <div class="scenario-option">
+                <span class="scenario-vendor">{{ s.vendorName }}</span>
+                <span class="scenario-code">{{ s.vendorCode }}</span>
+              </div>
+            </mat-option>
+            <mat-option *ngIf="filteredScenarioOptions.length === 0" disabled>
+              Không tìm thấy
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="small-form-field">
+          <mat-label>Kho nhập</mat-label>
+          <input
+            matInput
+            [(ngModel)]="orderInfo.warehouse"
+            placeholder="Chọn kho nhập...."
           />
         </mat-form-field>
 
-        <button
-          mat-raised-button
-          color="primary"
-          class="apply-btn"
-          (click)="onApply()"
-        >
-          Apply
-        </button>
-        <button mat-raised-button color="primary" (click)="onScan()">
-          <mat-icon>qr_code_scanner</mat-icon>
-          Scan
-        </button>
+        <div class="group-mobile d-flex">
+          <button
+            mat-raised-button
+            color="primary"
+            class="apply-btn"
+            (click)="onApply()"
+            [disabled]="isLoadingPo"
+          >
+            <mat-spinner
+              diameter="16"
+              *ngIf="isLoadingPo"
+              style="display: inline-block; margin-right: 6px"
+            ></mat-spinner>
+            {{ isLoadingPo ? "Đang tải..." : "Apply" }}
+          </button>
+          <button mat-raised-button color="primary" (click)="onScan()">
+            <mat-icon>qr_code_scanner</mat-icon>
+            Scan
+          </button>
+        </div>
       </div>
     </mat-card-content>
   </mat-card>
@@ -316,6 +356,15 @@
                         <!-- Header -->
                         <tr class="header-row">
                           <!-- <th class="col-action-th">Thao tác</th> -->
+                          <th class="col-chk-th">
+                            <mat-checkbox
+                              [checked]="isAllLotsSelected(row)"
+                              [indeterminate]="isSomeLotsSelected(row)"
+                              (change)="toggleAllLots(row)"
+                              color="primary"
+                            >
+                            </mat-checkbox>
+                          </th>
                           <th
                             *ngFor="let col of lotColumns"
                             [style.min-width.px]="col.minWidth"
@@ -329,6 +378,7 @@
                         <!-- Apply row -->
                         <tr class="apply-row">
                           <!-- <td class="col-action-th"></td> -->
+                          <td class="col-chk-th"></td>
                           <td *ngFor="let col of lotColumns">
                             <div class="apply-cell">
                               <input
@@ -368,6 +418,14 @@
                               </button>
                             </td> -->
                             <!-- Data cells -->
+                            <td class="col-chk-th">
+                              <mat-checkbox
+                                [checked]="isLotSelected(row.id, i)"
+                                (change)="toggleLotSelect(row.id, i)"
+                                color="primary"
+                              >
+                              </mat-checkbox>
+                            </td>
                             <td
                               *ngFor="let col of lotColumns"
                               class="data-cell editable-cell"
@@ -556,16 +614,9 @@
 
   <!-- Footer Actions -->
   <div class="footer-actions">
-    <div class="footer-left">
-      <mat-form-field appearance="outline" class="footer-field">
-        <mat-label>Kho nhập</mat-label>
-        <input
-          matInput
-          [(ngModel)]="orderInfo.warehouse"
-          placeholder="Chọn kho nhập...."
-        />
-      </mat-form-field>
+    <div class="footer-left"></div>
 
+    <div class="footer-right">
       <mat-form-field appearance="outline" class="footer-field">
         <mat-label>Người duyệt</mat-label>
         <input
@@ -574,11 +625,13 @@
           placeholder="Chọn người duyệt...."
         />
       </mat-form-field>
-    </div>
-
-    <div class="footer-right">
       <button mat-raised-button color="primary" (click)="onSubmitApproval()">
+        <!-- <button mat-raised-button color="primary" (click)="onSubmitApproval()"
+        [disabled]="selectedLotCount === 0"> -->
         Gửi phê duyệt
+        <span class="approval-badge" *ngIf="selectedLotCount > 0">
+          {{ selectedLotCount }}
+        </span>
       </button>
     </div>
   </div>

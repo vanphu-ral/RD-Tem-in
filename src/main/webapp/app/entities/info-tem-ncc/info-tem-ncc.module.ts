@@ -40,6 +40,7 @@ import { AddInfoTemNccComponent } from "./add-info-tem-ncc/add-info-tem-ncc.comp
 import { LotDetailDialogComponent } from "./lot-detail-dialog/lot-detail-dialog.component";
 import { ScanItemDialogComponent } from "./scan-item-dialog/scan-item-dialog.component";
 import { OrderSummaryDialogComponent } from "./list/order-summary-dialog/order-summary-dialog.component";
+import { ScanListViewDialogComponent } from "./scan-item-dialog/scan-list-view-dialog/scan-list-view-dialog.component";
 @NgModule({
   imports: [
     // MatDialogModule,
@@ -86,6 +87,7 @@ import { OrderSummaryDialogComponent } from "./list/order-summary-dialog/order-s
     LotDetailDialogComponent,
     ScanItemDialogComponent,
     OrderSummaryDialogComponent,
+    ScanListViewDialogComponent,
   ],
 
   exports: [
@@ -96,6 +98,7 @@ import { OrderSummaryDialogComponent } from "./list/order-summary-dialog/order-s
     InfoTemNccDetailComponent,
     LotDetailDialogComponent,
     ScanItemDialogComponent,
+    ScanListViewDialogComponent,
     OrderSummaryDialogComponent,
   ],
 })

@@ -281,7 +281,15 @@
     }
   }
 }
-
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 10;
+}
 .stt-badge {
   display: inline-block;
   background: #3d7bb9;
@@ -295,7 +303,14 @@
   font-weight: 600;
   margin-right: 8px;
 }
-
+.session-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  color: #70757a;
+  font-size: 13px;
+}
 .info-row {
   display: flex;
   justify-content: space-between;

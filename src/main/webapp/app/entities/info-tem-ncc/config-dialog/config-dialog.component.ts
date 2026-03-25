@@ -22,7 +22,10 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatDatepickerModule } from "@angular/material/datepicker";
 import { MatNativeDateModule } from "@angular/material/core";
-import { ManagerTemNccService } from "app/entities/list-material/services/info-tem-ncc.service";
+import {
+  ManagerTemNccService,
+  SapOcrd,
+} from "app/entities/list-material/services/info-tem-ncc.service";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -80,6 +83,11 @@ export class ConfigDialogComponent implements OnInit {
   //dem vi tri
   nextPosition = 0;
 
+  //danh sach nha cung cap
+  vendorOptions: SapOcrd[] = [];
+  filteredVendorOptions: SapOcrd[] = [];
+  isLoadingVendors = false;
+
   form: VendorConfig = {
     id: "",
     vendorCode: "",
@@ -98,6 +106,7 @@ export class ConfigDialogComponent implements OnInit {
   filteredFieldOptions: string[][] = [];
   currentUser = "unknown";
 
+  private readonly VENDOR_DISPLAY_LIMIT = 50;
   constructor(
     private dialog: MatDialog,
     private alertService: AlertService,
@@ -117,6 +126,8 @@ export class ConfigDialogComponent implements OnInit {
         fieldMappings: [...(this.data.fieldMappings || [])],
       };
     }
+
+    this.loadVendors();
     //tinh vi tri moi tu vi tri moi nhat
     this.nextPosition =
       this.form.fieldMappings.length > 0
@@ -130,7 +141,23 @@ export class ConfigDialogComponent implements OnInit {
       });
     this.loadMaterialAttributes();
   }
+  onVendorSearch(value: string): void {
+    const lower = (value ?? "").toLowerCase().trim();
+    const filtered = lower
+      ? this.vendorOptions.filter(
+          (v) =>
+            v.cardName.toLowerCase().includes(lower) ||
+            v.cardCode.toLowerCase().includes(lower),
+        )
+      : this.vendorOptions;
 
+    this.filteredVendorOptions = filtered.slice(0, this.VENDOR_DISPLAY_LIMIT);
+  }
+
+  onVendorSelected(vendor: SapOcrd): void {
+    this.form.vendorName = vendor.cardName;
+    this.form.vendorCode = vendor.cardCode;
+  }
   addField(): void {
     this.form.fieldMappings.push({
       position: this.nextPosition,
@@ -164,6 +191,7 @@ export class ConfigDialogComponent implements OnInit {
     const currentUser = this.currentUser;
 
     const payload = {
+      id: Number(this.form.id),
       vendorCode: this.form.vendorCode,
       vendorName: this.form.vendorName,
       mappingConfig,
@@ -174,21 +202,32 @@ export class ConfigDialogComponent implements OnInit {
     };
 
     this.isSaving = true;
-    this.managerTemNccService
-      .createTemIdentificationScenario(payload)
-      .subscribe({
-        next: () => {
-          this.isSaving = false;
-          this.notificationService.success("Lưu cấu hình thành công!");
-          this.dialogRef.close(this.form);
-        },
-        error: () => {
-          this.isSaving = false;
-          this.notificationService.error(
-            "Lưu cấu hình thất bại, vui lòng thử lại!",
-          );
-        },
-      });
+    const isEdit = !!this.form.id;
+
+    const request$ = isEdit
+      ? this.managerTemNccService.updateTemIdentificationScenario(
+          Number(this.form.id),
+          payload,
+        )
+      : this.managerTemNccService.createTemIdentificationScenario(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.isSaving = false;
+        this.notificationService.success(
+          isEdit ? "Cập nhật cấu hình thành công!" : "Lưu cấu hình thành công!",
+        );
+        this.dialogRef.close(this.form);
+      },
+      error: () => {
+        this.isSaving = false;
+        this.notificationService.error(
+          isEdit
+            ? "Cập nhật cấu hình thất bại, vui lòng thử lại!"
+            : "Lưu cấu hình thất bại, vui lòng thử lại!",
+        );
+      },
+    });
   }
 
   updateUnmappedFields(): void {
@@ -239,5 +278,20 @@ export class ConfigDialogComponent implements OnInit {
     this.filteredFieldOptions = this.form.fieldMappings.map(() => [
       ...this.dataFields,
     ]);
+  }
+
+  private loadVendors(): void {
+    this.isLoadingVendors = true;
+    this.managerTemNccService.getSapOcrds().subscribe({
+      next: (data) => {
+        this.vendorOptions = data;
+        this.filteredVendorOptions = data.slice(0, this.VENDOR_DISPLAY_LIMIT);
+        this.isLoadingVendors = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoadingVendors = false;
+      },
+    });
   }
 }

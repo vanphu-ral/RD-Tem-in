@@ -27,8 +27,8 @@
       <span class="kpi-label">Ngày nhập</span>
     </div>
     <div class="kpi-card kpi-green">
-      <span class="kpi-value">{{ totalScannedQty | number }}</span>
-      <span class="kpi-label">Tổng SL đã scan</span>
+      <span class="kpi-value">{{ totalProductQty | number }}</span>
+      <span class="kpi-label">Tổng SL đơn hàng</span>
     </div>
     <div class="kpi-card kpi-orange">
       <span class="kpi-value">{{ totalItemCount }}</span>
@@ -62,10 +62,10 @@
         item.createdDate | date: "dd/MM/yyyy HH:mm"
       }}</span>
     </div>
-    <div class="meta-row">
+    <!-- <div class="meta-row">
       <span class="meta-label">Kho nhập</span>
       <span class="meta-value">{{ item.warehouse }}</span>
-    </div>
+    </div> -->
   </div>
 
   <mat-divider></mat-divider>
@@ -73,14 +73,20 @@
   <!-- Sessions Table -->
   <div class="sessions-section">
     <div class="sessions-title">Chi tiết theo ngày nhập</div>
-    <div class="sessions-table-wrap">
+
+    <div class="sessions-loading" *ngIf="isLoading">
+      <mat-spinner diameter="28"></mat-spinner>
+      <span>Đang tải dữ liệu...</span>
+    </div>
+
+    <div class="sessions-table-wrap" *ngIf="!isLoading">
       <table class="sessions-table">
         <thead>
           <tr>
             <th>#</th>
             <th>Ngày nhập</th>
             <th>Kho</th>
-            <th>Loại kho</th>
+            <th>Trạng thái</th>
             <th class="col-num">SL scan</th>
             <th class="col-num">Mã Items</th>
           </tr>
@@ -91,7 +97,7 @@
               <td class="col-idx">{{ i + 1 }}</td>
               <td>{{ s.importDate }}</td>
               <td>{{ s.warehouse }}</td>
-              <td>{{ s.warehouseType }}</td>
+              <td>{{ s.status }}</td>
               <td class="col-num green-val">{{ s.totalQty | number }}</td>
               <td class="col-num">{{ s.itemCount }}</td>
             </tr>
@@ -105,7 +111,7 @@
         <tfoot *ngIf="sessions.length > 0">
           <tr class="total-row">
             <td colspan="4" class="total-label">Tổng cộng</td>
-            <td class="col-num green-val">{{ totalScannedQty | number }}</td>
+            <td class="col-num green-val">{{ totalProductQty | number }}</td>
             <td class="col-num">{{ totalItemCount }}</td>
           </tr>
         </tfoot>

@@ -14,24 +14,68 @@
   <div class="dialog-body" mat-dialog-content>
     <!-- Vendor Name & Code -->
     <div class="two-col">
+      <!-- Tên nhà cung cấp -->
       <div class="field-group">
         <label class="field-label">Tên nhà cung cấp</label>
         <mat-form-field appearance="outline" class="full-width">
           <input
             matInput
             [(ngModel)]="form.vendorName"
-            placeholder="Tên nhà cung cấp..."
+            [matAutocomplete]="autoVendorName"
+            (input)="onVendorSearch($any($event.target).value)"
+            (focus)="onVendorSearch(form.vendorName)"
+            placeholder="Tìm tên nhà cung cấp..."
+            [disabled]="isLoadingVendors"
           />
+          <mat-spinner
+            matSuffix
+            diameter="16"
+            *ngIf="isLoadingVendors"
+          ></mat-spinner>
+          <mat-autocomplete
+            #autoVendorName="matAutocomplete"
+            (optionSelected)="onVendorSelected($event.option.value)"
+          >
+            <mat-option *ngFor="let v of filteredVendorOptions" [value]="v">
+              <div class="vendor-option">
+                <span class="vendor-option-name">{{ v.cardName }}</span>
+                <span class="vendor-option-code">{{ v.cardCode }}</span>
+              </div>
+            </mat-option>
+            <mat-option *ngIf="filteredVendorOptions.length === 0" disabled>
+              Không tìm thấy
+            </mat-option>
+          </mat-autocomplete>
         </mat-form-field>
       </div>
+
+      <!-- Mã nhà cung cấp -->
       <div class="field-group">
         <label class="field-label">Mã nhà cung cấp</label>
         <mat-form-field appearance="outline" class="full-width">
           <input
             matInput
             [(ngModel)]="form.vendorCode"
-            placeholder="Mã nhà cung cấp..."
+            [matAutocomplete]="autoVendorCode"
+            (input)="onVendorSearch($any($event.target).value)"
+            (focus)="onVendorSearch(form.vendorCode)"
+            placeholder="Tìm mã nhà cung cấp..."
+            [disabled]="isLoadingVendors"
           />
+          <mat-autocomplete
+            #autoVendorCode="matAutocomplete"
+            (optionSelected)="onVendorSelected($event.option.value)"
+          >
+            <mat-option *ngFor="let v of filteredVendorOptions" [value]="v">
+              <div class="vendor-option">
+                <span class="vendor-option-code">{{ v.cardCode }}</span>
+                <span class="vendor-option-name">{{ v.cardName }}</span>
+              </div>
+            </mat-option>
+            <mat-option *ngIf="filteredVendorOptions.length === 0" disabled>
+              Không tìm thấy
+            </mat-option>
+          </mat-autocomplete>
         </mat-form-field>
       </div>
     </div>

@@ -21,11 +21,10 @@ import { MatSort, MatSortModule } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
 
 import { AlertService } from "app/core/util/alert.service";
-import {
-  LotDetailDialogComponent,
-  LotDetailDialogData,
-  LotDetailRow,
-} from "../lot-detail-dialog/lot-detail-dialog.component";
+// import {
+//   LotDetailDialogComponent,
+//   LotDetailDialogData,
+// } from "../lot-detail-dialog/lot-detail-dialog.component";
 import {
   ManagerTemNccService,
   PoDetail,
@@ -38,32 +37,14 @@ import { ActivatedRoute } from "@angular/router";
 // ==================== INTERFACES ====================
 
 export interface LotItem {
-  vendorTemDetailId: number;
   lotNumber: string;
-  reelId: string;
-  partNumber: string;
-  vendor: string;
   boxCount: number;
   totalQty: number;
-  initialQuantity: number;
-  userData1: string;
-  userData2: string;
-  userData3: string;
-  userData4: string;
-  userData5: string;
-  msl: string;
-  storageUnit: string;
+  details: VendorTemDetail[];
+  reelId: string;
+  partNumber: string;
   manufacturingDate: string;
   expirationDate: string;
-  sapCode?: string;
-  vendorQrCode?: string;
-  status?: string;
-  createdBy?: string;
-  createdAt?: string;
-  poDetailId: number;
-  importVendorTemTransactionsId: number;
-  details: LotDetailRow[];
-  [key: string]: any;
 }
 
 export interface ChildItem {
@@ -100,8 +81,8 @@ export interface FilterValues {
 @Component({
   selector: "jhi-info-tem-ncc",
   standalone: false,
-  templateUrl: "./info-tem-ncc.-detail.component.html",
-  styleUrls: ["./info-tem-ncc-detail.component.scss"],
+  templateUrl: "./approve-tem-ncc-detail.component.html",
+  styleUrls: ["./approve-tem-ncc-detail.component.scss"],
   animations: [
     trigger("detailExpand", [
       state(
@@ -116,7 +97,7 @@ export interface FilterValues {
     ]),
   ],
 })
-export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
+export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "expand",
     "sapCode",
@@ -154,8 +135,6 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
   /** Tracks which parent rows are expanded */
   private expandedRows = new Set<number>();
 
-  private currentTransactionId: number | null = null;
-  private currentPoImportTemId: number | null = null;
   /** Tracks which child items are expanded */
   private expandedChildren = new Set<string>();
 
@@ -288,53 +267,18 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
   }
 
   onViewLot(lot: LotItem): void {
-    const rows: LotDetailRow[] = lot.details?.length
-      ? lot.details
-      : [
-          {
-            id: lot.vendorTemDetailId,
-            reelId: lot.reelId ?? "",
-            partNumber: lot.partNumber ?? "",
-            vendor: lot.vendor ?? "",
-            lot: lot.lotNumber ?? "",
-            userData1: lot.userData1 ?? "",
-            userData2: lot.userData2 ?? "",
-            userData3: lot.userData3 ?? "",
-            userData4: lot.userData4 ?? "",
-            userData5: lot.userData5 ?? "",
-            initialQuantity: lot.initialQuantity ?? 0,
-            msl: lot.msl ?? "",
-            storageUnit: lot.storageUnit ?? "",
-            manufacturingDate: lot.manufacturingDate ?? "",
-            expirationDate: lot.expirationDate ?? "",
-            sapCode: lot.sapCode ?? "",
-            vendorQrCode: lot.vendorQrCode ?? "",
-            status: lot.status ?? "",
-            createdBy: lot.createdBy ?? "",
-            createdAt: lot.createdAt ?? "",
-            poDetailId: lot.poDetailId,
-            importVendorTemTransactionsId: lot.importVendorTemTransactionsId,
-          },
-        ];
-
-    const dialogRef = this.dialog.open(LotDetailDialogComponent, {
-      width: "100vw",
-      height: "100vh",
-      maxWidth: "100vw",
-      maxHeight: "100vh",
-      panelClass: "lot-detail-dialog-panel",
-      data: {
-        partNumber: lot.partNumber || lot.lotNumber,
-        manufacturingDate: lot.manufacturingDate,
-        rows,
-      } as LotDetailDialogData,
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result && this.currentPoImportTemId) {
-        this.loadDetailById(this.currentPoImportTemId);
-      }
-    });
+    // this.dialog.open(LotDetailDialogComponent, {
+    //   width: '100vw',
+    //   height: '100vh',
+    //   maxWidth: '100vw',
+    //   maxHeight: '100vh',
+    //   panelClass: 'lot-detail-dialog-panel',
+    //   data: {
+    //     partNumber: lot.partNumber || lot.lotNumber,
+    //     manufacturingDate: lot.manufacturingDate,
+    //     rows: lot.details ?? [],
+    //   } as unknown as LotDetailDialogData,
+    // });
   }
 
   // ==================== PRIVATE ====================
@@ -349,90 +293,62 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
       ? new Date(data.entryDate)
       : null;
 
-    this.currentPoImportTemId = data.id;
-
-    const transaction = data.importVendorTemTransactions?.[0];
-    if (transaction) {
-      this.currentTransactionId = transaction.id;
-    }
-
     const allPoDetails = data.importVendorTemTransactions.flatMap(
       (t) => t.poDetails,
     );
-    this.dataSource.data = this.mapPoDetailsToParentItems(
-      allPoDetails,
-      transaction?.id,
-    );
+
+    console.log("[DETAIL] allPoDetails:", allPoDetails);
+
+    this.dataSource.data = this.mapPoDetailsToParentItems(allPoDetails);
     this.totalItems = this.dataSource.data.length;
+
+    console.log("[DETAIL] dataSource:", this.dataSource.data);
   }
-  private mapPoDetailsToParentItems(
-    poDetails: PoDetail[],
-    transactionId?: number,
-  ): ParentItem[] {
+  // private loadData(id?: number): void {
+  //   this.isLoading = true;
+  //   this.managerTemNccService.getPoImportTemById(id).subscribe({
+  //     next: (data) => {
+  //       this.orderInfo.poCode = data.poNumber;
+  //       this.orderInfo.vendorName = data.vendorName;
+  //       this.orderInfo.arrivalDate = data.entryDate ? new Date(data.entryDate) : null;
+
+  //       // Gộp tất cả poDetails từ tất cả transactions
+  //       const allPoDetails: PoDetail[] = data.importVendorTemTransactions
+  //         .flatMap(t => t.poDetails);
+
+  //       this.dataSource.data = this.mapPoDetailsToParentItems(allPoDetails);
+  //       this.totalItems = this.dataSource.data.length;
+  //       this.isLoading = false;
+  //     },
+  //     error: () => {
+  //       this.notificationService.error('Không thể tải chi tiết đơn hàng!');
+  //       this.isLoading = false;
+  //     },
+  //   });
+  // }
+
+  private mapPoDetailsToParentItems(poDetails: PoDetail[]): ParentItem[] {
     return poDetails.map((detail, idx) => {
+      // Gộp vendorTemDetails thành lots theo lotNumber
       const lotMap = new Map<string, LotItem>();
 
       (detail.vendorTemDetails ?? []).forEach((v) => {
         const lotKey = v.lot || v.partNumber || `lot_${idx}`;
-
-        // Map VendorTemDetail → LotDetailRow đủ field
-        const detailRow: LotDetailRow = {
-          id: v.id,
-          reelId: v.reelId,
-          partNumber: v.partNumber,
-          vendor: v.vendor,
-          lot: v.lot,
-          userData1: v.userData1,
-          userData2: v.userData2,
-          userData3: v.userData3,
-          userData4: v.userData4,
-          userData5: v.userData5,
-          initialQuantity: v.initialQuantity,
-          msl: v.msdLevel,
-          storageUnit: v.storageUnit,
-          manufacturingDate: v.manufacturingDate,
-          expirationDate: v.expirationDate,
-          sapCode: v.sapCode,
-          vendorQrCode: v.vendorQrCode,
-          status: v.status,
-          createdBy: v.createdBy,
-          createdAt: v.createdAt,
-          poDetailId: detail.id,
-          importVendorTemTransactionsId: transactionId ?? 0,
-        };
-
         if (lotMap.has(lotKey)) {
           const existing = lotMap.get(lotKey)!;
           existing.boxCount += 1;
           existing.totalQty += v.initialQuantity ?? 0;
-          existing.details.push(detailRow);
+          existing.details.push(v);
         } else {
           lotMap.set(lotKey, {
-            vendorTemDetailId: v.id,
             lotNumber: lotKey,
             boxCount: 1,
             totalQty: v.initialQuantity ?? 0,
-            initialQuantity: v.initialQuantity,
+            details: [v],
             reelId: v.reelId,
             partNumber: v.partNumber,
-            vendor: v.vendor,
-            userData1: v.userData1,
-            userData2: v.userData2,
-            userData3: v.userData3,
-            userData4: v.userData4,
-            userData5: v.userData5,
-            msl: v.msdLevel,
-            storageUnit: v.storageUnit,
             manufacturingDate: v.manufacturingDate,
             expirationDate: v.expirationDate,
-            sapCode: v.sapCode,
-            vendorQrCode: v.vendorQrCode,
-            status: v.status,
-            createdBy: v.createdBy,
-            createdAt: v.createdAt,
-            poDetailId: detail.id,
-            importVendorTemTransactionsId: transactionId ?? 0,
-            details: [detailRow], // ← đúng type
           });
         }
       });
@@ -486,43 +402,5 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
       d.getMonth() === b.getMonth() &&
       d.getDate() === b.getDate()
     );
-  }
-
-  private loadDetailById(id: number): void {
-    this.isLoading = true;
-    this.managerTemNccService.getPoImportTemDetail(id).subscribe({
-      next: (detail) => {
-        this.orderInfo.poCode = detail.poNumber;
-        this.orderInfo.vendorName = detail.vendorName;
-        this.orderInfo.arrivalDate = detail.entryDate
-          ? new Date(detail.entryDate)
-          : null;
-        const transactions = detail.importVendorTemTransactions ?? [];
-        const transaction = transactions.length
-          ? transactions.reduce(
-              (latest, t) => (t.id > latest.id ? t : latest),
-              transactions[0],
-            )
-          : null;
-        if (transaction) {
-          this.currentTransactionId = transaction.id;
-          const allPoDetails = detail.importVendorTemTransactions.flatMap(
-            (t) => t.poDetails,
-          );
-          this.dataSource.data = this.mapPoDetailsToParentItems(
-            allPoDetails,
-            transaction.id,
-          );
-          this.totalItems = this.dataSource.data.length;
-        }
-
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.isLoading = false;
-        this.notificationService.error("Không thể tải chi tiết đơn hàng.");
-      },
-    });
   }
 }

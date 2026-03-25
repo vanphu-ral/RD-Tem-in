@@ -29,10 +29,23 @@ import {
   ScanItemDialogComponent,
   ScannedItem,
 } from "../scan-item-dialog/scan-item-dialog.component";
+import {
+  ApproveVendorTemPayload,
+  CreateVendorTemDetailPayload,
+  ManagerTemNccService,
+  PoImportTem,
+  PoImportTemPayload,
+  TemScenarioResponse,
+} from "app/entities/list-material/services/info-tem-ncc.service";
+import { switchMap, take } from "rxjs";
+import { AccountService } from "app/core/auth/account.service";
+import { ActivatedRoute } from "@angular/router";
+import { NotificationService } from "app/entities/list-material/services/notification.service";
 
 // ==================== INTERFACES ====================
 
 export interface LotItem {
+  vendorTemDetailId: number;
   lotNumber: string;
   boxCount: number;
   totalQty: number;
@@ -67,6 +80,22 @@ export interface FilterValues {
   sapCode: string;
   materialName: string;
   partNumber: string;
+}
+
+export interface CreatePoImportTemResponse {
+  poImportTem: any;
+  vendorTransaction: {
+    transaction: any;
+    poDetails: {
+      id: number | null;
+      sapCode: string;
+      sapName: string;
+      quantityContainer: number | null;
+      totalQuantity: number | null;
+      partNumber: string | null;
+    }[];
+  };
+  caseType: string;
 }
 
 // ==================== COMPONENT ====================
@@ -137,6 +166,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   orderInfo = {
     poCode: "",
     vendorName: "",
+    vendorCode: "",
     arrivalDate: null as Date | null,
     importScenario: "",
     warehouse: "",
@@ -147,27 +177,71 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   totalItems = 0;
   isLoading = false;
 
+  scenarioOptions: TemScenarioResponse[] = [];
+  filteredScenarioOptions: TemScenarioResponse[] = [];
+  selectedScenario: TemScenarioResponse | null = null;
+  isLoadingScenarios = false;
+  activeMappingConfig: {
+    separator: string;
+    fieldMappings: {
+      position: number;
+      nccFieldDesc: string;
+      dataField: string;
+    }[];
+  } | null = null;
+
+  //select vat tu
+  selectedLots = new Set<string>();
+
+  //truyen po
+  poOptions: PoImportTem[] = [];
+  filteredPoOptions: PoImportTem[] = [];
+  isLoadingPo = false;
+  currentUser = "unknown";
+
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+  private readonly PO_DISPLAY_LIMIT = 50;
   /** Tracks which parent rows are expanded */
+  private currentPoDetailId: number | null = null;
   private expandedRows = new Set<number>();
+
+  private currentTransactionId: number | null = null;
 
   /** Tracks which child items are expanded */
   private expandedChildren = new Set<string>();
 
   private expandedMobileRows = new Set<number>();
 
+  private readonly SCENARIO_DISPLAY_LIMIT = 50;
   constructor(
     private dialog: MatDialog,
     private alertService: AlertService,
     private datePipe: DatePipe,
     private cdr: ChangeDetectorRef,
+    private managerTemNccService: ManagerTemNccService,
+    private accountService: AccountService,
+    private route: ActivatedRoute,
+    private notificationService: NotificationService,
   ) {}
 
   // ==================== LIFECYCLE ====================
 
   ngOnInit(): void {
-    this.loadData();
+    this.loadScenarios();
+
+    this.accountService
+      .getAuthenticationState()
+      .pipe(take(1))
+      .subscribe((account) => {
+        this.currentUser = account?.login ?? "unknown";
+      });
+    const idParam = this.route.snapshot.paramMap.get("id");
+    if (idParam) {
+      this.loadDetailById(+idParam);
+    } else {
+      // this.loadData();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -198,28 +272,156 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     return this.expandedMobileRows.has(item.id);
   }
 
+  onScenarioSearch(value: string): void {
+    const lower = (value ?? "").toLowerCase().trim();
+    const filtered = lower
+      ? this.scenarioOptions.filter(
+          (s) =>
+            s.vendorName.toLowerCase().includes(lower) ||
+            s.vendorCode.toLowerCase().includes(lower),
+        )
+      : this.scenarioOptions;
+    this.filteredScenarioOptions = filtered.slice(
+      0,
+      this.SCENARIO_DISPLAY_LIMIT,
+    );
+  }
+
+  onScenarioSelected(scenario: TemScenarioResponse): void {
+    this.selectedScenario = scenario;
+    this.orderInfo.importScenario = `${scenario.vendorCode} - ${scenario.vendorName}`;
+
+    try {
+      this.activeMappingConfig = JSON.parse(scenario.mappingConfig);
+    } catch {
+      this.activeMappingConfig = null;
+    }
+  }
+
+  displayScenario(scenario: TemScenarioResponse | null): string {
+    if (!scenario) {
+      return "";
+    }
+    return `${scenario.vendorCode} - ${scenario.vendorName}`;
+  }
+
   onApply(): void {
-    // Filter/load danh sách vật tư theo orderInfo
+    if (!this.orderInfo.poCode || !this.selectedScenario) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Vui lòng nhập đầy đủ mã PO và kịch bản nhập TEM.",
+      });
+      return;
+    }
+    const currtentUser = this.currentUser;
+    const now = new Date().toISOString();
+    const payload: PoImportTemPayload = {
+      poNumber: this.orderInfo.poCode,
+      vendorCode: this.selectedScenario.vendorCode,
+      vendorName: this.selectedScenario.vendorName,
+      entryDate: this.orderInfo.arrivalDate
+        ? (this.datePipe.transform(this.orderInfo.arrivalDate, "yyyy-MM-dd") ??
+          "")
+        : "",
+      storageUnit: this.orderInfo.warehouse,
+      temIdentificationScenarioId: this.selectedScenario.id,
+      mappingConfig: this.selectedScenario.mappingConfig,
+      status: "NEW",
+      createdBy: currtentUser,
+      createdAt: now,
+      updatedBy: "",
+      updatedAt: now,
+    };
+
+    this.isLoadingPo = true;
+    this.managerTemNccService.createPoImportTem(payload).subscribe({
+      next: (res: CreatePoImportTemResponse) => {
+        const poDetails = res?.vendorTransaction?.poDetails ?? [];
+        const transaction = res?.vendorTransaction?.transaction;
+
+        if (transaction?.id) {
+          this.currentTransactionId = transaction.id;
+        }
+
+        const parentItems: ParentItem[] = poDetails.map((detail, idx) => ({
+          id: detail.id ?? idx,
+          sapCode: detail.sapCode,
+          materialName: detail.sapName,
+          partNumber: detail.partNumber ?? "",
+          boxScan: 0,
+          totalQuantity: detail.totalQuantity ?? 0,
+          quantityBoxOrder: detail.quantityContainer ?? 0,
+          totalQuantityOrder: detail.totalQuantity ?? 0,
+          lots: [],
+        }));
+
+        this.dataSource.data = parentItems;
+        this.totalItems = parentItems.length;
+        this.selectedLots.clear();
+
+        if (transaction?.mappingConfig) {
+          try {
+            this.activeMappingConfig = JSON.parse(transaction.mappingConfig);
+          } catch {
+            /* khong lam gi */
+          }
+        }
+
+        this.isLoadingPo = false;
+        this.alertService.addAlert({
+          type: "success",
+          message: "Tạo đơn nhập TEM thành công.",
+        });
+      },
+      error: () => {
+        this.isLoadingPo = false;
+        this.alertService.addAlert({
+          type: "danger",
+          message: "Tạo đơn nhập TEM thất bại.",
+        });
+      },
+    });
   }
 
   onScan(): void {
+    if (!this.currentTransactionId) {
+      this.alertService.addAlert({
+        type: "warning",
+        message: "Chưa có transaction.",
+      });
+      return;
+    }
+
+    // Map parentItems gọn để truyền vào dialog
+    const parentItems = this.dataSource.data.map((r) => ({
+      id: r.id,
+      partNumber: r.partNumber,
+    }));
+
     const dialogRef = this.dialog.open(ScanItemDialogComponent, {
       width: "95vw",
       maxWidth: "1400px",
       panelClass: "scan-dialog-panel",
       autoFocus: false,
+      data: {
+        mappingConfig: this.activeMappingConfig,
+        arrivalDate: this.orderInfo.arrivalDate,
+        warehouse: this.orderInfo.warehouse,
+        approver: this.orderInfo.approver,
+        importVendorTemTransactionsId: this.currentTransactionId,
+        parentItems, // ← truyền danh sách rows
+      },
     });
 
-    dialogRef.afterClosed().subscribe((result: ScannedItem[] | null) => {
+    dialogRef.afterClosed().subscribe((result) => {
       if (!result) {
         return;
-      } // user cancelled
-
-      // result is the confirmed list of scanned items
-      console.log("Scanned items:", result);
-
-      // TODO: map result to your component's data model
-      // e.g. result.forEach(item => this.processScan(item.code));
+      }
+      this.orderInfo.warehouse = result.warehouse;
+      this.orderInfo.approver = result.approver;
+      if (this.currentTransactionId) {
+        this.loadDetailById(this.currentTransactionId);
+      }
     });
   }
   onCancelScan(): void {
@@ -230,8 +432,129 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     return row.lots && row.lots.length > 0;
   }
 
+  //select vat tu
+  get selectedLotCount(): number {
+    return this.selectedLots.size;
+  }
+
+  getLotKey(rowId: number, lotIdx: number): string {
+    return `${rowId}_${lotIdx}`;
+  }
+
+  isLotSelected(rowId: number, lotIdx: number): boolean {
+    return this.selectedLots.has(this.getLotKey(rowId, lotIdx));
+  }
+
+  toggleLotSelect(rowId: number, lotIdx: number): void {
+    const key = this.getLotKey(rowId, lotIdx);
+    if (this.selectedLots.has(key)) {
+      this.selectedLots.delete(key);
+    } else {
+      this.selectedLots.add(key);
+    }
+  }
+
+  isAllLotsSelected(row: ParentItem): boolean {
+    if (!row.lots?.length) {
+      return false;
+    }
+    return row.lots.every((_, i) => this.isLotSelected(row.id, i));
+  }
+
+  isSomeLotsSelected(row: ParentItem): boolean {
+    if (!row.lots?.length) {
+      return false;
+    }
+    return (
+      row.lots.some((_, i) => this.isLotSelected(row.id, i)) &&
+      !this.isAllLotsSelected(row)
+    );
+  }
+
+  toggleAllLots(row: ParentItem): void {
+    if (this.isAllLotsSelected(row)) {
+      row.lots.forEach((_, i) =>
+        this.selectedLots.delete(this.getLotKey(row.id, i)),
+      );
+    } else {
+      row.lots.forEach((_, i) =>
+        this.selectedLots.add(this.getLotKey(row.id, i)),
+      );
+    }
+  }
+
+  getSelectedLotItems(): { row: ParentItem; lot: LotItem }[] {
+    const result: { row: ParentItem; lot: LotItem }[] = [];
+    this.dataSource.data.forEach((row) => {
+      row.lots?.forEach((lot, i) => {
+        if (this.isLotSelected(row.id, i)) {
+          result.push({ row, lot });
+        }
+      });
+    });
+    return result;
+  }
+
   onSubmitApproval(): void {
-    // Gửi phê duyệt
+    if (!this.currentTransactionId) {
+      this.notificationService.warning(
+        "Không xác định được transaction để phê duyệt.",
+      );
+      return;
+    }
+
+    if (!this.orderInfo.approver) {
+      this.notificationService.warning("Vui lòng chọn người duyệt.");
+      return;
+    }
+
+    const selectedItems = this.getSelectedLotItems();
+    if (selectedItems.length === 0) {
+      this.notificationService.warning(
+        "Vui lòng chọn ít nhất một LOT để phê duyệt.",
+      );
+      return;
+    }
+
+    const poImportTemId = +this.route.snapshot.paramMap.get("id")!;
+    const now = new Date().toISOString();
+
+    const payload: ApproveVendorTemPayload = {
+      id: poImportTemId,
+      poNumber: this.orderInfo.poCode,
+      vendorCode: this.orderInfo.vendorCode,
+      vendorName: this.orderInfo.vendorName,
+      entryDate: this.orderInfo.arrivalDate
+        ? (this.datePipe.transform(this.orderInfo.arrivalDate, "yyyy-MM-dd") ??
+          "")
+        : "",
+      storageUnit: this.orderInfo.warehouse,
+      temIdentificationScenarioId: this.selectedScenario?.id ?? 0,
+      mappingConfig: this.selectedScenario?.mappingConfig ?? "",
+      status: "PENDING",
+      createdBy: this.currentUser,
+      createdAt: now,
+      updatedBy: this.currentUser,
+      updatedAt: now,
+      deletedBy: "",
+      deletedAt: "",
+    };
+
+    this.isLoading = true;
+
+    this.managerTemNccService
+      .approveImportVendorTemTransaction(poImportTemId, payload)
+      .subscribe({
+        next: () => {
+          this.isLoading = false;
+          this.notificationService.success("Gửi phê duyệt thành công.");
+          this.loadDetailById(poImportTemId);
+        },
+        error: () => {
+          this.isLoading = false;
+          this.notificationService.error("Gửi phê duyệt thất bại.");
+        },
+      });
   }
 
   isExpanded(row: ParentItem): boolean {
@@ -349,47 +672,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
 
   private loadData(): void {
     // Example mock data — replace with real service call
-    const mockData: ParentItem[] = [
-      {
-        id: 1,
-        sapCode: "00098081",
-        materialName: "Module DR-ML MXL1142 24W-TC (Yankon)",
-        partNumber: "31120166",
-        boxScan: 3,
-        totalQuantity: 30000,
-        quantityBoxOrder: 3,
-        totalQuantityOrder: 30000,
-        lots: [
-          { lotNumber: "31120166", boxCount: 1, totalQty: 10000, details: [] },
-          { lotNumber: "31120166", boxCount: 1, totalQty: 10000, details: [] },
-          { lotNumber: "31120166", boxCount: 1, totalQty: 10000, details: [] },
-        ],
-      },
-      {
-        id: 2,
-        sapCode: "00098081",
-        materialName: "Module LED ZDL1356 0.1W 3000K",
-        partNumber: "00098081_V1.1",
-        boxScan: 0,
-        totalQuantity: 0,
-        quantityBoxOrder: 1,
-        totalQuantityOrder: 10000,
-        lots: [],
-      },
-      {
-        id: 3,
-        sapCode: "00012345",
-        materialName: "Driver MTSL1056 3W SMT (Yankon)",
-        partNumber: "00088021_V1.1",
-        boxScan: 0,
-        totalQuantity: 0,
-        quantityBoxOrder: 1,
-        totalQuantityOrder: 10000,
-        lots: [],
-      },
-    ];
-    this.dataSource.data = mockData;
-    this.totalItems = mockData.length;
   }
 
   private buildFilterPredicate() {
@@ -412,5 +694,102 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       d.getMonth() === b.getMonth() &&
       d.getDate() === b.getDate()
     );
+  }
+
+  private loadScenarios(): void {
+    this.isLoadingScenarios = true;
+    this.managerTemNccService.getTemIdentificationScenarios().subscribe({
+      next: (data) => {
+        this.scenarioOptions = data;
+        this.filteredScenarioOptions = data.slice(
+          0,
+          this.SCENARIO_DISPLAY_LIMIT,
+        );
+        this.isLoadingScenarios = false;
+      },
+      error: () => {
+        this.isLoadingScenarios = false;
+      },
+    });
+  }
+
+  private loadDetailById(id: number): void {
+    this.isLoading = true;
+    this.managerTemNccService.getPoImportTemDetail(id).subscribe({
+      next: (detail) => {
+        this.orderInfo.poCode = detail.poNumber;
+        this.orderInfo.vendorName = detail.vendorName;
+        this.orderInfo.vendorCode = detail.vendorCode;
+        this.orderInfo.warehouse = detail.storageUnit;
+        this.orderInfo.arrivalDate = detail.entryDate
+          ? new Date(detail.entryDate)
+          : null;
+
+        const transaction = detail.importVendorTemTransactions?.[0];
+        if (transaction) {
+          this.currentTransactionId = transaction.id;
+          if (transaction.mappingConfig) {
+            try {
+              this.activeMappingConfig = JSON.parse(transaction.mappingConfig);
+            } catch {
+              /*Tam thoi de trong */
+            }
+          }
+
+          const parentItems: ParentItem[] = (transaction.poDetails ?? []).map(
+            (pd, idx) => ({
+              id: pd.id ?? idx,
+              sapCode: pd.sapCode,
+              materialName: pd.sapName,
+              partNumber: pd.partNumber ?? "",
+              boxScan: pd.vendorTemDetails?.length ?? 0,
+              totalQuantity: pd.totalQuantity ?? 0,
+              quantityBoxOrder: pd.quantityContainer ?? 0,
+              totalQuantityOrder: pd.totalQuantity ?? 0,
+              lots: (pd.vendorTemDetails ?? []).map((v) => ({
+                vendorTemDetailId: v.id,
+                lotNumber: v.lot,
+                reelId: v.reelId,
+                partNumber: v.partNumber,
+                vendor: v.vendor,
+                boxCount: 1,
+                totalQty: v.initialQuantity,
+                initialQuantity: v.initialQuantity,
+                userData1: v.userData1,
+                userData2: v.userData2,
+                userData3: v.userData3,
+                userData4: v.userData4,
+                userData5: v.userData5,
+                msl: v.msdLevel,
+                storageUnit: v.storageUnit,
+                manufacturingDate: v.manufacturingDate,
+                expirationDate: v.expirationDate,
+                sapCode: v.sapCode,
+                vendorQrCode: v.vendorQrCode,
+                status: v.status,
+                createdBy: v.createdBy,
+                createdAt: v.createdAt,
+                poDetailId: pd.id,
+                importVendorTemTransactionsId: transaction.id,
+                details: [],
+              })),
+            }),
+          );
+
+          this.dataSource.data = parentItems;
+          this.totalItems = parentItems.length;
+        }
+
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoading = false;
+        this.alertService.addAlert({
+          type: "danger",
+          message: "Không thể tải chi tiết đơn hàng.",
+        });
+      },
+    });
   }
 }

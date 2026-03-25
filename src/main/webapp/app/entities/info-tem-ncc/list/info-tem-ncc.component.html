@@ -70,6 +70,9 @@
 
   <!-- Desktop Table -->
   <div class="table-container desktop-view">
+    <div class="loading-overlay" *ngIf="isLoading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
     <table
       mat-table
       [dataSource]="dataSource"
@@ -105,7 +108,7 @@
             </button>
             <button
               mat-icon-button
-              [routerLink]="['/info-tem-ncc/add-info-tem-ncc']"
+              [routerLink]="['/info-tem-ncc/add-info-tem-ncc', row.id]"
               matTooltip="Scan"
             >
               <mat-icon class="icon-view">qr_code</mat-icon>
@@ -231,7 +234,7 @@
       </ng-container>
 
       <!-- Warehouse -->
-      <ng-container matColumnDef="warehouse">
+      <!-- <ng-container matColumnDef="warehouse">
         <th mat-header-cell *matHeaderCellDef class="col-warehouse">
           <div class="th-wrap">
             <span mat-sort-header>Kho nhập</span>
@@ -247,7 +250,7 @@
           </div>
         </th>
         <td mat-cell *matCellDef="let row">{{ row.warehouse }}</td>
-      </ng-container>
+      </ng-container> -->
 
       <!-- Status -->
       <ng-container matColumnDef="status">
@@ -279,101 +282,116 @@
             class="session-expand-wrapper"
             [@detailExpand]="isExpanded(row) ? 'expanded' : 'collapsed'"
           >
-            <!-- Sub-table header label -->
-            <div class="session-header-label">
-              <mat-icon class="session-label-icon">reorder</mat-icon>
-              <span>DANH SÁCH CÁC LẦN NHẬP (SESSIONS)</span>
-              <span class="session-count-badge">{{
-                row.sessions?.length ?? 0
-              }}</span>
+            <div class="session-loading" *ngIf="isLoadingDetail(row)">
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>Đang tải...</span>
             </div>
+            <ng-container *ngIf="!isLoadingDetail(row)">
+              <!-- Sub-table header label -->
+              <div class="session-header-label">
+                <mat-icon class="session-label-icon">reorder</mat-icon>
+                <span>DANH SÁCH CÁC LẦN NHẬP (SESSIONS)</span>
+                <span class="session-count-badge">{{
+                  row.sessions?.length ?? 0
+                }}</span>
+              </div>
 
-            <!-- Scrollable table wrapper -->
-            <div class="session-table-scroll">
-              <table class="session-table">
-                <thead>
-                  <tr>
-                    <th class="col-stt-s">STT</th>
-                    <th class="col-stt-s">Thao tác</th>
-                    <th>Ngày nhập</th>
-                    <th>Kho</th>
-                    <th>Loại kho</th>
-                    <th class="col-num">Tổng SL</th>
-                    <th class="col-num">Mã Items</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <ng-container
-                    *ngIf="
-                      row.sessions && row.sessions.length > 0;
-                      else noSession
-                    "
-                  >
-                    <tr
-                      *ngFor="
-                        let session of getPagedSessions(row);
-                        let si = index
-                      "
-                      class="session-tr"
-                    >
-                      <td class="col-stt-s">{{ getSessionIndex(row, si) }}</td>
-                      <td class="col-stt-s">
-                        <button
-                          mat-icon-button
-                          [routerLink]="['/info-tem-ncc/info-tem-ncc-detail']"
-                          matTooltip="Chi tiết"
-                        >
-                          <mat-icon class="icon-view">visibility</mat-icon>
-                        </button>
-                      </td>
-                      <td>{{ session.importDate }}</td>
-                      <td>{{ session.warehouse }}</td>
-                      <td>{{ session.warehouseType }}</td>
-                      <td class="col-num green-val">
-                        {{ session.totalQty | number }}
-                      </td>
-                      <td class="col-num">{{ session.itemCount }}</td>
-                    </tr>
-                  </ng-container>
-                  <ng-template #noSession>
+              <!-- Scrollable table wrapper -->
+              <div class="session-table-scroll">
+                <table class="session-table">
+                  <thead>
                     <tr>
-                      <td colspan="6" class="no-session">Không có dữ liệu</td>
+                      <th class="col-stt-s">STT</th>
+                      <th class="col-stt-s">Thao tác</th>
+                      <th>Ngày nhập</th>
+                      <th>Kho</th>
+                      <th>Trạng thái</th>
+                      <th class="col-num">Tổng SL</th>
+                      <th class="col-num">Mã Items</th>
                     </tr>
-                  </ng-template>
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    <ng-container
+                      *ngIf="
+                        row.sessions && row.sessions.length > 0;
+                        else noSession
+                      "
+                    >
+                      <tr
+                        *ngFor="
+                          let session of getPagedSessions(row);
+                          let si = index
+                        "
+                        class="session-tr"
+                      >
+                        <td class="col-stt-s">
+                          {{ getSessionIndex(row, si) }}
+                        </td>
+                        <td class="col-stt-s">
+                          <!-- <button
+                            mat-icon-button
+                            [routerLink]="['/info-tem-ncc/info-tem-ncc-detail, row.id']"
+                            matTooltip="Chi tiết"
+                          >
+                            <mat-icon class="icon-view">visibility</mat-icon>
+                          </button> -->
+                          <button
+                            mat-icon-button
+                            (click)="onViewDetail(row)"
+                            matTooltip="Chi tiết"
+                          >
+                            <mat-icon class="icon-view">visibility</mat-icon>
+                          </button>
+                        </td>
+                        <td>{{ session.importDate }}</td>
+                        <td>{{ session.warehouse }}</td>
+                        <td>{{ session.status }}</td>
+                        <td class="col-num green-val">
+                          {{ session.totalQty | number }}
+                        </td>
+                        <td class="col-num">{{ session.itemCount }}</td>
+                      </tr>
+                    </ng-container>
+                    <ng-template #noSession>
+                      <tr>
+                        <td colspan="6" class="no-session">Không có dữ liệu</td>
+                      </tr>
+                    </ng-template>
+                  </tbody>
+                </table>
+              </div>
 
-            <!-- Mini paginator -->
-            <div
-              class="session-paginator"
-              *ngIf="row.sessions && row.sessions.length > sessionPageSize"
-            >
-              <span class="pag-info">
-                {{ getSessionPageStart(row) }}–{{ getSessionPageEnd(row) }} /
-                {{ row.sessions.length }}
-              </span>
-              <button
-                mat-icon-button
-                [disabled]="getSessionPage(row) === 0"
-                (click)="setSessionPage(row, getSessionPage(row) - 1)"
+              <!-- Mini paginator -->
+              <div
+                class="session-paginator"
+                *ngIf="row.sessions && row.sessions.length > sessionPageSize"
               >
-                <mat-icon>chevron_left</mat-icon>
-              </button>
-              <span class="pag-page"
-                >{{ getSessionPage(row) + 1 }} /
-                {{ getSessionTotalPages(row) }}</span
-              >
-              <button
-                mat-icon-button
-                [disabled]="
-                  getSessionPage(row) >= getSessionTotalPages(row) - 1
-                "
-                (click)="setSessionPage(row, getSessionPage(row) + 1)"
-              >
-                <mat-icon>chevron_right</mat-icon>
-              </button>
-            </div>
+                <span class="pag-info">
+                  {{ getSessionPageStart(row) }}–{{ getSessionPageEnd(row) }} /
+                  {{ row.sessions.length }}
+                </span>
+                <button
+                  mat-icon-button
+                  [disabled]="getSessionPage(row) === 0"
+                  (click)="setSessionPage(row, getSessionPage(row) - 1)"
+                >
+                  <mat-icon>chevron_left</mat-icon>
+                </button>
+                <span class="pag-page"
+                  >{{ getSessionPage(row) + 1 }} /
+                  {{ getSessionTotalPages(row) }}</span
+                >
+                <button
+                  mat-icon-button
+                  [disabled]="
+                    getSessionPage(row) >= getSessionTotalPages(row) - 1
+                  "
+                  (click)="setSessionPage(row, getSessionPage(row) + 1)"
+                >
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
+              </div>
+            </ng-container>
           </div>
         </td>
       </ng-container>
@@ -472,10 +490,10 @@
             <span class="label">Người tạo:</span
             ><span class="value">{{ item.createdBy }}</span>
           </div>
-          <div class="info-row">
+          <!-- <div class="info-row">
             <span class="label">Kho nhập:</span
             ><span class="value">{{ item.warehouse }}</span>
-          </div>
+          </div> -->
         </mat-card-content>
 
         <!-- Expand: Sessions -->
@@ -506,7 +524,7 @@
                     {{ session.importDate }}
                   </div>
                   <div class="mobile-session-meta">
-                    {{ session.warehouse }} · {{ session.warehouseType }}
+                    {{ session.warehouse }} · {{ session.status }}
                   </div>
                 </div>
                 <button

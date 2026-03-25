@@ -326,7 +326,24 @@
   font-size: 12px;
   font-weight: 500;
 }
+.vendor-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
 
+  .vendor-option-name {
+    flex: 1;
+    color: #202124;
+    font-weight: 500;
+  }
+
+  .vendor-option-code {
+    color: #70757a;
+    font-size: 12px;
+    font-family: "Courier New", monospace;
+  }
+}
 /* Footer */
 .dialog-footer {
   display: flex;
