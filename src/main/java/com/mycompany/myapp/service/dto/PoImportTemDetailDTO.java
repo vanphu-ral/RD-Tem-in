@@ -6,49 +6,46 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Set;
-import javax.validation.constraints.*;
 
 /**
- * A DTO for the {@link com.mycompany.myapp.domain.PoImportTem} entity.
+ * A DTO for the detail view of {@link com.mycompany.myapp.domain.PoImportTem}.
+ * Includes all nested relationships: importVendorTemTransactions -> poDetails
+ * -> vendorTemDetails.
  */
-@Schema(description = "Entity ImportVendorTemTransactions")
+@Schema(
+    description = "Detail DTO for PoImportTem with all nested relationships"
+)
 @SuppressWarnings("common-java:DuplicatedBlocks")
-public class PoImportTemDTO implements Serializable {
+public class PoImportTemDetailDTO implements Serializable {
 
     private Long id;
 
-    @Size(max = 20)
     private String poNumber;
 
-    @Size(max = 20)
     private String vendorCode;
 
-    @Size(max = 255)
     private String vendorName;
 
     private LocalDate entryDate;
 
-    @Size(max = 50)
     private String storageUnit;
 
     private Integer quantityContainer;
 
     private Integer totalQuantity;
 
-    @Size(max = 50)
     private String status;
 
-    @Size(max = 20)
+    private String poComments;
+
     private String createdBy;
 
     private ZonedDateTime createdAt;
 
-    @Size(max = 20)
     private String updatedBy;
 
     private ZonedDateTime updatedAt;
 
-    @Size(max = 20)
     private String deletedBy;
 
     private ZonedDateTime deletedAt;
@@ -127,6 +124,14 @@ public class PoImportTemDTO implements Serializable {
         this.status = status;
     }
 
+    public String getPoComments() {
+        return poComments;
+    }
+
+    public void setPoComments(String poComments) {
+        this.poComments = poComments;
+    }
+
     public String getCreatedBy() {
         return createdBy;
     }
@@ -192,15 +197,15 @@ public class PoImportTemDTO implements Serializable {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof PoImportTemDTO)) {
+        if (!(o instanceof PoImportTemDetailDTO)) {
             return false;
         }
 
-        PoImportTemDTO poImportTemDTO = (PoImportTemDTO) o;
+        PoImportTemDetailDTO that = (PoImportTemDetailDTO) o;
         if (this.id == null) {
             return false;
         }
-        return Objects.equals(this.id, poImportTemDTO.id);
+        return Objects.equals(this.id, that.id);
     }
 
     @Override
@@ -211,7 +216,7 @@ public class PoImportTemDTO implements Serializable {
     // prettier-ignore
     @Override
     public String toString() {
-        return "PoImportTemDTO{" +
+        return "PoImportTemDetailDTO{" +
                 "id=" + getId() +
                 ", poNumber='" + getPoNumber() + "'" +
                 ", vendorCode='" + getVendorCode() + "'" +
@@ -221,6 +226,7 @@ public class PoImportTemDTO implements Serializable {
                 ", quantityContainer=" + getQuantityContainer() +
                 ", totalQuantity=" + getTotalQuantity() +
                 ", status='" + getStatus() + "'" +
+                ", poComments='" + getPoComments() + "'" +
                 ", createdBy='" + getCreatedBy() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +

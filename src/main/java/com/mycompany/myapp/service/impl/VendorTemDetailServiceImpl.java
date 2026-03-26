@@ -5,6 +5,8 @@ import com.mycompany.myapp.repository.partner5.VendorTemDetailRepository;
 import com.mycompany.myapp.service.VendorTemDetailService;
 import com.mycompany.myapp.service.dto.VendorTemDetailDTO;
 import com.mycompany.myapp.service.mapper.VendorTemDetailMapper;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service Implementation for managing {@link com.mycompany.myapp.domain.VendorTemDetail}.
+ * Service Implementation for managing
+ * {@link com.mycompany.myapp.domain.VendorTemDetail}.
  */
 @Service
 @Transactional
@@ -52,6 +55,25 @@ public class VendorTemDetailServiceImpl implements VendorTemDetailService {
         );
         vendorTemDetail = vendorTemDetailRepository.save(vendorTemDetail);
         return vendorTemDetailMapper.toDto(vendorTemDetail);
+    }
+
+    @Override
+    public List<VendorTemDetailDTO> updateBatch(
+        List<VendorTemDetailDTO> vendorTemDetailDTOs
+    ) {
+        LOG.debug(
+            "Request to update batch VendorTemDetails : {}",
+            vendorTemDetailDTOs
+        );
+        List<VendorTemDetailDTO> result = new ArrayList<>();
+        for (VendorTemDetailDTO dto : vendorTemDetailDTOs) {
+            VendorTemDetail vendorTemDetail = vendorTemDetailMapper.toEntity(
+                dto
+            );
+            vendorTemDetail = vendorTemDetailRepository.save(vendorTemDetail);
+            result.add(vendorTemDetailMapper.toDto(vendorTemDetail));
+        }
+        return result;
     }
 
     @Override

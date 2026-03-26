@@ -162,6 +162,9 @@ public class VendorTemDetail implements Serializable {
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 
+    @Column(name = "pana_send_status")
+    private Boolean panaSendStatus;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnoreProperties(
         value = { "vendorTemDetails", "importVendorTemTransactions" },
@@ -566,6 +569,7 @@ public class VendorTemDetail implements Serializable {
         this.partClass = partClass;
     }
 
+    // SAP code
     public String getSapCode() {
         return this.sapCode;
     }
@@ -579,6 +583,7 @@ public class VendorTemDetail implements Serializable {
         this.sapCode = sapCode;
     }
 
+    // vendor additional data
     public String getVendorAdditionalData() {
         return this.vendorAdditionalData;
     }
@@ -592,6 +597,7 @@ public class VendorTemDetail implements Serializable {
         this.vendorAdditionalData = vendorAdditionalData;
     }
 
+    // vendor qr code
     public String getVendorQrCode() {
         return this.vendorQrCode;
     }
@@ -668,6 +674,20 @@ public class VendorTemDetail implements Serializable {
 
     public void setUpdatedAt(ZonedDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    // pana_send_status
+    public Boolean getPanaSendStatus() {
+        return this.panaSendStatus;
+    }
+
+    public void setPanaSendStatus(Boolean panaSendStatus) {
+        this.panaSendStatus = panaSendStatus;
+    }
+
+    public VendorTemDetail panaSendStatus(Boolean panaSendStatus) {
+        this.setPanaSendStatus(panaSendStatus);
+        return this;
     }
 
     public PoDetail getPoDetail() {
@@ -754,6 +774,7 @@ public class VendorTemDetail implements Serializable {
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +
                 ", updatedAt='" + getUpdatedAt() + "'" +
+                ", panaSendStatus='" + getPanaSendStatus() + "'" +
                 "}";
     }
 }

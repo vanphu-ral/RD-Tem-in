@@ -1,10 +1,17 @@
 package com.mycompany.myapp.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import javax.persistence.*;
 import javax.validation.constraints.*;
+import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Formula;
 
 /**
  * Entity ImportVendorTemTransactions
@@ -17,11 +24,7 @@ public class PoImportTem implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "sequenceGenerator"
-    )
-    @SequenceGenerator(name = "sequenceGenerator")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
@@ -54,6 +57,9 @@ public class PoImportTem implements Serializable {
     @Column(name = "status", length = 50)
     private String status;
 
+    @Column(name = "po_comments")
+    private String poComments;
+
     @Size(max = 20)
     @Column(name = "created_by", length = 20)
     private String createdBy;
@@ -76,6 +82,53 @@ public class PoImportTem implements Serializable {
     private ZonedDateTime deletedAt;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
+    @OneToMany(mappedBy = "poImportTem", fetch = FetchType.LAZY)
+    @BatchSize(size = 20)
+    @JsonIgnoreProperties(value = { "poImportTem" }, allowSetters = true)
+    private Set<ImportVendorTemTransactions> importVendorTemTransactions =
+        new HashSet<>();
+
+    @JsonIgnore
+    public Set<ImportVendorTemTransactions> getImportVendorTemTransactions() {
+        return importVendorTemTransactions;
+    }
+
+    public void setImportVendorTemTransactions(
+        Set<ImportVendorTemTransactions> importVendorTemTransactions
+    ) {
+        if (this.importVendorTemTransactions != null) {
+            this.importVendorTemTransactions.forEach(i ->
+                i.setPoImportTem(null)
+            );
+        }
+        if (importVendorTemTransactions != null) {
+            importVendorTemTransactions.forEach(i -> i.setPoImportTem(this));
+        }
+        this.importVendorTemTransactions = importVendorTemTransactions;
+    }
+
+    public PoImportTem importVendorTemTransactions(
+        Set<ImportVendorTemTransactions> importVendorTemTransactions
+    ) {
+        this.setImportVendorTemTransactions(importVendorTemTransactions);
+        return this;
+    }
+
+    public PoImportTem addImportVendorTemTransaction(
+        ImportVendorTemTransactions importVendorTemTransaction
+    ) {
+        this.importVendorTemTransactions.add(importVendorTemTransaction);
+        importVendorTemTransaction.setPoImportTem(this);
+        return this;
+    }
+
+    public PoImportTem removeImportVendorTemTransaction(
+        ImportVendorTemTransactions importVendorTemTransaction
+    ) {
+        this.importVendorTemTransactions.remove(importVendorTemTransaction);
+        importVendorTemTransaction.setPoImportTem(null);
+        return this;
+    }
 
     public Long getId() {
         return this.id;
@@ -270,6 +323,22 @@ public class PoImportTem implements Serializable {
 
     public void setDeletedAt(ZonedDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    @Formula(
+        "(SELECT SUM(v.initial_quantity) " +
+        "FROM vendor_tem_detail v " +
+        "JOIN import_vendor_tem_transactions t ON v.import_vendor_tem_transactions_id = t.id " +
+        "WHERE t.po_import_tem_id = id)"
+    )
+    private Long totalScanQuantity;
+
+    public Long getTotalScanQuantity() {
+        return totalScanQuantity;
+    }
+
+    public void setTotalScanQuantity(Long totalScanQuantity) {
+        this.totalScanQuantity = totalScanQuantity;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and

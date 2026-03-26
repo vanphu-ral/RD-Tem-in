@@ -124,7 +124,7 @@ public class ImportVendorTemTransactionsServiceImpl
     public Optional<ImportVendorTemTransactionsDTO> findOne(Long id) {
         LOG.debug("Request to get ImportVendorTemTransactions : {}", id);
         return importVendorTemTransactionsRepository
-            .findById(id)
+            .findOneWithDetailsById(id)
             .map(importVendorTemTransactionsMapper::toDto);
     }
 
@@ -137,33 +137,17 @@ public class ImportVendorTemTransactionsServiceImpl
             "Request to get ImportVendorTemTransactions with details : {}",
             id
         );
-        return importVendorTemTransactionsRepository
-            .findById(id)
-            .map(importVendorTemTransactions -> {
-                ImportVendorTemTransactionsDTO transactionDTO =
-                    importVendorTemTransactionsMapper.toDto(
-                        importVendorTemTransactions
-                    );
 
-                // Fetch poDetails for this transaction
-                List<PoDetail> poDetails = new ArrayList<>();
-                // Check if poDetails are already loaded
-                if (
-                    importVendorTemTransactions.getPoDetails() != null &&
-                    !importVendorTemTransactions.getPoDetails().isEmpty()
-                ) {
-                    poDetails = new ArrayList<>(
-                        importVendorTemTransactions.getPoDetails()
-                    );
-                } else {
-                    // Fetch from repository if not loaded
-                    poDetails =
-                        poDetailRepository.findByImportVendorTemTransactionsId(
-                            id
-                        );
-                }
+        // SỬA TẠI ĐÂY: Lấy toàn bộ Transaction + PoDetails + VendorTemDetails trong 1 câu Query
+        return importVendorTemTransactionsRepository
+            .findOneWithDetailsById(id)
+            .map(transaction -> {
+                ImportVendorTemTransactionsDTO transactionDTO =
+                    importVendorTemTransactionsMapper.toDto(transaction);
+
+                // Vì đã dùng EntityGraph, transaction.getPoDetails() chắc chắn đã có dữ liệu
                 List<PoDetailDTO> poDetailDTOs = poDetailMapper.toDto(
-                    poDetails
+                    new ArrayList<>(transaction.getPoDetails())
                 );
 
                 return new ImportVendorTemTransactionsDetailDTO(

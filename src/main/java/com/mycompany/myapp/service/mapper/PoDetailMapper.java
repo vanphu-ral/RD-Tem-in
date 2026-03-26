@@ -11,14 +11,10 @@ import org.mapstruct.*;
  */
 @Mapper(componentModel = "spring")
 public interface PoDetailMapper extends EntityMapper<PoDetailDTO, PoDetail> {
-    @Mapping(
-        target = "importVendorTemTransactions",
-        source = "importVendorTemTransactions",
-        qualifiedByName = "importVendorTemTransactionsId"
-    )
+    @Mapping(target = "importVendorTemTransactions", ignore = true)
     @Mapping(
         target = "importVendorTemTransactionsId",
-        source = "importVendorTemTransactionsId"
+        source = "importVendorTemTransactions.id"
     )
     PoDetailDTO toDto(PoDetail s);
 
@@ -29,10 +25,10 @@ public interface PoDetailMapper extends EntityMapper<PoDetailDTO, PoDetail> {
     )
     PoDetail toEntity(PoDetailDTO dto);
 
-    @Named("importVendorTemTransactionsId")
-    @BeanMapping(ignoreByDefault = true)
-    @Mapping(target = "id", source = "id")
-    ImportVendorTemTransactionsDTO toDtoImportVendorTemTransactionsId(
-        ImportVendorTemTransactions importVendorTemTransactions
-    );
+    // @Named("importVendorTemTransactionsId")
+    // @BeanMapping(ignoreByDefault = true)
+    // @Mapping(target = "id", source = "id")
+    // ImportVendorTemTransactionsDTO toDtoImportVendorTemTransactionsId(
+    //     ImportVendorTemTransactions importVendorTemTransactions
+    // );
 }

@@ -3,6 +3,7 @@ package com.mycompany.myapp.service.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Set;
 import javax.validation.constraints.*;
 
 /**
@@ -30,6 +31,8 @@ public class PoDetailDTO implements Serializable {
     private ImportVendorTemTransactionsDTO importVendorTemTransactions;
 
     private Long importVendorTemTransactionsId;
+
+    private Set<VendorTemDetailDTO> vendorTemDetails;
 
     public Long getId() {
         return id;
@@ -99,6 +102,14 @@ public class PoDetailDTO implements Serializable {
         this.importVendorTemTransactionsId = importVendorTemTransactionsId;
     }
 
+    public Set<VendorTemDetailDTO> getVendorTemDetails() {
+        return vendorTemDetails;
+    }
+
+    public void setVendorTemDetails(Set<VendorTemDetailDTO> vendorTemDetails) {
+        this.vendorTemDetails = vendorTemDetails;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -130,7 +141,7 @@ public class PoDetailDTO implements Serializable {
                 ", quantityContainer=" + getQuantityContainer() +
                 ", totalQuantity=" + getTotalQuantity() +
                 ", partNumber='" + getPartNumber() + "'" +
-                ", importVendorTemTransactions=" + getImportVendorTemTransactions() +
+                ", importVendorTemTransactionsId=" + getImportVendorTemTransactionsId() +
                 "}";
     }
 }

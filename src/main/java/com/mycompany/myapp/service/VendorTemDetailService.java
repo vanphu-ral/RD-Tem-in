@@ -1,10 +1,12 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.service.dto.VendorTemDetailDTO;
+import java.util.List;
 import java.util.Optional;
 
 /**
- * Service Interface for managing {@link com.mycompany.myapp.domain.VendorTemDetail}.
+ * Service Interface for managing
+ * {@link com.mycompany.myapp.domain.VendorTemDetail}.
  */
 public interface VendorTemDetailService {
     /**
@@ -22,6 +24,16 @@ public interface VendorTemDetailService {
      * @return the persisted entity.
      */
     VendorTemDetailDTO update(VendorTemDetailDTO vendorTemDetailDTO);
+
+    /**
+     * Update multiple vendorTemDetails in a single request.
+     *
+     * @param vendorTemDetailDTOs the list of entities to update.
+     * @return the list of persisted entities.
+     */
+    List<VendorTemDetailDTO> updateBatch(
+        List<VendorTemDetailDTO> vendorTemDetailDTOs
+    );
 
     /**
      * Partially updates a vendorTemDetail.

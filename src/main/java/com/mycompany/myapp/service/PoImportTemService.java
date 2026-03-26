@@ -1,10 +1,14 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.service.dto.PoImportRequestDTO;
+import com.mycompany.myapp.service.dto.PoImportResponseDTO;
 import com.mycompany.myapp.service.dto.PoImportTemDTO;
+import com.mycompany.myapp.service.dto.PoImportTemDetailDTO;
 import java.util.Optional;
 
 /**
- * Service Interface for managing {@link com.mycompany.myapp.domain.PoImportTem}.
+ * Service Interface for managing
+ * {@link com.mycompany.myapp.domain.PoImportTem}.
  */
 public interface PoImportTemService {
     /**
@@ -45,4 +49,27 @@ public interface PoImportTemService {
      * @param id the id of the entity.
      */
     void delete(Long id);
+
+    /**
+     * Process PO Import request.
+     * Supports two cases:
+     * - Case 1: poNumber is null - creates parent record in po_import_tem and child
+     * in import_vendor_tem_transactions
+     * - Case 2: poNumber exists - searches for existing records and returns data if
+     * created today
+     *
+     * @param request the PO import request payload
+     * @return the response containing either newly created records (Case 1) or
+     *         retrieved data (Case 2)
+     */
+    PoImportResponseDTO processPoImport(PoImportRequestDTO request);
+
+    /**
+     * Get the full detail of poImportTem with all nested relationships.
+     *
+     * @param id the id of the poImportTem.
+     * @return the entity with all nested data (importVendorTemTransactions ->
+     *         poDetails -> vendorTemDetails).
+     */
+    Optional<PoImportTemDetailDTO> findDetailById(Long id);
 }

@@ -7,7 +7,7 @@ import org.mapstruct.*;
 /**
  * Mapper for the entity {@link ImportVendorTemTransactions} and its DTO {@link ImportVendorTemTransactionsDTO}.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = { PoDetailMapper.class })
 public interface ImportVendorTemTransactionsMapper
     extends
         EntityMapper<

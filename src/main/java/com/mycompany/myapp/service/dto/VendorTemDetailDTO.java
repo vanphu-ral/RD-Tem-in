@@ -347,6 +347,10 @@ public class VendorTemDetailDTO implements Serializable {
         return sapCode;
     }
 
+    public String getVendorAdditionalData() {
+        return vendorAdditionalData;
+    }
+
     public void setSapCode(String sapCode) {
         this.sapCode = sapCode;
     }

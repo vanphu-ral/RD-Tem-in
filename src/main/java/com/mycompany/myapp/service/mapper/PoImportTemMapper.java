@@ -9,4 +9,7 @@ import org.mapstruct.*;
  */
 @Mapper(componentModel = "spring")
 public interface PoImportTemMapper
-    extends EntityMapper<PoImportTemDTO, PoImportTem> {}
+    extends EntityMapper<PoImportTemDTO, PoImportTem> {
+    @Mapping(target = "importVendorTemTransactions", ignore = true)
+    PoImportTemDTO toDto(PoImportTem s);
+}

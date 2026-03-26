@@ -5,6 +5,7 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.Objects;
+import java.util.Set;
 import javax.validation.constraints.*;
 
 /**
@@ -38,6 +39,12 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
     @Size(max = 50)
     private String status;
 
+    @Size(max = 510)
+    private String note;
+
+    @Size(max = 50)
+    private String approver;
+
     @Size(max = 20)
     private String createdBy;
 
@@ -52,6 +59,16 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
     private String deletedBy;
 
     private ZonedDateTime deletedAt;
+
+    private Boolean panaSendStatus;
+
+    private Long poImportTemId;
+
+    private Integer totalQuantityCalculated;
+
+    private Integer totalScanQuantity;
+
+    private Set<PoDetailDTO> poDetails;
 
     public Long getId() {
         return id;
@@ -175,6 +192,46 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
         this.deletedAt = deletedAt;
     }
 
+    public void setPanaSendStatus(Boolean panaSendStatus) {
+        this.panaSendStatus = panaSendStatus;
+    }
+
+    public Boolean getPanaSendStatus() {
+        return panaSendStatus;
+    }
+
+    public Long getPoImportTemId() {
+        return poImportTemId;
+    }
+
+    public void setPoImportTemId(Long poImportTemId) {
+        this.poImportTemId = poImportTemId;
+    }
+
+    public Integer getTotalQuantityCalculated() {
+        return totalQuantityCalculated;
+    }
+
+    public void setTotalQuantityCalculated(Integer totalQuantityCalculated) {
+        this.totalQuantityCalculated = totalQuantityCalculated;
+    }
+
+    public Integer getTotalScanQuantity() {
+        return totalScanQuantity;
+    }
+
+    public void setTotalScanQuantity(Integer totalScanQuantity) {
+        this.totalScanQuantity = totalScanQuantity;
+    }
+
+    public Set<PoDetailDTO> getPoDetails() {
+        return poDetails;
+    }
+
+    public void setPoDetails(Set<PoDetailDTO> poDetails) {
+        this.poDetails = poDetails;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -216,6 +273,7 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", deletedBy='" + getDeletedBy() + "'" +
                 ", deletedAt='" + getDeletedAt() + "'" +
+                ", panaSendStatus='" + getPanaSendStatus() + "'" +
                 "}";
     }
 }

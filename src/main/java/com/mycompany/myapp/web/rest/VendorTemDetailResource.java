@@ -22,7 +22,8 @@ import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
 /**
- * REST controller for managing {@link com.mycompany.myapp.domain.VendorTemDetail}.
+ * REST controller for managing
+ * {@link com.mycompany.myapp.domain.VendorTemDetail}.
  */
 @RestController
 @RequestMapping("/api/vendor-tem-details")
@@ -57,7 +58,9 @@ public class VendorTemDetailResource {
      * {@code POST  /vendor-tem-details} : Create a new vendorTemDetail.
      *
      * @param vendorTemDetailDTO the vendorTemDetailDTO to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new vendorTemDetailDTO, or with status {@code 400 (Bad Request)} if the vendorTemDetail has already an ID.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
+     *         body the new vendorTemDetailDTO, or with status
+     *         {@code 400 (Bad Request)} if the vendorTemDetail has already an ID.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("")
@@ -93,11 +96,14 @@ public class VendorTemDetailResource {
     /**
      * {@code PUT  /vendor-tem-details/:id} : Updates an existing vendorTemDetail.
      *
-     * @param id the id of the vendorTemDetailDTO to save.
+     * @param id                 the id of the vendorTemDetailDTO to save.
      * @param vendorTemDetailDTO the vendorTemDetailDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated vendorTemDetailDTO,
-     * or with status {@code 400 (Bad Request)} if the vendorTemDetailDTO is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the vendorTemDetailDTO couldn't be updated.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated vendorTemDetailDTO,
+     *         or with status {@code 400 (Bad Request)} if the vendorTemDetailDTO is
+     *         not valid,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         vendorTemDetailDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/{id}")
@@ -147,14 +153,71 @@ public class VendorTemDetailResource {
     }
 
     /**
-     * {@code PATCH  /vendor-tem-details/:id} : Partial updates given fields of an existing vendorTemDetail, field will ignore if it is null
+     * {@code PUT  /vendor-tem-details/batch} : Update multiple vendorTemDetails in
+     * a single request.
      *
-     * @param id the id of the vendorTemDetailDTO to save.
+     * @param vendorTemDetailDTOs the list of vendorTemDetailDTOs to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the list of updated vendorTemDetailDTOs,
+     *         or with status {@code 400 (Bad Request)} if any vendorTemDetailDTO is
+     *         not valid.
+     */
+    @PutMapping("/batch")
+    public ResponseEntity<List<VendorTemDetailDTO>> updateBatchVendorTemDetails(
+        @Valid @RequestBody List<VendorTemDetailDTO> vendorTemDetailDTOs
+    ) {
+        LOG.debug(
+            "REST request to update batch VendorTemDetails : {}",
+            vendorTemDetailDTOs
+        );
+        if (vendorTemDetailDTOs == null || vendorTemDetailDTOs.isEmpty()) {
+            throw new BadRequestAlertException(
+                "VendorTemDetail list cannot be empty",
+                ENTITY_NAME,
+                "emptylist"
+            );
+        }
+
+        // Validate each item has an ID
+        for (VendorTemDetailDTO dto : vendorTemDetailDTOs) {
+            if (dto.getId() == null) {
+                throw new BadRequestAlertException(
+                    "Each VendorTemDetail must have an ID for batch update",
+                    ENTITY_NAME,
+                    "idnull"
+                );
+            }
+        }
+
+        List<VendorTemDetailDTO> result = vendorTemDetailService.updateBatch(
+            vendorTemDetailDTOs
+        );
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createEntityUpdateAlert(
+                    applicationName,
+                    true,
+                    ENTITY_NAME,
+                    result.size() + " items updated"
+                )
+            )
+            .body(result);
+    }
+
+    /**
+     * {@code PATCH  /vendor-tem-details/:id} : Partial updates given fields of an
+     * existing vendorTemDetail, field will ignore if it is null
+     *
+     * @param id                 the id of the vendorTemDetailDTO to save.
      * @param vendorTemDetailDTO the vendorTemDetailDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated vendorTemDetailDTO,
-     * or with status {@code 400 (Bad Request)} if the vendorTemDetailDTO is not valid,
-     * or with status {@code 404 (Not Found)} if the vendorTemDetailDTO is not found,
-     * or with status {@code 500 (Internal Server Error)} if the vendorTemDetailDTO couldn't be updated.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated vendorTemDetailDTO,
+     *         or with status {@code 400 (Bad Request)} if the vendorTemDetailDTO is
+     *         not valid,
+     *         or with status {@code 404 (Not Found)} if the vendorTemDetailDTO is
+     *         not found,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         vendorTemDetailDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(
@@ -211,7 +274,8 @@ public class VendorTemDetailResource {
      * {@code GET  /vendor-tem-details} : get all the vendorTemDetails.
      *
      * @param criteria the criteria which the requested entities should match.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of vendorTemDetails in body.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of vendorTemDetails in body.
      */
     @GetMapping("")
     public ResponseEntity<List<VendorTemDetailDTO>> getAllVendorTemDetails(
@@ -231,7 +295,8 @@ public class VendorTemDetailResource {
      * {@code GET  /vendor-tem-details/count} : count all the vendorTemDetails.
      *
      * @param criteria the criteria which the requested entities should match.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count in body.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count
+     *         in body.
      */
     @GetMapping("/count")
     public ResponseEntity<Long> countVendorTemDetails(
@@ -250,7 +315,8 @@ public class VendorTemDetailResource {
      * {@code GET  /vendor-tem-details/:id} : get the "id" vendorTemDetail.
      *
      * @param id the id of the vendorTemDetailDTO to retrieve.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the vendorTemDetailDTO, or with status {@code 404 (Not Found)}.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the vendorTemDetailDTO, or with status {@code 404 (Not Found)}.
      */
     @GetMapping("/{id}")
     public ResponseEntity<VendorTemDetailDTO> getVendorTemDetail(

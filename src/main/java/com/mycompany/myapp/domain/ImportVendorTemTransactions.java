@@ -2,12 +2,15 @@ package com.mycompany.myapp.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
+import java.sql.Blob;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import javax.persistence.*;
 import javax.validation.constraints.*;
+import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Formula;
 
 /**
  * Entity ImportVendorTemTransactions
@@ -50,9 +53,18 @@ public class ImportVendorTemTransactions implements Serializable {
     @Column(name = "mapping_config", columnDefinition = "TEXT")
     private String mappingConfig;
 
+    @Column(name = "note", columnDefinition = "TEXT")
+    private String note;
+
+    @Column(name = "approver", columnDefinition = "TEXT")
+    private String approver;
+
     @Size(max = 50)
     @Column(name = "status", length = 50)
     private String status;
+
+    @Column(name = "pana_send_status")
+    private Boolean panaSendStatus;
 
     @Size(max = 20)
     @Column(name = "created_by", length = 20)
@@ -78,6 +90,24 @@ public class ImportVendorTemTransactions implements Serializable {
     @Column(name = "po_import_tem_id")
     private Long poImportTemId;
 
+    // Tính tổng số lượng từ các PoDetail thuộc Transaction này
+    @Formula(
+        "(SELECT SUM(pd.total_quantity) FROM po_detail pd WHERE pd.import_vendor_tem_transactions_id = id)"
+    )
+    @Column(
+        name = "total_quantity_calculated",
+        insertable = false,
+        updatable = false
+    )
+    private Integer totalQuantityCalculated;
+
+    // Tính tổng số lượng thực tế đã quét từ VendorTemDetail
+    @Formula(
+        "(SELECT SUM(v.initial_quantity) FROM vendor_tem_detail v WHERE v.import_vendor_tem_transactions_id = id)"
+    )
+    @Column(name = "total_scan_quantity", insertable = false, updatable = false)
+    private Integer totalScanQuantity;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnoreProperties(
         value = { "importVendorTemTransactions" },
@@ -91,6 +121,7 @@ public class ImportVendorTemTransactions implements Serializable {
     private PoImportTem poImportTem;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "importVendorTemTransactions")
+    @BatchSize(size = 20)
     @JsonIgnoreProperties(
         value = { "vendorTemDetails", "importVendorTemTransactions" },
         allowSetters = true
@@ -218,6 +249,49 @@ public class ImportVendorTemTransactions implements Serializable {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    // note
+
+    public String getNote() {
+        return this.note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public ImportVendorTemTransactions note(String note) {
+        this.setNote(note);
+        return this;
+    }
+
+    // approver
+    public String getApprover() {
+        return this.approver;
+    }
+
+    public void setApprover(String approver) {
+        this.approver = approver;
+    }
+
+    public ImportVendorTemTransactions approver(String approver) {
+        this.setApprover(approver);
+        return this;
+    }
+
+    // pana_send_status
+    public Boolean getPanaSendStatus() {
+        return this.panaSendStatus;
+    }
+
+    public void setPanaSendStatus(Boolean panaSendStatus) {
+        this.panaSendStatus = panaSendStatus;
+    }
+
+    public ImportVendorTemTransactions panaSendStatus(Boolean panaSendStatus) {
+        this.setPanaSendStatus(panaSendStatus);
+        return this;
     }
 
     public String getCreatedBy() {
@@ -355,8 +429,15 @@ public class ImportVendorTemTransactions implements Serializable {
         return this;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and
-    // setters here
+    // jhipster-needle-entity-add-getters-setters - JHipster will add fields here
+
+    public Integer getTotalQuantityCalculated() {
+        return totalQuantityCalculated;
+    }
+
+    public Integer getTotalScanQuantity() {
+        return totalScanQuantity;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -398,6 +479,7 @@ public class ImportVendorTemTransactions implements Serializable {
                 ", updatedAt='" + getUpdatedAt() + "'" +
                 ", deletedBy='" + getDeletedBy() + "'" +
                 ", deletedAt='" + getDeletedAt() + "'" +
+                ", panaSendStatus='" + getPanaSendStatus() + "'" +
                 ", poImportTemId='" + getPoImportTemId() + "'" +
                 "}";
     }

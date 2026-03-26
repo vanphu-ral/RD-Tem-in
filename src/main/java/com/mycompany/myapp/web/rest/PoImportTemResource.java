@@ -4,7 +4,12 @@ import com.mycompany.myapp.repository.partner5.PoImportTemRepository;
 import com.mycompany.myapp.service.PoImportTemQueryService;
 import com.mycompany.myapp.service.PoImportTemService;
 import com.mycompany.myapp.service.criteria.PoImportTemCriteria;
+import com.mycompany.myapp.service.dto.PaginationResponse;
+import com.mycompany.myapp.service.dto.PaginationResponse;
+import com.mycompany.myapp.service.dto.PoImportRequestDTO;
+import com.mycompany.myapp.service.dto.PoImportResponseDTO;
 import com.mycompany.myapp.service.dto.PoImportTemDTO;
+import com.mycompany.myapp.service.dto.PoImportTemDetailDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -13,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import org.checkerframework.checker.units.qual.m;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -229,7 +235,9 @@ public class PoImportTemResource {
      *         of poImportTems in body.
      */
     @GetMapping("")
-    public ResponseEntity<List<PoImportTemDTO>> getAllPoImportTems(
+    public ResponseEntity<
+        PaginationResponse<PoImportTemDTO>
+    > getAllPoImportTems(
         PoImportTemCriteria criteria,
         @org.springdoc.api.annotations.ParameterObject Pageable pageable
     ) {
@@ -239,11 +247,23 @@ public class PoImportTemResource {
             criteria,
             pageable
         );
-        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
-            ServletUriComponentsBuilder.fromCurrentRequest(),
-            page
+        // HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
+        //                 ServletUriComponentsBuilder.fromCurrentRequest(),
+        //                 page);
+        PaginationResponse.Pagination pagination =
+            new PaginationResponse.Pagination(
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.getNumber(),
+                page.getSize(),
+                page.hasNext(),
+                page.hasPrevious()
+            );
+        PaginationResponse<PoImportTemDTO> response = new PaginationResponse<>(
+            page.getContent(),
+            pagination
         );
-        return ResponseEntity.ok().headers(headers).body(page.getContent());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -285,6 +305,26 @@ public class PoImportTemResource {
     }
 
     /**
+     * {@code GET  /po-import-tems/:id}/detail : get the full detail of poImportTem
+     * with all nested relationships.
+     *
+     * @param id the id of the poImportTem to retrieve.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the poImportTemDetailDTO including importVendorTemTransactions ->
+     *         poDetails -> vendorTemDetails, or with status
+     *         {@code 404 (Not Found)}.
+     */
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<PoImportTemDetailDTO> getPoImportTemDetail(
+        @PathVariable("id") Long id
+    ) {
+        LOG.debug("REST request to get PoImportTem detail : {}", id);
+        Optional<PoImportTemDetailDTO> poImportTemDetailDTO =
+            poImportTemService.findDetailById(id);
+        return ResponseUtil.wrapOrNotFound(poImportTemDetailDTO);
+    }
+
+    /**
      * {@code DELETE  /po-import-tems/:id} : delete the "id" poImportTem.
      *
      * @param id the id of the poImportTemDTO to delete.
@@ -304,5 +344,32 @@ public class PoImportTemResource {
                 )
             )
             .build();
+    }
+
+    /**
+     * {@code POST  /po-import-tems/process} : Process PO Import request.
+     *
+     * Case 1: If poNumber is null, creates a parent record in po_import_tem table
+     * and a child record in import_vendor_tem_transactions table.
+     *
+     * Case 2: If poNumber exists, searches import_vendor_tem_transactions for that
+     * poNumber. If records exist and were created today, returns all information
+     * including subclasses (poDetails).
+     *
+     * @param request the PO import request payload.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the PoImportResponseDTO containing either newly created records (Case
+     *         1)
+     *         or retrieved data (Case 2).
+     */
+    @PostMapping("/process")
+    public ResponseEntity<PoImportResponseDTO> processPoImport(
+        @Valid @RequestBody PoImportRequestDTO request
+    ) {
+        LOG.debug("REST request to process PO Import : {}", request);
+        PoImportResponseDTO response = poImportTemService.processPoImport(
+            request
+        );
+        return ResponseEntity.ok(response);
     }
 }

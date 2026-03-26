@@ -65,9 +65,24 @@ public class ImportVendorTemTransactionsQueryService
         LOG.debug("find by criteria : {}, page: {}", criteria, page);
         final Specification<ImportVendorTemTransactions> specification =
             createSpecification(criteria);
-        return importVendorTemTransactionsRepository
-            .findAll(specification, page)
-            .map(importVendorTemTransactionsMapper::toDto);
+
+        // 1. Lấy trang dữ liệu (lúc này poDetails vẫn là Proxy/rỗng)
+        Page<ImportVendorTemTransactions> result =
+            importVendorTemTransactionsRepository.findAll(specification, page);
+
+        // 2. "Chạm" vào danh sách poDetails để kích hoạt Hibernate nạp dữ liệu.
+        // Nhờ có @BatchSize(size = 20) trong Entity, dòng này sẽ CHỈ sinh ra
+        // đúng 1 câu lệnh SQL "SELECT ... WHERE id IN (...)" cho toàn bộ 20 bản ghi.
+        result
+            .getContent()
+            .forEach(transaction -> {
+                if (transaction.getPoDetails() != null) {
+                    transaction.getPoDetails().size(); // Lấy size() để ép Hibernate load dữ liệu
+                }
+            });
+
+        // 3. Bây giờ map sang DTO sẽ an toàn 100% vì dữ liệu đã nằm trong RAM
+        return result.map(importVendorTemTransactionsMapper::toDto);
     }
 
     /**
