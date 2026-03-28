@@ -24,12 +24,19 @@
   <mat-card class="material-list-card">
     <mat-card-header>
       <mat-card-title>Danh sách vật tư</mat-card-title>
-      <!-- <div class="card-header-actions">
-        <button mat-raised-button color="primary" (click)="onScan()">
-          <mat-icon>qr_code_scanner</mat-icon>
-          Scan
+      <div class="card-header-actions">
+        <button
+          mat-raised-button
+          (click)="onExportExcel()"
+          [disabled]="selectedLotCount === 0"
+        >
+          <mat-icon>download</mat-icon>
+          Xuất Excel
+          <span class="badge" style="color: #000" *ngIf="selectedLotCount > 0"
+            >({{ selectedLotCount }})</span
+          >
         </button>
-      </div> -->
+      </div>
     </mat-card-header>
     <mat-card-content>
       <div class="mobile-filters">
@@ -193,12 +200,12 @@
           </ng-container>
 
           <!-- Quantity Box Order -->
-          <ng-container matColumnDef="quantityBoxOrder">
+          <!-- <ng-container matColumnDef="quantityBoxOrder">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>
               Số thùng trong đơn hàng
             </th>
             <td mat-cell *matCellDef="let row">{{ row.quantityBoxOrder }}</td>
-          </ng-container>
+          </ng-container> -->
 
           <!-- Total Quantity Order -->
           <ng-container matColumnDef="totalQuantityOrder">
@@ -223,6 +230,15 @@
                   <table class="child-table">
                     <thead>
                       <tr>
+                        <th class="col-chk">
+                          <mat-checkbox
+                            [checked]="isAllLotsSelected(row)"
+                            [indeterminate]="isSomeLotsSelected(row)"
+                            (change)="toggleAllLots(row)"
+                            color="primary"
+                          >
+                          </mat-checkbox>
+                        </th>
                         <th class="actions-column">Thao tác</th>
                         <th>Lot</th>
                         <th>Số thùng</th>
@@ -231,7 +247,19 @@
                     </thead>
                     <tbody>
                       <ng-container *ngFor="let child of row.children">
-                        <tr *ngFor="let lot of child.lots" class="child-row">
+                        <tr
+                          *ngFor="let lot of child.lots; let li = index"
+                          class="child-row"
+                          [class.row-selected]="isLotSelected(row.id, li)"
+                        >
+                          <td class="col-chk">
+                            <mat-checkbox
+                              [checked]="isLotSelected(row.id, li)"
+                              (change)="toggleLotSelect(row.id, li)"
+                              color="primary"
+                            >
+                            </mat-checkbox>
+                          </td>
                           <td>
                             <button
                               mat-icon-button
@@ -248,7 +276,7 @@
                       </ng-container>
 
                       <tr *ngIf="!hasLots(row)">
-                        <td colspan="4" class="no-data-cell">
+                        <td colspan="5" class="no-data-cell">
                           Không có dữ liệu
                         </td>
                       </tr>
@@ -354,42 +382,59 @@
 
   <!-- Footer Actions -->
   <div class="footer-actions">
-    <div class="footer-left">
-      <!-- <mat-form-field appearance="outline" class="footer-field">
-        <mat-label>Kho nhập</mat-label>
-        <input
-          matInput
-          [(ngModel)]="orderInfo.warehouse"
-          placeholder="Chọn kho nhập...."
-        />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="footer-field">
-        <mat-label>Người duyệt</mat-label>
-        <input
-          matInput
-          [(ngModel)]="orderInfo.approver"
-          placeholder="Chọn người duyệt...."
-        />
-      </mat-form-field> -->
-    </div>
-
+    <div class="footer-left"></div>
     <div class="footer-right">
+      <!-- Panacim: chi hien khi co it nhat 1 detail da APPROVE -->
       <button
         mat-raised-button
-        color="warn"
-        class="reject-btn"
-        (click)="onSubmitApproval()"
+        *ngIf="showPanacim"
+        style="background-color: #5c6bc0; color: white"
+        (click)="onExportPanacim()"
+        [disabled]="isPanacimDisabled"
+        matTooltip="{{
+          isPanacimDisabled ? 'Chỉ xuất được các mã đã phê duyệt' : ''
+        }}"
+      >
+        <mat-icon>send</mat-icon>
+        Xuất Panacim
+        <span
+          class="approval-badge"
+          *ngIf="selectedAllApproved && hasSelection"
+        >
+          {{ selectedLotCount }}
+        </span>
+      </button>
+
+      <!-- Tu choi -->
+      <button
+        mat-raised-button
+        style="background-color: #d32f2f; color: white"
+        (click)="onReject()"
+        [disabled]="isRejectDisabled"
       >
         Từ chối
+        <span
+          class="approval-badge"
+          *ngIf="hasSelection && selectedHasNonApproved"
+        >
+          {{ selectedLotCount }}
+        </span>
       </button>
+
+      <!-- Phe duyet -->
       <button
         mat-raised-button
         color="primary"
-        class="approve-btn"
         (click)="onSubmitApproval()"
+        [disabled]="isApproveDisabled"
       >
         Phê duyệt
+        <span
+          class="approval-badge"
+          *ngIf="hasSelection && selectedHasNonApproved"
+        >
+          {{ selectedLotCount }}
+        </span>
       </button>
     </div>
   </div>

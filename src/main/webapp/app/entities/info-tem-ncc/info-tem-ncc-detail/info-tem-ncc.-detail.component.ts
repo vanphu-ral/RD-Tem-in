@@ -34,6 +34,7 @@ import {
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import { ActivatedRoute } from "@angular/router";
+import { catchError, forkJoin, map, of } from "rxjs";
 
 // ==================== INTERFACES ====================
 
@@ -364,6 +365,8 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
       transaction?.id,
     );
     this.totalItems = this.dataSource.data.length;
+
+    this.enrichPartNumberForParents(this.dataSource.data);
   }
   private mapPoDetailsToParentItems(
     poDetails: PoDetail[],
@@ -514,6 +517,7 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
             transaction.id,
           );
           this.totalItems = this.dataSource.data.length;
+          this.enrichPartNumberForParents(this.dataSource.data);
         }
 
         this.isLoading = false;
@@ -524,5 +528,48 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
         this.notificationService.error("Không thể tải chi tiết đơn hàng.");
       },
     });
+  }
+
+  private enrichPartNumberForParents(items: ParentItem[]): void {
+    const needFetch = items.filter((i) => !i.partNumber);
+
+    if (!needFetch.length) {
+      return;
+    }
+
+    const requests = needFetch.map((item) =>
+      this.managerTemNccService.getItemDataByItemCode(item.sapCode).pipe(
+        map((raw) => ({
+          item,
+          partNumber: this.extractPartNumber(raw),
+        })),
+        catchError(() => of({ item, partNumber: "" })),
+      ),
+    );
+
+    forkJoin(requests).subscribe({
+      next: (results) => {
+        results.forEach((r) => {
+          r.item.partNumber = r.partNumber;
+        });
+
+        this.dataSource.data = [...this.dataSource.data];
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        console.warn("Không thể enrich partNumber");
+      },
+    });
+  }
+  private extractPartNumber(raw: string): string {
+    if (!raw) {
+      return "";
+    }
+
+    const cleaned = raw.trim().replace(/^"+|"+$/g, "");
+
+    const parts = cleaned.split("|");
+
+    return parts.length ? parts[parts.length - 1].trim() : "";
   }
 }

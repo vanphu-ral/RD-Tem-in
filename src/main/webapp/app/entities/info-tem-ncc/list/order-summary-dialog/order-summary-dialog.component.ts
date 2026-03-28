@@ -52,7 +52,7 @@ export class OrderSummaryDialogComponent implements OnInit {
 
   get sessions(): SessionSummary[] {
     return (this.detailData?.importVendorTemTransactions ?? []).map((t) => ({
-      importDate: t.entryDate,
+      importDate: t.entryDate ?? t.createdAt,
       warehouse: t.storageUnit,
       status: t.status,
       totalQty: (t.poDetails ?? []).reduce(

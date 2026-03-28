@@ -105,13 +105,6 @@
             </button>
             <button
               mat-icon-button
-              [routerLink]="['/info-tem-ncc/add-info-tem-ncc']"
-              matTooltip="Scan"
-            >
-              <mat-icon class="icon-view">qr_code</mat-icon>
-            </button>
-            <button
-              mat-icon-button
               (click)="onInfo(row); $event.stopPropagation()"
               matTooltip="Tổng hợp"
             >
@@ -332,7 +325,7 @@
                     <th class="col-stt-s">Thao tác</th>
                     <th>Ngày nhập</th>
                     <th>Kho</th>
-                    <th>Loại kho</th>
+                    <th>Status</th>
                     <th class="col-num">Tổng SL</th>
                     <th class="col-num">Mã Items</th>
                   </tr>
@@ -385,17 +378,17 @@
                       <td class="col-stt-s">
                         <button
                           mat-icon-button
-                          [routerLink]="[
-                            '/approve-tem-ncc/approve-tem-ncc-detail',
-                          ]"
+                          (click)="onViewDetail(row)"
                           matTooltip="Chi tiết"
                         >
                           <mat-icon class="icon-view">visibility</mat-icon>
                         </button>
                       </td>
-                      <td>{{ session.importDate }}</td>
+                      <td>
+                        {{ session.importDate | date: "dd/MM/yyyy HH:mm" }}
+                      </td>
                       <td>{{ session.warehouse }}</td>
-                      <td>{{ session.warehouseType }}</td>
+                      <td>{{ session.status }}</td>
                       <td class="col-num green-val">
                         {{ session.totalQty | number }}
                       </td>
@@ -562,7 +555,7 @@
                 }}</span>
                 <div class="mobile-session-info">
                   <div class="mobile-session-date">
-                    {{ session.importDate }}
+                    {{ session.importDate | date: "dd/MM/yyyy HH:mm" }}
                   </div>
                   <div class="mobile-session-meta">
                     {{ session.warehouse }} · {{ session.warehouseType }}
@@ -640,7 +633,7 @@
   <mat-paginator
     [length]="totalItems"
     [pageSize]="pageSize"
-    [pageSizeOptions]="[10, 25, 50, 100]"
+    [pageSizeOptions]="[10, 20, 50, 100]"
     showFirstLastButtons
   ></mat-paginator>
 </div>

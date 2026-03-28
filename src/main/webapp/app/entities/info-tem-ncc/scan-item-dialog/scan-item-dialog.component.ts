@@ -19,6 +19,8 @@ import {
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { AccountService } from "app/core/auth/account.service";
 import { take } from "rxjs";
+import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
+import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 
 export interface ScannedItem {
   id: string;
@@ -81,6 +83,8 @@ export interface ScanDialogData {
   approver?: string;
   importVendorTemTransactionsId: number;
   parentItems: { id: number; partNumber: string }[];
+  vendorCode?: string;
+  existingReelIds?: string[];
 }
 
 @Component({
@@ -105,7 +109,7 @@ export class ScanItemDialogComponent
   isMobile = false;
 
   lotColumns = [
-    { key: "lotNumber", label: "Lot", minWidth: 130 },
+    { key: "lot", label: "Lot", minWidth: 130 },
     { key: "reelId", label: "ReelId", minWidth: 190 },
     { key: "partNumber", label: "Part Number", minWidth: 140 },
     { key: "vendor", label: "Vendor", minWidth: 110 },
@@ -123,22 +127,32 @@ export class ScanItemDialogComponent
     { key: "expirationDate", label: "ExpirationDate", minWidth: 150 },
   ];
   currentUser = "unknown";
+
+  //danh sach kho
+  warehouseOptions: CachedWarehouse[] = [];
+  filteredWarehouseOptions: CachedWarehouse[] = [];
+  isLoadingWarehouses = false;
+  // existingReelIds?: string[];
   private inputBuffer = "";
   private bufferTimer: any = null;
   private readonly BUFFER_DELAY_MS = 100;
-
+  private existingReelIds = new Set<string>();
   constructor(
     private dialogRef: MatDialogRef<ScanItemDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ScanDialogData | null,
     private dialog: MatDialog,
     private managerTemNccService: ManagerTemNccService,
     private accountService: AccountService,
+    private warehouseCacheService: WarehouseCacheService,
   ) {}
 
   ngOnInit(): void {
     this.dialogRef.disableClose = true;
     this.isMobile = window.innerWidth <= 600;
     this.warehouse = this.data?.warehouse ?? "";
+    (this.data?.existingReelIds ?? []).forEach((id) =>
+      this.existingReelIds.add(id),
+    );
     this.accountService
       .getAuthenticationState()
       .pipe(take(1))
@@ -146,6 +160,7 @@ export class ScanItemDialogComponent
         this.currentUser = account?.login ?? "unknown";
       });
     this.approver = this.data?.approver ?? "";
+    this.loadWarehouseOptions();
   }
   openListDialog(): void {
     this.dialog.open(ScanListViewDialogComponent, {
@@ -197,7 +212,28 @@ export class ScanItemDialogComponent
       this.submitScan();
     }
   }
+  onWarehouseSelected(warehouse: CachedWarehouse): void {
+    this.warehouse = warehouse.locationFullName;
+  }
 
+  displayWarehouse(w: CachedWarehouse | string | null): string {
+    if (!w) {
+      return "";
+    }
+    if (typeof w === "string") {
+      return w;
+    }
+    return w.locationFullName;
+  }
+  onWarehouseSearch(keyword: string): void {
+    if (!keyword?.trim()) {
+      this.filteredWarehouseOptions = this.warehouseOptions.slice(0, 50);
+      return;
+    }
+    this.warehouseCacheService.searchByName(keyword).then((result) => {
+      this.filteredWarehouseOptions = result;
+    });
+  }
   // Trong submitScan(), sau khi parse fieldMap, tìm row theo partNumber
   submitScan(): void {
     const rawCode = this.scanInput.trim();
@@ -239,15 +275,25 @@ export class ScanItemDialogComponent
       return;
     }
 
-    const duplicate = this.scannedList.find(
-      (item) => item.reelId === rawCode || item.vendorQrCode === rawCode,
+    //check dupplicate
+    const duplicateInSession = this.scannedList.find(
+      (item) => item.reelId === (fieldMap["reelId"] ?? "").trim(),
     );
-    if (duplicate) {
-      this.errorMessage = `Mã "${rawCode}" đã được scan rồi.`;
-      this.highlightDuplicate(duplicate.id);
+
+    // check trung voi cac lan scan truoc (da luu vao db)
+    const reelIdToCheck = (fieldMap["reelId"] ?? "").trim();
+    const duplicateFromPrev =
+      reelIdToCheck && this.existingReelIds.has(reelIdToCheck);
+
+    if (duplicateInSession ?? duplicateFromPrev) {
+      this.errorMessage = `ReelID "${reelIdToCheck}" đã được scan trước đó.`;
+      if (duplicateInSession) {
+        this.highlightDuplicate(duplicateInSession.id);
+      }
       this.scanInput = "";
       return;
     }
+    //end check dupplicate
 
     const cleanPartNumber = scannedPartNumber.replace(/[^a-zA-Z0-9]/g, "");
     const dateSource = fieldMap["manufacturingDate"] || this.data?.arrivalDate;
@@ -261,7 +307,7 @@ export class ScanItemDialogComponent
     const payload: CreateVendorTemDetailPayload = {
       reelId: fieldMap["reelId"] ?? "",
       partNumber: scannedPartNumber,
-      vendor: fieldMap["vendor"] ?? "",
+      vendor: fieldMap["vendor"] ?? this.data?.vendorCode ?? "",
       lot,
       userData1: fieldMap["userData1"] ?? "",
       userData2: fieldMap["userData2"] ?? "",
@@ -305,6 +351,7 @@ export class ScanItemDialogComponent
           dbId: res?.id,
           ...payloadWithoutId,
         };
+        this.existingReelIds.add(reelIdToCheck);
         this.scannedList = [uiItem, ...this.scannedList];
         this.scanInput = "";
         this.errorMessage = "";
@@ -316,7 +363,9 @@ export class ScanItemDialogComponent
       },
     });
   }
-
+  get uniquePartCount(): number {
+    return new Set(this.scannedList.map((i) => i.partNumber)).size;
+  }
   removeItem(id: string): void {
     this.scannedList = this.scannedList
       .filter((item) => item.id !== id)
@@ -390,5 +439,14 @@ export class ScanItemDialogComponent
       "Lot Number": "lotNumber",
     };
     return mapping[dataField] ?? dataField;
+  }
+
+  private loadWarehouseOptions(): void {
+    this.isLoadingWarehouses = true;
+    this.warehouseCacheService.getAll().then((list) => {
+      this.warehouseOptions = list;
+      this.filteredWarehouseOptions = list.slice(0, 50);
+      this.isLoadingWarehouses = false;
+    });
   }
 }

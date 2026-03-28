@@ -764,7 +764,10 @@ table {
   padding: 0 4px !important;
   flex-shrink: 0;
 }
-
+.lot-pending {
+  opacity: 0.45;
+  pointer-events: none;
+}
 .lot-selected {
   background: #e8f0fe !important;
 }

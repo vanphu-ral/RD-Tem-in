@@ -102,8 +102,28 @@
           <input
             matInput
             [(ngModel)]="orderInfo.warehouse"
-            placeholder="Chọn kho nhập...."
+            [matAutocomplete]="autoWarehouse"
+            (input)="onWarehouseSearch($any($event.target).value)"
+            (focus)="onWarehouseSearch(orderInfo.warehouse)"
+            placeholder="Tìm theo tên kho..."
+            [disabled]="isLoadingWarehouses"
           />
+          <mat-spinner
+            matSuffix
+            diameter="16"
+            *ngIf="isLoadingWarehouses"
+          ></mat-spinner>
+          <mat-autocomplete
+            #autoWarehouse="matAutocomplete"
+            (optionSelected)="onWarehouseSelected($event.option.value)"
+          >
+            <mat-option *ngFor="let w of filteredWarehouseOptions" [value]="w">
+              {{ w.locationFullName }}
+            </mat-option>
+            <mat-option *ngIf="filteredWarehouseOptions.length === 0" disabled>
+              Không tìm thấy
+            </mat-option>
+          </mat-autocomplete>
         </mat-form-field>
 
         <div class="group-mobile d-flex">
@@ -322,12 +342,12 @@
           </ng-container>
 
           <!-- Quantity Box Order -->
-          <ng-container matColumnDef="quantityBoxOrder">
+          <!-- <ng-container matColumnDef="quantityBoxOrder">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>
               Số thùng trong đơn hàng
             </th>
             <td mat-cell *matCellDef="let row">{{ row.quantityBoxOrder }}</td>
-          </ng-container>
+          </ng-container> -->
 
           <!-- Total Quantity Order -->
           <ng-container matColumnDef="totalQuantityOrder">
@@ -361,6 +381,7 @@
                               [checked]="isAllLotsSelected(row)"
                               [indeterminate]="isSomeLotsSelected(row)"
                               (change)="toggleAllLots(row)"
+                              [disabled]="!hasSelectableLots(row)"
                               color="primary"
                             >
                             </mat-checkbox>
@@ -410,6 +431,7 @@
                               lotEditingCell?.rowId === row.id &&
                               lotEditingCell?.lotIdx === i
                             "
+                            [class.lot-pending]="isLotPending(lot)"
                           >
                             <!-- Action -->
                             <!-- <td class="col-action-th">
@@ -422,6 +444,7 @@
                               <mat-checkbox
                                 [checked]="isLotSelected(row.id, i)"
                                 (change)="toggleLotSelect(row.id, i)"
+                                [disabled]="isLotPending(lot)"
                                 color="primary"
                               >
                               </mat-checkbox>
@@ -539,10 +562,10 @@
                 <span class="label">Tổng SL:</span
                 ><span class="value">{{ item.totalQuantity }}</span>
               </div>
-              <div class="info-row">
+              <!-- <div class="info-row">
                 <span class="label">Số thùng ĐH:</span
                 ><span class="value">{{ item.quantityBoxOrder }}</span>
-              </div>
+              </div> -->
               <div class="info-row">
                 <span class="label">SL trong ĐH:</span
                 ><span class="value">{{ item.totalQuantityOrder }}</span>

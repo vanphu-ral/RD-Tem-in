@@ -343,7 +343,9 @@
                             <mat-icon class="icon-view">visibility</mat-icon>
                           </button>
                         </td>
-                        <td>{{ session.importDate }}</td>
+                        <td>
+                          {{ session.importDate | date: "dd/MM/yyyy HH:mm" }}
+                        </td>
                         <td>{{ session.warehouse }}</td>
                         <td>{{ session.status }}</td>
                         <td class="col-num green-val">
@@ -441,7 +443,7 @@
             </button>
             <button
               mat-icon-button
-              [routerLink]="['/info-tem-ncc/add-info-tem-ncc']"
+              [routerLink]="['/info-tem-ncc/add-info-tem-ncc', item.id]"
               matTooltip="Scan"
             >
               <mat-icon class="icon-view">qr_code</mat-icon>
@@ -521,7 +523,7 @@
                 }}</span>
                 <div class="mobile-session-info">
                   <div class="mobile-session-date">
-                    {{ session.importDate }}
+                    {{ session.importDate | date: "dd/MM/yyyy HH:mm" }}
                   </div>
                   <div class="mobile-session-meta">
                     {{ session.warehouse }} · {{ session.status }}
@@ -599,7 +601,7 @@
   <mat-paginator
     [length]="totalItems"
     [pageSize]="pageSize"
-    [pageSizeOptions]="[10, 25, 50, 100]"
+    [pageSizeOptions]="[10, 20, 50, 100]"
     showFirstLastButtons
   ></mat-paginator>
 </div>

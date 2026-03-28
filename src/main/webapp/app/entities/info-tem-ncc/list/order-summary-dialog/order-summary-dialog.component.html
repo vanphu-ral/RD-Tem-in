@@ -95,7 +95,7 @@
           <ng-container *ngIf="sessions.length > 0; else noData">
             <tr *ngFor="let s of sessions; let i = index">
               <td class="col-idx">{{ i + 1 }}</td>
-              <td>{{ s.importDate }}</td>
+              <td>{{ s.importDate | date: "dd/MM/yyyy HH:mm" }}</td>
               <td>{{ s.warehouse }}</td>
               <td>{{ s.status }}</td>
               <td class="col-num green-val">{{ s.totalQty | number }}</td>

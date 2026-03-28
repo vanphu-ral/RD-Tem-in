@@ -28,6 +28,8 @@ import {
   ManagerTemNccService,
   PoImportTem,
 } from "app/entities/list-material/services/info-tem-ncc.service";
+import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
+import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 
 // ==================== INTERFACES ====================
 
@@ -99,7 +101,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   ];
 
   dataSource = new MatTableDataSource<TemNccItem>([]);
-  pageSize = 10;
+  pageSize = 20;
   isLoading = false;
 
   filterValues: FilterValues = {
@@ -123,6 +125,8 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   readonly SERVER_PAGE_SIZE = 20;
   readonly sessionPageSize = 5;
+  private isWarehouseLoaded = false;
+  private isFetchingWarehouses = false;
   private detailCache = new Map<number, PoImportTem>();
   private sessionPages = new Map<number, number>();
   private expandedRows = new Set<number>();
@@ -136,12 +140,14 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     private router: Router,
     private managerTemNccService: ManagerTemNccService,
     private notificationService: NotificationService,
+    private warehouseCacheService: WarehouseCacheService,
   ) {}
 
   // ==================== LIFECYCLE ====================
 
   ngOnInit(): void {
     this.loadData();
+    void this.initWarehouseCache();
   }
   onViewDetail(row: TemNccItem): void {
     this.router.navigate(["/info-tem-ncc/info-tem-ncc-detail"], {
@@ -151,8 +157,16 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
     this.dataSource.filterPredicate = this.buildFilterPredicate();
+
+    // lang nghe thay doi trang va size
+    this.paginator.page.subscribe((event) => {
+      this.pageSize = event.pageSize;
+      this.loadData(event.pageIndex, event.pageSize);
+    });
+
+    // KHONG gan paginator vao dataSource vi phan trang la server-side
+    // this.dataSource.paginator = this.paginator; <- xoa dong nay
   }
 
   // ==================== FILTER ====================
@@ -196,20 +210,12 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   getRowIndex(row: TemNccItem): number {
     const pageIndex = this.paginator?.pageIndex ?? 0;
     const pageSize = this.paginator?.pageSize ?? this.pageSize;
-    const allFiltered = this.dataSource.filteredData ?? this.dataSource.data;
-    const idxInFiltered = allFiltered.findIndex((r) => r.id === row.id);
-    return idxInFiltered - pageIndex * pageSize + 1;
+    const idxInPage = this.dataSource.data.findIndex((r) => r.id === row.id);
+    return pageIndex * pageSize + idxInPage + 1;
   }
 
   get mobileDataSource(): TemNccItem[] {
-    const data = this.dataSource.filteredData ?? this.dataSource.data ?? [];
-    const start =
-      (this.paginator?.pageIndex ?? 0) *
-      (this.paginator?.pageSize ?? this.pageSize);
-    return data.slice(
-      start,
-      start + (this.paginator?.pageSize ?? this.pageSize),
-    );
+    return this.dataSource.filteredData ?? this.dataSource.data ?? [];
   }
 
   getSessionPage(row: TemNccItem): number {
@@ -278,36 +284,39 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result === true) {
-        this.performDelete(item);
+        this.managerTemNccService
+          .deleteTemPoImport(Number(result.id))
+          .subscribe({
+            next: () => {
+              this.notificationService.success("Xóa kịch bản thành công!");
+              this.loadData();
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              this.notificationService.error("Xóa kịch bản thất bại!");
+            },
+          });
       }
     });
   }
 
-  // ==================== PRIVATE ====================
-
-  private performDelete(item: TemNccItem): void {
-    // Call service to delete, then reload
-    // this.service.delete(item.id).subscribe(() => this.loadData());
-  }
-
-  private loadData(page = 0): void {
+  private loadData(page = 0, size = this.SERVER_PAGE_SIZE): void {
     this.isLoading = true;
-    this.managerTemNccService
-      .getPoImportTems(page, this.SERVER_PAGE_SIZE)
-      .subscribe({
-        next: (response) => {
-          this.dataSource.data = response.datas.map((item: PoImportTem) =>
-            this.mapToTemNccItem(item),
-          );
-          this.totalItems = response.pagination.totalItems;
-          this.totalPages = response.pagination.totalPages;
-          this.isLoading = false;
-        },
-        error: () => {
-          this.notificationService.error("Không thể tải danh sách đơn hàng!");
-          this.isLoading = false;
-        },
-      });
+    this.managerTemNccService.getPoImportTems(page, size).subscribe({
+      next: (response) => {
+        this.dataSource.data = response.datas.map((item: PoImportTem) =>
+          this.mapToTemNccItem(item),
+        );
+        this.totalItems = response.pagination.totalItems;
+        this.totalPages = response.pagination.totalPages;
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.notificationService.error("Không thể tải danh sách đơn hàng!");
+        this.isLoading = false;
+      },
+    });
   }
 
   private buildFilterPredicate() {
@@ -363,7 +372,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       0,
     );
     return {
-      importDate: t.entryDate,
+      importDate: t.entryDate ?? t.createdAt,
       warehouse: t.storageUnit,
       status: t.status,
       totalQty,
@@ -403,5 +412,42 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       newData[idx] = updated;
       this.dataSource.data = newData;
     }
+  }
+
+  private async initWarehouseCache(): Promise<void> {
+    if (this.isWarehouseLoaded || this.isFetchingWarehouses) {
+      return;
+    }
+
+    const cached = await this.warehouseCacheService.getAll();
+
+    if (cached.length > 0) {
+      this.isWarehouseLoaded = true;
+      return;
+    }
+
+    this.isFetchingWarehouses = true;
+    this.managerTemNccService.getWarehouses().subscribe({
+      next: (list) => {
+        const mapped: CachedWarehouse[] = list.map((loc) => ({
+          locationId: loc.id,
+          locationName: loc.locationName,
+          locationFullName: loc.locationFullName,
+        }));
+        this.warehouseCacheService
+          .saveAll(mapped)
+          .then(() => {
+            this.isWarehouseLoaded = true;
+            this.isFetchingWarehouses = false;
+          })
+          .catch(() => {
+            this.isFetchingWarehouses = false;
+          });
+      },
+      error: () => {
+        console.warn("Khong the cache danh sach kho");
+        this.isFetchingWarehouses = false;
+      },
+    });
   }
 }

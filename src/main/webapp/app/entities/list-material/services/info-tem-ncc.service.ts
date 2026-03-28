@@ -2,6 +2,8 @@ import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { environment } from "app/environments/environment.development";
+import { CachedWarehouse } from "./warehouse-db";
+import { RawGraphQLLocation } from "./list-material.service";
 
 export interface RdMaterialAttribute {
   id: string;
@@ -78,6 +80,7 @@ export interface VendorTemDetail {
   status: string;
   createdBy: string;
   createdAt: string;
+  poDetailId?: number;
 }
 
 export interface PoDetail {
@@ -144,7 +147,7 @@ export interface ApproveVendorTemPayload {
   vendorName: string;
   entryDate: string;
   storageUnit: string;
-  temIdentificationScenarioId: number;
+  temIdentificationScenarioId?: number | null;
   mappingConfig: string;
   status: string;
   createdBy: string;
@@ -153,6 +156,7 @@ export interface ApproveVendorTemPayload {
   updatedAt: string;
   deletedBy: string;
   deletedAt: string;
+  poImportTemId: number;
 }
 export interface CreateVendorTemDetailPayload {
   id?: number;
@@ -200,7 +204,11 @@ export interface CreateVendorTemDetailPayload {
   poDetailId: number;
   importVendorTemTransactionsId: number;
 }
-
+// export interface RawGraphQLLocation {
+//   id: number;
+//   locationName: string;
+//   locationFullName: string;
+// }
 @Injectable({
   providedIn: "root",
 })
@@ -208,7 +216,16 @@ export class ManagerTemNccService {
   private baseUrl = environment.testApiUrl;
   private nhapKhoUrl = "http://192.168.10.99:3000/api";
 
+  private itemDataUrl = "http://192.168.10.99:8001/api/v1";
+
   constructor(private http: HttpClient) {}
+
+  //laydanh sach kho
+  getWarehouses(): Observable<RawGraphQLLocation[]> {
+    return this.http.get<RawGraphQLLocation[]>(
+      `http://192.168.68.77:8085/api/location`,
+    );
+  }
 
   //kich ban tem
   getMaterialAttributes(): Observable<RdMaterialAttribute[]> {
@@ -268,6 +285,16 @@ export class ManagerTemNccService {
   //tao don nhap tem
   createPoImportTem(payload: PoImportTemPayload): Observable<any> {
     return this.http.post(`${this.baseUrl}/po-import-tems/process`, payload);
+  }
+  getItemDataByItemCode(itemCode: string): Observable<string> {
+    return this.http.get(`${this.itemDataUrl}/item-data/by-itemcode`, {
+      params: { item_code: itemCode },
+      responseType: "text",
+    });
+  }
+  //xoa don nhap tem
+  deleteTemPoImport(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/po-import-tems/${id}`);
   }
 
   //luu don scan

@@ -10,7 +10,8 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
-import { Router } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
+import { SelectionModel } from "@angular/cdk/collections";
 
 import { DialogContentExampleDialogComponent } from "./confirm-dialog/confirm-dialog.component";
 import { AlertService } from "app/core/util/alert.service";
@@ -22,43 +23,48 @@ import {
   trigger,
 } from "@angular/animations";
 import { OrderSummaryDialogComponent } from "./order-summary-dialog/order-summary-dialog.component";
-import { SelectionModel } from "@angular/cdk/collections";
-
-// ==================== INTERFACES ====================
+import { NotificationService } from "app/entities/list-material/services/notification.service";
+import {
+  ApproveVendorTemPayload,
+  ImportVendorTemTransaction,
+  ManagerTemNccService,
+  PoImportTem,
+} from "app/entities/list-material/services/info-tem-ncc.service";
 
 export interface TemNccItem {
   id: number;
   poCode: string;
   vendorName: string;
-  arrivalDate: string; // ISO date string
-  createdDate: string; // ISO datetime string
+  arrivalDate: string;
+  createdDate: string;
   createdBy: string;
   warehouse: string;
   status: string;
   sessions?: SessionItem[];
+  _raw?: PoImportTem;
 }
 
 export interface SessionItem {
   importDate: string;
   warehouse: string;
   warehouseType: string;
+  status: string;
   totalQty: number;
   itemCount: number;
+  transactionId: number;
 }
 
 export interface FilterValues {
   poCode: string;
   vendorName: string;
-  arrivalDateStr: string; // text filter "yyyy-MM-dd"
+  arrivalDateStr: string;
   arrivalDate: Date | null;
-  createdDateStr: string; // text filter "yyyy-MM-dd"
+  createdDateStr: string;
   createdDate: Date | null;
   createdBy: string;
   warehouse: string;
   status: string;
 }
-
-// ==================== COMPONENT ====================
 
 @Component({
   selector: "jhi-approve-tem-ncc",
@@ -93,8 +99,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
   ];
 
   dataSource = new MatTableDataSource<TemNccItem>([]);
-  totalItems = 0;
-  pageSize = 10;
+  pageSize = 20;
   isLoading = false;
 
   filterValues: FilterValues = {
@@ -108,24 +113,34 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     warehouse: "",
     status: "",
   };
-  // key: rowId_sessionIndex (global), value: checked
+
   sessionSelection = new Map<string, SelectionModel<number>>();
+  loadingDetailIds = new Set<number>();
+
+  currentPage = 0;
+  totalItems = 0;
+  totalPages = 0;
+
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+  readonly SERVER_PAGE_SIZE = 20;
   readonly sessionPageSize = 5;
+
+  private detailCache = new Map<number, PoImportTem>();
   private sessionPages = new Map<number, number>();
   private expandedRows = new Set<number>();
-  private expandedSessions = new Set<string>();
   private expandedMobileRows = new Set<number>();
+
   constructor(
     private dialog: MatDialog,
     private alertService: AlertService,
     private datePipe: DatePipe,
     private cdr: ChangeDetectorRef,
     private router: Router,
+    private managerTemNccService: ManagerTemNccService,
+    private notificationService: NotificationService,
+    private route: ActivatedRoute,
   ) {}
-
-  // ==================== LIFECYCLE ====================
 
   ngOnInit(): void {
     this.loadData();
@@ -133,8 +148,11 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
     this.dataSource.filterPredicate = this.buildFilterPredicate();
+    this.paginator.page.subscribe((event) => {
+      this.pageSize = event.pageSize;
+      this.loadData(event.pageIndex, event.pageSize);
+    });
   }
 
   // ==================== FILTER ====================
@@ -146,17 +164,26 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       this.dataSource.paginator.firstPage();
     }
   }
+
+  // ==================== EXPAND ====================
+
   toggleRow(row: TemNccItem): void {
     if (this.expandedRows.has(row.id)) {
       this.expandedRows.delete(row.id);
     } else {
       this.expandedRows.add(row.id);
+      this.loadDetailIfNeeded(row);
     }
   }
 
   isExpanded(row: TemNccItem): boolean {
     return this.expandedRows.has(row.id);
   }
+
+  isLoadingDetail(row: TemNccItem): boolean {
+    return this.loadingDetailIds.has(row.id);
+  }
+
   toggleMobileRow(item: TemNccItem): void {
     if (this.expandedMobileRows.has(item.id)) {
       this.expandedMobileRows.delete(item.id);
@@ -168,7 +195,8 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
   isMobileExpanded(item: TemNccItem): boolean {
     return this.expandedMobileRows.has(item.id);
   }
-  // ==================== PAGINATION HELPER ====================
+
+  // ==================== PAGINATION ====================
 
   getRowIndex(row: TemNccItem): number {
     const pageIndex = this.paginator?.pageIndex ?? 0;
@@ -203,8 +231,10 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
 
   getPagedSessions(row: TemNccItem): SessionItem[] {
     const page = this.getSessionPage(row);
-    const start = page * this.sessionPageSize;
-    return (row.sessions ?? []).slice(start, start + this.sessionPageSize);
+    return (row.sessions ?? []).slice(
+      page * this.sessionPageSize,
+      (page + 1) * this.sessionPageSize,
+    );
   }
 
   getSessionIndex(row: TemNccItem, indexOnPage: number): number {
@@ -222,7 +252,8 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     );
   }
 
-  // tạo hoặc lấy SelectionModel cho từng row
+  // ==================== SELECTION ====================
+
   getSessionSelection(row: TemNccItem): SelectionModel<number> {
     if (!this.sessionSelection.has(String(row.id))) {
       this.sessionSelection.set(
@@ -266,25 +297,8 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     return (row.sessions ?? []).filter((_, i) => selected.includes(i));
   }
 
-  onApprove(row: TemNccItem): void {
-    const selected = this.getSelectedSessions(row);
-    if (selected.length === 0) {
-      return;
-    }
-    // TODO: gọi service phê duyệt với selected
-    console.log("Approve:", selected);
-  }
-
-  onReject(row: TemNccItem): void {
-    const selected = this.getSelectedSessions(row);
-    if (selected.length === 0) {
-      return;
-    }
-    // TODO: gọi service từ chối với selected
-    console.log("Reject:", selected);
-  }
-
   // ==================== ACTIONS ====================
+
   onInfo(item: TemNccItem): void {
     this.dialog.open(OrderSummaryDialogComponent, {
       width: "640px",
@@ -293,15 +307,59 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       panelClass: "summary-dialog-panel",
     });
   }
-  onAdd(): void {
-    this.router.navigate(["./new"], { relativeTo: null });
-    // Adjust route to match your routing config, e.g.:
-    // this.router.navigate(['tem-ncc/new']);
+
+  onViewDetail(row: TemNccItem): void {
+    this.router.navigate(["/approve-tem-ncc/approve-tem-ncc-detail"], {
+      state: { data: row._raw },
+    });
   }
 
-  onView(item: TemNccItem): void {
-    // Adjust route, e.g.:
-    this.router.navigate(["info-tem-ncc-detail"]);
+  onApprove(row: TemNccItem): void {
+    const selected = this.getSelectedSessions(row);
+    if (selected.length === 0) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
+      width: "400px",
+      data: {
+        title: "Xác nhận phê duyệt",
+        message: `Bạn có chắc chắn muốn phê duyệt ${selected.length} đợt nhập đã chọn?`,
+        confirmText: "Phê duyệt",
+        cancelText: "Hủy",
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      this.callApproveApiForSessions(row, selected, "APPROVED");
+    });
+  }
+
+  onReject(row: TemNccItem): void {
+    const selected = this.getSelectedSessions(row);
+    if (selected.length === 0) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
+      width: "400px",
+      data: {
+        title: "Xác nhận từ chối",
+        message: `Bạn có chắc chắn muốn từ chối ${selected.length} đợt nhập đã chọn?`,
+        confirmText: "Từ chối",
+        cancelText: "Hủy",
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      this.callApproveApiForSessions(row, selected, "REJECTED");
+    });
   }
 
   onDelete(item: TemNccItem): void {
@@ -309,244 +367,116 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       width: "400px",
       data: {
         title: "Xác nhận xóa",
-        message: "Bạn có chắc chắn muốn xóa bản ghi này?",
+        message: "Bạn có chắc chắn muốn xóa?",
         confirmText: "Xóa",
         cancelText: "Hủy",
       },
     });
-
     dialogRef.afterClosed().subscribe((result) => {
       if (result === true) {
-        this.performDelete(item);
+        /* performDelete */
       }
     });
   }
 
   // ==================== PRIVATE ====================
 
-  private performDelete(item: TemNccItem): void {
-    // Call service to delete, then reload
-    // this.service.delete(item.id).subscribe(() => this.loadData());
+  private loadData(page = 0, size = this.SERVER_PAGE_SIZE): void {
+    this.isLoading = true;
+    this.managerTemNccService.getPoImportTems(page, size).subscribe({
+      next: (response) => {
+        this.dataSource.data = response.datas.map((item: PoImportTem) =>
+          this.mapToTemNccItem(item),
+        );
+        this.totalItems = response.pagination.totalItems;
+        this.totalPages = response.pagination.totalPages;
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.notificationService.error("Không thể tải danh sách đơn hàng!");
+        this.isLoading = false;
+      },
+    });
   }
 
-  private loadData(): void {
-    // Replace with real service call, e.g.:
-    // this.service.getAll().subscribe(data => { this.dataSource.data = data; this.totalItems = data.length; });
-
-    // Mock data matching the screenshot
-    const mock: TemNccItem[] = [
-      {
-        id: 1,
-        poCode: "124578",
-        vendorName: "SS",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd00013",
-        warehouse: "RD-01",
-        status: "Đang nhập",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "RD-LED-05",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-          {
-            importDate: "2024-03-16",
-            warehouse: "RD-LED-04",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
+  private loadDetailIfNeeded(row: TemNccItem): void {
+    if (this.detailCache.has(row.id)) {
+      this.applyDetailToRow(row, this.detailCache.get(row.id)!);
+      return;
+    }
+    this.loadingDetailIds.add(row.id);
+    this.managerTemNccService.getPoImportTemDetail(row.id).subscribe({
+      next: (detail) => {
+        this.detailCache.set(row.id, detail);
+        this.applyDetailToRow(row, detail);
+        this.loadingDetailIds.delete(row.id);
+        this.cdr.markForCheck();
       },
-      {
-        id: 2,
-        poCode: "125845",
-        vendorName: "Thanh An",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd02358",
-        warehouse: "RD-01",
-        status: "Đang nhập",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
+      error: () => {
+        this.loadingDetailIds.delete(row.id);
+        this.notificationService.error("Không thể tải chi tiết đơn hàng!");
       },
-      {
-        id: 3,
-        poCode: "125482",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd05125",
-        warehouse: "RD-01",
-        status: "Đang nhập",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 4,
-        poCode: "125482",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd01584",
-        warehouse: "RD-01",
-        status: "Chờ duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 5,
-        poCode: "124548",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd01548",
-        warehouse: "RD-01",
-        status: "Chờ duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 6,
-        poCode: "125482",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd02452",
-        warehouse: "RD-01",
-        status: "Chờ duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 7,
-        poCode: "12548",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd01548",
-        warehouse: "RD-02",
-        status: "Đã phê duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 8,
-        poCode: "12548",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd02462",
-        warehouse: "RD-01",
-        status: "Đã phê duyệt",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 9,
-        poCode: "35659",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd04574",
-        warehouse: "RD-01",
-        status: "Đã gửi panacim",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-      {
-        id: 10,
-        poCode: "35974",
-        vendorName: ".",
-        arrivalDate: "2026-01-23",
-        createdDate: "2026-02-27T18:33:17",
-        createdBy: "rd05714",
-        warehouse: "RD-01",
-        status: "Đã gửi panacim",
-        sessions: [
-          {
-            importDate: "2024-03-15",
-            warehouse: "Kho A",
-            warehouseType: "Thành phẩm",
-            totalQty: 2000,
-            itemCount: 2,
-          },
-        ],
-      },
-    ];
-
-    this.dataSource.data = mock;
-    this.totalItems = mock.length;
+    });
   }
+
+  private applyDetailToRow(row: TemNccItem, detail: PoImportTem): void {
+    const sessions = (detail.importVendorTemTransactions ?? []).map((t) =>
+      this.mapToSessionItem(t),
+    );
+    const idx = this.dataSource.data.findIndex((r) => r.id === row.id);
+    if (idx >= 0) {
+      const newData = [...this.dataSource.data];
+      newData[idx] = { ...newData[idx], sessions, _raw: detail };
+      this.dataSource.data = newData;
+    }
+  }
+
+  private mapToTemNccItem(item: PoImportTem): TemNccItem {
+    return {
+      id: item.id,
+      poCode: item.poNumber,
+      vendorName: item.vendorName,
+      arrivalDate: item.entryDate,
+      createdDate: item.createdAt,
+      createdBy: item.createdBy,
+      warehouse: item.storageUnit ?? "",
+      status: item.status,
+      sessions: (item.importVendorTemTransactions ?? []).map((t) =>
+        this.mapToSessionItem(t),
+      ),
+      _raw: item,
+    };
+  }
+
+  private mapToSessionItem(t: ImportVendorTemTransaction): SessionItem {
+    const totalQty = t.poDetails.reduce(
+      (sum, d) => sum + (d.totalQuantity ?? 0),
+      0,
+    );
+    const itemCount = t.poDetails.reduce(
+      (sum, d) => sum + (d.vendorTemDetails?.length ?? 0),
+      0,
+    );
+    return {
+      importDate: t.entryDate ?? t.createdAt,
+      warehouse: t.storageUnit,
+      warehouseType: "",
+      status: t.status,
+      totalQty,
+      itemCount,
+      transactionId: t.id, // ← lưu để dùng khi navigate
+    };
+  }
+
   private buildFilterPredicate() {
     return (item: TemNccItem, filterJson: string): boolean => {
       const f: FilterValues = JSON.parse(filterJson);
-
       const match = (
         field: string | null | undefined,
         query: string,
       ): boolean =>
         !query || (field ?? "").toLowerCase().includes(query.toLowerCase());
-
       return (
         match(item.poCode, f.poCode) &&
         match(item.vendorName, f.vendorName) &&
@@ -563,5 +493,103 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
         )
       );
     };
+  }
+
+  private callApproveApiForSessions(
+    row: TemNccItem,
+    sessions: SessionItem[],
+    status: "APPROVED" | "REJECTED",
+  ): void {
+    const raw = row._raw;
+    if (!raw) {
+      this.notificationService.error("Không có dữ liệu đơn hàng.");
+      return;
+    }
+
+    const now = new Date().toISOString();
+
+    // Gọi API cho từng transaction được chọn
+    const calls = sessions
+      .map((session) => {
+        const transaction = raw.importVendorTemTransactions?.find(
+          (t) => t.id === session.transactionId,
+        );
+        if (!transaction) {
+          return null;
+        }
+        const poImportTemId = +this.route.snapshot.paramMap.get("id")!;
+
+        const payload: ApproveVendorTemPayload = {
+          id: session.transactionId,
+          poNumber: raw.poNumber,
+          vendorCode: raw.vendorCode ?? "",
+          vendorName: raw.vendorName,
+          entryDate: raw.entryDate ?? "",
+          storageUnit: transaction.storageUnit ?? "",
+          mappingConfig: transaction.mappingConfig ?? "",
+          status,
+          createdBy: transaction.createdBy ?? "",
+          createdAt: transaction.createdAt ?? now,
+          updatedBy: "",
+          updatedAt: now,
+          deletedBy: "",
+          deletedAt: "",
+          poImportTemId: poImportTemId,
+        };
+
+        return this.managerTemNccService.approveImportVendorTemTransaction(
+          session.transactionId,
+          payload,
+        );
+      })
+      .filter(Boolean);
+
+    if (calls.length === 0) {
+      return;
+    }
+
+    // Gọi lần lượt từng call
+    let completed = 0;
+    calls.forEach((call) => {
+      call!.subscribe({
+        next: () => {
+          completed++;
+          if (completed === calls.length) {
+            const msg =
+              status === "APPROVED"
+                ? "Phê duyệt thành công."
+                : "Từ chối thành công.";
+            this.notificationService.success(msg);
+            // Clear selection
+            this.getSessionSelection(row).clear();
+            // Xóa cache và reload detail
+            this.detailCache.delete(row.id);
+            this.loadDetailIfNeeded(row);
+          }
+        },
+        error: (err) => {
+          completed++;
+          // BE lazy load issue — vẫn reload
+          if (err.status === 500) {
+            if (completed === calls.length) {
+              const msg =
+                status === "APPROVED"
+                  ? "Phê duyệt thành công."
+                  : "Từ chối thành công.";
+              this.notificationService.success(msg);
+              this.getSessionSelection(row).clear();
+              this.detailCache.delete(row.id);
+              this.loadDetailIfNeeded(row);
+            }
+          } else {
+            const msg =
+              status === "APPROVED"
+                ? "Phê duyệt thất bại."
+                : "Từ chối thất bại.";
+            this.notificationService.error(msg);
+          }
+        },
+      });
+    });
   }
 }

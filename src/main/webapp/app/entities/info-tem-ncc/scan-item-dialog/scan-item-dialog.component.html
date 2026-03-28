@@ -70,7 +70,9 @@
     </div>
   </div>
 
-  <!-- Stats Bar -->
+  <mat-divider></mat-divider>
+
+  <!-- Stats Bar mo rong -->
   <div class="stats-bar">
     <div class="stat-item">
       <span class="stat-label">Số mã đã scan</span>
@@ -82,7 +84,11 @@
       <span class="stat-value green">{{ totalScannedQty | number }}</span>
     </div>
     <div class="stat-divider"></div>
-    <!-- Button xem danh sách -->
+    <div class="stat-item">
+      <span class="stat-label">Số lượng vật tư</span>
+      <span class="stat-value">{{ uniquePartCount }}</span>
+    </div>
+    <div class="stat-divider"></div>
     <button
       mat-stroked-button
       class="view-list-btn"
@@ -94,88 +100,14 @@
     </button>
   </div>
 
-  <mat-divider></mat-divider>
-
-  <!-- Desktop: bảng scan -->
-  <ng-container *ngIf="!isMobile">
-    <div class="list-header">
-      <div class="list-title">
-        Danh sách đã scan
-        <span class="count-badge">{{ totalCount }}</span>
-      </div>
-      <button
-        mat-stroked-button
-        class="clear-btn"
-        (click)="clearAll()"
-        *ngIf="scannedList.length > 0"
-      >
-        Xóa tất cả
-      </button>
-    </div>
-
-    <div class="list-container" (click)="focusInput()">
-      <ng-container *ngIf="scannedList.length > 0; else emptyState">
-        <div class="table-scroll-wrapper">
-          <table class="scan-table">
-            <thead>
-              <tr>
-                <th class="col-stt">#</th>
-                <th class="col-time">Thời gian</th>
-                <th
-                  *ngFor="let col of lotColumns"
-                  [style.min-width.px]="col.minWidth"
-                >
-                  {{ col.label }}
-                </th>
-                <th class="col-action"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                *ngFor="let item of scannedList; let i = index"
-                [class.duplicate-flash]="duplicateHighlightId === item.id"
-              >
-                <td class="col-stt">{{ i + 1 }}</td>
-                <td class="col-time">
-                  {{ item.createdAt | date: "HH:mm:ss" }}
-                </td>
-                <td *ngFor="let col of lotColumns">
-                  <span class="cell-text" [title]="$any(item)[col.key]">{{
-                    $any(item)[col.key]
-                  }}</span>
-                </td>
-                <td class="col-action">
-                  <button
-                    mat-icon-button
-                    class="remove-btn"
-                    (click)="removeItem(item.id); $event.stopPropagation()"
-                    matTooltip="Xóa"
-                  >
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </ng-container>
-      <ng-template #emptyState>
-        <div class="empty-state">
-          <mat-icon class="empty-icon">inbox</mat-icon>
-          <p>Chưa có mã nào được scan</p>
-          <span>Nhấp vào ô nhập và scan hoặc gõ mã</span>
-        </div>
-      </ng-template>
-    </div>
-  </ng-container>
-
-  <!-- Mobile: chỉ hiển thị stats, không có bảng -->
-  <ng-container *ngIf="isMobile">
-    <div class="mobile-hint" (click)="focusInput()">
-      <mat-icon>touch_app</mat-icon>
-      <span>Nhấn vào ô nhập để bắt đầu scan</span>
-    </div>
-  </ng-container>
+  <div class="hint-area" (click)="focusInput()">
+    <mat-icon class="hint-icon">qr_code_scanner</mat-icon>
+    <p *ngIf="scannedList.length === 0">Chưa có mã nào được scan</p>
+    <p *ngIf="scannedList.length > 0">
+      Đã scan <strong>{{ totalCount }}</strong> mã —
+      <a (click)="openListDialog()">xem danh sách</a>
+    </p>
+  </div>
 
   <mat-divider></mat-divider>
 
