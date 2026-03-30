@@ -29,7 +29,29 @@
     }
   }
 }
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
 
+  &.status-new {
+    background: #e0e0e0;
+    color: #333;
+  }
+
+  &.status-pending {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  &.status-approve {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+}
 // ==================== DIALOG CONTENT ====================
 
 .dialog-content {

@@ -30,6 +30,10 @@
       <span class="kpi-value">{{ totalScannedQty | number }}</span>
       <span class="kpi-label">Tổng SL đã scan</span>
     </div>
+    <div class="kpi-card kpi-teal">
+      <span class="kpi-value">{{ totalOrderQty | number }}</span>
+      <span class="kpi-label">Tổng SL trong đơn</span>
+    </div>
     <div class="kpi-card kpi-orange">
       <span class="kpi-value">{{ totalItemCount }}</span>
       <span class="kpi-label">Tổng mã Items</span>
@@ -64,7 +68,16 @@
     </div>
     <div class="meta-row">
       <span class="meta-label">Kho nhập</span>
-      <span class="meta-value">{{ item.warehouse }}</span>
+      <span class="meta-value warehouse-chips">
+        <ng-container *ngIf="uniqueWarehouses.length > 0; else noWarehouse">
+          <span class="warehouse-chip" *ngFor="let w of uniqueWarehouses">{{
+            w
+          }}</span>
+        </ng-container>
+        <ng-template #noWarehouse>
+          <span class="text-muted">—</span>
+        </ng-template>
+      </span>
     </div>
   </div>
 
@@ -80,32 +93,28 @@
             <th>#</th>
             <th>Ngày nhập</th>
             <th>Kho</th>
-            <th>Loại kho</th>
-            <th class="col-num">SL scan</th>
+            <th>Trạng thái</th>
+            <th class="col-num">SL đã scan</th>
+            <th class="col-num">SL trong đơn</th>
             <th class="col-num">Mã Items</th>
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngIf="sessions.length > 0; else noData">
-            <tr *ngFor="let s of sessions; let i = index">
-              <td class="col-idx">{{ i + 1 }}</td>
-              <td>{{ s.importDate }}</td>
-              <td>{{ s.warehouse }}</td>
-              <td>{{ s.warehouseType }}</td>
-              <td class="col-num green-val">{{ s.totalQty | number }}</td>
-              <td class="col-num">{{ s.itemCount }}</td>
-            </tr>
-          </ng-container>
-          <ng-template #noData>
-            <tr>
-              <td colspan="6" class="no-data-cell">Chưa có dữ liệu nhập</td>
-            </tr>
-          </ng-template>
+          <tr *ngFor="let s of sessions; let i = index">
+            <td class="col-idx">{{ i + 1 }}</td>
+            <td>{{ s.importDate | date: "dd/MM/yyyy HH:mm" }}</td>
+            <td>{{ s.warehouse }}</td>
+            <td>{{ s.status }}</td>
+            <td class="col-num green-val">{{ s.totalScanQty | number }}</td>
+            <td class="col-num">{{ s.totalQty | number }}</td>
+            <td class="col-num">{{ s.itemCount }}</td>
+          </tr>
         </tbody>
         <tfoot *ngIf="sessions.length > 0">
           <tr class="total-row">
             <td colspan="4" class="total-label">Tổng cộng</td>
             <td class="col-num green-val">{{ totalScannedQty | number }}</td>
+            <td class="col-num">{{ totalOrderQty | number }}</td>
             <td class="col-num">{{ totalItemCount }}</td>
           </tr>
         </tfoot>

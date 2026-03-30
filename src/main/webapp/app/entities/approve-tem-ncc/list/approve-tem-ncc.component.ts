@@ -26,10 +26,13 @@ import { OrderSummaryDialogComponent } from "./order-summary-dialog/order-summar
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import {
   ApproveVendorTemPayload,
+  CreateVendorTemDetailPayload,
   ImportVendorTemTransaction,
   ManagerTemNccService,
   PoImportTem,
 } from "app/entities/list-material/services/info-tem-ncc.service";
+import { forkJoin, of } from "rxjs";
+import { StatusBadgeService } from "app/entities/list-material/services/status-badge.service";
 
 export interface TemNccItem {
   id: number;
@@ -50,6 +53,7 @@ export interface SessionItem {
   warehouseType: string;
   status: string;
   totalQty: number;
+  totalScanQty: number;
   itemCount: number;
   transactionId: number;
 }
@@ -62,7 +66,7 @@ export interface FilterValues {
   createdDateStr: string;
   createdDate: Date | null;
   createdBy: string;
-  warehouse: string;
+  // warehouse: string;
   status: string;
 }
 
@@ -94,7 +98,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     "arrivalDate",
     "createdDate",
     "createdBy",
-    "warehouse",
+    // "warehouse",
     "status",
   ];
 
@@ -110,7 +114,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     createdDateStr: "",
     createdDate: null,
     createdBy: "",
-    warehouse: "",
+    // warehouse: "",
     status: "",
   };
 
@@ -140,6 +144,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     private managerTemNccService: ManagerTemNccService,
     private notificationService: NotificationService,
     private route: ActivatedRoute,
+    public statusBadgeService: StatusBadgeService,
   ) {}
 
   ngOnInit(): void {
@@ -300,17 +305,44 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
   // ==================== ACTIONS ====================
 
   onInfo(item: TemNccItem): void {
-    this.dialog.open(OrderSummaryDialogComponent, {
-      width: "640px",
-      maxWidth: "95vw",
-      data: { item },
-      panelClass: "summary-dialog-panel",
-    });
+    if (!item.sessions?.length && !this.loadingDetailIds.has(item.id)) {
+      this.loadingDetailIds.add(item.id);
+
+      const cached = this.detailCache.get(item.id);
+      if (cached) {
+        this.applyDetailToRow(item, cached);
+        this.openSummaryDialog(item);
+        return;
+      }
+
+      this.managerTemNccService.getPoImportTemDetail(item.id).subscribe({
+        next: (detail) => {
+          this.detailCache.set(item.id, detail);
+          this.applyDetailToRow(item, detail);
+          this.loadingDetailIds.delete(item.id);
+
+          // lay lai item moi nhat tu dataSource sau khi apply
+          const updated =
+            this.dataSource.data.find((r) => r.id === item.id) ?? item;
+          this.openSummaryDialog(updated);
+        },
+        error: () => {
+          this.loadingDetailIds.delete(item.id);
+          this.notificationService.error("Không thể tải chi tiết đơn hàng.");
+        },
+      });
+      return;
+    }
+
+    this.openSummaryDialog(item);
   }
 
-  onViewDetail(row: TemNccItem): void {
+  onViewDetail(row: TemNccItem, session: SessionItem): void {
     this.router.navigate(["/approve-tem-ncc/approve-tem-ncc-detail"], {
-      state: { data: row._raw },
+      state: {
+        data: row._raw,
+        transactionId: session.transactionId,
+      },
     });
   }
 
@@ -455,7 +487,11 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       0,
     );
     const itemCount = t.poDetails.reduce(
-      (sum, d) => sum + (d.vendorTemDetails?.length ?? 0),
+      (sum, d) =>
+        sum +
+        (d.vendorTemDetails?.filter(
+          (v) => (v.status ?? "").toUpperCase() === "PENDING",
+        ).length ?? 0),
       0,
     );
     return {
@@ -463,9 +499,10 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       warehouse: t.storageUnit,
       warehouseType: "",
       status: t.status,
-      totalQty,
+      totalQty, // so luong trong don
+      totalScanQty: t.totalScanQuantity ?? 0, // so luong da scan thuc te
       itemCount,
-      transactionId: t.id, // ← lưu để dùng khi navigate
+      transactionId: t.id,
     };
   }
 
@@ -481,7 +518,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
         match(item.poCode, f.poCode) &&
         match(item.vendorName, f.vendorName) &&
         match(item.createdBy, f.createdBy) &&
-        match(item.warehouse, f.warehouse) &&
+        // match(item.warehouse, f.warehouse) &&
         match(item.status, f.status) &&
         match(
           this.datePipe.transform(item.arrivalDate, "yyyy-MM-dd") ?? "",
@@ -507,8 +544,8 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     }
 
     const now = new Date().toISOString();
+    const poImportTemId = row.id; // dung row.id thay vi route param
 
-    // Gọi API cho từng transaction được chọn
     const calls = sessions
       .map((session) => {
         const transaction = raw.importVendorTemTransactions?.find(
@@ -517,9 +554,8 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
         if (!transaction) {
           return null;
         }
-        const poImportTemId = +this.route.snapshot.paramMap.get("id")!;
 
-        const payload: ApproveVendorTemPayload = {
+        const approvePayload: ApproveVendorTemPayload = {
           id: session.transactionId,
           poNumber: raw.poNumber,
           vendorCode: raw.vendorCode ?? "",
@@ -532,64 +568,108 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
           createdAt: transaction.createdAt ?? now,
           updatedBy: "",
           updatedAt: now,
-          deletedBy: "",
-          deletedAt: "",
-          poImportTemId: poImportTemId,
+          deletedBy: null as any,
+          deletedAt: null as any,
+          approver: raw.approver ?? "",
+          poImportTemId,
         };
 
-        return this.managerTemNccService.approveImportVendorTemTransaction(
-          session.transactionId,
-          payload,
+        // collect tat ca vendorTemDetails trong transaction nay
+        const allDetails = (transaction.poDetails ?? []).flatMap((pd) =>
+          (pd.vendorTemDetails ?? [])
+            .filter((v) => (v.status ?? "").toUpperCase() === "PENDING")
+            .map((v) => ({ v, poDetailId: pd.id })),
         );
+
+        const detailPayloads: CreateVendorTemDetailPayload[] = allDetails
+          .filter(({ v }) => !!v.id)
+          .map(({ v, poDetailId }) => ({
+            id: v.id,
+            reelId: v.reelId ?? "",
+            partNumber: v.partNumber ?? "",
+            vendor: v.vendor ?? "",
+            lot: v.lot ?? "",
+            userData1: v.userData1 ?? "",
+            userData2: v.userData2 ?? "",
+            userData3: v.userData3 ?? "",
+            userData4: v.userData4 ?? "",
+            userData5: v.userData5 ?? "",
+            initialQuantity: v.initialQuantity ?? 0,
+            msdLevel: v.msdLevel ?? "",
+            msdInitialFloorTime: "",
+            msdBagSealDate: "",
+            marketUsage: "",
+            quantityOverride: 0,
+            shelfTime: "",
+            spMaterialName: "",
+            warningLimit: "",
+            maximumLimit: "",
+            comments: "",
+            warmupTime: "",
+            storageUnit: v.storageUnit ?? "",
+            subStorageUnit: "",
+            locationOverride: "",
+            expirationDate: v.expirationDate ?? "",
+            manufacturingDate: v.manufacturingDate ?? "",
+            partClass: "",
+            sapCode: v.sapCode ?? "",
+            vendorQrCode: v.vendorQrCode ?? "",
+            status,
+            createdBy: v.createdBy ?? "",
+            createdAt: v.createdAt ?? now,
+            updatedBy: "",
+            updatedAt: now,
+            poDetailId,
+            importVendorTemTransactionsId: session.transactionId,
+          }));
+
+        return forkJoin({
+          approve: this.managerTemNccService.approveImportVendorTemTransaction(
+            session.transactionId,
+            approvePayload,
+          ),
+          details:
+            detailPayloads.length > 0
+              ? this.managerTemNccService.batchUpdateVendorTemDetails(
+                  detailPayloads,
+                )
+              : of(null),
+        });
       })
       .filter(Boolean);
 
-    if (calls.length === 0) {
+    if (!calls.length) {
       return;
     }
 
-    // Gọi lần lượt từng call
-    let completed = 0;
-    calls.forEach((call) => {
-      call!.subscribe({
-        next: () => {
-          completed++;
-          if (completed === calls.length) {
-            const msg =
-              status === "APPROVED"
-                ? "Phê duyệt thành công."
-                : "Từ chối thành công.";
-            this.notificationService.success(msg);
-            // Clear selection
-            this.getSessionSelection(row).clear();
-            // Xóa cache và reload detail
-            this.detailCache.delete(row.id);
-            this.loadDetailIfNeeded(row);
-          }
-        },
-        error: (err) => {
-          completed++;
-          // BE lazy load issue — vẫn reload
-          if (err.status === 500) {
-            if (completed === calls.length) {
-              const msg =
-                status === "APPROVED"
-                  ? "Phê duyệt thành công."
-                  : "Từ chối thành công.";
-              this.notificationService.success(msg);
-              this.getSessionSelection(row).clear();
-              this.detailCache.delete(row.id);
-              this.loadDetailIfNeeded(row);
-            }
-          } else {
-            const msg =
-              status === "APPROVED"
-                ? "Phê duyệt thất bại."
-                : "Từ chối thất bại.";
-            this.notificationService.error(msg);
-          }
-        },
-      });
+    this.isLoading = true;
+
+    forkJoin(calls as any[]).subscribe({
+      next: () => {
+        this.isLoading = false;
+        const msg =
+          status === "APPROVED"
+            ? "Phê duyệt thành công."
+            : "Từ chối thành công.";
+        this.notificationService.success(msg);
+        this.getSessionSelection(row).clear();
+        this.detailCache.delete(row.id);
+        this.loadDetailIfNeeded(row);
+      },
+      error: () => {
+        this.isLoading = false;
+        const msg =
+          status === "APPROVED" ? "Phê duyệt thất bại." : "Từ chối thất bại.";
+        this.notificationService.error(msg);
+      },
+    });
+  }
+  private openSummaryDialog(item: TemNccItem): void {
+    this.dialog.open(OrderSummaryDialogComponent, {
+      width: "640px",
+      maxWidth: "95vw",
+      data: { item },
+      panelClass: "summary-dialog-panel",
     });
   }
 }

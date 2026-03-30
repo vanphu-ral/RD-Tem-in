@@ -80,6 +80,7 @@ export interface VendorTemDetail {
   status: string;
   createdBy: string;
   createdAt: string;
+  sapName?: string;
   poDetailId?: number;
 }
 
@@ -105,6 +106,8 @@ export interface ImportVendorTemTransaction {
   status: string;
   createdBy: string;
   createdAt: string;
+  totalScanQuantity?: number | null;
+  totalQuantityCalculated?: number | null;
   poImportTemId: number;
   poDetails: PoDetail[];
 }
@@ -123,6 +126,7 @@ export interface PoImportTem {
   createdAt: string;
   updatedBy: string;
   updatedAt: string;
+  approver?: string;
   importVendorTemTransactions: ImportVendorTemTransaction[];
 }
 export interface Pagination {
@@ -156,6 +160,7 @@ export interface ApproveVendorTemPayload {
   updatedAt: string;
   deletedBy: string;
   deletedAt: string;
+  approver?: string;
   poImportTemId: number;
 }
 export interface CreateVendorTemDetailPayload {

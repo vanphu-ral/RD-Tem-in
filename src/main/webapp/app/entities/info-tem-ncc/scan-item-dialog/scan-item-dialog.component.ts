@@ -82,9 +82,10 @@ export interface ScanDialogData {
   warehouse?: string;
   approver?: string;
   importVendorTemTransactionsId: number;
-  parentItems: { id: number; partNumber: string }[];
+  parentItems: { id: number; partNumber: string; sapCode: string }[];
   vendorCode?: string;
   existingReelIds?: string[];
+  poCode?: string;
 }
 
 @Component({
@@ -309,11 +310,11 @@ export class ScanItemDialogComponent
       partNumber: scannedPartNumber,
       vendor: fieldMap["vendor"] ?? this.data?.vendorCode ?? "",
       lot,
-      userData1: fieldMap["userData1"] ?? "",
-      userData2: fieldMap["userData2"] ?? "",
-      userData3: fieldMap["userData3"] ?? "",
-      userData4: fieldMap["userData4"] ?? "",
-      userData5: fieldMap["userData5"] ?? "",
+      userData1: fieldMap["userData1"] || "NO",
+      userData2: fieldMap["userData2"] || "NO",
+      userData3: fieldMap["userData3"] || "NO",
+      userData4: fieldMap["userData4"] || (matchedRow.sapCode ?? ""),
+      userData5: fieldMap["userData5"] || (this.data?.poCode ?? ""),
       initialQuantity: Number(fieldMap["initialQuantity"]) || 0,
       msdLevel: fieldMap["msdLevel"] ?? "",
       msdInitialFloorTime: "",
@@ -326,13 +327,13 @@ export class ScanItemDialogComponent
       maximumLimit: "",
       comments: "",
       warmupTime: "",
-      storageUnit: fieldMap["storageUnit"] ?? "",
+      storageUnit: fieldMap["storageUnit"] || this.warehouse || "",
       subStorageUnit: "",
       locationOverride: "",
       manufacturingDate: fieldMap["manufacturingDate"] ?? "",
       expirationDate: fieldMap["expirationDate"] ?? "",
       partClass: "",
-      sapCode: "",
+      sapCode: matchedRow.sapCode ?? "",
       vendorQrCode: rawCode,
       status: "NEW",
       createdBy: this.currentUser,

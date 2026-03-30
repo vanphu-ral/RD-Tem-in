@@ -30,6 +30,7 @@ import {
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
+import { StatusBadgeService } from "app/entities/list-material/services/status-badge.service";
 
 // ==================== INTERFACES ====================
 
@@ -40,7 +41,7 @@ export interface TemNccItem {
   arrivalDate: string; // ISO date string
   createdDate: string; // ISO datetime string
   createdBy: string;
-  // warehouse: string;
+  warehouse: string;
   status: string;
   sessions?: SessionItem[];
   _raw?: PoImportTem;
@@ -49,9 +50,12 @@ export interface TemNccItem {
 export interface SessionItem {
   importDate: string;
   warehouse: string;
+  warehouseType: string;
   status: string;
   totalQty: number;
+  totalScanQty: number;
   itemCount: number;
+  transactionId: number;
 }
 
 export interface FilterValues {
@@ -141,6 +145,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     private managerTemNccService: ManagerTemNccService,
     private notificationService: NotificationService,
     private warehouseCacheService: WarehouseCacheService,
+    public statusBadgeService: StatusBadgeService,
   ) {}
 
   // ==================== LIFECYCLE ====================
@@ -149,9 +154,17 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     this.loadData();
     void this.initWarehouseCache();
   }
-  onViewDetail(row: TemNccItem): void {
+  onViewDetail(row: TemNccItem, session: SessionItem): void {
     this.router.navigate(["/info-tem-ncc/info-tem-ncc-detail"], {
-      state: { data: row._raw },
+      state: {
+        data: row._raw,
+        transactionId: session.transactionId,
+      },
+    });
+  }
+  onScanSession(row: TemNccItem, session: SessionItem): void {
+    this.router.navigate(["/info-tem-ncc/add-info-tem-ncc", row.id], {
+      state: { transactionId: session.transactionId },
     });
   }
 
@@ -253,12 +266,36 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
 
   // ==================== ACTIONS ====================
   onInfo(item: TemNccItem): void {
-    this.dialog.open(OrderSummaryDialogComponent, {
-      width: "640px",
-      maxWidth: "95vw",
-      data: { item },
-      panelClass: "summary-dialog-panel",
-    });
+    if (!item.sessions?.length && !this.loadingDetailIds.has(item.id)) {
+      this.loadingDetailIds.add(item.id);
+
+      const cached = this.detailCache.get(item.id);
+      if (cached) {
+        this.applyDetailToRow(item, cached);
+        this.openSummaryDialog(item);
+        return;
+      }
+
+      this.managerTemNccService.getPoImportTemDetail(item.id).subscribe({
+        next: (detail) => {
+          this.detailCache.set(item.id, detail);
+          this.applyDetailToRow(item, detail);
+          this.loadingDetailIds.delete(item.id);
+
+          // lay lai item moi nhat tu dataSource sau khi apply
+          const updated =
+            this.dataSource.data.find((r) => r.id === item.id) ?? item;
+          this.openSummaryDialog(updated);
+        },
+        error: () => {
+          this.loadingDetailIds.delete(item.id);
+          this.notificationService.error("Không thể tải chi tiết đơn hàng.");
+        },
+      });
+      return;
+    }
+
+    this.openSummaryDialog(item);
   }
   onAdd(): void {
     this.router.navigate(["./new"], { relativeTo: null });
@@ -284,18 +321,16 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result === true) {
-        this.managerTemNccService
-          .deleteTemPoImport(Number(result.id))
-          .subscribe({
-            next: () => {
-              this.notificationService.success("Xóa kịch bản thành công!");
-              this.loadData();
-              this.cdr.detectChanges();
-            },
-            error: () => {
-              this.notificationService.error("Xóa kịch bản thất bại!");
-            },
-          });
+        this.managerTemNccService.deleteTemPoImport(item.id).subscribe({
+          next: () => {
+            this.notificationService.success("Xóa kịch bản thành công!");
+            this.loadData();
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            this.notificationService.error("Xóa kịch bản thất bại!");
+          },
+        });
       }
     });
   }
@@ -354,6 +389,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       arrivalDate: item.entryDate,
       createdDate: item.createdAt,
       createdBy: item.createdBy,
+      warehouse: item.storageUnit ?? "",
       status: item.status,
       sessions: (item.importVendorTemTransactions ?? []).map((t) =>
         this.mapToSessionItem(t),
@@ -374,9 +410,12 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     return {
       importDate: t.entryDate ?? t.createdAt,
       warehouse: t.storageUnit,
+      warehouseType: "",
       status: t.status,
-      totalQty,
+      totalQty, // so luong trong don
+      totalScanQty: t.totalScanQuantity ?? 0, // so luong da scan thuc te
       itemCount,
+      transactionId: t.id,
     };
   }
 
@@ -448,6 +487,14 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         console.warn("Khong the cache danh sach kho");
         this.isFetchingWarehouses = false;
       },
+    });
+  }
+  private openSummaryDialog(item: TemNccItem): void {
+    this.dialog.open(OrderSummaryDialogComponent, {
+      width: "640px",
+      maxWidth: "95vw",
+      data: { item },
+      panelClass: "summary-dialog-panel",
     });
   }
 }

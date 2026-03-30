@@ -113,12 +113,23 @@
             diameter="16"
             *ngIf="isLoadingWarehouses"
           ></mat-spinner>
-          <mat-autocomplete
+          <!-- <mat-autocomplete
             #autoWarehouse="matAutocomplete"
             (optionSelected)="onWarehouseSelected($event.option.value)"
           >
             <mat-option *ngFor="let w of filteredWarehouseOptions" [value]="w">
               {{ w.locationFullName }}
+            </mat-option>
+            <mat-option *ngIf="filteredWarehouseOptions.length === 0" disabled>
+              Không tìm thấy
+            </mat-option>
+          </mat-autocomplete> -->
+          <mat-autocomplete
+            #autoWarehouse="matAutocomplete"
+            (optionSelected)="onWarehouseSelected($event.option.value)"
+          >
+            <mat-option *ngFor="let w of filteredWarehouseOptions" [value]="w">
+              {{ w.label }}
             </mat-option>
             <mat-option *ngIf="filteredWarehouseOptions.length === 0" disabled>
               Không tìm thấy
@@ -402,13 +413,77 @@
                           <td class="col-chk-th"></td>
                           <td *ngFor="let col of lotColumns">
                             <div class="apply-cell">
-                              <input
-                                class="apply-input"
-                                [(ngModel)]="
-                                  lotBulkValues[row.id + '_' + col.key]
+                              <ng-container
+                                *ngIf="
+                                  col.key === 'storageUnit';
+                                  else normalApplyInput
                                 "
-                                (keydown.enter)="applyLotColumn(row, col.key)"
-                              />
+                              >
+                                <input
+                                  class="apply-input"
+                                  [(ngModel)]="
+                                    lotBulkValues[row.id + '_' + col.key]
+                                  "
+                                  [matAutocomplete]="autoLotWarehouse"
+                                  (input)="
+                                    onLotWarehouseSearch(
+                                      row.id,
+                                      $any($event.target).value
+                                    )
+                                  "
+                                  (focus)="
+                                    onLotWarehouseSearch(
+                                      row.id,
+                                      lotBulkValues[row.id + '_' + col.key] ??
+                                        ''
+                                    )
+                                  "
+                                  (keydown.enter)="applyLotColumn(row, col.key)"
+                                  placeholder="Tìm kho..."
+                                />
+                                <mat-autocomplete
+                                  #autoLotWarehouse="matAutocomplete"
+                                  (optionSelected)="
+                                    onLotWarehouseSelected(
+                                      row,
+                                      col.key,
+                                      $event.option.value
+                                    )
+                                  "
+                                >
+                                  <!-- <mat-option *ngFor="let w of getLotWarehouseOptions(row.id)" [value]="w">
+                                    {{ w.locationFullName }}
+                                  </mat-option> -->
+                                  <mat-option
+                                    *ngFor="
+                                      let w of getLotWarehouseOptions(row.id)
+                                    "
+                                    [value]="w"
+                                  >
+                                    {{ w.label }}
+                                  </mat-option>
+                                  <mat-option
+                                    *ngIf="
+                                      getLotWarehouseOptions(row.id).length ===
+                                      0
+                                    "
+                                    disabled
+                                  >
+                                    Không tìm thấy
+                                  </mat-option>
+                                </mat-autocomplete>
+                              </ng-container>
+
+                              <ng-template #normalApplyInput>
+                                <input
+                                  class="apply-input"
+                                  [(ngModel)]="
+                                    lotBulkValues[row.id + '_' + col.key]
+                                  "
+                                  (keydown.enter)="applyLotColumn(row, col.key)"
+                                />
+                              </ng-template>
+
                               <button
                                 mat-icon-button
                                 class="apply-icon-btn"
@@ -442,7 +517,9 @@
                             <!-- Data cells -->
                             <td class="col-chk-th">
                               <mat-checkbox
-                                [checked]="isLotSelected(row.id, i)"
+                                [checked]="
+                                  isLotPending(lot) || isLotSelected(row.id, i)
+                                "
                                 (change)="toggleLotSelect(row.id, i)"
                                 [disabled]="isLotPending(lot)"
                                 color="primary"
@@ -499,6 +576,15 @@
                       </tbody>
                     </table>
                   </div>
+                </div>
+                <div class="lot-save-bar" *ngIf="hasLots(row)">
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    (click)="onSaveLots(row)"
+                  >
+                    Lưu vật tư
+                  </button>
                 </div>
               </div>
             </td>

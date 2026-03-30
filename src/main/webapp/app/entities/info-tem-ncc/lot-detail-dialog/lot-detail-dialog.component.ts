@@ -34,6 +34,7 @@ export interface LotDetailRow {
   manufacturingDate: string;
   expirationDate: string;
   sapCode: string;
+  sapName?: string;
   vendorQrCode?: string;
   status?: string;
   createdBy?: string;
@@ -73,12 +74,7 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
   columns: ColumnDef[] = [
     { key: "reelId", label: "ReelId", minWidth: 190, editable: true },
     { key: "sapCode", label: "Mã SAP", minWidth: 120, editable: true },
-    {
-      key: "productName",
-      label: "Tên hàng hóa",
-      minWidth: 220,
-      editable: true,
-    },
+    { key: "sapName", label: "Tên hàng hóa", minWidth: 220, editable: false },
     { key: "partNumber", label: "Part Number", minWidth: 140, editable: true },
     { key: "lot", label: "Lot", minWidth: 100, editable: true },
     { key: "vendor", label: "Vendor", minWidth: 110, editable: true },

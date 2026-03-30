@@ -236,10 +236,10 @@
                             [indeterminate]="isSomeLotsSelected(row)"
                             (change)="toggleAllLots(row)"
                             color="primary"
-                          >
-                          </mat-checkbox>
+                          ></mat-checkbox>
                         </th>
-                        <th class="actions-column">Thao tác</th>
+                        <th class="col-expand-th"></th>
+                        <!-- <th class="actions-column">Thao tác</th> -->
                         <th>Lot</th>
                         <th>Số thùng</th>
                         <th>Tổng số lượng</th>
@@ -247,36 +247,152 @@
                     </thead>
                     <tbody>
                       <ng-container *ngFor="let child of row.children">
-                        <tr
+                        <ng-container
                           *ngFor="let lot of child.lots; let li = index"
-                          class="child-row"
-                          [class.row-selected]="isLotSelected(row.id, li)"
                         >
-                          <td class="col-chk">
-                            <mat-checkbox
-                              [checked]="isLotSelected(row.id, li)"
-                              (change)="toggleLotSelect(row.id, li)"
-                              color="primary"
-                            >
-                            </mat-checkbox>
-                          </td>
-                          <td>
-                            <button
-                              mat-icon-button
-                              (click)="onViewLot(lot)"
-                              matTooltip="Xem"
-                            >
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                          </td>
-                          <td>{{ lot.lotNumber }}</td>
-                          <td>{{ lot.boxCount }}</td>
-                          <td>{{ lot.totalQty }}</td>
-                        </tr>
+                          <!-- Lot row -->
+                          <tr
+                            class="child-row"
+                            [class.row-selected]="isLotSelected(row.id, li)"
+                          >
+                            <td class="col-chk">
+                              <mat-checkbox
+                                [checked]="isLotSelected(row.id, li)"
+                                (change)="toggleLotSelect(row.id, li)"
+                                color="primary"
+                              ></mat-checkbox>
+                            </td>
+                            <td class="col-expand-th">
+                              <button
+                                mat-icon-button
+                                (click)="toggleLotExpand(row.id, li)"
+                                matTooltip="Xem vật tư"
+                              >
+                                <mat-icon>{{
+                                  isLotExpanded(row.id, li)
+                                    ? "expand_less"
+                                    : "expand_more"
+                                }}</mat-icon>
+                              </button>
+                            </td>
+                            <!-- <td></td> -->
+                            <td>{{ lot.lotNumber }}</td>
+                            <td>{{ lot.boxCount }}</td>
+                            <td>{{ lot.totalQty }}</td>
+                          </tr>
+
+                          <!-- Detail expand rows -->
+                          <tr
+                            *ngIf="isLotExpanded(row.id, li)"
+                            class="detail-expand-tr"
+                          >
+                            <td [attr.colspan]="6" class="detail-expand-td">
+                              <div class="detail-table-wrapper">
+                                <table class="detail-inner-table">
+                                  <thead>
+                                    <tr>
+                                      <th class="col-chk-detail"></th>
+                                      <th style="min-width: 190px">ReelId</th>
+                                      <th style="min-width: 120px">Mã SAP</th>
+                                      <th style="min-width: 220px">
+                                        Tên hàng hóa
+                                      </th>
+                                      <th style="min-width: 140px">
+                                        Part Number
+                                      </th>
+                                      <th style="min-width: 100px">Lot</th>
+                                      <th style="min-width: 110px">Vendor</th>
+                                      <th style="min-width: 100px">Quantity</th>
+                                      <th style="min-width: 110px">
+                                        Userdata1
+                                      </th>
+                                      <th style="min-width: 110px">
+                                        Userdata2
+                                      </th>
+                                      <th style="min-width: 110px">
+                                        Userdata3
+                                      </th>
+                                      <th style="min-width: 110px">
+                                        Userdata4
+                                      </th>
+                                      <th style="min-width: 110px">
+                                        Userdata5
+                                      </th>
+                                      <th style="min-width: 80px">MSL</th>
+                                      <th style="min-width: 120px">
+                                        StorageUnit
+                                      </th>
+                                      <th style="min-width: 150px">
+                                        ManufacturingDate
+                                      </th>
+                                      <th style="min-width: 150px">
+                                        ExpirationDate
+                                      </th>
+                                      <th class="col-status-frozen">
+                                        Trạng thái
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr
+                                      *ngFor="let detail of lot.details"
+                                      class="detail-inner-row"
+                                      [class.detail-approved]="
+                                        isDetailApproved(detail)
+                                      "
+                                    >
+                                      <td class="col-chk-detail">
+                                        <mat-checkbox
+                                          [checked]="
+                                            isDetailApproved(detail) ||
+                                            isLotSelected(row.id, li)
+                                          "
+                                          [disabled]="isDetailApproved(detail)"
+                                          color="primary"
+                                        ></mat-checkbox>
+                                      </td>
+                                      <td>{{ detail.reelId }}</td>
+                                      <td>{{ detail.sapCode }}</td>
+                                      <td>{{ detail.sapName }}</td>
+                                      <td>{{ detail.partNumber }}</td>
+                                      <td>{{ detail.lot }}</td>
+                                      <td>{{ detail.vendor }}</td>
+                                      <td>{{ detail.initialQuantity }}</td>
+                                      <td>{{ detail.userData1 }}</td>
+                                      <td>{{ detail.userData2 }}</td>
+                                      <td>{{ detail.userData3 }}</td>
+                                      <td>{{ detail.userData4 }}</td>
+                                      <td>{{ detail.userData5 }}</td>
+                                      <td>{{ detail.msdLevel }}</td>
+                                      <td>{{ detail.storageUnit }}</td>
+                                      <td>{{ detail.manufacturingDate }}</td>
+                                      <td>{{ detail.expirationDate }}</td>
+                                      <td class="col-status-frozen">
+                                        <span
+                                          [ngStyle]="
+                                            statusBadgeService.getStyle(
+                                              detail.status ?? ''
+                                            )
+                                          "
+                                        >
+                                          {{
+                                            statusBadgeService.getLabel(
+                                              detail.status ?? ""
+                                            )
+                                          }}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        </ng-container>
                       </ng-container>
 
                       <tr *ngIf="!hasLots(row)">
-                        <td colspan="5" class="no-data-cell">
+                        <td colspan="6" class="no-data-cell">
                           Không có dữ liệu
                         </td>
                       </tr>

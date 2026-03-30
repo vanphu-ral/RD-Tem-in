@@ -6,17 +6,10 @@ import {
   PoImportTem,
   ImportVendorTemTransaction,
 } from "app/entities/list-material/services/info-tem-ncc.service";
+import { StatusBadgeService } from "app/entities/list-material/services/status-badge.service";
 
 export interface OrderSummaryData {
   item: TemNccItem;
-}
-
-export interface SessionSummary {
-  importDate: string;
-  warehouse: string;
-  status: string;
-  totalQty: number;
-  itemCount: number;
 }
 
 @Component({
@@ -24,75 +17,53 @@ export interface SessionSummary {
   templateUrl: "./order-summary-dialog.component.html",
   styleUrls: ["./order-summary-dialog.component.scss"],
 })
-export class OrderSummaryDialogComponent implements OnInit {
+export class OrderSummaryDialogComponent {
   item: TemNccItem;
-  isLoading = false;
-  private detailData: PoImportTem | null = null;
 
   constructor(
     private dialogRef: MatDialogRef<OrderSummaryDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: OrderSummaryData,
-    private managerTemNccService: ManagerTemNccService,
+    public statusBadgeService: StatusBadgeService,
   ) {
     this.item = data.item;
   }
 
-  ngOnInit(): void {
-    // nếu đã có detail từ cache (_raw có transactions) thì dùng luôn
-    if (this.item._raw?.importVendorTemTransactions?.length) {
-      this.detailData = this.item._raw;
-      return;
-    }
-    this.loadDetail();
-  }
-
   get totalSessions(): number {
-    return this.detailData?.importVendorTemTransactions?.length ?? 0;
-  }
-
-  get sessions(): SessionSummary[] {
-    return (this.detailData?.importVendorTemTransactions ?? []).map((t) => ({
-      importDate: t.entryDate ?? t.createdAt,
-      warehouse: t.storageUnit,
-      status: t.status,
-      totalQty: (t.poDetails ?? []).reduce(
-        (sum, d) => sum + (d.totalQuantity ?? 0),
-        0,
-      ),
-      itemCount: (t.poDetails ?? []).reduce(
-        (sum, d) => sum + (d.vendorTemDetails?.length ?? 0),
-        0,
-      ),
-    }));
-  }
-
-  get totalProductQty(): number {
-    return this.sessions.reduce((sum, s) => sum + (s.totalQty ?? 0), 0);
+    return this.item.sessions?.length ?? 0;
   }
 
   get totalItemCount(): number {
-    return this.sessions.reduce((sum, s) => sum + (s.itemCount ?? 0), 0);
+    return (
+      this.item.sessions?.reduce((sum, s) => sum + (s.itemCount ?? 0), 0) ?? 0
+    );
   }
 
   get uniqueWarehouses(): string[] {
-    const set = new Set(this.sessions.map((s) => s.warehouse).filter(Boolean));
+    const set = new Set(
+      (this.item.sessions ?? []).map((s) => s.warehouse).filter(Boolean),
+    );
     return Array.from(set);
+  }
+
+  get totalOrderQty(): number {
+    return (
+      this.item.sessions?.reduce((sum, s) => sum + (s.totalQty ?? 0), 0) ?? 0
+    );
+  }
+
+  get totalScannedQty(): number {
+    return (
+      this.item.sessions?.reduce((sum, s) => sum + (s.totalScanQty ?? 0), 0) ??
+      0
+    );
+  }
+
+  // dung SessionItem thay vi SessionSummary
+  get sessions(): SessionItem[] {
+    return this.item.sessions ?? [];
   }
 
   onClose(): void {
     this.dialogRef.close();
-  }
-
-  private loadDetail(): void {
-    this.isLoading = true;
-    this.managerTemNccService.getPoImportTemDetail(this.item.id).subscribe({
-      next: (detail) => {
-        this.detailData = detail;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-      },
-    });
   }
 }

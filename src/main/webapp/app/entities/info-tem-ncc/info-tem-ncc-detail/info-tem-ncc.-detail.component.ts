@@ -35,6 +35,7 @@ import {
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import { ActivatedRoute } from "@angular/router";
 import { catchError, forkJoin, map, of } from "rxjs";
+import { StatusBadgeService } from "app/entities/list-material/services/status-badge.service";
 
 // ==================== INTERFACES ====================
 
@@ -168,6 +169,7 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
     private route: ActivatedRoute,
     private managerTemNccService: ManagerTemNccService,
     private notificationService: NotificationService,
+    public statusBadgeService: StatusBadgeService,
   ) {}
 
   // ==================== LIFECYCLE ====================
@@ -352,16 +354,18 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
 
     this.currentPoImportTemId = data.id;
 
-    const transaction = data.importVendorTemTransactions?.[0];
+    const transactionId = history.state?.transactionId as number | undefined;
+    const transaction = transactionId
+      ? data.importVendorTemTransactions?.find((t) => t.id === transactionId)
+      : data.importVendorTemTransactions?.[0];
+
     if (transaction) {
       this.currentTransactionId = transaction.id;
     }
 
-    const allPoDetails = data.importVendorTemTransactions.flatMap(
-      (t) => t.poDetails,
-    );
+    const poDetails = transaction?.poDetails ?? [];
     this.dataSource.data = this.mapPoDetailsToParentItems(
-      allPoDetails,
+      poDetails,
       transaction?.id,
     );
     this.totalItems = this.dataSource.data.length;
@@ -395,7 +399,8 @@ export class InfoTemNccDetailComponent implements OnInit, AfterViewInit {
           storageUnit: v.storageUnit,
           manufacturingDate: v.manufacturingDate,
           expirationDate: v.expirationDate,
-          sapCode: v.sapCode,
+          sapCode: detail.sapCode,
+          sapName: detail.sapName,
           vendorQrCode: v.vendorQrCode,
           status: v.status,
           createdBy: v.createdBy,

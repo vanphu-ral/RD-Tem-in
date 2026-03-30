@@ -6,14 +6,6 @@ export interface OrderSummaryData {
   item: TemNccItem;
 }
 
-export interface SessionSummary {
-  importDate: string;
-  warehouse: string;
-  warehouseType: string;
-  totalQty: number;
-  itemCount: number;
-}
-
 @Component({
   selector: "jhi-order-summary-dialog",
   templateUrl: "./order-summary-dialog.component.html",
@@ -33,12 +25,6 @@ export class OrderSummaryDialogComponent {
     return this.item.sessions?.length ?? 0;
   }
 
-  get totalScannedQty(): number {
-    return (
-      this.item.sessions?.reduce((sum, s) => sum + (s.totalQty ?? 0), 0) ?? 0
-    );
-  }
-
   get totalItemCount(): number {
     return (
       this.item.sessions?.reduce((sum, s) => sum + (s.itemCount ?? 0), 0) ?? 0
@@ -46,11 +32,30 @@ export class OrderSummaryDialogComponent {
   }
 
   get uniqueWarehouses(): string[] {
-    const set = new Set(this.item.sessions?.map((s) => s.warehouse) ?? []);
-    return Array.from(set);
+    return Array.from(
+      new Set(
+        (this.item.sessions ?? [])
+          .map((s) => (s.warehouse ?? "").trim().toUpperCase())
+          .filter((w) => w !== ""),
+      ),
+    );
   }
 
-  get sessions(): SessionSummary[] {
+  get totalOrderQty(): number {
+    return (
+      this.item.sessions?.reduce((sum, s) => sum + (s.totalQty ?? 0), 0) ?? 0
+    );
+  }
+
+  get totalScannedQty(): number {
+    return (
+      this.item.sessions?.reduce((sum, s) => sum + (s.totalScanQty ?? 0), 0) ??
+      0
+    );
+  }
+
+  // dung SessionItem thay vi SessionSummary
+  get sessions(): SessionItem[] {
     return this.item.sessions ?? [];
   }
 

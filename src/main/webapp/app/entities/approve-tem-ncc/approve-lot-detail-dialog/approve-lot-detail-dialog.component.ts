@@ -21,6 +21,7 @@ export interface LotDetailRow {
   id: number;
   reelId: string;
   partNumber: string;
+  sapName?: string;
   vendor: string;
   lot: string;
   userData1: string;
@@ -75,12 +76,7 @@ export class ApproveLotDetailDialogComponent
   columns: ColumnDef[] = [
     { key: "reelId", label: "ReelId", minWidth: 190, editable: true },
     { key: "sapCode", label: "Mã SAP", minWidth: 120, editable: true },
-    {
-      key: "productName",
-      label: "Tên hàng hóa",
-      minWidth: 220,
-      editable: true,
-    },
+    { key: "sapName", label: "Tên hàng hóa", minWidth: 220, editable: false },
     { key: "partNumber", label: "Part Number", minWidth: 140, editable: true },
     { key: "lot", label: "Lot", minWidth: 100, editable: true },
     { key: "vendor", label: "Vendor", minWidth: 110, editable: true },
@@ -109,6 +105,7 @@ export class ApproveLotDetailDialogComponent
       minWidth: 150,
       editable: true,
     },
+    // { key: "status", label: "Trạng thái", minWidth: 120, editable: false },
   ];
 
   rows: LotDetailRow[] = [];
