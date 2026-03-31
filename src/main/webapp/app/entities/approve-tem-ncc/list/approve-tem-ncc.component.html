@@ -321,6 +321,7 @@
                         [checked]="isAllSessionsSelected(row)"
                         [indeterminate]="isSomeSessionSelected(row)"
                         (change)="toggleAllSessions(row)"
+                        [disabled]="!hasApprovableSessions(row)"
                         color="primary"
                       >
                       </mat-checkbox>
@@ -374,6 +375,7 @@
                               getSessionPage(row) * sessionPageSize + si
                             )
                           "
+                          [disabled]="!isSessionApprovable(session)"
                           color="primary"
                         >
                         </mat-checkbox>

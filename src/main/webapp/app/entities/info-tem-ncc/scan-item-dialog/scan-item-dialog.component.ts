@@ -136,7 +136,7 @@ export class ScanItemDialogComponent
   // existingReelIds?: string[];
   private inputBuffer = "";
   private bufferTimer: any = null;
-  private readonly BUFFER_DELAY_MS = 100;
+  private readonly BUFFER_DELAY_MS = 80;
   private existingReelIds = new Set<string>();
   constructor(
     private dialogRef: MatDialogRef<ScanItemDialogComponent>,
@@ -210,8 +210,35 @@ export class ScanItemDialogComponent
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === "Enter") {
       event.preventDefault();
+      // Flush buffer ngay khi Enter
+      if (this.inputBuffer) {
+        this.scanInput = this.inputBuffer;
+        this.inputBuffer = "";
+        if (this.bufferTimer) {
+          clearTimeout(this.bufferTimer);
+          this.bufferTimer = null;
+        }
+      }
       this.submitScan();
+      return;
     }
+
+    if (event.key.length > 1) {
+      return;
+    }
+
+    // Gom ký tự vào buffer, không update DOM
+    this.inputBuffer += event.key;
+    this.errorMessage = "";
+
+    // Debounce: sau BUFFER_DELAY_MS ms không có ký tự mới thì flush vào scanInput
+    if (this.bufferTimer) {
+      clearTimeout(this.bufferTimer);
+    }
+    this.bufferTimer = setTimeout(() => {
+      this.scanInput = this.inputBuffer;
+      this.bufferTimer = null;
+    }, this.BUFFER_DELAY_MS);
   }
   onWarehouseSelected(warehouse: CachedWarehouse): void {
     this.warehouse = warehouse.locationFullName;
@@ -302,7 +329,7 @@ export class ScanItemDialogComponent
     if (dateSource && /^\d{8}$/.test(String(dateSource))) {
       cleanDate = String(dateSource);
     }
-    const lot = `${cleanPartNumber}${cleanDate}`;
+    const lot = `${scannedPartNumber}${cleanDate}`;
     const now = new Date().toISOString();
 
     const payload: CreateVendorTemDetailPayload = {

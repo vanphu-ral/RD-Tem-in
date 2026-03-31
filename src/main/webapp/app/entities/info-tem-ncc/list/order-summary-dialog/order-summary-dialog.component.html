@@ -89,41 +89,46 @@
 
   <!-- Sessions Table -->
   <div class="sessions-section">
-    <div class="sessions-title">Chi tiết theo ngày nhập</div>
+    <div class="sessions-title">Tổng hợp theo mã vật tư</div>
     <div class="sessions-table-wrap">
       <table class="sessions-table">
         <thead>
           <tr>
             <th>#</th>
-            <th>Ngày nhập</th>
-            <th>Kho</th>
-            <th>Trạng thái</th>
-            <th class="col-num">SL đã scan</th>
+            <th>Mã SAP</th>
+            <th>Tên sản phẩm</th>
             <th class="col-num">SL trong đơn</th>
-            <th class="col-num">Mã Items</th>
+            <th class="col-num">SL đã scan</th>
+            <th class="col-num">Mã vật tư</th>
+            <th class="col-num">Số ngày nhập</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of sessions; let i = index">
+          <tr *ngFor="let s of sapSummary; let i = index">
             <td class="col-idx">{{ i + 1 }}</td>
-            <td>{{ s.importDate | date: "dd/MM/yyyy HH:mm" }}</td>
-            <td>{{ s.warehouse }}</td>
-            <td>
-              <span [ngStyle]="statusBadgeService.getStyle(s.status)">
-                {{ statusBadgeService.getLabel(s.status) }}
-              </span>
-            </td>
-            <td class="col-num green-val">{{ s.totalScanQty | number }}</td>
-            <td class="col-num">{{ s.totalQty | number }}</td>
+            <td>{{ s.sapCode }}</td>
+            <td>{{ s.sapName }}</td>
+            <td class="col-num">{{ s.orderQty | number }}</td>
+            <td class="col-num green-val">{{ s.scannedQty | number }}</td>
             <td class="col-num">{{ s.itemCount }}</td>
+            <td class="col-num">{{ s.sessionCount }}</td>
+          </tr>
+          <tr *ngIf="sapSummary.length === 0">
+            <td
+              colspan="7"
+              style="text-align: center; color: #999; padding: 12px"
+            >
+              Không có dữ liệu
+            </td>
           </tr>
         </tbody>
-        <tfoot *ngIf="sessions.length > 0">
+        <tfoot *ngIf="sapSummary.length > 0">
           <tr class="total-row">
-            <td colspan="4" class="total-label">Tổng cộng</td>
-            <td class="col-num green-val">{{ totalScannedQty | number }}</td>
+            <td colspan="3" class="total-label">Tổng cộng</td>
             <td class="col-num">{{ totalOrderQty | number }}</td>
+            <td class="col-num green-val">{{ totalScannedQty | number }}</td>
             <td class="col-num">{{ totalItemCount }}</td>
+            <td class="col-num"></td>
           </tr>
         </tfoot>
       </table>

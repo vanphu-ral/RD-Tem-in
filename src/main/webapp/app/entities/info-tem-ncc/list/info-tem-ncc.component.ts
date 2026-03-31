@@ -323,12 +323,16 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       if (result === true) {
         this.managerTemNccService.deleteTemPoImport(item.id).subscribe({
           next: () => {
-            this.notificationService.success("Xóa kịch bản thành công!");
+            this.notificationService.success(
+              "Xóa đơn nhập nhà cung cấp thành công!",
+            );
             this.loadData();
             this.cdr.detectChanges();
           },
           error: () => {
-            this.notificationService.error("Xóa kịch bản thất bại!");
+            this.notificationService.error(
+              "Xóa đơn nhập nhà cung cấp thất bại!",
+            );
           },
         });
       }
@@ -491,7 +495,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   }
   private openSummaryDialog(item: TemNccItem): void {
     this.dialog.open(OrderSummaryDialogComponent, {
-      width: "640px",
+      width: "95vw",
       maxWidth: "95vw",
       data: { item },
       panelClass: "summary-dialog-panel",

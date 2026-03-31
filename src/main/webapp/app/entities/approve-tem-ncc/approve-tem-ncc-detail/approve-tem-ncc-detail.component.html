@@ -25,13 +25,17 @@
     <mat-card-header>
       <mat-card-title>Danh sách vật tư</mat-card-title>
       <div class="card-header-actions">
+        <button mat-raised-button (click)="onExportDetailExcel()">
+          <mat-icon>table_view</mat-icon>
+          Xuất vật tư
+        </button>
         <button
           mat-raised-button
           (click)="onExportExcel()"
           [disabled]="selectedLotCount === 0"
         >
           <mat-icon>download</mat-icon>
-          Xuất Excel
+          Xuất Excel Lot
           <span class="badge" style="color: #000" *ngIf="selectedLotCount > 0"
             >({{ selectedLotCount }})</span
           >
@@ -380,6 +384,18 @@
                                               detail.status ?? ""
                                             )
                                           }}
+                                        </span>
+                                        <span
+                                          *ngIf="detail.panaSendStatus === true"
+                                          [ngStyle]="
+                                            statusBadgeService.getPanacimStyle()
+                                          "
+                                          style="
+                                            margin-top: 4px;
+                                            display: block;
+                                          "
+                                        >
+                                          Đã gửi Panacim
                                         </span>
                                       </td>
                                     </tr>

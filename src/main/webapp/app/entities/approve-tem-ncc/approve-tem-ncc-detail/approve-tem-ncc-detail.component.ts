@@ -134,6 +134,7 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
   orderInfo = {
     poCode: "",
     vendorName: "",
+    vendorCode: "",
     arrivalDate: null as Date | null,
     importScenario: "",
     warehouse: "",
@@ -312,6 +313,9 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
           }
 
           rows.push({
+            "Mã PO": this.orderInfo.poCode ?? "",
+            "Tên nhà cung cấp": this.orderInfo.vendorName ?? "",
+            "Mã nhà cung cấp": this.orderInfo.vendorCode ?? "",
             "Mã SAP": row.sapCode ?? "",
             "Tên hàng hóa": row.materialName ?? "",
             "Part Number": lot.partNumber ?? "",
@@ -346,6 +350,9 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
 
     // do rong cot
     ws["!cols"] = [
+      { wch: 14 }, // Ma PO
+      { wch: 35 }, // Ten nha cung cap
+      { wch: 35 }, // Ma nha cung cap
       { wch: 14 }, // Ma SAP
       { wch: 40 }, // Ten hang hoa
       { wch: 20 }, // Part Number
@@ -358,6 +365,82 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
     XLSX.utils.book_append_sheet(wb, ws, "VendorTem");
 
     const fileName = `VendorTem_${this.orderInfo.poCode}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  }
+
+  onExportDetailExcel(): void {
+    const allDetails = this.getAllDetails().filter(
+      (v) => (v.status ?? "").toUpperCase() === "APPROVE",
+    );
+
+    if (!allDetails.length) {
+      this.notificationService.warning("Không có dữ liệu vật tư để xuất.");
+      return;
+    }
+
+    const rows = allDetails.map((v) => ({
+      "Mã PO": this.orderInfo.poCode ?? "",
+      "Nhà cung cấp": this.orderInfo.vendorName ?? "",
+      "Mã SAP": v.sapCode ?? "",
+      "Tên hàng hóa": (v as any).sapName ?? "",
+      ReelID: v.reelId ?? "",
+      "Part Number": v.partNumber ?? "",
+      Lot: v.lot ?? "",
+      Vendor: v.vendor ?? "",
+      Quantity: v.initialQuantity ?? 0,
+      UserData1: v.userData1 ?? "",
+      UserData2: v.userData2 ?? "",
+      UserData3: v.userData3 ?? "",
+      UserData4: v.userData4 ?? "",
+      UserData5: v.userData5 ?? "",
+      MSL: v.msdLevel ?? "",
+      StorageUnit: v.storageUnit ?? "",
+      ManufacturingDate: v.manufacturingDate ?? "",
+      ExpirationDate: v.expirationDate ?? "",
+      "Trạng thái": v.status ?? "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    const headerRange = XLSX.utils.decode_range(ws["!ref"] ?? "A1");
+    for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (!ws[cellAddress]) {
+        continue;
+      }
+      ws[cellAddress].s = {
+        fill: { fgColor: { rgb: "4472C4" } },
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        alignment: { horizontal: "center" },
+      };
+    }
+
+    ws["!cols"] = [
+      { wch: 14 }, // Ma PO
+      { wch: 35 }, // Nha cung cap
+      { wch: 14 }, // Ma SAP
+      { wch: 40 }, // Ten hang hoa
+      { wch: 24 }, // ReelID
+      { wch: 20 }, // Part Number
+      { wch: 22 }, // Lot
+      { wch: 14 }, // Vendor
+      { wch: 10 }, // Quantity
+      { wch: 12 }, // UserData1
+      { wch: 12 }, // UserData2
+      { wch: 12 }, // UserData3
+      { wch: 12 }, // UserData4
+      { wch: 12 }, // UserData5
+      { wch: 10 }, // MSL
+      { wch: 16 }, // StorageUnit
+      { wch: 18 }, // ManufacturingDate
+      { wch: 16 }, // ExpirationDate
+      { wch: 14 }, // Trang thai
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "VatTu");
+
+    const fileName = `VatTu_${this.orderInfo.poCode}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
   }
 
@@ -374,7 +457,7 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
     }
 
     this.openConfirm(
-      `Bạn có chắc chắn muốn phê duyệt ${this.selectedLotCount} LOT đã chọn?`,
+      `Bạn có chắc chắn muốn phê duyệt ${this.selectedLotCount} vật tư đã chọn?`,
       "Phê duyệt",
     ).subscribe((confirmed) => {
       if (!confirmed) {
@@ -409,31 +492,59 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
 
   onExportPanacim(): void {
     const selected = this.getSelectedDetails();
-    const nonApproved = selected.filter(
+
+    if (!selected.length) {
+      this.notificationService.warning("Vui lòng chọn ít nhất một LOT.");
+      return;
+    }
+
+    const toSend = selected.filter(
+      (v) =>
+        (v.status ?? "").toUpperCase() === "APPROVE" &&
+        v.panaSendStatus !== true,
+    );
+
+    const alreadySent = selected.filter((v) => v.panaSendStatus === true);
+    const notApproved = selected.filter(
       (v) => (v.status ?? "").toUpperCase() !== "APPROVE",
     );
 
-    if (nonApproved.length > 0) {
-      this.notificationService.warning(
-        "Chỉ có thể xuất Panacim cho các mã đã được phê duyệt.",
-      );
-      return;
-    }
-    if (!selected.length) {
-      this.notificationService.warning(
-        "Vui lòng chọn ít nhất một LOT đã phê duyệt.",
-      );
+    if (toSend.length === 0) {
+      if (alreadySent.length > 0 && notApproved.length === 0) {
+        this.notificationService.warning(
+          "Tất cả vật tư đã được gửi Panacim trước đó.",
+        );
+      } else if (notApproved.length > 0 && alreadySent.length === 0) {
+        this.notificationService.warning(
+          "Không có vật tư nào đủ điều kiện gửi Panacim (chưa phê duyệt).",
+        );
+      } else {
+        this.notificationService.warning(
+          "Không có vật tư nào đủ điều kiện để gửi Panacim.",
+        );
+      }
       return;
     }
 
-    this.openConfirm(
-      `Bạn có chắc chắn muốn xuất Panacim cho ${selected.length} vật tư đã chọn?`,
-      "Xuất Panacim",
-    ).subscribe((confirmed) => {
+    // Build thông báo rõ ràng cho người dùng
+    const skippedParts: string[] = [];
+    if (alreadySent.length > 0) {
+      skippedParts.push(`${alreadySent.length} vật tư đã gửi trước đó`);
+    }
+    if (notApproved.length > 0) {
+      skippedParts.push(`${notApproved.length} vật tư chưa phê duyệt`);
+    }
+
+    const skipNote =
+      skippedParts.length > 0 ? ` (Bỏ qua: ${skippedParts.join(", ")}.)` : "";
+
+    const msg = `Gửi Panacim cho ${toSend.length} vật tư đủ điều kiện.${skipNote}`;
+
+    this.openConfirm(msg, "Xuất Panacim").subscribe((confirmed) => {
       if (!confirmed) {
         return;
       }
-      this.executeExportPanacim(selected);
+      this.executeExportPanacim(toSend);
     });
   }
   toggleRow(row: ParentItem): void {
@@ -606,6 +717,7 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
   private loadFromState(data: PoImportTem): void {
     this.orderInfo.poCode = data.poNumber;
     this.orderInfo.vendorName = data.vendorName;
+    this.orderInfo.vendorCode = data.vendorCode;
     this.orderInfo.arrivalDate = data.entryDate
       ? new Date(data.entryDate)
       : null;
@@ -633,9 +745,10 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
 
   private mapPoDetailsToParentItems(poDetails: PoDetail[]): ParentItem[] {
     return poDetails.map((detail, idx) => {
-      const pendingDetails = (detail.vendorTemDetails ?? []).filter(
-        (v) => (v.status ?? "").toUpperCase() === "PENDING",
-      );
+      const pendingDetails = (detail.vendorTemDetails ?? []).filter((v) => {
+        const s = (v.status ?? "").toUpperCase();
+        return s === "PENDING" || s === "APPROVE";
+      });
 
       const lotMap = new Map<string, LotItem>();
 
@@ -650,6 +763,7 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
             ...v,
             sapCode: detail.sapCode,
             sapName: detail.sapName,
+            panaSendStatus: v.panaSendStatus ?? null,
           });
         } else {
           lotMap.set(lotKey, {
@@ -661,6 +775,7 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
                 ...v,
                 sapCode: detail.sapCode,
                 sapName: detail.sapName,
+                panaSendStatus: v.panaSendStatus ?? null,
               },
             ],
             reelId: v.reelId,
@@ -749,10 +864,23 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
     const details = this.getSelectedLotDetails();
     const poImportTemId = this.currentPoImportTemId ?? 0;
 
+    const detailPayloads = this.buildDetailPayloads(details, "APPROVE", now);
+    this.isLoading = true;
+
+    const approvingIds = new Set(detailPayloads.map((d) => d.id));
+    const allDetails = this.getAllDetails();
+    const remainingPending = allDetails.filter(
+      (v) =>
+        !approvingIds.has(v.id) && (v.status ?? "").toUpperCase() === "PENDING",
+    );
+
+    const transactionStatus =
+      remainingPending.length === 0 ? "APPROVE" : "PENDING";
+
     const approvePayload: ApproveVendorTemPayload = {
       id: this.currentTransactionId!,
       poNumber: this.orderInfo.poCode,
-      vendorCode: "",
+      vendorCode: this.orderInfo.vendorCode,
       vendorName: this.orderInfo.vendorName,
       entryDate: this.orderInfo.arrivalDate
         ? (this.datePipe.transform(this.orderInfo.arrivalDate, "yyyy-MM-dd") ??
@@ -760,7 +888,7 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
         : "",
       storageUnit: this.orderInfo.warehouse,
       mappingConfig: "",
-      status: "APPROVE",
+      status: transactionStatus,
       createdBy: "",
       createdAt: now,
       updatedBy: "",
@@ -770,9 +898,6 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
       approver: this.orderInfo.approver,
       poImportTemId,
     };
-
-    const detailPayloads = this.buildDetailPayloads(details, "APPROVE", now);
-    this.isLoading = true;
 
     forkJoin({
       approve: this.managerTemNccService.approveImportVendorTemTransaction(
@@ -939,6 +1064,7 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
           this.notificationService.success(
             `Đã gửi ${details.length} vật tư tới Panacim thành công.`,
           );
+          this.updatePanaSendStatus(details);
         } else {
           this.notificationService.error(
             `Lỗi: ${response?.message ?? "Không có phản hồi từ server"}`,
@@ -1022,5 +1148,90 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
       .join("\n");
 
     return "\ufeff" + csvRows;
+  }
+  private updatePanaSendStatus(details: VendorTemDetail[]): void {
+    const now = new Date().toISOString();
+    console.log("[PANA_UPDATE] details nhận vào:", details.length);
+    const payloads: CreateVendorTemDetailPayload[] = details
+      .filter((v) => !!v.id)
+      .map((v) => ({
+        id: v.id,
+        reelId: v.reelId ?? "",
+        partNumber: v.partNumber ?? "",
+        vendor: v.vendor ?? "",
+        lot: v.lot ?? "",
+        userData1: v.userData1 ?? "",
+        userData2: v.userData2 ?? "",
+        userData3: v.userData3 ?? "",
+        userData4: v.userData4 ?? "",
+        userData5: v.userData5 ?? "",
+        initialQuantity: v.initialQuantity ?? 0,
+        msdLevel: v.msdLevel ?? "",
+        msdInitialFloorTime: "",
+        msdBagSealDate: "",
+        marketUsage: "",
+        quantityOverride: 0,
+        shelfTime: "",
+        spMaterialName: "",
+        warningLimit: "",
+        maximumLimit: "",
+        comments: "",
+        warmupTime: "",
+        storageUnit: v.storageUnit ?? "",
+        subStorageUnit: "",
+        locationOverride: "",
+        expirationDate: v.expirationDate ?? "",
+        manufacturingDate: v.manufacturingDate ?? "",
+        partClass: "",
+        sapCode: v.sapCode ?? "",
+        vendorQrCode: v.vendorQrCode ?? "",
+        status: v.status ?? "",
+        createdBy: v.createdBy ?? "",
+        createdAt: v.createdAt ?? now,
+        updatedBy: "",
+        updatedAt: now,
+        poDetailId: v.poDetailId ?? 0,
+        importVendorTemTransactionsId: this.currentTransactionId!,
+        panaSendStatus: true,
+      }));
+    console.log("[PANA_UPDATE] payloads sau filter:", payloads.length);
+
+    if (!payloads.length) {
+      return;
+    }
+
+    this.managerTemNccService.batchUpdateVendorTemDetails(payloads).subscribe({
+      next: (res) => {
+        // console.log('[PANA_UPDATE] batchUpdate success:', res);
+        const ids = new Set(payloads.map((d) => d.id));
+        // console.log('[PANA_UPDATE] ids cần update:', ids);
+        // console.log('[PANA_UPDATE] dataSource trước update:',
+        //   this.dataSource.data.flatMap(r => r.children).flatMap(c => c.lots).flatMap(l => l.details).map(v => ({ id: v.id, panaSendStatus: v.panaSendStatus }))
+        // );
+        const newData = this.dataSource.data.map((row) => ({
+          ...row,
+          children: row.children.map((child) => ({
+            ...child,
+            lots: child.lots.map((lot) => ({
+              ...lot,
+              details: lot.details.map((v) =>
+                ids.has(v.id) ? { ...v, panaSendStatus: true } : v,
+              ),
+            })),
+          })),
+        }));
+        // console.log('[PANA_UPDATE] dataSource sau update:',
+        //   this.dataSource.data.flatMap(r => r.children).flatMap(c => c.lots).flatMap(l => l.details).map(v => ({ id: v.id, panaSendStatus: v.panaSendStatus }))
+        // );
+        this.dataSource.data = [];
+        this.dataSource.data = newData;
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notificationService.error("Cập nhật trạng thái Panacim thất bại.");
+      },
+    });
   }
 }

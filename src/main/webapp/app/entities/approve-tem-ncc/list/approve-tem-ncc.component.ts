@@ -278,11 +278,21 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
   }
 
   isAllSessionsSelected(row: TemNccItem): boolean {
+    const approvable = (row.sessions ?? []).filter((s) =>
+      this.isSessionApprovable(s),
+    );
+    if (!approvable.length) {
+      return false;
+    }
     const sel = this.getSessionSelection(row);
-    const total = row.sessions?.length ?? 0;
-    return total > 0 && sel.selected.length === total;
+    return approvable.every((_, i) => {
+      const realIdx = (row.sessions ?? []).indexOf(approvable[i]);
+      return sel.isSelected(realIdx);
+    });
   }
-
+  hasApprovableSessions(row: TemNccItem): boolean {
+    return (row.sessions ?? []).some((s) => this.isSessionApprovable(s));
+  }
   isSomeSessionSelected(row: TemNccItem): boolean {
     const sel = this.getSessionSelection(row);
     return sel.selected.length > 0 && !this.isAllSessionsSelected(row);
@@ -292,8 +302,11 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     if (this.isAllSessionsSelected(row)) {
       this.getSessionSelection(row).clear();
     } else {
-      const allIndexes = (row.sessions ?? []).map((_, i) => i);
-      this.getSessionSelection(row).select(...allIndexes);
+      const approvableIndexes = (row.sessions ?? [])
+        .map((s, i) => ({ s, i }))
+        .filter(({ s }) => this.isSessionApprovable(s))
+        .map(({ i }) => i);
+      this.getSessionSelection(row).select(...approvableIndexes);
     }
   }
 
@@ -410,6 +423,10 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       }
     });
   }
+  isSessionApprovable(session: SessionItem): boolean {
+    const s = (session.status ?? "").toUpperCase();
+    return s !== "APPROVED" && s !== "APPROVE";
+  }
 
   // ==================== PRIVATE ====================
 
@@ -489,9 +506,10 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     const itemCount = t.poDetails.reduce(
       (sum, d) =>
         sum +
-        (d.vendorTemDetails?.filter(
-          (v) => (v.status ?? "").toUpperCase() === "PENDING",
-        ).length ?? 0),
+        (d.vendorTemDetails?.filter((v) => {
+          const s = (v.status ?? "").toUpperCase();
+          return s === "PENDING" || s === "APPROVE";
+        }).length ?? 0),
       0,
     );
     return {
@@ -666,7 +684,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
   }
   private openSummaryDialog(item: TemNccItem): void {
     this.dialog.open(OrderSummaryDialogComponent, {
-      width: "640px",
+      width: "95vw",
       maxWidth: "95vw",
       data: { item },
       panelClass: "summary-dialog-panel",

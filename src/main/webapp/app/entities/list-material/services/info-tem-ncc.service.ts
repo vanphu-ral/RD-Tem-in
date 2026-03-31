@@ -82,6 +82,7 @@ export interface VendorTemDetail {
   createdAt: string;
   sapName?: string;
   poDetailId?: number;
+  panaSendStatus?: boolean | null;
 }
 
 export interface PoDetail {
@@ -205,7 +206,7 @@ export interface CreateVendorTemDetailPayload {
   createdAt: string;
   updatedBy: string;
   updatedAt: string;
-
+  panaSendStatus?: boolean | null;
   poDetailId: number;
   importVendorTemTransactionsId: number;
 }

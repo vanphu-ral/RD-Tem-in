@@ -97,4 +97,18 @@ export class StatusBadgeService {
         return status ?? "";
     }
   }
+
+  getPanacimStyle(): StatusBadgeStyle {
+    return {
+      backgroundColor: "#EDE7F6",
+      color: "#4527A0",
+      border: "1px solid #B39DDB",
+      borderRadius: "12px",
+      padding: "2px 10px",
+      fontWeight: "600",
+      fontSize: "12px",
+      display: "inline-block",
+      whiteSpace: "nowrap",
+    };
+  }
 }

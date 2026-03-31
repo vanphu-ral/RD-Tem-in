@@ -427,17 +427,17 @@ table {
   }
 
   tbody .session-tr {
-    transition:
-      opacity 0.2s ease,
-      background 0.2s ease;
+    // transition:
+    //   opacity 0.2s ease,
+    //   background 0.2s ease;
 
-    &.row-dimmed {
-      opacity: 0.4;
+    // &.row-dimmed {
+    //   opacity: 0.4;
 
-      td {
-        color: #5f6368;
-      }
-    }
+    //   td {
+    //     color: #5f6368;
+    //   }
+    // }
 
     &.row-selected {
       opacity: 1;
