@@ -123,6 +123,7 @@ export interface PoImportTem {
   quantityContainer: number;
   totalQuantity: number;
   status: string;
+  poComments: string;
   createdBy: string;
   createdAt: string;
   updatedBy: string;

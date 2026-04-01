@@ -9,12 +9,52 @@ import { ScannedItem } from "../scan-item-dialog.component";
     <div class="list-view-wrapper">
       <div class="list-view-header">
         <h2>Danh sách đã scan ({{ data.scannedList.length }})</h2>
-        <button mat-icon-button (click)="dialogRef.close()">
+        <button class="close-btn" mat-icon-button (click)="dialogRef.close()">
           <mat-icon>close</mat-icon>
         </button>
       </div>
       <mat-divider></mat-divider>
       <div class="list-view-body">
+        <div class="failed-section" *ngIf="(data.failedItems || []).length > 0">
+          <div class="failed-header">
+            <mat-icon>error_outline</mat-icon>
+            {{ data.failedItems?.length }} mã lưu thất bại — scan lại các mã
+            sau:
+          </div>
+          <div class="table-scroll-wrapper" style="max-height: 160px">
+            <table class="scan-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>ReelId</th>
+                  <th>Part Number</th>
+                  <th>Lot</th>
+                  <th>Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let item of data.failedItems; let i = index"
+                  class="row-error"
+                >
+                  <td class="col-stt">{{ i + 1 }}</td>
+                  <td>
+                    <span class="cell-text" [title]="item.reelId">{{
+                      item.reelId
+                    }}</span>
+                  </td>
+                  <td>
+                    <span class="cell-text">{{ item.partNumber }}</span>
+                  </td>
+                  <td>
+                    <span class="cell-text">{{ item.lot }}</span>
+                  </td>
+                  <td>{{ item.initialQuantity }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
         <div class="table-scroll-wrapper">
           <table class="scan-table">
             <thead>
@@ -63,7 +103,38 @@ import { ScannedItem } from "../scan-item-dialog.component";
         border-radius: 12px;
         overflow: hidden;
       }
+      .close-btn {
+        padding: 5px 0px;
+      }
+      .failed-section {
+        border-bottom: 1px solid #f5c6c2;
+        background: #fff8f8;
+        flex-shrink: 0;
+      }
 
+      .failed-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #c5221f;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+
+      .row-error {
+        background: #fff8f8 !important;
+
+        td {
+          color: #c5221f !important;
+        }
+      }
       .list-view-header {
         display: flex;
         align-items: center;
@@ -194,6 +265,10 @@ export class ScanListViewDialogComponent {
   constructor(
     public dialogRef: MatDialogRef<ScanListViewDialogComponent>,
     @Inject(MAT_DIALOG_DATA)
-    public data: { scannedList: ScannedItem[]; lotColumns: any[] },
+    public data: {
+      scannedList: ScannedItem[];
+      failedItems?: ScannedItem[];
+      lotColumns: any[];
+    },
   ) {}
 }

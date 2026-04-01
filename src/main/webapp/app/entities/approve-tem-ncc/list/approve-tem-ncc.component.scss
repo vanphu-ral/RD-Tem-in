@@ -404,6 +404,20 @@ table {
     overflow-wrap: break-word !important;
   }
 }
+.inline-filter-select {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 12px;
+  width: 100%;
+  cursor: pointer;
+
+  option {
+    background: #3d7bb9;
+    color: white;
+  }
+}
 .session-table {
   width: 100%;
   min-width: 500px;

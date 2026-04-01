@@ -28,15 +28,15 @@ export class OrderSummaryDialogComponent {
     this.item = data.item;
   }
 
-  get totalSessions(): number {
-    return this.item.sessions?.length ?? 0;
-  }
+  // get totalSessions(): number {
+  //   return this.item.sessions?.length ?? 0;
+  // }
 
-  get totalItemCount(): number {
-    return (
-      this.item.sessions?.reduce((sum, s) => sum + (s.itemCount ?? 0), 0) ?? 0
-    );
-  }
+  // get totalItemCount(): number {
+  //   return (
+  //     this.item.sessions?.reduce((sum, s) => sum + (s.itemCount ?? 0), 0) ?? 0
+  //   );
+  // }
 
   get uniqueWarehouses(): string[] {
     const set = new Set(
@@ -64,30 +64,44 @@ export class OrderSummaryDialogComponent {
         sapName: string;
         orderQty: number;
         scannedQty: number;
-        itemCount: number;
+        reelIds: Set<string>;
         sessionIds: Set<number>;
       }
     >();
 
+    const firstTransaction = raw.importVendorTemTransactions[0];
+    (firstTransaction?.poDetails ?? []).forEach((pd) => {
+      sapMap.set(pd.sapCode, {
+        sapName: pd.sapName,
+        orderQty: pd.totalQuantity ?? 0,
+        scannedQty: 0,
+        reelIds: new Set(),
+        sessionIds: new Set(),
+      });
+    });
+
     raw.importVendorTemTransactions.forEach((t) => {
       (t.poDetails ?? []).forEach((pd) => {
-        const key = pd.sapCode;
-        if (!sapMap.has(key)) {
-          sapMap.set(key, {
+        if (!sapMap.has(pd.sapCode)) {
+          sapMap.set(pd.sapCode, {
             sapName: pd.sapName,
             orderQty: pd.totalQuantity ?? 0,
             scannedQty: 0,
-            itemCount: 0,
+            reelIds: new Set(),
             sessionIds: new Set(),
           });
         }
-        const entry = sapMap.get(key)!;
+        const entry = sapMap.get(pd.sapCode)!;
         const details = pd.vendorTemDetails ?? [];
-        entry.scannedQty += details.reduce(
-          (s, v) => s + (v.initialQuantity ?? 0),
-          0,
-        );
-        entry.itemCount += details.length;
+
+        details.forEach((v) => {
+          const rid = (v.reelId ?? "").trim();
+          if (rid && !entry.reelIds.has(rid)) {
+            entry.reelIds.add(rid);
+            entry.scannedQty += v.initialQuantity ?? 0;
+          }
+        });
+
         if (details.length > 0) {
           entry.sessionIds.add(t.id);
         }
@@ -99,9 +113,17 @@ export class OrderSummaryDialogComponent {
       sapName: v.sapName,
       orderQty: v.orderQty,
       scannedQty: v.scannedQty,
-      itemCount: v.itemCount,
+      itemCount: v.reelIds.size,
       sessionCount: v.sessionIds.size,
     }));
+  }
+
+  get totalItemCount(): number {
+    return this.sapSummary.reduce((sum, s) => sum + s.itemCount, 0);
+  }
+
+  get totalScannedQty(): number {
+    return this.sapSummary.reduce((sum, s) => sum + s.scannedQty, 0);
   }
 
   get totalOrderQty(): number {
@@ -114,12 +136,76 @@ export class OrderSummaryDialogComponent {
     );
   }
 
-  get totalScannedQty(): number {
-    return (
-      this.item.sessions?.reduce((sum, s) => sum + (s.totalScanQty ?? 0), 0) ??
-      0
-    );
+  get scanDateSummary(): { date: string; qty: number }[] {
+    const raw = this.item._raw;
+    if (!raw?.importVendorTemTransactions) {
+      return [];
+    }
+
+    const dateMap = new Map<string, number>();
+
+    raw.importVendorTemTransactions.forEach((t) => {
+      const dateKey = t.createdAt
+        ? new Date(t.createdAt).toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })
+        : "Không rõ";
+
+      if (!dateMap.has(dateKey)) {
+        dateMap.set(dateKey, 0);
+      }
+
+      const qty = (t.poDetails ?? [])
+        .flatMap((pd) => pd.vendorTemDetails ?? [])
+        .reduce((sum, v) => sum + (v.initialQuantity ?? 0), 0);
+
+      dateMap.set(dateKey, dateMap.get(dateKey)! + qty);
+    });
+
+    return Array.from(dateMap.entries())
+      .map(([date, qty]) => ({ date, qty }))
+      .sort((a, b) => {
+        const parse = (s: string): number => {
+          const [d, m, y] = s.split("/");
+          return new Date(+y, +m - 1, +d).getTime();
+        };
+        return parse(a.date) - parse(b.date);
+      });
   }
+
+  get totalSessions(): number {
+    const raw = this.item._raw;
+    if (!raw?.importVendorTemTransactions) {
+      return 0;
+    }
+
+    const uniqueDates = new Set(
+      raw.importVendorTemTransactions.map((t) =>
+        t.createdAt
+          ? new Date(t.createdAt).toLocaleDateString("vi-VN", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+          : "Không rõ",
+      ),
+    );
+
+    return uniqueDates.size;
+  }
+
+  get totalScanDateQty(): number {
+    return this.scanDateSummary.reduce((sum, d) => sum + d.qty, 0);
+  }
+
+  // get totalScannedQty(): number {
+  //   return (
+  //     this.item.sessions?.reduce((sum, s) => sum + (s.totalScanQty ?? 0), 0) ??
+  //     0
+  //   );
+  // }
 
   // dung SessionItem thay vi SessionSummary
   get sessions(): SessionItem[] {

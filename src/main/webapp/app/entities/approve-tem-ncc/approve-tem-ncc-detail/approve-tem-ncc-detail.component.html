@@ -10,13 +10,68 @@
         <mat-icon>arrow_back</mat-icon>
       </button>
       <div class="header-title d-flex">
-        <h1>Phê duyệt đơn hàng PO</h1>
-        <mat-chip class="min-w-24 text-center chip-PO">
-          <span>{{ orderInfo.poCode || "..." }}</span>
-        </mat-chip>
-        <span class="vendor-label" *ngIf="orderInfo.vendorName">
-          {{ orderInfo.vendorName }}
-        </span>
+        <div class="header-left d-flex">
+          <h1>Phê duyệt đơn hàng PO</h1>
+          <mat-chip class="min-w-24 text-center chip-PO">
+            <span>{{ orderInfo.poCode || "..." }}</span>
+          </mat-chip>
+          <span class="vendor-label" *ngIf="orderInfo.vendorName">
+            {{ orderInfo.vendorName }}
+          </span>
+        </div>
+        <div class="header-right d-flex">
+          <button
+            mat-raised-button
+            *ngIf="showPanacim"
+            style="background-color: #5c6bc0; color: white"
+            (click)="onExportPanacim()"
+            [disabled]="isPanacimDisabled"
+            matTooltip="{{
+              isPanacimDisabled ? 'Chỉ xuất được các mã đã phê duyệt' : ''
+            }}"
+          >
+            <mat-icon>send</mat-icon>
+            Xuất Panacim
+            <span
+              class="approval-badge"
+              *ngIf="selectedAllApproved && hasSelection"
+            >
+              {{ selectedLotCount }}
+            </span>
+          </button>
+
+          <!-- Tu choi -->
+          <button
+            mat-raised-button
+            style="background-color: #d32f2f; color: white"
+            (click)="onReject()"
+            [disabled]="isRejectDisabled"
+          >
+            Từ chối
+            <span
+              class="approval-badge"
+              *ngIf="hasSelection && selectedHasNonApproved"
+            >
+              {{ selectedLotCount }}
+            </span>
+          </button>
+
+          <!-- Phe duyet -->
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="onSubmitApproval()"
+            [disabled]="isApproveDisabled"
+          >
+            Phê duyệt
+            <span
+              class="approval-badge"
+              *ngIf="hasSelection && selectedHasNonApproved"
+            >
+              {{ selectedLotCount }}
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -440,71 +495,193 @@
           *ngIf="mobileDataSource && mobileDataSource.length > 0; else noData"
         >
           <mat-card *ngFor="let item of mobileDataSource" class="mobile-card">
-            <!-- <mat-card-header>
-              <mat-card-title>
-                <mat-chip
-                  [ngStyle]="statusColor(item.status)"
-                  selected
-                  class="status-chip"
-                >
-                  {{ item.status }}
-                </mat-chip>
+            <mat-card-header>
+              <mat-card-title class="mobile-card-title">
+                <span class="mobile-sap-code">{{ item.sapCode }}</span>
+                <button mat-icon-button (click)="toggleRow(item)">
+                  <mat-icon>{{
+                    isExpanded(item) ? "expand_less" : "expand_more"
+                  }}</mat-icon>
+                </button>
               </mat-card-title>
-            </mat-card-header> -->
+            </mat-card-header>
+
             <mat-card-content>
               <div class="info-row">
-                <span class="label">Mã PO:</span
-                ><span class="value">{{ item.sapCode }}</span>
+                <span class="label">Tên hàng hóa</span>
+                <span class="value">{{ item.materialName }}</span>
               </div>
               <div class="info-row">
-                <span class="label">Mã NCC:</span
-                ><span class="value">{{ item.materialName }}</span>
+                <span class="label">Part Number</span>
+                <span class="value">{{ item.partNumber }}</span>
               </div>
               <div class="info-row">
-                <span class="label">Tên NCC:</span
-                ><span class="value">{{ item.partNumber }}</span>
-              </div>
-              <!-- <div class="info-row">
-                <span class="label">Ngày tạo:</span
-                ><span class="value">{{
-                  item.createdDate | date: "dd/MM/yyyy"
-                }}</span>
+                <span class="label">Số thùng scan</span>
+                <span class="value">{{ item.boxScan }}</span>
               </div>
               <div class="info-row">
-                <span class="label">Tạo bởi:</span
-                ><span class="value">{{ item.createdBy }}</span>
+                <span class="label">Tổng SL scan</span>
+                <span class="value">{{ item.totalQuantity }}</span>
               </div>
               <div class="info-row">
-                <span class="label">Số hàng hóa:</span
-                ><span class="value">{{ item.itemCount }}</span>
+                <span class="label">SL trong đơn</span>
+                <span class="value">{{ item.totalQuantityOrder }}</span>
               </div>
-              <div class="info-row">
-                <span class="label">Tổng số lượng:</span
-                ><span class="value">{{ item.totalQuantity }}</span>
-              </div> -->
+
+              <!-- Lot list (expanded) -->
+              <ng-container *ngIf="isExpanded(item)">
+                <div class="mobile-lot-header">
+                  <mat-checkbox
+                    [checked]="isAllLotsSelected(item)"
+                    [indeterminate]="isSomeLotsSelected(item)"
+                    (change)="toggleAllLots(item)"
+                    color="primary"
+                    >Chọn tất cả Lot</mat-checkbox
+                  >
+                </div>
+
+                <ng-container *ngFor="let child of item.children">
+                  <div
+                    *ngFor="let lot of child.lots; let li = index"
+                    class="mobile-lot-card"
+                    [class.lot-selected]="isLotSelected(item.id, li)"
+                  >
+                    <div class="mobile-lot-row">
+                      <mat-checkbox
+                        [checked]="isLotSelected(item.id, li)"
+                        (change)="toggleLotSelect(item.id, li)"
+                        color="primary"
+                      ></mat-checkbox>
+                      <div class="mobile-lot-info">
+                        <div class="mobile-lot-title">
+                          <strong>Lot: {{ lot.lotNumber }}</strong>
+                          <button
+                            mat-icon-button
+                            (click)="toggleLotExpand(item.id, li)"
+                          >
+                            <mat-icon>{{
+                              isLotExpanded(item.id, li)
+                                ? "expand_less"
+                                : "expand_more"
+                            }}</mat-icon>
+                          </button>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">Số thùng</span>
+                          <span class="value">{{ lot.boxCount }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">Tổng SL</span>
+                          <span class="value">{{ lot.totalQty }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Detail rows (expanded lot) -->
+                    <ng-container *ngIf="isLotExpanded(item.id, li)">
+                      <div
+                        *ngFor="let detail of lot.details"
+                        class="mobile-detail-card"
+                        [class.detail-approved]="isDetailApproved(detail)"
+                      >
+                        <div class="mobile-detail-status">
+                          <span
+                            [ngStyle]="
+                              statusBadgeService.getStyle(detail.status ?? '')
+                            "
+                          >
+                            {{
+                              statusBadgeService.getLabel(detail.status ?? "")
+                            }}
+                          </span>
+                          <span
+                            *ngIf="detail.panaSendStatus === true"
+                            [ngStyle]="statusBadgeService.getPanacimStyle()"
+                            >Panacim</span
+                          >
+                        </div>
+                        <div class="info-row">
+                          <span class="label">ReelId</span
+                          ><span class="value">{{ detail.reelId }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">Part Number</span
+                          ><span class="value">{{ detail.partNumber }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">Lot</span
+                          ><span class="value">{{ detail.lot }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">Vendor</span
+                          ><span class="value">{{ detail.vendor }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">Quantity</span
+                          ><span class="value">{{
+                            detail.initialQuantity
+                          }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">MSL</span
+                          ><span class="value">{{ detail.msdLevel }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">StorageUnit</span
+                          ><span class="value">{{ detail.storageUnit }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">Mfg Date</span
+                          ><span class="value">{{
+                            detail.manufacturingDate
+                          }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="label">Exp Date</span
+                          ><span class="value">{{
+                            detail.expirationDate
+                          }}</span>
+                        </div>
+                        <ng-container *ngIf="detail.userData1">
+                          <div class="info-row">
+                            <span class="label">UserData1</span
+                            ><span class="value">{{ detail.userData1 }}</span>
+                          </div>
+                        </ng-container>
+                        <ng-container *ngIf="detail.userData2">
+                          <div class="info-row">
+                            <span class="label">UserData2</span
+                            ><span class="value">{{ detail.userData2 }}</span>
+                          </div>
+                        </ng-container>
+                        <ng-container *ngIf="detail.userData3">
+                          <div class="info-row">
+                            <span class="label">UserData3</span
+                            ><span class="value">{{ detail.userData3 }}</span>
+                          </div>
+                        </ng-container>
+                        <ng-container *ngIf="detail.userData4">
+                          <div class="info-row">
+                            <span class="label">UserData4</span
+                            ><span class="value">{{ detail.userData4 }}</span>
+                          </div>
+                        </ng-container>
+                        <ng-container *ngIf="detail.userData5">
+                          <div class="info-row">
+                            <span class="label">UserData5</span
+                            ><span class="value">{{ detail.userData5 }}</span>
+                          </div>
+                        </ng-container>
+                      </div>
+                    </ng-container>
+                  </div>
+                </ng-container>
+              </ng-container>
             </mat-card-content>
-            <mat-card-actions>
-              <button
-                mat-button
-                color="accent"
-                [routerLink]="['detail', item.id]"
-              >
-                <mat-icon>visibility</mat-icon> Chi tiết
-              </button>
-              <button
-                mat-button
-                color="warn"
-                (click)="onDelete(item)"
-                *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
-              >
-                <mat-icon>delete</mat-icon> Xóa
-              </button>
-            </mat-card-actions>
           </mat-card>
         </ng-container>
         <ng-template #noData>
           <div class="no-data">
-            <mat-icon>inbox</mat-icon>
             <p>Không có dữ liệu</p>
           </div>
         </ng-template>
@@ -517,57 +694,6 @@
     <div class="footer-left"></div>
     <div class="footer-right">
       <!-- Panacim: chi hien khi co it nhat 1 detail da APPROVE -->
-      <button
-        mat-raised-button
-        *ngIf="showPanacim"
-        style="background-color: #5c6bc0; color: white"
-        (click)="onExportPanacim()"
-        [disabled]="isPanacimDisabled"
-        matTooltip="{{
-          isPanacimDisabled ? 'Chỉ xuất được các mã đã phê duyệt' : ''
-        }}"
-      >
-        <mat-icon>send</mat-icon>
-        Xuất Panacim
-        <span
-          class="approval-badge"
-          *ngIf="selectedAllApproved && hasSelection"
-        >
-          {{ selectedLotCount }}
-        </span>
-      </button>
-
-      <!-- Tu choi -->
-      <button
-        mat-raised-button
-        style="background-color: #d32f2f; color: white"
-        (click)="onReject()"
-        [disabled]="isRejectDisabled"
-      >
-        Từ chối
-        <span
-          class="approval-badge"
-          *ngIf="hasSelection && selectedHasNonApproved"
-        >
-          {{ selectedLotCount }}
-        </span>
-      </button>
-
-      <!-- Phe duyet -->
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="onSubmitApproval()"
-        [disabled]="isApproveDisabled"
-      >
-        Phê duyệt
-        <span
-          class="approval-badge"
-          *ngIf="hasSelection && selectedHasNonApproved"
-        >
-          {{ selectedLotCount }}
-        </span>
-      </button>
     </div>
   </div>
   <mat-divider class="my-3"></mat-divider>

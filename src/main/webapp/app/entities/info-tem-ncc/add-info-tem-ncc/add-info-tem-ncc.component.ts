@@ -460,6 +460,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       id: r.id,
       partNumber: r.partNumber,
       sapCode: r.sapCode,
+      orderQty: r.totalQuantityOrder,
     }));
 
     const dialogRef = this.dialog.open(ScanItemDialogComponent, {

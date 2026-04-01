@@ -100,7 +100,6 @@
             <th class="col-num">SL trong đơn</th>
             <th class="col-num">SL đã scan</th>
             <th class="col-num">Mã vật tư</th>
-            <th class="col-num">Số ngày nhập</th>
           </tr>
         </thead>
         <tbody>
@@ -111,7 +110,6 @@
             <td class="col-num">{{ s.orderQty | number }}</td>
             <td class="col-num green-val">{{ s.scannedQty | number }}</td>
             <td class="col-num">{{ s.itemCount }}</td>
-            <td class="col-num">{{ s.sessionCount }}</td>
           </tr>
           <tr *ngIf="sapSummary.length === 0">
             <td
@@ -122,16 +120,45 @@
             </td>
           </tr>
         </tbody>
-        <tfoot *ngIf="sapSummary.length > 0">
-          <tr class="total-row">
-            <td colspan="3" class="total-label">Tổng cộng</td>
-            <td class="col-num">{{ totalOrderQty | number }}</td>
-            <td class="col-num green-val">{{ totalScannedQty | number }}</td>
-            <td class="col-num">{{ totalItemCount }}</td>
-            <td class="col-num"></td>
-          </tr>
-        </tfoot>
       </table>
+      <div class="sessions-title" style="margin-top: 16px">
+        Số lượng theo ngày nhập
+      </div>
+      <div class="sessions-table-wrap" *ngIf="scanDateSummary.length > 0">
+        <table class="sessions-table date-summary-table">
+          <thead>
+            <tr>
+              <td class="date-label-cell">Ngày</td>
+              <td class="col-num" *ngFor="let d of scanDateSummary">
+                {{ d.date }}
+              </td>
+              <td class="col-num total-col">Tổng</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="date-label-cell">Số lượng</td>
+              <td class="col-num green-val" *ngFor="let d of scanDateSummary">
+                {{ d.qty | number }}
+              </td>
+              <td class="col-num green-val total-col">
+                {{ totalScanDateQty | number }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div
+        *ngIf="scanDateSummary.length === 0"
+        style="
+          text-align: center;
+          color: #999;
+          padding: 8px;
+          font-style: italic;
+        "
+      >
+        Chưa có dữ liệu scan
+      </div>
     </div>
   </div>
 

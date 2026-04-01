@@ -42,6 +42,7 @@ export interface TemNccItem {
   createdDate: string; // ISO datetime string
   createdBy: string;
   warehouse: string;
+  poComments: string;
   status: string;
   sessions?: SessionItem[];
   _raw?: PoImportTem;
@@ -67,6 +68,7 @@ export interface FilterValues {
   createdDate: Date | null;
   createdBy: string;
   warehouse: string;
+  poComments: string;
   status: string;
 }
 
@@ -102,6 +104,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     "createdBy",
     // "warehouse",
     "status",
+    "poComments",
   ];
 
   dataSource = new MatTableDataSource<TemNccItem>([]);
@@ -117,6 +120,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     createdDate: null,
     createdBy: "",
     warehouse: "",
+    poComments: "",
     status: "",
   };
   loadingDetailIds = new Set<number>();
@@ -152,7 +156,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadData();
-    void this.initWarehouseCache();
+    // void this.initWarehouseCache();
   }
   onViewDetail(row: TemNccItem, session: SessionItem): void {
     this.router.navigate(["/info-tem-ncc/info-tem-ncc-detail"], {
@@ -394,6 +398,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       createdDate: item.createdAt,
       createdBy: item.createdBy,
       warehouse: item.storageUnit ?? "",
+      poComments: item.poComments,
       status: item.status,
       sessions: (item.importVendorTemTransactions ?? []).map((t) =>
         this.mapToSessionItem(t),

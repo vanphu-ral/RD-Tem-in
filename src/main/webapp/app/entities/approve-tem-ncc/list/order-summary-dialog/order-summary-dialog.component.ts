@@ -25,11 +25,11 @@ export class OrderSummaryDialogComponent {
     return this.item.sessions?.length ?? 0;
   }
 
-  get totalItemCount(): number {
-    return (
-      this.item.sessions?.reduce((sum, s) => sum + (s.itemCount ?? 0), 0) ?? 0
-    );
-  }
+  // get totalItemCount(): number {
+  //   return (
+  //     this.item.sessions?.reduce((sum, s) => sum + (s.itemCount ?? 0), 0) ?? 0
+  //   );
+  // }
 
   get uniqueWarehouses(): string[] {
     return Array.from(
@@ -60,30 +60,44 @@ export class OrderSummaryDialogComponent {
         sapName: string;
         orderQty: number;
         scannedQty: number;
-        itemCount: number;
+        reelIds: Set<string>;
         sessionIds: Set<number>;
       }
     >();
 
+    const firstTransaction = raw.importVendorTemTransactions[0];
+    (firstTransaction?.poDetails ?? []).forEach((pd) => {
+      sapMap.set(pd.sapCode, {
+        sapName: pd.sapName,
+        orderQty: pd.totalQuantity ?? 0,
+        scannedQty: 0,
+        reelIds: new Set(),
+        sessionIds: new Set(),
+      });
+    });
+
     raw.importVendorTemTransactions.forEach((t) => {
       (t.poDetails ?? []).forEach((pd) => {
-        const key = pd.sapCode;
-        if (!sapMap.has(key)) {
-          sapMap.set(key, {
+        if (!sapMap.has(pd.sapCode)) {
+          sapMap.set(pd.sapCode, {
             sapName: pd.sapName,
             orderQty: pd.totalQuantity ?? 0,
             scannedQty: 0,
-            itemCount: 0,
+            reelIds: new Set(),
             sessionIds: new Set(),
           });
         }
-        const entry = sapMap.get(key)!;
+        const entry = sapMap.get(pd.sapCode)!;
         const details = pd.vendorTemDetails ?? [];
-        entry.scannedQty += details.reduce(
-          (s, v) => s + (v.initialQuantity ?? 0),
-          0,
-        );
-        entry.itemCount += details.length;
+
+        details.forEach((v) => {
+          const rid = (v.reelId ?? "").trim();
+          if (rid && !entry.reelIds.has(rid)) {
+            entry.reelIds.add(rid);
+            entry.scannedQty += v.initialQuantity ?? 0;
+          }
+        });
+
         if (details.length > 0) {
           entry.sessionIds.add(t.id);
         }
@@ -95,9 +109,17 @@ export class OrderSummaryDialogComponent {
       sapName: v.sapName,
       orderQty: v.orderQty,
       scannedQty: v.scannedQty,
-      itemCount: v.itemCount,
+      itemCount: v.reelIds.size,
       sessionCount: v.sessionIds.size,
     }));
+  }
+
+  get totalItemCount(): number {
+    return this.sapSummary.reduce((sum, s) => sum + s.itemCount, 0);
+  }
+
+  get totalScannedQty(): number {
+    return this.sapSummary.reduce((sum, s) => sum + s.scannedQty, 0);
   }
 
   get totalOrderQty(): number {
@@ -110,12 +132,12 @@ export class OrderSummaryDialogComponent {
     );
   }
 
-  get totalScannedQty(): number {
-    return (
-      this.item.sessions?.reduce((sum, s) => sum + (s.totalScanQty ?? 0), 0) ??
-      0
-    );
-  }
+  // get totalScannedQty(): number {
+  //   return (
+  //     this.item.sessions?.reduce((sum, s) => sum + (s.totalScanQty ?? 0), 0) ??
+  //     0
+  //   );
+  // }
 
   // dung SessionItem thay vi SessionSummary
   get sessions(): SessionItem[] {

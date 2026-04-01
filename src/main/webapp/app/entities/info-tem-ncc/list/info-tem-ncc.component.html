@@ -58,11 +58,16 @@
         </mat-form-field>
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Trạng thái</mat-label>
-          <input
-            matInput
+          <mat-select
             [(ngModel)]="filterValues.status"
             (ngModelChange)="applyFilter()"
-          />
+          >
+            <mat-option value="">Tất cả</mat-option>
+            <mat-option value="NEW">Mới</mat-option>
+            <mat-option value="PENDING">Chờ duyệt</mat-option>
+            <mat-option value="APPROVE">Đã duyệt</mat-option>
+            <mat-option value="REJECT">Từ chối</mat-option>
+          </mat-select>
         </mat-form-field>
       </div>
     </mat-expansion-panel>
@@ -232,6 +237,25 @@
         </th>
         <td mat-cell *matCellDef="let row">{{ row.createdBy }}</td>
       </ng-container>
+      <ng-container matColumnDef="poComments">
+        <th mat-header-cell *matHeaderCellDef class="col-comments">
+          <div class="th-wrap">
+            <span mat-sort-header>Ghi chú</span>
+            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
+              <mat-icon class="search-icon">search</mat-icon>
+              <input
+                class="inline-filter"
+                [(ngModel)]="filterValues.poComments"
+                (ngModelChange)="applyFilter()"
+                (keydown)="$event.stopPropagation()"
+              />
+            </div>
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row" class="col-comments-cell">
+          {{ row.poComments }}
+        </td>
+      </ng-container>
 
       <!-- Warehouse -->
       <!-- <ng-container matColumnDef="warehouse">
@@ -257,14 +281,23 @@
         <th mat-header-cell *matHeaderCellDef class="col-status">
           <div class="th-wrap">
             <span mat-sort-header>Trạng thái</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
+            <div
+              class="filter-input-wrap"
+              (click)="$event.stopPropagation()"
+              style="padding: 2px 4px"
+            >
+              <select
+                class="inline-filter-select"
                 [(ngModel)]="filterValues.status"
                 (ngModelChange)="applyFilter()"
                 (keydown)="$event.stopPropagation()"
-              />
+              >
+                <option value="">Tất cả</option>
+                <option value="NEW">Mới</option>
+                <option value="PENDING">Chờ duyệt</option>
+                <option value="APPROVE">Đã duyệt</option>
+                <option value="REJECT">Từ chối</option>
+              </select>
             </div>
           </div>
         </th>
@@ -458,19 +491,11 @@
           <div class="mobile-card-actions">
             <button
               mat-icon-button
-              (click)="toggleMobileRow(item)"
-              [matTooltip]="isMobileExpanded(item) ? 'Thu gọn' : 'Xem đợt nhập'"
+              (click)="toggleRow(item); $event.stopPropagation()"
             >
               <mat-icon>{{
-                isMobileExpanded(item) ? "expand_less" : "expand_more"
+                isExpanded(item) ? "expand_less" : "expand_more"
               }}</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              [routerLink]="['/info-tem-ncc/add-info-tem-ncc', item.id]"
-              matTooltip="Scan"
-            >
-              <mat-icon class="icon-view">qr_code</mat-icon>
             </button>
             <button
               mat-icon-button
@@ -523,7 +548,7 @@
         </mat-card-content>
 
         <!-- Expand: Sessions -->
-        <div class="mobile-sessions" *ngIf="isMobileExpanded(item)">
+        <div class="mobile-sessions" *ngIf="isExpanded(item)">
           <div class="mobile-session-label">
             DANH SÁCH LẦN NHẬP
             <span class="session-count-badge">{{
@@ -559,6 +584,13 @@
                   matTooltip="Chi tiết"
                 >
                   <mat-icon class="icon-view">visibility</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  (click)="onScanSession(item, session)"
+                  matTooltip="Scan đợt này"
+                >
+                  <mat-icon class="icon-view">qr_code</mat-icon>
                 </button>
               </div>
               <div class="mobile-session-stats">
