@@ -9,82 +9,27 @@
       >
         <mat-icon>arrow_back</mat-icon>
       </button>
-      <div class="header-title">
-        <h1>Nhập thông tin TEM từ NCC</h1>
+      <div class="header-title d-flex">
+        <h1>Quản lí đơn hàng PO</h1>
+        <mat-chip class="min-w-24 text-center chip-PO">
+          <span>{{ orderInfo.poCode || "..." }}</span>
+        </mat-chip>
+        <span class="vendor-label" *ngIf="orderInfo.vendorName">
+          {{ orderInfo.vendorName }}
+        </span>
       </div>
     </div>
   </div>
 
-  <!-- Order Info Section -->
-  <mat-card class="order-info-card">
-    <mat-card-header>
-      <mat-card-title>Thông tin đơn hàng</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <div class="order-info-fields">
-        <mat-form-field appearance="outline" class="small-form-field">
-          <mat-label>Mã PO đơn hàng</mat-label>
-          <input
-            matInput
-            [(ngModel)]="orderInfo.poCode"
-            placeholder="Nhập mã PO..."
-          />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="small-form-field">
-          <mat-label>Nhà cung cấp</mat-label>
-          <input
-            matInput
-            [(ngModel)]="orderInfo.vendorName"
-            placeholder="Nhập tên NCC..."
-          />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="small-form-field">
-          <mat-label>Ngày về</mat-label>
-          <input
-            matInput
-            [matDatepicker]="arrivalPicker"
-            [(ngModel)]="orderInfo.arrivalDate"
-            placeholder="dd/MM/yyyy"
-          />
-          <mat-datepicker-toggle
-            matSuffix
-            [for]="arrivalPicker"
-          ></mat-datepicker-toggle>
-          <mat-datepicker #arrivalPicker></mat-datepicker>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="small-form-field">
-          <mat-label>Kịch bản nhập TEM</mat-label>
-          <input
-            matInput
-            [(ngModel)]="orderInfo.importScenario"
-            placeholder=""
-          />
-        </mat-form-field>
-
-        <button
-          mat-raised-button
-          color="primary"
-          class="apply-btn"
-          (click)="onApply()"
-        >
-          Apply
-        </button>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
   <mat-card class="material-list-card">
     <mat-card-header>
       <mat-card-title>Danh sách vật tư</mat-card-title>
-      <div class="card-header-actions">
+      <!-- <div class="card-header-actions">
         <button mat-raised-button color="primary" (click)="onScan()">
           <mat-icon>qr_code_scanner</mat-icon>
           Scan
         </button>
-      </div>
+      </div> -->
     </mat-card-header>
     <mat-card-content>
       <div class="mobile-filters">
@@ -96,7 +41,7 @@
             </mat-panel-title>
           </mat-expansion-panel-header>
           <div class="filter-group">
-            <mat-form-field appearance="outline" class="w-full">
+            <!-- <mat-form-field appearance="outline" class="w-full">
               <mat-label>Trạng thái</mat-label>
               <mat-select
                 [(value)]="filterValues.status"
@@ -107,54 +52,30 @@
                   s
                 }}</mat-option>
               </mat-select>
-            </mat-form-field>
+            </mat-form-field> -->
             <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Mã PO</mat-label>
+              <mat-label>Mã SAP</mat-label>
               <input
                 matInput
-                [(ngModel)]="filterValues.poCode"
+                [(ngModel)]="filterValues.sapCode"
                 (ngModelChange)="applyFilter()"
                 placeholder="Tìm kiếm"
               />
             </mat-form-field>
             <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Mã NCC</mat-label>
+              <mat-label>Tên sản phẩm</mat-label>
               <input
                 matInput
-                [(ngModel)]="filterValues.vendorCode"
+                [(ngModel)]="filterValues.materialName"
                 (ngModelChange)="applyFilter()"
                 placeholder="Tìm kiếm"
               />
             </mat-form-field>
             <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Tên NCC</mat-label>
+              <mat-label>Part Number</mat-label>
               <input
                 matInput
-                [(ngModel)]="filterValues.vendorName"
-                (ngModelChange)="applyFilter()"
-                placeholder="Tìm kiếm"
-              />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Ngày tạo</mat-label>
-              <input
-                matInput
-                [matDatepicker]="mobilePicker"
-                [(ngModel)]="filterValues.createdDate"
-                (dateChange)="applyDateFilter()"
-                placeholder="dd/MM/yyyy"
-              />
-              <mat-datepicker-toggle
-                matSuffix
-                [for]="mobilePicker"
-              ></mat-datepicker-toggle>
-              <mat-datepicker #mobilePicker></mat-datepicker>
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Tạo bởi</mat-label>
-              <input
-                matInput
-                [(ngModel)]="filterValues.createdBy"
+                [(ngModel)]="filterValues.partNumber"
                 (ngModelChange)="applyFilter()"
                 placeholder="Tìm kiếm"
               />
@@ -188,44 +109,11 @@
             </td>
           </ng-container>
 
-          <!-- Status -->
-          <ng-container matColumnDef="status">
+          <!-- SAP Code -->
+          <ng-container matColumnDef="sapCode">
             <th mat-header-cell *matHeaderCellDef>
               <div class="header-with-filter">
-                <span mat-sort-header>Trạng thái</span>
-                <mat-form-field
-                  appearance="outline"
-                  class="w-full mt-1 input-filter"
-                  (click)="$event.stopPropagation()"
-                >
-                  <mat-select
-                    [(value)]="filterValues.status"
-                    (selectionChange)="applyFilter()"
-                  >
-                    <mat-option value="">Tất cả</mat-option>
-                    <mat-option *ngFor="let s of statusOptions" [value]="s">{{
-                      s
-                    }}</mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let row">
-              <mat-chip
-                [ngStyle]="statusColor(row.status)"
-                selected
-                class="min-w-24 text-center"
-              >
-                {{ row.status }}
-              </mat-chip>
-            </td>
-          </ng-container>
-
-          <!-- Vendor Code -->
-          <ng-container matColumnDef="vendorCode">
-            <th mat-header-cell *matHeaderCellDef>
-              <div class="header-with-filter">
-                <span mat-sort-header>Mã NCC</span>
+                <span mat-sort-header>Mã SAP</span>
                 <mat-form-field
                   appearance="outline"
                   class="w-full mt-1 input-filter"
@@ -233,7 +121,7 @@
                 >
                   <input
                     matInput
-                    [(ngModel)]="filterValues.vendorCode"
+                    [(ngModel)]="filterValues.sapCode"
                     (ngModelChange)="applyFilter()"
                     placeholder="Tìm kiếm"
                     (keydown)="$event.stopPropagation()"
@@ -241,37 +129,14 @@
                 </mat-form-field>
               </div>
             </th>
-            <td mat-cell *matCellDef="let row">{{ row.vendorCode }}</td>
+            <td mat-cell *matCellDef="let row">{{ row.sapCode }}</td>
           </ng-container>
 
-          <!-- Vendor Name -->
-          <ng-container matColumnDef="vendorName">
+          <!-- Material Name -->
+          <ng-container matColumnDef="materialName">
             <th mat-header-cell *matHeaderCellDef>
               <div class="header-with-filter">
-                <span mat-sort-header>Tên NCC</span>
-                <mat-form-field
-                  appearance="outline"
-                  class="mt-1 input-filter"
-                  (click)="$event.stopPropagation()"
-                >
-                  <input
-                    matInput
-                    [(ngModel)]="filterValues.vendorName"
-                    (ngModelChange)="applyFilter()"
-                    placeholder="Tìm kiếm"
-                    (keydown)="$event.stopPropagation()"
-                  />
-                </mat-form-field>
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let row">{{ row.vendorName }}</td>
-          </ng-container>
-
-          <!-- PO Code -->
-          <ng-container matColumnDef="poCode">
-            <th mat-header-cell *matHeaderCellDef>
-              <div class="header-with-filter">
-                <span mat-sort-header>Mã PO</span>
+                <span mat-sort-header>Tên hàng hóa</span>
                 <mat-form-field
                   appearance="outline"
                   class="w-full mt-1 input-filter"
@@ -279,7 +144,7 @@
                 >
                   <input
                     matInput
-                    [(ngModel)]="filterValues.poCode"
+                    [(ngModel)]="filterValues.materialName"
                     (ngModelChange)="applyFilter()"
                     placeholder="Tìm kiếm"
                     (keydown)="$event.stopPropagation()"
@@ -287,14 +152,14 @@
                 </mat-form-field>
               </div>
             </th>
-            <td mat-cell *matCellDef="let row">{{ row.poCode }}</td>
+            <td mat-cell *matCellDef="let row">{{ row.materialName }}</td>
           </ng-container>
 
-          <!-- Created Date -->
-          <ng-container matColumnDef="createdDate">
+          <!-- Part Number -->
+          <ng-container matColumnDef="partNumber">
             <th mat-header-cell *matHeaderCellDef>
               <div class="header-with-filter">
-                <span mat-sort-header>Ngày tạo</span>
+                <span mat-sort-header>Part Number</span>
                 <mat-form-field
                   appearance="outline"
                   class="w-full mt-1 input-filter"
@@ -302,38 +167,7 @@
                 >
                   <input
                     matInput
-                    [matDatepicker]="picker"
-                    [(ngModel)]="filterValues.createdDate"
-                    (dateChange)="applyDateFilter()"
-                    placeholder="dd/MM/yyyy"
-                    (keydown)="$event.stopPropagation()"
-                  />
-                  <mat-datepicker-toggle
-                    matSuffix
-                    [for]="picker"
-                  ></mat-datepicker-toggle>
-                  <mat-datepicker #picker></mat-datepicker>
-                </mat-form-field>
-              </div>
-            </th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.createdDate | date: "dd/MM/yyyy HH:mm" }}
-            </td>
-          </ng-container>
-
-          <!-- Created By -->
-          <ng-container matColumnDef="createdBy">
-            <th mat-header-cell *matHeaderCellDef>
-              <div class="header-with-filter">
-                <span mat-sort-header>Tạo bởi</span>
-                <mat-form-field
-                  appearance="outline"
-                  class="w-full mt-1 input-filter"
-                  (click)="$event.stopPropagation()"
-                >
-                  <input
-                    matInput
-                    [(ngModel)]="filterValues.createdBy"
+                    [(ngModel)]="filterValues.partNumber"
                     (ngModelChange)="applyFilter()"
                     placeholder="Tìm kiếm"
                     (keydown)="$event.stopPropagation()"
@@ -341,15 +175,13 @@
                 </mat-form-field>
               </div>
             </th>
-            <td mat-cell *matCellDef="let row">{{ row.createdBy }}</td>
+            <td mat-cell *matCellDef="let row">{{ row.partNumber }}</td>
           </ng-container>
 
-          <!-- Item Count -->
-          <ng-container matColumnDef="itemCount">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Số hàng hóa
-            </th>
-            <td mat-cell *matCellDef="let row">{{ row.itemCount }}</td>
+          <!-- Box Scan -->
+          <ng-container matColumnDef="boxScan">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Số thùng</th>
+            <td mat-cell *matCellDef="let row">{{ row.boxScan }}</td>
           </ng-container>
 
           <!-- Total Quantity -->
@@ -360,29 +192,20 @@
             <td mat-cell *matCellDef="let row">{{ row.totalQuantity }}</td>
           </ng-container>
 
-          <!-- Actions -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Thao tác</th>
-            <td mat-cell *matCellDef="let row">
-              <div class="action-buttons">
-                <button
-                  mat-icon-button
-                  [routerLink]="['detail', row.id]"
-                  matTooltip="Chi tiết"
-                >
-                  <mat-icon>visibility</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  color="warn"
-                  (click)="onDelete(row)"
-                  matTooltip="Xóa"
-                  *jhiHasAnyAuthority="'ROLE_ADMIN_TEM'"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
-            </td>
+          <!-- Quantity Box Order -->
+          <ng-container matColumnDef="quantityBoxOrder">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              Số thùng trong đơn hàng
+            </th>
+            <td mat-cell *matCellDef="let row">{{ row.quantityBoxOrder }}</td>
+          </ng-container>
+
+          <!-- Total Quantity Order -->
+          <ng-container matColumnDef="totalQuantityOrder">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>
+              Số lượng trong đơn hàng
+            </th>
+            <td mat-cell *matCellDef="let row">{{ row.totalQuantityOrder }}</td>
           </ng-container>
 
           <!-- ===== LEVEL-1 EXPANDED ROW (child items) ===== -->
@@ -400,7 +223,7 @@
                   <table class="child-table">
                     <thead>
                       <tr>
-                        <th>Thao tác</th>
+                        <th class="actions-column">Thao tác</th>
                         <th>Lot</th>
                         <th>Số thùng</th>
                         <th>Tổng số lượng</th>
@@ -457,7 +280,7 @@
           *ngIf="mobileDataSource && mobileDataSource.length > 0; else noData"
         >
           <mat-card *ngFor="let item of mobileDataSource" class="mobile-card">
-            <mat-card-header>
+            <!-- <mat-card-header>
               <mat-card-title>
                 <mat-chip
                   [ngStyle]="statusColor(item.status)"
@@ -467,21 +290,21 @@
                   {{ item.status }}
                 </mat-chip>
               </mat-card-title>
-            </mat-card-header>
+            </mat-card-header> -->
             <mat-card-content>
               <div class="info-row">
                 <span class="label">Mã PO:</span
-                ><span class="value">{{ item.poCode }}</span>
+                ><span class="value">{{ item.sapCode }}</span>
               </div>
               <div class="info-row">
                 <span class="label">Mã NCC:</span
-                ><span class="value">{{ item.vendorCode }}</span>
+                ><span class="value">{{ item.materialName }}</span>
               </div>
               <div class="info-row">
                 <span class="label">Tên NCC:</span
-                ><span class="value">{{ item.vendorName }}</span>
+                ><span class="value">{{ item.partNumber }}</span>
               </div>
-              <div class="info-row">
+              <!-- <div class="info-row">
                 <span class="label">Ngày tạo:</span
                 ><span class="value">{{
                   item.createdDate | date: "dd/MM/yyyy"
@@ -498,7 +321,7 @@
               <div class="info-row">
                 <span class="label">Tổng số lượng:</span
                 ><span class="value">{{ item.totalQuantity }}</span>
-              </div>
+              </div> -->
             </mat-card-content>
             <mat-card-actions>
               <button
@@ -530,7 +353,7 @@
   </mat-card>
 
   <!-- Footer Actions -->
-  <div class="footer-actions">
+  <!-- <div class="footer-actions">
     <div class="footer-left">
       <mat-form-field appearance="outline" class="footer-field">
         <mat-label>Kho nhập</mat-label>
@@ -556,7 +379,7 @@
         Gửi phê duyệt
       </button>
     </div>
-  </div>
+  </div> -->
   <mat-divider class="my-3"></mat-divider>
   <mat-paginator
     [length]="totalItems"

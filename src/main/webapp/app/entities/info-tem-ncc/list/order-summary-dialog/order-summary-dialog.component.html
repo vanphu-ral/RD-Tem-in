@@ -1,0 +1,170 @@
+<div class="summary-dialog-wrapper">
+  <!-- Header -->
+  <div class="summary-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">summarize</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">Tổng hợp đơn hàng</h2>
+        <p class="dialog-subtitle">
+          PO: <strong>{{ item.poCode }}</strong> &nbsp;|&nbsp;
+          {{ item.vendorName }}
+        </p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="onClose()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- KPI Cards -->
+  <div class="kpi-section">
+    <div class="kpi-card kpi-blue">
+      <span class="kpi-value">{{ totalSessions }}</span>
+      <span class="kpi-label">Ngày nhập</span>
+    </div>
+    <div class="kpi-card kpi-green">
+      <span class="kpi-value">{{ totalScannedQty | number }}</span>
+      <span class="kpi-label">Tổng SL đã scan</span>
+    </div>
+    <div class="kpi-card kpi-teal">
+      <span class="kpi-value">{{ totalOrderQty | number }}</span>
+      <span class="kpi-label">Tổng SL trong đơn</span>
+    </div>
+    <div class="kpi-card kpi-orange">
+      <span class="kpi-value">{{ totalItemCount }}</span>
+      <span class="kpi-label">Tổng mã Items</span>
+    </div>
+    <div class="kpi-card kpi-purple">
+      <span class="kpi-value">{{ uniqueWarehouses.length }}</span>
+      <span class="kpi-label">Kho sử dụng</span>
+    </div>
+  </div>
+
+  <!-- Order Meta -->
+  <div class="meta-section">
+    <div class="meta-row">
+      <span class="meta-label">Trạng thái</span>
+      <span class="meta-value">
+        <span [ngStyle]="statusBadgeService.getStyle(item.status)">
+          {{ statusBadgeService.getLabel(item.status) }}
+        </span>
+      </span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Ngày về</span>
+      <span class="meta-value">{{
+        item.arrivalDate | date: "dd/MM/yyyy"
+      }}</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Người tạo</span>
+      <span class="meta-value">{{ item.createdBy }}</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Ngày tạo</span>
+      <span class="meta-value">{{
+        item.createdDate | date: "dd/MM/yyyy HH:mm"
+      }}</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Kho nhập</span>
+      <span class="meta-value warehouse-chips">
+        <ng-container *ngIf="uniqueWarehouses.length > 0; else noWarehouse">
+          <span class="warehouse-chip" *ngFor="let w of uniqueWarehouses">{{
+            w
+          }}</span>
+        </ng-container>
+        <ng-template #noWarehouse>
+          <span class="text-muted">—</span>
+        </ng-template>
+      </span>
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Sessions Table -->
+  <div class="sessions-section">
+    <div class="sessions-title">Tổng hợp theo mã vật tư</div>
+    <div class="sessions-table-wrap">
+      <table class="sessions-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Mã SAP</th>
+            <th>Tên sản phẩm</th>
+            <th class="col-num">SL trong đơn</th>
+            <th class="col-num">SL đã scan</th>
+            <th class="col-num">Mã vật tư</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of sapSummary; let i = index">
+            <td class="col-idx">{{ i + 1 }}</td>
+            <td>{{ s.sapCode }}</td>
+            <td>{{ s.sapName }}</td>
+            <td class="col-num">{{ s.orderQty | number }}</td>
+            <td class="col-num green-val">{{ s.scannedQty | number }}</td>
+            <td class="col-num">{{ s.itemCount }}</td>
+          </tr>
+          <tr *ngIf="sapSummary.length === 0">
+            <td
+              colspan="7"
+              style="text-align: center; color: #999; padding: 12px"
+            >
+              Không có dữ liệu
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="sessions-title" style="margin-top: 16px">
+        Số lượng theo ngày nhập
+      </div>
+      <div class="sessions-table-wrap" *ngIf="scanDateSummary.length > 0">
+        <table class="sessions-table date-summary-table">
+          <thead>
+            <tr>
+              <td class="date-label-cell">Ngày</td>
+              <td class="col-num" *ngFor="let d of scanDateSummary">
+                {{ d.date }}
+              </td>
+              <td class="col-num total-col">Tổng</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="date-label-cell">Số lượng</td>
+              <td class="col-num green-val" *ngFor="let d of scanDateSummary">
+                {{ d.qty | number }}
+              </td>
+              <td class="col-num green-val total-col">
+                {{ totalScanDateQty | number }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div
+        *ngIf="scanDateSummary.length === 0"
+        style="
+          text-align: center;
+          color: #999;
+          padding: 8px;
+          font-style: italic;
+        "
+      >
+        Chưa có dữ liệu scan
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <mat-divider></mat-divider>
+  <div class="summary-footer">
+    <button mat-raised-button color="primary" (click)="onClose()">Đóng</button>
+  </div>
+</div>

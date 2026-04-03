@@ -18,8 +18,6 @@ import { MatSlideToggleModule } from "@angular/material/slide-toggle";
 import { MatPaginatorModule } from "@angular/material/paginator";
 import { MatAutocompleteModule } from "@angular/material/autocomplete";
 import { MatRadioModule } from "@angular/material/radio";
-import { InfoTemNccComponent } from "./list/info-tem-ncc.component";
-import { InfoTemNccRoutingModule } from "./route/info-tem-ncc-routing.module";
 import { QRCodeComponent } from "angularx-qrcode";
 import { HttpLink } from "apollo-angular/http";
 import { InMemoryCache } from "@apollo/client/cache";
@@ -33,15 +31,11 @@ import { MatChipsModule } from "@angular/material/chips";
 import { MatSortModule } from "@angular/material/sort";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { MatDividerModule } from "@angular/material/divider";
-import { ConfigTemNccComponent } from "./config-tem-ncc/config-tem-ncc.component";
-import { ConfigDialogComponent } from "./config-dialog/config-dialog.component";
-import { InfoTemNccDetailComponent } from "./info-tem-ncc-detail/info-tem-ncc.-detail.component";
-import { AddInfoTemNccComponent } from "./add-info-tem-ncc/add-info-tem-ncc.component";
-import { LotDetailDialogComponent } from "./lot-detail-dialog/lot-detail-dialog.component";
-import { ScanItemDialogComponent } from "./scan-item-dialog/scan-item-dialog.component";
+
+import { ApproveTemNccComponent } from "./list/approve-tem-ncc.component";
 import { OrderSummaryDialogComponent } from "./list/order-summary-dialog/order-summary-dialog.component";
-import { ScanListViewDialogComponent } from "./scan-item-dialog/scan-list-view-dialog/scan-list-view-dialog.component";
-import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-detail-dialog/approve-lot-detail-dialog.component";
+import { ApproveTemNccRoutingModule } from "./route/approve-tem-ncc-routing.module";
+import { ApproveTemNccDetailComponent } from "./approve-tem-ncc-detail/approve-tem-ncc-detail.component";
 @NgModule({
   imports: [
     // MatDialogModule,
@@ -66,12 +60,12 @@ import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-
     MatCardModule,
     // ApolloModule,
     // HttpClientModule,
+    ApproveTemNccRoutingModule,
     MatListModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatSlideToggleModule,
     MatPaginatorModule,
-    InfoTemNccRoutingModule,
     SharedModule,
     MatAutocompleteModule,
     QRCodeComponent,
@@ -80,28 +74,15 @@ import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-
   ],
 
   declarations: [
-    InfoTemNccComponent,
-    ConfigTemNccComponent,
-    ConfigDialogComponent,
-    InfoTemNccDetailComponent,
-    AddInfoTemNccComponent,
-    LotDetailDialogComponent,
-    ScanItemDialogComponent,
+    ApproveTemNccComponent,
     OrderSummaryDialogComponent,
-    ScanListViewDialogComponent,
-    ApproveLotDetailDialogComponent,
+    ApproveTemNccDetailComponent,
   ],
 
   exports: [
-    InfoTemNccComponent,
-    ConfigTemNccComponent,
-    ConfigDialogComponent,
-    AddInfoTemNccComponent,
-    InfoTemNccDetailComponent,
-    LotDetailDialogComponent,
-    ScanItemDialogComponent,
-    ScanListViewDialogComponent,
+    ApproveTemNccComponent,
     OrderSummaryDialogComponent,
+    ApproveTemNccDetailComponent,
   ],
 })
-export class InfoTemNccModule {}
+export class ApproveTemNccModule {}

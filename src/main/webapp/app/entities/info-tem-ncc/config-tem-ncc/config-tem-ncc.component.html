@@ -2,14 +2,14 @@
   <!-- Top Bar -->
   <div class="top-bar">
     <div class="top-bar-left">
-      <button
+      <!-- <button
         mat-icon-button
         class="back-btn"
         matTooltip="Quay lại"
         [routerLink]="['/info-tem-ncc']"
       >
         <mat-icon>arrow_back</mat-icon>
-      </button>
+      </button> -->
       <h1 class="page-title">Quản lí quy cách nhà cung cấp</h1>
     </div>
     <button mat-flat-button class="add-vendor-btn" (click)="openAddDialog()">
@@ -22,6 +22,9 @@
   <div class="table-card">
     <!-- Table -->
     <div class="table-container">
+      <div class="loading-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
       <table mat-table [dataSource]="pagedData" class="vendor-table">
         <!-- Vendor Code -->
         <ng-container matColumnDef="vendorCode">

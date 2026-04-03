@@ -1,0 +1,138 @@
+<div class="scan-dialog-wrapper">
+  <div class="dialog-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">qr_code_scanner</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">Scan mã vạch</h2>
+        <p class="dialog-subtitle">Scan hoặc nhập mã để thêm vào danh sách</p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="onCancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="scan-input-section">
+    <div class="input-row">
+      <mat-form-field appearance="outline" class="scan-field">
+        <mat-label>Nhập mã scan</mat-label>
+        <input
+          #scanInputRef
+          matInput
+          (keydown)="onKeyDown($event)"
+          (focus)="onInputFocus()"
+          (blur)="onInputBlur()"
+          placeholder="Đưa máy scan vào đây hoặc gõ mã..."
+          autocomplete="off"
+          autofocus
+        />
+        <mat-icon
+          matSuffix
+          class="input-suffix-icon"
+          [class.focused]="isInputFocused"
+        >
+          qr_code
+        </mat-icon>
+      </mat-form-field>
+      <!-- <button
+        mat-raised-button
+        color="primary"
+        class="add-btn"
+        (click)="submitScan()"
+        [disabled]="!scanInput.trim()"
+      >
+        Thêm
+      </button> -->
+    </div>
+
+    <div class="error-bar" *ngIf="errorMessage">
+      <mat-icon class="error-icon">warning</mat-icon>
+      <span>{{ errorMessage }}</span>
+    </div>
+    <div class="success-bar" *ngIf="lastScannedCode && !errorMessage">
+      <mat-icon class="success-icon">check_circle</mat-icon>
+      <span
+        >Đã thêm: <strong>{{ lastScannedCode }}</strong></span
+      >
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Stats grid 3 cột -->
+  <div class="stats-grid">
+    <div class="stat-cell">
+      <span class="stat-label">Đã scan</span>
+      <span class="stat-value v-blue">{{ totalCount }}</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-label">Tổng số lượng</span>
+      <span class="stat-value v-green">{{ totalScannedQty | number }}</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-label">Vật tư</span>
+      <span class="stat-value v-default">{{ uniquePartCount }}</span>
+    </div>
+  </div>
+
+  <!-- Snack status + nút xem danh sách -->
+  <div class="hint-area" (click)="focusInput()">
+    <ng-container *ngIf="scannedList.length === 0">
+      <mat-icon class="hint-icon">qr_code_scanner</mat-icon>
+      <p class="hint-text">Chưa có mã nào được scan</p>
+    </ng-container>
+
+    <ng-container *ngIf="scannedList.length > 0">
+      <div
+        class="scan-status-snack"
+        [class.snack-ok]="scanStatusSummary.type === 'ok'"
+        [class.snack-over]="scanStatusSummary.type === 'over'"
+        [class.snack-under]="scanStatusSummary.type === 'under'"
+        (click)="$event.stopPropagation()"
+      >
+        <mat-icon class="snack-icon">
+          {{
+            scanStatusSummary.type === "ok"
+              ? "check_circle"
+              : scanStatusSummary.type === "over"
+                ? "warning"
+                : "info"
+          }}
+        </mat-icon>
+        <span>{{ scanStatusSummary.message }}</span>
+      </div>
+
+      <button
+        class="view-list-btn"
+        [class.has-error]="errorCount > 0"
+        (click)="openListDialog(); $event.stopPropagation()"
+      >
+        <mat-icon>list</mat-icon>
+        Xem danh sách {{ totalCount }} mã
+        <span class="error-badge" *ngIf="errorCount > 0">
+          {{ errorCount }} lỗi
+        </span>
+      </button>
+    </ng-container>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="dialog-footer">
+    <div class="footer-actions">
+      <button mat-stroked-button (click)="onCancel()">Hủy</button>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onConfirm()"
+        [disabled]="scannedList.length === 0"
+      >
+        Lưu ({{ totalCount }})
+      </button>
+    </div>
+  </div>
+</div>

@@ -35,6 +35,12 @@ import {
 // Models and Services
 import { AlertService } from "app/core/util/alert.service";
 import { ConfigDialogComponent } from "../config-dialog/config-dialog.component";
+import {
+  ManagerTemNccService,
+  TemScenarioResponse,
+} from "app/entities/list-material/services/info-tem-ncc.service";
+import { NotificationService } from "app/entities/list-material/services/notification.service";
+import { ConfirmDialogComponent } from "app/entities/pallet-note-management/confirm-dialog/confirm-dialog.component";
 
 export interface VendorConfig {
   id: string;
@@ -99,32 +105,9 @@ export class ConfigTemNccComponent {
     "actions",
   ];
 
-  allData: VendorConfig[] = [
-    {
-      id: "1",
-      vendorCode: "V900000367",
-      vendorName: "SOSEN",
-      separator: "#",
-      fieldCount: 20,
-      fieldMappings: [],
-    },
-    {
-      id: "2",
-      vendorCode: "V900000368",
-      vendorName: "HUNAN AIHUA GROUP CO., LTD",
-      separator: "#",
-      fieldCount: 6,
-      fieldMappings: [],
-    },
-    {
-      id: "3",
-      vendorCode: "V900000369",
-      vendorName: "Zhejiang Yankon Mega Lighting Co., Ltd",
-      separator: "#",
-      fieldCount: 7,
-      fieldMappings: [],
-    },
-  ];
+  isLoading = false;
+
+  allData: VendorConfig[] = [];
 
   filteredData: VendorConfig[] = [...this.allData];
   pagedData: VendorConfig[] = [];
@@ -133,7 +116,12 @@ export class ConfigTemNccComponent {
 
   filters = { vendorCode: "", vendorName: "" };
 
-  constructor(private dialog: MatDialog) {
+  constructor(
+    private dialog: MatDialog,
+    private managerTemNccService: ManagerTemNccService,
+    private notificationService: NotificationService,
+  ) {
+    this.loadScenarios();
     this.updatePage();
   }
 
@@ -149,6 +137,20 @@ export class ConfigTemNccComponent {
     this.updatePage();
   }
 
+  loadScenarios(): void {
+    this.isLoading = true;
+    this.managerTemNccService.getTemIdentificationScenarios().subscribe({
+      next: (data) => {
+        this.allData = data.map((item) => this.mapResponseToVendorConfig(item));
+        this.applyFilter();
+        this.isLoading = false;
+      },
+      error: () => {
+        this.notificationService.error("Không thể tải danh sách kịch bản!");
+        this.isLoading = false;
+      },
+    });
+  }
   updatePage(): void {
     const start = this.pageIndex * this.pageSize;
     this.pagedData = this.filteredData.slice(start, start + this.pageSize);
@@ -162,13 +164,16 @@ export class ConfigTemNccComponent {
 
   openAddDialog(): void {
     const ref = this.dialog.open(ConfigDialogComponent, {
-      width: "760px",
-      maxHeight: "90vh",
+      width: "95vw",
+      maxWidth: "95vw",
+      height: "95vh",
+      maxHeight: "95vh",
       data: null,
       panelClass: "vendor-dialog-panel",
     });
     ref.afterClosed().subscribe((result: VendorConfig | null) => {
       if (result) {
+        this.loadScenarios();
         result.id = Date.now().toString();
         this.allData.push(result);
         this.applyFilter();
@@ -178,13 +183,16 @@ export class ConfigTemNccComponent {
 
   openEditDialog(vendor: VendorConfig): void {
     const ref = this.dialog.open(ConfigDialogComponent, {
-      width: "760px",
-      maxHeight: "90vh",
+      width: "95vw",
+      maxWidth: "95vw",
+      height: "95vh",
+      maxHeight: "95vh",
       data: { ...vendor },
       panelClass: "vendor-dialog-panel",
     });
     ref.afterClosed().subscribe((result: VendorConfig | null) => {
       if (result) {
+        this.loadScenarios();
         const idx = this.allData.findIndex((v) => v.id === result.id);
         if (idx >= 0) {
           this.allData[idx] = result;
@@ -195,7 +203,53 @@ export class ConfigTemNccComponent {
   }
 
   deleteVendor(vendor: VendorConfig): void {
-    this.allData = this.allData.filter((v) => v.id !== vendor.id);
-    this.applyFilter();
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: "400px",
+      data: {
+        title: "Xác nhận xóa",
+        message: `Bạn có chắc chắn muốn xóa nhà cung cấp ${vendor.vendorName} không?`,
+        confirmText: "Xóa",
+        cancelText: "Hủy",
+      },
+    });
+
+    ref.afterClosed().subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return;
+      }
+      this.managerTemNccService
+        .deleteTemIdentificationScenario(Number(vendor.id))
+        .subscribe({
+          next: () => {
+            this.notificationService.success("Xóa kịch bản thành công!");
+            this.loadScenarios();
+          },
+          error: () => {
+            this.notificationService.error("Xóa kịch bản thất bại!");
+          },
+        });
+    });
+  }
+
+  private mapResponseToVendorConfig(item: TemScenarioResponse): VendorConfig {
+    let separator = "#";
+    let fieldMappings: FieldMapping[] = [];
+
+    try {
+      const parsed = JSON.parse(item.mappingConfig);
+      separator = parsed.separator ?? "#";
+      fieldMappings = parsed.fieldMappings ?? [];
+    } catch {
+      // mappingConfig không parse được, giữ default
+    }
+
+    return {
+      id: String(item.id),
+      vendorCode: item.vendorCode,
+      vendorName: item.vendorName,
+      separator,
+      fieldCount: fieldMappings.length,
+      fieldMappings,
+    };
   }
 }

@@ -27,6 +27,11 @@ const infoTemNccRoute: Routes = [
     canActivate: [UserRouteAccessService],
   },
   {
+    path: "add-info-tem-ncc/:id",
+    component: AddInfoTemNccComponent,
+    canActivate: [UserRouteAccessService],
+  },
+  {
     path: "info-tem-ncc-detail",
     component: InfoTemNccDetailComponent,
     canActivate: [UserRouteAccessService],

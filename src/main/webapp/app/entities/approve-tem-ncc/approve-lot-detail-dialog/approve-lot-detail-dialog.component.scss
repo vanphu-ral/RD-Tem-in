@@ -1,0 +1,275 @@
+// ==================== DIALOG TITLE ====================
+
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px 8px !important;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+  margin: 0 !important;
+
+  .part-number-badge {
+    background: #fef08a;
+    color: #713f12;
+    padding: 4px 14px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .close-btn {
+    margin-left: auto;
+    color: #6b7280;
+    &:hover {
+      color: #111827;
+    }
+  }
+}
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.status-new {
+    background: #e0e0e0;
+    color: #333;
+  }
+
+  &.status-pending {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  &.status-approve {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+}
+// ==================== DIALOG CONTENT ====================
+
+.dialog-content {
+  padding: 12px 20px 0 !important;
+  max-height: 75vh;
+  overflow: hidden; // scroll handled by inner wrapper
+  display: flex;
+  flex-direction: column;
+}
+
+.production-date {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+}
+
+// ==================== TABLE SCROLL WRAPPER ====================
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+// ==================== EDIT TABLE ====================
+
+.edit-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+// ==================== HEADER ====================
+
+.header-row th {
+  background: #3d7bb9;
+  color: white;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  white-space: nowrap;
+
+  .th-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 13px;
+
+    .sort-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      opacity: 0.8;
+      flex-shrink: 0;
+    }
+  }
+}
+
+// ==================== APPLY ROW ====================
+
+.apply-row td {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  padding: 4px 6px;
+  position: sticky;
+  top: 37px; // height of header row
+  z-index: 9;
+}
+
+.apply-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.apply-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  background: white;
+  outline: none;
+  height: 26px;
+
+  &:focus {
+    border-color: #3d7bb9;
+    box-shadow: 0 0 0 2px rgba(61, 123, 185, 0.15);
+  }
+}
+
+.apply-icon-btn {
+  width: 26px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  flex-shrink: 0;
+  padding: 2px;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #3d7bb9;
+  }
+}
+
+.apply-cell-empty {
+  height: 26px;
+}
+
+// ==================== DATA ROWS ====================
+
+.data-row {
+  &:nth-child(even) {
+    background: #f9fafb;
+  }
+  &:hover {
+    background: rgba(61, 123, 185, 0.06);
+  }
+  &.editing-row {
+    background: #eff6ff;
+  }
+}
+
+.data-cell {
+  border: 1px solid #e5e7eb;
+  padding: 6px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  vertical-align: middle;
+  height: 36px;
+
+  &.editable-cell {
+    cursor: cell;
+
+    &:hover {
+      background: rgba(61, 123, 185, 0.04);
+      outline: 1px dashed rgba(61, 123, 185, 0.4);
+      outline-offset: -1px;
+    }
+  }
+
+  &.active-edit {
+    padding: 0 !important;
+    outline: 2px solid #3d7bb9 !important;
+    outline-offset: -2px;
+    background: white;
+  }
+}
+
+.cell-value {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ==================== CELL INPUT ====================
+
+.cell-input {
+  width: 100%;
+  height: 100%;
+  min-height: 34px;
+  border: none;
+  outline: none;
+  padding: 4px 8px;
+  font-size: 13px;
+  background: white;
+  box-sizing: border-box;
+}
+
+// ==================== NO DATA ====================
+
+.no-data-cell {
+  text-align: center;
+  padding: 24px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+// ==================== DIALOG ACTIONS ====================
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px !important;
+  border-top: 1px solid #e5e7eb;
+  margin: 0 !important;
+
+  button {
+    min-width: 80px;
+    font-weight: 600;
+  }
+}
+
+// ==================== MATERIAL DIALOG OVERRIDES ====================
+
+::ng-deep .lot-detail-dialog-panel {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .mat-mdc-dialog-surface {
+    padding: 0 !important;
+  }
+}

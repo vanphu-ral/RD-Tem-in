@@ -21,6 +21,7 @@ export interface LotDetailRow {
   id: number;
   reelId: string;
   partNumber: string;
+  sapName?: string;
   vendor: string;
   lot: string;
   userData1: string;
@@ -34,7 +35,6 @@ export interface LotDetailRow {
   manufacturingDate: string;
   expirationDate: string;
   sapCode: string;
-  sapName?: string;
   vendorQrCode?: string;
   status?: string;
   createdBy?: string;
@@ -67,10 +67,12 @@ interface EditingCell {
 
 @Component({
   selector: "jhi-lot-detail-dialog",
-  templateUrl: "./lot-detail-dialog.component.html",
-  styleUrls: ["./lot-detail-dialog.component.scss"],
+  templateUrl: "./approve-lot-detail-dialog.component.html",
+  styleUrls: ["./approve-lot-detail-dialog.component.scss"],
 })
-export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
+export class ApproveLotDetailDialogComponent
+  implements OnInit, AfterViewChecked
+{
   columns: ColumnDef[] = [
     { key: "reelId", label: "ReelId", minWidth: 190, editable: true },
     { key: "sapCode", label: "Mã SAP", minWidth: 120, editable: true },
@@ -103,6 +105,7 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
       minWidth: 150,
       editable: true,
     },
+    // { key: "status", label: "Trạng thái", minWidth: 120, editable: false },
   ];
 
   rows: LotDetailRow[] = [];
@@ -118,7 +121,7 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
   private originalValue: any = null;
 
   constructor(
-    public dialogRef: MatDialogRef<LotDetailDialogComponent>,
+    public dialogRef: MatDialogRef<ApproveLotDetailDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: LotDetailDialogData,
     private managerTemNccService: ManagerTemNccService,
     private accountService: AccountService,

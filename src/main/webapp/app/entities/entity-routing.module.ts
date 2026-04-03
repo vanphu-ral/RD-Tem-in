@@ -163,6 +163,14 @@ import { RouterModule } from "@angular/router";
           ),
       },
       {
+        path: "approve-tem-ncc",
+        data: { pageTitle: "Phê duyệt TEM nhà cung cấp" },
+        loadChildren: () =>
+          import("./approve-tem-ncc/approve-tem-ncc.module").then(
+            (m) => m.ApproveTemNccModule,
+          ),
+      },
+      {
         path: "lenh-san-xuat",
         data: { pageTitle: "Thông tin tem sản xuất" },
         loadChildren: () =>

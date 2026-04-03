@@ -1,8 +1,8 @@
 <div class="container mat-elevation-z2">
   <!-- Header -->
   <div class="header">
-    <h1>Nhập thông tin TEM từ NCC</h1>
-    <div>
+    <h1>Phê duyệt TEM NCC</h1>
+    <!-- <div>
       <button
         mat-raised-button
         color="primary"
@@ -11,7 +11,7 @@
         <mat-icon>add</mat-icon>
         <span class="button-text">Thêm mới</span>
       </button>
-    </div>
+    </div> -->
   </div>
 
   <!-- Mobile Filters -->
@@ -48,14 +48,14 @@
             (ngModelChange)="applyFilter()"
           />
         </mat-form-field>
-        <mat-form-field appearance="outline" class="w-full">
+        <!-- <mat-form-field appearance="outline" class="w-full">
           <mat-label>Kho nhập</mat-label>
           <input
             matInput
             [(ngModel)]="filterValues.warehouse"
             (ngModelChange)="applyFilter()"
           />
-        </mat-form-field>
+        </mat-form-field> -->
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Trạng thái</mat-label>
           <mat-select
@@ -75,9 +75,6 @@
 
   <!-- Desktop Table -->
   <div class="table-container desktop-view">
-    <div class="loading-overlay" *ngIf="isLoading">
-      <mat-spinner diameter="40"></mat-spinner>
-    </div>
     <table
       mat-table
       [dataSource]="dataSource"
@@ -111,27 +108,12 @@
                 isExpanded(row) ? "expand_less" : "expand_more"
               }}</mat-icon>
             </button>
-            <!-- <button
-              mat-icon-button
-              [routerLink]="['/info-tem-ncc/add-info-tem-ncc', row.id]"
-              matTooltip="Scan"
-            >
-              <mat-icon class="icon-view">qr_code</mat-icon>
-            </button> -->
             <button
               mat-icon-button
               (click)="onInfo(row); $event.stopPropagation()"
               matTooltip="Tổng hợp"
             >
               <mat-icon class="icon-info">info_outline</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="onDelete(row)"
-              matTooltip="Xóa"
-            >
-              <mat-icon>delete</mat-icon>
             </button>
           </div>
         </td>
@@ -237,25 +219,6 @@
         </th>
         <td mat-cell *matCellDef="let row">{{ row.createdBy }}</td>
       </ng-container>
-      <ng-container matColumnDef="poComments">
-        <th mat-header-cell *matHeaderCellDef class="col-comments">
-          <div class="th-wrap">
-            <span mat-sort-header>Ghi chú</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
-                [(ngModel)]="filterValues.poComments"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-              />
-            </div>
-          </div>
-        </th>
-        <td mat-cell *matCellDef="let row" class="col-comments-cell">
-          {{ row.poComments }}
-        </td>
-      </ng-container>
 
       <!-- Warehouse -->
       <!-- <ng-container matColumnDef="warehouse">
@@ -319,133 +282,186 @@
             class="session-expand-wrapper"
             [@detailExpand]="isExpanded(row) ? 'expanded' : 'collapsed'"
           >
-            <div class="session-loading" *ngIf="isLoadingDetail(row)">
-              <mat-spinner diameter="24"></mat-spinner>
-              <span>Đang tải...</span>
-            </div>
-            <ng-container *ngIf="!isLoadingDetail(row)">
-              <!-- Sub-table header label -->
-              <div class="session-header-label">
+            <!-- Sub-table header label -->
+            <div class="session-header-label">
+              <div class="session-header-left">
                 <mat-icon class="session-label-icon">reorder</mat-icon>
                 <span>DANH SÁCH CÁC LẦN NHẬP (SESSIONS)</span>
                 <span class="session-count-badge">{{
                   row.sessions?.length ?? 0
                 }}</span>
               </div>
+              <div class="session-header-actions">
+                <button
+                  mat-raised-button
+                  color="primary"
+                  class="approve-btn"
+                  [disabled]="getSessionSelection(row).selected.length === 0"
+                  (click)="onApprove(row)"
+                >
+                  Phê duyệt
+                  <span
+                    class="sel-count"
+                    *ngIf="getSessionSelection(row).selected.length > 0"
+                  >
+                    ({{ getSessionSelection(row).selected.length }})
+                  </span>
+                </button>
+                <button
+                  mat-raised-button
+                  color="warn"
+                  class="reject-btn"
+                  [disabled]="getSessionSelection(row).selected.length === 0"
+                  (click)="onReject(row)"
+                >
+                  Từ chối
+                  <span
+                    class="sel-count"
+                    *ngIf="getSessionSelection(row).selected.length > 0"
+                  >
+                    ({{ getSessionSelection(row).selected.length }})
+                  </span>
+                </button>
+              </div>
+            </div>
 
-              <!-- Scrollable table wrapper -->
-              <div class="session-table-scroll">
-                <table class="session-table">
-                  <thead>
-                    <tr>
-                      <th class="col-stt-s">STT</th>
-                      <th class="col-stt-s">Thao tác</th>
-                      <th>Ngày nhập</th>
-                      <th>Kho</th>
-                      <th>Trạng thái</th>
-                      <th class="col-num">Tổng SL</th>
-                      <th class="col-num">Mã Items</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <ng-container
-                      *ngIf="
-                        row.sessions && row.sessions.length > 0;
-                        else noSession
+            <!-- Scrollable table wrapper -->
+            <div class="session-table-scroll">
+              <table class="session-table">
+                <thead>
+                  <tr>
+                    <th class="col-chk">
+                      <mat-checkbox
+                        [checked]="isAllSessionsSelected(row)"
+                        [indeterminate]="isSomeSessionSelected(row)"
+                        (change)="toggleAllSessions(row)"
+                        [disabled]="!hasApprovableSessions(row)"
+                        color="primary"
+                      >
+                      </mat-checkbox>
+                    </th>
+                    <th class="col-stt-s">STT</th>
+                    <th class="col-stt-s">Thao tác</th>
+                    <th>Ngày nhập</th>
+                    <th>Kho</th>
+                    <th>Status</th>
+                    <th class="col-num">Tổng SL</th>
+                    <th class="col-num">Mã Items</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <ng-container
+                    *ngIf="
+                      row.sessions && row.sessions.length > 0;
+                      else noSession
+                    "
+                  >
+                    <tr
+                      *ngFor="
+                        let session of getPagedSessions(row);
+                        let si = index
+                      "
+                      class="session-tr"
+                      [class.row-selected]="
+                        isSessionSelected(
+                          row,
+                          getSessionPage(row) * sessionPageSize + si
+                        )
+                      "
+                      [class.row-dimmed]="
+                        !isSessionSelected(
+                          row,
+                          getSessionPage(row) * sessionPageSize + si
+                        )
                       "
                     >
-                      <tr
-                        *ngFor="
-                          let session of getPagedSessions(row);
-                          let si = index
-                        "
-                        class="session-tr"
-                      >
-                        <td class="col-stt-s">
-                          {{ getSessionIndex(row, si) }}
-                        </td>
-                        <td class="col-stt-s">
-                          <!-- <button
-                            mat-icon-button
-                            [routerLink]="['/info-tem-ncc/info-tem-ncc-detail, row.id']"
-                            matTooltip="Chi tiết"
-                          >
-                            <mat-icon class="icon-view">visibility</mat-icon>
-                          </button> -->
-                          <button
-                            mat-icon-button
-                            (click)="onViewDetail(row, session)"
-                            matTooltip="Chi tiết"
-                          >
-                            <mat-icon class="icon-view">visibility</mat-icon>
-                          </button>
-                          <button
-                            mat-icon-button
-                            (click)="onScanSession(row, session)"
-                            matTooltip="Scan đợt này"
-                          >
-                            <mat-icon class="icon-view">qr_code</mat-icon>
-                          </button>
-                        </td>
-                        <td>
-                          {{ session.importDate | date: "dd/MM/yyyy HH:mm" }}
-                        </td>
-                        <td>{{ session.warehouse }}</td>
-                        <td>
-                          <span
-                            [ngStyle]="
-                              statusBadgeService.getStyle(session.status)
-                            "
-                          >
-                            {{ statusBadgeService.getLabel(session.status) }}
-                          </span>
-                        </td>
-                        <td class="col-num green-val">
-                          {{ session.totalQty | number }}
-                        </td>
-                        <td class="col-num">{{ session.itemCount }}</td>
-                      </tr>
-                    </ng-container>
-                    <ng-template #noSession>
-                      <tr>
-                        <td colspan="6" class="no-session">Không có dữ liệu</td>
-                      </tr>
-                    </ng-template>
-                  </tbody>
-                </table>
-              </div>
+                      <td class="col-chk">
+                        <mat-checkbox
+                          [checked]="
+                            isSessionSelected(
+                              row,
+                              getSessionPage(row) * sessionPageSize + si
+                            )
+                          "
+                          (change)="
+                            toggleSessionSelect(
+                              row,
+                              getSessionPage(row) * sessionPageSize + si
+                            )
+                          "
+                          [disabled]="!isSessionApprovable(session)"
+                          color="primary"
+                        >
+                        </mat-checkbox>
+                      </td>
+                      <td class="col-stt-s">{{ getSessionIndex(row, si) }}</td>
+                      <td class="col-stt-s">
+                        <button
+                          mat-icon-button
+                          (click)="onViewDetail(row, session)"
+                          matTooltip="Chi tiết"
+                        >
+                          <mat-icon class="icon-view">visibility</mat-icon>
+                        </button>
+                      </td>
+                      <td>
+                        {{ session.importDate | date: "dd/MM/yyyy HH:mm" }}
+                      </td>
+                      <td>{{ session.warehouse }}</td>
+                      <td>
+                        <span
+                          [ngStyle]="
+                            statusBadgeService.getStyle(session.status)
+                          "
+                        >
+                          {{ statusBadgeService.getLabel(session.status) }}
+                        </span>
+                      </td>
+                      <td class="col-num green-val">
+                        {{ session.totalQty | number }}
+                      </td>
+                      <td class="col-num">{{ session.itemCount }}</td>
+                    </tr>
+                  </ng-container>
+                  <ng-template #noSession>
+                    <tr>
+                      <td colspan="8" class="no-session">Không có dữ liệu</td>
+                    </tr>
+                  </ng-template>
+                </tbody>
+              </table>
+            </div>
 
-              <!-- Mini paginator -->
-              <div
-                class="session-paginator"
-                *ngIf="row.sessions && row.sessions.length > sessionPageSize"
+            <!-- Mini paginator -->
+            <div
+              class="session-paginator"
+              *ngIf="row.sessions && row.sessions.length > sessionPageSize"
+            >
+              <span class="pag-info">
+                {{ getSessionPageStart(row) }}–{{ getSessionPageEnd(row) }} /
+                {{ row.sessions.length }}
+              </span>
+              <button
+                mat-icon-button
+                [disabled]="getSessionPage(row) === 0"
+                (click)="setSessionPage(row, getSessionPage(row) - 1)"
               >
-                <span class="pag-info">
-                  {{ getSessionPageStart(row) }}–{{ getSessionPageEnd(row) }} /
-                  {{ row.sessions.length }}
-                </span>
-                <button
-                  mat-icon-button
-                  [disabled]="getSessionPage(row) === 0"
-                  (click)="setSessionPage(row, getSessionPage(row) - 1)"
-                >
-                  <mat-icon>chevron_left</mat-icon>
-                </button>
-                <span class="pag-page"
-                  >{{ getSessionPage(row) + 1 }} /
-                  {{ getSessionTotalPages(row) }}</span
-                >
-                <button
-                  mat-icon-button
-                  [disabled]="
-                    getSessionPage(row) >= getSessionTotalPages(row) - 1
-                  "
-                  (click)="setSessionPage(row, getSessionPage(row) + 1)"
-                >
-                  <mat-icon>chevron_right</mat-icon>
-                </button>
-              </div>
-            </ng-container>
+                <mat-icon>chevron_left</mat-icon>
+              </button>
+              <span class="pag-page"
+                >{{ getSessionPage(row) + 1 }} /
+                {{ getSessionTotalPages(row) }}</span
+              >
+              <button
+                mat-icon-button
+                [disabled]="
+                  getSessionPage(row) >= getSessionTotalPages(row) - 1
+                "
+                (click)="setSessionPage(row, getSessionPage(row) + 1)"
+              >
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
           </div>
         </td>
       </ng-container>
@@ -481,10 +497,7 @@
         <div class="mobile-card-header">
           <div class="mobile-card-header-left">
             <span class="stt-badge">{{ getRowIndex(item) }}</span>
-            <span
-              class="mobile-status-text"
-              [ngStyle]="statusBadgeService.getStyle(item.status)"
-            >
+            <span [ngStyle]="statusBadgeService.getStyle(item.status)">
               {{ statusBadgeService.getLabel(item.status) }}
             </span>
           </div>
@@ -500,17 +513,8 @@
             <button
               mat-icon-button
               (click)="onInfo(item); $event.stopPropagation()"
-              matTooltip="Tổng hợp"
             >
               <mat-icon class="icon-info">info_outline</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="onDelete(item)"
-              matTooltip="Xóa"
-            >
-              <mat-icon>delete</mat-icon>
             </button>
           </div>
         </div>
@@ -580,17 +584,12 @@
                 </div>
                 <button
                   mat-icon-button
-                  [routerLink]="['/info-tem-ncc/info-tem-ncc-detail']"
+                  (click)="
+                    onViewDetail(item, session); $event.stopPropagation()
+                  "
                   matTooltip="Chi tiết"
                 >
                   <mat-icon class="icon-view">visibility</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  (click)="onScanSession(item, session)"
-                  matTooltip="Scan đợt này"
-                >
-                  <mat-icon class="icon-view">qr_code</mat-icon>
                 </button>
               </div>
               <div class="mobile-session-stats">

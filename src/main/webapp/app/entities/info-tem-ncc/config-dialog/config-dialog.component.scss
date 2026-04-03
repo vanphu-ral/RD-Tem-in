@@ -50,8 +50,44 @@
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+  height: 100%;
+  max-height: 100%;
+}
+.search-option {
+  position: sticky !important;
+  top: 0;
+  z-index: 1;
+  background: #fff !important;
+  border-bottom: 1px solid #e8eaed;
+  padding: 0 !important;
+  height: 44px !important;
+  cursor: default !important;
+
+  // ẩn hover effect của mat-option
+  &:hover {
+    background: #fff !important;
+  }
+
+  .mat-option-text {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
 }
 
+.select-search-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  padding: 8px 12px;
+  background: transparent;
+  color: #202124;
+
+  &::placeholder {
+    color: #9aa0a6;
+  }
+}
 /* Two column layout */
 .two-col {
   display: grid;
@@ -290,13 +326,30 @@
   font-size: 12px;
   font-weight: 500;
 }
+.vendor-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
 
+  .vendor-option-name {
+    flex: 1;
+    color: #202124;
+    font-weight: 500;
+  }
+
+  .vendor-option-code {
+    color: #70757a;
+    font-size: 12px;
+    font-family: "Courier New", monospace;
+  }
+}
 /* Footer */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 24px;
+  // padding: 16px 24px;
   border-top: 1px solid #ebebeb;
   flex-shrink: 0;
 }
@@ -311,7 +364,10 @@
   background: #1e7e34 !important;
   color: white !important;
 }
-
+::ng-deep .mat-mdc-dialog-surface {
+  width: auto !important;
+  height: auto !important;
+}
 /* Material overrides */
 ::ng-deep .mat-mdc-form-field-subscript-wrapper {
   display: none !important;

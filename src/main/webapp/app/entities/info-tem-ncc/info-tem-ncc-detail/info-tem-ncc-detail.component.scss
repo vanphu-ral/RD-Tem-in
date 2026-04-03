@@ -13,8 +13,29 @@
   width: 100%;
 }
 .d-flex {
-  display: flex;
   align-items: center;
+}
+.header-title {
+  gap: 10px;
+}
+table {
+  td {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+}
+.actions-column {
+  width: 70px !important;
+  max-width: 70px !important;
+}
+.chip-PO {
+  background-color: #267cfb !important;
+  span {
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+  }
 }
 // ==================== LAYOUT ====================
 ::ng-deep .small-form-field {
@@ -135,8 +156,8 @@
 // ==================== COLUMN WIDTHS ====================
 
 .mat-column-expand {
-  width: 48px;
-  max-width: 48px;
+  width: 70px;
+  max-width: 70px;
 }
 .mat-column-status {
   width: 130px;

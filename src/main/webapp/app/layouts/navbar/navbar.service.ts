@@ -52,6 +52,8 @@ export class NavbarService {
         { title: "Quản lý phê duyệt", link: "/chi-tiet-lenh-san-xuat" },
         { title: "Quản lý TEM vật tư", link: "/generate-tem-in" },
         { title: "Nhập thông tin TEM NCC", link: "/info-tem-ncc" },
+        { title: "Cấu hình TEM NCC", link: "/info-tem-ncc/config-tem-ncc" },
+        { title: "Phê duyệt TEM NCC", link: "/approve-tem-ncc" },
       ],
     },
     {
