@@ -41,13 +41,15 @@
       "SapOcrd",
       "SapPoInfo",
       "PoImportTemId",
-      "PoImportTem"
+      "PoImportTem",
+      "InboundWMSSession",
+      "InboundWMSPallet"
     ],
     "entitySuffix": "",
     "jhiPrefix": "jhi",
     "jhipsterVersion": "8.11.0",
     "languages": ["en", "fr"],
-    "lastLiquibaseTimestamp": 1773861147000,
+    "lastLiquibaseTimestamp": 1775187439000,
     "messageBroker": false,
     "nativeLanguage": "en",
     "otherModules": [],

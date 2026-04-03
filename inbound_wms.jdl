@@ -1,0 +1,27 @@
+
+entity InboundWMSSession {
+    status String maxlength(50),
+    createdBy String maxlength(15),
+    createdAt ZonedDateTime
+}
+
+entity InboundWMSPallet {
+	inboundWMSSessionId Integer,
+    warehouseNoteInfoId Integer,
+    serialPallet String maxlength(50),
+    wmsSendStatus String maxlength(50),
+    createdBy String maxlength(15),
+    createdAt ZonedDateTime
+}
+
+relationship OneToMany {
+	InboundWMSSession to InboundWMSPallet{InboundWMSSession}
+}
+
+paginate InboundWMSSession with pagination
+
+// Áp dụng Service Implementation cho tất cả
+service all with serviceImpl
+
+// Sử dụng DTO Mapstruct cho tất cả
+dto all with mapstruct

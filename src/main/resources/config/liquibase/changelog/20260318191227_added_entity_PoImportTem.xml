@@ -26,9 +26,6 @@
             <column name="entry_date" type="date">
                 <constraints nullable="true" />
             </column>
-            <column name="storage_unit" type="varchar(50)">
-                <constraints nullable="true" />
-            </column>
             <column name="quantity_container" type="integer">
                 <constraints nullable="true" />
             </column>

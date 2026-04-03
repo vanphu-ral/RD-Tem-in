@@ -43,10 +43,6 @@ public class PoImportTem implements Serializable {
     @Column(name = "entry_date")
     private LocalDate entryDate;
 
-    @Size(max = 50)
-    @Column(name = "storage_unit", length = 50)
-    private String storageUnit;
-
     @Column(name = "quantity_container")
     private Integer quantityContainer;
 
@@ -195,19 +191,6 @@ public class PoImportTem implements Serializable {
         this.entryDate = entryDate;
     }
 
-    public String getStorageUnit() {
-        return this.storageUnit;
-    }
-
-    public PoImportTem storageUnit(String storageUnit) {
-        this.setStorageUnit(storageUnit);
-        return this;
-    }
-
-    public void setStorageUnit(String storageUnit) {
-        this.storageUnit = storageUnit;
-    }
-
     public Integer getQuantityContainer() {
         return this.quantityContainer;
     }
@@ -245,6 +228,19 @@ public class PoImportTem implements Serializable {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getPoComments() {
+        return this.poComments;
+    }
+
+    public PoImportTem poComments(String poComments) {
+        this.setPoComments(poComments);
+        return this;
+    }
+
+    public void setPoComments(String poComments) {
+        this.poComments = poComments;
     }
 
     public String getCreatedBy() {
@@ -371,10 +367,10 @@ public class PoImportTem implements Serializable {
                 ", vendorCode='" + getVendorCode() + "'" +
                 ", vendorName='" + getVendorName() + "'" +
                 ", entryDate='" + getEntryDate() + "'" +
-                ", storageUnit='" + getStorageUnit() + "'" +
                 ", quantityContainer=" + getQuantityContainer() +
                 ", totalQuantity=" + getTotalQuantity() +
                 ", status='" + getStatus() + "'" +
+                ", poComments='" + getPoComments() + "'" +
                 ", createdBy='" + getCreatedBy() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +

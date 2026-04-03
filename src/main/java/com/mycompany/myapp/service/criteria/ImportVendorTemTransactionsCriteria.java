@@ -45,6 +45,8 @@ public class ImportVendorTemTransactionsCriteria
 
     private StringFilter status;
 
+    private BooleanFilter panaSendStatus;
+
     private StringFilter createdBy;
 
     private ZonedDateTimeFilter createdAt;
@@ -124,6 +126,10 @@ public class ImportVendorTemTransactionsCriteria
         this.deletedAt = other
             .optionalDeletedAt()
             .map(ZonedDateTimeFilter::copy)
+            .orElse(null);
+        this.panaSendStatus = other
+            .optionalPanaSendStatus()
+            .map(BooleanFilter::copy)
             .orElse(null);
         this.poDetailId = other
             .optionalPoDetailId()
@@ -312,6 +318,25 @@ public class ImportVendorTemTransactionsCriteria
 
     public void setStatus(StringFilter status) {
         this.status = status;
+    }
+
+    public BooleanFilter getPanaSendStatus() {
+        return panaSendStatus;
+    }
+
+    public Optional<BooleanFilter> optionalPanaSendStatus() {
+        return Optional.ofNullable(panaSendStatus);
+    }
+
+    public BooleanFilter panaSendStatus() {
+        if (panaSendStatus == null) {
+            setPanaSendStatus(new BooleanFilter());
+        }
+        return panaSendStatus;
+    }
+
+    public void setPanaSendStatus(BooleanFilter panaSendStatus) {
+        this.panaSendStatus = panaSendStatus;
     }
 
     public StringFilter getCreatedBy() {
@@ -532,6 +557,7 @@ public class ImportVendorTemTransactionsCriteria
             temIdentificationScenarioId,
             mappingConfig,
             status,
+            panaSendStatus,
             createdBy,
             createdAt,
             updatedBy,
@@ -564,6 +590,7 @@ public class ImportVendorTemTransactionsCriteria
                 optionalDeletedAt().map(f -> "deletedAt=" + f + ", ").orElse("") +
                 optionalPoDetailId().map(f -> "poDetailId=" + f + ", ").orElse("") +
                 optionalPoImportTemId().map(f -> "poImportTemId=" + f + ", ").orElse("") +
+                optionalPanaSendStatus().map(f -> "panaSendStatus=" + f + ", ").orElse("") +
                 optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
                 "}";
     }

@@ -92,7 +92,6 @@ class PoImportTemCriteriaTest {
         poImportTemCriteria.vendorCode();
         poImportTemCriteria.vendorName();
         poImportTemCriteria.entryDate();
-        poImportTemCriteria.storageUnit();
         poImportTemCriteria.quantityContainer();
         poImportTemCriteria.totalQuantity();
         poImportTemCriteria.status();
@@ -115,7 +114,6 @@ class PoImportTemCriteriaTest {
                 condition.apply(criteria.getVendorCode()) &&
                 condition.apply(criteria.getVendorName()) &&
                 condition.apply(criteria.getEntryDate()) &&
-                condition.apply(criteria.getStorageUnit()) &&
                 condition.apply(criteria.getQuantityContainer()) &&
                 condition.apply(criteria.getTotalQuantity()) &&
                 condition.apply(criteria.getStatus()) &&
@@ -145,11 +143,6 @@ class PoImportTemCriteriaTest {
                 condition.apply(
                     criteria.getVendorName(),
                     copy.getVendorName()
-                ) &&
-                condition.apply(criteria.getEntryDate(), copy.getEntryDate()) &&
-                condition.apply(
-                    criteria.getStorageUnit(),
-                    copy.getStorageUnit()
                 ) &&
                 condition.apply(
                     criteria.getQuantityContainer(),

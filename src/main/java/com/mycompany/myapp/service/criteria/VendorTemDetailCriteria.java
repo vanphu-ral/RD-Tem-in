@@ -89,6 +89,8 @@ public class VendorTemDetailCriteria implements Serializable, Criteria {
 
     private StringFilter status;
 
+    private BooleanFilter panaSendStatus;
+
     private StringFilter createdBy;
 
     private ZonedDateTimeFilter createdAt;
@@ -225,6 +227,10 @@ public class VendorTemDetailCriteria implements Serializable, Criteria {
         this.status = other
             .optionalStatus()
             .map(StringFilter::copy)
+            .orElse(null);
+        this.panaSendStatus = other
+            .optionalPanaSendStatus()
+            .map(BooleanFilter::copy)
             .orElse(null);
         this.createdBy = other
             .optionalCreatedBy()
@@ -860,6 +866,25 @@ public class VendorTemDetailCriteria implements Serializable, Criteria {
 
     public void setStatus(StringFilter status) {
         this.status = status;
+    }
+
+    public BooleanFilter getPanaSendStatus() {
+        return panaSendStatus;
+    }
+
+    public Optional<BooleanFilter> optionalPanaSendStatus() {
+        return Optional.ofNullable(panaSendStatus);
+    }
+
+    public BooleanFilter panaSendStatus() {
+        if (panaSendStatus == null) {
+            setPanaSendStatus(new BooleanFilter());
+        }
+        return panaSendStatus;
+    }
+
+    public void setPanaSendStatus(BooleanFilter panaSendStatus) {
+        this.panaSendStatus = panaSendStatus;
     }
 
     public StringFilter getCreatedBy() {

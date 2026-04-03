@@ -32,8 +32,6 @@ public class PoImportTemCriteria implements Serializable, Criteria {
 
     private LocalDateFilter entryDate;
 
-    private StringFilter storageUnit;
-
     private IntegerFilter quantityContainer;
 
     private IntegerFilter totalQuantity;
@@ -73,10 +71,6 @@ public class PoImportTemCriteria implements Serializable, Criteria {
         this.entryDate = other
             .optionalEntryDate()
             .map(LocalDateFilter::copy)
-            .orElse(null);
-        this.storageUnit = other
-            .optionalStorageUnit()
-            .map(StringFilter::copy)
             .orElse(null);
         this.quantityContainer = other
             .optionalQuantityContainer()
@@ -215,25 +209,6 @@ public class PoImportTemCriteria implements Serializable, Criteria {
 
     public void setEntryDate(LocalDateFilter entryDate) {
         this.entryDate = entryDate;
-    }
-
-    public StringFilter getStorageUnit() {
-        return storageUnit;
-    }
-
-    public Optional<StringFilter> optionalStorageUnit() {
-        return Optional.ofNullable(storageUnit);
-    }
-
-    public StringFilter storageUnit() {
-        if (storageUnit == null) {
-            setStorageUnit(new StringFilter());
-        }
-        return storageUnit;
-    }
-
-    public void setStorageUnit(StringFilter storageUnit) {
-        this.storageUnit = storageUnit;
     }
 
     public IntegerFilter getQuantityContainer() {
@@ -441,7 +416,6 @@ public class PoImportTemCriteria implements Serializable, Criteria {
             Objects.equals(vendorCode, that.vendorCode) &&
             Objects.equals(vendorName, that.vendorName) &&
             Objects.equals(entryDate, that.entryDate) &&
-            Objects.equals(storageUnit, that.storageUnit) &&
             Objects.equals(quantityContainer, that.quantityContainer) &&
             Objects.equals(totalQuantity, that.totalQuantity) &&
             Objects.equals(status, that.status) &&
@@ -463,7 +437,6 @@ public class PoImportTemCriteria implements Serializable, Criteria {
             vendorCode,
             vendorName,
             entryDate,
-            storageUnit,
             quantityContainer,
             totalQuantity,
             status,
@@ -486,7 +459,6 @@ public class PoImportTemCriteria implements Serializable, Criteria {
             optionalVendorCode().map(f -> "vendorCode=" + f + ", ").orElse("") +
             optionalVendorName().map(f -> "vendorName=" + f + ", ").orElse("") +
             optionalEntryDate().map(f -> "entryDate=" + f + ", ").orElse("") +
-            optionalStorageUnit().map(f -> "storageUnit=" + f + ", ").orElse("") +
             optionalQuantityContainer().map(f -> "quantityContainer=" + f + ", ").orElse("") +
             optionalTotalQuantity().map(f -> "totalQuantity=" + f + ", ").orElse("") +
             optionalStatus().map(f -> "status=" + f + ", ").orElse("") +

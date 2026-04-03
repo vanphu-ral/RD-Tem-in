@@ -180,6 +180,14 @@ public class ImportVendorTemTransactionsQueryService
                 )
             );
         }
+        if (criteria.panaSendStatus() != null) {
+            specification = specification.and(
+                buildSpecification(
+                    criteria.panaSendStatus(),
+                    ImportVendorTemTransactions_.panaSendStatus
+                )
+            );
+        }
         if (criteria.getCreatedBy() != null) {
             specification = specification.and(
                 buildStringSpecification(

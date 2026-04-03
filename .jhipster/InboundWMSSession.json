@@ -1,0 +1,39 @@
+{
+  "annotations": {
+    "changelogDate": "20260403033718"
+  },
+  "applications": "*",
+  "dto": "mapstruct",
+  "entityTableName": "inbound_wms_session",
+  "fields": [
+    {
+      "fieldName": "status",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "50"
+    },
+    {
+      "fieldName": "createdBy",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "15"
+    },
+    {
+      "fieldName": "createdAt",
+      "fieldType": "ZonedDateTime"
+    }
+  ],
+  "name": "InboundWMSSession",
+  "pagination": "pagination",
+  "relationships": [
+    {
+      "otherEntityName": "inboundWMSPallet",
+      "otherEntityRelationshipName": "inboundWMSSession",
+      "relationshipName": "inboundWMSPallet",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}

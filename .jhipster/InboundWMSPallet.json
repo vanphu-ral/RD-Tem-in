@@ -1,0 +1,51 @@
+{
+  "annotations": {
+    "changelogDate": "20260403033719"
+  },
+  "applications": "*",
+  "dto": "mapstruct",
+  "entityTableName": "inbound_wms_pallet",
+  "fields": [
+    {
+      "fieldName": "inboundWMSSessionId",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "warehouseNoteInfoId",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "serialPallet",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "50"
+    },
+    {
+      "fieldName": "wmsSendStatus",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "50"
+    },
+    {
+      "fieldName": "createdBy",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "15"
+    },
+    {
+      "fieldName": "createdAt",
+      "fieldType": "ZonedDateTime"
+    }
+  ],
+  "name": "InboundWMSPallet",
+  "relationships": [
+    {
+      "otherEntityName": "inboundWMSSession",
+      "relationshipName": "inboundWMSSession",
+      "relationshipSide": "right",
+      "relationshipType": "many-to-one"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}

@@ -28,12 +28,11 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -152,10 +151,10 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         dto.setVendorCode(poImportTem.getVendorCode());
         dto.setVendorName(poImportTem.getVendorName());
         dto.setEntryDate(poImportTem.getEntryDate());
-        dto.setStorageUnit(poImportTem.getStorageUnit());
         dto.setQuantityContainer(poImportTem.getQuantityContainer());
         dto.setTotalQuantity(poImportTem.getTotalQuantity());
         dto.setStatus(poImportTem.getStatus());
+        dto.setPoComments(poImportTem.getPoComments());
         dto.setCreatedBy(poImportTem.getCreatedBy());
         dto.setCreatedAt(poImportTem.getCreatedAt());
         dto.setUpdatedBy(poImportTem.getUpdatedBy());
@@ -243,6 +242,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         dto.setSapCode(entity.getSapCode());
         dto.setVendorQrCode(entity.getVendorQrCode());
         dto.setStatus(entity.getStatus());
+        dto.setPanaSendStatus(entity.getPanaSendStatus());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedBy(entity.getUpdatedBy());
@@ -251,6 +251,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         LOG.debug("Request to delete PoImportTem : {}", id);
 
@@ -264,34 +265,32 @@ public class PoImportTemServiceImpl implements PoImportTemService {
                 )
             );
 
-        // Delete in correct order: children first (VendorTemDetail -> PoDetail ->
-        // ImportVendorTemTransactions -> PoImportTem)
+        // Delete by IDs to avoid JPA entity state issues
         if (poImportTem.getImportVendorTemTransactions() != null) {
             for (ImportVendorTemTransactions transaction : poImportTem.getImportVendorTemTransactions()) {
+                Long transactionId = transaction.getId();
+
                 if (transaction.getPoDetails() != null) {
                     for (PoDetail poDetail : transaction.getPoDetails()) {
-                        // Delete all VendorTemDetail records for this PoDetail
-                        if (
-                            poDetail.getVendorTemDetails() != null &&
-                            !poDetail.getVendorTemDetails().isEmpty()
-                        ) {
-                            vendorTemDetailRepository.deleteAll(
-                                poDetail.getVendorTemDetails()
-                            );
-                        }
+                        Long poDetailId = poDetail.getId();
+
+                        // Delete all VendorTemDetail records for this PoDetail by ID
+                        vendorTemDetailRepository.deleteByPoDetailId(
+                            poDetailId
+                        );
                     }
-                    // Delete all PoDetail records for this transaction
-                    poDetailRepository.deleteAll(transaction.getPoDetails());
+                    // Delete all PoDetail records for this transaction by ID
+                    poDetailRepository.deleteByImportVendorTemTransactionsId(
+                        transactionId
+                    );
                 }
             }
-            // Delete all ImportVendorTemTransactions records
-            importVendorTemTransactionsRepository.deleteAll(
-                poImportTem.getImportVendorTemTransactions()
-            );
+            // Delete all ImportVendorTemTransactions records by ID
+            importVendorTemTransactionsRepository.deleteByPoImportTemId(id);
         }
 
         // Finally delete the PoImportTem
-        poImportTemRepository.delete(poImportTem);
+        poImportTemRepository.deleteById(id);
     }
 
     @Override
@@ -299,14 +298,13 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         LOG.debug("Request to process PO Import : {}", request);
 
         String poNumber = request.getPoNumber();
-        String storageUnit = request.getStorageUnit();
         // Case 1: poNumber is null - create parent and child records
         if (poNumber == null || poNumber.trim().isEmpty()) {
             return handleCase1(request);
         }
 
         // Case 2: poNumber exists - search for existing records
-        return handleCase2(request, poNumber, storageUnit);
+        return handleCase2(request, poNumber);
     }
 
     /**
@@ -323,7 +321,6 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         poImportTem.setVendorCode(request.getVendorCode());
         poImportTem.setVendorName(request.getVendorName());
         poImportTem.setEntryDate(request.getEntryDate());
-        poImportTem.setStorageUnit(request.getStorageUnit());
         poImportTem.setStatus(request.getStatus());
         poImportTem.setCreatedBy(request.getCreatedBy());
         poImportTem.setCreatedAt(
@@ -331,6 +328,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
                 ? request.getCreatedAt()
                 : ZonedDateTime.now()
         );
+        // poImportTem.setPoComments(request.getPoComments());
         poImportTem.setUpdatedBy(request.getUpdatedBy());
         poImportTem.setUpdatedAt(request.getUpdatedAt());
         poImportTem.setDeletedBy(request.getDeletedBy());
@@ -352,6 +350,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         );
         vendorTransaction.setMappingConfig(request.getMappingConfig());
         vendorTransaction.setStatus(request.getStatus());
+        vendorTransaction.setNote(request.getNote());
         vendorTransaction.setCreatedBy(request.getCreatedBy());
         vendorTransaction.setCreatedAt(
             request.getCreatedAt() != null
@@ -371,128 +370,169 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         // 3. Build response with empty poDetails since this is a new record
         ImportVendorTemTransactionsDTO transactionDTO =
             importVendorTemTransactionsMapper.toDto(vendorTransaction);
+
+        transactionDTO.setPoDetails(new HashSet<>());
+
         ImportVendorTemTransactionsDetailDTO detailDTO =
-            new ImportVendorTemTransactionsDetailDTO(
-                transactionDTO,
-                new ArrayList<>()
-            );
+            new ImportVendorTemTransactionsDetailDTO(transactionDTO);
 
         return new PoImportResponseDTO(savedPoImportTem, detailDTO, "CASE_1");
     }
 
     /**
-     * Case 2: If poNumber exists, search the import_vendor_tem_transactions table
-     * for that value in the po_number column. If the returned list contains a
-     * record,
-     * check if the record's creation date is the same as today's date. If it is
-     * today's date, retrieve all information from the
-     * import_vendor_tem_transactions
-     * class and its subclasses and return it to the user.
-     *
-     * If no records found or no records created today, search in SAP_PO_Info
-     * table using po_number in OPOR_DocEntry column.
+     * Case 2: Nếu poNumber tồn tại, kiểm tra xem đã có transaction nào trùng lặp
+     * về ngày (createdAt) và storageUnit hay chưa.
+     * - Nếu có trùng: trả về dữ liệu đã có.
+     * - Nếu chưa trùng (nhưng đã có PO này trước đó): tạo transaction mới gắn với po_import_tem_id cũ.
+     * - Nếu hoàn toàn chưa có PO này: tạo mới hoàn toàn (Parent + Child) từ SAP.
      */
     private PoImportResponseDTO handleCase2(
         PoImportRequestDTO request,
-        String poNumber,
-        String storageUnit
+        String poNumber
     ) {
-        LOG.debug("Processing Case 2: poNumber = {}", poNumber);
+        LOG.debug(
+            "Processing Case 2: poNumber = {}, storageUnit = {}",
+            poNumber,
+            request.getStorageUnit()
+        );
 
-        // 1. Search for records with the given poNumber in ImportVendorTemTransactions
+        // 1. TÌM TRỰC TIẾP BẢNG CHA (po_import_tem) ĐỂ CHỐNG TẠO MỚI TRÙNG LẶP
+        Long existingPoImportTemId = null;
+
+        // Truy vấn trực tiếp vào bảng cha xem PO này đã từng tồn tại chưa
+        List<PoImportTem> existingParents =
+            poImportTemRepository.findByPoNumber(poNumber);
+        if (existingParents != null && !existingParents.isEmpty()) {
+            // Nếu PO đã có trong hệ thống, lấy ngay ID của nó để tái sử dụng
+            existingPoImportTemId = existingParents.get(0).getId();
+        }
+
+        // 2. Tìm các bản ghi con (transactions) hiện có
         List<ImportVendorTemTransactions> transactions =
             importVendorTemTransactionsRepository.findByPoNumber(poNumber);
 
-        if (transactions == null || transactions.isEmpty()) {
-            // No records found - search in SAP_PO_Info
-            return handleSapPoInfoLookup(request, poNumber);
+        // Trường hợp 2.a: Hoàn toàn chưa có cả Cha lẫn Con trong hệ thống
+        if (
+            existingPoImportTemId == null &&
+            (transactions == null || transactions.isEmpty())
+        ) {
+            LOG.debug(
+                "PO {} does not exist at all. Creating new Parent and Child.",
+                poNumber
+            );
+            return handleSapPoInfoLookup(request, poNumber, null);
         }
 
-        // 2. Check if any record was created today
-        LocalDate today = LocalDate.now();
-        ImportVendorTemTransactions todaysTransaction = null;
+        // Chuẩn bị dữ liệu từ Payload để đối chiếu
+        LocalDate requestDate = request.getCreatedAt() != null
+            ? request.getCreatedAt().toLocalDate()
+            : LocalDate.now();
+        String requestStorageUnit = request.getStorageUnit();
+        ImportVendorTemTransactions matchedTransaction = null;
 
-        for (ImportVendorTemTransactions transaction : transactions) {
-            // Filter by storageUnit if provided
-            if (storageUnit != null && !storageUnit.isEmpty()) {
-                String transactionStorageUnit = transaction.getStorageUnit();
-                if (
-                    transactionStorageUnit == null ||
-                    !transactionStorageUnit.equals(storageUnit)
-                ) {
-                    continue;
+        // 3. Duyệt transactions để tìm bản ghi trùng lặp (Ngày & Storage Unit)
+        if (transactions != null) {
+            for (ImportVendorTemTransactions trans : transactions) {
+                if (trans.getCreatedAt() != null) {
+                    LocalDate transDate = trans.getCreatedAt().toLocalDate();
+                    boolean isSameDay = transDate.equals(requestDate);
+                    boolean isSameStorageUnit = Objects.equals(
+                        requestStorageUnit,
+                        trans.getStorageUnit()
+                    );
+
+                    if (isSameDay && isSameStorageUnit) {
+                        matchedTransaction = trans;
+                        break; // Tìm thấy bản ghi trùng 100%
+                    }
                 }
             }
-            if (transaction.getCreatedAt() != null) {
-                LocalDate createdDate = transaction
-                    .getCreatedAt()
-                    .toLocalDate();
-                if (createdDate.equals(today)) {
-                    todaysTransaction = transaction;
-                    break;
-                }
-            }
         }
 
-        // 3. If no record created today, search in SAP_PO_Info
-        if (todaysTransaction == null) {
-            return handleSapPoInfoLookup(request, poNumber);
+        // 4. Quyết định hành động
+        if (matchedTransaction != null) {
+            // Trường hợp 2.b: CÓ TRÙNG (Ngày & StorageUnit)
+            LOG.debug(
+                "Found exact matching transaction for PO: {}. Returning existing data.",
+                poNumber
+            );
+            return buildResponseFromTransaction(matchedTransaction);
+        } else {
+            // Trường hợp 2.c: KHÔNG TRÙNG (Nhưng PO này đã có ID cha)
+            // Sẽ gọi SAP để tạo Child mới và móc thẳng vào ID cha đã tìm thấy ở Bước 1
+            LOG.debug(
+                "No match found. Creating new transaction linking to existing PoImportTem ID: {}",
+                existingPoImportTemId
+            );
+            return handleSapPoInfoLookup(
+                request,
+                poNumber,
+                existingPoImportTemId
+            );
         }
+    }
 
-        // 4. Retrieve all information with subclasses (poDetails)
+    /**
+     * Hàm hỗ trợ để build PoImportResponseDTO từ một ImportVendorTemTransactions có sẵn
+     */
+    private PoImportResponseDTO buildResponseFromTransaction(
+        ImportVendorTemTransactions transaction
+    ) {
         ImportVendorTemTransactionsDTO transactionDTO =
-            importVendorTemTransactionsMapper.toDto(todaysTransaction);
+            importVendorTemTransactionsMapper.toDto(transaction);
 
-        // Fetch poDetails for this transaction
+        // Lấy poDetails cho transaction này
         List<PoDetail> poDetails = new ArrayList<>();
         if (
-            todaysTransaction.getPoDetails() != null &&
-            !todaysTransaction.getPoDetails().isEmpty()
+            transaction.getPoDetails() != null &&
+            !transaction.getPoDetails().isEmpty()
         ) {
-            poDetails = new ArrayList<>(todaysTransaction.getPoDetails());
+            poDetails = new ArrayList<>(transaction.getPoDetails());
         } else {
-            // Fetch from repository if not loaded
             poDetails = poDetailRepository.findByImportVendorTemTransactionsId(
-                todaysTransaction.getId()
+                transaction.getId()
             );
         }
-
         List<PoDetailDTO> poDetailDTOs = poDetailMapper.toDto(poDetails);
+        transactionDTO.setPoDetails(new HashSet<>(poDetailDTOs));
 
         ImportVendorTemTransactionsDetailDTO detailDTO =
-            new ImportVendorTemTransactionsDetailDTO(
-                transactionDTO,
-                poDetailDTOs
-            );
+            new ImportVendorTemTransactionsDetailDTO(transactionDTO);
 
-        // Get the parent poImportTem if exists
         PoImportTemDTO poImportTemDTO = null;
-        if (todaysTransaction.getPoImportTemId() != null) {
+        if (transaction.getPoImportTemId() != null) {
             Optional<PoImportTem> poImportTem =
                 poImportTemRepository.findWithTransactionsById(
-                    todaysTransaction.getPoImportTemId()
+                    transaction.getPoImportTemId()
                 );
             poImportTemDTO = poImportTem
                 .map(poImportTemMapper::toDto)
                 .orElse(null);
         }
 
-        return new PoImportResponseDTO(poImportTemDTO, detailDTO, "CASE_2");
+        return new PoImportResponseDTO(
+            poImportTemDTO,
+            detailDTO,
+            "CASE_2_EXISTING"
+        );
     }
 
     /**
-     * Case 2.1: Search in SAP_PO_Info table when no ImportVendorTemTransactions
-     * found or no records created today.
-     * Uses po_number to search in OPOR_DocEntry column.
-     * Maps: OPOR_CardName -> vendorName, OPOR_CardCode -> vendorCode,
-     * POR1_ItemCode -> sapCode, POR1_Dscription -> sapName,
-     * POR1_Quantity -> totalQuantity
+     * Case 2.1: Search in SAP_PO_Info table.
+     * Nếu existingPoImportTemId có giá trị -> Tái sử dụng Parent record.
+     * Nếu existingPoImportTemId là null -> Tạo mới Parent record.
+     * Luôn luôn tạo mới Child record (ImportVendorTemTransactions).
      */
     private PoImportResponseDTO handleSapPoInfoLookup(
         PoImportRequestDTO request,
-        String poNumber
+        String poNumber,
+        Long existingPoImportTemId
     ) {
-        LOG.debug("Searching SAP_PO_Info for poNumber: {}", poNumber);
+        LOG.debug(
+            "Searching SAP_PO_Info for poNumber: {}, reuseId: {}",
+            poNumber,
+            existingPoImportTemId
+        );
 
         // 1. Search in sap_po_info by OPOR_DocEntry
         List<SapPoInfo> sapPoInfoList = sapPoInfoRepository.findByOporDocEntry(
@@ -505,7 +545,6 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         );
 
         if (sapPoInfoList == null || sapPoInfoList.isEmpty()) {
-            // No SAP PO found - throw exception instead of creating records
             LOG.warn("No sap_po_info found for poNumber: {}", poNumber);
             throw new org.springframework.web.server.ResponseStatusException(
                 org.springframework.http.HttpStatus.NOT_FOUND,
@@ -516,29 +555,47 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         // 2. Get first record for header info (assuming unique PO)
         SapPoInfo sapPoInfo = sapPoInfoList.get(0);
 
-        // 3. Create parent record in po_import_tem with SAP data
-        PoImportTem poImportTem = new PoImportTem();
-        poImportTem.setPoNumber(poNumber);
-        poImportTem.setVendorCode(sapPoInfo.getOporCardCode()); // OPOR_CardCode -> vendorCode
-        poImportTem.setVendorName(sapPoInfo.getOporCardName()); // OPOR_CardName -> vendorName
-        poImportTem.setEntryDate(request.getEntryDate());
-        poImportTem.setStorageUnit(request.getStorageUnit());
-        poImportTem.setStatus(request.getStatus());
-        poImportTem.setCreatedBy(request.getCreatedBy());
-        poImportTem.setCreatedAt(
-            request.getCreatedAt() != null
-                ? request.getCreatedAt()
-                : ZonedDateTime.now()
-        );
-        poImportTem.setUpdatedBy(request.getUpdatedBy());
-        poImportTem.setUpdatedAt(request.getUpdatedAt());
-        poImportTem.setDeletedBy(request.getDeletedBy());
-        poImportTem.setDeletedAt(request.getDeletedAt());
+        PoImportTem poImportTem;
+        PoImportTemDTO savedPoImportTemDTO;
 
-        poImportTem = poImportTemRepository.save(poImportTem);
-        PoImportTemDTO savedPoImportTem = poImportTemMapper.toDto(poImportTem);
+        // 3. Xử lý Parent Record (PoImportTem)
+        if (existingPoImportTemId != null) {
+            // Tái sử dụng bản ghi Parent cũ
+            poImportTem = poImportTemRepository
+                .findById(existingPoImportTemId)
+                .orElseThrow(() ->
+                    new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND,
+                        "PoImportTem not found with id: " +
+                        existingPoImportTemId
+                    )
+                );
+            savedPoImportTemDTO = poImportTemMapper.toDto(poImportTem);
+        } else {
+            // Tạo mới Parent record
+            poImportTem = new PoImportTem();
+            poImportTem.setPoNumber(poNumber);
+            poImportTem.setVendorCode(sapPoInfo.getOporCardCode()); // OPOR_CardCode -> vendorCode
+            poImportTem.setVendorName(sapPoInfo.getOporCardName()); // OPOR_CardName -> vendorName
+            poImportTem.setEntryDate(request.getEntryDate());
+            poImportTem.setStatus(request.getStatus());
+            poImportTem.setCreatedBy(request.getCreatedBy());
+            poImportTem.setCreatedAt(
+                request.getCreatedAt() != null
+                    ? request.getCreatedAt()
+                    : ZonedDateTime.now()
+            );
+            poImportTem.setUpdatedBy(request.getUpdatedBy());
+            poImportTem.setUpdatedAt(request.getUpdatedAt());
+            poImportTem.setPoComments(sapPoInfo.getOporComments());
+            poImportTem.setDeletedBy(request.getDeletedBy());
+            poImportTem.setDeletedAt(request.getDeletedAt());
 
-        // 4. Create child record in import_vendor_tem_transactions
+            poImportTem = poImportTemRepository.save(poImportTem);
+            savedPoImportTemDTO = poImportTemMapper.toDto(poImportTem);
+        }
+
+        // 4. Create NEW child record in import_vendor_tem_transactions
         ImportVendorTemTransactions vendorTransaction =
             new ImportVendorTemTransactions();
         vendorTransaction.setPoNumber(poNumber);
@@ -551,6 +608,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         );
         vendorTransaction.setMappingConfig(request.getMappingConfig());
         vendorTransaction.setStatus(request.getStatus());
+        vendorTransaction.setNote(request.getNote());
         vendorTransaction.setCreatedBy(request.getCreatedBy());
         vendorTransaction.setCreatedAt(
             request.getCreatedAt() != null
@@ -559,18 +617,16 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         );
         vendorTransaction.setUpdatedBy(request.getUpdatedBy());
         vendorTransaction.setUpdatedAt(request.getUpdatedAt());
-        vendorTransaction.setDeletedBy(request.getDeletedBy());
-        vendorTransaction.setDeletedAt(request.getDeletedAt());
-        vendorTransaction.setPoImportTemId(poImportTem.getId());
+
+        // Liên kết Child với Parent ID (có thể là ID cũ hoặc ID vừa tạo)
+        vendorTransaction.setPoImportTemId(savedPoImportTemDTO.getId());
 
         vendorTransaction = importVendorTemTransactionsRepository.save(
             vendorTransaction
         );
 
         // 5. Create poDetails from SAP data
-        // POR1_ItemCode -> sapCode, POR1_Dscription -> sapName,
-        // POR1_Quantity -> totalQuantity
-        List<PoDetailDTO> poDetailDTOs = new ArrayList<>();
+        Set<PoDetailDTO> poDetailDTOs = new HashSet<>();
         for (SapPoInfo info : sapPoInfoList) {
             PoDetail poDetail = new PoDetail();
             poDetail.setImportVendorTemTransactionsId(
@@ -578,7 +634,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             );
             poDetail.setSapCode(info.getPor1ItemCode()); // POR1_ItemCode
             poDetail.setSapName(info.getPor1Dscription()); // POR1_Dscription
-            // Parse String to Integer for totalQuantity (POR1_Quantity)
+
             if (
                 info.getPor1Quantity() != null &&
                 !info.getPor1Quantity().isEmpty()
@@ -600,7 +656,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             PoDetailDTO detailDTO = new PoDetailDTO();
             detailDTO.setSapCode(info.getPor1ItemCode());
             detailDTO.setSapName(info.getPor1Dscription());
-            // Parse String to Integer for totalQuantity (POR1_Quantity)
+
             if (
                 info.getPor1Quantity() != null &&
                 !info.getPor1Quantity().isEmpty()
@@ -619,16 +675,18 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         // 6. Build response
         ImportVendorTemTransactionsDTO transactionDTO =
             importVendorTemTransactionsMapper.toDto(vendorTransaction);
+
+        transactionDTO.setPoDetails(poDetailDTOs);
+
         ImportVendorTemTransactionsDetailDTO detailDTO =
-            new ImportVendorTemTransactionsDetailDTO(
-                transactionDTO,
-                poDetailDTOs
-            );
+            new ImportVendorTemTransactionsDetailDTO(transactionDTO);
 
         return new PoImportResponseDTO(
-            savedPoImportTem,
+            savedPoImportTemDTO,
             detailDTO,
-            "CASE_2_SAP"
+            existingPoImportTemId != null
+                ? "CASE_2_REUSE_PO"
+                : "CASE_2_CALL_SAP_CREATE_FULL"
         );
     }
 }

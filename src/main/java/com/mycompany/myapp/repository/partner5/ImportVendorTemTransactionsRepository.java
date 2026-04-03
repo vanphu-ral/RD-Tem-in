@@ -3,6 +3,7 @@ package com.mycompany.myapp.repository.partner5;
 import com.mycompany.myapp.domain.ImportVendorTemTransactions;
 import java.util.List;
 import java.util.Optional;
+import javax.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,7 +20,8 @@ public interface ImportVendorTemTransactionsRepository
     extends
         JpaRepository<ImportVendorTemTransactions, Long>,
         JpaSpecificationExecutor<ImportVendorTemTransactions> {
-    @Modifying
+    @Transactional
+    @Modifying(clearAutomatically = true)
     @Query(
         "DELETE FROM ImportVendorTemTransactions t WHERE t.poImportTemId = :poImportTemId"
     )

@@ -26,6 +26,9 @@ public class PoImportRequestDTO implements Serializable {
 
     private LocalDate entryDate;
 
+    @Size(max = 510)
+    private String note;
+
     @Size(max = 50)
     private String storageUnit;
 
@@ -119,6 +122,14 @@ public class PoImportRequestDTO implements Serializable {
         this.status = status;
     }
 
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
     public String getCreatedBy() {
         return createdBy;
     }
@@ -192,6 +203,9 @@ public class PoImportRequestDTO implements Serializable {
             '\'' +
             ", status='" +
             status +
+            '\'' +
+            ", note='" +
+            note +
             '\'' +
             ", createdBy='" +
             createdBy +

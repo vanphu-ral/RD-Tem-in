@@ -5,6 +5,7 @@ import java.io.Serializable;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 import javax.validation.constraints.*;
+import liquibase.pro.packaged.ge;
 
 /**
  * A DTO for the {@link com.mycompany.myapp.domain.VendorTemDetail} entity.
@@ -104,6 +105,8 @@ public class VendorTemDetailDTO implements Serializable {
 
     @Size(max = 50)
     private String status;
+
+    private Boolean panaSendStatus;
 
     @Size(max = 20)
     private String createdBy;
@@ -371,6 +374,14 @@ public class VendorTemDetailDTO implements Serializable {
         this.status = status;
     }
 
+    public Boolean getPanaSendStatus() {
+        return panaSendStatus;
+    }
+
+    public void setPanaSendStatus(Boolean panaSendStatus) {
+        this.panaSendStatus = panaSendStatus;
+    }
+
     public String getCreatedBy() {
         return createdBy;
     }
@@ -477,6 +488,7 @@ public class VendorTemDetailDTO implements Serializable {
                 ", sapCode='" + getSapCode() + "'" +
                 ", vendorQrCode='" + getVendorQrCode() + "'" +
                 ", status='" + getStatus() + "'" +
+                ", panaSendStatus='" + getPanaSendStatus() + "'" +
                 ", createdBy='" + getCreatedBy() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +

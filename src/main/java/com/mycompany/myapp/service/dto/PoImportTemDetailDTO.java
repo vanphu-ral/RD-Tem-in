@@ -28,8 +28,6 @@ public class PoImportTemDetailDTO implements Serializable {
 
     private LocalDate entryDate;
 
-    private String storageUnit;
-
     private Integer quantityContainer;
 
     private Integer totalQuantity;
@@ -90,14 +88,6 @@ public class PoImportTemDetailDTO implements Serializable {
 
     public void setEntryDate(LocalDate entryDate) {
         this.entryDate = entryDate;
-    }
-
-    public String getStorageUnit() {
-        return storageUnit;
-    }
-
-    public void setStorageUnit(String storageUnit) {
-        this.storageUnit = storageUnit;
     }
 
     public Integer getQuantityContainer() {
@@ -222,7 +212,6 @@ public class PoImportTemDetailDTO implements Serializable {
                 ", vendorCode='" + getVendorCode() + "'" +
                 ", vendorName='" + getVendorName() + "'" +
                 ", entryDate='" + getEntryDate() + "'" +
-                ", storageUnit='" + getStorageUnit() + "'" +
                 ", quantityContainer=" + getQuantityContainer() +
                 ", totalQuantity=" + getTotalQuantity() +
                 ", status='" + getStatus() + "'" +

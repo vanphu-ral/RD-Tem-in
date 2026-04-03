@@ -353,7 +353,7 @@ public class PoImportTemResource {
      * and a child record in import_vendor_tem_transactions table.
      *
      * Case 2: If poNumber exists, searches import_vendor_tem_transactions for that
-     * poNumber. If records exist and were created today, returns all information
+     * poNumber. If records exist and were created today and storage unit same, returns all information
      * including subclasses (poDetails).
      *
      * @param request the PO import request payload.

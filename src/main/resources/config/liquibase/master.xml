@@ -374,10 +374,13 @@
     <include file="config/liquibase/changelog/20260318161655_added_entity_SapPoInfo.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260318190810_added_entity_PoImportTemId.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260318191227_added_entity_PoImportTem.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260403033718_added_entity_InboundWMSSession.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260403033719_added_entity_InboundWMSPallet.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <include file="config/liquibase/changelog/20260309010238_added_entity_constraints_PoDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260309010239_added_entity_constraints_VendorTemDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260309010241_added_entity_constraints_RdMaterialAttributes.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260403033719_added_entity_constraints_InboundWMSPallet.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
 
 </databaseChangeLog>

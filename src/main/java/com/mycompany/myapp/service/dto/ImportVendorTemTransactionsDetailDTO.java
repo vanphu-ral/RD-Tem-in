@@ -16,16 +16,16 @@ public class ImportVendorTemTransactionsDetailDTO implements Serializable {
 
     private ImportVendorTemTransactionsDTO transaction;
 
-    private List<PoDetailDTO> poDetails;
+    // private List<PoDetailDTO> poDetails;
 
     public ImportVendorTemTransactionsDetailDTO() {}
 
     public ImportVendorTemTransactionsDetailDTO(
-        ImportVendorTemTransactionsDTO transaction,
-        List<PoDetailDTO> poDetails
+        ImportVendorTemTransactionsDTO transaction
+        // List<PoDetailDTO> poDetails
     ) {
         this.transaction = transaction;
-        this.poDetails = poDetails;
+        // this.poDetails = poDetails;
     }
 
     public ImportVendorTemTransactionsDTO getTransaction() {
@@ -36,11 +36,11 @@ public class ImportVendorTemTransactionsDetailDTO implements Serializable {
         this.transaction = transaction;
     }
 
-    public List<PoDetailDTO> getPoDetails() {
-        return poDetails;
-    }
+    // public List<PoDetailDTO> getPoDetails() {
+    //     return poDetails;
+    // }
 
-    public void setPoDetails(List<PoDetailDTO> poDetails) {
-        this.poDetails = poDetails;
-    }
+    // public void setPoDetails(List<PoDetailDTO> poDetails) {
+    //     this.poDetails = poDetails;
+    // }
 }

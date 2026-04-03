@@ -274,6 +274,14 @@ public class VendorTemDetailQueryService extends QueryService<VendorTemDetail> {
                     VendorTemDetail_.status
                 )
             );
+            if (criteria.panaSendStatus() != null) {
+                specification = specification.and(
+                    buildSpecification(
+                        criteria.panaSendStatus(),
+                        VendorTemDetail_.panaSendStatus
+                    )
+                );
+            }
             specification = specification.and(
                 buildStringSpecification(
                     criteria.getCreatedBy(),

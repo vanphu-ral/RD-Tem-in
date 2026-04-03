@@ -134,14 +134,6 @@ public class PoImportTemQueryService extends QueryService<PoImportTem> {
                 )
             );
         }
-        if (criteria.storageUnit() != null) {
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.getStorageUnit(),
-                    PoImportTem_.storageUnit
-                )
-            );
-        }
         if (criteria.getQuantityContainer() != null) {
             specification = specification.and(
                 buildRangeSpecification(

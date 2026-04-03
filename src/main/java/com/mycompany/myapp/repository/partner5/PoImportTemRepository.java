@@ -1,6 +1,7 @@
 package com.mycompany.myapp.repository.partner5;
 
 import com.mycompany.myapp.domain.PoImportTem;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +39,8 @@ public interface PoImportTemRepository
         "WHERE p.id = :id"
     )
     Optional<PoImportTem> findDetailById(@Param("id") Long id);
+
+    List<PoImportTem> findByPoNumber(String poNumber);
 
     // @EntityGraph(attributePaths = "importVendorTemTransactions")
     // Page<PoImportTem> findAllWithTransactions(org.springframework.data.jpa.domain.Specification<PoImportTem> spec,

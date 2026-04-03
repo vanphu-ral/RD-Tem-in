@@ -136,6 +136,22 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
         this.mappingConfig = mappingConfig;
     }
 
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public String getApprover() {
+        return approver;
+    }
+
+    public void setApprover(String approver) {
+        this.approver = approver;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -274,6 +290,8 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
                 ", deletedBy='" + getDeletedBy() + "'" +
                 ", deletedAt='" + getDeletedAt() + "'" +
                 ", panaSendStatus='" + getPanaSendStatus() + "'" +
+                ", note='" + getNote() + "'" +
+                ", approver='" + getApprover() + "'" +
                 "}";
     }
 }

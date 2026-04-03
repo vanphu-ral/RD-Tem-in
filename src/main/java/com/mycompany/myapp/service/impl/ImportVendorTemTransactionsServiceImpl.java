@@ -150,10 +150,7 @@ public class ImportVendorTemTransactionsServiceImpl
                     new ArrayList<>(transaction.getPoDetails())
                 );
 
-                return new ImportVendorTemTransactionsDetailDTO(
-                    transactionDTO,
-                    poDetailDTOs
-                );
+                return new ImportVendorTemTransactionsDetailDTO(transactionDTO);
             });
     }
 
@@ -216,9 +213,6 @@ public class ImportVendorTemTransactionsServiceImpl
         List<PoDetailDTO> savedPoDetailDTOs = poDetailMapper.toDto(
             savedPoDetails
         );
-        return new ImportVendorTemTransactionsDetailDTO(
-            savedTransactionDTO,
-            savedPoDetailDTOs
-        );
+        return new ImportVendorTemTransactionsDetailDTO(savedTransactionDTO);
     }
 }

@@ -311,7 +311,6 @@ export class ChiTietLenhSanXuatDetailComponent implements OnInit {
   }
 
   generateCsvContentForServer(): string {
-    // Headers must be in exact order as specified: ReelID,PartNumber,Vendor,Lot,UserData1,UserData2,UserData3,UserData4,UserData5,InitialQuantity,MsdLevel,MsdInitialFloorTime,MsdBagSealDate,MarketUsage,QuantityOverride,ShelfTime,SpMaterialName,WarningLimit,MaximumLimit,Comments,WarmupTime,StorageUnit,SubStorageUnit,LocationOverride,ExpirationDate,ManufacturingDate,PartClass,SapCode
     const headers = [
       "ReelID",
       "PartNumber",

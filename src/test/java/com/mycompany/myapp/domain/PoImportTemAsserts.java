@@ -83,11 +83,6 @@ public class PoImportTemAsserts {
                     .isEqualTo(expected.getEntryDate())
             )
             .satisfies(a ->
-                assertThat(a.getStorageUnit())
-                    .as("check storageUnit")
-                    .isEqualTo(expected.getStorageUnit())
-            )
-            .satisfies(a ->
                 assertThat(a.getQuantityContainer())
                     .as("check quantityContainer")
                     .isEqualTo(expected.getQuantityContainer())

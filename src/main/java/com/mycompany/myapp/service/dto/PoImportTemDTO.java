@@ -28,15 +28,15 @@ public class PoImportTemDTO implements Serializable {
 
     private LocalDate entryDate;
 
-    @Size(max = 50)
-    private String storageUnit;
-
     private Integer quantityContainer;
 
     private Integer totalQuantity;
 
     @Size(max = 50)
     private String status;
+
+    @Size(max = 510)
+    private String poComments;
 
     @Size(max = 20)
     private String createdBy;
@@ -95,14 +95,6 @@ public class PoImportTemDTO implements Serializable {
         this.entryDate = entryDate;
     }
 
-    public String getStorageUnit() {
-        return storageUnit;
-    }
-
-    public void setStorageUnit(String storageUnit) {
-        this.storageUnit = storageUnit;
-    }
-
     public Integer getQuantityContainer() {
         return quantityContainer;
     }
@@ -125,6 +117,14 @@ public class PoImportTemDTO implements Serializable {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getPoComments() {
+        return poComments;
+    }
+
+    public void setPoComments(String poComments) {
+        this.poComments = poComments;
     }
 
     public String getCreatedBy() {
@@ -217,10 +217,10 @@ public class PoImportTemDTO implements Serializable {
                 ", vendorCode='" + getVendorCode() + "'" +
                 ", vendorName='" + getVendorName() + "'" +
                 ", entryDate='" + getEntryDate() + "'" +
-                ", storageUnit='" + getStorageUnit() + "'" +
                 ", quantityContainer=" + getQuantityContainer() +
                 ", totalQuantity=" + getTotalQuantity() +
                 ", status='" + getStatus() + "'" +
+                ", poComments='" + getPoComments() + "'" +
                 ", createdBy='" + getCreatedBy() + "'" +
                 ", createdAt='" + getCreatedAt() + "'" +
                 ", updatedBy='" + getUpdatedBy() + "'" +

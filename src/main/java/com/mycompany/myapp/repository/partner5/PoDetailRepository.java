@@ -2,7 +2,9 @@ package com.mycompany.myapp.repository.partner5;
 
 import com.mycompany.myapp.domain.PoDetail;
 import java.util.List;
+import javax.transaction.Transactional;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -21,5 +23,14 @@ public interface PoDetailRepository
      */
     List<PoDetail> findByImportVendorTemTransactionsId(
         Long importVendorTemTransactionsId
+    );
+
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query(
+        "DELETE FROM PoDetail p WHERE p.importVendorTemTransactionsId = :transactionsId"
+    )
+    void deleteByImportVendorTemTransactionsId(
+        @Param("transactionsId") Long transactionsId
     );
 }
