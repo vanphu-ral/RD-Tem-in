@@ -64,3 +64,219 @@ Main page styles
     background-color: #0056b3;
   }
 }
+// Color palette cho card icons
+$card-colors: (
+  1: (
+    #e3f2fd,
+    #1976d2,
+  ),
+  2: (
+    #fce4ec,
+    #c2185b,
+  ),
+  3: (
+    #e8f5e9,
+    #388e3c,
+  ),
+  4: (
+    #fff3e0,
+    #f57c00,
+  ),
+  5: (
+    #f3e5f5,
+    #7b1fa2,
+  ),
+  6: (
+    #e0f7fa,
+    #0097a7,
+  ),
+);
+
+.home-wrapper {
+  min-height: 100vh;
+  background: #f5f6f8;
+  padding-bottom: 32px;
+}
+
+// ---- Hero ----
+.home-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fff;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+
+  .hero-logo {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  .hero-text {
+    flex: 1;
+    min-width: 0;
+
+    .hero-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #212121;
+      margin: 0 0 2px;
+      line-height: 1.4;
+    }
+
+    .hero-sub {
+      font-size: 13px;
+      color: #757575;
+      margin: 0;
+
+      strong {
+        color: #1976d2;
+      }
+    }
+  }
+
+  .btn-login {
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #1565c0;
+    }
+  }
+}
+
+// ---- Menu section ----
+.menu-section {
+  padding: 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// ---- Group ----
+.menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #424242;
+  padding-left: 2px;
+
+  .group-icon {
+    color: #1976d2;
+    font-size: 14px;
+  }
+}
+
+// ---- Grid ----
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  @media (max-width: 340px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+// ---- Card ----
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #eeeeee;
+  padding: 16px 10px 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s;
+  animation: fadeSlideUp 0.35s ease both;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09);
+    border-color: #bbdefb;
+    text-decoration: none;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  .card-label {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #424242;
+    text-align: center;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+}
+
+// ---- Card icon wrap ----
+.card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform 0.18s;
+
+  .menu-card:hover & {
+    transform: scale(1.08);
+  }
+}
+
+// Generate color classes
+@each $num, $colors in $card-colors {
+  $bg: nth($colors, 1);
+  $fg: nth($colors, 2);
+
+  .color-#{$num} {
+    background: $bg;
+    color: $fg;
+  }
+}
+
+// ---- Animation ----
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

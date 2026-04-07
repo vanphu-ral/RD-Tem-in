@@ -26,7 +26,14 @@
       <span class="kpi-value">{{ totalSessions }}</span>
       <span class="kpi-label">Ngày nhập</span>
     </div>
-    <div class="kpi-card kpi-green">
+    <div
+      class="kpi-card"
+      [class.kpi-green]="totalScannedQty <= totalOrderQty"
+      [class.kpi-warn]="totalScannedQty > totalOrderQty"
+    >
+      <mat-icon *ngIf="totalScannedQty > totalOrderQty" class="kpi-warn-icon"
+        >warning</mat-icon
+      >
       <span class="kpi-value">{{ totalScannedQty | number }}</span>
       <span class="kpi-label">Tổng SL đã scan</span>
     </div>
@@ -103,21 +110,31 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of sapSummary; let i = index">
+          <tr
+            *ngFor="let s of sapSummary; let i = index"
+            [class.row-over]="s.scannedQty > s.orderQty"
+            [class.row-ok]="s.scannedQty > 0 && s.scannedQty <= s.orderQty"
+          >
             <td class="col-idx">{{ i + 1 }}</td>
             <td>{{ s.sapCode }}</td>
             <td>{{ s.sapName }}</td>
             <td class="col-num">{{ s.orderQty | number }}</td>
-            <td class="col-num green-val">{{ s.scannedQty | number }}</td>
-            <td class="col-num">{{ s.itemCount }}</td>
-          </tr>
-          <tr *ngIf="sapSummary.length === 0">
             <td
-              colspan="7"
-              style="text-align: center; color: #999; padding: 12px"
+              class="col-num"
+              [class.qty-over]="s.scannedQty > s.orderQty"
+              [class.qty-ok]="s.scannedQty > 0 && s.scannedQty <= s.orderQty"
             >
-              Không có dữ liệu
+              <!-- Icon cảnh báo khi vượt -->
+              <mat-icon
+                *ngIf="s.scannedQty > s.orderQty"
+                class="warn-icon"
+                matTooltip="Số lượng scan vượt đơn hàng!"
+              >
+                warning
+              </mat-icon>
+              {{ s.scannedQty | number }}
             </td>
+            <td class="col-num">{{ s.itemCount }}</td>
           </tr>
         </tbody>
       </table>

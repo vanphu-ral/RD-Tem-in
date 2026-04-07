@@ -136,6 +136,21 @@
             </mat-option>
           </mat-autocomplete>
         </mat-form-field>
+        <mat-form-field
+          appearance="outline"
+          class="small-form-field note-field"
+        >
+          <mat-label>Ghi chú</mat-label>
+          <textarea
+            matInput
+            [(ngModel)]="orderInfo.note"
+            placeholder="Nhập ghi chú cho đơn hàng..."
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="1"
+            cdkAutosizeMaxRows="3"
+            rows="1"
+          ></textarea>
+        </mat-form-field>
 
         <div class="group-mobile d-flex">
           <button

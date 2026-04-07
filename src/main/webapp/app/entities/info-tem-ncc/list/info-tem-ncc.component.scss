@@ -330,6 +330,18 @@
     color: white;
   }
 }
+.col-note {
+  min-width: 160px;
+  max-width: 260px;
+}
+
+.col-note-cell {
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
 .col-comments-cell {
   white-space: normal !important;
   word-break: break-word !important;
