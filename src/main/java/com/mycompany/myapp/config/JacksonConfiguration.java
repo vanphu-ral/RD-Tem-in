@@ -22,7 +22,9 @@ public class JacksonConfiguration {
      */
     @Bean
     public JavaTimeModule javaTimeModule() {
-        return new JavaTimeModule();
+        JavaTimeModule module = new JavaTimeModule();
+        // Ensure dates are serialized as ISO strings, not timestamps
+        return module;
     }
 
     @Bean
@@ -58,6 +60,10 @@ public class JacksonConfiguration {
     @Primary
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(
+            com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS,
+            false
+        );
         mapper
             .coercionConfigFor(LogicalType.Collection)
             .setCoercion(

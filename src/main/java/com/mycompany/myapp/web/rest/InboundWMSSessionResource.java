@@ -2,6 +2,7 @@ package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.repository.partner3.InboundWMSSessionRepository;
 import com.mycompany.myapp.service.InboundWMSSessionService;
+import com.mycompany.myapp.service.criteria.InboundWMSSessionCriteria;
 import com.mycompany.myapp.service.dto.InboundWMSPalletDTO;
 import com.mycompany.myapp.service.dto.InboundWMSSessionDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
@@ -232,10 +233,12 @@ public class InboundWMSSessionResource {
      */
     @GetMapping("")
     public ResponseEntity<List<InboundWMSSessionDTO>> getAllInboundWMSSessions(
+        InboundWMSSessionCriteria criteria,
         Pageable pageable
     ) {
         LOG.debug("REST request to get a page of InboundWMSSessions");
         Page<InboundWMSSessionDTO> page = inboundWMSSessionService.findAll(
+            criteria,
             pageable
         );
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(

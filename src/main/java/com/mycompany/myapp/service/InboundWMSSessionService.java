@@ -1,6 +1,7 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.repository.partner3.InboundWMSPalletRepository;
+import com.mycompany.myapp.service.criteria.InboundWMSSessionCriteria;
 import com.mycompany.myapp.service.dto.InboundWMSPalletDTO;
 import com.mycompany.myapp.service.dto.InboundWMSSessionDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
@@ -47,7 +48,11 @@ public interface InboundWMSSessionService {
      * @param pageable the pagination information.
      * @return the list of entities.
      */
-    Page<InboundWMSSessionDTO> findAll(Pageable pageable);
+    Page<InboundWMSSessionDTO> findAll(
+        InboundWMSSessionCriteria criteria,
+        Pageable pageable
+    );
+    // Page<InboundWMSSessionDTO> findAll(Pageable pageable);
 
     /**
      * Get the "id" inboundWMSSession.

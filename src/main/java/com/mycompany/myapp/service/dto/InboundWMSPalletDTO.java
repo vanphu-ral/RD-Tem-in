@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.io.Serializable;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -29,6 +30,7 @@ public class InboundWMSPalletDTO implements Serializable {
     @Size(max = 15)
     private String createdBy;
 
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
     private ZonedDateTime createdAt;
 
     private List<BoxInfoDTO> listBox;

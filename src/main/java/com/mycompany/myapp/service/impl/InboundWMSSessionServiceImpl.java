@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mycompany.myapp.domain.InboundWMSPallet;
 import com.mycompany.myapp.domain.InboundWMSSession;
+import com.mycompany.myapp.domain.InboundWMSSession_;
 import com.mycompany.myapp.domain.PalletInforDetail;
 import com.mycompany.myapp.domain.SerialBoxPalletMapping;
 import com.mycompany.myapp.domain.WarehouseNoteInfo;
@@ -15,6 +16,7 @@ import com.mycompany.myapp.repository.partner3.Partner3SerialBoxPalletMappingRep
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
 import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
 import com.mycompany.myapp.service.InboundWMSSessionService;
+import com.mycompany.myapp.service.criteria.InboundWMSSessionCriteria;
 import com.mycompany.myapp.service.dto.BoxDTO;
 import com.mycompany.myapp.service.dto.BoxInfoDTO;
 import com.mycompany.myapp.service.dto.GeneralInfoDTO;
@@ -39,12 +41,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import tech.jhipster.service.QueryService;
 
 /**
  * Service Implementation for managing
@@ -52,7 +56,9 @@ import org.springframework.web.client.RestTemplate;
  */
 @Service
 @Transactional
-public class InboundWMSSessionServiceImpl implements InboundWMSSessionService {
+public class InboundWMSSessionServiceImpl
+    extends QueryService<InboundWMSSession>
+    implements InboundWMSSessionService {
 
     private static final Logger LOG = LoggerFactory.getLogger(
         InboundWMSSessionServiceImpl.class
@@ -217,17 +223,75 @@ public class InboundWMSSessionServiceImpl implements InboundWMSSessionService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<InboundWMSSessionDTO> findAll(Pageable pageable) {
-        LOG.debug("Request to get all InboundWMSSessions");
+    public Page<InboundWMSSessionDTO> findAll(
+        InboundWMSSessionCriteria criteria,
+        Pageable pageable
+    ) {
+        LOG.debug("find by criteria : {}", criteria);
+        final Specification<InboundWMSSession> specification =
+            createSpecification(criteria);
         return inboundWMSSessionRepository
-            .findAll(pageable)
-            .map(session -> {
-                InboundWMSSessionDTO dto = inboundWMSSessionMapper.toDto(
-                    session
+            .findAll(specification, pageable)
+            .map(inboundWMSSessionMapper::toDto);
+    }
+
+    protected Specification<InboundWMSSession> createSpecification(
+        InboundWMSSessionCriteria criteria
+    ) {
+        Specification<InboundWMSSession> specification = Specification.where(
+            null
+        );
+        if (criteria != null) {
+            if (criteria.getId() != null) {
+                specification = specification.and(
+                    buildRangeSpecification(
+                        criteria.getId(),
+                        InboundWMSSession_.id
+                    )
                 );
-                computeAggregates(dto, session.getId());
-                return dto;
-            });
+            }
+            if (criteria.getStatus() != null) {
+                specification = specification.and(
+                    buildStringSpecification(
+                        criteria.getStatus(),
+                        InboundWMSSession_.status
+                    )
+                );
+            }
+            if (criteria.getNote() != null) {
+                specification = specification.and(
+                    buildStringSpecification(
+                        criteria.getNote(),
+                        InboundWMSSession_.note
+                    )
+                );
+            }
+            if (criteria.getCreatedBy() != null) {
+                specification = specification.and(
+                    buildStringSpecification(
+                        criteria.getCreatedBy(),
+                        InboundWMSSession_.createdBy
+                    )
+                );
+            }
+            if (criteria.getCreatedAt() != null) {
+                specification = specification.and(
+                    buildRangeSpecification(
+                        criteria.getCreatedAt(),
+                        InboundWMSSession_.createdAt
+                    )
+                );
+            }
+            if (criteria.getWmsSentAt() != null) {
+                specification = specification.and(
+                    buildRangeSpecification(
+                        criteria.getWmsSentAt(),
+                        InboundWMSSession_.wmsSentAt
+                    )
+                );
+            }
+        }
+        return specification;
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -13,9 +14,17 @@ import org.springframework.stereotype.Repository;
 @SuppressWarnings("unused")
 @Repository
 public interface InboundWMSSessionRepository
-    extends JpaRepository<InboundWMSSession, Long> {
+    extends
+        JpaRepository<InboundWMSSession, Long>,
+        JpaSpecificationExecutor<InboundWMSSession> {
     @EntityGraph(attributePaths = "inboundWMSPallets")
     Optional<InboundWMSSession> findOneWithEagerRelationshipsById(Long id);
 
-    Page<InboundWMSSession> findAll(Pageable pageable);
+    @Override
+    Page<InboundWMSSession> findAll(
+        org.springframework.data.jpa.domain.Specification<
+            InboundWMSSession
+        > spec,
+        Pageable pageable
+    );
 }
