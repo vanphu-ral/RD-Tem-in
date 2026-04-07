@@ -18,7 +18,7 @@ public class InboundWMSPalletTestSamples {
     public static InboundWMSPallet getInboundWMSPalletSample1() {
         return new InboundWMSPallet()
             .id(1L)
-            .inboundWMSSessionId(1)
+            .inboundWMSSessionId(1L)
             .warehouseNoteInfoId(1)
             .serialPallet("serialPallet1")
             .wmsSendStatus("wmsSendStatus1")
@@ -28,7 +28,7 @@ public class InboundWMSPalletTestSamples {
     public static InboundWMSPallet getInboundWMSPalletSample2() {
         return new InboundWMSPallet()
             .id(2L)
-            .inboundWMSSessionId(2)
+            .inboundWMSSessionId(2L)
             .warehouseNoteInfoId(2)
             .serialPallet("serialPallet2")
             .wmsSendStatus("wmsSendStatus2")
@@ -38,7 +38,7 @@ public class InboundWMSPalletTestSamples {
     public static InboundWMSPallet getInboundWMSPalletRandomSampleGenerator() {
         return new InboundWMSPallet()
             .id(longCount.incrementAndGet())
-            .inboundWMSSessionId(intCount.incrementAndGet())
+            .inboundWMSSessionId(longCount.incrementAndGet())
             .warehouseNoteInfoId(intCount.incrementAndGet())
             .serialPallet(UUID.randomUUID().toString())
             .wmsSendStatus(UUID.randomUUID().toString())

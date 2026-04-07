@@ -40,8 +40,8 @@ import org.springframework.transaction.annotation.Transactional;
 @WithMockUser
 class InboundWMSPalletResourceIT {
 
-    private static final Integer DEFAULT_INBOUND_WMS_SESSION_ID = 1;
-    private static final Integer UPDATED_INBOUND_WMS_SESSION_ID = 2;
+    private static final Long DEFAULT_INBOUND_WMS_SESSION_ID = 1L;
+    private static final Long UPDATED_INBOUND_WMS_SESSION_ID = 2L;
 
     private static final Integer DEFAULT_WAREHOUSE_NOTE_INFO_ID = 1;
     private static final Integer UPDATED_WAREHOUSE_NOTE_INFO_ID = 2;

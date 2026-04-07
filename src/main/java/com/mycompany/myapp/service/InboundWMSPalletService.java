@@ -1,11 +1,14 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.service.dto.InboundWMSPalletDTO;
+import com.mycompany.myapp.service.dto.InboundWMSPalletScanRequestDTO;
+import com.mycompany.myapp.service.dto.InboundWMSPalletScanResponseDTO;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Service Interface for managing {@link com.mycompany.myapp.domain.InboundWMSPallet}.
+ * Service Interface for managing
+ * {@link com.mycompany.myapp.domain.InboundWMSPallet}.
  */
 public interface InboundWMSPalletService {
     /**
@@ -55,4 +58,38 @@ public interface InboundWMSPalletService {
      * @param id the id of the entity.
      */
     void delete(Long id);
+
+    /**
+     * Get all the inboundWMSPallets by inboundWMSSessionId.
+     *
+     * @param inboundWMSSessionId the id of the inboundWMSSession.
+     * @return the list of entities.
+     */
+    List<InboundWMSPalletDTO> findByInboundWMSSessionId(
+        Long inboundWMSSessionId
+    );
+
+    /**
+     * Scan and save pallet information.
+     *
+     * @param requestDTO the request data.
+     * @return the response with listBox and warehouseNoteInfo.
+     */
+    InboundWMSPalletScanResponseDTO scanAndSave(
+        InboundWMSPalletScanRequestDTO requestDTO
+    );
+
+    // @Transactional(readOnly = true)
+    // default Optional<InboundWMSPalletDTO> getPalletDetail(Long warehouse_note_info_id) {
+    //     return InboundWMSPalletRepository.findById(warehouse_note_info_id).map(pallet -> {
+    //         InboundWMSPalletDTO dto = inboundWMSPalletMapper.toDto(pallet);
+
+    //         if (dto.getWarehouseNoteInfoId() != null) {
+    //             WarehouseStampInfoDTO info = warehouseNoteService.findOne(dto.getWarehouseNoteInfoId());
+
+    //             dto.setWarehouseNoteInfo(info);
+    //         }
+    //         return dto;
+    //     });
+    // }
 }

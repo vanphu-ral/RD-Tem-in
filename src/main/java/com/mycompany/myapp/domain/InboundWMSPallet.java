@@ -1,8 +1,11 @@
 package com.mycompany.myapp.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mycompany.myapp.service.dto.BoxInfoDTO;
 import java.io.Serializable;
 import java.time.ZonedDateTime;
+import java.util.List;
 import javax.persistence.*;
 import javax.validation.constraints.*;
 
@@ -17,16 +20,16 @@ public class InboundWMSPallet implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "sequenceGenerator"
-    )
-    @SequenceGenerator(name = "sequenceGenerator")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "inbound_wms_session_id")
-    private Integer inboundWMSSessionId;
+    @Column(
+        name = "inbound_wms_session_id",
+        insertable = false,
+        updatable = false
+    )
+    private Long inboundWMSSessionId;
 
     @Column(name = "warehouse_note_info_id")
     private Integer warehouseNoteInfoId;
@@ -46,7 +49,12 @@ public class InboundWMSPallet implements Serializable {
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
 
+    @Column(name = "list_box")
+    private String listBox;
+
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inbound_wms_session_id")
+    // @JsonIgnore
     @JsonIgnoreProperties(value = { "inboundWMSPallets" }, allowSetters = true)
     private InboundWMSSession inboundWMSSession;
 
@@ -65,16 +73,16 @@ public class InboundWMSPallet implements Serializable {
         this.id = id;
     }
 
-    public Integer getInboundWMSSessionId() {
+    public Long getInboundWMSSessionId() {
         return this.inboundWMSSessionId;
     }
 
-    public InboundWMSPallet inboundWMSSessionId(Integer inboundWMSSessionId) {
+    public InboundWMSPallet inboundWMSSessionId(Long inboundWMSSessionId) {
         this.setInboundWMSSessionId(inboundWMSSessionId);
         return this;
     }
 
-    public void setInboundWMSSessionId(Integer inboundWMSSessionId) {
+    public void setInboundWMSSessionId(Long inboundWMSSessionId) {
         this.inboundWMSSessionId = inboundWMSSessionId;
     }
 
@@ -143,6 +151,19 @@ public class InboundWMSPallet implements Serializable {
         this.createdAt = createdAt;
     }
 
+    public String getListBox() {
+        return this.listBox;
+    }
+
+    public InboundWMSPallet listBox(String listBox) {
+        this.setListBox(listBox);
+        return this;
+    }
+
+    public void setListBox(String listBox) {
+        this.listBox = listBox;
+    }
+
     public InboundWMSSession getInboundWMSSession() {
         return this.inboundWMSSession;
     }
@@ -184,12 +205,13 @@ public class InboundWMSPallet implements Serializable {
     public String toString() {
         return "InboundWMSPallet{" +
             "id=" + getId() +
-            ", inboundWMSSessionId=" + getInboundWMSSessionId() +
+            // ", inboundWMSSessionId=" + getInboundWMSSessionId() +
             ", warehouseNoteInfoId=" + getWarehouseNoteInfoId() +
             ", serialPallet='" + getSerialPallet() + "'" +
             ", wmsSendStatus='" + getWmsSendStatus() + "'" +
             ", createdBy='" + getCreatedBy() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
+            ", listBox='" + getListBox() + "'" +
             "}";
     }
 }

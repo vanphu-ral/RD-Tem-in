@@ -1,10 +1,30 @@
 package com.mycompany.myapp.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mycompany.myapp.domain.InboundWMSPallet;
+import com.mycompany.myapp.domain.InboundWMSSession;
+import com.mycompany.myapp.domain.PalletInforDetail;
+import com.mycompany.myapp.domain.SerialBoxPalletMapping;
+import com.mycompany.myapp.domain.WarehouseNoteInfo;
+import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
 import com.mycompany.myapp.repository.partner3.InboundWMSPalletRepository;
+import com.mycompany.myapp.repository.partner3.InboundWMSSessionRepository;
+import com.mycompany.myapp.repository.partner3.Partner3PalletInforDetailRepository;
+import com.mycompany.myapp.repository.partner3.Partner3SerialBoxPalletMappingRepository;
+import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoDetailRepository;
+import com.mycompany.myapp.repository.partner3.Partner3WarehouseStampInfoRepository;
 import com.mycompany.myapp.service.InboundWMSPalletService;
+import com.mycompany.myapp.service.dto.BoxInfoDTO;
 import com.mycompany.myapp.service.dto.InboundWMSPalletDTO;
+import com.mycompany.myapp.service.dto.InboundWMSPalletScanRequestDTO;
+import com.mycompany.myapp.service.dto.InboundWMSPalletScanResponseDTO;
+import com.mycompany.myapp.service.dto.WarehouseStampInfoDTO;
+import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
 import com.mycompany.myapp.service.mapper.InboundWMSPalletMapper;
+import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
+import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
+import java.time.ZonedDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +35,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service Implementation for managing {@link com.mycompany.myapp.domain.InboundWMSPallet}.
+ * Service Implementation for managing
+ * {@link com.mycompany.myapp.domain.InboundWMSPallet}.
  */
 @Service
 @Transactional
@@ -29,12 +50,42 @@ public class InboundWMSPalletServiceImpl implements InboundWMSPalletService {
 
     private final InboundWMSPalletMapper inboundWMSPalletMapper;
 
+    private final InboundWMSSessionRepository inboundWMSSessionRepository;
+
+    private final Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository;
+
+    private final Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository;
+
+    private final Partner3PalletInforDetailRepository palletInforDetailRepository;
+
+    private final Partner3WarehouseStampInfoRepository warehouseStampInfoRepository;
+
+    private final WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper;
+
+    private final WarehouseStampInfoMapper warehouseStampInfoMapper;
+
     public InboundWMSPalletServiceImpl(
         InboundWMSPalletRepository inboundWMSPalletRepository,
-        InboundWMSPalletMapper inboundWMSPalletMapper
+        InboundWMSPalletMapper inboundWMSPalletMapper,
+        InboundWMSSessionRepository inboundWMSSessionRepository,
+        Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository,
+        Partner3WarehouseStampInfoDetailRepository warehouseStampInfoDetailRepository,
+        Partner3PalletInforDetailRepository palletInforDetailRepository,
+        Partner3WarehouseStampInfoRepository warehouseStampInfoRepository,
+        WarehouseStampInfoDetailMapper warehouseStampInfoDetailMapper,
+        WarehouseStampInfoMapper warehouseStampInfoMapper
     ) {
         this.inboundWMSPalletRepository = inboundWMSPalletRepository;
         this.inboundWMSPalletMapper = inboundWMSPalletMapper;
+        this.inboundWMSSessionRepository = inboundWMSSessionRepository;
+        this.serialBoxPalletMappingRepository =
+            serialBoxPalletMappingRepository;
+        this.warehouseStampInfoDetailRepository =
+            warehouseStampInfoDetailRepository;
+        this.palletInforDetailRepository = palletInforDetailRepository;
+        this.warehouseStampInfoRepository = warehouseStampInfoRepository;
+        this.warehouseStampInfoDetailMapper = warehouseStampInfoDetailMapper;
+        this.warehouseStampInfoMapper = warehouseStampInfoMapper;
     }
 
     @Override
@@ -107,5 +158,109 @@ public class InboundWMSPalletServiceImpl implements InboundWMSPalletService {
     public void delete(Long id) {
         LOG.debug("Request to delete InboundWMSPallet : {}", id);
         inboundWMSPalletRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InboundWMSPalletDTO> findByInboundWMSSessionId(
+        Long inboundWMSSessionId
+    ) {
+        LOG.debug(
+            "Request to get InboundWMSPallets by InboundWMSSessionId : {}",
+            inboundWMSSessionId
+        );
+        return inboundWMSPalletRepository
+            .findByInboundWMSSessionId(inboundWMSSessionId)
+            .stream()
+            .map(inboundWMSPalletMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public InboundWMSPalletScanResponseDTO scanAndSave(
+        InboundWMSPalletScanRequestDTO requestDTO
+    ) {
+        LOG.debug("Request to scan and save InboundWMSPallet : {}", requestDTO);
+
+        // Logic for listBox: Find records in SerialBoxPalletMapping by serial_pallet,
+        // extract serial_boxes
+        List<SerialBoxPalletMapping> mappings =
+            serialBoxPalletMappingRepository.findBySerialPallet(
+                requestDTO.getSerialPallet()
+            );
+        List<String> serialBoxes = mappings
+            .stream()
+            .map(SerialBoxPalletMapping::getSerialBox)
+            .collect(Collectors.toList());
+
+        // Query WarehouseNoteInfoDetail by reel_id IN serial_boxes
+        List<WarehouseNoteInfoDetail> details =
+            warehouseStampInfoDetailRepository.findByReelIdIn(serialBoxes);
+        List<BoxInfoDTO> listBox = details
+            .stream()
+            .map(detail -> {
+                BoxInfoDTO boxInfo = new BoxInfoDTO();
+                boxInfo.setNote(detail.getComments()); // note from comments
+                boxInfo.setBoxCode(detail.getReelId());
+                boxInfo.setQuantity(detail.getInitialQuantity()); // quantity from initial_quantity
+                boxInfo.setListSerialItems(detail.getListSerialItems());
+                return boxInfo;
+            })
+            .collect(Collectors.toList());
+
+        // Logic for warehouse_note_info: Find PalletInforDetail by serial_pallet, get
+        // ma_lenh_san_xuat_id
+        Optional<PalletInforDetail> palletOpt =
+            palletInforDetailRepository.findBySerialPallet(
+                requestDTO.getSerialPallet()
+            );
+        WarehouseStampInfoDTO warehouseNoteInfo = null;
+        Long maLenhSanXuatId = null;
+        if (palletOpt.isPresent()) {
+            maLenhSanXuatId = palletOpt.get().getMaLenhSanXuatId();
+            Optional<WarehouseNoteInfo> warehouseOpt =
+                warehouseStampInfoRepository.findById(maLenhSanXuatId);
+            if (warehouseOpt.isPresent()) {
+                warehouseNoteInfo = warehouseStampInfoMapper.toDto(
+                    warehouseOpt.get()
+                );
+            }
+        }
+
+        // Save InboundWMSPallet
+        InboundWMSPallet inboundWMSPallet = new InboundWMSPallet();
+        Optional<InboundWMSSession> sessionOpt =
+            inboundWMSSessionRepository.findById(
+                requestDTO.getInboundWmsSessionId().longValue()
+            );
+        if (sessionOpt.isPresent()) {
+            inboundWMSPallet.setInboundWMSSession(sessionOpt.get());
+        }
+        inboundWMSPallet.setSerialPallet(requestDTO.getSerialPallet());
+        inboundWMSPallet.setCreatedBy(requestDTO.getScanedBy());
+        inboundWMSPallet.setCreatedAt(ZonedDateTime.now());
+        if (maLenhSanXuatId != null) {
+            inboundWMSPallet.setWarehouseNoteInfoId(maLenhSanXuatId.intValue());
+        }
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            String listBoxJson = objectMapper.writeValueAsString(listBox);
+            inboundWMSPallet.setListBox(listBoxJson);
+        } catch (JsonProcessingException e) {
+            LOG.error("Error serializing listBox to JSON", e);
+        }
+        InboundWMSPallet saved = inboundWMSPalletRepository.save(
+            inboundWMSPallet
+        );
+
+        // Return response
+        InboundWMSPalletScanResponseDTO response =
+            new InboundWMSPalletScanResponseDTO();
+        response.setWarehouseNoteInfo(warehouseNoteInfo);
+        InboundWMSPalletDTO dto = inboundWMSPalletMapper.toDto(saved);
+        dto.setListBox(listBox);
+        response.setInboundpalletInfo(dto);
+        return response;
     }
 }

@@ -2,6 +2,7 @@ package com.mycompany.myapp.service.dto;
 
 import java.io.Serializable;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Objects;
 import javax.validation.constraints.*;
 
@@ -12,6 +13,8 @@ import javax.validation.constraints.*;
 public class InboundWMSPalletDTO implements Serializable {
 
     private Long id;
+
+    private WarehouseStampInfoDTO warehouseNoteInfo; // (dung lay thong tin ma lenh, san pham...)
 
     private Integer inboundWMSSessionId;
 
@@ -28,7 +31,17 @@ public class InboundWMSPalletDTO implements Serializable {
 
     private ZonedDateTime createdAt;
 
-    private InboundWMSSessionDTO inboundWMSSession;
+    private List<BoxInfoDTO> listBox;
+
+    // private InboundWMSSessionDTO inboundWMSSession;
+
+    public WarehouseStampInfoDTO getWarehouseNoteInfo() {
+        return warehouseNoteInfo;
+    }
+
+    public void setWarehouseNoteInfo(WarehouseStampInfoDTO warehouseNoteInfo) {
+        this.warehouseNoteInfo = warehouseNoteInfo;
+    }
 
     public Long getId() {
         return id;
@@ -86,13 +99,21 @@ public class InboundWMSPalletDTO implements Serializable {
         this.createdAt = createdAt;
     }
 
-    public InboundWMSSessionDTO getInboundWMSSession() {
-        return inboundWMSSession;
+    public List<BoxInfoDTO> getListBox() {
+        return listBox;
     }
 
-    public void setInboundWMSSession(InboundWMSSessionDTO inboundWMSSession) {
-        this.inboundWMSSession = inboundWMSSession;
+    public void setListBox(List<BoxInfoDTO> listBox) {
+        this.listBox = listBox;
     }
+
+    // public InboundWMSSessionDTO getInboundWMSSession() {
+    //     return inboundWMSSession;
+    // }
+
+    // public void setInboundWMSSession(InboundWMSSessionDTO inboundWMSSession) {
+    //     this.inboundWMSSession = inboundWMSSession;
+    // }
 
     @Override
     public boolean equals(Object o) {
@@ -126,7 +147,8 @@ public class InboundWMSPalletDTO implements Serializable {
             ", wmsSendStatus='" + getWmsSendStatus() + "'" +
             ", createdBy='" + getCreatedBy() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
-            ", inboundWMSSession=" + getInboundWMSSession() +
+            ", listBox=" + getListBox() +
+            // ", inboundWMSSession=" + getInboundWMSSession() +
             "}";
     }
 }

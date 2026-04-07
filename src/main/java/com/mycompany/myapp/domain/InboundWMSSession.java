@@ -6,6 +6,7 @@ import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import javax.persistence.*;
+import javax.persistence.criteria.CriteriaBuilder.In;
 import javax.validation.constraints.*;
 
 /**
@@ -19,11 +20,7 @@ public class InboundWMSSession implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "sequenceGenerator"
-    )
-    @SequenceGenerator(name = "sequenceGenerator")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
@@ -31,12 +28,19 @@ public class InboundWMSSession implements Serializable {
     @Column(name = "status", length = 50)
     private String status;
 
+    @Size(max = 255)
+    @Column(name = "note", length = 255)
+    private String note;
+
     @Size(max = 15)
     @Column(name = "created_by", length = 15)
     private String createdBy;
 
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
+
+    @Column(name = "wms_sent_at")
+    private ZonedDateTime wmsSentAt;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "inboundWMSSession")
     @JsonIgnoreProperties(value = { "inboundWMSSession" }, allowSetters = true)
@@ -70,6 +74,19 @@ public class InboundWMSSession implements Serializable {
         this.status = status;
     }
 
+    public String getNote() {
+        return this.note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public InboundWMSSession note(String note) {
+        this.setNote(note);
+        return this;
+    }
+
     public String getCreatedBy() {
         return this.createdBy;
     }
@@ -94,6 +111,19 @@ public class InboundWMSSession implements Serializable {
 
     public void setCreatedAt(ZonedDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public ZonedDateTime getWmsSentAt() {
+        return this.wmsSentAt;
+    }
+
+    public void setWmsSentAt(ZonedDateTime wmsSentAt) {
+        this.wmsSentAt = wmsSentAt;
+    }
+
+    public InboundWMSSession wmsSentAt(ZonedDateTime wmsSentAt) {
+        this.setWmsSentAt(wmsSentAt);
+        return this;
     }
 
     public Set<InboundWMSPallet> getInboundWMSPallets() {
@@ -160,8 +190,10 @@ public class InboundWMSSession implements Serializable {
         return "InboundWMSSession{" +
             "id=" + getId() +
             ", status='" + getStatus() + "'" +
+            ", note= '" + getNote() + "'" +
             ", createdBy='" + getCreatedBy() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
+            ", wmsSentAt='" + getWmsSentAt() + "'" +
             "}";
     }
 }

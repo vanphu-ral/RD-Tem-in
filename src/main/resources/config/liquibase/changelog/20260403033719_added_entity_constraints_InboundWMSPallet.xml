@@ -10,9 +10,9 @@
     -->
     <changeSet id="20260403033719-2" author="jhipster">
 
-        <addForeignKeyConstraint baseColumnNames="inboundwmssession_id"
+        <addForeignKeyConstraint baseColumnNames="inbound_wms_session_id"
                                  baseTableName="inbound_wms_pallet"
-                                 constraintName="fk_inbound_wms_pallet__inboundwmssession_id"
+                                 constraintName="fk_inbound_wms_pallet__inbound_wms_session_id"
                                  referencedColumnNames="id"
                                  referencedTableName="inbound_wms_session"
                                  />

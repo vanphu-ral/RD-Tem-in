@@ -4,9 +4,11 @@ import com.mycompany.myapp.domain.InboundWMSSession;
 import com.mycompany.myapp.service.dto.InboundWMSSessionDTO;
 import org.mapstruct.*;
 
-/**
- * Mapper for the entity {@link InboundWMSSession} and its DTO {@link InboundWMSSessionDTO}.
- */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = { InboundWMSPalletMapper.class })
 public interface InboundWMSSessionMapper
-    extends EntityMapper<InboundWMSSessionDTO, InboundWMSSession> {}
+    extends EntityMapper<InboundWMSSessionDTO, InboundWMSSession> {
+    @Mapping(target = "inboundWMSPallets", ignore = true)
+    InboundWMSSessionDTO toDto(InboundWMSSession s);
+
+    InboundWMSSession toEntity(InboundWMSSessionDTO inboundWMSSessionDTO);
+}

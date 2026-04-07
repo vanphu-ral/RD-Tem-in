@@ -3,6 +3,8 @@ package com.mycompany.myapp.web.rest;
 import com.mycompany.myapp.repository.partner3.InboundWMSPalletRepository;
 import com.mycompany.myapp.service.InboundWMSPalletService;
 import com.mycompany.myapp.service.dto.InboundWMSPalletDTO;
+import com.mycompany.myapp.service.dto.InboundWMSPalletScanRequestDTO;
+import com.mycompany.myapp.service.dto.InboundWMSPalletScanResponseDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,7 +22,8 @@ import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
 /**
- * REST controller for managing {@link com.mycompany.myapp.domain.InboundWMSPallet}.
+ * REST controller for managing
+ * {@link com.mycompany.myapp.domain.InboundWMSPallet}.
  */
 @RestController
 @RequestMapping("/api/inbound-wms-pallets")
@@ -51,7 +54,9 @@ public class InboundWMSPalletResource {
      * {@code POST  /inbound-wms-pallets} : Create a new inboundWMSPallet.
      *
      * @param inboundWMSPalletDTO the inboundWMSPalletDTO to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new inboundWMSPalletDTO, or with status {@code 400 (Bad Request)} if the inboundWMSPallet has already an ID.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with
+     *         body the new inboundWMSPalletDTO, or with status
+     *         {@code 400 (Bad Request)} if the inboundWMSPallet has already an ID.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("")
@@ -87,11 +92,14 @@ public class InboundWMSPalletResource {
     /**
      * {@code PUT  /inbound-wms-pallets/:id} : Updates an existing inboundWMSPallet.
      *
-     * @param id the id of the inboundWMSPalletDTO to save.
+     * @param id                  the id of the inboundWMSPalletDTO to save.
      * @param inboundWMSPalletDTO the inboundWMSPalletDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated inboundWMSPalletDTO,
-     * or with status {@code 400 (Bad Request)} if the inboundWMSPalletDTO is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the inboundWMSPalletDTO couldn't be updated.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated inboundWMSPalletDTO,
+     *         or with status {@code 400 (Bad Request)} if the inboundWMSPalletDTO
+     *         is not valid,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         inboundWMSPalletDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/{id}")
@@ -143,14 +151,19 @@ public class InboundWMSPalletResource {
     }
 
     /**
-     * {@code PATCH  /inbound-wms-pallets/:id} : Partial updates given fields of an existing inboundWMSPallet, field will ignore if it is null
+     * {@code PATCH  /inbound-wms-pallets/:id} : Partial updates given fields of an
+     * existing inboundWMSPallet, field will ignore if it is null
      *
-     * @param id the id of the inboundWMSPalletDTO to save.
+     * @param id                  the id of the inboundWMSPalletDTO to save.
      * @param inboundWMSPalletDTO the inboundWMSPalletDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated inboundWMSPalletDTO,
-     * or with status {@code 400 (Bad Request)} if the inboundWMSPalletDTO is not valid,
-     * or with status {@code 404 (Not Found)} if the inboundWMSPalletDTO is not found,
-     * or with status {@code 500 (Internal Server Error)} if the inboundWMSPalletDTO couldn't be updated.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated inboundWMSPalletDTO,
+     *         or with status {@code 400 (Bad Request)} if the inboundWMSPalletDTO
+     *         is not valid,
+     *         or with status {@code 404 (Not Found)} if the inboundWMSPalletDTO is
+     *         not found,
+     *         or with status {@code 500 (Internal Server Error)} if the
+     *         inboundWMSPalletDTO couldn't be updated.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(
@@ -206,7 +219,8 @@ public class InboundWMSPalletResource {
     /**
      * {@code GET  /inbound-wms-pallets} : get all the inboundWMSPallets.
      *
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of inboundWMSPallets in body.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list
+     *         of inboundWMSPallets in body.
      */
     @GetMapping("")
     public List<InboundWMSPalletDTO> getAllInboundWMSPallets() {
@@ -215,19 +229,20 @@ public class InboundWMSPalletResource {
     }
 
     /**
-     * {@code GET  /inbound-wms-pallets/:id} : get the "id" inboundWMSPallet.
+     * {@code POST  /inbound-wms-pallets/scan} : Scan and save pallet information.
      *
-     * @param id the id of the inboundWMSPalletDTO to retrieve.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the inboundWMSPalletDTO, or with status {@code 404 (Not Found)}.
+     * @param requestDTO the request data.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the response.
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<InboundWMSPalletDTO> getInboundWMSPallet(
-        @PathVariable("id") Long id
+    @PostMapping("/scan")
+    public ResponseEntity<InboundWMSPalletScanResponseDTO> scanInboundWMSPallet(
+        @Valid @RequestBody InboundWMSPalletScanRequestDTO requestDTO
     ) {
-        LOG.debug("REST request to get InboundWMSPallet : {}", id);
-        Optional<InboundWMSPalletDTO> inboundWMSPalletDTO =
-            inboundWMSPalletService.findOne(id);
-        return ResponseUtil.wrapOrNotFound(inboundWMSPalletDTO);
+        LOG.debug("REST request to scan InboundWMSPallet : {}", requestDTO);
+        InboundWMSPalletScanResponseDTO result =
+            inboundWMSPalletService.scanAndSave(requestDTO);
+        return ResponseEntity.ok(result);
     }
 
     /**
