@@ -34,6 +34,7 @@ export interface PoImportTemPayload {
   createdAt: string;
   updatedBy: string;
   updatedAt: string;
+  note?: string;
 }
 
 export interface TemScenarioResponse {
@@ -108,6 +109,7 @@ export interface ImportVendorTemTransaction {
   createdBy: string;
   createdAt: string;
   totalScanQuantity?: number | null;
+  note: string;
   totalQuantityCalculated?: number | null;
   poImportTemId: number;
   poDetails: PoDetail[];
@@ -129,6 +131,7 @@ export interface PoImportTem {
   updatedBy: string;
   updatedAt: string;
   approver?: string;
+  note?: string;
   importVendorTemTransactions: ImportVendorTemTransaction[];
 }
 export interface Pagination {
@@ -279,7 +282,7 @@ export class ManagerTemNccService {
   //lay danh sach don nhap
   getPoImportTems(page: number, size: number): Observable<PoImportTemResponse> {
     return this.http.get<PoImportTemResponse>(
-      `${this.baseUrl}/po-import-tems?page=${page}&size=${size}`,
+      `${this.baseUrl}/po-import-tems?page=${page}&size=${size}&sort=updatedAt,desc`,
     );
   }
 

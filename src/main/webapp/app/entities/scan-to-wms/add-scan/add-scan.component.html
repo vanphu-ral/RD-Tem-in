@@ -1,0 +1,188 @@
+<div class="add-scan-wrapper">
+  <div class="page-header">
+    <button class="back-btn" (click)="goBack()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="page-title">Quét mã nhập kho</span>
+  </div>
+
+  <div class="main-content">
+    <div class="top-card">
+      <div class="tab-toggle">
+        <button
+          class="tab-btn"
+          [class.active]="activeTab === 'pallet'"
+          (click)="setTab('pallet')"
+        >
+          Pallet
+        </button>
+        <button
+          class="tab-btn"
+          [class.active]="activeTab === 'thung'"
+          (click)="setTab('thung')"
+        >
+          Thùng
+        </button>
+      </div>
+      <div class="session-indicator" *ngIf="sessionId">
+        <mat-icon>tag</mat-icon>
+        Đơn #{{ sessionId }}
+      </div>
+      <div class="completed-badge" *ngIf="isSessionCompleted">Hoàn thành</div>
+
+      <form [formGroup]="scanForm">
+        <div class="scan-input-row">
+          <mat-form-field appearance="outline" class="scan-field">
+            <input
+              matInput
+              formControlName="scanInput"
+              [placeholder]="scanPlaceholder"
+              (keyup.enter)="applyCode()"
+              inputmode="none"
+            />
+          </mat-form-field>
+          <button
+            class="btn-apply"
+            (click)="applyCode()"
+            [disabled]="isScanning || isCreatingSession || isSessionCompleted"
+          >
+            <mat-spinner
+              diameter="16"
+              *ngIf="isScanning; else applyIcon"
+            ></mat-spinner>
+            <ng-template #applyIcon
+              ><mat-icon>check_circle</mat-icon></ng-template
+            >
+            {{ isScanning ? "" : "Apply" }}
+          </button>
+          <div class="scan-error-bar" *ngIf="scanError">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ scanError }}</span>
+            <button class="scan-error-close" (click)="scanError = null">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <span class="creating-badge" *ngIf="isCreatingSession">
+            <mat-spinner diameter="16"></mat-spinner>
+            Đang tạo đơn...
+          </span>
+        </div>
+
+        <div class="note-section">
+          <label class="note-label">Ghi chú</label>
+          <mat-form-field appearance="outline" class="note-field">
+            <input
+              matInput
+              formControlName="ghiChu"
+              placeholder="Ghi chú..."
+              (keyup.enter)="$event.preventDefault()"
+            />
+          </mat-form-field>
+        </div>
+      </form>
+    </div>
+
+    <div class="list-card">
+      <div class="list-header">
+        <div class="list-title-row">
+          <span class="list-title">Danh sách quét</span>
+          <span class="item-badge" [class.has-items]="itemCount > 0">{{
+            itemCount
+          }}</span>
+        </div>
+        <button
+          class="btn-clear"
+          (click)="clearAll()"
+          [disabled]="itemCount === 0 || isScanning"
+        >
+          <mat-icon>delete</mat-icon>
+          Xoá hết
+        </button>
+      </div>
+      <div class="loading-bar" *ngIf="isLoadingSession">
+        <mat-spinner diameter="24"></mat-spinner>
+        <span>Đang tải dữ liệu đơn...</span>
+      </div>
+      <div class="table-wrapper" *ngIf="!isMobile">
+        <table class="scan-table">
+          <thead>
+            <tr>
+              <th>Stt</th>
+              <th>Serial Pallet</th>
+              <th>Mã WO</th>
+              <th>Mã SP</th>
+              <th>Tên SP</th>
+              <th>Số lượng</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of scannedItems; let i = index">
+              <td>{{ item.stt }}</td>
+              <td>{{ item.pallet }}</td>
+              <td>{{ item.maLenhWo }}</td>
+              <td>{{ item.maSp }}</td>
+              <td>{{ item.tenSp }}</td>
+              <td>{{ item.soLuong }}</td>
+              <td>
+                <button class="btn-remove" (click)="removeItem(i)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="empty-state" *ngIf="itemCount === 0">
+          Chưa có dữ liệu quét
+        </div>
+      </div>
+
+      <div class="mobile-items" *ngIf="isMobile">
+        <div
+          class="mobile-scan-item"
+          *ngFor="let item of scannedItems; let i = index"
+        >
+          <div class="msi-body">
+            <div class="msi-row-top">
+              <span class="msi-pallet">{{ item.pallet }}</span>
+              <span class="msi-batch">{{ item.maLenhWo }}</span>
+            </div>
+            <div class="msi-row-bottom">
+              <div class="msi-sub">
+                <span class="msi-product">{{ item.tenSp }}</span>
+                <span class="msi-qty">SL: {{ item.soLuong }}</span>
+              </div>
+              <span class="msi-wo">{{ item.maSp }}</span>
+            </div>
+          </div>
+
+          <button class="btn-remove-mobile" (click)="removeItem(i)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <div class="empty-state" *ngIf="itemCount === 0">
+          Chưa có dữ liệu quét
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-actions">
+    <!-- <button class="btn-footer btn-luu" (click)="onLuu()">
+      <mat-icon>save</mat-icon>
+      Lưu
+    </button>
+    <button class="btn-footer btn-qms" (click)="onGuiQMS()">
+      <mat-icon>send</mat-icon>
+      Gửi QMS
+    </button> -->
+    <button
+      class="btn-footer btn-wms"
+      (click)="onGuiWMS()"
+      *ngIf="!isSessionCompleted"
+    >
+      <mat-icon>send</mat-icon>
+      Gửi WMS
+    </button>
+  </div>
+</div>

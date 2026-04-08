@@ -57,6 +57,7 @@ export interface SessionItem {
   totalScanQty: number;
   itemCount: number;
   transactionId: number;
+  note: string;
 }
 
 export interface FilterValues {
@@ -425,6 +426,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       totalScanQty: t.totalScanQuantity ?? 0, // so luong da scan thuc te
       itemCount,
       transactionId: t.id,
+      note: t.note ?? "",
     };
   }
 

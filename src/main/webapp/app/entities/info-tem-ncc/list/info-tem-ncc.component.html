@@ -345,6 +345,7 @@
                       <th>Trạng thái</th>
                       <th class="col-num">Tổng SL</th>
                       <th class="col-num">Mã Items</th>
+                      <th class="col-note">Ghi chú</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -404,6 +405,9 @@
                           {{ session.totalQty | number }}
                         </td>
                         <td class="col-num">{{ session.itemCount }}</td>
+                        <td class="col-note-cell" [title]="session.note">
+                          {{ session.note }}
+                        </td>
                       </tr>
                     </ng-container>
                     <ng-template #noSession>
@@ -603,6 +607,10 @@
                 <span class="mobile-stat">
                   <span class="stat-label">MÃ ITEMS</span>
                   <span class="stat-value">{{ session.itemCount }}</span>
+                </span>
+                <span class="mobile-stat" *ngIf="session.note">
+                  <span class="stat-label">GHI CHÚ</span>
+                  <span class="stat-value">{{ session.note }}</span>
                 </span>
               </div>
             </div>

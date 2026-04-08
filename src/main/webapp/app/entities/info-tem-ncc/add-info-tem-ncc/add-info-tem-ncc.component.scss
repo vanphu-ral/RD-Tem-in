@@ -802,6 +802,9 @@ table {
   .mobile-view {
     display: block;
   }
+  .note-field {
+    width: 100%;
+  }
   .group-mobile {
     width: 100%;
     gap: 10px;
@@ -844,6 +847,11 @@ table {
     flex-direction: column;
     mat-form-field {
       width: 100%;
+    }
+    .note-field {
+      flex: 1 1 100%;
+      min-width: 280px;
+      max-width: 100%;
     }
   }
   .footer-actions {

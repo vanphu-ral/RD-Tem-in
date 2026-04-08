@@ -1,0 +1,219 @@
+<div class="scan-wms-wrapper">
+  <div class="page-header">
+    <span class="page-title">Scan nhập kho thành phẩm</span>
+    <button class="btn-scan" (click)="openScan()">
+      <mat-icon>crop_free</mat-icon>
+      Scan
+    </button>
+  </div>
+
+  <div class="content-card">
+    <form [formGroup]="filterForm" class="filter-bar">
+      <div class="filter-field">
+        <label class="filter-label">Thời gian</label>
+        <mat-form-field appearance="outline" class="filter-input">
+          <input
+            matInput
+            [matDatepicker]="picker"
+            formControlName="thoiGian"
+            placeholder="mm/dd/yyyy"
+          />
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="picker"
+          ></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <div class="filter-field">
+        <label class="filter-label">Ghi chú</label>
+        <mat-form-field appearance="outline" class="filter-input">
+          <input
+            matInput
+            formControlName="ghiChu"
+            placeholder="Tìm ghi chú..."
+          />
+        </mat-form-field>
+      </div>
+
+      <div class="filter-field">
+        <label class="filter-label">Trạng thái</label>
+        <mat-form-field appearance="outline" class="filter-input">
+          <mat-select formControlName="trangThai">
+            <mat-option
+              *ngFor="let opt of trangThaiOptions"
+              [value]="opt.value"
+            >
+              {{ opt.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <button class="btn-apply" (click)="applyFilter()" [disabled]="isLoading">
+        Apply
+      </button>
+    </form>
+
+    <div class="loading-bar" *ngIf="isLoading">
+      <mat-spinner diameter="28"></mat-spinner>
+      <span>Đang tải dữ liệu...</span>
+    </div>
+
+    <div class="error-bar" *ngIf="errorMsg && !isLoading">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMsg }}</span>
+      <button class="btn-retry" (click)="loadSessions()">Thử lại</button>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!isMobile && !isLoading && !errorMsg">
+      <table class="main-table">
+        <thead class="thead-muted">
+          <tr>
+            <th class="col-expand"></th>
+            <th>Ngày tạo</th>
+            <th>Người tạo</th>
+            <th>SL pallet</th>
+            <th>SL thùng</th>
+            <th>Tổng số sp</th>
+            <th>Ghi chú</th>
+            <th>Thời gian gửi kho</th>
+            <th>Trạng thái</th>
+            <th>Tuỳ chọn</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let record of records">
+            <tr class="main-row" [class.expanded]="isExpanded(record.id)">
+              <td class="col-expand">
+                <button class="expand-btn" (click)="toggleRow(record.id)">
+                  <mat-icon [class.rotated]="isExpanded(record.id)"
+                    >keyboard_arrow_down</mat-icon
+                  >
+                </button>
+              </td>
+              <td>{{ formatDate(record.ngayTao) }}</td>
+              <td>{{ record.nguoiTao || "—" }}</td>
+              <td>{{ record.slPallet }}</td>
+              <td>{{ record.slThung }}</td>
+              <td>{{ record.tongSoSp !== 0 ? record.tongSoSp : "—" }}</td>
+              <td>{{ record.ghiChu || "—" }}</td>
+              <td>{{ formatDate(record.thoiGianGuiKho) }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="record.trangThai">
+                  <mat-icon class="status-icon">
+                    {{
+                      record.trangThai === "hoan-thanh"
+                        ? "check_circle"
+                        : "error"
+                    }}
+                  </mat-icon>
+                  {{ record.raw.status || "—" }}
+                </span>
+              </td>
+              <td>
+                <button class="btn-view" (click)="viewDetail(record)">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+              </td>
+            </tr>
+
+            <tr class="detail-row" *ngIf="isExpanded(record.id)">
+              <td colspan="10" class="detail-cell">
+                <!-- Loading chi tiết -->
+                <div class="detail-loading" *ngIf="isLoadingDetail(record.id)">
+                  <mat-spinner diameter="20"></mat-spinner>
+                  <span>Đang tải...</span>
+                </div>
+
+                <table class="detail-table" *ngIf="!isLoadingDetail(record.id)">
+                  <thead>
+                    <tr>
+                      <th>Mã WO</th>
+                      <th>Mã SP</th>
+                      <th>Sản phẩm</th>
+                      <th>Số lượng</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <ng-container
+                      *ngFor="let row of getGroupedByWO(record.raw)"
+                    >
+                      <tr>
+                        <td>{{ row.woCode }}</td>
+                        <td>{{ row.maSp }}</td>
+                        <td>{{ row.tenSp }}</td>
+                        <td>{{ row.soLuong }}</td>
+                      </tr>
+                    </ng-container>
+                    <tr *ngIf="getGroupedByWO(record.raw).length === 0">
+                      <td colspan="4" class="empty-row">Không có dữ liệu</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </ng-container>
+
+          <tr *ngIf="records.length === 0">
+            <td colspan="10" class="empty-row">Không có dữ liệu</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mobile-list" *ngIf="isMobile && !isLoading && !errorMsg">
+      <div class="mobile-card" *ngFor="let record of records">
+        <div class="mc-header">
+          <span class="status-badge" [ngClass]="record.trangThai">
+            <mat-icon class="status-icon">
+              {{ record.trangThai === "hoan-thanh" ? "check_circle" : "error" }}
+            </mat-icon>
+            {{ record.raw.status || "—" }}
+          </span>
+          <span class="mc-user">{{ record.nguoiTao || "—" }}</span>
+          <button class="btn-view" (click)="viewDetail(record)">
+            <mat-icon>visibility</mat-icon>
+          </button>
+        </div>
+
+        <div class="mc-date">{{ formatDate(record.ngayTao) }}</div>
+        <div class="mc-note" *ngIf="record.ghiChu">
+          <em>Ghi chú: {{ record.ghiChu }}</em>
+        </div>
+
+        <div class="mc-stats">
+          <div class="mc-stat">
+            <span class="mc-stat-label">Pallet</span>
+            <span class="mc-stat-value">{{ record.slPallet }}</span>
+          </div>
+          <div class="mc-stat">
+            <span class="mc-stat-label">Thùng</span>
+            <span class="mc-stat-value">{{ record.slThung }}</span>
+          </div>
+          <div class="mc-stat">
+            <span class="mc-stat-label">Tổng sp</span>
+            <span class="mc-stat-value">{{ record.tongSoSp || "—" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-mobile" *ngIf="records.length === 0">
+        Không có dữ liệu
+      </div>
+    </div>
+
+    <div class="pagination-bar" *ngIf="!isLoading && !errorMsg">
+      <mat-paginator
+        [length]="totalItems"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="pageSizeOptions"
+        [pageIndex]="currentPage"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      >
+      </mat-paginator>
+    </div>
+  </div>
+</div>

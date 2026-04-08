@@ -1,18 +1,52 @@
-<div class="row" *ngIf="account === null">
-  <div>
-    <img src="../../content/images/logo-icon.png" alt="logo-RangDong" />
-    <h2>Công ty cổ phần bóng đèn và phích nước rạng đông</h2>
-    <p>Vui lòng thực hiện đăng nhập!</p>
-    <button (click)="login()" data-cy="login" id="loginButton">
+<div class="home-wrapper">
+  <div class="home-hero">
+    <img
+      src="../../content/images/logo-icon.png"
+      alt="logo-RangDong"
+      class="hero-logo"
+    />
+    <div class="hero-text">
+      <h2 class="hero-title">
+        Công ty cổ phần bóng đèn và phích nước Rạng Đông
+      </h2>
+      <p class="hero-sub" *ngIf="!account">Vui lòng thực hiện đăng nhập!</p>
+      <p class="hero-sub" *ngIf="account">
+        Chào mừng, <strong>{{ account.login }}</strong
+        >!
+      </p>
+    </div>
+    <button
+      *ngIf="!account"
+      class="btn-login"
+      (click)="login()"
+      data-cy="login"
+      id="loginButton"
+    >
       Đăng nhập
     </button>
   </div>
-</div>
 
-<div class="row" *ngIf="account">
-  <div>
-    <img src="../../content/images/logo-icon.png" alt="logo-RangDong" />
-    <h2>Công ty cổ phần bóng đèn và phích nước rạng đông</h2>
-    <p>Chào mừng đến với quản lí Tem In!</p>
+  <div class="menu-section" *ngIf="account">
+    <ng-container *ngFor="let group of menuGroups">
+      <div class="menu-group">
+        <div class="group-label">
+          <fa-icon [icon]="group.icon" class="group-icon"></fa-icon>
+          <span>{{ group.title }}</span>
+        </div>
+        <div class="menu-grid">
+          <a
+            *ngFor="let item of group.submenus; let i = index"
+            [routerLink]="item.link"
+            class="menu-card"
+            [style.animation-delay]="i * 60 + 'ms'"
+          >
+            <div class="card-icon-wrap" [ngClass]="'color-' + ((i % 6) + 1)">
+              <fa-icon [icon]="group.icon"></fa-icon>
+            </div>
+            <span class="card-label">{{ item.title }}</span>
+          </a>
+        </div>
+      </div>
+    </ng-container>
   </div>
 </div>

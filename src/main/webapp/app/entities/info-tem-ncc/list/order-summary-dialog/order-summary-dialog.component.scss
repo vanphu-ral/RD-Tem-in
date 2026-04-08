@@ -81,6 +81,41 @@
     border-left: 2px solid #3d7bb9 !important;
   }
 }
+.row-over {
+  background-color: #fff3e0; // cam nhạt toàn dòng
+}
+.qty-over {
+  color: #e65100;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.qty-ok {
+  color: #2e7d32;
+  font-weight: 600;
+}
+.warn-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #e65100;
+  vertical-align: middle;
+}
+.kpi-warn {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  border-left: 4px solid #e65100;
+
+  .kpi-value {
+    color: #e65100;
+  }
+}
+
+.kpi-warn-icon {
+  font-size: 20px;
+  color: #e65100;
+  margin-bottom: 4px;
+}
 // KPI Cards
 .kpi-section {
   display: grid;

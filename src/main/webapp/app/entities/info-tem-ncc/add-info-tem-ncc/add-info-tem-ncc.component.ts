@@ -174,6 +174,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     importScenario: "",
     warehouse: "",
     approver: "",
+    note: "",
   };
 
   dataSource = new MatTableDataSource<ParentItem>([]);
@@ -378,6 +379,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       createdAt: now,
       updatedBy: "",
       updatedAt: now,
+      note: this.orderInfo.note ?? "",
     };
 
     this.isLoadingPo = true;
@@ -1016,8 +1018,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.orderInfo.arrivalDate = detail.entryDate
           ? new Date(detail.entryDate)
           : null;
+        this.orderInfo.note = detail.note ?? "";
 
-        // ✅ Đọc transactionId từ state nếu có, fallback về [0]
         const stateTransactionId = history.state?.transactionId as
           | number
           | undefined;

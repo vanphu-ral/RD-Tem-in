@@ -186,6 +186,14 @@ import { RouterModule } from "@angular/router";
             "./warehouse-inbound-approval/chi-tiet-lenh-san-xuat.module"
           ).then((m) => m.ChiTietLenhSanXuatModule),
       },
+      {
+        path: "scan-to-wms",
+        data: { pageTitle: "Quản lý nhập WMS" },
+        loadChildren: () =>
+          import("./scan-to-wms/scan-to-wms.module").then(
+            (m) => m.ScanToWMSModule,
+          ),
+      },
       // {
       //   path: 'scan-check',
       //   data: { pageTitle: 'Scan check' },
