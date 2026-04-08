@@ -75,7 +75,7 @@ export interface InboundWMSSessionPage {
 }
 @Injectable({ providedIn: "root" })
 export class ScanWMSService {
-  private baseUrl = environment.testApiUrl; //http://192.168.10.99:8085/api
+  private baseUrl = environment.baseInTemApiUrl; //http://192.168.10.99:8085/api
   constructor(
     protected http: HttpClient,
     protected applicationConfigService: ApplicationConfigService,
