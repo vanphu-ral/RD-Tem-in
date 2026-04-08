@@ -29,6 +29,7 @@ import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -232,7 +233,24 @@ public class InboundWMSSessionServiceImpl
             createSpecification(criteria);
         return inboundWMSSessionRepository
             .findAll(specification, pageable)
-            .map(inboundWMSSessionMapper::toDto);
+            .map(session -> {
+                InboundWMSSessionDTO dto = inboundWMSSessionMapper.toDto(
+                    session
+                );
+                try {
+                    computeAggregates(dto, session.getId());
+                } catch (Exception e) {
+                    LOG.error(
+                        "Error computing aggregates for session {}",
+                        session.getId(),
+                        e
+                    );
+                    dto.setNumberOfPallets(0);
+                    dto.setNumberOfBox(0);
+                    dto.setTotalQuantity(0);
+                }
+                return dto;
+            });
     }
 
     protected Specification<InboundWMSSession> createSpecification(
@@ -488,7 +506,6 @@ public class InboundWMSSessionServiceImpl
             );
             generalInfo.setPalletNoteCreationId(warehouseNoteInfoId);
 
-            // Calculate numberOfBox and quantity
             int totalBoxes = 0;
             int totalQuantity = 0;
             List<PalletDTO> palletDTOs = new ArrayList<>();
@@ -539,21 +556,18 @@ public class InboundWMSSessionServiceImpl
                         : null
                 );
 
-                // 2. PARSE CHUỖI JSON TỪ getListBox()
                 List<BoxDTO> boxDTOs = new ArrayList<>();
                 int palletQuantity = 0;
 
-                String listBoxJson = pallet.getListBox(); // Chuỗi: [{"note": "...", "box_code": "...", "quantity": 2, ...}]
+                String listBoxJson = pallet.getListBox();
 
                 if (listBoxJson != null && !listBoxJson.isEmpty()) {
                     try {
-                        // Chuyển chuỗi JSON thành List<BoxDTO>
                         boxDTOs = objectMapper.readValue(
                             listBoxJson,
                             new TypeReference<List<BoxDTO>>() {}
                         );
 
-                        // Tính tổng số lượng của riêng Pallet này từ danh sách box vừa parse
                         for (BoxDTO box : boxDTOs) {
                             palletQuantity += (box.getQuantity() != null
                                     ? box.getQuantity()
@@ -593,7 +607,7 @@ public class InboundWMSSessionServiceImpl
                     headers
                 );
                 restTemplate.postForObject(
-                    "http://192.168.10.99:9030/api/import-requirements/wms",
+                    "http://192.168.10.99:3000/api/import-requirements/wms",
                     entity,
                     String.class
                 );
@@ -620,13 +634,22 @@ public class InboundWMSSessionServiceImpl
         }
         try {
             String qmsEndpoint =
-                "http://192.168.10.99:3000/api/pqc-sap-item-details/batch-update";
+                "http://192.168.68.92/qms/api/pqc-sap-item-details/batch-update";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<List<QmsInboundDTO>> requestEntity = new HttpEntity<>(
+                QmsInboundBody,
+                headers
+            );
+
             restTemplate.postForObject(
                 qmsEndpoint,
-                QmsInboundBody,
+                requestEntity,
                 String.class
             );
-            LOG.info("Successfully sent info to QMS");
+
+            LOG.info("Successfully sent summary to QMS endpoint");
         } catch (Exception e) {
             LOG.error("Failed to send to QMS", e);
         }
@@ -668,5 +691,141 @@ public class InboundWMSSessionServiceImpl
         }
         dto.setNumberOfBox(numBoxes);
         dto.setTotalQuantity(totalQty);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InboundWMSSessionDTO> findGroupedSessionsByWorkOrderCode(
+        String workOrderCode
+    ) {
+        LOG.debug(
+            "Request to get grouped InboundWMSSessions by workOrderCode : {}",
+            workOrderCode
+        );
+
+        // Find warehouse_note_info by work_order_code
+        List<WarehouseNoteInfo> warehouseNoteInfos =
+            warehouseStampInfoRepository.findByWorkOrderCode(workOrderCode);
+        if (warehouseNoteInfos.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Collect all warehouse_note_info_ids
+        List<Long> warehouseNoteInfoIds = warehouseNoteInfos
+            .stream()
+            .map(WarehouseNoteInfo::getId)
+            .collect(Collectors.toList());
+
+        // Find all pallets by warehouse_note_info_ids
+        List<InboundWMSPallet> pallets = new ArrayList<>();
+        for (Long id : warehouseNoteInfoIds) {
+            pallets.addAll(
+                inboundWMSPalletRepository.findByWarehouseNoteInfoId(
+                    id.intValue()
+                )
+            );
+        }
+
+        // Group pallets by inbound_wms_session_id
+        Map<Long, List<InboundWMSPallet>> palletsBySessionId = pallets
+            .stream()
+            .collect(
+                Collectors.groupingBy(pallet ->
+                    pallet.getInboundWMSSessionId().longValue()
+                )
+            );
+
+        List<InboundWMSSessionDTO> result = new ArrayList<>();
+
+        for (Map.Entry<
+            Long,
+            List<InboundWMSPallet>
+        > entry : palletsBySessionId.entrySet()) {
+            Long sessionId = entry.getKey();
+            List<InboundWMSPallet> sessionPallets = entry.getValue();
+
+            // Find the session
+            Optional<InboundWMSSession> sessionOpt =
+                inboundWMSSessionRepository.findById(sessionId);
+            if (sessionOpt.isEmpty()) {
+                continue;
+            }
+            InboundWMSSession session = sessionOpt.get();
+
+            // Map to DTO
+            InboundWMSSessionDTO sessionDTO = inboundWMSSessionMapper.toDto(
+                session
+            );
+
+            // Map pallets to DTOs with listBox
+            List<InboundWMSPalletDTO> palletDTOs = sessionPallets
+                .stream()
+                .map(pallet -> {
+                    InboundWMSPalletDTO palletDTO =
+                        inboundWMSPalletMapper.toDto(pallet);
+                    // Populate listBox only if not already set from stored JSON
+                    if (
+                        palletDTO.getListBox() == null ||
+                        palletDTO.getListBox().isEmpty()
+                    ) {
+                        List<SerialBoxPalletMapping> mappings =
+                            serialBoxPalletMappingRepository.findBySerialPallet(
+                                palletDTO.getSerialPallet()
+                            );
+                        List<String> serialBoxes = mappings
+                            .stream()
+                            .map(SerialBoxPalletMapping::getSerialBox)
+                            .collect(Collectors.toList());
+                        List<WarehouseNoteInfoDetail> details =
+                            warehouseStampInfoDetailRepository.findByReelIdIn(
+                                serialBoxes
+                            );
+                        List<BoxInfoDTO> listBox = details
+                            .stream()
+                            .map(detail -> {
+                                BoxInfoDTO boxInfo = new BoxInfoDTO();
+                                boxInfo.setNote(detail.getComments());
+                                boxInfo.setBoxCode(detail.getReelId());
+                                boxInfo.setQuantity(
+                                    detail.getInitialQuantity()
+                                );
+                                boxInfo.setListSerialItems(
+                                    detail.getListSerialItems()
+                                );
+                                return boxInfo;
+                            })
+                            .collect(Collectors.toList());
+                        palletDTO.setListBox(listBox);
+                    }
+                    return palletDTO;
+                })
+                .collect(Collectors.toList());
+
+            // Set pallets to session
+            sessionDTO.setInboundWMSPallets(new HashSet<>(palletDTOs));
+
+            // Calculate aggregates
+            int numPallets = palletDTOs.size();
+            int numBoxes = 0;
+            int totalQty = 0;
+            for (InboundWMSPalletDTO palletDTO : palletDTOs) {
+                List<BoxInfoDTO> listBox = palletDTO.getListBox();
+                if (listBox != null) {
+                    numBoxes += listBox.size();
+                    for (BoxInfoDTO box : listBox) {
+                        totalQty += box.getQuantity() != null
+                            ? box.getQuantity()
+                            : 0;
+                    }
+                }
+            }
+            sessionDTO.setNumberOfPallets(numPallets);
+            sessionDTO.setNumberOfBox(numBoxes);
+            sessionDTO.setTotalQuantity(totalQty);
+
+            result.add(sessionDTO);
+        }
+
+        return result;
     }
 }

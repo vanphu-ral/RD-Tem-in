@@ -13,4 +13,8 @@ import org.springframework.stereotype.Repository;
 public interface InboundWMSPalletRepository
     extends JpaRepository<InboundWMSPallet, Long> {
     List<InboundWMSPallet> findByInboundWMSSessionId(Long inboundWMSSessionId);
+
+    List<InboundWMSPallet> findByWarehouseNoteInfoId(
+        Integer warehouseNoteInfoId
+    );
 }

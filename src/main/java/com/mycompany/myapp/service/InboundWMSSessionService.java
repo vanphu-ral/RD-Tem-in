@@ -90,5 +90,15 @@ public interface InboundWMSSessionService {
      *
      * @param sessionId the id of the inboundWMSSession.
      */
+
     void submitWarehouseEntryApproval(Long sessionId);
+    /**
+     * Get grouped inbound WMS sessions by work order code.
+     *
+     * @param workOrderCode the work order code.
+     * @return the list of grouped inbound WMS sessions.
+     */
+    List<InboundWMSSessionDTO> findGroupedSessionsByWorkOrderCode(
+        String workOrderCode
+    );
 }
