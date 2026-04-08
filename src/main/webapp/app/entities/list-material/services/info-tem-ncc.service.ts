@@ -223,7 +223,7 @@ export interface CreateVendorTemDetailPayload {
   providedIn: "root",
 })
 export class ManagerTemNccService {
-  private baseUrl = environment.testApiUrl;
+  private baseUrl = environment.baseInTemApiUrl;
   private nhapKhoUrl = "http://192.168.10.99:3000/api";
 
   private itemDataUrl = "http://192.168.10.99:8001/api/v1";
@@ -330,15 +330,5 @@ export class ManagerTemNccService {
       `${this.baseUrl}/import-vendor-tem-transactions/${transactionId}`,
       payload,
     );
-  }
-
-  getPoImportTemById(id: number): Observable<PoImportTem> {
-    return this.http.get<PoImportTem>(
-      `${this.nhapKhoUrl}/po-import-tems/${id}`,
-    );
-  }
-
-  getPoImportTemsAll(): Observable<PoImportTem[]> {
-    return this.http.get<PoImportTem[]>(`${this.nhapKhoUrl}/po-import-tems`);
   }
 }
