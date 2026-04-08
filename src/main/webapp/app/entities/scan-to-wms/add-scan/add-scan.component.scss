@@ -30,7 +30,17 @@
   font-weight: 600;
   color: #212121;
 }
-
+.completed-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 3px 12px;
+  width: fit-content;
+}
 // ---- Main content ----
 .main-content {
   flex: 1;

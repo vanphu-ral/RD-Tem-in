@@ -40,6 +40,7 @@ export class AddScanComponent implements OnInit, OnDestroy {
   sessionId: number | null = null;
   isCreatingSession = false;
   isLoadingSession = false;
+  isSessionCompleted = false;
 
   // ============================================================
   // TAB & FORM
@@ -316,6 +317,7 @@ export class AddScanComponent implements OnInit, OnDestroy {
           if (result === null) {
             return;
           }
+          this.setSessionCompleted(true);
           this.notificationService.success("Gửi WMS thành công!");
         },
         error: (err) => {
@@ -382,6 +384,9 @@ export class AddScanComponent implements OnInit, OnDestroy {
       next: (res) => {
         if (res.body) {
           this.scanForm.patchValue({ ghiChu: res.body.note ?? "" });
+          this.setSessionCompleted(
+            (res.body.status ?? "").toLowerCase().trim() === "hoàn thành",
+          );
 
           this.scannedItems = (res.body.inboundWMSPallets ?? []).map(
             (pallet, i) => {
@@ -496,5 +501,14 @@ export class AddScanComponent implements OnInit, OnDestroy {
       ...item,
       stt: i + 1,
     }));
+  }
+  // Thêm helper method
+  private setSessionCompleted(completed: boolean): void {
+    this.isSessionCompleted = completed;
+    if (completed) {
+      this.scanForm.get("scanInput")?.disable();
+    } else {
+      this.scanForm.get("scanInput")?.enable();
+    }
   }
 }

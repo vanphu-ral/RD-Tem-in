@@ -28,6 +28,7 @@
         <mat-icon>tag</mat-icon>
         Đơn #{{ sessionId }}
       </div>
+      <div class="completed-badge" *ngIf="isSessionCompleted">Hoàn thành</div>
 
       <form [formGroup]="scanForm">
         <div class="scan-input-row">
@@ -37,14 +38,13 @@
               formControlName="scanInput"
               [placeholder]="scanPlaceholder"
               (keyup.enter)="applyCode()"
-              [disabled]="isScanning"
               inputmode="none"
             />
           </mat-form-field>
           <button
             class="btn-apply"
             (click)="applyCode()"
-            [disabled]="isScanning || isCreatingSession"
+            [disabled]="isScanning || isCreatingSession || isSessionCompleted"
           >
             <mat-spinner
               diameter="16"
@@ -176,7 +176,11 @@
       <mat-icon>send</mat-icon>
       Gửi QMS
     </button> -->
-    <button class="btn-footer btn-wms" (click)="onGuiWMS()">
+    <button
+      class="btn-footer btn-wms"
+      (click)="onGuiWMS()"
+      *ngIf="!isSessionCompleted"
+    >
       <mat-icon>send</mat-icon>
       Gửi WMS
     </button>
