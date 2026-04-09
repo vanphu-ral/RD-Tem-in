@@ -159,12 +159,18 @@ export class ScanWMSService {
   }
 
   // cập nhật trạng thái tất cả pallet
-  updatePalletStatuses(
-    pallets: { id: number; wms_send_status: boolean; updated_by: string }[],
-  ): Observable<HttpResponse<any>> {
-    return this.http.put<any>(`${this.baseUrl}/pallet-infor-details`, pallets, {
-      observe: "response",
-    });
+  updatePalletStatuses(payload: {
+    serialPallets: string[];
+    wmsSendStatus: boolean;
+    updatedBy: string;
+  }): Observable<HttpResponse<any>> {
+    return this.http.put<any>(
+      `${this.baseUrl}/pallet-infor-details/update-wms-status`,
+      payload,
+      {
+        observe: "response",
+      },
+    );
   }
 
   // cập nhật session

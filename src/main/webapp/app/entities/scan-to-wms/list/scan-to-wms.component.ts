@@ -148,6 +148,40 @@ export class ScanToWMSComponent implements OnInit, OnDestroy {
       });
   }
 
+  getGroupedByWOWithBoxes(session: InboundWMSSession): {
+    woCode: string;
+    maSp: string;
+    tenSp: string;
+    maThung: string;
+    component: string;
+    soLuong: number;
+  }[] {
+    const result: {
+      woCode: string;
+      maSp: string;
+      tenSp: string;
+      maThung: string;
+      component: string;
+      soLuong: number;
+    }[] = [];
+
+    for (const pallet of session.inboundWMSPallets ?? []) {
+      const info = pallet.warehouseNoteInfo;
+      for (const box of pallet.listBox ?? []) {
+        result.push({
+          woCode: info?.work_order_code ?? "—",
+          maSp: info?.sap_code ?? "—",
+          tenSp: info?.sap_name ?? "—",
+          maThung: box.boxCode ?? "—",
+          component: info?.ma_lenh_san_xuat ?? "—",
+          soLuong: box.quantity ?? 0,
+        });
+      }
+    }
+
+    return result;
+  }
+
   // ============================================================
   // FILTER ACTIONS
   // ============================================================

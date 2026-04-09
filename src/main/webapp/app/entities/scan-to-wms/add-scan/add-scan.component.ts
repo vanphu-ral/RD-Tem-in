@@ -25,6 +25,7 @@ export interface ScannedItem {
   workOrderCode?: string;
   lotNumber?: string;
   soThung: number;
+  wmsSendStatus: string | null;
 }
 
 @Component({
@@ -61,6 +62,7 @@ export class AddScanComponent implements OnInit, OnDestroy {
   // ============================================================
   // UI STATE
   // ============================================================
+  isSendingWMS = false;
   isMobile = false;
   private bpSub!: Subscription;
 
@@ -271,7 +273,7 @@ export class AddScanComponent implements OnInit, OnDestroy {
           if (!confirmed) {
             return of(null);
           }
-
+          this.isSendingWMS = true;
           const sessionId = this.sessionId!;
           const sentAt = new Date().toISOString();
 
@@ -281,16 +283,15 @@ export class AddScanComponent implements OnInit, OnDestroy {
               switchMap(() =>
                 this.accountService.identity().pipe(
                   take(1),
-                  switchMap((account) => {
-                    const palletPayloads = this.scannedItems.map((item) => ({
-                      id: item.id,
-                      wms_send_status: true,
-                      updated_by: account?.login ?? "unknown",
-                    }));
-                    return this.scanWMSService.updatePalletStatuses(
-                      palletPayloads,
-                    );
-                  }),
+                  switchMap((account) =>
+                    this.scanWMSService.updatePalletStatuses({
+                      serialPallets: this.scannedItems.map(
+                        (item) => item.pallet,
+                      ),
+                      wmsSendStatus: true,
+                      updatedBy: account?.login ?? "unknown",
+                    }),
+                  ),
                 ),
               ),
               switchMap(() =>
@@ -317,10 +318,16 @@ export class AddScanComponent implements OnInit, OnDestroy {
           if (result === null) {
             return;
           }
+          this.isSendingWMS = false;
+          this.scannedItems = this.scannedItems.map((item) => ({
+            ...item,
+            wmsSendStatus: "true",
+          }));
           this.setSessionCompleted(true);
           this.notificationService.success("Gửi WMS thành công!");
         },
         error: (err) => {
+          this.isSendingWMS = false;
           console.error("Lỗi gửi WMS:", err);
           this.notificationService.error(
             err?.error?.message ?? "Gửi WMS thất bại. Vui lòng thử lại!",
@@ -328,7 +335,19 @@ export class AddScanComponent implements OnInit, OnDestroy {
         },
       });
   }
+  get totalBoxCount(): number {
+    return this.scannedItems.reduce(
+      (acc, item) => acc + (item.soThung ?? 0),
+      0,
+    );
+  }
 
+  get totalQuantity(): number {
+    return this.scannedItems.reduce(
+      (acc, item) => acc + (item.soLuong ?? 0),
+      0,
+    );
+  }
   // ============================================================
   // TẠO SESSION MỚI
   // ============================================================
@@ -409,6 +428,7 @@ export class AddScanComponent implements OnInit, OnDestroy {
                 workOrderCode: info?.work_order_code ?? "",
                 lotNumber: info?.lot_number ?? "",
                 soThung: pallet.listBox?.length ?? 0,
+                wmsSendStatus: pallet.wmsSendStatus ?? null,
               };
             },
           );
@@ -458,6 +478,16 @@ export class AddScanComponent implements OnInit, OnDestroy {
                   ...res.body.inboundpalletInfo,
                   warehouseNoteInfo: res.body.warehouseNoteInfo,
                 };
+
+                if (palletData.wmsSendStatus === "true") {
+                  this.notificationService.warning(
+                    `Pallet "${serialPallet}" đã được gửi WMS, không thể thêm vào danh sách!`,
+                  );
+                  this.isScanning = false;
+                  this.scanForm.patchValue({ scanInput: "" });
+                  return;
+                }
+
                 this.appendPalletToList(palletData);
                 this.cdr.detectChanges();
               }
@@ -495,6 +525,7 @@ export class AddScanComponent implements OnInit, OnDestroy {
       workOrderCode: info?.work_order_code ?? "",
       lotNumber: info?.lot_number ?? "",
       soThung: pallet.listBox?.length ?? 0,
+      wmsSendStatus: pallet.wmsSendStatus ?? null,
     };
 
     this.scannedItems = [newItem, ...this.scannedItems].map((item, i) => ({

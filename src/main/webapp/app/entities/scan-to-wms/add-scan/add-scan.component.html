@@ -93,6 +93,7 @@
         <button
           class="btn-clear"
           (click)="clearAll()"
+          *ngIf="!isSessionCompleted"
           [disabled]="itemCount === 0 || isScanning"
         >
           <mat-icon>delete</mat-icon>
@@ -103,29 +104,60 @@
         <mat-spinner diameter="24"></mat-spinner>
         <span>Đang tải dữ liệu đơn...</span>
       </div>
+      <div class="scan-summary" *ngIf="itemCount > 0">
+        <div class="summary-item">
+          <span class="summary-label">Pallet</span>
+          <span class="summary-value">{{ itemCount }}</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <span class="summary-label">Thùng</span>
+          <span class="summary-value">{{ totalBoxCount }}</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <span class="summary-label">Tổng SL</span>
+          <span class="summary-value">{{ totalQuantity }}</span>
+        </div>
+      </div>
       <div class="table-wrapper" *ngIf="!isMobile">
         <table class="scan-table">
           <thead>
             <tr>
               <th>Stt</th>
+              <th>Mã thùng</th>
               <th>Serial Pallet</th>
               <th>Mã WO</th>
               <th>Mã SP</th>
               <th>Tên SP</th>
               <th>Số lượng</th>
+              <th>Trạng thái</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of scannedItems; let i = index">
               <td>{{ item.stt }}</td>
+              <td>{{ item.thung || "—" }}</td>
               <td>{{ item.pallet }}</td>
               <td>{{ item.maLenhWo }}</td>
               <td>{{ item.maSp }}</td>
               <td>{{ item.tenSp }}</td>
               <td>{{ item.soLuong }}</td>
               <td>
-                <button class="btn-remove" (click)="removeItem(i)">
+                <span
+                  class="wms-status-badge"
+                  [class.sent]="item.wmsSendStatus === 'true'"
+                >
+                  {{ item.wmsSendStatus === "true" ? "Đã gửi" : "Chưa gửi" }}
+                </span>
+              </td>
+              <td>
+                <button
+                  class="btn-remove"
+                  (click)="removeItem(i)"
+                  *ngIf="!isSessionCompleted"
+                >
                   <mat-icon>close</mat-icon>
                 </button>
               </td>
@@ -156,7 +188,11 @@
             </div>
           </div>
 
-          <button class="btn-remove-mobile" (click)="removeItem(i)">
+          <button
+            class="btn-remove-mobile"
+            (click)="removeItem(i)"
+            *ngIf="!isSessionCompleted"
+          >
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -184,5 +220,11 @@
       <mat-icon>send</mat-icon>
       Gửi WMS
     </button>
+  </div>
+  <div class="wms-sending-overlay" *ngIf="isSendingWMS">
+    <div class="wms-sending-box">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>Đang gửi WMS, vui lòng chờ...</span>
+    </div>
   </div>
 </div>
