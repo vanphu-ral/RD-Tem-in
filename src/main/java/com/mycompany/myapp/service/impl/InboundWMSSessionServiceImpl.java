@@ -28,6 +28,7 @@ import com.mycompany.myapp.service.mapper.InboundWMSSessionMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoDetailMapper;
 import com.mycompany.myapp.service.mapper.WarehouseStampInfoMapper;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -448,7 +449,6 @@ public class InboundWMSSessionServiceImpl
             sessionId
         );
 
-        // Fetch session with pallets
         Optional<InboundWMSSession> sessionOpt =
             inboundWMSSessionRepository.findOneWithEagerRelationshipsById(
                 sessionId
@@ -459,7 +459,6 @@ public class InboundWMSSessionServiceImpl
         InboundWMSSession session = sessionOpt.get();
         Set<InboundWMSPallet> pallets = session.getInboundWMSPallets();
 
-        // Group pallets by warehouseNoteInfoId
         Map<Integer, List<InboundWMSPallet>> groupedPallets = new HashMap<>();
         for (InboundWMSPallet pallet : pallets) {
             Integer warehouseNoteInfoId = pallet.getWarehouseNoteInfoId();
@@ -587,7 +586,6 @@ public class InboundWMSSessionServiceImpl
                 palletDTO.setTotalQuantity(palletQuantity);
                 palletDTOs.add(palletDTO);
 
-                // 4. CẬP NHẬT TỔNG CHO TOÀN BỘ WORK ORDER (General Info)
                 totalBoxes += boxDTOs.size();
                 totalQuantity += palletQuantity;
             }
@@ -607,7 +605,7 @@ public class InboundWMSSessionServiceImpl
                     headers
                 );
                 restTemplate.postForObject(
-                    "http://192.168.10.99:3000/api/import-requirements/wms",
+                    "http://192.168.20.101:9030/api/import-requirements/wms",
                     entity,
                     String.class
                 );
@@ -615,7 +613,6 @@ public class InboundWMSSessionServiceImpl
                     "Successfully sent approval request: {}",
                     warehouseNoteInfoId
                 );
-                LOG.info("payload send to WMS: {}", requestBody);
             } catch (Exception e) {
                 LOG.error(
                     "Failed to send approval request: {}",
@@ -825,6 +822,12 @@ public class InboundWMSSessionServiceImpl
 
             result.add(sessionDTO);
         }
+        result.sort(
+            Comparator.comparing(
+                InboundWMSSessionDTO::getWmsSentAt,
+                Comparator.nullsLast(Comparator.reverseOrder())
+            )
+        );
 
         return result;
     }

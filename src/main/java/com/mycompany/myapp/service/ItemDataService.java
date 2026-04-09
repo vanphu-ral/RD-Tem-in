@@ -1,9 +1,9 @@
-package com.mycompany.wh.service;
+package com.mycompany.myapp.service;
 
-import com.mycompany.wh.domain.ItemData;
-import com.mycompany.wh.repository.ItemDataRepository;
-import com.mycompany.wh.service.dto.PlanningWorkOrderDTO;
-import com.mycompany.wh.service.dto.PlanningWorkOrderPageResponse;
+import com.mycompany.myapp.domain.partner4.ItemData;
+import com.mycompany.myapp.repository.partner4.ItemDataRepository;
+import com.mycompany.myapp.service.dto.PlanningWorkOrderDTO;
+import com.mycompany.myapp.service.dto.PlanningWorkOrderPageResponse;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

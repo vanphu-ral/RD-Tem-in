@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.swing.text.StyledEditorKit.BoldAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -183,8 +184,7 @@ public class InboundWMSPalletServiceImpl implements InboundWMSPalletService {
     ) {
         LOG.debug("Request to scan and save InboundWMSPallet : {}", requestDTO);
 
-        // Logic for listBox: Find records in SerialBoxPalletMapping by serial_pallet,
-        // extract serial_boxes
+        // 1. Logic lấy danh sách Box
         List<SerialBoxPalletMapping> mappings =
             serialBoxPalletMappingRepository.findBySerialPallet(
                 requestDTO.getSerialPallet()
@@ -194,31 +194,35 @@ public class InboundWMSPalletServiceImpl implements InboundWMSPalletService {
             .map(SerialBoxPalletMapping::getSerialBox)
             .collect(Collectors.toList());
 
-        // Query WarehouseNoteInfoDetail by reel_id IN serial_boxes
         List<WarehouseNoteInfoDetail> details =
             warehouseStampInfoDetailRepository.findByReelIdIn(serialBoxes);
         List<BoxInfoDTO> listBox = details
             .stream()
             .map(detail -> {
                 BoxInfoDTO boxInfo = new BoxInfoDTO();
-                boxInfo.setNote(detail.getComments()); // note from comments
+                boxInfo.setNote(detail.getComments());
                 boxInfo.setBoxCode(detail.getReelId());
-                boxInfo.setQuantity(detail.getInitialQuantity()); // quantity from initial_quantity
+                boxInfo.setQuantity(detail.getInitialQuantity());
                 boxInfo.setListSerialItems(detail.getListSerialItems());
                 return boxInfo;
             })
             .collect(Collectors.toList());
 
-        // Logic for warehouse_note_info: Find PalletInforDetail by serial_pallet, get
-        // ma_lenh_san_xuat_id
+        // 2. Logic lấy PalletInforDetail và wmsSendStatus
         Optional<PalletInforDetail> palletOpt =
             palletInforDetailRepository.findBySerialPallet(
                 requestDTO.getSerialPallet()
             );
+
         WarehouseStampInfoDTO warehouseNoteInfo = null;
+        Boolean wmsSendStatus = null; // Biến này đã được khai báo
         Long maLenhSanXuatId = null;
+
         if (palletOpt.isPresent()) {
-            maLenhSanXuatId = palletOpt.get().getMaLenhSanXuatId();
+            PalletInforDetail palletDetail = palletOpt.get();
+            maLenhSanXuatId = palletDetail.getMaLenhSanXuatId();
+            wmsSendStatus = palletDetail.getWmsSendStatus(); // Gán giá trị từ DB vào biến
+
             Optional<WarehouseNoteInfo> warehouseOpt =
                 warehouseStampInfoRepository.findById(maLenhSanXuatId);
             if (warehouseOpt.isPresent()) {
@@ -228,7 +232,7 @@ public class InboundWMSPalletServiceImpl implements InboundWMSPalletService {
             }
         }
 
-        // Save InboundWMSPallet
+        // 3. Lưu InboundWMSPallet
         InboundWMSPallet inboundWMSPallet = new InboundWMSPallet();
         Optional<InboundWMSSession> sessionOpt =
             inboundWMSSessionRepository.findById(
@@ -243,6 +247,7 @@ public class InboundWMSPalletServiceImpl implements InboundWMSPalletService {
         if (maLenhSanXuatId != null) {
             inboundWMSPallet.setWarehouseNoteInfoId(maLenhSanXuatId.intValue());
         }
+
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             String listBoxJson = objectMapper.writeValueAsString(listBox);
@@ -254,12 +259,17 @@ public class InboundWMSPalletServiceImpl implements InboundWMSPalletService {
             inboundWMSPallet
         );
 
-        // Return response
+        // 4. Trả về Response
         InboundWMSPalletScanResponseDTO response =
             new InboundWMSPalletScanResponseDTO();
         response.setWarehouseNoteInfo(warehouseNoteInfo);
+
         InboundWMSPalletDTO dto = inboundWMSPalletMapper.toDto(saved);
         dto.setListBox(listBox);
+
+        dto.setWmsSendStatus(String.valueOf(wmsSendStatus));
+        // -------------------------------
+
         response.setInboundpalletInfo(dto);
         return response;
     }

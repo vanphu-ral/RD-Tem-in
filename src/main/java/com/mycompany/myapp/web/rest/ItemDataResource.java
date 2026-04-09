@@ -1,8 +1,8 @@
-package com.mycompany.wh.web.rest;
+package com.mycompany.myapp.web.rest;
 
-import com.mycompany.wh.domain.ItemData;
-import com.mycompany.wh.service.ItemDataService;
-import com.mycompany.wh.service.dto.PlanningWorkOrderPageResponse;
+import com.mycompany.myapp.domain.partner4.ItemData;
+import com.mycompany.myapp.service.ItemDataService;
+import com.mycompany.myapp.service.dto.PlanningWorkOrderPageResponse;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

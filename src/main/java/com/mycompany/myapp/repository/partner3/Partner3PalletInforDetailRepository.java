@@ -74,4 +74,12 @@ public interface Partner3PalletInforDetailRepository
         @Param("maLenhSanXuatId") Long maLenhSanXuatId,
         @Param("reelIds") List<Long> reelIds
     );
+
+    /**
+     * Find all PalletInforDetail by list of serial pallets.
+     *
+     * @param serialPallets the list of serial pallets
+     * @return the list of PalletInforDetail
+     */
+    List<PalletInforDetail> findBySerialPalletIn(List<String> serialPallets);
 }

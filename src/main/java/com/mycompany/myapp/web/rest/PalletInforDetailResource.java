@@ -8,6 +8,7 @@ import com.mycompany.myapp.service.dto.MaxSerialResponseDTO;
 import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
 import com.mycompany.myapp.service.dto.PalletPrintRequest;
 import com.mycompany.myapp.service.dto.PrintPalletDTO;
+import com.mycompany.myapp.service.dto.UpdateWmsSendStatusRequest;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -294,6 +295,39 @@ public class PalletInforDetailResource {
                 )
             )
             .body(updatedDTOs);
+    }
+
+    /**
+     * {@code PUT /pallet-infor-details/update-wms-status} : Update wms_send_status for a list of pallet serials.
+     *
+     * @param request the update request containing serial pallets and new wms_send_status.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the number of records updated.
+     */
+    @PutMapping("/update-wms-status")
+    public ResponseEntity<Integer> updateWmsSendStatus(
+        @Valid @RequestBody UpdateWmsSendStatusRequest request
+    ) {
+        LOG.debug(
+            "REST request to update wms_send_status for serial pallets : {}",
+            request
+        );
+
+        int updatedCount = palletInforDetailService.updateWmsSendStatus(
+            request.getSerialPallets(),
+            request.getWmsSendStatus(),
+            request.getUpdatedBy()
+        );
+
+        return ResponseEntity.ok()
+            .headers(
+                HeaderUtil.createAlert(
+                    applicationName,
+                    "Updated wms_send_status for " + updatedCount + " pallets.",
+                    ENTITY_NAME
+                )
+            )
+            .body(updatedCount);
     }
 
     /**

@@ -1,6 +1,6 @@
-package com.mycompany.wh.repository;
+package com.mycompany.myapp.repository.partner4;
 
-import com.mycompany.wh.domain.ItemData;
+import com.mycompany.myapp.domain.partner4.ItemData;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.stereotype.Repository;

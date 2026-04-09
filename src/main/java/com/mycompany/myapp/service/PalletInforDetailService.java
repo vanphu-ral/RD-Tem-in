@@ -424,6 +424,39 @@ public class PalletInforDetailService {
     }
 
     /**
+     * Update wms_send_status for a list of pallet serials.
+     *
+     * @param serialPallets the list of pallet serials to update
+     * @param wmsSendStatus the new wms_send_status value
+     * @param updatedBy the user updating the records
+     * @return the number of records updated
+     */
+    public int updateWmsSendStatus(
+        List<String> serialPallets,
+        Boolean wmsSendStatus,
+        String updatedBy
+    ) {
+        LOG.debug(
+            "Request to update wms_send_status for serial pallets: {}, status: {}",
+            serialPallets,
+            wmsSendStatus
+        );
+
+        List<PalletInforDetail> pallets =
+            palletInforDetailRepository.findBySerialPalletIn(serialPallets);
+
+        for (PalletInforDetail pallet : pallets) {
+            pallet.setWmsSendStatus(wmsSendStatus);
+            pallet.setUpdatedBy(updatedBy);
+            pallet.setUpdatedAt(Instant.now());
+        }
+
+        palletInforDetailRepository.saveAll(pallets);
+
+        return pallets.size();
+    }
+
+    /**
      * Get max serial numbers starting with 'B'.
      *
      * @return the max serial numbers

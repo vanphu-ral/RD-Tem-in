@@ -111,10 +111,10 @@ partner3:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://192.168.68.77:5432/PNM_DB
+    username: postgres
     # url: jdbc:postgresql://localhost:5432/PNM_DB
-    # username: postgres
-    url: jdbc:postgresql://localhost:5432/PNM_DB
-    username: admin
+    # username: admin
     password: admin123
     hikari:
       poolName: HikariCP-Partner3
@@ -156,7 +156,8 @@ partner5:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/VENDOR_TEM_MNGT_DB
-    username: admin
+    username: postgres
+    # username: admin
     password: admin123
     hikari:
       poolName: HikariCP-Partner5
@@ -170,7 +171,7 @@ partner5:
         reWriteBatchedInserts: true
 
 partner6:
-  # enabled: false
+  enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     # url: jdbc:sqlserver://localhost:1433;database=WorkZone;encrypt=true;trustServerCertificate=true;
@@ -192,20 +193,6 @@ partner6:
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
 
-  #renderqr:
-  #  datasource:
-  #    type: com.zaxxer.hikari.HikariDataSource
-  #    url: jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=RenderTemQR;encrypt=true;trustServerCertificate=true;
-  #    username: renderqr_user
-  #    password: StrongPassword123!
-  #    hikari:
-  #      poolName: Hikari
-  #      auto-commit: false
-  #      data-source-properties:
-  #        cachePrepStmts: true
-  #        prepStmtCacheSize: 250
-  #        prepStmtCacheSqlLimit: 2048
-  #        useServerPrepStmts: true
   jpa:
   liquibase:
     # Remove 'faker' if you do not want the sample data to be loaded automatically

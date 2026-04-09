@@ -1,4 +1,4 @@
-package com.mycompany.wh.domain;
+package com.mycompany.myapp.domain.partner4;
 
 import java.io.Serializable;
 import javax.persistence.*;
