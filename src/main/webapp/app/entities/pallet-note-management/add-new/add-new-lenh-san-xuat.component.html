@@ -89,26 +89,41 @@
                 placeholder="Chọn kho"
                 (selectionChange)="onMaKhoNhapChange($event.value)"
               >
-                <ng-container
-                  *ngIf="
-                    element.loaiSanPham === 'Bán thành phẩm';
-                    else tpOptions
-                  "
-                >
+                <!-- Null/rỗng → gộp cả 2 danh sách -->
+                <ng-container *ngIf="!element.loaiSanPham; else hasType">
                   <mat-option
-                    *ngFor="let opt of maKhoNhapOptionsBTP"
+                    *ngFor="let opt of maKhoNhapOptionsMerged"
                     [value]="opt.value"
                   >
                     {{ opt.label }}
                   </mat-option>
                 </ng-container>
-                <ng-template #tpOptions>
-                  <mat-option
-                    *ngFor="let opt of maKhoNhapOptionsTP"
-                    [value]="opt.value"
+
+                <ng-template #hasType>
+                  <!-- Bán thành phẩm -->
+                  <ng-container
+                    *ngIf="
+                      element.loaiSanPham === 'Bán thành phẩm';
+                      else tpOptions
+                    "
                   >
-                    {{ opt.label }}
-                  </mat-option>
+                    <mat-option
+                      *ngFor="let opt of maKhoNhapOptionsBTP"
+                      [value]="opt.value"
+                    >
+                      {{ opt.label }}
+                    </mat-option>
+                  </ng-container>
+
+                  <!-- Thành phẩm -->
+                  <ng-template #tpOptions>
+                    <mat-option
+                      *ngFor="let opt of maKhoNhapOptionsTP"
+                      [value]="opt.value"
+                    >
+                      {{ opt.label }}
+                    </mat-option>
+                  </ng-template>
                 </ng-template>
               </mat-select>
             </mat-form-field>

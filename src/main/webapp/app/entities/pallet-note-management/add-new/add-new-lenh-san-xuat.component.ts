@@ -523,6 +523,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       this.isMobile = window.innerWidth < 768;
     });
   }
+  get maKhoNhapOptionsMerged(): { value: string; label: string }[] {
+    const btp = this.maKhoNhapOptionsBTP ?? [];
+    const tp = this.maKhoNhapOptionsTP ?? [];
+    // Gộp 2 list, loại trùng theo value
+    return [...btp, ...tp].filter(
+      (opt, idx, arr) => arr.findIndex((x) => x.value === opt.value) === idx,
+    );
+  }
   loadAreaOptions(): void {
     this.planningService.getArea().subscribe({
       next: (res: any) => {
@@ -4496,10 +4504,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       const f_storageUnit = norm(productionOrder.maKhoNhap ?? "RD01");
       const f_vendor = norm("RD");
       const f_lot = norm(lotNumber);
-      const f_tongSl = norm(totalQuantityAfterCreation);
-      const f_rank = norm(data.rank ?? "");
-      const f_userData3 = norm(productionOrder.tenHangHoa ?? "");
-      const f_userData4 = norm(productionOrder.maSAP ?? "");
+      const f_userData1 = norm("NO");
+      const f_userData2 = norm("NO");
+      const f_userData3 = norm("NO");
+      const f_userData4 = norm(`${productionOrder.maSAP}-${manufacturingDate}`);
       const f_userData5 = norm(productionOrder.maLenhSanXuat ?? "");
       const f_initialQuantity = norm(data.soLuongTrongThung ?? 0);
       const f_one = "1";
@@ -4512,8 +4520,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         f_partNumber,
         f_vendor,
         f_lot,
-        f_tongSl,
-        f_rank,
+        f_userData1,
+        f_userData2,
         f_userData3,
         f_userData4,
         f_userData5,
@@ -5740,6 +5748,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
           this.showTemBtpTab = true;
           this.showPalletTab = true;
           this.showThungTab = false;
+        } else {
+          this.loadMaKhoNhapOptionsTP();
         }
       };
       if (this.hierarchyCache.length > 0) {
@@ -5947,6 +5957,8 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         this.showTemBtpTab = true;
         this.showPalletTab = true;
         this.showThungTab = false;
+      } else {
+        this.loadMaKhoNhapOptionsTP();
       }
       this.loading = false;
     };
