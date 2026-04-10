@@ -5608,17 +5608,24 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         const existingStorage = this.warehouseNoteInfo.storage_code?.trim();
         let autoWarehouse = existingStorage || "";
 
-        if (
-          !autoWarehouse &&
-          this.warehouseNoteInfo.product_type === "Bán thành phẩm"
-        ) {
-          autoWarehouse = this.autoSelectWarehouse(mapped.nganh ?? branchCode);
-          if (autoWarehouse) {
-            console.log(
-              "[handleExistingWarehouseNote] Auto-selected warehouse:",
-              autoWarehouse,
-            );
-          }
+        // if (
+        //   !autoWarehouse &&
+        //   this.warehouseNoteInfo.product_type === "Bán thành phẩm"
+        // ) {
+        //   autoWarehouse = this.autoSelectWarehouse(mapped.nganh ?? branchCode);
+        //   if (autoWarehouse) {
+        //     console.log(
+        //       "[handleExistingWarehouseNote] Auto-selected warehouse:",
+        //       autoWarehouse,
+        //     );
+        //   }
+        // }
+        if (!autoWarehouse) {
+          // Auto-select cho cả BTP, TP và null
+          autoWarehouse = this.autoSelectWarehouse(
+            mapped.nganh ?? branchCode,
+            this.warehouseNoteInfo.product_type,
+          );
         }
         this.productionOrders = [
           {
@@ -5907,12 +5914,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
         let autoWarehouse = order.maKhoNhap || "";
 
-        if (order.loaiSanPham === "Bán thành phẩm" && !autoWarehouse) {
+        if (!autoWarehouse) {
           // Ưu tiên dùng nganh đã map, fallback về nganhRaw
           const branchForWarehouse = mapped.nganh ?? order.nganhRaw ?? "";
 
           if (branchForWarehouse) {
-            autoWarehouse = this.autoSelectWarehouse(branchForWarehouse);
+            autoWarehouse = this.autoSelectWarehouse(
+              branchForWarehouse,
+              order.loaiSanPham,
+            );
 
             if (autoWarehouse) {
               console.log(
@@ -6094,7 +6104,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   //  Tự động chọn kho dựa trên mã ngành
-  private autoSelectWarehouse(branchCode?: string): string {
+  private autoSelectWarehouse(
+    branchCode?: string,
+    productType?: string,
+  ): string {
     if (!branchCode) {
       console.log("[autoSelectWarehouse] No branch code provided");
       return "";
@@ -6109,16 +6122,15 @@ export class AddNewLenhSanXuatComponent implements OnInit {
 
     console.log("[autoSelectWarehouse] Normalized branch:", normalized);
 
-    // Try exact match first
+    // Exact match
     let warehouseCode = this.BRANCH_TO_WAREHOUSE_MAP[normalized];
 
-    // Try partial match if no exact match
+    // Partial match nếu không có exact
     if (!warehouseCode) {
       for (const [key, value] of Object.entries(this.BRANCH_TO_WAREHOUSE_MAP)) {
         const normalizedKey = key
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "");
-
         if (
           normalized.includes(normalizedKey) ||
           normalizedKey.includes(normalized)
@@ -6130,26 +6142,41 @@ export class AddNewLenhSanXuatComponent implements OnInit {
       }
     }
 
-    // Verify warehouse exists in options
-    if (warehouseCode) {
-      const exists = this.maKhoNhapOptionsBTP.some(
-        (opt) => opt.value === warehouseCode,
+    if (!warehouseCode) {
+      console.log(
+        "[autoSelectWarehouse] No warehouse found for branch:",
+        branchCode,
       );
-      if (exists) {
-        console.log("[autoSelectWarehouse] Selected warehouse:", warehouseCode);
-        return warehouseCode;
-      } else {
-        console.warn(
-          "[autoSelectWarehouse] Warehouse not in options:",
-          warehouseCode,
-        );
-      }
+      return "";
     }
 
-    console.log(
-      "[autoSelectWarehouse] No warehouse found for branch:",
-      branchCode,
-    );
-    return "";
+    // Verify warehouse tồn tại trong đúng list theo product type
+    const btpList = this.maKhoNhapOptionsBTP ?? [];
+    const tpList = (this.maKhoNhapOptionsTP ?? []).map((o) => ({
+      value: o.value,
+    }));
+
+    let exists = false;
+    if (productType === "Bán thành phẩm") {
+      exists = btpList.some((opt) => opt.value === warehouseCode);
+    } else if (productType === "Thành phẩm") {
+      exists = tpList.some((opt) => opt.value === warehouseCode);
+    } else {
+      // null/rỗng → tìm trong cả 2
+      exists =
+        btpList.some((opt) => opt.value === warehouseCode) ||
+        tpList.some((opt) => opt.value === warehouseCode);
+    }
+
+    if (exists) {
+      console.log("[autoSelectWarehouse] Selected warehouse:", warehouseCode);
+      return warehouseCode;
+    } else {
+      console.warn(
+        "[autoSelectWarehouse] Warehouse not in options:",
+        warehouseCode,
+      );
+      return "";
+    }
   }
 }
