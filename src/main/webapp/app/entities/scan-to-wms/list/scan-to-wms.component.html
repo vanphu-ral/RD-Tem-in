@@ -131,6 +131,7 @@
                   <thead>
                     <tr>
                       <th>Mã WO</th>
+                      <th>Mã thùng</th>
                       <th>Mã SP</th>
                       <th>Sản phẩm</th>
                       <th>Số lượng</th>
@@ -138,16 +139,19 @@
                   </thead>
                   <tbody>
                     <ng-container
-                      *ngFor="let row of getGroupedByWO(record.raw)"
+                      *ngFor="let row of getGroupedByWOWithBoxes(record.raw)"
                     >
                       <tr>
                         <td>{{ row.woCode }}</td>
+                        <td>{{ row.maThung }}</td>
                         <td>{{ row.maSp }}</td>
                         <td>{{ row.tenSp }}</td>
                         <td>{{ row.soLuong }}</td>
                       </tr>
                     </ng-container>
-                    <tr *ngIf="getGroupedByWO(record.raw).length === 0">
+                    <tr
+                      *ngIf="getGroupedByWOWithBoxes(record.raw).length === 0"
+                    >
                       <td colspan="4" class="empty-row">Không có dữ liệu</td>
                     </tr>
                   </tbody>
