@@ -433,7 +433,17 @@
                   >
                     <mat-icon>visibility</mat-icon>
                   </button>
-                  <button mat-icon-button color="warn" (click)="deleteBox(i)">
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="deleteBox(i)"
+                    [disabled]="isBoxScannedIntoPallet(element)"
+                    [matTooltip]="
+                      isBoxScannedIntoPallet(element)
+                        ? 'Thùng đã được scan vào pallet, không thể xóa'
+                        : 'Xóa thùng'
+                    "
+                  >
                     <mat-icon>delete</mat-icon>
                   </button>
                 </td>
@@ -493,6 +503,12 @@
                       mat-stroked-button
                       color="warn"
                       (click)="deleteBox(i)"
+                      [disabled]="isBoxScannedIntoPallet(element)"
+                      [matTooltip]="
+                        isBoxScannedIntoPallet(element)
+                          ? 'Thùng đã được scan vào pallet, không thể xóa'
+                          : 'Xóa thùng'
+                      "
                     >
                       <mat-icon>delete</mat-icon>
                       Xóa

@@ -2337,6 +2337,24 @@ export class AddNewLenhSanXuatComponent implements OnInit {
     });
   }
 
+  isBoxScannedIntoPallet(box: BoxItem): boolean {
+    const boxSerials = new Set<string>();
+
+    if (box.serialBox?.trim()) {
+      boxSerials.add(box.serialBox.trim());
+    }
+    (box.subItems ?? []).forEach((sub) => {
+      if (sub.maThung?.trim()) {
+        boxSerials.add(sub.maThung.trim());
+      }
+    });
+
+    return (this.mappings ?? []).some(
+      (m: any) =>
+        m.status === 1 && boxSerials.has(String(m.serial_box ?? "").trim()),
+    );
+  }
+
   //lay thong tin tao bang tao tem
   generateReelData(): void {
     if (this.productionOrders.length === 0) {
@@ -2736,6 +2754,14 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   // Xóa Box
   deleteBox(index: number): void {
     const box = this.boxItems[index];
+    if (this.isBoxScannedIntoPallet(box)) {
+      this.snackBar.open(
+        "Thùng này đã được scan vào pallet, không thể xóa",
+        "Đóng",
+        { duration: 3000, panelClass: ["snackbar-error"] },
+      );
+      return;
+    }
 
     // ===== MỞ CONFIRM DIALOG =====
     const dialogData: ConfirmDialogData = {
@@ -3945,16 +3971,10 @@ export class AddNewLenhSanXuatComponent implements OnInit {
   }
 
   private handlePackageComplete(result: any): void {
-    // console.log("Pallet:", result.pallet);
-    // console.log("Số thùng đã scan:", result.soThungDaScan);
-    // console.log("Danh sách thùng:", result.scannedBoxes);
-
-    // Update pallet status in database
-    // Update box status to "packaged"
-    // Show success notification
+    console.log("[handlePackageComplete] raw result:", JSON.stringify(result));
 
     this.snackBar.open(
-      `Đã hoàn thành package ${result.soThungDaScan} thùng vào pallet ${result.pallet.maPallet}`,
+      `Đã hoàn thành package ${result.soThungDaScan} thùng vào pallet ${result.pallet?.maPallet}`,
       "Đóng",
       {
         duration: 3000,
@@ -3962,6 +3982,43 @@ export class AddNewLenhSanXuatComponent implements OnInit {
         verticalPosition: "bottom",
       },
     );
+
+    // Thử append từ result nếu có đủ data
+    const scannedBoxes: string[] =
+      result.scannedBoxes ?? result.pallet?.scannedBoxes ?? [];
+    const serialPallet: string =
+      result.pallet?.maPallet ??
+      result.pallet?.serialPallet ??
+      result.serialPallet ??
+      "";
+
+    if (scannedBoxes.length > 0 && serialPallet) {
+      const existingSerials = new Set(
+        (this.mappings ?? []).map((m: any) => String(m.serial_box ?? "")),
+      );
+      const toAdd = scannedBoxes
+        .filter((s: string) => s && !existingSerials.has(s))
+        .map((serialBox: string) => ({
+          status: 1,
+          serial_box: serialBox,
+          serial_pallet: serialPallet,
+        }));
+      this.mappings = [...this.mappings, ...toAdd];
+      // console.log('[handlePackageComplete] Appended mappings:', toAdd);
+    } else {
+      if (this.maLenhSanXuatId) {
+        this.planningService
+          .findWarehouseNoteWithChildren(this.maLenhSanXuatId)
+          .subscribe({
+            next: (res: any) => {
+              const body = res?.body ?? res;
+              this.mappings = body?.serial_box_pallet_mappings ?? [];
+              // console.log('[handlePackageComplete] Refreshed mappings from API:', this.mappings.length);
+            },
+            error: (err) => console.error("Lỗi refresh mappings:", err),
+          });
+      }
+    }
   }
   // map mã ngành tổ
   private resolveCodesFromHierarchy(
