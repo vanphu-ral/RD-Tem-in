@@ -1043,8 +1043,35 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.currentTemScenarioId =
           transaction.temIdentificationScenarioId ?? null;
         this.currentMappingConfig = transaction.mappingConfig ?? "";
-        if ((transaction.poDetails ?? []).length === 0) {
-          this.loadDraftLotsByTransaction(transaction.id);
+        const noPoDetails = transaction.noPoVendorTemDetails ?? [];
+        if (noPoDetails.length > 0) {
+          this.draftLots = noPoDetails.map((v: any) => ({
+            vendorTemDetailId: v.id,
+            lotNumber: v.lot,
+            reelId: v.reelId,
+            partNumber: v.partNumber,
+            vendor: v.vendor,
+            boxCount: 1,
+            totalQty: v.initialQuantity,
+            initialQuantity: v.initialQuantity,
+            userData1: v.userData1,
+            userData2: v.userData2,
+            userData3: v.userData3,
+            userData4: v.userData4,
+            userData5: v.userData5,
+            msl: v.msdLevel,
+            storageUnit: v.storageUnit,
+            manufacturingDate: v.manufacturingDate,
+            expirationDate: v.expirationDate,
+            sapCode: v.sapCode,
+            vendorQrCode: v.vendorQrCode,
+            status: v.status,
+            createdBy: v.createdBy,
+            createdAt: v.createdAt,
+            poDetailId: v.poDetailId ?? null,
+            importVendorTemTransactionsId: transaction.id,
+            details: [] as [],
+          }));
         }
         if (transaction.mappingConfig) {
           try {
@@ -1258,18 +1285,23 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   private enrichPartNumberForParents(items: ParentItem[]): void {
-    const needFetch = items.filter((i) => !i.partNumber);
+    // Lay partNumber tu lot dau tien neu pd.partNumber null
+    items.forEach((item) => {
+      if (!item.partNumber && item.lots.length > 0) {
+        item.partNumber = item.lots[0].partNumber ?? "";
+      }
+    });
 
+    const needFetch = items.filter((i) => !i.partNumber);
     if (!needFetch.length) {
+      this.dataSource.data = [...this.dataSource.data];
+      this.cdr.markForCheck();
       return;
     }
 
     const requests = needFetch.map((item) =>
       this.managerTemNccService.getItemDataByItemCode(item.sapCode).pipe(
-        map((raw) => ({
-          item,
-          partNumber: this.extractPartNumber(raw),
-        })),
+        map((raw) => ({ item, partNumber: this.extractPartNumber(raw) })),
         catchError(() => of({ item, partNumber: "" })),
       ),
     );
@@ -1279,7 +1311,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         results.forEach((r) => {
           r.item.partNumber = r.partNumber;
         });
-
         this.dataSource.data = [...this.dataSource.data];
         this.cdr.markForCheck();
       },
@@ -1382,44 +1413,5 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.notificationService.error("Ghép mã scan tạm thất bại.");
       },
     });
-  }
-  private loadDraftLotsByTransaction(transactionId: number): void {
-    this.managerTemNccService
-      .getVendorTemDetailsByTransactionId(transactionId)
-      .subscribe({
-        next: (details) => {
-          this.draftLots = details.map((v: any) => ({
-            vendorTemDetailId: v.id,
-            lotNumber: v.lot,
-            reelId: v.reelId,
-            partNumber: v.partNumber,
-            vendor: v.vendor,
-            boxCount: 1,
-            totalQty: v.initialQuantity,
-            initialQuantity: v.initialQuantity,
-            userData1: v.userData1,
-            userData2: v.userData2,
-            userData3: v.userData3,
-            userData4: v.userData4,
-            userData5: v.userData5,
-            msl: v.msdLevel,
-            storageUnit: v.storageUnit,
-            manufacturingDate: v.manufacturingDate,
-            expirationDate: v.expirationDate,
-            sapCode: v.sapCode,
-            vendorQrCode: v.vendorQrCode,
-            status: v.status,
-            createdBy: v.createdBy,
-            createdAt: v.createdAt,
-            poDetailId: v.poDetailId ?? null,
-            importVendorTemTransactionsId: transactionId,
-            details: [],
-          }));
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.draftLots = [];
-        },
-      });
   }
 }

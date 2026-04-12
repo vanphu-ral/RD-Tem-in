@@ -113,6 +113,7 @@ export interface ImportVendorTemTransaction {
   totalQuantityCalculated?: number | null;
   poImportTemId: number;
   poDetails: PoDetail[];
+  noPoVendorTemDetails?: VendorTemDetail[];
 }
 
 export interface PoImportTem {
