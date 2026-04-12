@@ -404,12 +404,13 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
         scannedPartNumber.toLowerCase(),
     );
 
-    if (!matchedRow) {
-      this.errorMessage = `Không tìm thấy Part Number "${scannedPartNumber}" trong đơn hàng.`;
-      // Lỗi cần hiện ngay → markForCheck riêng
-      this.cdr.markForCheck();
-      return;
-    }
+    // if (!matchedRow) {
+    //   this.errorMessage = `Không tìm thấy Part Number "${scannedPartNumber}" trong đơn hàng.`;
+    //   // Lỗi cần hiện ngay → markForCheck riêng
+    //   this.cdr.markForCheck();
+    //   return;
+    // }
+    const isOrphan = !matchedRow;
 
     const reelIdToCheck = (fieldMap["reelId"] ?? "").trim();
 
@@ -439,7 +440,7 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       userData1: fieldMap["userData1"] || "NO",
       userData2: fieldMap["userData2"] || "NO",
       userData3: fieldMap["userData3"] || "NO",
-      userData4: fieldMap["userData4"] || (matchedRow.sapCode ?? ""),
+      userData4: fieldMap["userData4"] || (matchedRow?.sapCode ?? ""),
       userData5: fieldMap["userData5"] || (this.data?.poCode ?? ""),
       initialQuantity: Number(fieldMap["initialQuantity"]) || 0,
       msdLevel: fieldMap["msdLevel"] ?? "",
@@ -459,14 +460,14 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       manufacturingDate: fieldMap["manufacturingDate"] ?? "",
       expirationDate: fieldMap["expirationDate"] ?? "",
       partClass: "",
-      sapCode: matchedRow.sapCode ?? "",
+      sapCode: matchedRow?.sapCode ?? "",
       vendorQrCode: rawCode,
-      status: "NEW",
+      status: isOrphan ? "DRAFT" : "NEW", // phan biet scan tu do
       createdBy: this.currentUser,
       createdAt: now,
       updatedBy: this.currentUser,
       updatedAt: now,
-      poDetailId: matchedRow.id,
+      poDetailId: matchedRow?.id ?? (null as any), // null neu chua co PO
       importVendorTemTransactionsId: this.data.importVendorTemTransactionsId,
     };
 

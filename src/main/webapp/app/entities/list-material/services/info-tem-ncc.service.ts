@@ -113,6 +113,7 @@ export interface ImportVendorTemTransaction {
   totalQuantityCalculated?: number | null;
   poImportTemId: number;
   poDetails: PoDetail[];
+  noPoVendorTemDetails?: VendorTemDetail[];
 }
 
 export interface PoImportTem {
@@ -329,6 +330,11 @@ export class ManagerTemNccService {
     return this.http.put(
       `${this.baseUrl}/import-vendor-tem-transactions/${transactionId}`,
       payload,
+    );
+  }
+  getVendorTemDetailsByTransactionId(transactionId: number): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.baseUrl}/vendor-tem-details/by-transaction/${transactionId}`,
     );
   }
 }
