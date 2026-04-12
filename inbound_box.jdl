@@ -1,0 +1,10 @@
+
+
+entity InboundWMSBox {
+    inboundWMSSessionId Integer,
+    warehouseNoteInfoId Integer,
+    serialBox String maxlength(50),
+    wmsSendStatus Boolean,
+    createdBy String maxlength(15),
+    createdAt ZonedDateTime
+}

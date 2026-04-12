@@ -5,6 +5,7 @@ import com.mycompany.myapp.domain.PoDetail;
 import com.mycompany.myapp.domain.PoImportTem;
 import com.mycompany.myapp.domain.SapPoInfo;
 import com.mycompany.myapp.domain.VendorTemDetail;
+import com.mycompany.myapp.repository.partner4.SapOitmRepository;
 import com.mycompany.myapp.repository.partner5.ImportVendorTemTransactionsRepository;
 import com.mycompany.myapp.repository.partner5.PoDetailRepository;
 import com.mycompany.myapp.repository.partner5.PoImportTemRepository;
@@ -58,6 +59,8 @@ public class PoImportTemServiceImpl implements PoImportTemService {
 
     private final SapPoInfoRepository sapPoInfoRepository;
 
+    private final SapOitmRepository sapOitmRepository;
+
     private final PoImportTemMapper poImportTemMapper;
 
     private final ImportVendorTemTransactionsMapper importVendorTemTransactionsMapper;
@@ -70,6 +73,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         PoDetailRepository poDetailRepository,
         VendorTemDetailRepository vendorTemDetailRepository,
         SapPoInfoRepository sapPoInfoRepository,
+        SapOitmRepository sapOitmRepository,
         PoImportTemMapper poImportTemMapper,
         ImportVendorTemTransactionsMapper importVendorTemTransactionsMapper,
         PoDetailMapper poDetailMapper
@@ -80,6 +84,7 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         this.poDetailRepository = poDetailRepository;
         this.vendorTemDetailRepository = vendorTemDetailRepository;
         this.sapPoInfoRepository = sapPoInfoRepository;
+        this.sapOitmRepository = sapOitmRepository;
         this.poImportTemMapper = poImportTemMapper;
         this.importVendorTemTransactionsMapper =
             importVendorTemTransactionsMapper;
@@ -192,6 +197,25 @@ public class PoImportTemServiceImpl implements PoImportTemService {
                         poDetailDTOs.add(pdDTO);
                     }
                     transDTO.setPoDetails(poDetailDTOs);
+                }
+
+                // Map loose vendorTemDetails (not associated with poDetails)
+                List<VendorTemDetail> noPoVendorTemDetails =
+                    vendorTemDetailRepository.findByImportVendorTemTransactionsIdAndPoDetailIdIsNull(
+                        transaction.getId()
+                    );
+                if (
+                    noPoVendorTemDetails != null &&
+                    !noPoVendorTemDetails.isEmpty()
+                ) {
+                    Set<VendorTemDetailDTO> looseVendorTemDetailDTOs =
+                        new HashSet<>();
+                    for (VendorTemDetail vendorTemDetail : noPoVendorTemDetails) {
+                        looseVendorTemDetailDTOs.add(
+                            mapToVendorTemDetailDTO(vendorTemDetail)
+                        );
+                    }
+                    transDTO.setnoPoVendorTemDetails(looseVendorTemDetailDTOs);
                 }
 
                 transactionDTOs.add(transDTO);
@@ -632,8 +656,16 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             poDetail.setImportVendorTemTransactionsId(
                 vendorTransaction.getId()
             );
-            poDetail.setSapCode(info.getPor1ItemCode()); // POR1_ItemCode
+            String sapCode = info.getPor1ItemCode();
+            poDetail.setSapCode(sapCode); // POR1_ItemCode
             poDetail.setSapName(info.getPor1Dscription()); // POR1_Dscription
+
+            // Fetch partNumber from SAP_OITM
+            Optional<com.mycompany.myapp.domain.partner4.SapOitm> sapOitm =
+                sapOitmRepository.findByItemCode(sapCode);
+            if (sapOitm.isPresent()) {
+                poDetail.setPartNumber(sapOitm.get().getuPartNumber());
+            }
 
             if (
                 info.getPor1Quantity() != null &&
@@ -654,8 +686,13 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             poDetailRepository.save(poDetail);
 
             PoDetailDTO detailDTO = new PoDetailDTO();
-            detailDTO.setSapCode(info.getPor1ItemCode());
+            detailDTO.setSapCode(sapCode);
             detailDTO.setSapName(info.getPor1Dscription());
+
+            // Set partNumber in DTO
+            if (sapOitm.isPresent()) {
+                detailDTO.setPartNumber(sapOitm.get().getuPartNumber());
+            }
 
             if (
                 info.getPor1Quantity() != null &&

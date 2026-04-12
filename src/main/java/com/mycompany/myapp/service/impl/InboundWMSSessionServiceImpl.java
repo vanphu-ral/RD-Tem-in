@@ -2,6 +2,7 @@ package com.mycompany.myapp.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mycompany.myapp.domain.InboundWMSBox;
 import com.mycompany.myapp.domain.InboundWMSPallet;
 import com.mycompany.myapp.domain.InboundWMSSession;
 import com.mycompany.myapp.domain.InboundWMSSession_;
@@ -9,6 +10,7 @@ import com.mycompany.myapp.domain.PalletInforDetail;
 import com.mycompany.myapp.domain.SerialBoxPalletMapping;
 import com.mycompany.myapp.domain.WarehouseNoteInfo;
 import com.mycompany.myapp.domain.WarehouseNoteInfoDetail;
+import com.mycompany.myapp.repository.partner3.InboundWMSBoxRepository;
 import com.mycompany.myapp.repository.partner3.InboundWMSPalletRepository;
 import com.mycompany.myapp.repository.partner3.InboundWMSSessionRepository;
 import com.mycompany.myapp.repository.partner3.Partner3PalletInforDetailRepository;
@@ -20,6 +22,7 @@ import com.mycompany.myapp.service.criteria.InboundWMSSessionCriteria;
 import com.mycompany.myapp.service.dto.BoxDTO;
 import com.mycompany.myapp.service.dto.BoxInfoDTO;
 import com.mycompany.myapp.service.dto.GeneralInfoDTO;
+import com.mycompany.myapp.service.dto.InboundWMSBoxDTO;
 import com.mycompany.myapp.service.dto.InboundWMSPalletDTO;
 import com.mycompany.myapp.service.dto.InboundWMSSessionDTO;
 import com.mycompany.myapp.service.dto.PalletDTO;
@@ -71,6 +74,8 @@ public class InboundWMSSessionServiceImpl
     private final InboundWMSSessionMapper inboundWMSSessionMapper;
 
     private final InboundWMSPalletRepository inboundWMSPalletRepository;
+
+    private final InboundWMSBoxRepository inboundWMSBoxRepository;
 
     private final InboundWMSPalletMapper inboundWMSPalletMapper;
 
@@ -148,6 +153,7 @@ public class InboundWMSSessionServiceImpl
         InboundWMSSessionRepository inboundWMSSessionRepository,
         InboundWMSSessionMapper inboundWMSSessionMapper,
         InboundWMSPalletRepository inboundWMSPalletRepository,
+        InboundWMSBoxRepository inboundWMSBoxRepository,
         InboundWMSPalletMapper inboundWMSPalletMapper,
         Partner3PalletInforDetailRepository palletInforDetailRepository,
         Partner3SerialBoxPalletMappingRepository serialBoxPalletMappingRepository,
@@ -159,6 +165,7 @@ public class InboundWMSSessionServiceImpl
         this.inboundWMSSessionRepository = inboundWMSSessionRepository;
         this.inboundWMSSessionMapper = inboundWMSSessionMapper;
         this.inboundWMSPalletRepository = inboundWMSPalletRepository;
+        this.inboundWMSBoxRepository = inboundWMSBoxRepository;
         this.inboundWMSPalletMapper = inboundWMSPalletMapper;
         this.palletInforDetailRepository = palletInforDetailRepository;
         this.serialBoxPalletMappingRepository =
@@ -331,7 +338,10 @@ public class InboundWMSSessionServiceImpl
     @Override
     @Transactional(readOnly = true)
     public Optional<InboundWMSSessionDTO> findOneWithPallets(Long id) {
-        LOG.debug("Request to get InboundWMSSession with pallets : {}", id);
+        LOG.debug(
+            "Request to get InboundWMSSession with pallets and boxes : {}",
+            id
+        );
         return inboundWMSSessionRepository
             .findOneWithEagerRelationshipsById(id)
             .map(session -> {
@@ -398,17 +408,52 @@ public class InboundWMSSessionServiceImpl
                     .collect(Collectors.toSet());
                 dto.setInboundWMSPallets(palletDTOs);
 
-                // Compute aggregated values from loaded pallets
+                // Load boxes for this session
+                List<InboundWMSBox> boxes =
+                    inboundWMSBoxRepository.findByInboundWMSSessionId(
+                        session.getId().intValue()
+                    );
+                Set<InboundWMSBoxDTO> boxDTOs = boxes
+                    .stream()
+                    .map(box -> {
+                        InboundWMSBoxDTO boxDTO = new InboundWMSBoxDTO();
+                        boxDTO.setId(box.getId());
+                        boxDTO.setWarehouseNoteInfoId(
+                            box.getWarehouseNoteInfoId()
+                        );
+                        boxDTO.setInboundWMSSessionId(
+                            box.getInboundWMSSessionId()
+                        );
+                        boxDTO.setSerialBox(box.getSerialBox());
+                        boxDTO.setWmsSendStatus(box.getWmsSendStatus());
+                        boxDTO.setCreatedBy(box.getCreatedBy());
+                        boxDTO.setCreatedAt(box.getCreatedAt());
+                        if (box.getWarehouseNoteInfoId() != null) {
+                            warehouseStampInfoRepository
+                                .findById(
+                                    Long.valueOf(box.getWarehouseNoteInfoId())
+                                )
+                                .ifPresent(boxDTO::setWarehouseNoteInfo);
+                        }
+                        return boxDTO;
+                    })
+                    .collect(Collectors.toSet());
+                dto.setInboundWMSBoxes(boxDTOs);
+
+                // Compute aggregated values from loaded pallets and boxes
                 int numPallets = palletDTOs.size();
                 dto.setNumberOfPallets(numPallets);
-                int numBoxes = palletDTOs
+                int numBoxesFromPallets = palletDTOs
                     .stream()
                     .mapToInt(p ->
                         p.getListBox() != null ? p.getListBox().size() : 0
                     )
                     .sum();
-                dto.setNumberOfBox(numBoxes);
-                int totalQty = palletDTOs
+                int numBoxesFromBoxes = boxes.size();
+                int totalNumBoxes = numBoxesFromPallets + numBoxesFromBoxes;
+                dto.setNumberOfBox(totalNumBoxes);
+
+                int totalQtyFromPallets = palletDTOs
                     .stream()
                     .filter(p -> p.getListBox() != null)
                     .flatMap(p -> p.getListBox().stream())
@@ -416,7 +461,26 @@ public class InboundWMSSessionServiceImpl
                         b.getQuantity() != null ? b.getQuantity() : 0
                     )
                     .sum();
-                dto.setTotalQuantity(totalQty);
+
+                // Calculate quantity from direct boxes
+                List<String> boxSerials = boxes
+                    .stream()
+                    .map(InboundWMSBox::getSerialBox)
+                    .collect(Collectors.toList());
+                List<WarehouseNoteInfoDetail> boxDetails =
+                    warehouseStampInfoDetailRepository.findByReelIdIn(
+                        boxSerials
+                    );
+                int totalQtyFromBoxes = boxDetails
+                    .stream()
+                    .mapToInt(detail ->
+                        detail.getInitialQuantity() != null
+                            ? detail.getInitialQuantity()
+                            : 0
+                    )
+                    .sum();
+
+                dto.setTotalQuantity(totalQtyFromPallets + totalQtyFromBoxes);
 
                 return dto;
             });

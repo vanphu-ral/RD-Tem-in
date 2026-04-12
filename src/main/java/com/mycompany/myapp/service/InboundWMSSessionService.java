@@ -63,10 +63,10 @@ public interface InboundWMSSessionService {
     Optional<InboundWMSSessionDTO> findOne(Long id);
 
     /**
-     * Get the "id" inboundWMSSession with its pallets.
+     * Get the "id" inboundWMSSession with its pallets and boxes.
      *
      * @param id the id of the entity.
-     * @return the entity with pallets.
+     * @return the entity with pallets and boxes.
      */
     Optional<InboundWMSSessionDTO> findOneWithPallets(Long id);
 

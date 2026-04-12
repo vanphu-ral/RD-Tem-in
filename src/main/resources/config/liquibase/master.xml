@@ -376,6 +376,8 @@
     <include file="config/liquibase/changelog/20260318191227_added_entity_PoImportTem.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260403033718_added_entity_InboundWMSSession.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260403033719_added_entity_InboundWMSPallet.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260412021516_added_entity_SapOitm.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260412035734_added_entity_InboundWMSBox.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <include file="config/liquibase/changelog/20260309010238_added_entity_constraints_PoDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260309010239_added_entity_constraints_VendorTemDetail.xml" relativeToChangelogFile="false"/>

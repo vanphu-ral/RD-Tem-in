@@ -1,0 +1,14 @@
+/**
+ * Entity SapOitm
+ */
+entity SapOitm {
+    itemCode String maxlength(510),
+    itemName String maxlength(510),
+    itmsGrpCod String maxlength(510),
+    uPartNumber String maxlength(510)
+}
+
+
+// Áp dụng Service Implementation cho tất cả
+service all with serviceImpl
+

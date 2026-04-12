@@ -19,15 +19,17 @@ public interface InboundWMSPalletMapper
     extends EntityMapper<InboundWMSPalletDTO, InboundWMSPallet> {
     Logger log = LoggerFactory.getLogger(InboundWMSPalletMapper.class);
 
-    @Mapping(target = "inboundWMSSessionId", source = "inboundWMSSession.id")
+    @Mapping(target = "inboundWMSSessionId", source = "inboundWMSSessionId")
     @Mapping(target = "listBox", qualifiedByName = "stringToListBox")
     InboundWMSPalletDTO toDto(InboundWMSPallet s);
 
     @Mapping(target = "inboundWMSSession", ignore = true)
+    @Mapping(target = "inboundWMSSessionId", source = "inboundWMSSessionId")
     @Mapping(target = "listBox", qualifiedByName = "listBoxToString")
     InboundWMSPallet toEntity(InboundWMSPalletDTO dto);
 
     @Mapping(target = "inboundWMSSession", ignore = true)
+    @Mapping(target = "inboundWMSSessionId", source = "inboundWMSSessionId")
     @Mapping(target = "listBox", qualifiedByName = "listBoxToString")
     @BeanMapping(
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE

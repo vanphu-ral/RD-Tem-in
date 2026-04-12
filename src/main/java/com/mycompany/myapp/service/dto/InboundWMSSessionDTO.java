@@ -38,6 +38,9 @@ public class InboundWMSSessionDTO implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<InboundWMSPalletDTO> inboundWMSPallets = new HashSet<>();
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private Set<InboundWMSBoxDTO> inboundWMSBoxes = new HashSet<>();
+
     public Long getId() {
         return id;
     }
@@ -94,6 +97,14 @@ public class InboundWMSSessionDTO implements Serializable {
         Set<InboundWMSPalletDTO> inboundWMSPallets
     ) {
         this.inboundWMSPallets = inboundWMSPallets;
+    }
+
+    public Set<InboundWMSBoxDTO> getInboundWMSBoxes() {
+        return inboundWMSBoxes;
+    }
+
+    public void setInboundWMSBoxes(Set<InboundWMSBoxDTO> inboundWMSBoxes) {
+        this.inboundWMSBoxes = inboundWMSBoxes;
     }
 
     public Integer getNumberOfPallets() {
@@ -153,6 +164,7 @@ public class InboundWMSSessionDTO implements Serializable {
             ", numberOfBox=" + getNumberOfBox() +
             ", totalQuantity=" + getTotalQuantity() +
             ", inboundWMSPallets=" + getInboundWMSPallets() +
+            ", inboundWMSBoxes=" + getInboundWMSBoxes() +
             "}";
     }
 }

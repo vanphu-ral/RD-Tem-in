@@ -1,0 +1,37 @@
+{
+  "annotations": {
+    "changelogDate": "20260412021516"
+  },
+  "applications": "*",
+  "documentation": "Entity SapOitm",
+  "fields": [
+    {
+      "fieldName": "itemCode",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "510"
+    },
+    {
+      "fieldName": "itemName",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "510"
+    },
+    {
+      "fieldName": "itmsGrpCod",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "510"
+    },
+    {
+      "fieldName": "uPartNumber",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "510"
+    }
+  ],
+  "name": "SapOitm",
+  "relationships": [],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}

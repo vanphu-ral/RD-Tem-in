@@ -1,6 +1,0 @@
-entity SAPOITM {
-    itemCode String maxlength(255),
-    itemName String maxlength(255),
-    uPartNumber String maxlength(255)
-
-}

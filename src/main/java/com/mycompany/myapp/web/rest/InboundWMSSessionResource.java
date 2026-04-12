@@ -267,11 +267,11 @@ public class InboundWMSSessionResource {
 
     /**
      * {@code GET  /inbound-wms-sessions/detail/:sessionId} : get the
-     * inboundWMSSession with all its inboundWMSPallets.
+     * inboundWMSSession with all its inboundWMSPallets and inboundWMSBoxes.
      *
      * @param sessionId the id of the inboundWMSSession.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the
-     *         inboundWMSSession with pallets in body.
+     *         inboundWMSSession with pallets and boxes in body.
      */
     @GetMapping("/detail/{sessionId}")
     public ResponseEntity<InboundWMSSessionDTO> getInboundWMSSessionWithPallets(

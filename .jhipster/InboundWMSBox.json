@@ -1,0 +1,40 @@
+{
+  "annotations": {
+    "changelogDate": "20260412035734"
+  },
+  "applications": "*",
+  "entityTableName": "inbound_wms_box",
+  "fields": [
+    {
+      "fieldName": "inboundWMSSessionId",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "warehouseNoteInfoId",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "serialBox",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "50"
+    },
+    {
+      "fieldName": "wmsSendStatus",
+      "fieldType": "Boolean"
+    },
+    {
+      "fieldName": "createdBy",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "15"
+    },
+    {
+      "fieldName": "createdAt",
+      "fieldType": "ZonedDateTime"
+    }
+  ],
+  "name": "InboundWMSBox",
+  "relationships": [],
+  "searchEngine": "no"
+}

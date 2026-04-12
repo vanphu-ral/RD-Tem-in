@@ -1,6 +1,7 @@
 package com.mycompany.myapp.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.mycompany.myapp.service.dto.VendorTemDetailDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -72,6 +73,8 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
     private Integer totalScanQuantity;
 
     private Set<PoDetailDTO> poDetails;
+
+    private Set<VendorTemDetailDTO> noPoVendorTemDetails;
 
     public Long getId() {
         return id;
@@ -251,6 +254,16 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
         this.poDetails = poDetails;
     }
 
+    public Set<VendorTemDetailDTO> getnoPoVendorTemDetails() {
+        return noPoVendorTemDetails;
+    }
+
+    public void setnoPoVendorTemDetails(
+        Set<VendorTemDetailDTO> noPoVendorTemDetails
+    ) {
+        this.noPoVendorTemDetails = noPoVendorTemDetails;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -295,6 +308,8 @@ public class ImportVendorTemTransactionsDTO implements Serializable {
                 ", panaSendStatus='" + getPanaSendStatus() + "'" +
                 ", note='" + getNote() + "'" +
                 ", approver='" + getApprover() + "'" +
+                ", noPoVendorTemDetails=" + getnoPoVendorTemDetails() +
                 "}";
+
     }
 }

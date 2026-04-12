@@ -43,13 +43,15 @@
       "PoImportTemId",
       "PoImportTem",
       "InboundWMSSession",
-      "InboundWMSPallet"
+      "InboundWMSPallet",
+      "SapOitm",
+      "InboundWMSBox"
     ],
     "entitySuffix": "",
     "jhiPrefix": "jhi",
     "jhipsterVersion": "8.11.0",
     "languages": ["en", "fr"],
-    "lastLiquibaseTimestamp": 1775187439000,
+    "lastLiquibaseTimestamp": 1775966254000,
     "messageBroker": false,
     "nativeLanguage": "en",
     "otherModules": [],
