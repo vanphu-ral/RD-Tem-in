@@ -735,6 +735,46 @@
       </div>
     </mat-card-content>
   </mat-card>
+  <!-- Bang vat tu nháp chua co PO -->
+  <mat-card class="draft-lots-card" *ngIf="orphanDraftLots.length > 0">
+    <mat-card-header>
+      <mat-card-title>
+        Vật tư nháp chưa ghép PO
+        <span class="draft-badge">{{ orphanDraftLots.length }}</span>
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="table-scroll-wrapper">
+        <table class="edit-table">
+          <thead>
+            <tr class="header-row">
+              <th
+                *ngFor="let col of lotColumns"
+                [style.min-width.px]="col.minWidth"
+              >
+                <div class="th-content">
+                  <span>{{ col.label }}</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let lot of orphanDraftLots" class="data-row draft-row">
+              <td *ngFor="let col of lotColumns" class="data-cell">
+                <span class="cell-value" [title]="lot[col.key]">{{
+                  lot[col.key]
+                }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="draft-hint">
+        Bổ sung mã PO rồi nhấn <strong>Apply</strong> để ghép tự động theo Part
+        Number.
+      </div>
+    </mat-card-content>
+  </mat-card>
 
   <!-- Footer Actions -->
   <div class="footer-actions">

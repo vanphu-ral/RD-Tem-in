@@ -331,4 +331,9 @@ export class ManagerTemNccService {
       payload,
     );
   }
+  getVendorTemDetailsByTransactionId(transactionId: number): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.baseUrl}/vendor-tem-details/by-transaction/${transactionId}`,
+    );
+  }
 }
