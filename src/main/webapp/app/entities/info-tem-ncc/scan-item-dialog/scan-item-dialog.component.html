@@ -17,6 +17,13 @@
   <mat-divider></mat-divider>
 
   <div class="scan-input-section">
+    <div class="scan-mode-indicator" [class.active]="isInputFocused">
+      <div class="pulse-ring"></div>
+      <mat-icon class="scan-mode-icon">qr_code_scanner</mat-icon>
+      <span class="scan-mode-label">
+        {{ isInputFocused ? "Đang scan..." : "Chạm để bắt đầu scan" }}
+      </span>
+    </div>
     <div class="input-row">
       <mat-form-field appearance="outline" class="scan-field">
         <mat-label>Nhập mã scan</mat-label>
@@ -31,13 +38,14 @@
           inputmode="none"
           autofocus
         />
-        <mat-icon
+        <span
           matSuffix
-          class="input-suffix-icon"
-          [class.focused]="isInputFocused"
+          class="scan-status-badge"
+          [class.active]="isInputFocused"
         >
-          qr_code
-        </mat-icon>
+          <span class="badge-dot"></span>
+          {{ isInputFocused ? "Đang scan" : "Chờ scan" }}
+        </span>
       </mat-form-field>
       <!-- <button
         mat-raised-button

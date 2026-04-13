@@ -829,11 +829,136 @@ table {
 .draft-hint {
   margin-top: 10px;
   font-size: 12px;
-  color: #78716c;
+  color: #1d1d1c;
   padding: 6px 10px;
   background: #fef3c7;
   border-radius: 6px;
   border-left: 3px solid #f59e0b;
+}
+// ==================== SKELETON ====================
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton-cell {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s infinite linear;
+  margin: 4px 8px;
+}
+
+.skeleton-row td {
+  padding: 10px 6px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.skeleton-block {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s infinite linear;
+}
+
+.skeleton-mobile-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.skeleton-mobile-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.skeleton-mobile-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-mobile-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sk-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sk-title {
+  width: 60%;
+  height: 13px;
+}
+.sk-sub {
+  width: 40%;
+  height: 11px;
+}
+.sk-row {
+  width: 100%;
+  height: 12px;
+}
+.table-skeleton-overlay {
+  padding: 0;
+  background: #fff;
+  border-radius: 6px;
+}
+
+.skeleton-header-row {
+  display: flex;
+  background: #3d7bb9;
+  padding: 12px 8px;
+  gap: 8px;
+  border-radius: 6px 6px 0 0;
+
+  .sk-header {
+    flex: 1;
+    height: 16px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.2) 25%,
+      rgba(255, 255, 255, 0.35) 50%,
+      rgba(255, 255, 255, 0.2) 75%
+    );
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.4s infinite linear;
+    border-radius: 4px;
+  }
+}
+
+.skeleton-data-row {
+  display: flex;
+  padding: 10px 8px;
+  gap: 8px;
+  border-bottom: 1px solid #f1f3f4;
+
+  &:nth-child(even) {
+    background: #fafafa;
+  }
+
+  .sk-cell {
+    flex: 1;
+    height: 14px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.4s infinite linear;
+    border-radius: 4px;
+  }
 }
 // ==================== RESPONSIVE ====================
 

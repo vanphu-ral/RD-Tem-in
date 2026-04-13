@@ -1,4 +1,11 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+  ViewChild,
+  ElementRef,
+} from "@angular/core";
 import { UntypedFormBuilder, UntypedFormGroup } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
 import { BreakpointObserver, Breakpoints } from "@angular/cdk/layout";
@@ -64,8 +71,9 @@ export class AddScanComponent implements OnInit, OnDestroy {
   // ============================================================
   isSendingWMS = false;
   isMobile = false;
+  isScanReady = false;
+  @ViewChild("scanInputEl") scanInputEl!: ElementRef<HTMLInputElement>;
   private bpSub!: Subscription;
-
   constructor(
     private fb: UntypedFormBuilder,
     private router: Router,
@@ -105,6 +113,9 @@ export class AddScanComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.bpSub?.unsubscribe();
+  }
+  focusScanInput(): void {
+    this.scanInputEl?.nativeElement?.focus();
   }
 
   // ============================================================

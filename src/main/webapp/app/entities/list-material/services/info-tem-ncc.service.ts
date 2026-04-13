@@ -303,6 +303,16 @@ export class ManagerTemNccService {
       responseType: "text",
     });
   }
+  updateTransactionWithPo(payload: {
+    id: number;
+    poNumber: string;
+    updatedBy: string;
+  }): Observable<any> {
+    return this.http.post(
+      `${this.baseUrl}/po-import-tems/update-transaction`,
+      payload,
+    );
+  }
   //xoa don nhap tem
   deleteTemPoImport(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/po-import-tems/${id}`);

@@ -261,12 +261,25 @@
 
       <!-- Desktop Table View -->
       <div class="table-container desktop-view">
+        <!-- Skeleton rows khi dang load -->
+        <div class="table-skeleton-overlay" *ngIf="isLoading">
+          <div class="skeleton-header-row">
+            <div class="sk-header" *ngFor="let col of displayedColumns"></div>
+          </div>
+          <div
+            class="skeleton-data-row"
+            *ngFor="let i of [1, 2, 3, 4, 5, 6, 7]"
+          >
+            <div class="sk-cell" *ngFor="let col of displayedColumns"></div>
+          </div>
+        </div>
         <table
           mat-table
           [dataSource]="dataSource"
           matSort
           class="mat-elevation-z1 table-no-scroll"
           multiTemplateDataRows
+          *ngIf="!isLoading"
         >
           <!-- Expand toggle column -->
           <ng-container matColumnDef="expand">
@@ -622,8 +635,28 @@
 
       <!-- Mobile Card View -->
       <div class="mobile-view">
+        <ng-container *ngIf="isLoading">
+          <div *ngFor="let i of [1, 2, 3]" class="skeleton-mobile-card">
+            <div class="skeleton-mobile-header">
+              <div class="skeleton-block sk-badge"></div>
+              <div class="skeleton-mobile-title">
+                <div class="skeleton-block sk-title"></div>
+                <div class="skeleton-block sk-sub"></div>
+              </div>
+            </div>
+            <div class="skeleton-mobile-rows">
+              <div
+                class="skeleton-block sk-row"
+                *ngFor="let r of [1, 2, 3, 4]"
+              ></div>
+            </div>
+          </div>
+        </ng-container>
         <ng-container
-          *ngIf="mobileDataSource && mobileDataSource.length > 0; else noData"
+          *ngIf="
+            !isLoading && mobileDataSource && mobileDataSource.length > 0;
+            else noData
+          "
         >
           <mat-card
             *ngFor="let item of mobileDataSource; let i = index"
@@ -727,7 +760,7 @@
           </mat-card>
         </ng-container>
         <ng-template #noData>
-          <div class="no-data">
+          <div class="no-data" *ngIf="!isLoading">
             <mat-icon>inbox</mat-icon>
             <p>Không có dữ liệu</p>
           </div>

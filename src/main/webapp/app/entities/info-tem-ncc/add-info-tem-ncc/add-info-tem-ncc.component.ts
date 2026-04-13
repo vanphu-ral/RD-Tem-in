@@ -362,91 +362,15 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       });
       return;
     }
-    const currtentUser = this.currentUser;
-    const now = new Date().toISOString();
-    const payload: PoImportTemPayload = {
-      poNumber: this.orderInfo.poCode ?? "",
-      vendorCode: this.selectedScenario.vendorCode,
-      vendorName: this.selectedScenario.vendorName,
-      entryDate: this.orderInfo.arrivalDate
-        ? (this.datePipe.transform(this.orderInfo.arrivalDate, "yyyy-MM-dd") ??
-          "")
-        : "",
-      storageUnit: this.orderInfo.warehouse,
-      temIdentificationScenarioId: this.selectedScenario.id,
-      mappingConfig: this.selectedScenario.mappingConfig,
-      status: "NEW",
-      createdBy: currtentUser,
-      createdAt: now,
-      updatedBy: "",
-      updatedAt: now,
-      note: this.orderInfo.note ?? "",
-    };
 
-    this.isLoadingPo = true;
-    this.managerTemNccService.createPoImportTem(payload).subscribe({
-      next: (res: CreatePoImportTemResponse) => {
-        const poDetails = res?.vendorTransaction?.poDetails ?? [];
-        const transaction = res?.vendorTransaction?.transaction;
-        const poImportTemId = res?.poImportTem?.id;
+    // Da co transaction (dang o don cu) va co PO moi → update PO, khong tao moi
+    if (this.currentTransactionId && this.orderInfo.poCode?.trim()) {
+      this.applyPoToExistingTransaction();
+      return;
+    }
 
-        if (transaction?.id) {
-          this.currentTransactionId = transaction.id;
-        }
-
-        if (poImportTemId) {
-          this.router.navigate(
-            ["/info-tem-ncc/add-info-tem-ncc", poImportTemId],
-            { replaceUrl: true },
-          );
-        }
-
-        const requests = poDetails.map((detail) =>
-          this.managerTemNccService.getItemDataByItemCode(detail.sapCode).pipe(
-            map((raw) => ({
-              ...detail,
-              partNumber: this.extractPartNumber(raw),
-            })),
-            catchError(() => of({ ...detail, partNumber: "" })),
-          ),
-        );
-
-        forkJoin(requests).subscribe({
-          next: (detailsWithPartNumber) => {
-            const parentItems: ParentItem[] = detailsWithPartNumber.map(
-              (detail, idx) => ({
-                id: detail.id ?? idx,
-                sapCode: detail.sapCode,
-                materialName: detail.sapName,
-                partNumber: detail.partNumber,
-                boxScan: 0,
-                totalQuantity: detail.totalQuantity ?? 0,
-                // quantityBoxOrder: detail.quantityContainer ?? 0,
-                totalQuantityOrder: detail.totalQuantity ?? 0,
-                lots: [],
-              }),
-            );
-
-            this.dataSource.data = parentItems;
-            this.totalItems = parentItems.length;
-            this.selectedLots.clear();
-
-            this.isLoadingPo = false;
-            this.alertService.addAlert({
-              type: "success",
-              message: "Tạo đơn nhập TEM thành công.",
-            });
-          },
-          error: () => {
-            this.isLoadingPo = false;
-            this.alertService.addAlert({
-              type: "warning",
-              message: "Tạo đơn thành công nhưng không lấy được Part Number.",
-            });
-          },
-        });
-      },
-    });
+    // Chua co transaction → tao don moi
+    this.createNewPoImportTem();
   }
 
   onScan(): void {
@@ -1285,39 +1209,13 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   private enrichPartNumberForParents(items: ParentItem[]): void {
-    // Lay partNumber tu lot dau tien neu pd.partNumber null
     items.forEach((item) => {
       if (!item.partNumber && item.lots.length > 0) {
         item.partNumber = item.lots[0].partNumber ?? "";
       }
     });
-
-    const needFetch = items.filter((i) => !i.partNumber);
-    if (!needFetch.length) {
-      this.dataSource.data = [...this.dataSource.data];
-      this.cdr.markForCheck();
-      return;
-    }
-
-    const requests = needFetch.map((item) =>
-      this.managerTemNccService.getItemDataByItemCode(item.sapCode).pipe(
-        map((raw) => ({ item, partNumber: this.extractPartNumber(raw) })),
-        catchError(() => of({ item, partNumber: "" })),
-      ),
-    );
-
-    forkJoin(requests).subscribe({
-      next: (results) => {
-        results.forEach((r) => {
-          r.item.partNumber = r.partNumber;
-        });
-        this.dataSource.data = [...this.dataSource.data];
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        console.warn("Không thể enrich partNumber");
-      },
-    });
+    this.dataSource.data = [...this.dataSource.data];
+    this.cdr.markForCheck();
   }
   // private loadWarehouseOptions(): void {
   //   this.isLoadingWarehouses = true;
@@ -1411,6 +1309,104 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       },
       error: () => {
         this.notificationService.error("Ghép mã scan tạm thất bại.");
+      },
+    });
+  }
+  private applyPoToExistingTransaction(): void {
+    this.isLoadingPo = true;
+    const poImportTemId = +this.route.snapshot.paramMap.get("id")!;
+
+    this.managerTemNccService
+      .updateTransactionWithPo({
+        id: this.currentTransactionId!,
+        poNumber: this.orderInfo.poCode,
+        updatedBy: this.currentUser,
+      })
+      .subscribe({
+        next: () => {
+          this.isLoadingPo = false;
+          this.alertService.addAlert({
+            type: "success",
+            message: "Cập nhật PO thành công, đang tải dữ liệu...",
+          });
+          this.loadDetailById(poImportTemId);
+        },
+        error: () => {
+          this.isLoadingPo = false;
+          this.alertService.addAlert({
+            type: "danger",
+            message: "Cập nhật PO thất bại.",
+          });
+        },
+      });
+  }
+
+  private createNewPoImportTem(): void {
+    const now = new Date().toISOString();
+    const payload: PoImportTemPayload = {
+      poNumber: this.orderInfo.poCode ?? "",
+      vendorCode: this.selectedScenario!.vendorCode,
+      vendorName: this.selectedScenario!.vendorName,
+      entryDate: this.orderInfo.arrivalDate
+        ? (this.datePipe.transform(this.orderInfo.arrivalDate, "yyyy-MM-dd") ??
+          "")
+        : "",
+      storageUnit: this.orderInfo.warehouse,
+      temIdentificationScenarioId: this.selectedScenario!.id,
+      mappingConfig: this.selectedScenario!.mappingConfig,
+      status: "NEW",
+      createdBy: this.currentUser,
+      createdAt: now,
+      updatedBy: "",
+      updatedAt: now,
+      note: this.orderInfo.note ?? "",
+    };
+
+    this.isLoadingPo = true;
+    this.managerTemNccService.createPoImportTem(payload).subscribe({
+      next: (res: CreatePoImportTemResponse) => {
+        const poDetails = res?.vendorTransaction?.poDetails ?? [];
+        const transaction = res?.vendorTransaction?.transaction;
+        const poImportTemId = res?.poImportTem?.id;
+
+        if (transaction?.id) {
+          this.currentTransactionId = transaction.id;
+        }
+
+        if (poImportTemId) {
+          this.router.navigate(
+            ["/info-tem-ncc/add-info-tem-ncc", poImportTemId],
+            { replaceUrl: true },
+          );
+        }
+
+        const parentItems: ParentItem[] = poDetails.map((detail, idx) => ({
+          id: detail.id ?? idx,
+          sapCode: detail.sapCode,
+          materialName: detail.sapName,
+          partNumber: detail.partNumber ?? "",
+          boxScan: 0,
+          totalQuantity: detail.totalQuantity ?? 0,
+          totalQuantityOrder: detail.totalQuantity ?? 0,
+          lots: [],
+        }));
+
+        this.dataSource.data = parentItems;
+        this.totalItems = parentItems.length;
+        this.selectedLots.clear();
+        this.matchOrphanLots(parentItems);
+        this.isLoadingPo = false;
+        this.alertService.addAlert({
+          type: "success",
+          message: "Tạo đơn nhập TEM thành công.",
+        });
+      },
+      error: () => {
+        this.isLoadingPo = false;
+        this.alertService.addAlert({
+          type: "danger",
+          message: "Tạo đơn thất bại.",
+        });
       },
     });
   }

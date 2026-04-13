@@ -35,12 +35,21 @@
           <mat-form-field appearance="outline" class="scan-field">
             <input
               matInput
+              #scanInputEl
               formControlName="scanInput"
               [placeholder]="scanPlaceholder"
               (keyup.enter)="applyCode()"
+              (focus)="isScanReady = true"
+              (blur)="isScanReady = false"
               inputmode="none"
             />
           </mat-form-field>
+          <div class="scan-ready-badge" [class.active]="isScanReady">
+            <span class="srb-dot"></span>
+            <span class="srb-text">{{
+              isScanReady ? "Đang scan" : "Chờ scan"
+            }}</span>
+          </div>
           <button
             class="btn-apply"
             (click)="applyCode()"
@@ -66,6 +75,18 @@
             <mat-spinner diameter="16"></mat-spinner>
             Đang tạo đơn...
           </span>
+        </div>
+        <div
+          class="scan-mode-bar"
+          [class.active]="isScanReady"
+          (click)="focusScanInput()"
+        >
+          <span class="smb-dot"></span>
+          <span>{{
+            isScanReady
+              ? "Đang scan — sẵn sàng nhận mã"
+              : "Chạm để bắt đầu scan"
+          }}</span>
         </div>
 
         <div class="note-section">

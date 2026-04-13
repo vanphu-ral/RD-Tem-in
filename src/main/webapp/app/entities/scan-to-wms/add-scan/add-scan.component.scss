@@ -594,7 +594,65 @@
 .btn-wms {
   background: #1976d2;
 }
+.scan-ready-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #f1f3f4;
+  border: 1px solid #e0e0e0;
+  white-space: nowrap;
+  align-self: center;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 
+  .srb-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #bdbdbd;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .srb-text {
+    font-size: 11px;
+    font-weight: 500;
+    color: #9e9e9e;
+    transition: color 0.2s;
+  }
+
+  &.active {
+    background: #e3f2fd;
+    border-color: #90caf9;
+
+    .srb-dot {
+      background: #1976d2;
+      animation: blink 1.1s ease-in-out infinite;
+    }
+
+    .srb-text {
+      color: #1565c0;
+    }
+  }
+}
+
+// ---- Scan mode bar (mobile only) ----
+.scan-mode-bar {
+  display: none; // ẩn ở desktop
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
 // ---- Mobile footer full-width ----
 @media (max-width: 599px) {
   .footer-actions {
@@ -607,5 +665,46 @@
     justify-content: center;
     padding: 9px 8px;
     font-size: 13px;
+  }
+  .scan-ready-badge {
+    display: none;
+  }
+
+  .scan-mode-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1.5px dashed #bdbdbd;
+    background: #fafafa;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: #9e9e9e;
+    transition: all 0.25s ease;
+    margin-bottom: 4px;
+
+    .smb-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #bdbdbd;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    &.active {
+      border-color: #1976d2;
+      border-style: solid;
+      background: #e3f2fd;
+      color: #1565c0;
+
+      .smb-dot {
+        background: #1976d2;
+        animation: blink 1.1s ease-in-out infinite;
+      }
+    }
   }
 }
