@@ -30,9 +30,11 @@ import {
   ImportVendorTemTransaction,
   ManagerTemNccService,
   PoImportTem,
+  VendorTemDetail,
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { forkJoin, of } from "rxjs";
 import { StatusBadgeService } from "app/entities/list-material/services/status-badge.service";
+import { HttpClient } from "@angular/common/http";
 
 export interface TemNccItem {
   id: number;
@@ -145,6 +147,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     private notificationService: NotificationService,
     private route: ActivatedRoute,
     public statusBadgeService: StatusBadgeService,
+    private http: HttpClient,
   ) {}
 
   ngOnInit(): void {
@@ -276,10 +279,9 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
   toggleSessionSelect(row: TemNccItem, index: number): void {
     this.getSessionSelection(row).toggle(index);
   }
-
   isAllSessionsSelected(row: TemNccItem): boolean {
-    const approvable = (row.sessions ?? []).filter((s) =>
-      this.isSessionApprovable(s),
+    const approvable = (row.sessions ?? []).filter(
+      (s) => this.isSessionApprovable(s, row), // thêm row
     );
     if (!approvable.length) {
       return false;
@@ -291,7 +293,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     });
   }
   hasApprovableSessions(row: TemNccItem): boolean {
-    return (row.sessions ?? []).some((s) => this.isSessionApprovable(s));
+    return (row.sessions ?? []).some((s) => this.isSessionApprovable(s, row));
   }
   isSomeSessionSelected(row: TemNccItem): boolean {
     const sel = this.getSessionSelection(row);
@@ -304,7 +306,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     } else {
       const approvableIndexes = (row.sessions ?? [])
         .map((s, i) => ({ s, i }))
-        .filter(({ s }) => this.isSessionApprovable(s))
+        .filter(({ s }) => this.isSessionApprovable(s, row)) // thêm row
         .map(({ i }) => i);
       this.getSessionSelection(row).select(...approvableIndexes);
     }
@@ -379,7 +381,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       if (!confirmed) {
         return;
       }
-      this.callApproveApiForSessions(row, selected, "APPROVED");
+      this.callApproveApiForSessions(row, selected, "APPROVE");
     });
   }
 
@@ -423,9 +425,114 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       }
     });
   }
-  isSessionApprovable(session: SessionItem): boolean {
+  canSendPanacim(row: TemNccItem): boolean {
+    const selected = this.getSelectedSessions(row);
+    if (!selected.length) {
+      return false;
+    }
+
+    const raw = row._raw;
+    if (!raw) {
+      return false;
+    }
+
+    return selected.every((session) => {
+      const transaction = raw.importVendorTemTransactions?.find(
+        (t) => t.id === session.transactionId,
+      );
+      if (!transaction) {
+        return false;
+      }
+
+      const allDetails = (transaction.poDetails ?? []).flatMap(
+        (pd) => pd.vendorTemDetails ?? [],
+      );
+      if (!allDetails.length) {
+        return false;
+      }
+
+      return allDetails.every(
+        (v) => (v.status ?? "").toUpperCase() === "APPROVE",
+      );
+    });
+  }
+
+  onSendPanacim(row: TemNccItem): void {
+    const selected = this.getSelectedSessions(row);
+    const raw = row._raw;
+    if (!raw || !selected.length) {
+      return;
+    }
+
+    const allDetails = selected.flatMap((session) => {
+      const transaction = raw.importVendorTemTransactions?.find(
+        (t) => t.id === session.transactionId,
+      );
+      return (transaction?.poDetails ?? []).flatMap((pd) =>
+        (pd.vendorTemDetails ?? []).map((v) => ({
+          ...v,
+          sapCode: pd.sapCode,
+          sapName: pd.sapName,
+          _transactionId: session.transactionId,
+        })),
+      );
+    });
+
+    const toSend = allDetails.filter(
+      (v) =>
+        (v.status ?? "").toUpperCase() === "APPROVE" &&
+        v.panaSendStatus !== true,
+    );
+
+    if (!toSend.length) {
+      this.notificationService.warning(
+        "Tất cả vật tư đã được gửi Panacim trước đó.",
+      );
+      return;
+    }
+
+    const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
+      width: "400px",
+      data: {
+        title: "Xác nhận gửi Panacim",
+        message: `Gửi Panacim cho ${toSend.length} vật tư trong ${selected.length} session đã chọn?`,
+        confirmText: "Gửi Panacim",
+        cancelText: "Hủy",
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      this.executeListPanacim(row, toSend);
+    });
+  }
+  isSessionApprovable(session: SessionItem, row?: TemNccItem): boolean {
+    if (row?._raw) {
+      const transaction = row._raw.importVendorTemTransactions?.find(
+        (t) => t.id === session.transactionId,
+      );
+      if (transaction) {
+        const allDetails = (transaction.poDetails ?? []).flatMap(
+          (pd) => pd.vendorTemDetails ?? [],
+        );
+        if (allDetails.length > 0) {
+          return allDetails.some(
+            (v) => (v.status ?? "").toUpperCase() !== "APPROVE",
+          );
+        }
+      }
+    }
     const s = (session.status ?? "").toUpperCase();
     return s !== "APPROVED" && s !== "APPROVE";
+  }
+  canApproveOrReject(row: TemNccItem): boolean {
+    const selected = this.getSelectedSessions(row);
+    if (!selected.length) {
+      return false;
+    }
+    return selected.some((session) => this.isSessionApprovable(session, row));
   }
 
   // ==================== PRIVATE ====================
@@ -553,7 +660,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
   private callApproveApiForSessions(
     row: TemNccItem,
     sessions: SessionItem[],
-    status: "APPROVED" | "REJECTED",
+    status: "APPROVE" | "REJECTED",
   ): void {
     const raw = row._raw;
     if (!raw) {
@@ -666,7 +773,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       next: () => {
         this.isLoading = false;
         const msg =
-          status === "APPROVED"
+          status === "APPROVE"
             ? "Phê duyệt thành công."
             : "Từ chối thành công.";
         this.notificationService.success(msg);
@@ -677,7 +784,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       error: () => {
         this.isLoading = false;
         const msg =
-          status === "APPROVED" ? "Phê duyệt thất bại." : "Từ chối thất bại.";
+          status === "APPROVE" ? "Phê duyệt thất bại." : "Từ chối thất bại.";
         this.notificationService.error(msg);
       },
     });
@@ -688,6 +795,185 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
       maxWidth: "95vw",
       data: { item },
       panelClass: "summary-dialog-panel",
+    });
+  }
+  private executeListPanacim(
+    row: TemNccItem,
+    details: (VendorTemDetail & { _transactionId: number })[],
+  ): void {
+    const csvContent = this.generatePanacimCsv(details);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const fileName = `CSV_${row.poCode}_${new Date().toISOString().split("T")[0]}.csv`;
+    const formData = new FormData();
+    formData.append("file", blob, fileName);
+
+    this.isLoading = true;
+
+    this.http.post<any>("/api/csv-upload", formData).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        if (response?.success === true) {
+          this.notificationService.success(
+            `Đã gửi ${details.length} vật tư tới Panacim thành công.`,
+          );
+          this.updateListPanaSendStatus(row, details);
+        } else {
+          this.notificationService.error(
+            `Lỗi: ${response?.message ?? "Không có phản hồi từ server"}`,
+          );
+        }
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.notificationService.error(
+          `Lỗi khi gửi: ${err.error?.message ?? err.message ?? "Không thể kết nối đến server"}`,
+        );
+      },
+    });
+  }
+
+  private generatePanacimCsv(details: VendorTemDetail[]): string {
+    const headers = [
+      "ReelID",
+      "PartNumber",
+      "Vendor",
+      "Lot",
+      "UserData1",
+      "UserData2",
+      "UserData3",
+      "UserData4",
+      "UserData5",
+      "InitialQuantity",
+      "MSDLevel",
+      "MSDInitialFloorTime",
+      "MSDBagSealDate",
+      "MarketUsage",
+      "QuantityOverride",
+      "ShelfTime",
+      "SPMaterialName",
+      "WarningLimit",
+      "MaximumLimit",
+      "Comments",
+      "WarmupTime",
+      "StorageUnit",
+      "SubStorageUnit",
+      "LocationOverride",
+      "ExpirationDate",
+      "ManufacturingDate",
+      "Partclass",
+      "SAPCode",
+    ];
+    const rows: string[][] = details.map((v) => [
+      v.reelId ?? "",
+      v.partNumber ?? "",
+      v.vendor ?? "",
+      v.lot ?? "",
+      v.userData1 ?? "",
+      v.userData2 ?? "",
+      v.userData3 ?? "",
+      v.userData4 ?? "",
+      v.userData5 ?? "",
+      String(v.initialQuantity ?? ""),
+      v.msdLevel ?? "",
+      "", // MSDInitialFloorTime
+      "", // MSDBagSealDate
+      "", // MarketUsage
+      "1", // QuantityOverride
+      "", // ShelfTime
+      "", // SPMaterialName
+      "", // WarningLimit
+      "", // MaximumLimit
+      "", // Comments
+      "", // WarmupTime
+      v.storageUnit ?? "",
+      "", // SubStorageUnit
+      "", // LocationOverride
+      (v.expirationDate ?? "").replace(/-/g, ""),
+      (v.manufacturingDate ?? "").replace(/-/g, ""),
+      "", // Partclass
+      v.sapCode ?? "",
+    ]);
+    return "\ufeff" + [headers, ...rows].map((row) => row.join(",")).join("\n");
+  }
+
+  private updateListPanaSendStatus(
+    row: TemNccItem,
+    details: (VendorTemDetail & { _transactionId: number })[],
+  ): void {
+    const now = new Date().toISOString();
+    const ids = new Set(details.map((d) => d.id));
+    const payloads: CreateVendorTemDetailPayload[] = details
+      .filter((v) => !!v.id)
+      .map((v) => ({
+        id: v.id,
+        reelId: v.reelId ?? "",
+        partNumber: v.partNumber ?? "",
+        vendor: v.vendor ?? "",
+        lot: v.lot ?? "",
+        userData1: v.userData1 ?? "",
+        userData2: v.userData2 ?? "",
+        userData3: v.userData3 ?? "",
+        userData4: v.userData4 ?? "",
+        userData5: v.userData5 ?? "",
+        initialQuantity: v.initialQuantity ?? 0,
+        msdLevel: v.msdLevel ?? "",
+        msdInitialFloorTime: "",
+        msdBagSealDate: "",
+        marketUsage: "",
+        quantityOverride: 0,
+        shelfTime: "",
+        spMaterialName: "",
+        warningLimit: "",
+        maximumLimit: "",
+        comments: "",
+        warmupTime: "",
+        storageUnit: v.storageUnit ?? "",
+        subStorageUnit: "",
+        locationOverride: "",
+        expirationDate: v.expirationDate ?? "",
+        manufacturingDate: v.manufacturingDate ?? "",
+        partClass: "",
+        sapCode: v.sapCode ?? "",
+        vendorQrCode: v.vendorQrCode ?? "",
+        status: v.status ?? "",
+        createdBy: v.createdBy ?? "",
+        createdAt: v.createdAt ?? now,
+        updatedBy: "",
+        updatedAt: now,
+        poDetailId: v.poDetailId ?? 0,
+        importVendorTemTransactionsId: v._transactionId,
+        panaSendStatus: true,
+      }));
+
+    if (!payloads.length) {
+      return;
+    }
+
+    this.managerTemNccService.batchUpdateVendorTemDetails(payloads).subscribe({
+      next: () => {
+        const cached = this.detailCache.get(row.id);
+        if (cached) {
+          cached.importVendorTemTransactions?.forEach((t) => {
+            t.poDetails?.forEach((pd) => {
+              pd.vendorTemDetails?.forEach((v) => {
+                if (ids.has(v.id)) {
+                  v.panaSendStatus = true;
+                }
+              });
+            });
+          });
+        }
+        const idx = this.dataSource.data.findIndex((r) => r.id === row.id);
+        if (idx >= 0 && cached) {
+          const newData = [...this.dataSource.data];
+          newData[idx] = { ...newData[idx], _raw: cached };
+          this.dataSource.data = newData;
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.notificationService.error("Cập nhật trạng thái Panacim thất bại.");
+      },
     });
   }
 }

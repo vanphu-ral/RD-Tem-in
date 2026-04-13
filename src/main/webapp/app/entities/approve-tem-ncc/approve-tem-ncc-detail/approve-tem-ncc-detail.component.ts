@@ -280,6 +280,9 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
   get selectedLotCount(): number {
     return this.selectedLots.selected.length;
   }
+  get selectedDetailCount(): number {
+    return this.getSelectedDetails().length;
+  }
 
   getSelectedLotDetails(): VendorTemDetail[] {
     const result: VendorTemDetail[] = [];
@@ -1092,13 +1095,13 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
       "UserData4",
       "UserData5",
       "InitialQuantity",
-      "MsdLevel",
-      "MsdInitialFloorTime",
-      "MsdBagSealDate",
+      "MSDLevel",
+      "MSDInitialFloorTime",
+      "MSDBagSealDate",
       "MarketUsage",
       "QuantityOverride",
       "ShelfTime",
-      "SpMaterialName",
+      "SPMaterialName",
       "WarningLimit",
       "MaximumLimit",
       "Comments",
@@ -1108,11 +1111,11 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
       "LocationOverride",
       "ExpirationDate",
       "ManufacturingDate",
-      "PartClass",
-      "SapCode",
+      "Partclass",
+      "SAPCode",
     ];
 
-    const rows = details.map((v) => [
+    const rows: string[][] = details.map((v) => [
       v.reelId ?? "",
       v.partNumber ?? "",
       v.vendor ?? "",
@@ -1122,32 +1125,28 @@ export class ApproveTemNccDetailComponent implements OnInit, AfterViewInit {
       v.userData3 ?? "",
       v.userData4 ?? "",
       v.userData5 ?? "",
-      v.initialQuantity ?? "",
+      String(v.initialQuantity ?? ""),
       v.msdLevel ?? "",
-      "", // msdInitialFloorTime
-      "", // msdBagSealDate
-      "", // marketUsage
-      "0", // quantityOverride
-      "", // shelfTime
-      "", // spMaterialName
-      "", // warningLimit
-      "", // maximumLimit
-      "", // comments
-      "", // warmupTime
+      "", // MSDInitialFloorTime
+      "", // MSDBagSealDate
+      "", // MarketUsage
+      "1", // QuantityOverride — bản mẫu dùng "1"
+      "", // ShelfTime
+      "", // SPMaterialName
+      "", // WarningLimit
+      "", // MaximumLimit
+      "", // Comments
+      "", // WarmupTime
       v.storageUnit ?? "",
-      "", // subStorageUnit
-      "", // locationOverride
-      v.expirationDate ?? "",
-      v.manufacturingDate ?? "",
-      "", // partClass
+      "", // SubStorageUnit
+      "", // LocationOverride
+      (v.expirationDate ?? "").replace(/-/g, ""), // strip dấu -
+      (v.manufacturingDate ?? "").replace(/-/g, ""), // strip dấu -
+      "", // Partclass
       v.sapCode ?? "",
     ]);
 
-    const csvRows = [headers, ...rows]
-      .map((row) => row.map((cell) => String(cell ?? "")).join(","))
-      .join("\n");
-
-    return "\ufeff" + csvRows;
+    return "\ufeff" + [headers, ...rows].map((row) => row.join(",")).join("\n");
   }
   private updatePanaSendStatus(details: VendorTemDetail[]): void {
     const now = new Date().toISOString();

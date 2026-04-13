@@ -294,31 +294,45 @@
               <div class="session-header-actions">
                 <button
                   mat-raised-button
-                  color="primary"
-                  class="approve-btn"
-                  [disabled]="getSessionSelection(row).selected.length === 0"
-                  (click)="onApprove(row)"
+                  style="background-color: #5c6bc0; color: white"
+                  [disabled]="!canSendPanacim(row)"
+                  (click)="onSendPanacim(row)"
+                  [matTooltip]="
+                    !canSendPanacim(row) &&
+                    getSessionSelection(row).selected.length > 0
+                      ? 'Chỉ gửi được khi tất cả mã trong session đã phê duyệt'
+                      : ''
+                  "
                 >
-                  Phê duyệt
-                  <span
-                    class="sel-count"
-                    *ngIf="getSessionSelection(row).selected.length > 0"
-                  >
+                  <mat-icon>send</mat-icon>
+                  Xuất Panacim
+                  <span class="sel-count" *ngIf="canSendPanacim(row)">
                     ({{ getSessionSelection(row).selected.length }})
                   </span>
                 </button>
+
+                <button
+                  mat-raised-button
+                  color="primary"
+                  class="approve-btn"
+                  [disabled]="!canApproveOrReject(row)"
+                  (click)="onApprove(row)"
+                >
+                  Phê duyệt
+                  <span class="sel-count" *ngIf="canApproveOrReject(row)">
+                    ({{ getSessionSelection(row).selected.length }})
+                  </span>
+                </button>
+
                 <button
                   mat-raised-button
                   color="warn"
                   class="reject-btn"
-                  [disabled]="getSessionSelection(row).selected.length === 0"
+                  [disabled]="!canApproveOrReject(row)"
                   (click)="onReject(row)"
                 >
                   Từ chối
-                  <span
-                    class="sel-count"
-                    *ngIf="getSessionSelection(row).selected.length > 0"
-                  >
+                  <span class="sel-count" *ngIf="canApproveOrReject(row)">
                     ({{ getSessionSelection(row).selected.length }})
                   </span>
                 </button>
@@ -335,7 +349,6 @@
                         [checked]="isAllSessionsSelected(row)"
                         [indeterminate]="isSomeSessionSelected(row)"
                         (change)="toggleAllSessions(row)"
-                        [disabled]="!hasApprovableSessions(row)"
                         color="primary"
                       >
                       </mat-checkbox>
@@ -389,7 +402,6 @@
                               getSessionPage(row) * sessionPageSize + si
                             )
                           "
-                          [disabled]="!isSessionApprovable(session)"
                           color="primary"
                         >
                         </mat-checkbox>
