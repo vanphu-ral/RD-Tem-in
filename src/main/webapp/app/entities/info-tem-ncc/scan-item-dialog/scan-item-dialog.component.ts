@@ -422,6 +422,12 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       this.cdr.markForCheck();
       return;
     }
+    const parsedQty = Number(fieldMap["initialQuantity"]) || 0;
+    if (parsedQty <= 0) {
+      this.errorMessage = `Số lượng không hợp lệ (${parsedQty}) — mã "${reelIdToCheck}" không được lưu.`;
+      this.cdr.markForCheck();
+      return;
+    }
 
     const dateSource = fieldMap["manufacturingDate"] || this.data?.arrivalDate;
     let cleanDate = "";
@@ -442,7 +448,7 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       userData3: fieldMap["userData3"] || "NO",
       userData4: fieldMap["userData4"] || (matchedRow?.sapCode ?? ""),
       userData5: fieldMap["userData5"] || (this.data?.poCode ?? ""),
-      initialQuantity: Number(fieldMap["initialQuantity"]) || 0,
+      initialQuantity: parsedQty,
       msdLevel: fieldMap["msdLevel"] ?? "",
       msdInitialFloorTime: "",
       msdBagSealDate: "",

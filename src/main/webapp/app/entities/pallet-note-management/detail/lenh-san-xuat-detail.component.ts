@@ -89,7 +89,40 @@ export class LenhSanXuatDetailComponent implements OnInit {
           response.warehouse_note_info_details &&
           response.warehouse_note_info_details.length > 0
         ) {
-          this.chiTietLenhSanXuats = response.warehouse_note_info_details;
+          this.chiTietLenhSanXuats = response.warehouse_note_info_details.map(
+            (d: any): IChiTietLenhSanXuat => ({
+              id: d.id,
+              reelID: d.reel_id,
+              partNumber: d.part_number,
+              vendor: d.vendor,
+              lot: d.lot,
+              userData1: d.user_data_1,
+              userData2: d.user_data_2,
+              userData3: d.user_data_3,
+              userData4: d.user_data_4,
+              userData5: d.user_data_5,
+              initialQuantity: d.initial_quantity,
+              msdLevel: d.msd_level,
+              msdInitialFloorTime: d.msd_initial_floor_time,
+              msdBagSealDate: d.msd_bag_seal_date,
+              marketUsage: d.market_usage,
+              quantityOverride: d.quantity_override,
+              shelfTime: d.shelf_time,
+              spMaterialName: d.sp_material_name,
+              warningLimit: d.warning_limit,
+              maximumLimit: d.maximum_limit,
+              comments: d.comments,
+              warmupTime: d.warmup_time,
+              storageUnit: d.storage_unit,
+              subStorageUnit: d.sub_storage_unit,
+              locationOverride: d.location_override,
+              expirationDate: d.expiration_date,
+              manufacturingDate: d.manufacturing_date,
+              partClass: d.part_class,
+              sapCode: d.sap_code,
+              trangThai: d.trang_thai,
+            }),
+          );
           this.chiTietLenhSanXuatExport = this.chiTietLenhSanXuats.filter(
             (a) =>
               (a as any).trang_thai === "Active" ||
@@ -186,61 +219,166 @@ export class LenhSanXuatDetailComponent implements OnInit {
     }
   }
   exportCSV(): void {
-    const options = {
-      fieldSeparator: ",",
-      quoteStrings: "",
-      decimalseparator: ".",
-      showLabels: true,
-      showTitle: false,
-      title: "Your title",
-      useBom: true,
-      noDownload: false,
-      headers: [
-        "ReelID",
-        "PartNumber",
-        "Vendor",
-        "Lot",
-        "UserData1",
-        "UserData2",
-        "UserData3",
-        "UserData4",
-        "UserData5",
-        "InitialQuantity",
-        "MsdLevel",
-        "MsdInitialFloorTime",
-        "MsdBagSealDate",
-        "MarketUsage",
-        "QuantityOverride",
-        "ShelfTime",
-        "SpMaterialName",
-        "WarningLimit",
-        "MaximumLimit",
-        "Comments",
-        "WarmupTime",
-        "StorageUnit",
-        "SubStorageUnit",
-        "LocationOverride",
-        "ExpirationDate",
-        "ManufacturingDate",
-        "PartClass",
-        "SapCode",
-      ],
-    };
-    new ngxCsv(this.data, this.fileName, options);
+    if (!this.chiTietLenhSanXuats?.length) {
+      return;
+    }
+
+    const headers = [
+      "ReelID",
+      "PartNumber",
+      "Vendor",
+      "Lot",
+      "UserData1",
+      "UserData2",
+      "UserData3",
+      "UserData4",
+      "UserData5",
+      "InitialQuantity",
+      "MSDLevel",
+      "MSDInitialFloorTime",
+      "MSDBagSealDate",
+      "MarketUsage",
+      "QuantityOverride",
+      "ShelfTime",
+      "SPMaterialName",
+      "WarningLimit",
+      "MaximumLimit",
+      "Comments",
+      "WarmupTime",
+      "StorageUnit",
+      "SubStorageUnit",
+      "LocationOverride",
+      "ExpirationDate",
+      "ManufacturingDate",
+      "PartClass",
+      "SapCode",
+    ];
+
+    const rows: (string | number | null | undefined)[][] =
+      this.chiTietLenhSanXuats.map((item: IChiTietLenhSanXuat) => [
+        item.reelID ?? "",
+        item.partNumber ?? "",
+        item.vendor ?? "",
+        item.lot ?? "",
+        item.userData1 ?? "",
+        item.userData2 ?? "",
+        item.userData3 ?? "",
+        item.userData4 ?? "",
+        item.userData5 ?? "",
+        item.initialQuantity ?? "",
+        item.msdLevel ?? "",
+        item.msdInitialFloorTime ?? "",
+        item.msdBagSealDate ?? "",
+        item.marketUsage ?? "",
+        item.quantityOverride ?? "",
+        item.shelfTime ?? "",
+        item.spMaterialName ?? "",
+        item.warningLimit ?? "",
+        item.maximumLimit ?? "",
+        item.comments ?? "",
+        item.warmupTime ?? "",
+        item.storageUnit ?? "",
+        item.subStorageUnit ?? "",
+        item.locationOverride ?? "",
+        item.expirationDate ?? "",
+        item.manufacturingDate ?? "",
+        item.partClass ?? "",
+        item.sapCode ?? "",
+      ]);
+
+    const csvRows = [headers, ...rows]
+      .map((row) => row.map((cell) => cell ?? "").join(","))
+      .join("\n");
+
+    const blob = new Blob(["\ufeff" + csvRows], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${this.fileName}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportToExcel(): void {
+    if (!this.chiTietLenhSanXuats?.length) {
+      return;
+    }
+
+    const headers = [
+      "ReelID",
+      "PartNumber",
+      "Vendor",
+      "Lot",
+      "UserData1",
+      "UserData2",
+      "UserData3",
+      "UserData4",
+      "UserData5",
+      "InitialQuantity",
+      "MSDLevel",
+      "MSDInitialFloorTime",
+      "MSDBagSealDate",
+      "MarketUsage",
+      "QuantityOverride",
+      "ShelfTime",
+      "SPMaterialName",
+      "WarningLimit",
+      "MaximumLimit",
+      "Comments",
+      "WarmupTime",
+      "StorageUnit",
+      "SubStorageUnit",
+      "LocationOverride",
+      "ExpirationDate",
+      "ManufacturingDate",
+      "PartClass",
+      "SapCode",
+    ];
+
+    const rows: (string | number | null | undefined)[][] =
+      this.chiTietLenhSanXuats.map((item: IChiTietLenhSanXuat) => [
+        item.reelID ?? "",
+        item.partNumber ?? "",
+        item.vendor ?? "",
+        item.lot ?? "",
+        item.userData1 ?? "",
+        item.userData2 ?? "",
+        item.userData3 ?? "",
+        item.userData4 ?? "",
+        item.userData5 ?? "",
+        item.initialQuantity ?? "",
+        item.msdLevel ?? "",
+        item.msdInitialFloorTime ?? "",
+        item.msdBagSealDate ?? "",
+        item.marketUsage ?? "",
+        item.quantityOverride ?? "",
+        item.shelfTime ?? "",
+        item.spMaterialName ?? "",
+        item.warningLimit ?? "",
+        item.maximumLimit ?? "",
+        item.comments ?? "",
+        item.warmupTime ?? "",
+        item.storageUnit ?? "",
+        item.subStorageUnit ?? "",
+        item.locationOverride ?? "",
+        item.expirationDate ?? "",
+        item.manufacturingDate ?? "",
+        item.partClass ?? "",
+        item.sapCode ?? "",
+      ]);
+
+    const ws: XLSX.WorkSheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ChiTietSanXuatHangNgay");
+    XLSX.writeFile(wb, `${this.fileName}.xlsx`);
   }
   onPageChange(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
   }
 
-  exportToExcel(): void {
-    // const data = document.getElementById("table-data");
-    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(this.data);
-    // create workbook
-    const wb: XLSX.WorkBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "ChiTietSanXuatHangNgay");
-    XLSX.writeFile(wb, `${this.fileName}.xlsx`);
-  }
   previousState(): void {
     window.history.back();
   }

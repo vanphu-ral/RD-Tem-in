@@ -379,6 +379,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         match(item.createdBy, f.createdBy) &&
         // match(item.warehouse, f.warehouse) &&
         match(item.status, f.status) &&
+        match(item.poComments, f.poComments) &&
         match(
           this.datePipe.transform(item.arrivalDate, "yyyy-MM-dd") ?? "",
           f.arrivalDateStr,
