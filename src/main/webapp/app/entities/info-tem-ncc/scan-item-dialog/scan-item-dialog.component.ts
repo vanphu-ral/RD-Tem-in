@@ -404,13 +404,14 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
         scannedPartNumber.toLowerCase(),
     );
 
-    // if (!matchedRow) {
-    //   this.errorMessage = `Không tìm thấy Part Number "${scannedPartNumber}" trong đơn hàng.`;
-    //   // Lỗi cần hiện ngay → markForCheck riêng
-    //   this.cdr.markForCheck();
-    //   return;
-    // }
     const isOrphan = !matchedRow;
+
+    // Nếu có parentItems (có PO) mà không tìm thấy part → báo lỗi, không lưu
+    if (!matchedRow && (this.data.parentItems ?? []).length > 0) {
+      this.errorMessage = `Không tìm thấy Part Number "${scannedPartNumber}" trong đơn hàng.`;
+      this.cdr.markForCheck();
+      return;
+    }
 
     const reelIdToCheck = (fieldMap["reelId"] ?? "").trim();
 
