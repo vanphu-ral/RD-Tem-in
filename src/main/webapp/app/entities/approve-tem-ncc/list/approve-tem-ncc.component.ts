@@ -101,7 +101,7 @@ export class ApproveTemNccComponent implements OnInit, AfterViewInit {
     "createdDate",
     "createdBy",
     // "warehouse",
-    "status",
+    // "status",
   ];
 
   dataSource = new MatTableDataSource<TemNccItem>([]);

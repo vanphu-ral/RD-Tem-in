@@ -56,7 +56,7 @@
             (ngModelChange)="applyFilter()"
           />
         </mat-form-field> -->
-        <mat-form-field appearance="outline" class="w-full">
+        <!-- <mat-form-field appearance="outline" class="w-full">
           <mat-label>Trạng thái</mat-label>
           <mat-select
             [(ngModel)]="filterValues.status"
@@ -68,7 +68,7 @@
             <mat-option value="APPROVE">Đã duyệt</mat-option>
             <mat-option value="REJECT">Từ chối</mat-option>
           </mat-select>
-        </mat-form-field>
+        </mat-form-field> -->
       </div>
     </mat-expansion-panel>
   </div>
@@ -240,7 +240,7 @@
       </ng-container> -->
 
       <!-- Status -->
-      <ng-container matColumnDef="status">
+      <!-- <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef class="col-status">
           <div class="th-wrap">
             <span mat-sort-header>Trạng thái</span>
@@ -269,7 +269,7 @@
             {{ statusBadgeService.getLabel(row.status) }}
           </span>
         </td>
-      </ng-container>
+      </ng-container> -->
 
       <ng-container matColumnDef="expandedDetail">
         <td

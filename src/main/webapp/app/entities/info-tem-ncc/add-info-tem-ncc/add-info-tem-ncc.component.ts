@@ -512,6 +512,20 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   onSaveLots(row: ParentItem): void {
     const now = new Date().toISOString();
 
+    const invalidLot = row.lots.find(
+      (lot) =>
+        Number(lot.boxCount) < 0 ||
+        Number(lot.totalQty) < 0 ||
+        Number(lot.initialQuantity) < 0,
+    );
+
+    if (invalidLot) {
+      this.notificationService.warning(
+        "Không được nhập số âm cho Số thùng, Tổng SL hoặc Quantity.",
+      );
+      return;
+    }
+
     const payload: CreateVendorTemDetailPayload[] = row.lots
       .filter((lot) => !!lot.vendorTemDetailId)
       .map((lot) => ({

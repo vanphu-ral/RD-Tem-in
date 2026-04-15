@@ -104,7 +104,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     "createdDate",
     "createdBy",
     // "warehouse",
-    "status",
+    // "status",
     "poComments",
   ];
 
