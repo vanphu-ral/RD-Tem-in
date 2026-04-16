@@ -503,13 +503,37 @@
                               </ng-container>
 
                               <ng-template #normalApplyInput>
-                                <input
-                                  class="apply-input"
-                                  [(ngModel)]="
-                                    lotBulkValues[row.id + '_' + col.key]
+                                <ng-container
+                                  *ngIf="
+                                    col.key === 'boxCount' ||
+                                      col.key === 'totalQty' ||
+                                      col.key === 'initialQuantity';
+                                    else textApplyInput
                                   "
-                                  (keydown.enter)="applyLotColumn(row, col.key)"
-                                />
+                                >
+                                  <input
+                                    class="apply-input"
+                                    type="number"
+                                    min="0"
+                                    [(ngModel)]="
+                                      lotBulkValues[row.id + '_' + col.key]
+                                    "
+                                    (keydown.enter)="
+                                      applyLotColumn(row, col.key)
+                                    "
+                                  />
+                                </ng-container>
+                                <ng-template #textApplyInput>
+                                  <input
+                                    class="apply-input"
+                                    [(ngModel)]="
+                                      lotBulkValues[row.id + '_' + col.key]
+                                    "
+                                    (keydown.enter)="
+                                      applyLotColumn(row, col.key)
+                                    "
+                                  />
+                                </ng-template>
                               </ng-template>
 
                               <button
@@ -572,13 +596,37 @@
                                   else lotDisplay
                                 "
                               >
-                                <input
-                                  class="cell-input"
-                                  [(ngModel)]="lot[col.key]"
-                                  (blur)="stopLotEdit()"
-                                  (keydown.enter)="stopLotEdit()"
-                                  (keydown.escape)="stopLotEdit()"
-                                />
+                                <!-- Input số: chặn âm -->
+                                <ng-container
+                                  *ngIf="
+                                    col.key === 'boxCount' ||
+                                      col.key === 'totalQty' ||
+                                      col.key === 'initialQuantity';
+                                    else textInput
+                                  "
+                                >
+                                  <input
+                                    class="cell-input"
+                                    type="number"
+                                    min="0"
+                                    [(ngModel)]="lot[col.key]"
+                                    (input)="onQtyInput($event, lot, col.key)"
+                                    (blur)="stopLotEdit()"
+                                    (keydown.enter)="stopLotEdit()"
+                                    (keydown.escape)="stopLotEdit()"
+                                  />
+                                </ng-container>
+
+                                <!-- Input text: giữ nguyên -->
+                                <ng-template #textInput>
+                                  <input
+                                    class="cell-input"
+                                    [(ngModel)]="lot[col.key]"
+                                    (blur)="stopLotEdit()"
+                                    (keydown.enter)="stopLotEdit()"
+                                    (keydown.escape)="stopLotEdit()"
+                                  />
+                                </ng-template>
                               </ng-container>
                               <ng-template #lotDisplay>
                                 <span

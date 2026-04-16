@@ -300,7 +300,14 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   // ==================== EXPAND LOGIC ====================
-
+  onQtyInput(event: Event, lot: LotItem, field: string): void {
+    const val = Number((event.target as HTMLInputElement).value);
+    if (val < 0) {
+      (event.target as HTMLInputElement).value = "0";
+      lot[field] = 0;
+      this.notificationService.warning("Không được nhập số âm.");
+    }
+  }
   toggleRow(row: ParentItem): void {
     if (this.expandedRows.has(row.id)) {
       this.expandedRows.delete(row.id);
@@ -797,6 +804,14 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     if (value === "" || value === null || value === undefined) {
       return;
     }
+
+    const numericCols = ["boxCount", "totalQty", "initialQuantity"];
+    if (numericCols.includes(colKey) && Number(value) < 0) {
+      this.notificationService.warning("Không được nhập số âm.");
+      this.lotBulkValues[row.id + "_" + colKey] = 0;
+      return;
+    }
+
     row.lots = row.lots.map((lot) => ({ ...lot, [colKey]: value }));
   }
 
