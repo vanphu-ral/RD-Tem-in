@@ -505,9 +505,7 @@
                               <ng-template #normalApplyInput>
                                 <ng-container
                                   *ngIf="
-                                    col.key === 'boxCount' ||
-                                      col.key === 'totalQty' ||
-                                      col.key === 'initialQuantity';
+                                    col.key === 'initialQuantity';
                                     else textApplyInput
                                   "
                                 >
@@ -599,9 +597,7 @@
                                 <!-- Input số: chặn âm -->
                                 <ng-container
                                   *ngIf="
-                                    col.key === 'boxCount' ||
-                                      col.key === 'totalQty' ||
-                                      col.key === 'initialQuantity';
+                                    col.key === 'initialQuantity';
                                     else textInput
                                   "
                                 >

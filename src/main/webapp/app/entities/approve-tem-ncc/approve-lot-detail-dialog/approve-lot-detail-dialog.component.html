@@ -28,12 +28,25 @@
         <tr class="apply-row">
           <td *ngFor="let col of columns">
             <div class="apply-cell" *ngIf="col.editable; else emptyApply">
-              <input
-                class="apply-input"
-                [(ngModel)]="bulkValues[col.key]"
-                [placeholder]="''"
-                (keydown.enter)="applyColumn(col.key)"
-              />
+              <!-- Input số: chặn âm -->
+              <ng-container
+                *ngIf="col.key === 'initialQuantity'; else textApplyInput"
+              >
+                <input
+                  class="apply-input"
+                  type="number"
+                  min="0"
+                  [(ngModel)]="bulkValues[col.key]"
+                  (keydown.enter)="applyColumn(col.key)"
+                />
+              </ng-container>
+              <ng-template #textApplyInput>
+                <input
+                  class="apply-input"
+                  [(ngModel)]="bulkValues[col.key]"
+                  (keydown.enter)="applyColumn(col.key)"
+                />
+              </ng-template>
               <button
                 mat-icon-button
                 class="apply-icon-btn"
@@ -72,15 +85,34 @@
                 else displayMode
               "
             >
-              <input
-                #cellInput
-                class="cell-input"
-                [(ngModel)]="row[col.key]"
-                (blur)="stopEdit()"
-                (keydown.enter)="stopEdit()"
-                (keydown.escape)="cancelEdit(i, col.key)"
-                (keydown.tab)="moveEditNext(i, col.key, $any($event))"
-              />
+              <!-- Input số: chặn âm -->
+              <ng-container
+                *ngIf="col.key === 'initialQuantity'; else textCellInput"
+              >
+                <input
+                  #cellInput
+                  class="cell-input"
+                  type="number"
+                  min="0"
+                  [(ngModel)]="row[col.key]"
+                  (input)="onQtyInput($event, row, col.key)"
+                  (blur)="stopEdit()"
+                  (keydown.enter)="stopEdit()"
+                  (keydown.escape)="cancelEdit(i, col.key)"
+                  (keydown.tab)="moveEditNext(i, col.key, $any($event))"
+                />
+              </ng-container>
+              <ng-template #textCellInput>
+                <input
+                  #cellInput
+                  class="cell-input"
+                  [(ngModel)]="row[col.key]"
+                  (blur)="stopEdit()"
+                  (keydown.enter)="stopEdit()"
+                  (keydown.escape)="cancelEdit(i, col.key)"
+                  (keydown.tab)="moveEditNext(i, col.key, $any($event))"
+                />
+              </ng-template>
             </ng-container>
             <ng-template #displayMode>
               <span class="cell-value" [title]="row[col.key]">{{

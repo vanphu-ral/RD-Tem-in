@@ -152,6 +152,12 @@ export class ApproveLotDetailDialogComponent
     if (value === "" || value === null || value === undefined) {
       return;
     }
+    // Chặn số âm cho cột số lượng
+    if (key === "initialQuantity" && Number(value) < 0) {
+      this.notificationService.warning("Không được nhập số âm.");
+      this.bulkValues[key] = 0;
+      return;
+    }
     this.rows = this.rows.map((row) => ({ ...row, [key]: value }));
   }
 
@@ -167,7 +173,14 @@ export class ApproveLotDetailDialogComponent
     this.editingCell = null;
     this.originalValue = null;
   }
-
+  onQtyInput(event: Event, row: LotDetailRow, field: string): void {
+    const val = Number((event.target as HTMLInputElement).value);
+    if (val < 0) {
+      (event.target as HTMLInputElement).value = "0";
+      row[field] = 0;
+      this.notificationService.warning("Không được nhập số âm.");
+    }
+  }
   cancelEdit(rowIndex: number, colKey: string): void {
     if (this.originalValue !== null) {
       this.rows[rowIndex][colKey] = this.originalValue;
@@ -195,6 +208,13 @@ export class ApproveLotDetailDialogComponent
 
   onSave(): void {
     const now = new Date().toISOString();
+    const invalidRow = this.rows.find((row) => Number(row.initialQuantity) < 0);
+    if (invalidRow) {
+      this.notificationService.warning(
+        "Không được nhập số âm cho trường Quantity.",
+      );
+      return;
+    }
 
     const payload: CreateVendorTemDetailPayload[] = this.rows.map((row) => ({
       id: row.id,

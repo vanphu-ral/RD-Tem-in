@@ -627,6 +627,7 @@ table {
     text-overflow: ellipsis;
     max-width: 200px;
     cursor: cell;
+    color: #111827;
 
     &:hover {
       outline: 1px dashed rgba(61, 123, 185, 0.4);
@@ -654,6 +655,7 @@ table {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: #111827;
   }
 
   .no-data-cell {

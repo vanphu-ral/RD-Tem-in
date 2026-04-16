@@ -196,6 +196,7 @@
   max-width: 200px;
   vertical-align: middle;
   height: 36px;
+  color: #111827;
 
   &.editable-cell {
     cursor: cell;
@@ -220,6 +221,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #111827;
 }
 
 // ==================== CELL INPUT ====================
@@ -241,7 +243,7 @@
 .no-data-cell {
   text-align: center;
   padding: 24px;
-  color: #9ca3af;
+  color: #000000;
   font-style: italic;
 }
 
