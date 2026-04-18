@@ -24,6 +24,7 @@ import com.mycompany.myapp.service.dto.VendorTemDetailDTO;
 import com.mycompany.myapp.service.mapper.ImportVendorTemTransactionsMapper;
 import com.mycompany.myapp.service.mapper.PoDetailMapper;
 import com.mycompany.myapp.service.mapper.PoImportTemMapper;
+import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -724,6 +725,204 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             existingPoImportTemId != null
                 ? "CASE_2_REUSE_PO"
                 : "CASE_2_CALL_SAP_CREATE_FULL"
+        );
+    }
+
+    @Override
+    public PoImportResponseDTO processImportVendorTemTransactionUpdate(
+        ImportVendorTemTransactionsDTO transactionDTO
+    ) {
+        LOG.debug(
+            "Request to process ImportVendorTemTransaction update : {}",
+            transactionDTO
+        );
+
+        if (transactionDTO.getId() == null) {
+            throw new BadRequestAlertException(
+                "Transaction ID is required",
+                "ImportVendorTemTransactions",
+                "idnull"
+            );
+        }
+
+        // Find existing transaction
+        ImportVendorTemTransactions existingTransaction =
+            importVendorTemTransactionsRepository
+                .findById(transactionDTO.getId())
+                .orElseThrow(() ->
+                    new BadRequestAlertException(
+                        "Transaction not found",
+                        "ImportVendorTemTransactions",
+                        "notfound"
+                    )
+                );
+
+        String poNumber = transactionDTO.getPoNumber();
+        if (poNumber == null || poNumber.trim().isEmpty()) {
+            throw new BadRequestAlertException(
+                "PO Number is required for update",
+                "ImportVendorTemTransactions",
+                "ponumberrequired"
+            );
+        }
+
+        // Update PO info from SAP if poNumber is provided
+        List<SapPoInfo> sapPoInfoList = sapPoInfoRepository.findByOporDocEntry(
+            poNumber
+        );
+        if (sapPoInfoList == null || sapPoInfoList.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND,
+                "PO not found in SAP: " + poNumber
+            );
+        }
+
+        SapPoInfo sapPoInfo = sapPoInfoList.get(0);
+
+        // Update transaction with SAP data
+        existingTransaction.setPoNumber(poNumber); // Update with the provided poNumber
+        existingTransaction.setVendorCode(sapPoInfo.getOporCardCode());
+        existingTransaction.setVendorName(sapPoInfo.getOporCardName());
+        existingTransaction.setUpdatedAt(ZonedDateTime.now());
+        existingTransaction.setUpdatedBy(transactionDTO.getUpdatedBy());
+
+        // Also update parent PoImportTem if exists
+        PoImportTem updatedParent = null;
+        if (existingTransaction.getPoImportTemId() != null) {
+            Optional<PoImportTem> parentOpt = poImportTemRepository.findById(
+                existingTransaction.getPoImportTemId()
+            );
+            if (parentOpt.isPresent()) {
+                PoImportTem parent = parentOpt.get();
+                parent.setPoNumber(poNumber); // Update with the provided poNumber
+                parent.setVendorCode(sapPoInfo.getOporCardCode());
+                parent.setVendorName(sapPoInfo.getOporCardName());
+                parent.setPoComments(sapPoInfo.getOporComments());
+                parent.setUpdatedAt(ZonedDateTime.now());
+                parent.setUpdatedBy(transactionDTO.getUpdatedBy());
+                updatedParent = poImportTemRepository.save(parent);
+            }
+        }
+
+        // Save updated transaction
+        existingTransaction = importVendorTemTransactionsRepository.save(
+            existingTransaction
+        );
+
+        // Delete existing poDetails for this transaction
+        poDetailRepository.deleteByImportVendorTemTransactionsId(
+            existingTransaction.getId()
+        );
+
+        // Create new poDetails from SAP data
+        Set<PoDetailDTO> poDetailDTOs = new HashSet<>();
+        for (SapPoInfo info : sapPoInfoList) {
+            PoDetail poDetail = new PoDetail();
+            poDetail.setImportVendorTemTransactionsId(
+                existingTransaction.getId()
+            );
+            String sapCode = info.getPor1ItemCode();
+            poDetail.setSapCode(sapCode);
+            poDetail.setSapName(info.getPor1Dscription());
+
+            // Fetch partNumber from SAP_OITM
+            Optional<com.mycompany.myapp.domain.partner4.SapOitm> sapOitm =
+                sapOitmRepository.findByItemCode(sapCode);
+            if (sapOitm.isPresent()) {
+                poDetail.setPartNumber(sapOitm.get().getuPartNumber());
+            }
+
+            if (
+                info.getPor1Quantity() != null &&
+                !info.getPor1Quantity().isEmpty()
+            ) {
+                try {
+                    poDetail.setTotalQuantity(
+                        Integer.parseInt(info.getPor1Quantity())
+                    );
+                } catch (NumberFormatException e) {
+                    LOG.warn(
+                        "Failed to parse quantity: {}",
+                        info.getPor1Quantity()
+                    );
+                    poDetail.setTotalQuantity(0);
+                }
+            }
+            PoDetail savedPoDetail = poDetailRepository.save(poDetail);
+
+            PoDetailDTO detailDTO = new PoDetailDTO();
+            detailDTO.setId(savedPoDetail.getId());
+            detailDTO.setSapCode(sapCode);
+            detailDTO.setSapName(info.getPor1Dscription());
+            if (sapOitm.isPresent()) {
+                detailDTO.setPartNumber(sapOitm.get().getuPartNumber());
+            }
+            if (
+                info.getPor1Quantity() != null &&
+                !info.getPor1Quantity().isEmpty()
+            ) {
+                try {
+                    detailDTO.setTotalQuantity(
+                        Integer.parseInt(info.getPor1Quantity())
+                    );
+                } catch (NumberFormatException e) {
+                    detailDTO.setTotalQuantity(0);
+                }
+            }
+            detailDTO.setImportVendorTemTransactionsId(
+                existingTransaction.getId()
+            );
+            poDetailDTOs.add(detailDTO);
+        }
+
+        // Build response
+        ImportVendorTemTransactionsDTO updatedTransactionDTO =
+            new ImportVendorTemTransactionsDTO();
+        updatedTransactionDTO.setId(existingTransaction.getId());
+        updatedTransactionDTO.setPoNumber(existingTransaction.getPoNumber());
+        updatedTransactionDTO.setVendorCode(
+            existingTransaction.getVendorCode()
+        );
+        updatedTransactionDTO.setVendorName(
+            existingTransaction.getVendorName()
+        );
+        updatedTransactionDTO.setEntryDate(existingTransaction.getEntryDate());
+        updatedTransactionDTO.setStorageUnit(
+            existingTransaction.getStorageUnit()
+        );
+        updatedTransactionDTO.setTemIdentificationScenarioId(
+            existingTransaction.getTemIdentificationScenarioId()
+        );
+        updatedTransactionDTO.setMappingConfig(
+            existingTransaction.getMappingConfig()
+        );
+        updatedTransactionDTO.setStatus(existingTransaction.getStatus());
+        updatedTransactionDTO.setNote(existingTransaction.getNote());
+        updatedTransactionDTO.setApprover(existingTransaction.getApprover());
+        updatedTransactionDTO.setCreatedBy(existingTransaction.getCreatedBy());
+        updatedTransactionDTO.setCreatedAt(existingTransaction.getCreatedAt());
+        updatedTransactionDTO.setUpdatedBy(existingTransaction.getUpdatedBy());
+        updatedTransactionDTO.setUpdatedAt(existingTransaction.getUpdatedAt());
+        updatedTransactionDTO.setDeletedBy(existingTransaction.getDeletedBy());
+        updatedTransactionDTO.setDeletedAt(existingTransaction.getDeletedAt());
+        updatedTransactionDTO.setPoImportTemId(
+            existingTransaction.getPoImportTemId()
+        );
+        updatedTransactionDTO.setPoDetails(poDetailDTOs);
+
+        ImportVendorTemTransactionsDetailDTO detailDTO =
+            new ImportVendorTemTransactionsDetailDTO(updatedTransactionDTO);
+
+        // Get parent PoImportTem DTO
+        PoImportTemDTO parentDTO = null;
+        if (updatedParent != null) {
+            parentDTO = poImportTemMapper.toDto(updatedParent);
+        }
+
+        return new PoImportResponseDTO(
+            parentDTO,
+            detailDTO,
+            "UPDATE_TRANSACTION"
         );
     }
 }

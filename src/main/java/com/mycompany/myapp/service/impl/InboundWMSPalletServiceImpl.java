@@ -232,44 +232,61 @@ public class InboundWMSPalletServiceImpl implements InboundWMSPalletService {
             }
         }
 
-        // 3. Lưu InboundWMSPallet
-        InboundWMSPallet inboundWMSPallet = new InboundWMSPallet();
-        Optional<InboundWMSSession> sessionOpt =
-            inboundWMSSessionRepository.findById(
-                requestDTO.getInboundWmsSessionId().longValue()
-            );
-        if (sessionOpt.isPresent()) {
-            inboundWMSPallet.setInboundWMSSession(sessionOpt.get());
-        }
-        inboundWMSPallet.setSerialPallet(requestDTO.getSerialPallet());
-        inboundWMSPallet.setCreatedBy(requestDTO.getScanedBy());
-        inboundWMSPallet.setCreatedAt(ZonedDateTime.now());
-        if (maLenhSanXuatId != null) {
-            inboundWMSPallet.setWarehouseNoteInfoId(maLenhSanXuatId.intValue());
-        }
+        // 3. Lưu InboundWMSPallet chỉ khi wmsSendStatus không phải true và warehouseNoteInfo không null
+        InboundWMSPalletDTO dto;
+        if (
+            warehouseNoteInfo == null ||
+            (wmsSendStatus != null && wmsSendStatus)
+        ) {
+            // Không lưu vào DB, chỉ tạo DTO với thông tin cần thiết
+            dto = new InboundWMSPalletDTO();
+            dto.setSerialPallet(requestDTO.getSerialPallet());
+            dto.setCreatedBy(requestDTO.getScanedBy());
+            dto.setCreatedAt(ZonedDateTime.now());
+            dto.setInboundWMSSessionId(requestDTO.getInboundWmsSessionId());
+            if (maLenhSanXuatId != null) {
+                dto.setWarehouseNoteInfoId(maLenhSanXuatId.intValue());
+            }
+            dto.setListBox(listBox);
+            dto.setWmsSendStatus(String.valueOf(wmsSendStatus));
+        } else {
+            // Lưu như bình thường
+            InboundWMSPallet inboundWMSPallet = new InboundWMSPallet();
+            Optional<InboundWMSSession> sessionOpt =
+                inboundWMSSessionRepository.findById(
+                    requestDTO.getInboundWmsSessionId().longValue()
+                );
+            if (sessionOpt.isPresent()) {
+                inboundWMSPallet.setInboundWMSSession(sessionOpt.get());
+            }
+            inboundWMSPallet.setSerialPallet(requestDTO.getSerialPallet());
+            inboundWMSPallet.setCreatedBy(requestDTO.getScanedBy());
+            inboundWMSPallet.setCreatedAt(ZonedDateTime.now());
+            if (maLenhSanXuatId != null) {
+                inboundWMSPallet.setWarehouseNoteInfoId(
+                    maLenhSanXuatId.intValue()
+                );
+            }
 
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            String listBoxJson = objectMapper.writeValueAsString(listBox);
-            inboundWMSPallet.setListBox(listBoxJson);
-        } catch (JsonProcessingException e) {
-            LOG.error("Error serializing listBox to JSON", e);
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                String listBoxJson = objectMapper.writeValueAsString(listBox);
+                inboundWMSPallet.setListBox(listBoxJson);
+            } catch (JsonProcessingException e) {
+                LOG.error("Error serializing listBox to JSON", e);
+            }
+            InboundWMSPallet saved = inboundWMSPalletRepository.save(
+                inboundWMSPallet
+            );
+            dto = inboundWMSPalletMapper.toDto(saved);
+            dto.setListBox(listBox);
+            dto.setWmsSendStatus(String.valueOf(wmsSendStatus));
         }
-        InboundWMSPallet saved = inboundWMSPalletRepository.save(
-            inboundWMSPallet
-        );
 
         // 4. Trả về Response
         InboundWMSPalletScanResponseDTO response =
             new InboundWMSPalletScanResponseDTO();
         response.setWarehouseNoteInfo(warehouseNoteInfo);
-
-        InboundWMSPalletDTO dto = inboundWMSPalletMapper.toDto(saved);
-        dto.setListBox(listBox);
-
-        dto.setWmsSendStatus(String.valueOf(wmsSendStatus));
-        // -------------------------------
-
         response.setInboundpalletInfo(dto);
         return response;
     }

@@ -1,25 +1,32 @@
-import { UntypedFormBuilder } from '@angular/forms';
-import { ApplicationConfigService } from 'app/core/config/application-config.service';
-import { Component, OnInit, Input, ElementRef, ViewChild } from '@angular/core';
-import { HttpHeaders, HttpClient } from '@angular/common/http';
-import { ActivatedRoute, Router } from '@angular/router';
-import { combineLatest, Observable, of } from 'rxjs';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { IThietBi } from '../thiet-bi.model';
+import { UntypedFormBuilder } from "@angular/forms";
+import { ApplicationConfigService } from "app/core/config/application-config.service";
+import { Component, OnInit, Input, ElementRef, ViewChild } from "@angular/core";
+import { HttpHeaders, HttpClient } from "@angular/common/http";
+import { ActivatedRoute, Router } from "@angular/router";
+import { combineLatest, Observable, of } from "rxjs";
+import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
+import { IThietBi } from "../thiet-bi.model";
 
-import { ASC, DESC, ITEMS_PER_PAGE, SORT } from 'app/config/pagination.constants';
-import { ThietBiService } from '../service/thiet-bi.service';
-import { ThietBiDeleteDialogComponent } from '../delete/thiet-bi-delete-dialog.component';
-import { PageEvent } from '@angular/material/paginator';
+import {
+  ASC,
+  DESC,
+  ITEMS_PER_PAGE,
+  SORT,
+} from "app/config/pagination.constants";
+import { ThietBiService } from "../service/thiet-bi.service";
+import { ThietBiDeleteDialogComponent } from "../delete/thiet-bi-delete-dialog.component";
+import { PageEvent } from "@angular/material/paginator";
 
 @Component({
-  selector: 'jhi-thiet-bi',
-  templateUrl: './thiet-bi.component.html',
-  styleUrls: ['./thiet-bi.component.css'],
+  selector: "jhi-thiet-bi",
+  templateUrl: "./thiet-bi.component.html",
+  styleUrls: ["./thiet-bi.component.css"],
   standalone: false,
 })
 export class ThietBiComponent implements OnInit {
-  resourceUrl = this.applicationConfigService.getEndpointFor('api/thiet-bis/tim-kiem');
+  resourceUrl = this.applicationConfigService.getEndpointFor(
+    "api/thiet-bis/tim-kiem",
+  );
   //----------------- test ------------
   dropdownList: { item_id: number; item_text: string }[] = [];
   selectedItems: { item_id: number; item_text: string }[] = [];
@@ -30,30 +37,30 @@ export class ThietBiComponent implements OnInit {
 
   //------------------------------------
   formSearch = this.formBuilder.group({
-    maThietBi: '',
-    loaiThietBi: '',
-    dayChuyen: '',
-    thongSo: '',
+    maThietBi: "",
+    loaiThietBi: "",
+    dayChuyen: "",
+    // thongSo: '',
     ngayTao: null,
-    ngayUpdate: null,
-    updateBy: '',
-    status: '',
-    moTa: '',
-    phanLoai: '',
+    // ngayUpdate: null,
+    updateBy: "",
+    status: "",
+    // moTa: '',
+    // phanLoai: '',
   });
 
   @Input() itemPerPage = 10;
 
-  @Input() maThietBi = '';
-  @Input() loaiThietBi = '';
-  @Input() dayChuyen = '';
-  @Input() status = '';
+  @Input() maThietBi = "";
+  @Input() loaiThietBi = "";
+  @Input() dayChuyen = "";
+  @Input() status = "";
   @Input() ngayTao = null;
-  @Input() updateBy = '';
+  @Input() updateBy = "";
   @Input() timeUpdate = null;
-  @Input() thongSo = '';
-  @Input() moTa = '';
-  @Input() phanLoai = '';
+  // @Input() thongSo = '';
+  // @Input() moTa = '';
+  // @Input() phanLoai = '';
 
   thietBis?: IThietBi[];
   isLoading = false;
@@ -70,11 +77,11 @@ export class ThietBiComponent implements OnInit {
 
   selectedStatus: string | null = null;
 
-  searchKeyword = '';
+  searchKeyword = "";
   seachResult: any[] = [];
   searchSuggestions: string[] = [];
   showSuggestions = false;
-  @ViewChild('searchInput', { static: true })
+  @ViewChild("searchInput", { static: true })
   searchInput!: ElementRef;
 
   constructor(
@@ -94,13 +101,13 @@ export class ThietBiComponent implements OnInit {
 
   ngOnInit(): void {
     this.handleNavigation();
-    this.formSearch.valueChanges.subscribe(data => {
+    this.formSearch.valueChanges.subscribe((data) => {
       this.timKiemThietBi(data);
     });
   }
   // được gọi mỗi khi có sự kiện nhập trong ô tìm kiếm, kiểm tra nếu từ khóa tìm kiếm trống thì showSuggestions là false
   onSearchInput(): void {
-    if (this.searchKeyword.trim() === '') {
+    if (this.searchKeyword.trim() === "") {
       this.showSuggestions = false;
     }
   }
@@ -110,20 +117,23 @@ export class ThietBiComponent implements OnInit {
   }
 
   delete(thietBi: IThietBi): void {
-    const modalRef = this.modalService.open(ThietBiDeleteDialogComponent, { size: 'lg', backdrop: 'static' });
+    const modalRef = this.modalService.open(ThietBiDeleteDialogComponent, {
+      size: "lg",
+      backdrop: "static",
+    });
     modalRef.componentInstance.thietBi = thietBi;
     // unsubscribe not needed because closed completes on modal close
-    modalRef.closed.subscribe(reason => {
-      if (reason === 'deleted') {
+    modalRef.closed.subscribe((reason) => {
+      if (reason === "deleted") {
         this.loadPage();
       }
     });
   }
 
   sort(): string[] {
-    const result = [this.predicate + ',' + (this.ascending ? ASC : DESC)];
-    if (this.predicate !== 'id') {
-      result.push('id');
+    const result = [this.predicate + "," + (this.ascending ? ASC : DESC)];
+    if (this.predicate !== "id") {
+      result.push("id");
     }
     return result;
   }
@@ -134,13 +144,20 @@ export class ThietBiComponent implements OnInit {
   }
 
   handleNavigation(): void {
-    combineLatest([this.activatedRoute.data, this.activatedRoute.queryParamMap]).subscribe(([data, params]) => {
-      const page = params.get('page');
+    combineLatest([
+      this.activatedRoute.data,
+      this.activatedRoute.queryParamMap,
+    ]).subscribe(([data, params]) => {
+      const page = params.get("page");
       const pageNumber = +(page ?? 1);
-      const sort = (params.get(SORT) ?? data['defaultSort']).split(',');
+      const sort = (params.get(SORT) ?? data["defaultSort"]).split(",");
       const predicate = sort[0];
       const ascending = sort[1] === ASC;
-      if (pageNumber !== this.page || predicate !== this.predicate || ascending !== this.ascending) {
+      if (
+        pageNumber !== this.page ||
+        predicate !== this.predicate ||
+        ascending !== this.ascending
+      ) {
         this.predicate = predicate;
         this.ascending = ascending;
         this.loadPage();
@@ -148,15 +165,20 @@ export class ThietBiComponent implements OnInit {
     });
   }
 
-  onSuccess(data: IThietBi[] | null, headers: HttpHeaders, page: number, navigate: boolean): void {
-    this.totalItems = Number(headers.get('X-Total-Count'));
+  onSuccess(
+    data: IThietBi[] | null,
+    headers: HttpHeaders,
+    page: number,
+    navigate: boolean,
+  ): void {
+    this.totalItems = Number(headers.get("X-Total-Count"));
     this.page = page;
     if (navigate) {
-      this.router.navigate(['/thiet-bi'], {
+      this.router.navigate(["/thiet-bi"], {
         queryParams: {
           page: this.page,
           size: this.itemsPerPage,
-          sort: this.predicate + ',' + (this.ascending ? ASC : DESC),
+          sort: this.predicate + "," + (this.ascending ? ASC : DESC),
         },
       });
     }
@@ -171,7 +193,9 @@ export class ThietBiComponent implements OnInit {
   fetchSearchSuggestions(keyword: string): Observable<string[]> {
     const suggestions: string[] = [];
     const fixedSuggestions: string[] = [];
-    const filteredSuggestions = fixedSuggestions.filter(suggestion => suggestion.toLowerCase().includes(keyword.toLowerCase()));
+    const filteredSuggestions = fixedSuggestions.filter((suggestion) =>
+      suggestion.toLowerCase().includes(keyword.toLowerCase()),
+    );
     suggestions.push(...filteredSuggestions);
     return of(suggestions);
   }
@@ -182,7 +206,7 @@ export class ThietBiComponent implements OnInit {
     this.searchResults = [];
 
     // // console.log("body:", timKiem)
-    this.http.post<any>(this.resourceUrl, data).subscribe(res => {
+    this.http.post<any>(this.resourceUrl, data).subscribe((res) => {
       //luu du lieu tra ve de hien thi len front-end
       this.thietBis = res;
       this.dropdownList1 = res;

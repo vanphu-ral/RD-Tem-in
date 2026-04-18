@@ -210,9 +210,9 @@ public class WarehouseNoteInfoSpecifications {
             if (productType == null || productType.trim().isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return criteriaBuilder.like(
+            return criteriaBuilder.equal(
                 criteriaBuilder.lower(root.get("productType")),
-                "%" + productType.trim().toLowerCase() + "%"
+                productType.trim().toLowerCase()
             );
         };
     }

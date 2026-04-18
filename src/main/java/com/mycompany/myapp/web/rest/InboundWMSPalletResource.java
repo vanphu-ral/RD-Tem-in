@@ -242,6 +242,9 @@ public class InboundWMSPalletResource {
         LOG.debug("REST request to scan InboundWMSPallet : {}", requestDTO);
         InboundWMSPalletScanResponseDTO result =
             inboundWMSPalletService.scanAndSave(requestDTO);
+        if (result.getWarehouseNoteInfo() == null) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(result);
     }
 
