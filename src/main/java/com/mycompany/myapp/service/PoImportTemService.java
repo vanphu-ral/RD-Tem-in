@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.service.dto.ImportVendorTemTransactionsDTO;
 import com.mycompany.myapp.service.dto.PoImportRequestDTO;
 import com.mycompany.myapp.service.dto.PoImportResponseDTO;
 import com.mycompany.myapp.service.dto.PoImportTemDTO;
@@ -72,4 +73,15 @@ public interface PoImportTemService {
      *         poDetails -> vendorTemDetails).
      */
     Optional<PoImportTemDetailDTO> findDetailById(Long id);
+
+    /**
+     * Process update for an existing ImportVendorTemTransactions.
+     * Updates PO information and supplements po_detail by fetching from partner6 WorkZone (SAP PO Info).
+     *
+     * @param transactionDTO the ImportVendorTemTransactions to update
+     * @return the response containing updated transaction with poDetails
+     */
+    PoImportResponseDTO processImportVendorTemTransactionUpdate(
+        ImportVendorTemTransactionsDTO transactionDTO
+    );
 }

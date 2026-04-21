@@ -4,6 +4,7 @@ import com.mycompany.myapp.repository.partner5.PoImportTemRepository;
 import com.mycompany.myapp.service.PoImportTemQueryService;
 import com.mycompany.myapp.service.PoImportTemService;
 import com.mycompany.myapp.service.criteria.PoImportTemCriteria;
+import com.mycompany.myapp.service.dto.ImportVendorTemTransactionsDTO;
 import com.mycompany.myapp.service.dto.PaginationResponse;
 import com.mycompany.myapp.service.dto.PaginationResponse;
 import com.mycompany.myapp.service.dto.PoImportRequestDTO;
@@ -370,6 +371,29 @@ public class PoImportTemResource {
         PoImportResponseDTO response = poImportTemService.processPoImport(
             request
         );
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * {@code POST  /po-import-tems/update-transaction} : Update PO information and supplement po_detail
+     * for an existing ImportVendorTemTransactions by fetching from partner6 WorkZone (SAP PO Info).
+     *
+     * @param transactionDTO the ImportVendorTemTransactionsDTO to update.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body
+     *         the updated transaction with poDetails.
+     */
+    @PostMapping("/update-transaction")
+    public ResponseEntity<PoImportResponseDTO> updateImportVendorTemTransaction(
+        @Valid @RequestBody ImportVendorTemTransactionsDTO transactionDTO
+    ) {
+        LOG.debug(
+            "REST request to update ImportVendorTemTransaction : {}",
+            transactionDTO
+        );
+        PoImportResponseDTO response =
+            poImportTemService.processImportVendorTemTransactionUpdate(
+                transactionDTO
+            );
         return ResponseEntity.ok(response);
     }
 }
