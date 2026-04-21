@@ -22,6 +22,7 @@ import { PlanningWorkOrderService } from "../service/planning-work-order.service
 import { PalletService, PrintPalletData } from "../service/pallet.service";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { AccountService } from "app/core/auth/account.service";
+import { MatButtonToggleModule } from "@angular/material/button-toggle";
 import QRCode from "qrcode";
 import { ROBOTO_FONT } from "./roboto-font";
 import {
@@ -33,7 +34,10 @@ interface PrintPage {
   left: PrintPalletData;
   right?: PrintPalletData;
 }
-
+interface DomesticA4Sheet {
+  row1: PrintPage;
+  row2?: PrintPage;
+}
 @Component({
   selector: "jhi-print-pallet-dialog",
   standalone: true,
@@ -48,6 +52,7 @@ interface PrintPage {
     MatInputModule,
     MatProgressBarModule,
     FormsModule,
+    MatButtonToggleModule,
   ],
   templateUrl: "./print-pallet-dialog.component.html",
   styleUrls: ["./print-pallet-dialog.component.scss"],
@@ -57,11 +62,16 @@ export class PrintPalletDialogComponent implements OnInit {
   pages: PrintPage[] = [];
   totalPages = 0;
   displayPages: PrintPage[] = [];
+  domesticA4Sheets: DomesticA4Sheet[] = [];
   isMultiMode = false;
   paperSize: "A4" | "A5" = "A4";
+  printMode: "export" | "domestic" = "export";
+  domesticPaperSize: "A4" | "A5" = "A5";
   isLoadingPdf = false;
   progressPdf = 0;
   unprintedPages: PrintPage[] = [];
+  private readonly PRINT_MODE_KEY = "print-pallet-mode";
+  private readonly DOMESTIC_PAPER_KEY = "print-domestic-paper";
   private readonly PAPER_SIZE_STORAGE_KEY = "print-pallet-paper-size";
   private pdfRenderLogs: {
     pageIndex: number;
@@ -85,6 +95,7 @@ export class PrintPalletDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPaperSizePreference();
+    this.loadPrintModePreference();
     this.initializePallets();
     this.createPages();
     setTimeout(() => {
@@ -110,31 +121,47 @@ export class PrintPalletDialogComponent implements OnInit {
 
   createPages(): void {
     this.pages = [];
+    this.domesticA4Sheets = [];
 
-    if (this.paperSize === "A4") {
+    if (this.printMode === "domestic" && this.domesticPaperSize === "A4") {
+      // Tạo rows: mỗi row = 2 phiếu cạnh nhau
+      const rows: PrintPage[] = [];
       for (let i = 0; i < this.pallets.length; i += 2) {
-        const page: PrintPage = {
+        rows.push({
           left: this.pallets[i],
           right: this.pallets[i + 1] || undefined,
-        };
-        this.pages.push(page);
+        });
       }
+      // Gom 2 rows thành 1 tờ A4
+      for (let i = 0; i < rows.length; i += 2) {
+        this.domesticA4Sheets.push({
+          row1: rows[i],
+          row2: rows[i + 1] || undefined,
+        });
+      }
+      this.displayPages = rows;
+      this.totalPages = this.domesticA4Sheets.length;
     } else {
-      for (let i = 0; i < this.pallets.length; i++) {
-        const page: PrintPage = {
-          left: this.pallets[i],
-          right: undefined,
-        };
-        this.pages.push(page);
+      const twoPerPage =
+        this.printMode === "domestic"
+          ? this.domesticPaperSize === "A5"
+          : this.paperSize === "A4";
+
+      if (twoPerPage) {
+        for (let i = 0; i < this.pallets.length; i += 2) {
+          this.pages.push({
+            left: this.pallets[i],
+            right: this.pallets[i + 1] || undefined,
+          });
+        }
+      } else {
+        for (let i = 0; i < this.pallets.length; i++) {
+          this.pages.push({ left: this.pallets[i], right: undefined });
+        }
       }
+      this.totalPages = this.pages.length;
+      this.displayPages = [...this.pages];
     }
-
-    this.totalPages = this.pages.length;
-    this.displayPages = [...this.pages];
-
-    console.log(
-      `Created ${this.totalPages} pages (${this.paperSize}) from ${this.pallets.length} pallets`,
-    );
   }
 
   onPaperSizeChange(): void {
@@ -185,6 +212,10 @@ export class PrintPalletDialogComponent implements OnInit {
    * Đợi QR render xong → Convert canvas to image TRƯỚC KHI clone
    */
   async onPrint(): Promise<void> {
+    if (this.printMode === "domestic") {
+      await this.onPrintDomestic();
+      return;
+    }
     const unprintedPallets = this.pallets.filter(
       // (p) => !p.printStatus && !this.isNotScanned(p),
       (p) => !this.isNotScanned(p),
@@ -1053,6 +1084,10 @@ export class PrintPalletDialogComponent implements OnInit {
   onPrintFromServer(): void {
     this.isLoadingPdf = true;
     this.progressPdf = 0;
+    if (this.printMode === "domestic") {
+      void this.onPrintDomestic();
+      return;
+    }
 
     const unprintedPallets = this.pallets.filter((p) => !this.isNotScanned(p));
 
@@ -1122,7 +1157,10 @@ export class PrintPalletDialogComponent implements OnInit {
    */
   async onDownloadPdf(): Promise<void> {
     const unprintedPallets = this.pallets.filter((p) => !this.isNotScanned(p));
-
+    if (this.printMode === "domestic") {
+      await this.onExportDomesticPdf();
+      return;
+    }
     if (unprintedPallets.length === 0) {
       this.snackBar.open("Không có phiếu nào để tải!", "Đóng", {
         duration: 3000,
@@ -1238,6 +1276,406 @@ export class PrintPalletDialogComponent implements OnInit {
     });
   }
 
+  onPrintModeChange(): void {
+    try {
+      localStorage.setItem(this.PRINT_MODE_KEY, this.printMode);
+    } catch {
+      //code
+    }
+    this.createPages();
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * In phiếu NỘI ĐỊA — mở print window với nội dung xoay 90°
+   * Gọi từ onPrint() khi printMode === 'domestic'
+   */
+  async onPrintDomestic(): Promise<void> {
+    const unprintedPallets = this.pallets.filter((p) => !this.isNotScanned(p));
+    if (unprintedPallets.length === 0) {
+      this.snackBar.open("Không có phiếu nào cần in!", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    /// Build temp pages
+    const isA4Dom = this.domesticPaperSize === "A4";
+    const tempPages: PrintPage[] = [];
+
+    // Luôn tạo rows 2 phiếu/hàng cho cả A4 và A5
+    for (let i = 0; i < unprintedPallets.length; i += 2) {
+      tempPages.push({
+        left: unprintedPallets[i],
+        right: unprintedPallets[i + 1] || undefined,
+      });
+    }
+
+    // Với A4: build thêm sheets
+    const tempSheets: DomesticA4Sheet[] = [];
+    if (isA4Dom) {
+      for (let i = 0; i < tempPages.length; i += 2) {
+        tempSheets.push({
+          row1: tempPages[i],
+          row2: tempPages[i + 1] || undefined,
+        });
+      }
+    }
+
+    const originalPages = this.displayPages;
+    const originalSheets = this.domesticA4Sheets;
+
+    // Set cả 2 để template render đúng
+    this.displayPages = tempPages;
+    if (isA4Dom) {
+      this.domesticA4Sheets = tempSheets;
+    }
+    this.cdr.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const printArea = document.querySelector(
+      ".domestic-content",
+    ) as HTMLElement;
+    if (!printArea) {
+      this.displayPages = originalPages;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Clone with images (same pattern as existing onPrint)
+    const originalCanvases = Array.from(printArea.querySelectorAll("canvas"));
+    const imageDataList: Array<{
+      canvas: HTMLCanvasElement;
+      dataUrl: string;
+      parent: Node;
+    }> = [];
+    for (const canvas of originalCanvases) {
+      try {
+        if (canvas.width === 0 || canvas.height === 0) {
+          continue;
+        }
+        const dataUrl = canvas.toDataURL("image/png");
+        if (canvas.parentNode) {
+          imageDataList.push({ canvas, dataUrl, parent: canvas.parentNode });
+        }
+      } catch {
+        //code
+      }
+    }
+    const tempImages: HTMLImageElement[] = [];
+    imageDataList.forEach(({ canvas, dataUrl, parent }) => {
+      const img = document.createElement("img");
+      img.src = dataUrl;
+      img.width = canvas.width;
+      img.height = canvas.height;
+      img.style.cssText = canvas.style.cssText;
+      img.className = canvas.className;
+      parent.replaceChild(img, canvas);
+      tempImages.push(img);
+    });
+    await Promise.all(
+      tempImages.map((img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise<void>((r) => {
+              img.onload = () => r();
+              img.onerror = () => r();
+            }),
+      ),
+    );
+    const clone = printArea.cloneNode(true) as HTMLElement;
+    imageDataList.forEach(({ canvas, parent }, idx) => {
+      parent.replaceChild(canvas, tempImages[idx]);
+    });
+
+    // Restore cả displayPages và domesticA4Sheets
+    this.displayPages = originalPages;
+    if (isA4Dom) {
+      this.domesticA4Sheets = originalSheets;
+    }
+    this.cdr.detectChanges();
+
+    // Collect styles
+    let styles = "";
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        if (sheet.cssRules) {
+          for (const rule of Array.from(sheet.cssRules)) {
+            styles += rule.cssText + "\n";
+          }
+        }
+      } catch {
+        //code
+      }
+    }
+    const isTwoPrint = this.domesticPaperSize === "A5";
+    const pageW = isA4Dom ? 297 : 210;
+    const pageH = isA4Dom ? 210 : 105;
+    const cardW = isA4Dom ? 148 : 105;
+    const cardH = 105;
+
+    const printHTML = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Phiếu Nội Địa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: ${pageW}mm;
+      height: ${pageH}mm;
+      margin: 0 !important; padding: 0 !important;
+      background: white !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    @page { 
+      size: ${isA4Dom ? "297mm 210mm" : "210mm 105mm"}; 
+      margin: 0; 
+    }
+
+    ${
+      isA4Dom
+        ? `
+      /* A4: mỗi domestic-sheet-a4 = 1 tờ, các domestic-page bên trong không break */
+      .domestic-sheet-a4 { page-break-after: always; page-break-inside: avoid; }
+      .domestic-sheet-a4:last-child { page-break-after: avoid; }
+      .domestic-page { page-break-after: avoid !important; }
+    `
+        : `
+      /* A5: mỗi domestic-page = 1 tờ */
+      .domestic-page { page-break-after: always; }
+      .domestic-page:last-child { page-break-after: avoid; }
+    `
+    }
+ 
+    .domestic-content { display: block; width: ${pageW}mm; }
+ 
+    .domestic-page {
+      display: flex; flex-direction: row;
+      width: ${pageW}mm; height: ${cardH}mm;
+      page-break-after: always; page-break-inside: avoid; overflow: hidden;
+    }
+    .domestic-page:last-child { page-break-after: avoid; }
+ 
+    .domestic-card {
+      width: ${cardW}mm; min-width: ${cardW}mm; max-width: ${cardW}mm;
+      height: ${cardH}mm;
+      border: 1.5px solid #000; box-shadow: none; box-sizing: border-box;
+      padding: 4mm 5mm 3mm 5mm;
+      display: flex; flex-direction: column;
+      overflow: hidden; position: relative; background: white;
+    }
+ 
+    .domestic-inner {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column; gap: 0; min-height: 0;
+    }
+ 
+    /* Header */
+    .dom-header {
+      display: flex; align-items: center; gap: 3mm;
+      padding-bottom: 2mm; border-bottom: 1.5px solid #000;
+      flex-shrink: 0; margin-bottom: 1mm;
+    }
+    .dom-qr-box {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.5mm; flex-shrink: 0;
+    }
+    .dom-serial {
+      font-size: 5pt; font-weight: 500; color: #000;
+      text-align: center; word-break: break-all;
+      max-width: 26mm; line-height: 1.1;
+    }
+    .dom-title-block {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+    }
+    .dom-title {
+      margin: 0; font-size: 22pt; font-weight: 900;
+      text-align: center; color: #000; letter-spacing: 1px; line-height: 1.1;
+      font-family: 'Segoe UI', 'Roboto', sans-serif;
+    }
+ 
+    /* Table */
+    .dom-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 8pt; flex: 1; table-layout: fixed;
+    }
+    .dom-table tbody tr { border-bottom: 1px solid #000; }
+    .dom-table tbody tr:last-child { border-bottom: none; }
+    .dom-table td {
+      padding: 1.2mm 2mm; vertical-align: middle;
+      border-right: 1px solid #000;
+      overflow-wrap: break-word; word-break: break-word;
+      white-space: normal; line-height: 1.3;
+    }
+    .dom-table td:last-child { border-right: none; }
+ 
+    /* Label: KHÔNG màu nền */
+    .dom-label {
+      width: 22%; font-weight: 700;
+      background: transparent !important;
+      color: #000; font-size: 7.5pt; white-space: normal;
+    }
+    .dom-value { width: 28%; font-weight: 400; color: #000; font-size: 8pt; }
+    .dom-qty { font-size: 14pt; font-weight: 800; text-align: left; color: #000; white-space: nowrap; }
+    .dom-result { font-weight: 600; font-size: 8pt; }
+    .dom-note { font-size: 7.5pt; font-weight: 400; }
+    .dom-note-cell {
+      vertical-align: top !important;
+      padding: 0 !important;
+    }
+    .dom-note-inner {
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      height: 100% !important;
+      min-height: 14mm !important;
+      padding: 1.2mm 2mm !important;
+      box-sizing: border-box !important;
+    }
+    .dom-note-text {
+      display: block !important;
+      font-size: 7.5pt !important;
+      font-weight: 400 !important;
+      line-height: 1.3 !important;
+      flex: 1 !important;
+    }
+    .dom-box-qr-wrapper {
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: flex-end !important;
+      padding-top: 1mm !important;
+    }
+    .dom-box-qr img,
+    .dom-box-qr canvas {
+      display: block !important;
+      width: 36px !important;
+      height: 36px !important;
+    }
+ 
+    /* Footer QR nhỏ góc phải */
+    .dom-footer {
+      display: flex; justify-content: flex-end; align-items: flex-end;
+      flex-shrink: 0; margin-top: auto; padding-top: 1mm;
+    }
+    .domestic-sheet-a4 {
+      display: block !important;
+      width: ${pageW}mm !important;
+    }
+    .domestic-sheet-a4 .domestic-page {
+      display: flex !important;
+      flex-direction: row !important;
+      width: ${pageW}mm !important;
+      height: ${cardH}mm !important;
+      overflow: hidden !important;
+    }
+    .watermark-overlay { display: none !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  </style>
+</head>
+<body>
+  <div class="domestic-content">${clone.innerHTML}</div>
+  <script>
+    window.onload = function() { setTimeout(function() { window.print(); }, 400); };
+    window.onafterprint = function() { window.close(); };
+  </script>
+</body>
+</html>`;
+
+    const printWindow = window.open("", "_blank", "width=1200,height=900");
+    if (printWindow) {
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+      printWindow.onunload = () => {
+        window.postMessage({ type: "PRINT_DONE" }, window.location.origin);
+      };
+      const handler = (event: MessageEvent): void => {
+        if (event.origin !== window.location.origin) {
+          return;
+        }
+        if (event.data?.type === "PRINT_DONE") {
+          const dialogData: ConfirmDialogData = {
+            title: "Bạn đã in chưa?",
+            message: "Chọn Xong để cập nhật trạng thái!",
+            confirmText: "Xong",
+            cancelText: "Hủy",
+            type: "info",
+          };
+          const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+            width: "500px",
+            data: dialogData,
+          });
+          dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+            if (confirmed) {
+              void this.updatePrintStatusAfterPrint(unprintedPallets);
+            }
+          });
+          window.removeEventListener("message", handler);
+        }
+      };
+      window.addEventListener("message", handler);
+    } else {
+      alert("Vui lòng cho phép popup để in!");
+    }
+  }
+  async onExportDomesticPdf(): Promise<void> {
+    const unprintedPallets = this.pallets.filter((p) => !this.isNotScanned(p));
+    if (unprintedPallets.length === 0) {
+      this.snackBar.open("Không có phiếu nào để xuất!", "Đóng", {
+        duration: 3000,
+      });
+      return;
+    }
+
+    this.isLoadingPdf = true;
+    this.progressPdf = 0;
+    this.cdr.detectChanges();
+
+    try {
+      const response = await firstValueFrom(
+        this.palletService.downloadDomesticPalletsPdf(
+          unprintedPallets,
+          this.domesticPaperSize,
+        ),
+      );
+
+      const blob = new Blob([response.body!], { type: "application/pdf" });
+
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `phieu-noi-dia-${this.domesticPaperSize}-${Date.now()}.pdf`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename=([^;]+)/);
+        if (match?.[1]) {
+          filename = match[1].replace(/"/g, "");
+        }
+      }
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      await this.updatePrintStatusAfterPrint(unprintedPallets);
+      this.snackBar.open(
+        `Đã tải ${unprintedPallets.length} phiếu nội địa thành công!`,
+        "Đóng",
+        { duration: 2000 },
+      );
+    } catch (error) {
+      console.error("Lỗi tải PDF nội địa:", error);
+      this.snackBar.open("Lỗi khi tải PDF nội địa", "Đóng", { duration: 3000 });
+    } finally {
+      this.isLoadingPdf = false;
+      this.progressPdf = 0;
+      this.cdr.detectChanges();
+    }
+  }
   /**
    * Hiện dialog xác nhận sau khi in
    */
@@ -1333,7 +1771,16 @@ export class PrintPalletDialogComponent implements OnInit {
   //     }),
   //   );
   // }
-
+  private loadPrintModePreference(): void {
+    const saved = localStorage.getItem(this.PRINT_MODE_KEY);
+    if (saved === "export" || saved === "domestic") {
+      this.printMode = saved;
+    }
+    const savedDom = localStorage.getItem(this.DOMESTIC_PAPER_KEY);
+    if (savedDom === "A4" || savedDom === "A5") {
+      this.domesticPaperSize = savedDom;
+    }
+  }
   private loadPaperSizePreference(): void {
     const savedSize = localStorage.getItem(this.PAPER_SIZE_STORAGE_KEY);
     if (savedSize === "A4" || savedSize === "A5") {

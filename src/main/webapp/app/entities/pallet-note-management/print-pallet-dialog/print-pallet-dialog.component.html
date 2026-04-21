@@ -4,7 +4,11 @@
     <h2>Print Preview - {{ pallets.length }} phiếu ({{ totalPages }} trang)</h2>
     <div class="header-actions">
       <!-- Paper Size Selector -->
-      <mat-form-field appearance="outline" class="paper-size-selector">
+      <mat-form-field
+        appearance="outline"
+        class="paper-size-selector"
+        *ngIf="printMode === 'export'"
+      >
         <mat-label>Kích thước</mat-label>
         <mat-select
           [(ngModel)]="paperSize"
@@ -14,6 +18,40 @@
           <mat-option value="A5">A5 (1 phiếu/trang)</mat-option>
         </mat-select>
       </mat-form-field>
+      <mat-form-field
+        appearance="outline"
+        class="paper-size-selector"
+        *ngIf="printMode === 'domestic'"
+      >
+        <mat-label>Kích thước</mat-label>
+        <mat-select
+          [(ngModel)]="domesticPaperSize"
+          (ngModelChange)="onPaperSizeChange()"
+        >
+          <mat-option value="A4">A4 (4 phiếu/trang)</mat-option>
+          <mat-option value="A5">A5 (2 phiếu/trang)</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <div class="print-mode-radio">
+        <label [class.active]="printMode === 'export'">
+          <input
+            type="radio"
+            [(ngModel)]="printMode"
+            value="export"
+            (ngModelChange)="onPrintModeChange()"
+          />
+          Xuất khẩu
+        </label>
+        <label [class.active]="printMode === 'domestic'">
+          <input
+            type="radio"
+            [(ngModel)]="printMode"
+            value="domestic"
+            (ngModelChange)="onPrintModeChange()"
+          />
+          Nội địa
+        </label>
+      </div>
 
       <button mat-raised-button color="accent" (click)="onDownloadPdf()">
         <mat-icon>picture_as_pdf</mat-icon>
@@ -51,7 +89,11 @@
     <span class="progress-text">Đang xuất PDF: {{ progressPdf }}%</span>
   </div>
   <!-- Print Content - Grouped by rows of 2 -->
-  <div class="print-content" [class.a5-mode]="paperSize === 'A5'">
+  <div
+    class="print-content"
+    [class.a5-mode]="paperSize === 'A5'"
+    *ngIf="printMode === 'export'"
+  >
     <!-- ===== LOOP QUA TỪNG TRANG ===== -->
     <div
       class="print-page"
@@ -616,4 +658,243 @@
     </div>
     <!-- ===== END PAGE LOOP ===== -->
   </div>
+  <!-- NỘI ĐỊA MODE -->
+  <div class="center-content">
+    <div
+      class="print-content domestic-content"
+      *ngIf="printMode === 'domestic'"
+    >
+      <!-- ===== A4: 4 phiếu/tờ (2 hàng × 2 cột) ===== -->
+      <ng-container *ngIf="domesticPaperSize === 'A4'">
+        <div class="domestic-sheet-a4" *ngFor="let sheet of domesticA4Sheets">
+          <!-- Hàng 1 -->
+          <div class="domestic-page">
+            <div
+              class="domestic-card"
+              [id]="
+                'dom-' + (sheet.row1.left.id ?? sheet.row1.left.serialPallet)
+              "
+            >
+              <div
+                class="watermark-overlay"
+                *ngIf="shouldShowWatermark(sheet.row1.left)"
+                [class.watermark-not-scanned]="
+                  isNotScanned(sheet.row1.left) && !sheet.row1.left.printStatus
+                "
+              >
+                <span class="watermark-text">{{
+                  getWatermarkText(sheet.row1.left)
+                }}</span>
+              </div>
+              <ng-container
+                [ngTemplateOutlet]="domCardContent"
+                [ngTemplateOutletContext]="{ p: sheet.row1.left }"
+              ></ng-container>
+            </div>
+            <div
+              class="domestic-card"
+              *ngIf="sheet.row1.right"
+              [id]="
+                'dom-' + (sheet.row1.right.id ?? sheet.row1.right.serialPallet)
+              "
+            >
+              <div
+                class="watermark-overlay"
+                *ngIf="shouldShowWatermark(sheet.row1.right)"
+                [class.watermark-not-scanned]="
+                  isNotScanned(sheet.row1.right) &&
+                  !sheet.row1.right.printStatus
+                "
+              >
+                <span class="watermark-text">{{
+                  getWatermarkText(sheet.row1.right)
+                }}</span>
+              </div>
+              <ng-container
+                [ngTemplateOutlet]="domCardContent"
+                [ngTemplateOutletContext]="{ p: sheet.row1.right }"
+              ></ng-container>
+            </div>
+          </div>
+          <!-- Hàng 2 -->
+          <div class="domestic-page" *ngIf="sheet.row2">
+            <div
+              class="domestic-card"
+              [id]="
+                'dom-' + (sheet.row2!.left.id ?? sheet.row2!.left.serialPallet)
+              "
+            >
+              <div
+                class="watermark-overlay"
+                *ngIf="shouldShowWatermark(sheet.row2!.left)"
+                [class.watermark-not-scanned]="
+                  isNotScanned(sheet.row2!.left) &&
+                  !sheet.row2!.left.printStatus
+                "
+              >
+                <span class="watermark-text">{{
+                  getWatermarkText(sheet.row2!.left)
+                }}</span>
+              </div>
+              <ng-container
+                [ngTemplateOutlet]="domCardContent"
+                [ngTemplateOutletContext]="{ p: sheet.row2!.left }"
+              ></ng-container>
+            </div>
+            <div
+              class="domestic-card"
+              *ngIf="sheet.row2!.right"
+              [id]="
+                'dom-' +
+                (sheet.row2!.right.id ?? sheet.row2!.right.serialPallet)
+              "
+            >
+              <div
+                class="watermark-overlay"
+                *ngIf="shouldShowWatermark(sheet.row2!.right)"
+                [class.watermark-not-scanned]="
+                  isNotScanned(sheet.row2!.right) &&
+                  !sheet.row2!.right.printStatus
+                "
+              >
+                <span class="watermark-text">{{
+                  getWatermarkText(sheet.row2!.right)
+                }}</span>
+              </div>
+              <ng-container
+                [ngTemplateOutlet]="domCardContent"
+                [ngTemplateOutletContext]="{ p: sheet.row2!.right }"
+              ></ng-container>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- ===== A5: 2 phiếu/tờ ===== -->
+      <ng-container *ngIf="domesticPaperSize === 'A5'">
+        <div
+          class="domestic-page"
+          [class.single-domestic]="!page.right"
+          *ngFor="let page of displayPages"
+        >
+          <div
+            class="domestic-card"
+            [id]="'dom-' + (page.left.id ?? page.left.serialPallet)"
+            *ngIf="page.left"
+          >
+            <div
+              class="watermark-overlay"
+              *ngIf="shouldShowWatermark(page.left)"
+              [class.watermark-not-scanned]="
+                isNotScanned(page.left) && !page.left.printStatus
+              "
+            >
+              <span class="watermark-text">{{
+                getWatermarkText(page.left)
+              }}</span>
+            </div>
+            <ng-container
+              [ngTemplateOutlet]="domCardContent"
+              [ngTemplateOutletContext]="{ p: page.left }"
+            ></ng-container>
+          </div>
+          <div
+            class="domestic-card"
+            [id]="'dom-' + (page.right!.id ?? page.right!.serialPallet)"
+            *ngIf="page.right"
+          >
+            <div
+              class="watermark-overlay"
+              *ngIf="shouldShowWatermark(page.right!)"
+              [class.watermark-not-scanned]="
+                isNotScanned(page.right!) && !page.right!.printStatus
+              "
+            >
+              <span class="watermark-text">{{
+                getWatermarkText(page.right!)
+              }}</span>
+            </div>
+            <ng-container
+              [ngTemplateOutlet]="domCardContent"
+              [ngTemplateOutletContext]="{ p: page.right }"
+            ></ng-container>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ===== TEMPLATE DÙNG CHUNG NỘI DUNG PHIẾU ===== -->
+  <ng-template #domCardContent let-p="p">
+    <div class="domestic-inner">
+      <div class="dom-header">
+        <div class="dom-qr-box">
+          <qrcode
+            [qrdata]="p.serialPallet"
+            [width]="80"
+            [margin]="1"
+            [colorDark]="'#000000'"
+            [colorLight]="'#FFFFFF'"
+          >
+          </qrcode>
+          <div class="dom-serial">{{ p.serialPallet }}</div>
+        </div>
+        <div class="dom-title-block">
+          <h1 class="dom-title">PHIẾU THÔNG TIN</h1>
+        </div>
+      </div>
+      <table class="dom-table">
+        <tbody>
+          <tr>
+            <td class="dom-label">Tên sản phẩm</td>
+            <td class="dom-value">{{ p.tenSanPham }}</td>
+            <td class="dom-label">Mã sản phẩm</td>
+            <td class="dom-value">{{ p.maSAP || "Chưa scan thùng" }}</td>
+          </tr>
+          <tr>
+            <td class="dom-label">Mã lệnh</td>
+            <td class="dom-value">{{ p.erpWo }}</td>
+            <td class="dom-label">Số lô</td>
+            <td class="dom-value">{{ p.lot || "" }}</td>
+          </tr>
+          <tr>
+            <td class="dom-label">Số sản phẩm/pallet</td>
+            <td class="dom-value dom-qty">
+              {{ p.totalProductsOnPallet || p.soLuongCaiDatPallet }}
+            </td>
+            <td class="dom-label">Ngày sản xuất</td>
+            <td class="dom-value">{{ p.ngaySanXuat }}</td>
+          </tr>
+          <tr>
+            <td class="dom-label">Người kiểm tra</td>
+            <td class="dom-value">{{ p.nguoiKiemTra }}</td>
+            <td class="dom-label">Số thùng/pallet</td>
+            <td class="dom-value">{{ p.soLuongBaoNgoaiThungGiaPallet }}</td>
+          </tr>
+          <tr class="dom-last-row">
+            <td class="dom-label">Kết quả kiểm tra</td>
+            <td class="dom-value dom-result">{{ p.ketQuaKiemTra }}</td>
+            <td class="dom-label">Ghi chú</td>
+            <td class="dom-value dom-note-cell">
+              <div class="dom-note-inner">
+                <span class="dom-note-text">{{ p.note }}</span>
+                <div class="dom-box-qr-wrapper">
+                  <qrcode
+                    *ngIf="p.serialBox && p.serialBox !== p.serialPallet"
+                    [qrdata]="p.serialBox"
+                    [width]="36"
+                    [margin]="0"
+                    [colorDark]="'#000000'"
+                    [colorLight]="'#FFFFFF'"
+                    class="dom-box-qr"
+                  >
+                  </qrcode>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-template>
 </div>

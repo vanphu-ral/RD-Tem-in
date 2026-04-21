@@ -1423,7 +1423,11 @@ export class AddNewLenhSanXuatComponent implements OnInit {
             maSAP:
               this.warehouseNoteInfo?.sap_code ?? palletGroup.tenSanPham ?? "",
             woId: this.warehouseNoteInfo?.work_order_code ?? "",
-            erpWo: this.warehouseNoteInfo?.work_order_code ?? "",
+            // erpWo: this.warehouseNoteInfo?.work_order_code ?? "",
+            erpWo:
+              this.productionOrders?.[0]?.maWO ??
+              this.warehouseNoteInfo?.work_order_code ??
+              "",
             maLenhSanXuat: this.warehouseNoteInfo?.ma_lenh_san_xuat ?? "",
             totalProductsOnPallet,
           };

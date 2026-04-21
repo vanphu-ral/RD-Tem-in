@@ -104,15 +104,15 @@ export class ScanCheckComponent implements OnInit {
   timeRecord = "";
   scanHistory: {
     recordValue: string;
-    status: string;
-    stationName: string;
+    // status: string;
+    // stationName: string;
     machineId: number;
     recordName: string;
     result: string;
     position: number;
     username: string;
     orderId: number;
-    timeRecorded: string;
+    // timeRecorded: string;
     createAt: string;
   }[] = [];
   totalItems = 0;
@@ -306,15 +306,15 @@ export class ScanCheckComponent implements OnInit {
       this.scanHistory = [
         {
           recordValue: this.scanValue,
-          status,
-          stationName: this.stationName,
+          // status,
+          // stationName: this.stationName,
           recordName: this.checkName,
           result: status,
           position: 1,
           username: this.account.login,
           machineId: 2,
           orderId: this.dataWorkOrder[0].orderId,
-          timeRecorded: this.timeRecord,
+          // timeRecorded: this.timeRecord,
           createAt: formatDate(Date.now(), "yyyy-MM-dd HH:mm:ss", "en-US"),
         },
       ];
