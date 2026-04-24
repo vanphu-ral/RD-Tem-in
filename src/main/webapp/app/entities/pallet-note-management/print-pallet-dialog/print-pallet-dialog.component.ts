@@ -66,7 +66,7 @@ export class PrintPalletDialogComponent implements OnInit {
   isMultiMode = false;
   paperSize: "A4" | "A5" = "A4";
   printMode: "export" | "domestic" = "export";
-  domesticPaperSize: "A4" | "A5" = "A5";
+  domesticPaperSize: "A4" | "A5" = "A4";
   isLoadingPdf = false;
   progressPdf = 0;
   unprintedPages: PrintPage[] = [];
@@ -1476,8 +1476,18 @@ export class PrintPalletDialogComponent implements OnInit {
     /* Header */
     .dom-header {
       display: flex; align-items: center; gap: 3mm;
-      padding-bottom: 2mm; border-bottom: 1.5px solid #000;
+      padding-bottom: 2mm;
       flex-shrink: 0; margin-bottom: 1mm;
+    }
+    .dom-qr-frame {
+      border: 1.5px solid #000 !important;
+      padding: 2mm !important;
+      box-sizing: border-box !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+      background: white !important;
     }
     .dom-qr-box {
       display: flex; flex-direction: column; align-items: center;
@@ -1492,15 +1502,23 @@ export class PrintPalletDialogComponent implements OnInit {
       flex: 1; display: flex; align-items: center; justify-content: center;
     }
     .dom-title {
-      margin: 0; font-size: 22pt; font-weight: 900;
-      text-align: center; color: #000; letter-spacing: 1px; line-height: 1.1;
-      font-family: 'Segoe UI', 'Roboto', sans-serif;
+      margin: 0;
+      font-size: 28pt !important;
+      font-weight: bold !important;
+      text-align: center;
+      color: #000;
+      letter-spacing: 1px !important;
+      line-height: 1 !important;
+      font-family: Arial, Helvetica, sans-serif !important;
     }
  
     /* Table */
     .dom-table {
       width: 100%; border-collapse: collapse;
       font-size: 8pt; flex: 1; table-layout: fixed;
+    }
+    .dom-table tbody {
+      border: 1px solid black;
     }
     .dom-table tbody tr { border-bottom: 1px solid #000; }
     .dom-table tbody tr:last-child { border-bottom: none; }
@@ -1513,43 +1531,32 @@ export class PrintPalletDialogComponent implements OnInit {
     .dom-table td:last-child { border-right: none; }
  
     /* Label: KHÔNG màu nền */
-    .dom-label {
-      width: 22%; font-weight: 700;
-      background: transparent !important;
-      color: #000; font-size: 7.5pt; white-space: normal;
-    }
-    .dom-value { width: 28%; font-weight: 400; color: #000; font-size: 8pt; }
-    .dom-qty { font-size: 14pt; font-weight: 800; text-align: left; color: #000; white-space: nowrap; }
-    .dom-result { font-weight: 600; font-size: 8pt; }
+    .dom-label { width: 22%; font-weight: 400; background: transparent !important; color: #000; font-size: 7pt; white-space: normal; }
+    .dom-value { width: 28%; font-weight: 400; color: #000; font-size: 7.5pt; }
+    .dom-qty { font-size: 12pt; font-weight: 700; text-align: left; color: #000; white-space: nowrap; }
+    .dom-result { font-weight: 400; font-size: 7.5pt; }
     .dom-note { font-size: 7.5pt; font-weight: 400; }
     .dom-note-cell {
       vertical-align: top !important;
-      padding: 0 !important;
-    }
-    .dom-note-inner {
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: space-between !important;
-      height: 100% !important;
-      min-height: 14mm !important;
       padding: 1.2mm 2mm !important;
-      box-sizing: border-box !important;
+      position: relative !important;
+      min-height: 14mm !important;
     }
+    .dom-note-inner { display: block !important; width: 100% !important; }
     .dom-note-text {
       display: block !important;
       font-size: 7.5pt !important;
       font-weight: 400 !important;
       line-height: 1.3 !important;
-      flex: 1 !important;
+      padding-bottom: 38px !important;
     }
     .dom-box-qr-wrapper {
-      display: flex !important;
-      justify-content: flex-end !important;
-      align-items: flex-end !important;
-      padding-top: 1mm !important;
+      position: absolute !important;
+      bottom: 1mm !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
     }
-    .dom-box-qr img,
-    .dom-box-qr canvas {
+    .dom-box-qr img, .dom-box-qr canvas {
       display: block !important;
       width: 36px !important;
       height: 36px !important;
