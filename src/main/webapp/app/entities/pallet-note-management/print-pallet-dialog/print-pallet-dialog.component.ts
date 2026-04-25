@@ -1411,8 +1411,8 @@ export class PrintPalletDialogComponent implements OnInit {
     const isTwoPrint = this.domesticPaperSize === "A5";
     const pageW = isA4Dom ? 297 : 210;
     const pageH = isA4Dom ? 210 : 105;
-    const cardW = isA4Dom ? 146 : 104;
-    const cardH = 103;
+    const cardW = isA4Dom ? 143 : 102;
+    const cardH = 99;
 
     const printHTML = `<!DOCTYPE html>
 <html lang="vi">
@@ -1424,7 +1424,7 @@ export class PrintPalletDialogComponent implements OnInit {
     html, body {
       width: ${pageW}mm;
       height: ${pageH}mm;
-      margin: 0.5mm 1mm !important; padding: 0.5mm !important;
+      margin: 0 !important; padding: 0 !important;
       background: white !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -1450,12 +1450,21 @@ export class PrintPalletDialogComponent implements OnInit {
     `
     }
  
-    .domestic-content { display: block; width: ${pageW}mm; padding: 1mm;box-sizing: border-box;}
+    .domestic-content { 
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: ${pageW}mm !important;
+      height: ${pageH}mm !important;
+      box-sizing: border-box;
+    }
  
     .domestic-page {
       display: flex; flex-direction: row;
+      justify-content: center;
       width: ${pageW}mm; height: ${cardH}mm;
-      page-break-after: always; page-break-inside: avoid; overflow: hidden;
+      page-break-inside: avoid; overflow: hidden;
     }
     .domestic-page:last-child { page-break-after: avoid; }
  
@@ -1463,7 +1472,7 @@ export class PrintPalletDialogComponent implements OnInit {
       width: ${cardW}mm; min-width: ${cardW}mm; max-width: ${cardW}mm;
       height: ${cardH}mm;
       border: 1.5px solid #000; box-shadow: none; box-sizing: border-box;
-      padding: 2mm;
+      padding: 1.5mm 2mm;
       display: flex; flex-direction: column;
       overflow: hidden; position: relative; background: white;
     }
@@ -1479,6 +1488,13 @@ export class PrintPalletDialogComponent implements OnInit {
       padding-bottom: 2mm;
       flex-shrink: 0; margin-bottom: 1mm;
     }
+    .dom-qr-section {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 1mm !important;
+      flex-shrink: 0 !important;
+    }
     .dom-qr-frame {
       border: 1.5px solid #000 !important;
       padding: 1mm !important;
@@ -1486,7 +1502,6 @@ export class PrintPalletDialogComponent implements OnInit {
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      flex-shrink: 0 !important;
       background: white !important;
     }
     .dom-qr-box {
@@ -1568,13 +1583,15 @@ export class PrintPalletDialogComponent implements OnInit {
       flex-shrink: 0; margin-top: auto; padding-top: 1mm;
     }
     .domestic-sheet-a4 {
-      display: block !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
       width: ${pageW}mm !important;
     }
     .domestic-sheet-a4 .domestic-page {
       display: flex !important;
       flex-direction: row !important;
-      width: ${pageW}mm !important;
+      width: auto !important;
       height: ${cardH}mm !important;
       overflow: hidden !important;
     }

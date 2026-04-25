@@ -828,18 +828,20 @@
   <ng-template #domCardContent let-p="p">
     <div class="domestic-inner">
       <div class="dom-header">
-        <div class="dom-qr-frame">
-          <div class="dom-qr-box">
-            <qrcode
-              [qrdata]="p.serialPallet"
-              [width]="80"
-              [margin]="1"
-              [colorDark]="'#000000'"
-              [colorLight]="'#FFFFFF'"
-            >
-            </qrcode>
-            <div class="dom-serial">{{ p.serialPallet }}</div>
+        <div class="dom-qr-section">
+          <div class="dom-qr-frame">
+            <div class="dom-qr-box">
+              <qrcode
+                [qrdata]="p.serialPallet"
+                [width]="80"
+                [margin]="1"
+                [colorDark]="'#000000'"
+                [colorLight]="'#FFFFFF'"
+              >
+              </qrcode>
+            </div>
           </div>
+          <div class="dom-serial">{{ p.serialPallet }}</div>
         </div>
         <div class="dom-title-block">
           <h1 class="dom-title">PHIẾU THÔNG TIN</h1>
