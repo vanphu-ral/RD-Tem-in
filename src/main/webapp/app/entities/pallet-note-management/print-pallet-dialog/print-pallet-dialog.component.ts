@@ -1411,8 +1411,8 @@ export class PrintPalletDialogComponent implements OnInit {
     const isTwoPrint = this.domesticPaperSize === "A5";
     const pageW = isA4Dom ? 297 : 210;
     const pageH = isA4Dom ? 210 : 105;
-    const cardW = isA4Dom ? 148 : 105;
-    const cardH = 105;
+    const cardW = isA4Dom ? 146 : 104;
+    const cardH = 103;
 
     const printHTML = `<!DOCTYPE html>
 <html lang="vi">
@@ -1424,7 +1424,7 @@ export class PrintPalletDialogComponent implements OnInit {
     html, body {
       width: ${pageW}mm;
       height: ${pageH}mm;
-      margin: 0 !important; padding: 0 !important;
+      margin: 0.5mm 1mm !important; padding: 0.5mm !important;
       background: white !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -1450,7 +1450,7 @@ export class PrintPalletDialogComponent implements OnInit {
     `
     }
  
-    .domestic-content { display: block; width: ${pageW}mm; }
+    .domestic-content { display: block; width: ${pageW}mm; padding: 1mm;box-sizing: border-box;}
  
     .domestic-page {
       display: flex; flex-direction: row;
@@ -1463,7 +1463,7 @@ export class PrintPalletDialogComponent implements OnInit {
       width: ${cardW}mm; min-width: ${cardW}mm; max-width: ${cardW}mm;
       height: ${cardH}mm;
       border: 1.5px solid #000; box-shadow: none; box-sizing: border-box;
-      padding: 4mm 5mm 3mm 5mm;
+      padding: 2mm;
       display: flex; flex-direction: column;
       overflow: hidden; position: relative; background: white;
     }
@@ -1481,7 +1481,7 @@ export class PrintPalletDialogComponent implements OnInit {
     }
     .dom-qr-frame {
       border: 1.5px solid #000 !important;
-      padding: 2mm !important;
+      padding: 1mm !important;
       box-sizing: border-box !important;
       display: flex !important;
       align-items: center !important;

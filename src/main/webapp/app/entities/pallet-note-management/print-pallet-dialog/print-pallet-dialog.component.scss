@@ -709,7 +709,7 @@
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
-  padding: 4mm 5mm 3mm 5mm;
+  padding: 2mm;
   display: flex;
   flex-direction: column;
   font-family: Arial, Helvetica, sans-serif;
@@ -735,7 +735,7 @@
   margin-bottom: 1mm;
   .dom-qr-frame {
     border: 1.5px solid #000;
-    padding: 2mm;
+    padding: 1mm;
     box-sizing: border-box;
     display: flex;
     align-items: center;
