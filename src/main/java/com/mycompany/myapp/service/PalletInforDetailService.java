@@ -12,6 +12,7 @@ import com.mycompany.myapp.service.dto.CombinedPalletWarehouseDTO;
 import com.mycompany.myapp.service.dto.ListPalletInfoResponseDTO;
 import com.mycompany.myapp.service.dto.MaxSerialResponseDTO;
 import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
+import com.mycompany.myapp.service.dto.PalletNdDTO;
 import com.mycompany.myapp.service.dto.PalletWithBoxesDTO;
 import com.mycompany.myapp.service.dto.PrintPalletDTO;
 import com.mycompany.myapp.service.dto.WarehouseStampInfoDetailDTO;
@@ -618,5 +619,85 @@ public class PalletInforDetailService {
      */
     public byte[] generatePalletPdf(List<PrintPalletDTO> printPalletDTOs) {
         return generatePalletPdf(printPalletDTOs, "A4");
+    }
+
+    /**
+     * Generate PDF for printing ND pallets using pallet_A4_ND.jasper template.
+     *
+     * @param palletNdDTOs the list of pallet ND data to print
+     * @param paperSize paper size (currently only A4 supported), defaults to A4
+     * @return the PDF byte array
+     */
+    public byte[] generatePalletPdfNd(
+        List<com.mycompany.myapp.service.dto.PalletNdDTO> palletNdDTOs,
+        String paperSize
+    ) {
+        LOG.debug(
+            "Request to generate ND PDF for {} pallets, Size: {}",
+            palletNdDTOs.size(),
+            paperSize
+        );
+
+        try {
+            // Use pallet_A4_ND.jasper template
+            String templateName = "templates/pallet_A4_ND.jasper";
+
+            // Load pre-compiled template from resources
+            InputStream jasperStream = new ClassPathResource(
+                templateName
+            ).getInputStream();
+
+            if (jasperStream == null) {
+                LOG.error("Cannot find report template: {}", templateName);
+                throw new RuntimeException("Report template not found");
+            }
+
+            // Load compiled report
+            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(
+                jasperStream
+            );
+
+            // Create data source
+            JRBeanCollectionDataSource dataSource =
+                new JRBeanCollectionDataSource(palletNdDTOs);
+
+            // Add parameters
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("createdBy", "System");
+
+            // Fill report
+            JasperPrint jasperPrint = JasperFillManager.fillReport(
+                jasperReport,
+                parameters,
+                dataSource
+            );
+
+            // Export to PDF
+            return JasperExportManager.exportReportToPdf(jasperPrint);
+        } catch (JRException e) {
+            LOG.error("JasperReports error: {}", e.getMessage(), e);
+            throw new RuntimeException(
+                "Failed to generate PDF: " + e.getMessage(),
+                e
+            );
+        } catch (Exception e) {
+            LOG.error("Unexpected error generating PDF: {}", e.getMessage(), e);
+            throw new RuntimeException(
+                "Failed to generate PDF: " + e.getMessage(),
+                e
+            );
+        }
+    }
+
+    /**
+     * Generate PDF for printing ND pallets with default A4 size.
+     *
+     * @param palletNdDTOs the list of pallet ND data to print
+     * @return the PDF byte array
+     */
+    public byte[] generatePalletPdfNd(
+        List<com.mycompany.myapp.service.dto.PalletNdDTO> palletNdDTOs
+    ) {
+        return generatePalletPdfNd(palletNdDTOs, "A4");
     }
 }

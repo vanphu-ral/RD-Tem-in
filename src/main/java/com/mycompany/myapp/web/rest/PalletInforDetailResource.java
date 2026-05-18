@@ -6,6 +6,8 @@ import com.mycompany.myapp.service.Partner3MigrationService;
 import com.mycompany.myapp.service.dto.CombinedPalletWarehouseDTO;
 import com.mycompany.myapp.service.dto.MaxSerialResponseDTO;
 import com.mycompany.myapp.service.dto.PalletInforDetailDTO;
+import com.mycompany.myapp.service.dto.PalletNdDTO;
+import com.mycompany.myapp.service.dto.PalletPrintNdRequest;
 import com.mycompany.myapp.service.dto.PalletPrintRequest;
 import com.mycompany.myapp.service.dto.PrintPalletDTO;
 import com.mycompany.myapp.service.dto.UpdateWmsSendStatusRequest;
@@ -604,6 +606,50 @@ public class PalletInforDetailResource {
             .header(
                 HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=pallet-export-" +
+                System.currentTimeMillis() +
+                ".pdf"
+            )
+            .body(pdfBytes);
+    }
+
+    /**
+     * {@code POST /pallet-infor-details/export-pdf-nd} : Export PDF for downloading ND pallets using pallet_A4_ND.jasper template.
+     *
+     * @param request the ND print request containing pallet list and paper size configuration.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the PDF binary
+     *         data in body, or with status {@code 400 (Bad Request)} if the request is invalid.
+     */
+    @PostMapping(
+        value = "/export-pdf-nd",
+        produces = MediaType.APPLICATION_PDF_VALUE
+    )
+    public ResponseEntity<byte[]> exportPalletsToPdfNd(
+        @Valid @RequestBody PalletPrintNdRequest request
+    ) {
+        LOG.debug(
+            "REST request to export {} ND pallets to PDF with size {}",
+            request.getPallets().size(),
+            request.getPaperSize()
+        );
+
+        if (request.getPallets() == null || request.getPallets().isEmpty()) {
+            throw new BadRequestAlertException(
+                "Pallet list cannot be empty",
+                ENTITY_NAME,
+                "palletlistempty"
+            );
+        }
+
+        byte[] pdfBytes = palletInforDetailService.generatePalletPdfNd(
+            request.getPallets(),
+            request.getPaperSize()
+        );
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_PDF)
+            .header(
+                HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=pallet-nd-export-" +
                 System.currentTimeMillis() +
                 ".pdf"
             )
