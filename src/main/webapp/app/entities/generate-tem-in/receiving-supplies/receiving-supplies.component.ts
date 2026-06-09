@@ -21,7 +21,6 @@ import {
 import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { AccountService } from "app/core/auth/account.service";
-import { AlertService } from "app/core/util/alert.service";
 import { ExcelImportData } from "../models/list-product-of-request.model";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
 import { GenerateTemInConfirmDialogComponent } from "../generate-tem-in-modal-confirm/modal-confirm.component";
@@ -259,6 +258,7 @@ export class ReceivingSuppliesComponent
 
   readonly lotDetailTemColumns: string[] = [
     "stt",
+    "qrCode",
     "id",
     "reelId",
     "sapCode",
@@ -276,7 +276,6 @@ export class ReceivingSuppliesComponent
     "expirationDate",
     "manufacturingDate",
     "arrivalDate",
-    "qrCode",
   ];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -291,7 +290,6 @@ export class ReceivingSuppliesComponent
     private receivingService: ReceivingSuppliesService,
     private generateTemInService: GenerateTemInService,
     private accountService: AccountService,
-    private alertService: AlertService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private cdr: ChangeDetectorRef,
@@ -427,10 +425,7 @@ export class ReceivingSuppliesComponent
 
   fetchPoInfo(): void {
     if (!this.poNumber.trim()) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Vui lòng nhập mã PO.",
-      });
+      this.showSnackbar("Vui lòng nhập mã PO.", "Đóng", 4000, "warning");
       return;
     }
 
@@ -441,10 +436,12 @@ export class ReceivingSuppliesComponent
       next: (res) => {
         this.isFetchingPo = false;
         if (!res?.poInfo || !res.poDetails?.length) {
-          this.alertService.addAlert({
-            type: "danger",
-            message: `Không tìm thấy PO ${po} hoặc PO không có dòng chi tiết.`,
-          });
+          this.showSnackbar(
+            `Không tìm thấy PO ${po} hoặc PO không có dòng chi tiết.`,
+            "Đóng",
+            6000,
+            "error",
+          );
           return;
         }
 
@@ -453,18 +450,22 @@ export class ReceivingSuppliesComponent
         this.applyPoToAllChildLots(po);
         this.resetAllReconcileStatus("pending");
 
-        this.alertService.addAlert({
-          type: "success",
-          message: `Đã tải ${res.poDetails.length} vật tư từ PO ${po}.`,
-        });
+        this.showSnackbar(
+          `Đã tải ${res.poDetails.length} vật tư từ PO ${po}.`,
+          "Đóng",
+          4000,
+          "success",
+        );
         this.cdr.markForCheck();
       },
       error: () => {
         this.isFetchingPo = false;
-        this.alertService.addAlert({
-          type: "danger",
-          message: "Lỗi khi truy vấn thông tin PO từ SAP.",
-        });
+        this.showSnackbar(
+          "Lỗi khi truy vấn thông tin PO từ SAP.",
+          "Đóng",
+          6000,
+          "error",
+        );
       },
     });
   }
@@ -475,7 +476,27 @@ export class ReceivingSuppliesComponent
   }
 
   removeSapChip(code: string): void {
-    this.selectedSapCodes = this.selectedSapCodes.filter((c) => c !== code);
+    const trimmed = code.trim();
+    const parent = this.dataSource.data.find(
+      (r) => r.sapCode.trim() === trimmed,
+    );
+    const lotCount = parent?.lots.length ?? 0;
+    const msg = parent
+      ? lotCount
+        ? `Xóa mã SAP ${trimmed} và ${lotCount} lô trên bảng?`
+        : `Xóa mã SAP ${trimmed} khỏi bảng vật tư?`
+      : `Xóa mã SAP ${trimmed} khỏi danh sách?`;
+    this.confirmAction(msg, "Xóa mã SAP").subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      if (parent) {
+        this.removeParentRowFromTable(parent);
+        return;
+      }
+      this.removeSapChipFromList(trimmed);
+      this.cdr.markForCheck();
+    });
   }
 
   onLotQuantityChange(
@@ -485,6 +506,7 @@ export class ReceivingSuppliesComponent
   ): void {
     lot.quantity = this.sanitizeNonNegativeQuantity(raw);
     this.syncParentQuantityFromLots(row);
+    this.markParentReconcilePending(row);
     this.cdr.markForCheck();
   }
 
@@ -500,10 +522,12 @@ export class ReceivingSuppliesComponent
     this.addBulkSapCodeFromInput();
 
     if (!this.selectedSapCodes.length) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Vui lòng nhập ít nhất một mã SAP.",
-      });
+      this.showSnackbar(
+        "Vui lòng nhập ít nhất một mã SAP.",
+        "Đóng",
+        4000,
+        "warning",
+      );
       return;
     }
 
@@ -513,10 +537,12 @@ export class ReceivingSuppliesComponent
     );
 
     if (!codesToCreate.length) {
-      this.alertService.addAlert({
-        type: "info",
-        message: "Các mã SAP đã có trên bảng, không tạo bản ghi mới.",
-      });
+      this.showSnackbar(
+        "Các mã SAP đã có trên bảng, không tạo bản ghi mới.",
+        "Đóng",
+        4000,
+        "warning",
+      );
       return;
     }
 
@@ -536,7 +562,20 @@ export class ReceivingSuppliesComponent
     this.cdr.markForCheck();
   }
 
+  parentHasTemLot(parent: ReceivingMaterialRow): boolean {
+    return parent.lots.some((lot) => this.lotHasTem(lot));
+  }
+
   addLot(row: ReceivingMaterialRow): void {
+    if (this.parentHasTemLot(row)) {
+      this.showSnackbar(
+        "Vật tư này đã có lô đã tạo tem — không thể thêm lô. Hãy thêm mã SAP mới trên bảng.",
+        "Đóng",
+        6000,
+        "warning",
+      );
+      return;
+    }
     const prevLot = row.lots.length > 0 ? row.lots[row.lots.length - 1] : null;
     const lot = this.buildDefaultLotRow(
       row,
@@ -556,6 +595,7 @@ export class ReceivingSuppliesComponent
     row.lotNumber = `${row.lots.length} lô`;
     row.expanded = true;
     this.syncParentQuantityFromLots(row);
+    this.markParentReconcilePending(row);
     this.cdr.markForCheck();
   }
 
@@ -571,6 +611,7 @@ export class ReceivingSuppliesComponent
     parent.lots = parent.lots.filter((l) => l.rowKey !== lot.rowKey);
     parent.lotNumber = parent.lots.length ? `${parent.lots.length} lô` : "";
     this.syncParentQuantityFromLots(parent);
+    this.markParentReconcilePending(parent);
     this.cdr.markForCheck();
   }
 
@@ -592,10 +633,7 @@ export class ReceivingSuppliesComponent
 
     const validationError = this.validateOrderBeforeSave();
     if (validationError) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: validationError,
-      });
+      this.showSnackbar(validationError, "Đóng", 8000, "warning");
       return;
     }
 
@@ -604,22 +642,30 @@ export class ReceivingSuppliesComponent
     const vendor = this.vendorCode.trim();
     const vendorName = this.vendorName.trim();
 
+    let syncRows: Array<{ productId?: number; item: ExcelImportData }>;
+    try {
+      syncRows = this.buildProductSyncRows();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Dữ liệu lô không hợp lệ.";
+      this.showSnackbar(message, "Đóng", 8000, "warning");
+      return;
+    }
+
     this.isSavingOrder = true;
 
     if (this.editingRequestId) {
       this.generateTemInService
         .updateRequestProducts(this.editingRequestId, products, {
-          rows: this.buildProductSyncRows(),
+          rows: syncRows,
           deletedProductIds: this.pendingDeletedProductIds,
         })
         .subscribe({
           next: () => {
             this.isSavingOrder = false;
             this.pendingDeletedProductIds = [];
-            this.alertService.addAlert({
-              type: "success",
-              message: `Đã cập nhật đơn #${this.editingRequestId}.`,
-            });
+            const message = `Đã cập nhật đơn #${this.editingRequestId}.`;
+            this.showSnackbar(message, "Đóng", 4000, "success");
             if (!this.withPoMode) {
               this.loadExistingRequest(this.editingRequestId!);
               return;
@@ -628,10 +674,11 @@ export class ReceivingSuppliesComponent
           },
           error: (err: Error) => {
             this.isSavingOrder = false;
-            this.alertService.addAlert({
-              type: "danger",
-              message: err.message ?? "Lỗi khi cập nhật đơn.",
-            });
+            const message = err.message?.trim() || "Lỗi khi cập nhật đơn.";
+            this.showSnackbar(message, "Đóng", 8000, "error");
+            if (this.editingRequestId) {
+              this.loadExistingRequest(this.editingRequestId);
+            }
             this.cdr.markForCheck();
           },
         });
@@ -650,19 +697,23 @@ export class ReceivingSuppliesComponent
         next: (result) => {
           this.isSavingOrder = false;
           const requestId = result.requestId;
-          this.alertService.addAlert({
-            type: "success",
-            message: `Đã tạo đơn #${requestId} với ${products.length} dòng sản phẩm.`,
-          });
+          this.showSnackbar(
+            `Đã tạo đơn #${requestId} với ${products.length} dòng sản phẩm.`,
+            "Đóng",
+            4000,
+            "success",
+          );
           this.editingRequestId = requestId;
           this.navigateAfterSave(requestId);
         },
         error: (err: Error) => {
           this.isSavingOrder = false;
-          this.alertService.addAlert({
-            type: "danger",
-            message: err.message ?? "Lỗi khi lưu đơn.",
-          });
+          this.showSnackbar(
+            err.message?.trim() || "Lỗi khi lưu đơn.",
+            "Đóng",
+            8000,
+            "error",
+          );
           this.cdr.markForCheck();
         },
       });
@@ -672,8 +723,23 @@ export class ReceivingSuppliesComponent
     this.onSaveOrder();
   }
 
+  /** PO hợp lệ: có giá trị và khác "-". */
+  hasValidPoForTemGenerate(): boolean {
+    return Boolean(this.getEffectivePoNumber());
+  }
+
   onCreateCode(): void {
     if (this.isGenerating) {
+      return;
+    }
+
+    if (!this.hasValidPoForTemGenerate()) {
+      this.showSnackbar(
+        "Chưa có mã PO hợp lệ. Vui lòng nhập PO trước khi tạo mã.",
+        "Đóng",
+        4000,
+        "warning",
+      );
       return;
     }
 
@@ -688,7 +754,7 @@ export class ReceivingSuppliesComponent
     }
 
     if (this.isDisableGenerate) {
-      this.showSnackbar("Đơn đã tạo mã tem.", "Đóng", 3000, "warning");
+      this.showSnackbar("Tất cả lô đã có tem.", "Đóng", 3000, "warning");
       return;
     }
 
@@ -706,8 +772,11 @@ export class ReceivingSuppliesComponent
         return;
       }
 
+      const pendingLotCount = this.countLotsPendingTem();
       this.confirmAction(
-        "Xác nhận tạo mã tem cho tất cả sản phẩm thuộc yêu cầu này?",
+        pendingLotCount === 1
+          ? "Xác nhận tạo mã tem cho lô chưa có tem?"
+          : `Xác nhận tạo mã tem cho ${pendingLotCount} lô chưa có tem?`,
       ).subscribe((confirmed) => {
         if (!confirmed) {
           return;
@@ -716,7 +785,7 @@ export class ReceivingSuppliesComponent
         this.isGenerating = true;
         let syncUpdates: Array<{ productId: number; item: ExcelImportData }>;
         try {
-          syncUpdates = this.buildProductSyncUpdates(
+          syncUpdates = this.buildProductSyncUpdatesForPendingGenerate(
             this.buildProductsForSave(),
           );
         } catch (err) {
@@ -756,7 +825,6 @@ export class ReceivingSuppliesComponent
             this.showSnackbar(response.message, "Đóng", 3000, type);
             this.isGenerating = false;
             if (response.success) {
-              this.isDisableGenerate = true;
               this.refreshTemDataAfterGenerate();
             }
             this.cdr.markForCheck();
@@ -785,45 +853,52 @@ export class ReceivingSuppliesComponent
     });
   }
 
-  confirmAction(message: string): Observable<boolean> {
+  confirmAction(message: string, title = "Xác nhận"): Observable<boolean> {
     const dialogRef = this.dialog.open(GenerateTemInConfirmDialogComponent, {
-      data: { message },
+      data: { message, title },
     });
     return dialogRef.afterClosed() as Observable<boolean>;
   }
 
   onSendSap(row?: ReceivingMaterialRow): void {
     const label = row ? row.sapCode : "tất cả";
-    this.alertService.addAlert({
-      type: "info",
-      message: `Chức năng gửi SAP (${label}) đang được phát triển.`,
-    });
+    this.showSnackbar(
+      `Chức năng gửi SAP (${label}) đang được phát triển.`,
+      "Đóng",
+      4000,
+      "warning",
+    );
   }
 
   onSendSapLot(parent: ReceivingMaterialRow, lot: ReceivingLotRow): void {
     const label = lot.lotNumber ?? lot.lotLabel ?? parent.sapCode;
-    this.alertService.addAlert({
-      type: "info",
-      message: `Chức năng gửi SAP lô (${label}) đang được phát triển.`,
-    });
+    this.showSnackbar(
+      `Chức năng gửi SAP lô (${label}) đang được phát triển.`,
+      "Đóng",
+      4000,
+      "warning",
+    );
   }
 
   openPoReconcileModal(): void {
     const sapCodes = this.collectSapCodesFromTable();
     const lotCount = this.countChildLots();
     if (!sapCodes.length) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Chưa có vật tư trên bảng để đối chiếu PO.",
-      });
+      this.showSnackbar(
+        "Chưa có vật tư trên bảng để đối chiếu PO.",
+        "Đóng",
+        4000,
+        "warning",
+      );
       return;
     }
     if (!lotCount) {
-      this.alertService.addAlert({
-        type: "warning",
-        message:
-          "Chưa có dòng lô con. Hãy apply hoặc thêm lô trước khi đối chiếu PO.",
-      });
+      this.showSnackbar(
+        "Chưa có dòng lô con. Hãy apply hoặc thêm lô trước khi đối chiếu PO.",
+        "Đóng",
+        5000,
+        "warning",
+      );
       return;
     }
     this.reconcilePoInput = this.poNumber;
@@ -852,19 +927,18 @@ export class ReceivingSuppliesComponent
   onReconcilePo(): void {
     const po = this.reconcilePoInput.trim();
     if (!po) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Vui lòng nhập mã PO.",
-      });
+      this.showSnackbar("Vui lòng nhập mã PO.", "Đóng", 4000, "warning");
       return;
     }
 
     const tableRows = this.collectRowsForReconcile();
     if (!tableRows.length) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Chưa có dòng vật tư trên bảng để đối chiếu.",
-      });
+      this.showSnackbar(
+        "Chưa có dòng vật tư trên bảng để đối chiếu.",
+        "Đóng",
+        4000,
+        "warning",
+      );
       return;
     }
 
@@ -913,10 +987,12 @@ export class ReceivingSuppliesComponent
       .reduce((sum, r) => sum + r.lots.length, 0);
 
     this.poNumber = po;
-    this.alertService.addAlert({
-      type: "success",
-      message: `Đã áp dụng PO ${po} cho ${this.matchedSapCodesForApply.length} mã pass (${appliedLots} dòng lô).`,
-    });
+    this.showSnackbar(
+      `Đã áp dụng PO ${po} cho ${this.matchedSapCodesForApply.length} mã pass (${appliedLots} dòng lô).`,
+      "Đóng",
+      4000,
+      "success",
+    );
     this.closePoReconcileModal();
   }
 
@@ -988,7 +1064,7 @@ export class ReceivingSuppliesComponent
 
   onViewLotDetail(parent: ReceivingMaterialRow, lot: ReceivingLotRow): void {
     this.lotDetailView = this.buildLotDetailView(parent, lot);
-    this.lotDetailTemPreview = this.getTemRowsForLot(lot);
+    this.lotDetailTemPreview = this.getTemRowsForLot(parent, lot);
     this.showLotDetailModal = true;
     document.body.classList.add("modal-open");
     this.cdr.markForCheck();
@@ -1035,7 +1111,7 @@ export class ReceivingSuppliesComponent
   }
 
   onExportCsvLot(parent: ReceivingMaterialRow, lot: ReceivingLotRow): void {
-    const rows = this.getTemRowsForLot(lot);
+    const rows = this.getTemRowsForLot(parent, lot);
     if (!rows.length) {
       this.showSnackbar(
         "Chưa có mã tem. Vui lòng tạo mã trước.",
@@ -1054,7 +1130,9 @@ export class ReceivingSuppliesComponent
       this.showSnackbar("Chưa có lô con để xuất CSV.", "Đóng", 3000, "warning");
       return;
     }
-    const rows = parent.lots.flatMap((lot) => this.getTemRowsForLot(lot));
+    const rows = parent.lots.flatMap((lot) =>
+      this.getTemRowsForLot(parent, lot),
+    );
     if (!rows.length) {
       this.showSnackbar(
         "Chưa có mã tem. Vui lòng tạo mã trước.",
@@ -1072,19 +1150,12 @@ export class ReceivingSuppliesComponent
     const msg = lotCount
       ? `Xóa vật tư ${parent.sapCode} và ${lotCount} lô con?`
       : `Xóa vật tư ${parent.sapCode}?`;
-    if (!window.confirm(msg)) {
-      return;
-    }
-    parent.lots.forEach((lot) => {
-      if (lot.productId) {
-        this.queueProductDeletion(lot.productId);
+    this.confirmAction(msg, "Xóa vật tư").subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
       }
+      this.removeParentRowFromTable(parent);
     });
-    this.dataSource.data = this.dataSource.data.filter(
-      (r) => r.id !== parent.id,
-    );
-    this.refreshTableView();
-    this.cdr.markForCheck();
   }
 
   closePrintModal(): void {
@@ -1216,14 +1287,48 @@ export class ReceivingSuppliesComponent
       return;
     }
     if (this.selectedSapCodes.includes(code)) {
-      this.alertService.addAlert({
-        type: "info",
-        message: `Mã SAP ${code} đã có trong danh sách.`,
-      });
+      this.showSnackbar(
+        `Mã SAP ${code} đã có trong danh sách.`,
+        "Đóng",
+        3000,
+        "warning",
+      );
     } else {
       this.selectedSapCodes = [...this.selectedSapCodes, code];
     }
     this.bulkSapCodesInput = "";
+  }
+
+  /** Đồng bộ chip SAP từ các dòng cha trên bảng. */
+  private syncSelectedSapCodesFromTable(): void {
+    this.selectedSapCodes = [
+      ...new Set(
+        this.dataSource.data
+          .map((r) => r.sapCode.trim())
+          .filter((code): code is string => Boolean(code)),
+      ),
+    ];
+  }
+
+  private removeSapChipFromList(code: string): void {
+    const trimmed = code.trim();
+    this.selectedSapCodes = this.selectedSapCodes.filter(
+      (c) => c.trim() !== trimmed,
+    );
+  }
+
+  private removeParentRowFromTable(parent: ReceivingMaterialRow): void {
+    parent.lots.forEach((lot) => {
+      if (lot.productId) {
+        this.queueProductDeletion(lot.productId);
+      }
+    });
+    this.dataSource.data = this.dataSource.data.filter(
+      (r) => r.id !== parent.id,
+    );
+    this.removeSapChipFromList(parent.sapCode);
+    this.refreshTableView();
+    this.cdr.markForCheck();
   }
 
   private sanitizeNonNegativeQuantity(
@@ -1426,18 +1531,35 @@ export class ReceivingSuppliesComponent
     return `${d}${m}${y}`;
   }
 
-  private getTemRowsForLot(lot: ReceivingLotRow): ReceivingTemPreviewRow[] {
-    if (!lot.productId) {
+  private getTemRowsForLot(
+    parent: ReceivingMaterialRow,
+    lot: ReceivingLotRow,
+  ): ReceivingTemPreviewRow[] {
+    if (!this.requestTemDetails.length) {
       return [];
     }
+
+    if (lot.productId != null) {
+      const byProductId = this.requestTemDetails.filter(
+        (t) => Number(t.productOfRequestId) === Number(lot.productId),
+      );
+      if (byProductId.length) {
+        return byProductId.map((t) => this.mapTemDetailToPreviewRow(t));
+      }
+    }
+
+    const sap = parent.sapCode.trim();
+    const lotNumber = lot.lotNumber.trim();
     return this.requestTemDetails
-      .filter((t) => t.productOfRequestId === lot.productId)
+      .filter(
+        (t) => t.sapCode?.trim() === sap && (t.lot?.trim() ?? "") === lotNumber,
+      )
       .map((t) => this.mapTemDetailToPreviewRow(t));
   }
 
   private mapTemDetailToPreviewRow(t: TemDetail): ReceivingTemPreviewRow {
     return {
-      id: t.id,
+      id: Number(t.id),
       reelId: t.reelId,
       sapCode: t.sapCode,
       productName: t.productName,
@@ -1473,10 +1595,7 @@ export class ReceivingSuppliesComponent
 
   private openPrintPreview(labels: ReceivingPrintLabel[]): void {
     if (!labels.length) {
-      this.alertService.addAlert({
-        type: "warning",
-        message: "Không có tem để in.",
-      });
+      this.showSnackbar("Không có tem để in.", "Đóng", 3000, "warning");
       return;
     }
     this.printLabels = labels;
@@ -1492,7 +1611,7 @@ export class ReceivingSuppliesComponent
     lots: ReceivingLotRow[],
   ): ReceivingPrintLabel[] {
     return lots.flatMap((lot) =>
-      this.getTemRowsForLot(lot).map((row) => this.toPrintLabel(row)),
+      this.getTemRowsForLot(_parent, lot).map((row) => this.toPrintLabel(row)),
     );
   }
 
@@ -1537,10 +1656,7 @@ export class ReceivingSuppliesComponent
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    this.alertService.addAlert({
-      type: "success",
-      message: `Đã tải CSV: ${filename}`,
-    });
+    this.showSnackbar(`Đã tải CSV: ${filename}`, "Đóng", 3000, "success");
   }
 
   private generateCsvContent(rows: ReceivingTemPreviewRow[]): string {
@@ -1781,6 +1897,7 @@ export class ReceivingSuppliesComponent
     this.dataSource.data = rows;
     this.enrichSapOitmRows(rows);
     this.applyTableFilter();
+    this.syncSelectedSapCodesFromTable();
   }
 
   private resolveOrderPoValue(): string {
@@ -1797,9 +1914,27 @@ export class ReceivingSuppliesComponent
       return saveError;
     }
 
+    if (!this.countLotsPendingTem()) {
+      return "Tất cả lô đã có tem.";
+    }
+
+    if (!this.hasValidPoForTemGenerate()) {
+      return "Chưa có mã PO hợp lệ. Vui lòng nhập PO trước khi tạo mã.";
+    }
+
+    if (this.withPoMode) {
+      const poError = this.validatePoBeforeGenerateCode();
+      if (poError) {
+        return poError;
+      }
+    }
+
     const rows = this.dataSource.data.filter((r) => r.lots.length > 0);
     for (const parent of rows) {
       for (const lot of parent.lots) {
+        if (this.lotHasTem(lot)) {
+          continue;
+        }
         const label = `${parent.sapCode}${lot.lotNumber ? ` / lô ${lot.lotNumber}` : ""}`;
         if (!parent.itemName.trim()) {
           return `${label}: thiếu tên sản phẩm.`;
@@ -1817,10 +1952,52 @@ export class ReceivingSuppliesComponent
     return null;
   }
 
+  private getEffectivePoNumber(): string {
+    const fromField = this.poNumber.trim();
+    if (fromField && fromField !== "-") {
+      return fromField;
+    }
+    for (const parent of this.dataSource.data) {
+      for (const lot of parent.lots) {
+        const lotPo = (lot.userData5 ?? "").trim();
+        if (lotPo && lotPo !== "-") {
+          return lotPo;
+        }
+      }
+    }
+    return "";
+  }
+
+  private validatePoBeforeGenerateCode(): string | null {
+    const rowsWithPending = this.dataSource.data.filter(
+      (row) =>
+        row.lots.length > 0 && row.lots.some((lot) => !this.lotHasTem(lot)),
+    );
+
+    for (const parent of rowsWithPending) {
+      if (parent.reconcileStatus !== "passed") {
+        return `Mã ${parent.sapCode}: chưa đối chiếu PO hoặc đối chiếu chưa pass. Vui lòng đối chiếu lại PO trước khi tạo mã.`;
+      }
+
+      const totalQty = parent.lots.reduce(
+        (sum, lot) => sum + (lot.quantity ?? 0),
+        0,
+      );
+      if (parent.quantityByPo > 0 && totalQty > parent.quantityByPo) {
+        return `Mã ${parent.sapCode}: tổng số lượng (${totalQty}) vượt quá SL PO (${parent.quantityByPo}). Vui lòng sửa lại và đối chiếu lại PO.`;
+      }
+    }
+
+    return null;
+  }
+
   private async validateStorageUnitsForGenerate(): Promise<string | null> {
     const rows = this.dataSource.data.filter((r) => r.lots.length > 0);
     for (const parent of rows) {
       for (const lot of parent.lots) {
+        if (this.lotHasTem(lot)) {
+          continue;
+        }
         const label = `${parent.sapCode}${lot.lotNumber ? ` / lô ${lot.lotNumber}` : ""}`;
         const location = this.getEffectiveLotLocation(parent, lot);
         if (!location) {
@@ -1850,19 +2027,83 @@ export class ReceivingSuppliesComponent
         .pipe(take(1)),
     }).subscribe({
       next: ({ products, tems }) => {
-        this.requestTemDetails = tems;
-        this.isDisableGenerate = tems.length > 0;
-        this.syncProductIdsFromSavedProducts(products as SavedProductRow[]);
-        this.cdr.markForCheck();
+        this.applyTemAndProductSync(products as SavedProductRow[], tems);
       },
     });
+  }
+
+  private applyTemAndProductSync(
+    products: SavedProductRow[],
+    tems: TemDetail[],
+  ): void {
+    this.requestTemDetails = tems;
+    this.updateGenerateButtonState();
+    this.syncProductIdsFromSavedProducts(products);
+    this.refreshLotDetailTemPreviewIfOpen();
+    this.cdr.markForCheck();
+  }
+
+  private lotHasTem(lot: ReceivingLotRow): boolean {
+    if (lot.productId == null) {
+      return false;
+    }
+    return this.requestTemDetails.some(
+      (t) => Number(t.productOfRequestId) === Number(lot.productId),
+    );
+  }
+
+  private countLotsPendingTem(): number {
+    return this.dataSource.data.reduce(
+      (count, parent) =>
+        count + parent.lots.filter((lot) => !this.lotHasTem(lot)).length,
+      0,
+    );
+  }
+
+  private updateGenerateButtonState(): void {
+    const hasLots = this.dataSource.data.some((row) => row.lots.length > 0);
+    if (!hasLots) {
+      this.isDisableGenerate = true;
+      return;
+    }
+    this.isDisableGenerate = this.countLotsPendingTem() === 0;
+  }
+
+  private markParentReconcilePending(parent: ReceivingMaterialRow): void {
+    if (!this.withPoMode || parent.reconcileStatus === "pending") {
+      return;
+    }
+    parent.reconcileStatus = "pending";
+  }
+
+  private refreshLotDetailTemPreviewIfOpen(): void {
+    if (!this.showLotDetailModal || !this.lotDetailView) {
+      return;
+    }
+    const view = this.lotDetailView;
+    const parent = this.dataSource.data.find(
+      (p) => p.sapCode.trim() === view.sapCode.trim(),
+    );
+    if (!parent) {
+      return;
+    }
+    const lot = parent.lots.find(
+      (l) => (l.lotNumber?.trim() ?? "") === (view.lot?.trim() ?? ""),
+    );
+    if (lot) {
+      this.lotDetailTemPreview = this.getTemRowsForLot(parent, lot);
+    }
   }
 
   private syncProductIdsFromSavedProducts(products: SavedProductRow[]): void {
     const productMap = new Map<string, number>();
     products.forEach((p) => {
+      const id = Number(p.id);
+      if (Number.isNaN(id) || id <= 0) {
+        return;
+      }
       const key = `${p.sapCode?.trim() ?? ""}|${p.lot?.trim() ?? ""}`;
-      productMap.set(key, p.id);
+      productMap.set(key, id);
     });
 
     this.dataSource.data = this.dataSource.data.map((parent) => ({
@@ -1978,6 +2219,37 @@ export class ReceivingSuppliesComponent
     return updates;
   }
 
+  /** Chỉ cập nhật các lô chưa có tem trước khi gọi generateTem. */
+  private buildProductSyncUpdatesForPendingGenerate(
+    products: ExcelImportData[],
+  ): Array<{ productId: number; item: ExcelImportData }> {
+    const updates: Array<{ productId: number; item: ExcelImportData }> = [];
+    let index = 0;
+    for (const parent of this.dataSource.data) {
+      for (const lot of parent.lots) {
+        if (!products[index]) {
+          throw new Error("Dữ liệu sản phẩm không khớp với bảng lô.");
+        }
+        if (!this.lotHasTem(lot)) {
+          if (!lot.productId) {
+            throw new Error(
+              "Vui lòng lưu đơn trước khi tạo mã (thiếu ID sản phẩm).",
+            );
+          }
+          updates.push({
+            productId: lot.productId,
+            item: products[index],
+          });
+        }
+        index += 1;
+      }
+    }
+    if (!updates.length) {
+      throw new Error("Không có lô mới cần tạo tem.");
+    }
+    return updates;
+  }
+
   private buildProductsForSave(): ExcelImportData[] {
     const poValue = this.resolveOrderPoValue();
     return this.dataSource.data.flatMap((parent) =>
@@ -2014,8 +2286,6 @@ export class ReceivingSuppliesComponent
     }).subscribe({
       next: ({ requests, products, tems }) => {
         this.isLoading = false;
-        this.requestTemDetails = tems;
-        this.isDisableGenerate = tems.length > 0;
         const request = requests.find((r) => r.id === requestId);
         if (request) {
           this.vendorCode = request.vendor ?? "";
@@ -2034,14 +2304,16 @@ export class ReceivingSuppliesComponent
           this.vendorName = first.vendorName ?? this.vendorName;
         }
         this.mapSavedProductsToTable(products as SavedProductRow[]);
-        this.cdr.markForCheck();
+        this.applyTemAndProductSync(products as SavedProductRow[], tems);
       },
       error: () => {
         this.isLoading = false;
-        this.alertService.addAlert({
-          type: "danger",
-          message: `Không tải được đơn #${requestId}.`,
-        });
+        this.showSnackbar(
+          `Không tải được đơn #${requestId}.`,
+          "Đóng",
+          6000,
+          "error",
+        );
         this.cdr.markForCheck();
       },
     });
@@ -2111,6 +2383,7 @@ export class ReceivingSuppliesComponent
 
     this.dataSource.data = rows;
     this.applyTableFilter();
+    this.syncSelectedSapCodesFromTable();
   }
 
   private parseApiDate(value: string | null | undefined): Date | null {

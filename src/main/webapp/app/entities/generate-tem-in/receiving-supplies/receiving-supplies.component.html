@@ -373,6 +373,12 @@
                       color="primary"
                       class="btn-sm"
                       (click)="addLot(row)"
+                      [disabled]="parentHasTemLot(row)"
+                      [matTooltip]="
+                        parentHasTemLot(row)
+                          ? 'Đã có lô tạo tem — thêm mã SAP mới thay vì thêm lô'
+                          : 'Thêm lô'
+                      "
                     >
                       Thêm lô
                     </button>
@@ -590,15 +596,22 @@
 
     <div class="footer-actions">
       <button mat-stroked-button (click)="goBack()">Hủy bỏ</button>
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="onCreateCode()"
-        [disabled]="isGenerating || isDisableGenerate"
+      <span
+        matTooltip="Chưa có mã PO hợp lệ. Vui lòng nhập PO trước khi tạo mã."
+        [matTooltipDisabled]="hasValidPoForTemGenerate()"
       >
-        <mat-icon>play_arrow</mat-icon>
-        {{ isGenerating ? "Đang tạo mã..." : "Tạo mã" }}
-      </button>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="onCreateCode()"
+          [disabled]="
+            isGenerating || isDisableGenerate || !hasValidPoForTemGenerate()
+          "
+        >
+          <mat-icon>play_arrow</mat-icon>
+          {{ isGenerating ? "Đang tạo mã..." : "Tạo mã" }}
+        </button>
+      </span>
       <button mat-raised-button color="primary" (click)="onConfirmSave()">
         <mat-icon>check</mat-icon>
         Xác nhận hoàn tất
@@ -828,7 +841,7 @@
 
         <div class="lot-detail-preview-hint" *ngIf="lotDetailTemPreview.length">
           <mat-icon>info</mat-icon>
-          <span>Dữ liệu preview — ReelID / ID sẽ có sau khi tạo tem.</span>
+          <span>Di chuột vào mã QR để xem chuỗi mã đầy đủ.</span>
         </div>
 
         <div
@@ -849,6 +862,41 @@
                   class="text-center"
                 >
                   {{ i + 1 }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="qrCode">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  class="text-center col-qr-header"
+                >
+                  QR
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let item"
+                  class="text-center col-qr-cell"
+                >
+                  <span
+                    class="tem-qr-wrap"
+                    *ngIf="item.qrCode; else noQrCode"
+                    [matTooltip]="item.qrCode"
+                    matTooltipClass="tem-qr-tooltip"
+                    matTooltipPosition="right"
+                    matTooltipShowDelay="150"
+                    [attr.aria-label]="'QR: ' + item.qrCode"
+                    [attr.title]="item.qrCode"
+                  >
+                    <qrcode
+                      class="tem-qr-thumb"
+                      [qrdata]="item.qrCode"
+                      [width]="52"
+                      [margin]="0"
+                      [errorCorrectionLevel]="'L'"
+                    ></qrcode>
+                  </span>
+                  <ng-template #noQrCode>—</ng-template>
                 </td>
               </ng-container>
 
@@ -980,13 +1028,6 @@
                       ? (item.arrivalDate | date: "dd/MM/yyyy")
                       : "—"
                   }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="qrCode">
-                <th mat-header-cell *matHeaderCellDef>QR Code</th>
-                <td mat-cell *matCellDef="let item">
-                  <code class="qr-code-text">{{ item.qrCode }}</code>
                 </td>
               </ng-container>
 

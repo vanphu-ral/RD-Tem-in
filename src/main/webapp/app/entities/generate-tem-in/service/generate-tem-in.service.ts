@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Apollo, gql, QueryRef } from "apollo-angular";
 import {
+  catchError,
   concatMap,
   forkJoin,
   from,
@@ -825,14 +826,12 @@ export class GenerateTemInService {
     `;
 
     return this.apollo
-      .watchQuery<{ infoTemDetailsByRequestId: TemDetail[] }>({
+      .query<{ infoTemDetailsByRequestId: TemDetail[] }>({
         query: GET_ALL_TEM_DETAILS,
         variables: { requestId },
         fetchPolicy: "network-only",
       })
-      .valueChanges.pipe(
-        map((result) => result.data.infoTemDetailsByRequestId),
-      );
+      .pipe(map((result) => result.data?.infoTemDetailsByRequestId ?? []));
   }
   /**
    * Query: Chỉnh sửa bảng list_product_of_request
@@ -945,6 +944,7 @@ export class GenerateTemInService {
     const toDelete = [
       ...new Set(deletedProductIds.filter((id) => !Number.isNaN(id) && id > 0)),
     ];
+    const newItems = syncRows.filter((r) => !r.productId).map((r) => r.item);
     const deleteStep$ = toDelete.length
       ? forkJoin(toDelete.map((id) => this.deleteReqById(id)))
       : of([]);
@@ -958,6 +958,10 @@ export class GenerateTemInService {
               this.buildUpdateProductPayload(r.productId!, requestId, r.item),
             ).pipe(
               map((res) => {
+                this.assertGraphQlMutationSuccess(
+                  res,
+                  "updateProductOfRequest",
+                );
                 const body = res.data?.updateProductOfRequest as
                   | UpdateResponse
                   | undefined;
@@ -974,9 +978,6 @@ export class GenerateTemInService {
 
         return updateStep$.pipe(
           switchMap(() => {
-            const newItems = syncRows
-              .filter((r) => !r.productId)
-              .map((r) => r.item);
             if (!newItems.length) {
               return of(null);
             }
@@ -990,6 +991,17 @@ export class GenerateTemInService {
           switchMap(() => this.getProductsByRequestId(requestId).pipe(take(1))),
         );
       }),
+      catchError((err: unknown) =>
+        throwError(() => {
+          const base = this.resolveMutationError(err);
+          if (newItems.length) {
+            return new Error(
+              `Tạo lô mới thất bại. Các lô cũ có thể đã được cập nhật trước đó. ${base}`,
+            );
+          }
+          return new Error(base);
+        }),
+      ),
     );
   }
 
@@ -1008,15 +1020,63 @@ export class GenerateTemInService {
       })
       .pipe(
         map((result) => {
-          if (!result.data?.createProduct) {
-            throw new Error(
-              "Server GraphQL chưa hỗ trợ tạo lô mới (createProduct). " +
-                "Cần deploy bản backend mới lên máy chủ đang chạy API.",
-            );
-          }
-          return result.data.createProduct;
+          this.assertGraphQlMutationSuccess(result, "createProduct");
+          return result.data!.createProduct;
         }),
       );
+  }
+
+  private assertGraphQlMutationSuccess(
+    result: {
+      data?: Record<string, unknown> | null;
+      errors?: ReadonlyArray<{ message?: string }>;
+    },
+    field: string,
+  ): void {
+    if (result.errors?.length) {
+      throw new Error(this.formatGraphQlErrors(result.errors));
+    }
+    const payload = result.data?.[field];
+    if (payload == null) {
+      throw new Error(this.buildMissingMutationMessage(field));
+    }
+  }
+
+  private formatGraphQlErrors(
+    errors: ReadonlyArray<{ message?: string }>,
+  ): string {
+    return errors
+      .map((e) => e.message?.trim())
+      .filter((msg): msg is string => Boolean(msg))
+      .join(" ");
+  }
+
+  private buildMissingMutationMessage(field: string): string {
+    if (field === "createProduct") {
+      return (
+        "Không tạo được lô mới (createProduct trả về rỗng). " +
+        "Server GraphQL có thể chưa đăng ký mutation createProduct — cần deploy bản backend mới."
+      );
+    }
+    return `Mutation ${field} không trả về dữ liệu từ server.`;
+  }
+
+  private resolveMutationError(err: unknown): string {
+    if (err instanceof Error && err.message.trim()) {
+      const graphQlErrors = (
+        err as Error & {
+          graphQLErrors?: Array<{ message?: string }>;
+        }
+      ).graphQLErrors;
+      if (graphQlErrors?.length) {
+        const fromGraphQl = this.formatGraphQlErrors(graphQlErrors);
+        if (fromGraphQl) {
+          return fromGraphQl;
+        }
+      }
+      return err.message.trim();
+    }
+    return "Có lỗi xảy ra khi gọi API.";
   }
 
   private buildUpdateProductPayload(

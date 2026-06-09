@@ -143,9 +143,9 @@ export class ReceivingSuppliesService {
   private baseUrl = this.applicationConfigService.getEndpointFor("api");
   private itemDataUrl =
     this.applicationConfigService.getEndpointFor("/api/item-data");
-  // private sapOitmUrl =`http://192.168.10.99:8085/api/sap-oitms`;
-  private sapOitmUrl =
-    this.applicationConfigService.getEndpointFor("/api/sap-oitms");
+  private sapOitmUrl = `http://192.168.10.99:8085/api/sap-oitms`;
+  // private sapOitmUrl =
+  //   this.applicationConfigService.getEndpointFor("/api/sap-oitms");
   private isWarehouseInitDone = false;
   private isFetchingWarehouses = false;
 

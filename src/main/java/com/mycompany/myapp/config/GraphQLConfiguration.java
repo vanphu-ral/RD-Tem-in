@@ -208,11 +208,28 @@ public class GraphQLConfiguration {
                         return requestResolver.updateProductOfRequest(inputMap);
                     })
                     .dataFetcher("createProduct", env -> {
-                        @SuppressWarnings("unchecked")
-                        java.util.Map<String, Object> inputMap =
-                            env.getArgument("input");
-                        CreateProductInput input = convertProductMap(inputMap);
-                        return productResolver.createProduct(input);
+                        try {
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, Object> inputMap =
+                                env.getArgument("input");
+                            CreateProductInput input = convertProductMap(
+                                inputMap
+                            );
+                            com.mycompany.renderQr.domain.ListProductOfRequest created =
+                                productResolver.createProduct(input);
+                            if (created == null) {
+                                throw new IllegalStateException(
+                                    "createProduct returned null"
+                                );
+                            }
+                            return created;
+                        } catch (Exception e) {
+                            log.error("createProduct failed", e);
+                            throw new RuntimeException(
+                                "createProduct failed: " + e.getMessage(),
+                                e
+                            );
+                        }
                     })
                     .dataFetcher("createProductsBatch", env -> {
                         Integer requestId = env.getArgument("requestId");
