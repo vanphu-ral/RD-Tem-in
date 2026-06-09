@@ -8,6 +8,24 @@
       <button
         mat-raised-button
         color="primary"
+        [routerLink]="['receiving-supplies', 'with-po']"
+        *jhiHasAnyAuthority="'ROLE_TEM_UPDATE'; rOLE_ADMIN_TEM"
+      >
+        <mat-icon>receipt_long</mat-icon>
+        <span class="button-text">Tạo đơn có PO</span>
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        [routerLink]="['receiving-supplies', 'without-po']"
+        *jhiHasAnyAuthority="'ROLE_TEM_UPDATE'; rOLE_ADMIN_TEM"
+      >
+        <mat-icon>note_add</mat-icon>
+        <span class="button-text">Tạo đơn không PO</span>
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
         [routerLink]="['import']"
         *jhiHasAnyAuthority="'ROLE_TEM_UPDATE'; rOLE_ADMIN_TEM"
       >
@@ -285,8 +303,8 @@
 
             <button
               mat-icon-button
-              [routerLink]="['detail', item.id]"
-              matTooltip="Chi tiết"
+              [routerLink]="getDetailRoute(item)"
+              [matTooltip]="getDetailTooltip(item)"
             >
               <mat-icon>visibility</mat-icon>
             </button>
@@ -364,9 +382,9 @@
             <mat-icon>info</mat-icon>
             Xem tem
           </button>
-          <button mat-button color="accent" [routerLink]="['detail', item.id]">
+          <button mat-button color="accent" [routerLink]="getDetailRoute(item)">
             <mat-icon>visibility</mat-icon>
-            Chi tiết
+            {{ isReceivingDraft(item) ? "Tiếp tục nhập" : "Chi tiết" }}
           </button>
           <button
             mat-button
