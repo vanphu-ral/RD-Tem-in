@@ -47,150 +47,163 @@ public class SapOitmResource {
         this.sapOitmRepository = sapOitmRepository;
     }
 
-    /**
-     * {@code POST  /sap-oitms} : Create a new sapOitm.
-     *
-     * @param sapOitm the sapOitm to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new sapOitm, or with status {@code 400 (Bad Request)} if the sapOitm has already an ID.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
-    @PostMapping("")
-    public ResponseEntity<SapOitm> createSapOitm(
-        @Valid @RequestBody SapOitm sapOitm
-    ) throws URISyntaxException {
-        LOG.debug("REST request to save SapOitm : {}", sapOitm);
-        if (sapOitm.getId() != null) {
-            throw new BadRequestAlertException(
-                "A new sapOitm cannot already have an ID",
-                ENTITY_NAME,
-                "idexists"
-            );
-        }
-        sapOitm = sapOitmService.save(sapOitm);
-        return ResponseEntity.created(
-            new URI("/api/sap-oitms/" + sapOitm.getId())
-        )
-            .headers(
-                HeaderUtil.createEntityCreationAlert(
-                    applicationName,
-                    false,
-                    ENTITY_NAME,
-                    sapOitm.getId().toString()
-                )
-            )
-            .body(sapOitm);
-    }
+    // /**
+    //  * {@code POST  /sap-oitms} : Create a new sapOitm.
+    //  *
+    //  * @param sapOitm the sapOitm to create.
+    //  * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new sapOitm, or with status {@code 400 (Bad Request)} if the sapOitm has already an ID.
+    //  * @throws URISyntaxException if the Location URI syntax is incorrect.
+    //  */
+    // @PostMapping("")
+    // public ResponseEntity<SapOitm> createSapOitm(
+    //     @Valid @RequestBody SapOitm sapOitm
+    // ) throws URISyntaxException {
+    //     LOG.debug("REST request to save SapOitm : {}", sapOitm);
+    //     if (sapOitm.getId() != null) {
+    //         throw new BadRequestAlertException(
+    //             "A new sapOitm cannot already have an ID",
+    //             ENTITY_NAME,
+    //             "idexists"
+    //         );
+    //     }
+    //     sapOitm = sapOitmService.save(sapOitm);
+    //     return ResponseEntity.created(
+    //         new URI("/api/sap-oitms/" + sapOitm.getId())
+    //     )
+    //         .headers(
+    //             HeaderUtil.createEntityCreationAlert(
+    //                 applicationName,
+    //                 false,
+    //                 ENTITY_NAME,
+    //                 sapOitm.getId().toString()
+    //             )
+    //         )
+    //         .body(sapOitm);
+    // }
+
+    // /**
+    //  * {@code PUT  /sap-oitms/:id} : Updates an existing sapOitm.
+    //  *
+    //  * @param id the id of the sapOitm to save.
+    //  * @param sapOitm the sapOitm to update.
+    //  * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated sapOitm,
+    //  * or with status {@code 400 (Bad Request)} if the sapOitm is not valid,
+    //  * or with status {@code 500 (Internal Server Error)} if the sapOitm couldn't be updated.
+    //  * @throws URISyntaxException if the Location URI syntax is incorrect.
+    //  */
+    // @PutMapping("/{id}")
+    // public ResponseEntity<SapOitm> updateSapOitm(
+    //     @PathVariable(value = "id", required = false) final Long id,
+    //     @Valid @RequestBody SapOitm sapOitm
+    // ) throws URISyntaxException {
+    //     LOG.debug("REST request to update SapOitm : {}, {}", id, sapOitm);
+    //     if (sapOitm.getId() == null) {
+    //         throw new BadRequestAlertException(
+    //             "Invalid id",
+    //             ENTITY_NAME,
+    //             "idnull"
+    //         );
+    //     }
+    //     if (!Objects.equals(id, sapOitm.getId())) {
+    //         throw new BadRequestAlertException(
+    //             "Invalid ID",
+    //             ENTITY_NAME,
+    //             "idinvalid"
+    //         );
+    //     }
+
+    //     if (!sapOitmRepository.existsById(id)) {
+    //         throw new BadRequestAlertException(
+    //             "Entity not found",
+    //             ENTITY_NAME,
+    //             "idnotfound"
+    //         );
+    //     }
+
+    //     sapOitm = sapOitmService.update(sapOitm);
+    //     return ResponseEntity.ok()
+    //         .headers(
+    //             HeaderUtil.createEntityUpdateAlert(
+    //                 applicationName,
+    //                 false,
+    //                 ENTITY_NAME,
+    //                 sapOitm.getId().toString()
+    //             )
+    //         )
+    //         .body(sapOitm);
+    // }
+
+    // /**
+    //  * {@code PATCH  /sap-oitms/:id} : Partial updates given fields of an existing sapOitm, field will ignore if it is null
+    //  *
+    //  * @param id the id of the sapOitm to save.
+    //  * @param sapOitm the sapOitm to update.
+    //  * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated sapOitm,
+    //  * or with status {@code 400 (Bad Request)} if the sapOitm is not valid,
+    //  * or with status {@code 404 (Not Found)} if the sapOitm is not found,
+    //  * or with status {@code 500 (Internal Server Error)} if the sapOitm couldn't be updated.
+    //  * @throws URISyntaxException if the Location URI syntax is incorrect.
+    //  */
+    // @PatchMapping(
+    //     value = "/{id}",
+    //     consumes = { "application/json", "application/merge-patch+json" }
+    // )
+    // public ResponseEntity<SapOitm> partialUpdateSapOitm(
+    //     @PathVariable(value = "id", required = false) final Long id,
+    //     @NotNull @RequestBody SapOitm sapOitm
+    // ) throws URISyntaxException {
+    //     LOG.debug(
+    //         "REST request to partial update SapOitm partially : {}, {}",
+    //         id,
+    //         sapOitm
+    //     );
+    //     if (sapOitm.getId() == null) {
+    //         throw new BadRequestAlertException(
+    //             "Invalid id",
+    //             ENTITY_NAME,
+    //             "idnull"
+    //         );
+    //     }
+    //     if (!Objects.equals(id, sapOitm.getId())) {
+    //         throw new BadRequestAlertException(
+    //             "Invalid ID",
+    //             ENTITY_NAME,
+    //             "idinvalid"
+    //         );
+    //     }
+
+    //     if (!sapOitmRepository.existsById(id)) {
+    //         throw new BadRequestAlertException(
+    //             "Entity not found",
+    //             ENTITY_NAME,
+    //             "idnotfound"
+    //         );
+    //     }
+
+    //     Optional<SapOitm> result = sapOitmService.partialUpdate(sapOitm);
+
+    //     return ResponseUtil.wrapOrNotFound(
+    //         result,
+    //         HeaderUtil.createEntityUpdateAlert(
+    //             applicationName,
+    //             false,
+    //             ENTITY_NAME,
+    //             sapOitm.getId().toString()
+    //         )
+    //     );
+    // }
 
     /**
-     * {@code PUT  /sap-oitms/:id} : Updates an existing sapOitm.
+     * {@code GET  /sap-oitms} : get all the sapOitms.
      *
-     * @param id the id of the sapOitm to save.
-     * @param sapOitm the sapOitm to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated sapOitm,
-     * or with status {@code 400 (Bad Request)} if the sapOitm is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the sapOitm couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of sapOitms in body.
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<SapOitm> updateSapOitm(
-        @PathVariable(value = "id", required = false) final Long id,
-        @Valid @RequestBody SapOitm sapOitm
-    ) throws URISyntaxException {
-        LOG.debug("REST request to update SapOitm : {}, {}", id, sapOitm);
-        if (sapOitm.getId() == null) {
-            throw new BadRequestAlertException(
-                "Invalid id",
-                ENTITY_NAME,
-                "idnull"
-            );
-        }
-        if (!Objects.equals(id, sapOitm.getId())) {
-            throw new BadRequestAlertException(
-                "Invalid ID",
-                ENTITY_NAME,
-                "idinvalid"
-            );
-        }
-
-        if (!sapOitmRepository.existsById(id)) {
-            throw new BadRequestAlertException(
-                "Entity not found",
-                ENTITY_NAME,
-                "idnotfound"
-            );
-        }
-
-        sapOitm = sapOitmService.update(sapOitm);
-        return ResponseEntity.ok()
-            .headers(
-                HeaderUtil.createEntityUpdateAlert(
-                    applicationName,
-                    false,
-                    ENTITY_NAME,
-                    sapOitm.getId().toString()
-                )
-            )
-            .body(sapOitm);
-    }
-
-    /**
-     * {@code PATCH  /sap-oitms/:id} : Partial updates given fields of an existing sapOitm, field will ignore if it is null
-     *
-     * @param id the id of the sapOitm to save.
-     * @param sapOitm the sapOitm to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated sapOitm,
-     * or with status {@code 400 (Bad Request)} if the sapOitm is not valid,
-     * or with status {@code 404 (Not Found)} if the sapOitm is not found,
-     * or with status {@code 500 (Internal Server Error)} if the sapOitm couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
-    @PatchMapping(
-        value = "/{id}",
-        consumes = { "application/json", "application/merge-patch+json" }
-    )
-    public ResponseEntity<SapOitm> partialUpdateSapOitm(
-        @PathVariable(value = "id", required = false) final Long id,
-        @NotNull @RequestBody SapOitm sapOitm
-    ) throws URISyntaxException {
-        LOG.debug(
-            "REST request to partial update SapOitm partially : {}, {}",
-            id,
-            sapOitm
-        );
-        if (sapOitm.getId() == null) {
-            throw new BadRequestAlertException(
-                "Invalid id",
-                ENTITY_NAME,
-                "idnull"
-            );
-        }
-        if (!Objects.equals(id, sapOitm.getId())) {
-            throw new BadRequestAlertException(
-                "Invalid ID",
-                ENTITY_NAME,
-                "idinvalid"
-            );
-        }
-
-        if (!sapOitmRepository.existsById(id)) {
-            throw new BadRequestAlertException(
-                "Entity not found",
-                ENTITY_NAME,
-                "idnotfound"
-            );
-        }
-
-        Optional<SapOitm> result = sapOitmService.partialUpdate(sapOitm);
-
-        return ResponseUtil.wrapOrNotFound(
-            result,
-            HeaderUtil.createEntityUpdateAlert(
-                applicationName,
-                false,
-                ENTITY_NAME,
-                sapOitm.getId().toString()
-            )
-        );
+    @GetMapping("/itemCode/{itemCode}")
+    public List<SapOitm> getSapOitmsByItemCode(
+        @PathVariable("itemCode") String itemCode
+    ) {
+        LOG.debug("REST request to get SapOitms by itemCode: {}", itemCode);
+        return sapOitmService.findByItemCode(itemCode);
     }
 
     /**
@@ -217,25 +230,25 @@ public class SapOitmResource {
         return ResponseUtil.wrapOrNotFound(sapOitm);
     }
 
-    /**
-     * {@code DELETE  /sap-oitms/:id} : delete the "id" sapOitm.
-     *
-     * @param id the id of the sapOitm to delete.
-     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSapOitm(@PathVariable("id") Long id) {
-        LOG.debug("REST request to delete SapOitm : {}", id);
-        sapOitmService.delete(id);
-        return ResponseEntity.noContent()
-            .headers(
-                HeaderUtil.createEntityDeletionAlert(
-                    applicationName,
-                    false,
-                    ENTITY_NAME,
-                    id.toString()
-                )
-            )
-            .build();
-    }
+    //     /**
+    //      * {@code DELETE  /sap-oitms/:id} : delete the "id" sapOitm.
+    //      *
+    //      * @param id the id of the sapOitm to delete.
+    //      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
+    //      */
+    //     @DeleteMapping("/{id}")
+    //     public ResponseEntity<Void> deleteSapOitm(@PathVariable("id") Long id) {
+    //         LOG.debug("REST request to delete SapOitm : {}", id);
+    //         sapOitmService.delete(id);
+    //         return ResponseEntity.noContent()
+    //             .headers(
+    //                 HeaderUtil.createEntityDeletionAlert(
+    //                     applicationName,
+    //                     false,
+    //                     ENTITY_NAME,
+    //                     id.toString()
+    //                 )
+    //             )
+    //             .build();
+    //     }
 }

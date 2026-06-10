@@ -661,11 +661,12 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             poDetail.setSapCode(sapCode); // POR1_ItemCode
             poDetail.setSapName(info.getPor1Dscription()); // POR1_Dscription
 
-            // Fetch partNumber from SAP_OITM
-            Optional<com.mycompany.myapp.domain.partner4.SapOitm> sapOitm =
+            List<com.mycompany.myapp.domain.partner4.SapOitm> sapOitmList =
                 sapOitmRepository.findByItemCode(sapCode);
-            if (sapOitm.isPresent()) {
-                poDetail.setPartNumber(sapOitm.get().getuPartNumber());
+            if (!sapOitmList.isEmpty()) {
+                com.mycompany.myapp.domain.partner4.SapOitm sapOitm =
+                    sapOitmList.get(0);
+                poDetail.setPartNumber(sapOitm.getuPartNumber());
             }
 
             if (
@@ -691,8 +692,8 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             detailDTO.setSapName(info.getPor1Dscription());
 
             // Set partNumber in DTO
-            if (sapOitm.isPresent()) {
-                detailDTO.setPartNumber(sapOitm.get().getuPartNumber());
+            if (!sapOitmList.isEmpty()) {
+                detailDTO.setPartNumber(sapOitmList.get(0).getuPartNumber());
             }
 
             if (
@@ -825,11 +826,12 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             poDetail.setSapCode(sapCode);
             poDetail.setSapName(info.getPor1Dscription());
 
-            // Fetch partNumber from SAP_OITM
-            Optional<com.mycompany.myapp.domain.partner4.SapOitm> sapOitm =
+            List<com.mycompany.myapp.domain.partner4.SapOitm> sapOitmList =
                 sapOitmRepository.findByItemCode(sapCode);
-            if (sapOitm.isPresent()) {
-                poDetail.setPartNumber(sapOitm.get().getuPartNumber());
+            if (!sapOitmList.isEmpty()) {
+                com.mycompany.myapp.domain.partner4.SapOitm sapOitm =
+                    sapOitmList.get(0);
+                poDetail.setPartNumber(sapOitm.getuPartNumber());
             }
 
             if (
@@ -854,8 +856,8 @@ public class PoImportTemServiceImpl implements PoImportTemService {
             detailDTO.setId(savedPoDetail.getId());
             detailDTO.setSapCode(sapCode);
             detailDTO.setSapName(info.getPor1Dscription());
-            if (sapOitm.isPresent()) {
-                detailDTO.setPartNumber(sapOitm.get().getuPartNumber());
+            if (!sapOitmList.isEmpty()) {
+                detailDTO.setPartNumber(sapOitmList.get(0).getuPartNumber());
             }
             if (
                 info.getPor1Quantity() != null &&

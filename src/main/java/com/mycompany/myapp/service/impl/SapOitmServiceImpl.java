@@ -79,6 +79,13 @@ public class SapOitmServiceImpl implements SapOitmService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SapOitm> findByItemCode(String itemCode) {
+        LOG.debug("Request to get SapOitms by itemCode: {}", itemCode);
+        return sapOitmRepository.findByItemCode(itemCode);
+    }
+
+    @Override
     public void delete(Long id) {
         LOG.debug("Request to delete SapOitm : {}", id);
         sapOitmRepository.deleteById(id);

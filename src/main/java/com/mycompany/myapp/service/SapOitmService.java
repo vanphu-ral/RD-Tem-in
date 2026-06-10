@@ -40,6 +40,14 @@ public interface SapOitmService {
     List<SapOitm> findAll();
 
     /**
+     * Find sapOitms by item code.
+     *
+     * @param itemCode the item code to search for.
+     * @return the list of entities.
+     */
+    List<SapOitm> findByItemCode(String itemCode);
+
+    /**
      * Get the "id" sapOitm.
      *
      * @param id the id of the entity.
