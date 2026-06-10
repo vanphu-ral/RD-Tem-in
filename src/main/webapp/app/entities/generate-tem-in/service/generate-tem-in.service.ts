@@ -516,12 +516,10 @@ export class GenerateTemInService {
     products: ExcelImportData[],
     syncOptions?: RequestProductSyncOptions,
   ): Observable<ListProductOfRequest[]> {
-    if (syncOptions?.rows?.length) {
-      return this.syncRequestProducts(
-        requestId,
-        syncOptions.rows,
-        syncOptions.deletedProductIds ?? [],
-      );
+    const syncRows = syncOptions?.rows ?? [];
+    const deletedIds = syncOptions?.deletedProductIds ?? [];
+    if (syncRows.length || deletedIds.length) {
+      return this.syncRequestProducts(requestId, syncRows, deletedIds);
     }
 
     const productInputs = this.mapExcelDataToCreateInputs(products);
@@ -852,6 +850,7 @@ export class GenerateTemInService {
         input: {
           id: Number(product.id),
           sapCode: product.sapCode,
+          productName: product.productName,
           requestCreateTemId: product.requestCreateTemId,
           partNumber: product.partNumber,
           lot: product.lot,
@@ -946,7 +945,19 @@ export class GenerateTemInService {
     ];
     const newItems = syncRows.filter((r) => !r.productId).map((r) => r.item);
     const deleteStep$ = toDelete.length
-      ? forkJoin(toDelete.map((id) => this.deleteReqById(id)))
+      ? forkJoin(
+          toDelete.map((id) =>
+            this.deleteReqById(id).pipe(
+              map((body) => {
+                if (!body?.success) {
+                  throw new Error(
+                    body?.message ?? `Xóa sản phẩm #${id} thất bại`,
+                  );
+                }
+              }),
+            ),
+          ),
+        )
       : of([]);
 
     return deleteStep$.pipe(
@@ -1088,6 +1099,7 @@ export class GenerateTemInService {
       id: productId,
       requestCreateTemId: requestId,
       sapCode: item.sapCode.trim(),
+      productName: item.tenSP.trim(),
       partNumber: item.partNumber.trim(),
       lot: item.lot.trim(),
       temQuantity: item.temQuantity,

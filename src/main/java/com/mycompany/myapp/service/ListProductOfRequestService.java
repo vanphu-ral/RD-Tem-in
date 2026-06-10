@@ -58,6 +58,9 @@ public class ListProductOfRequestService {
         ListProductOfRequest entity = optional.get();
 
         entity.setSapCode(input.getSapCode());
+        if (input.getProductName() != null) {
+            entity.setProductName(input.getProductName());
+        }
         entity.setPartNumber(input.getPartNumber());
         entity.setRequestCreateTemId(input.getRequestCreateTemId());
         entity.setTemQuantity(input.getTemQuantity());

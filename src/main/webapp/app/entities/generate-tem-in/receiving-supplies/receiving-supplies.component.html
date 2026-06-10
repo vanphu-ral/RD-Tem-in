@@ -216,7 +216,9 @@
           <colgroup>
             <col class="col-stt" />
             <col class="col-sap" />
+            <!-- Tạm ẩn cột trạng thái đối chiếu PO (chưa lưu DB)
             <col class="col-reconcile" />
+            -->
             <col class="col-item" />
             <col class="col-part" />
             <col class="col-location" />
@@ -233,7 +235,9 @@
             <tr>
               <th class="cell-stt">STT</th>
               <th>MÃ SAP</th>
+              <!-- Tạm ẩn cột trạng thái đối chiếu PO (chưa lưu DB)
               <th class="col-reconcile-th">ĐC PO</th>
+              -->
               <th>
                 <div class="header-filter">
                   <span>TÊN VẬT TƯ</span>
@@ -309,16 +313,15 @@
                     <span class="cell-text">{{ row.sapCode }}</span>
                   </div>
                 </td>
+                <!-- Tạm ẩn cột trạng thái đối chiếu PO (chưa lưu DB)
                 <td class="cell-reconcile">
-                  <span
-                    class="reconcile-badge"
-                    [class.is-passed]="row.reconcileStatus === 'passed'"
+                  <span class="reconcile-badge" [class.is-passed]="row.reconcileStatus === 'passed'"
                     [class.is-failed]="row.reconcileStatus === 'failed'"
-                    [class.is-pending]="row.reconcileStatus === 'pending'"
-                  >
+                    [class.is-pending]="row.reconcileStatus === 'pending'">
                     {{ getReconcileStatusLabel(row.reconcileStatus) }}
                   </span>
                 </td>
+                -->
                 <td class="td-input">
                   <input
                     class="grid-input"
@@ -386,6 +389,7 @@
                       mat-raised-button
                       class="btn-sm btn-sap"
                       (click)="onSendSap(row)"
+                      [disabled]="!canSendSapParent(row) || isSendingSap"
                     >
                       SAP (all)
                     </button>
@@ -393,8 +397,10 @@
                       mat-icon-button
                       type="button"
                       class="btn-parent-action"
-                      matTooltip="Xóa tất cả lô"
+                      matTooltip="Đã tạo tem — không thể xóa"
+                      [matTooltipDisabled]="canRemoveParent(row)"
                       (click)="onRemoveParent(row)"
+                      [disabled]="!canRemoveParent(row)"
                     >
                       <mat-icon>delete</mat-icon>
                     </button>
@@ -436,7 +442,9 @@
                       <span *ngIf="lot.lotLabel">{{ lot.lotLabel }}</span>
                     </div>
                   </td>
+                  <!-- Tạm ẩn cột trạng thái đối chiếu PO (chưa lưu DB)
                   <td class="cell-reconcile"></td>
+                  -->
                   <td class="cell-text" [title]="row.itemName">
                     {{ row.itemName }}
                   </td>
@@ -520,25 +528,30 @@
                     <input class="grid-input" [(ngModel)]="lot.note" />
                   </td>
                   <td class="td-actions">
-                    <div class="lot-action-cell">
+                    <div class="lot-action-cell action-buttons">
                       <button
-                        mat-stroked-button
-                        class="btn-sm btn-sap"
+                        mat-raised-button
+                        class="btn-lot-action btn-sap"
                         (click)="onSendSapLot(row, lot)"
+                        [disabled]="!canSendSapLot(row, lot)"
                       >
-                        Gửi SAP
+                        {{ getSapLotButtonLabel(lot) }}
                       </button>
                       <button
                         mat-icon-button
-                        class="btn-icon-sm"
-                        matTooltip="Xóa"
+                        color="warn"
+                        class="btn-lot-icon"
+                        matTooltip="Đã tạo tem — không thể xóa"
+                        [matTooltipDisabled]="canRemoveLot(row, lot)"
                         (click)="removeLot(row, lot)"
+                        [disabled]="!canRemoveLot(row, lot)"
                       >
                         <mat-icon>delete</mat-icon>
                       </button>
                       <button
                         mat-icon-button
-                        class="btn-icon-sm"
+                        color="primary"
+                        class="btn-lot-icon"
                         matTooltip="In"
                         (click)="onPrintLot(row, lot)"
                       >
@@ -546,7 +559,7 @@
                       </button>
                       <button
                         mat-icon-button
-                        class="btn-icon-sm"
+                        class="btn-lot-icon"
                         matTooltip="Gửi CSV"
                         (click)="onExportCsvLot(row, lot)"
                       >
@@ -554,7 +567,8 @@
                       </button>
                       <button
                         mat-icon-button
-                        class="btn-icon-sm"
+                        color="primary"
+                        class="btn-lot-icon"
                         matTooltip="Xem chi tiết"
                         (click)="onViewLotDetail(row, lot)"
                       >
@@ -616,7 +630,12 @@
         <mat-icon>check</mat-icon>
         Xác nhận hoàn tất
       </button>
-      <button mat-raised-button class="btn-sap-all" (click)="onSendSap()">
+      <button
+        mat-raised-button
+        class="btn-sap-all"
+        (click)="onSendSap()"
+        [disabled]="!canSendSapAll() || isSendingSap"
+      >
         Gửi SAP
       </button>
     </div>

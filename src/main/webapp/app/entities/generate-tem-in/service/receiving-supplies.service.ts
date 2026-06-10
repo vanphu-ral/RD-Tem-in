@@ -123,6 +123,23 @@ export interface PoReconcileResponse {
   rowResults?: PoReconcileRowResult[];
 }
 
+export interface GoodsReceiptPoLine {
+  Vendor: string;
+  DocEntry: number;
+  ItemCode: string;
+  Quantity: number;
+  LotNum: string;
+  ReelID: string;
+  PartNumber: string;
+  ExpirationDate: string;
+  ManufacturingDate: string;
+  StorageUnit: string;
+}
+
+export interface GoodsReceiptPoPayload {
+  OPDN: GoodsReceiptPoLine[];
+}
+
 export interface SapOcrd {
   id: number;
   cardCode: string;
@@ -141,11 +158,13 @@ export interface SapOcrd {
 })
 export class ReceivingSuppliesService {
   private baseUrl = this.applicationConfigService.getEndpointFor("api");
+  private postGoodsReceiptPoUrl =
+    "http://192.168.68.3:8082/api/PostGoodsReceiptPO";
   private itemDataUrl =
     this.applicationConfigService.getEndpointFor("/api/item-data");
-  private sapOitmUrl = `http://192.168.10.99:8085/api/sap-oitms`;
-  // private sapOitmUrl =
-  //   this.applicationConfigService.getEndpointFor("/api/sap-oitms");
+  // private sapOitmUrl = `http://192.168.10.99:8085/api/sap-oitms`;
+  private sapOitmUrl =
+    this.applicationConfigService.getEndpointFor("/api/sap-oitms");
   private isWarehouseInitDone = false;
   private isFetchingWarehouses = false;
 
@@ -243,6 +262,11 @@ export class ReceivingSuppliesService {
     return this.getItemDataByItemCode(itemCode).pipe(
       map((data) => data?.itemName ?? ""),
     );
+  }
+
+  /** POST nhập kho SAP theo PO. */
+  postGoodsReceiptPo(payload: GoodsReceiptPoPayload): Observable<unknown> {
+    return this.http.post(this.postGoodsReceiptPoUrl, payload);
   }
 
   /** GET /api/sap-po-info/{oporDocEntry} */

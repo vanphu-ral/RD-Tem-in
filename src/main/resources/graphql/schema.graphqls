@@ -135,6 +135,7 @@ type UpdateResponse {
 input UpdateProductInput {
     id: ID!
     sapCode: String
+    productName: String
     partNumber: String
     requestCreateTemId: Int
     temQuantity: Int
