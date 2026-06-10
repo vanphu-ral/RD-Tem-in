@@ -54,6 +54,12 @@ public class InfoTemDetailService {
             int totalTems = 0;
 
             for (ListProductOfRequest product : allProducts) {
+                List<InfoTemDetail> existingTems =
+                    detailRepo.findByProductOfRequestId(product.getId());
+                if (!existingTems.isEmpty()) {
+                    continue;
+                }
+
                 //  VALIDATE dữ liệu sản phẩm
                 if (
                     product.getTemQuantity() == null ||
@@ -187,6 +193,14 @@ public class InfoTemDetailService {
                     reelCounter++;
                     totalTems++;
                 }
+            }
+
+            if (totalTems == 0) {
+                return new GenerateTemResponse(
+                    false,
+                    "Không có sản phẩm mới cần tạo tem (tất cả đã có tem).",
+                    0
+                );
             }
 
             if (!allTemList.isEmpty()) {

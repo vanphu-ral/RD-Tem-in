@@ -207,6 +207,56 @@ public class GraphQLConfiguration {
                         Map<String, Object> inputMap = env.getArgument("input");
                         return requestResolver.updateProductOfRequest(inputMap);
                     })
+                    .dataFetcher("createProduct", env -> {
+                        try {
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, Object> inputMap =
+                                env.getArgument("input");
+                            CreateProductInput input = convertProductMap(
+                                inputMap
+                            );
+                            com.mycompany.renderQr.domain.ListProductOfRequest created =
+                                productResolver.createProduct(input);
+                            if (created == null) {
+                                throw new IllegalStateException(
+                                    "createProduct returned null"
+                                );
+                            }
+                            return created;
+                        } catch (Exception e) {
+                            log.error("createProduct failed", e);
+                            throw new RuntimeException(
+                                "createProduct failed: " + e.getMessage(),
+                                e
+                            );
+                        }
+                    })
+                    .dataFetcher("createProductsBatch", env -> {
+                        Integer requestId = env.getArgument("requestId");
+                        @SuppressWarnings("unchecked")
+                        java.util.List<
+                            java.util.Map<String, Object>
+                        > productsMap = env.getArgument("products");
+                        java.util.List<CreateProductInput> products =
+                            convertProductsList(productsMap);
+                        return productResolver.createProductsBatch(
+                            requestId,
+                            products
+                        );
+                    })
+                    .dataFetcher("updateRequestProducts", env -> {
+                        Integer requestId = env.getArgument("requestId");
+                        @SuppressWarnings("unchecked")
+                        java.util.List<
+                            java.util.Map<String, Object>
+                        > productsMap = env.getArgument("products");
+                        java.util.List<CreateProductInput> products =
+                            convertProductsList(productsMap);
+                        return productResolver.updateRequestProducts(
+                            requestId,
+                            products
+                        );
+                    })
             )
             .build();
 
@@ -240,57 +290,67 @@ public class GraphQLConfiguration {
             (java.util.List<java.util.Map<String, Object>>) inputMap.get(
                 "products"
             );
+
+        input.setProducts(convertProductsList(productsMap));
+        return input;
+    }
+
+    private CreateProductInput convertProductMap(
+        java.util.Map<String, Object> productMap
+    ) {
+        java.util.List<CreateProductInput> products = convertProductsList(
+            java.util.List.of(productMap)
+        );
+        if (products.isEmpty()) {
+            throw new IllegalArgumentException("Product input is empty");
+        }
+        return products.get(0);
+    }
+
+    private java.util.List<CreateProductInput> convertProductsList(
+        java.util.List<java.util.Map<String, Object>> productsMap
+    ) {
         java.util.List<CreateProductInput> products =
             new java.util.ArrayList<>();
-
-        if (productsMap != null) {
-            for (java.util.Map<String, Object> productMap : productsMap) {
-                CreateProductInput productInput = new CreateProductInput();
-
-                productInput.setRequestCreateTemId(
-                    (Integer) productMap.get("requestCreateTemId")
-                );
-                productInput.setProductName(
-                    (String) productMap.get("productName")
-                );
-                productInput.setSapCode((String) productMap.get("sapCode"));
-                productInput.setTemQuantity(
-                    (Integer) productMap.get("temQuantity")
-                );
-                productInput.setPartNumber(
-                    (String) productMap.get("partNumber")
-                );
-                productInput.setLot((String) productMap.get("lot"));
-                productInput.setInitialQuantity(
-                    (Integer) productMap.get("initialQuantity")
-                );
-                productInput.setVendor((String) productMap.get("vendor"));
-                productInput.setVendorName(
-                    (String) productMap.get("vendorName")
-                );
-                productInput.setUserData1((String) productMap.get("userData1"));
-                productInput.setUserData2((String) productMap.get("userData2"));
-                productInput.setUserData3((String) productMap.get("userData3"));
-                productInput.setUserData4((String) productMap.get("userData4"));
-                productInput.setUserData5((String) productMap.get("userData5"));
-                productInput.setStorageUnit(
-                    (String) productMap.get("storageUnit")
-                );
-                productInput.setExpirationDate(
-                    (String) productMap.get("expirationDate")
-                );
-                productInput.setManufacturingDate(
-                    (String) productMap.get("manufacturingDate")
-                );
-                productInput.setArrivalDate(
-                    (String) productMap.get("arrivalDate")
-                );
-
-                products.add(productInput);
-            }
+        if (productsMap == null) {
+            return products;
         }
 
-        input.setProducts(products);
-        return input;
+        for (java.util.Map<String, Object> productMap : productsMap) {
+            CreateProductInput productInput = new CreateProductInput();
+
+            productInput.setRequestCreateTemId(
+                (Integer) productMap.get("requestCreateTemId")
+            );
+            productInput.setProductName((String) productMap.get("productName"));
+            productInput.setSapCode((String) productMap.get("sapCode"));
+            productInput.setTemQuantity(
+                (Integer) productMap.get("temQuantity")
+            );
+            productInput.setPartNumber((String) productMap.get("partNumber"));
+            productInput.setLot((String) productMap.get("lot"));
+            productInput.setInitialQuantity(
+                (Integer) productMap.get("initialQuantity")
+            );
+            productInput.setVendor((String) productMap.get("vendor"));
+            productInput.setVendorName((String) productMap.get("vendorName"));
+            productInput.setUserData1((String) productMap.get("userData1"));
+            productInput.setUserData2((String) productMap.get("userData2"));
+            productInput.setUserData3((String) productMap.get("userData3"));
+            productInput.setUserData4((String) productMap.get("userData4"));
+            productInput.setUserData5((String) productMap.get("userData5"));
+            productInput.setStorageUnit((String) productMap.get("storageUnit"));
+            productInput.setExpirationDate(
+                (String) productMap.get("expirationDate")
+            );
+            productInput.setManufacturingDate(
+                (String) productMap.get("manufacturingDate")
+            );
+            productInput.setArrivalDate((String) productMap.get("arrivalDate"));
+
+            products.add(productInput);
+        }
+
+        return products;
     }
 }

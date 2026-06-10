@@ -31,6 +31,7 @@ import { GenerateTemInConfirmDialogComponent } from "./generate-tem-in-modal-con
 import { MatCardModule } from "@angular/material/card";
 import { MatExpansionModule } from "@angular/material/expansion";
 import { EditProductDialogComponent } from "./detail/edit-product-dialog.component";
+import { ReceivingSuppliesComponent } from "./receiving-supplies/receiving-supplies.component";
 // import { ApolloModule } from 'apollo-angular';
 // import { HttpClientModule } from '@angular/common/http';
 import { MatDialogModule } from "@angular/material/dialog";
@@ -84,6 +85,7 @@ import { MatDividerModule } from "@angular/material/divider";
     GenerateTemInImportEditDialogComponent,
     SaveConfirmationDialogComponent,
     EditProductDialogComponent,
+    ReceivingSuppliesComponent,
   ],
 
   exports: [

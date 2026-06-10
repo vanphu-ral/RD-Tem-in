@@ -1,7 +1,19 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Apollo, gql, QueryRef } from "apollo-angular";
-import { Observable, map } from "rxjs";
+import {
+  catchError,
+  concatMap,
+  forkJoin,
+  from,
+  last,
+  map,
+  Observable,
+  of,
+  switchMap,
+  take,
+  throwError,
+} from "rxjs";
 import {
   ListRequestCreateTem,
   ListRequestCreateTemRequest,
@@ -19,6 +31,17 @@ import {
 export interface UpdateResponse {
   success: boolean;
   message: string;
+}
+
+export interface RequestProductSyncRow {
+  productId?: number;
+  item: ExcelImportData;
+}
+
+export interface RequestProductSyncOptions {
+  rows: RequestProductSyncRow[];
+  /** Chỉ xóa khi user bấm xóa lô/vật tư trên bảng — không tự xóa khi thêm lô. */
+  deletedProductIds?: number[];
 }
 
 // @Injectable({
@@ -491,88 +514,61 @@ export class GenerateTemInService {
   updateRequestProducts(
     requestId: number,
     products: ExcelImportData[],
+    syncOptions?: RequestProductSyncOptions,
   ): Observable<ListProductOfRequest[]> {
-    // Convert ExcelImportData to CreateProductInput format with validation
-    const productInputs = products.map((item, index) => {
-      // Validate required fields
-      if (!item.sapCode || item.sapCode.trim() === "") {
-        throw new Error(`Row ${index + 1}: SAP Code is required`);
-      }
-      if (!item.partNumber || item.partNumber.trim() === "") {
-        throw new Error(`Row ${index + 1}: Part Number is required`);
-      }
-      if (!item.lot || item.lot.trim() === "") {
-        throw new Error(`Row ${index + 1}: LOT is required`);
-      }
-      if (!item.vendor || item.vendor.trim() === "") {
-        throw new Error(`Row ${index + 1}: Vendor is required`);
-      }
-      if (!item.tenNCC || item.tenNCC.trim() === "") {
-        throw new Error(`Row ${index + 1}: Vendor name is required`);
-      }
-      if (!item.temQuantity || item.temQuantity <= 0) {
-        throw new Error(
-          `Row ${index + 1}: Tem Quantity must be greater than 0`,
-        );
-      }
-      if (!item.initialQuantity || item.initialQuantity <= 0) {
-        throw new Error(
-          `Row ${index + 1}: Initial Quantity must be greater than 0`,
-        );
-      }
-      if (!item.expirationDate || item.expirationDate.trim() === "") {
-        throw new Error(`Row ${index + 1}: Expiration Date is required`);
-      }
-      if (!item.manufacturingDate || item.manufacturingDate.trim() === "") {
-        throw new Error(`Row ${index + 1}: Manufacturing Date is required`);
-      }
-      if (!item.arrivalDate || item.arrivalDate.trim() === "") {
-        throw new Error(`Row ${index + 1}: Arrival Date is required`);
-      }
-      const formattedExpirationDate = this.formatDateFromExcel(
-        item.expirationDate,
-      );
-      const formattedManufacturingDate = this.formatDateFromExcel(
-        item.manufacturingDate,
-      );
-      const formattedArrivalDate = this.formatDateFromExcel(item.arrivalDate);
-      return {
-        sapCode: item.sapCode.trim(),
-        productName: item.tenSP?.trim() ?? "",
-        temQuantity: item.temQuantity,
-        partNumber: item.partNumber.trim(),
-        lot: item.lot.trim(),
-        initialQuantity: item.initialQuantity,
-        vendor: item.vendor.trim(),
-        vendorName: item.tenNCC.trim(),
-        userData1: item.userData1 ?? "",
-        userData2: item.userData2 ?? "",
-        userData3: item.userData3 ?? "",
-        userData4: item.userData4 ?? "",
-        userData5: item.userData5 ?? "",
-        storageUnit: item.storageUnit ?? "",
-        expirationDate: formattedExpirationDate,
-        manufacturingDate: formattedManufacturingDate,
-        arrivalDate: formattedArrivalDate,
-      };
-    });
+    const syncRows = syncOptions?.rows ?? [];
+    const deletedIds = syncOptions?.deletedProductIds ?? [];
+    if (syncRows.length || deletedIds.length) {
+      return this.syncRequestProducts(requestId, syncRows, deletedIds);
+    }
 
+    const productInputs = this.mapExcelDataToCreateInputs(products);
     return this.apollo
       .mutate<{ updateRequestProducts: ListProductOfRequest[] }>({
         mutation: UPDATE_REQUEST_PRODUCTS_MUTATION,
-        variables: {
-          requestId: requestId,
-          products: productInputs,
-        },
+        variables: { requestId, products: productInputs },
       })
       .pipe(
         map((result) => {
-          if (!result.data || !result.data.updateRequestProducts) {
+          if (!result.data?.updateRequestProducts) {
             throw new Error("No data returned from server");
           }
           return result.data.updateRequestProducts;
         }),
       );
+  }
+
+  /**
+   * Cập nhật từng sản phẩm đã lưu trước khi tạo mã — dùng mutation có sẵn trên server.
+   */
+  syncSavedProductsForGenerate(
+    requestId: number,
+    updates: Array<{ productId: number; item: ExcelImportData }>,
+  ): Observable<void> {
+    if (!updates.length) {
+      return throwError(
+        () => new Error("Không có sản phẩm để cập nhật trước khi tạo mã."),
+      );
+    }
+
+    const calls = updates.map(({ productId, item }) =>
+      this.updateProductOfRequest(
+        this.buildUpdateProductPayload(productId, requestId, item),
+      ).pipe(
+        map((res) => {
+          const body = res.data?.updateProductOfRequest as
+            | UpdateResponse
+            | undefined;
+          if (!body?.success) {
+            throw new Error(
+              body?.message ?? `Cập nhật sản phẩm #${productId} thất bại`,
+            );
+          }
+        }),
+      ),
+    );
+
+    return forkJoin(calls).pipe(map(() => undefined));
   }
 
   importProductsFromExcel(
@@ -828,14 +824,12 @@ export class GenerateTemInService {
     `;
 
     return this.apollo
-      .watchQuery<{ infoTemDetailsByRequestId: TemDetail[] }>({
+      .query<{ infoTemDetailsByRequestId: TemDetail[] }>({
         query: GET_ALL_TEM_DETAILS,
         variables: { requestId },
         fetchPolicy: "network-only",
       })
-      .valueChanges.pipe(
-        map((result) => result.data.infoTemDetailsByRequestId),
-      );
+      .pipe(map((result) => result.data?.infoTemDetailsByRequestId ?? []));
   }
   /**
    * Query: Chỉnh sửa bảng list_product_of_request
@@ -856,6 +850,7 @@ export class GenerateTemInService {
         input: {
           id: Number(product.id),
           sapCode: product.sapCode,
+          productName: product.productName,
           requestCreateTemId: product.requestCreateTemId,
           partNumber: product.partNumber,
           lot: product.lot,
@@ -936,7 +931,266 @@ export class GenerateTemInService {
       },
     });
   }
-  // Thêm hàm helper vào component hoặc service
+  /**
+   * Lưu đơn receiving: cập nhật lô đã có, tạo lô mới.
+   * Chỉ xóa DB khi user đã bấm xóa lô trên bảng (deletedProductIds).
+   */
+  private syncRequestProducts(
+    requestId: number,
+    syncRows: RequestProductSyncRow[],
+    deletedProductIds: number[],
+  ): Observable<ListProductOfRequest[]> {
+    const toDelete = [
+      ...new Set(deletedProductIds.filter((id) => !Number.isNaN(id) && id > 0)),
+    ];
+    const newItems = syncRows.filter((r) => !r.productId).map((r) => r.item);
+    const deleteStep$ = toDelete.length
+      ? forkJoin(
+          toDelete.map((id) =>
+            this.deleteReqById(id).pipe(
+              map((body) => {
+                if (!body?.success) {
+                  throw new Error(
+                    body?.message ?? `Xóa sản phẩm #${id} thất bại`,
+                  );
+                }
+              }),
+            ),
+          ),
+        )
+      : of([]);
+
+    return deleteStep$.pipe(
+      switchMap(() => {
+        const updateOps = syncRows
+          .filter((r) => r.productId)
+          .map((r) =>
+            this.updateProductOfRequest(
+              this.buildUpdateProductPayload(r.productId!, requestId, r.item),
+            ).pipe(
+              map((res) => {
+                this.assertGraphQlMutationSuccess(
+                  res,
+                  "updateProductOfRequest",
+                );
+                const body = res.data?.updateProductOfRequest as
+                  | UpdateResponse
+                  | undefined;
+                if (!body?.success) {
+                  throw new Error(
+                    body?.message ??
+                      `Cập nhật sản phẩm #${r.productId} thất bại`,
+                  );
+                }
+              }),
+            ),
+          );
+        const updateStep$ = updateOps.length ? forkJoin(updateOps) : of([]);
+
+        return updateStep$.pipe(
+          switchMap(() => {
+            if (!newItems.length) {
+              return of(null);
+            }
+            return from(newItems).pipe(
+              concatMap((item) =>
+                this.createProductForRequest(requestId, item),
+              ),
+              last(),
+            );
+          }),
+          switchMap(() => this.getProductsByRequestId(requestId).pipe(take(1))),
+        );
+      }),
+      catchError((err: unknown) =>
+        throwError(() => {
+          const base = this.resolveMutationError(err);
+          if (newItems.length) {
+            return new Error(
+              `Tạo lô mới thất bại. Các lô cũ có thể đã được cập nhật trước đó. ${base}`,
+            );
+          }
+          return new Error(base);
+        }),
+      ),
+    );
+  }
+
+  /** Tạo một dòng sản phẩm mới — dùng createProduct (đã đăng ký trên BE). */
+  private createProductForRequest(
+    requestId: number,
+    item: ExcelImportData,
+  ): Observable<ListProductOfRequest> {
+    const [input] = this.mapExcelDataToCreateInputs([item]);
+    return this.apollo
+      .mutate<{ createProduct: ListProductOfRequest }>({
+        mutation: CREATE_PRODUCT_MUTATION,
+        variables: {
+          input: { ...input, requestCreateTemId: requestId },
+        },
+      })
+      .pipe(
+        map((result) => {
+          this.assertGraphQlMutationSuccess(result, "createProduct");
+          return result.data!.createProduct;
+        }),
+      );
+  }
+
+  private assertGraphQlMutationSuccess(
+    result: {
+      data?: Record<string, unknown> | null;
+      errors?: ReadonlyArray<{ message?: string }>;
+    },
+    field: string,
+  ): void {
+    if (result.errors?.length) {
+      throw new Error(this.formatGraphQlErrors(result.errors));
+    }
+    const payload = result.data?.[field];
+    if (payload == null) {
+      throw new Error(this.buildMissingMutationMessage(field));
+    }
+  }
+
+  private formatGraphQlErrors(
+    errors: ReadonlyArray<{ message?: string }>,
+  ): string {
+    return errors
+      .map((e) => e.message?.trim())
+      .filter((msg): msg is string => Boolean(msg))
+      .join(" ");
+  }
+
+  private buildMissingMutationMessage(field: string): string {
+    if (field === "createProduct") {
+      return (
+        "Không tạo được lô mới (createProduct trả về rỗng). " +
+        "Server GraphQL có thể chưa đăng ký mutation createProduct — cần deploy bản backend mới."
+      );
+    }
+    return `Mutation ${field} không trả về dữ liệu từ server.`;
+  }
+
+  private resolveMutationError(err: unknown): string {
+    if (err instanceof Error && err.message.trim()) {
+      const graphQlErrors = (
+        err as Error & {
+          graphQLErrors?: Array<{ message?: string }>;
+        }
+      ).graphQLErrors;
+      if (graphQlErrors?.length) {
+        const fromGraphQl = this.formatGraphQlErrors(graphQlErrors);
+        if (fromGraphQl) {
+          return fromGraphQl;
+        }
+      }
+      return err.message.trim();
+    }
+    return "Có lỗi xảy ra khi gọi API.";
+  }
+
+  private buildUpdateProductPayload(
+    productId: number,
+    requestId: number,
+    item: ExcelImportData,
+  ): Record<string, unknown> {
+    return {
+      id: productId,
+      requestCreateTemId: requestId,
+      sapCode: item.sapCode.trim(),
+      productName: item.tenSP.trim(),
+      partNumber: item.partNumber.trim(),
+      lot: item.lot.trim(),
+      temQuantity: item.temQuantity,
+      initialQuantity: item.initialQuantity,
+      vendor: item.vendor.trim(),
+      vendorName: item.tenNCC.trim(),
+      userData1: item.userData1 ?? "",
+      userData2: item.userData2 ?? "",
+      userData3: item.userData3 ?? "",
+      userData4: item.userData4 ?? "",
+      userData5: item.userData5 ?? "",
+      storageUnit: item.storageUnit ?? "",
+      expirationDate: this.formatDateForProductUpdate(item.expirationDate),
+      manufacturingDate: this.formatDateForProductUpdate(
+        item.manufacturingDate,
+      ),
+      arrivalDate: this.formatDateForProductUpdate(item.arrivalDate),
+      numberOfPrints: 0,
+    };
+  }
+
+  private mapExcelDataToCreateInputs(
+    products: ExcelImportData[],
+  ): Array<Record<string, unknown>> {
+    return products.map((item, index) => {
+      if (!item.sapCode?.trim()) {
+        throw new Error(`Row ${index + 1}: SAP Code is required`);
+      }
+      if (!item.partNumber?.trim()) {
+        throw new Error(`Row ${index + 1}: Part Number is required`);
+      }
+      if (!item.lot?.trim()) {
+        throw new Error(`Row ${index + 1}: LOT is required`);
+      }
+      if (!item.vendor?.trim()) {
+        throw new Error(`Row ${index + 1}: Vendor is required`);
+      }
+      if (!item.tenNCC?.trim()) {
+        throw new Error(`Row ${index + 1}: Vendor name is required`);
+      }
+      if (!item.temQuantity || item.temQuantity <= 0) {
+        throw new Error(
+          `Row ${index + 1}: Tem Quantity must be greater than 0`,
+        );
+      }
+      if (!item.initialQuantity || item.initialQuantity <= 0) {
+        throw new Error(
+          `Row ${index + 1}: Initial Quantity must be greater than 0`,
+        );
+      }
+      if (!item.expirationDate?.trim()) {
+        throw new Error(`Row ${index + 1}: Expiration Date is required`);
+      }
+      if (!item.manufacturingDate?.trim()) {
+        throw new Error(`Row ${index + 1}: Manufacturing Date is required`);
+      }
+      if (!item.arrivalDate?.trim()) {
+        throw new Error(`Row ${index + 1}: Arrival Date is required`);
+      }
+
+      return {
+        sapCode: item.sapCode.trim(),
+        productName: item.tenSP?.trim() ?? "",
+        temQuantity: item.temQuantity,
+        partNumber: item.partNumber.trim(),
+        lot: item.lot.trim(),
+        initialQuantity: item.initialQuantity,
+        vendor: item.vendor.trim(),
+        vendorName: item.tenNCC.trim(),
+        userData1: item.userData1 ?? "",
+        userData2: item.userData2 ?? "",
+        userData3: item.userData3 ?? "",
+        userData4: item.userData4 ?? "",
+        userData5: item.userData5 ?? "",
+        storageUnit: item.storageUnit ?? "",
+        expirationDate: this.formatDateFromExcel(item.expirationDate),
+        manufacturingDate: this.formatDateFromExcel(item.manufacturingDate),
+        arrivalDate: this.formatDateFromExcel(item.arrivalDate),
+      };
+    });
+  }
+
+  /** yyyy-MM-dd → yyyy-MM-ddT00:00:00 cho updateProductOfRequest. */
+  private formatDateForProductUpdate(dateStr: string): string {
+    const isoDate = this.formatDateFromExcel(dateStr);
+    if (!isoDate) {
+      return "";
+    }
+    return isoDate.includes("T") ? isoDate : `${isoDate}T00:00:00`;
+  }
+
   private formatDateFromExcel(dateStr: string): string {
     if (!dateStr || dateStr.trim() === "") {
       return "";

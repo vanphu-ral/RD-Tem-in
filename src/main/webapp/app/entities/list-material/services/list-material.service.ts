@@ -5,6 +5,7 @@ import {
   Subject,
   catchError,
   firstValueFrom,
+  forkJoin,
   map,
   of,
   retry,
@@ -54,6 +55,7 @@ export interface RawGraphQLMaterial {
 
   lotNumber: string;
   userData4: string;
+  itemName?: string;
   quantity: number;
   availableQuantity: number;
   calculatedStatus: string;
@@ -236,6 +238,11 @@ export interface APIDetailResponse {
   totalItems: number;
 }
 
+export interface ItemDataDto {
+  itemCode?: string;
+  itemName?: string;
+}
+
 @Injectable({
   providedIn: "root",
 })
@@ -350,6 +357,17 @@ export class ListMaterialService {
   private apiLocations =
     this.applicationConfigService.getEndpointFor("/api/location");
 
+  // private apiItemData = this.applicationConfigService.getEndpointFor(
+  //   "/api/item-data",
+  // );
+
+  // private apiItemData = "http://192.168.10.99:8085/api/item-data"
+  private apiItemData =
+    this.applicationConfigService.getEndpointFor("/api/sap-oitms");
+
+  /** Cache itemName theo mã vật tư (phần trước dấu '-' của userData4). */
+  private _itemNameCache = new Map<string, string>();
+
   private _materialsDataFetchedOnce = false;
   private readonly defaultPageSize = 20;
 
@@ -427,6 +445,67 @@ export class ListMaterialService {
   //     }),
   //   );
   // }
+  /** Lấy mã vật tư từ userData4 dạng "00088324-260204" → "00088324". */
+  extractItemCodeFromUserData4(
+    userData4: string | null | undefined,
+  ): string | null {
+    if (!userData4?.trim()) {
+      return null;
+    }
+    const code = userData4.trim().split("-")[0]?.trim();
+    return code || null;
+  }
+
+  getItemDataByItemCode(itemCode: string): Observable<ItemDataDto | null> {
+    return this.http
+      .get<ItemDataDto>(`${this.apiItemData}/${encodeURIComponent(itemCode)}`)
+      .pipe(catchError(() => of(null)));
+  }
+
+  /**
+   * Gắn itemName cho danh sách vật tư trang hiện tại.
+   * Chỉ gọi API cho mã chưa có trong cache; các mã trùng chỉ gọi 1 lần.
+   */
+  enrichMaterialsWithItemNames(
+    materials: RawGraphQLMaterial[],
+  ): Observable<RawGraphQLMaterial[]> {
+    if (!materials.length) {
+      return of([]);
+    }
+
+    const itemCodes = [
+      ...new Set(
+        materials
+          .map((m) => this.extractItemCodeFromUserData4(m.userData4))
+          .filter((code): code is string => !!code),
+      ),
+    ];
+
+    const uncachedCodes = itemCodes.filter(
+      (code) => !this._itemNameCache.has(code),
+    );
+
+    if (uncachedCodes.length === 0) {
+      return of(this.applyItemNamesToMaterials(materials));
+    }
+
+    return forkJoin(
+      uncachedCodes.map((code) =>
+        this.getItemDataByItemCode(code).pipe(
+          map((data) => {
+            const name = data?.itemName ?? "";
+            this._itemNameCache.set(code, name);
+            return name;
+          }),
+          catchError(() => {
+            this._itemNameCache.set(code, "");
+            return of("");
+          }),
+        ),
+      ),
+    ).pipe(map(() => this.applyItemNamesToMaterials(materials)));
+  }
+
   fetchDataSumary(apiUrl: string, body: any): Observable<APISumaryResponse> {
     // console.log(body, apiUrl);
     return this.http.post<APISumaryResponse>(apiUrl, body).pipe(
@@ -1330,6 +1409,18 @@ export class ListMaterialService {
     if (savedIds) {
       this._selectedIds.next(JSON.parse(savedIds));
     }
+  }
+
+  private applyItemNamesToMaterials(
+    materials: RawGraphQLMaterial[],
+  ): RawGraphQLMaterial[] {
+    return materials.map((m) => {
+      const code = this.extractItemCodeFromUserData4(m.userData4);
+      return {
+        ...m,
+        itemName: code ? (this._itemNameCache.get(code) ?? "") : "",
+      };
+    });
   }
 
   private mapRawToMaterial(

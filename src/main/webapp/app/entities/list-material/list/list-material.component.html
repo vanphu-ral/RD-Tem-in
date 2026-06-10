@@ -296,14 +296,27 @@
               "
             >
               <span>{{ getColumnDisplayName(col) }}</span>
-              <fa-icon
-                [matMenuTriggerFor]="filterMenu"
-                [icon]="faFilter"
-                style="color: white"
-              ></fa-icon>
+              <ng-container *ngIf="isColumnFilterable(col)">
+                <fa-icon
+                  [matMenuTriggerFor]="colFilterMenu"
+                  [icon]="faFilter"
+                  style="color: white"
+                ></fa-icon>
+                <mat-menu #colFilterMenu="matMenu">
+                  <button
+                    mat-menu-item
+                    (click)="setFilterMode(col, 'contains')"
+                  >
+                    Có chứa
+                  </button>
+                  <button mat-menu-item (click)="setFilterMode(col, 'equals')">
+                    Bằng
+                  </button>
+                </mat-menu>
+              </ng-container>
             </div>
 
-            <div class="search-container">
+            <div class="search-container" *ngIf="isColumnFilterable(col)">
               <div class="custom-search-wrapper">
                 <ng-container *ngIf="isDateField(col); else nonDate">
                   <!-- DATE -->
@@ -402,15 +415,6 @@
                 </ng-template>
               </div>
             </div>
-
-            <mat-menu #filterMenu="matMenu">
-              <button mat-menu-item (click)="setFilterMode(col, 'contains')">
-                Có chứa
-              </button>
-              <button mat-menu-item (click)="setFilterMode(col, 'equals')">
-                Bằng
-              </button>
-            </mat-menu>
           </th>
 
           <td mat-cell *matCellDef="let row">

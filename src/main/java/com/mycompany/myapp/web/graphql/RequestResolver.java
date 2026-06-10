@@ -63,6 +63,9 @@ public class RequestResolver {
             }
 
             input.setSapCode((String) map.getOrDefault("sapCode", null));
+            input.setProductName(
+                (String) map.getOrDefault("productName", null)
+            );
             input.setPartNumber((String) map.getOrDefault("partNumber", null));
             input.setLot((String) map.getOrDefault("lot", null));
             input.setVendor((String) map.getOrDefault("vendor", null));

@@ -102,6 +102,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   displayedColumns: string[] = [
     "select",
     "userData4",
+    "itemName",
     "userData5",
     "lotNumber",
     "materialTraceId",
@@ -160,6 +161,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       { name: "Lot Number", matColumnDef: "lotNumber", completed: true },
       { name: "User Data 4", matColumnDef: "userData4", completed: true },
+      { name: "Tên vật tư", matColumnDef: "itemName", completed: true },
       { name: "User Data 5", matColumnDef: "userData5", completed: true },
       { name: "Location Name", matColumnDef: "locationName", completed: true },
       {
@@ -402,6 +404,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       partId: "PartId",
       lotNumber: "Lot Number",
       userData4: "User Data 4",
+      itemName: "Tên vật tư",
       userData5: "User Data 5",
       calculatedStatus: "Calculated Status",
       partNumber: "Part Number",
@@ -724,6 +727,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           if (raw) {
             this.dataSource.data = this.materialService.mergeChecked([raw]);
             this.length = 1;
+            this.loadItemNamesForCurrentPage();
 
             setTimeout(() => {
               this.playAlertSoundSuccess();
@@ -848,6 +852,11 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       "checkinDate",
     ];
     return dateFields.includes(colDef);
+  }
+
+  /** Cột không hỗ trợ filter server-side (vd. itemName lấy từ API khác). */
+  isColumnFilterable(colDef: string): boolean {
+    return colDef !== "itemName";
   }
   get hasFilter(): boolean {
     const queryParams = this.route.snapshot.queryParams;
@@ -1104,6 +1113,21 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.filterChange$.next();
   }
+  private loadItemNamesForCurrentPage(): void {
+    const rows = this.dataSource.data;
+    if (!rows.length) {
+      return;
+    }
+
+    this.materialService
+      .enrichMaterialsWithItemNames(rows)
+      .pipe(take(1), takeUntil(this.ngUnsubscribe))
+      .subscribe((enriched) => {
+        this.dataSource.data = this.dataSource.sortData(enriched, this.sort);
+        this.cdr.detectChanges();
+      });
+  }
+
   private fetchPage(params: any): void {
     const page = +params.page || 1;
     const pageSize = +params.pageSize || this.pageSize;
@@ -1122,35 +1146,28 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           this.cdr.detectChanges();
         }),
       )
-      .subscribe(
-        (resp) => {
+      .subscribe({
+        next: (resp) => {
           this.length = resp.totalItems;
-          this.dataSource.data = this.materialService.mergeChecked(
-            resp.inventories,
-          );
+          const merged = this.materialService.mergeChecked(resp.inventories);
           this.dataSource.sort = this.sort;
           this.sort.active = "availableQuantity";
           this.sort.direction = "desc";
-
-          this.dataSource.data = this.dataSource.sortData(
-            this.dataSource.data,
-            this.sort,
-          );
-          // console.log("[FETCH] dataSource.data:", this.dataSource.data);
+          this.dataSource.data = this.dataSource.sortData(merged, this.sort);
 
           const isEmpty = !resp.inventories || resp.inventories.length === 0;
           this.emptyMessage = isEmpty ? "Không có dữ liệu để hiển thị." : null;
-          // console.log("[EMPTY] Message:", this.emptyMessage);
-
           this.cdr.detectChanges();
+
+          this.loadItemNamesForCurrentPage();
         },
-        () => {
+        error: () => {
           this.dataSource.data = [];
           this.length = 0;
           this.emptyMessage = "Đã xảy ra lỗi khi tải dữ liệu vật tư.";
           this.cdr.detectChanges();
         },
-      );
+      });
   }
 
   private updateRouteWithFilters(triggerFetch = true): void {

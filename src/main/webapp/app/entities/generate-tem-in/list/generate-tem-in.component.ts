@@ -72,7 +72,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     "totalQuantity",
     "actions",
   ];
-  statusOptions = ["Đã tạo mã QR", "Bản nháp"];
+  statusOptions = ["Đã tạo mã QR", "Bản nháp", "chưa có PO"];
   filterValues = {
     status: "",
     vendor: "",
@@ -247,6 +247,12 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
           color: "#3F6D52",
           border: "1px solid #A3D9B8",
         };
+      case "chưa có po":
+        return {
+          backgroundColor: "#E0F2FE",
+          color: "#0369A1",
+          border: "1px solid #7DD3FC",
+        };
       default:
         return {
           backgroundColor: "#E0E0E0",
@@ -254,6 +260,27 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
           border: "1px solid #CCC",
         };
     }
+  }
+
+  /** Đơn tạo từ receiving-supplies, chưa gắn PO thật. */
+  isReceivingDraft(item: TemMaterialItem): boolean {
+    const status = (item.status ?? "").toLowerCase().trim();
+    return status === "chưa có po" || (item.userData5 ?? "").trim() === "-";
+  }
+
+  getDetailRoute(item: TemMaterialItem): (string | number)[] {
+    if (this.isReceivingDraft(item)) {
+      const mode =
+        (item.userData5 ?? "").trim() === "-" ? "without-po" : "with-po";
+      return ["receiving-supplies", mode, item.id];
+    }
+    return ["detail", item.id];
+  }
+
+  getDetailTooltip(item: TemMaterialItem): string {
+    return this.isReceivingDraft(item)
+      ? "Tiếp tục nhập vật tư"
+      : "Chi tiết đơn";
   }
 
   onImport(): void {

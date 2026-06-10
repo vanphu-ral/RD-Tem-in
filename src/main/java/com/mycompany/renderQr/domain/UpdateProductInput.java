@@ -4,6 +4,7 @@ public class UpdateProductInput {
 
     private Long id;
     private String sapCode;
+    private String productName;
     private String partNumber;
     private Long requestCreateTemId;
     private String lot;
@@ -38,6 +39,14 @@ public class UpdateProductInput {
 
     public void setSapCode(String sapCode) {
         this.sapCode = sapCode;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
     public String getPartNumber() {

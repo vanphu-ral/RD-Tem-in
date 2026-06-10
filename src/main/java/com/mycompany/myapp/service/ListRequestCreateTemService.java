@@ -48,7 +48,11 @@ public class ListRequestCreateTemService {
         request.setCreatedBy(createdBy != null ? createdBy : "system");
         request.setNumberProduction((short) numberProduction);
         request.setTotalQuantity(totalQuantity);
-        request.setStatus("Bản nháp");
+        if ("-".equals(userData5)) {
+            request.setStatus("chưa có PO");
+        } else {
+            request.setStatus("Bản nháp");
+        }
         //        System.out.println("Input vendorName: " + vendorName);
         //        System.out.println("vendorName is null? " + (vendorName == null));
         //        System.out.println(
