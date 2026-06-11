@@ -160,8 +160,6 @@ export class ReceivingSuppliesService {
   private baseUrl = this.applicationConfigService.getEndpointFor("api");
   private postGoodsReceiptPoUrl =
     "http://192.168.68.3:8082/api/PostGoodsReceiptPO";
-  private itemDataUrl =
-    this.applicationConfigService.getEndpointFor("/api/item-data");
   // private sapOitmUrl = `http://192.168.10.99:8085/api/sap-oitms`;
   private sapOitmUrl =
     this.applicationConfigService.getEndpointFor("/api/sap-oitms");
@@ -201,9 +199,16 @@ export class ReceivingSuppliesService {
   }
 
   getItemDataByItemCode(itemCode: string): Observable<ItemDataDto | null> {
-    return this.http
-      .get<ItemDataDto>(`${this.itemDataUrl}/${encodeURIComponent(itemCode)}`)
-      .pipe(catchError(() => of(null)));
+    return this.getSapOitmBySapCode(itemCode).pipe(
+      map((data) =>
+        data
+          ? {
+              itemCode: data.itemCode ?? itemCode.trim(),
+              itemName: data.itemName ?? "",
+            }
+          : null,
+      ),
+    );
   }
 
   /** Ưu tiên IndexedDB — chỉ gọi API khi cache trống. */
@@ -297,11 +302,22 @@ export class ReceivingSuppliesService {
     );
   }
 
-  /** Lấy tên & part number theo mã SAP từ /api/sap-oitms/{sapCode}. */
+  /** Lấy tên & part number theo mã SAP từ /api/sap-oitms/itemCode/{itemCode}. */
   getSapOitmBySapCode(sapCode: string): Observable<SapOitmDto | null> {
+    const code = sapCode.trim();
+    if (!code) {
+      return of(null);
+    }
     return this.http
-      .get<SapOitmDto>(`${this.sapOitmUrl}/${encodeURIComponent(sapCode)}`)
-      .pipe(catchError(() => of(null)));
+      .get<
+        SapOitmDto[]
+      >(`${this.sapOitmUrl}/itemCode/${encodeURIComponent(code)}`)
+      .pipe(
+        map((items) =>
+          Array.isArray(items) && items.length > 0 ? items[0] : null,
+        ),
+        catchError(() => of(null)),
+      );
   }
 
   private buildReconcileResultFromSapPoInfo(

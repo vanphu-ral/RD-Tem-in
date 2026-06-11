@@ -2680,24 +2680,6 @@ export class ReceivingSuppliesComponent
   }
 
   private enrichItemNames(rows: ReceivingMaterialRow[]): void {
-    const codes = [...new Set(rows.map((r) => r.sapCode).filter(Boolean))];
-    if (!codes.length) {
-      return;
-    }
-
-    forkJoin(
-      codes.map((code) =>
-        this.receivingService
-          .getItemName(code)
-          .pipe(map((name) => ({ code, name }))),
-      ),
-    ).subscribe((results) => {
-      const nameMap = new Map(results.map((r) => [r.code, r.name]));
-      this.dataSource.data = this.dataSource.data.map((row) => ({
-        ...row,
-        itemName: nameMap.get(row.sapCode) ?? row.itemName,
-      }));
-      this.refreshTableView();
-    });
+    this.enrichSapOitmRows(rows);
   }
 }

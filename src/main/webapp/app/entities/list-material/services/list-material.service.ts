@@ -457,9 +457,32 @@ export class ListMaterialService {
   }
 
   getItemDataByItemCode(itemCode: string): Observable<ItemDataDto | null> {
+    const code = itemCode.trim();
+    if (!code) {
+      return of(null);
+    }
     return this.http
-      .get<ItemDataDto>(`${this.apiItemData}/${encodeURIComponent(itemCode)}`)
-      .pipe(catchError(() => of(null)));
+      .get<
+        Array<{
+          itemCode?: string;
+          itemName?: string;
+          uPartNumber?: string | null;
+        }>
+      >(`${this.apiItemData}/itemCode/${encodeURIComponent(code)}`)
+      .pipe(
+        map((items) => {
+          const first =
+            Array.isArray(items) && items.length > 0 ? items[0] : null;
+          if (!first) {
+            return null;
+          }
+          return {
+            itemCode: first.itemCode ?? code,
+            itemName: first.itemName ?? "",
+          };
+        }),
+        catchError(() => of(null)),
+      );
   }
 
   /**
