@@ -31,8 +31,13 @@ import {
 import JsBarcode from "jsbarcode";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
 import { MatDialog } from "@angular/material/dialog";
-import { Observable } from "rxjs/internal/Observable";
+import { forkJoin, Observable, switchMap } from "rxjs";
+import { map, take } from "rxjs/operators";
 import { GenerateTemInConfirmDialogComponent } from "../generate-tem-in-modal-confirm/modal-confirm.component";
+import {
+  GoodsReceiptPoLine,
+  ReceivingSuppliesService,
+} from "../service/receiving-supplies.service";
 import { PageEvent } from "@angular/material/paginator";
 import { MatCardActions } from "@angular/material/card";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
@@ -66,6 +71,9 @@ export interface MaterialItem {
   isEditing?: boolean;
   isSaving?: boolean;
   UploadPanacim?: boolean;
+  vendorName?: string;
+  /** Đã gửi SAP thành công trong phiên hiện tại. */
+  sapSent?: boolean;
 }
 export interface GenerateTemResponse {
   success: boolean;
@@ -228,6 +236,7 @@ export class GenerateTemInDetailComponent
   selectedItem: any = null;
   isGenerating = false;
   isDeletePermission = true;
+  isSendingSap = false;
   //qrcode row
   qrTableVisible = false;
   generatedQRCodes: any[] = [];
@@ -295,6 +304,7 @@ export class GenerateTemInDetailComponent
     private route: ActivatedRoute,
     private router: Router,
     private warehouseCache: WarehouseCacheService,
+    private receivingService: ReceivingSuppliesService,
   ) {}
   ngAfterViewChecked(): void {
     if (
@@ -318,6 +328,7 @@ export class GenerateTemInDetailComponent
     if (requestId) {
       this.getListRequest(requestId);
     }
+    void this.receivingService.initWarehouses();
     this.checkScreenSize();
     window.addEventListener("resize", () => this.checkScreenSize());
   }
@@ -326,26 +337,35 @@ export class GenerateTemInDetailComponent
     this.router.navigate(["/generate-tem-in"]);
   }
   getListRequest(requestId: number): void {
-    this.generateTemInService
-      .getProductsByRequestId(requestId)
-      .subscribe((data) => {
-        this.materials = data.map((item: MaterialItem) => ({
-          ...item,
-          isEditing: false,
-          isSaving: false,
-        }));
-        this.materialTotalItems = this.materials.length;
-        this.allUploaded = this.materials.every(
-          (item) => item.UploadPanacim === true,
-        );
-        this.updatePagedMaterials();
+    const sapSentByProductId = this.captureSapSentState();
+    forkJoin({
+      products: this.generateTemInService
+        .getProductsByRequestId(requestId)
+        .pipe(take(1)),
+      tems: this.generateTemInService
+        .getTemDetailsByRequestId(requestId)
+        .pipe(take(1)),
+    }).subscribe(({ products, tems }) => {
+      this.allTemDetails = tems;
+      this.materials = products.map((item: MaterialItem) => ({
+        ...item,
+        isEditing: false,
+        isSaving: false,
+      }));
+      this.restoreSapSentState(sapSentByProductId);
+      this.materialTotalItems = this.materials.length;
+      this.allUploaded = this.materials.every(
+        (item) => item.UploadPanacim === true,
+      );
+      this.isDisable = tems.length === 0;
+      this.isDisableGenerate = tems.length > 0;
+      this.updatePagedMaterials();
 
-        if (this.materials.length > 0) {
-          this.poNumber = this.materials[0].userData5;
-          const productId = this.materials[0].id;
-          this.getListAllTemDetails(productId);
-        }
-      });
+      if (this.materials.length > 0) {
+        this.poNumber = this.materials[0].userData5;
+        this.getListAllTemDetails(this.materials[0].id);
+      }
+    });
   }
   checkScreenSize(): void {
     this.isMobile = window.innerWidth <= 767;
@@ -1082,43 +1102,54 @@ export class GenerateTemInDetailComponent
   }
   //save location button
   saveLocation(): void {
-    // console.log("Kho đang chọn:", this.selectedStorageUnit);
-    // console.log("Request ID:", this.requestId);
-
-    if (!this.selectedStorageUnit || !this.requestId) {
+    const storageUnit = this.selectedStorageUnit?.trim() ?? "";
+    if (!storageUnit || !this.requestId) {
       this.showSnackbar("Vui lòng chọn kho!", "Đóng", 3000, "error");
       return;
     }
 
-    this.generateTemInService
-      .updateStorageUnitForRequest(this.requestId, this.selectedStorageUnit)
-      .subscribe({
-        next: (res) => {
-          if (res.success) {
+    void this.validateStorageUnitExists(storageUnit).then((exists) => {
+      if (!exists) {
+        this.showSnackbar(
+          `Kho "${storageUnit}" không tồn tại trong danh sách. Vui lòng chọn từ gợi ý.`,
+          "Đóng",
+          5000,
+          "warning",
+        );
+        return;
+      }
+
+      this.generateTemInService
+        .updateStorageUnitForRequest(this.requestId, storageUnit)
+        .subscribe({
+          next: (res) => {
+            if (res.success) {
+              this.showSnackbar(
+                "Đã cập nhật kho thành công!",
+                "Đóng",
+                3000,
+                "success",
+              );
+              setTimeout(() => {
+                this.getListRequest(this.requestId);
+              }, 1000);
+            } else {
+              this.showSnackbar("Cập nhật thất bại", "Đóng", 3000, "error");
+            }
+          },
+          error: (err) => {
+            console.error("Lỗi khi cập nhật kho:", err);
             this.showSnackbar(
-              "Đã cập nhật kho thành công!",
+              "Có lỗi xảy ra khi lưu kho!",
               "Đóng",
               3000,
-              "success",
+              "error",
             );
-            setTimeout(() => {
-              this.getListRequest(this.requestId);
-            }, 1000);
-          } else {
-            this.showSnackbar("Cập nhật thất bại", "Đóng", 3000, "error");
-          }
-        },
-        error: (err) => {
-          console.error("Lỗi khi cập nhật kho:", err);
-          this.showSnackbar(
-            "Có lỗi xảy ra khi lưu kho!",
-            "Đóng",
-            3000,
-            "error",
-          );
-        },
-      });
+          },
+        });
+    });
   }
+
   // CSV Preview Methods
   openCsvPreview(requestId: number): void {
     this.prepareCsvData(requestId);
@@ -1823,6 +1854,69 @@ export class GenerateTemInDetailComponent
     this.closePrintModal();
   }
 
+  canSendSapItem(item: MaterialItem): boolean {
+    if (this.isSendingSap) {
+      return false;
+    }
+    if (item.sapSent) {
+      return false;
+    }
+    return this.hasValidPo(item);
+  }
+
+  canSendSapAll(): boolean {
+    return this.materials.some((item) => this.canSendSapItem(item));
+  }
+
+  getSapItemButtonLabel(item: MaterialItem): string {
+    return item.sapSent ? "Đã gửi SAP" : "Gửi SAP";
+  }
+
+  onSendSapItem(item: MaterialItem): void {
+    if (!this.canSendSapItem(item)) {
+      this.showSnackbar(
+        item.sapSent
+          ? "Dòng này đã gửi SAP."
+          : 'Chưa có PO hợp lệ (userData5 trống hoặc "-").',
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+    const label = `${item.sapCode}${item.lot ? ` / lô ${item.lot}` : ""}`;
+    this.confirmAction(`Gửi SAP dòng ${label}?`).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      this.executeSendSap([item]);
+    });
+  }
+
+  onSendSapAll(): void {
+    if (this.isSendingSap) {
+      return;
+    }
+    const items = this.materials.filter((item) => this.canSendSapItem(item));
+    if (!items.length) {
+      this.showSnackbar(
+        "Không có dòng nào đủ điều kiện gửi SAP (cần gán PO hợp lệ).",
+        "Đóng",
+        5000,
+        "warning",
+      );
+      return;
+    }
+    this.confirmAction(`Gửi ${items.length} dòng SAP?`).subscribe(
+      (confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.executeSendSap(items);
+      },
+    );
+  }
+
   private calculateFilteredLabels(): void {
     if (this.printMode === "single") {
       this._filteredLabelsCache = [...this.printLabels];
@@ -1900,5 +1994,158 @@ export class GenerateTemInDetailComponent
     }
 
     this.storageUnits = await this.warehouseCache.searchByName(keyword);
+  }
+
+  private executeSendSap(items: MaterialItem[]): void {
+    const poNumbers = [
+      ...new Set(
+        items
+          .map((item) => (item.userData5 ?? "").trim())
+          .filter((po) => po && po !== "-"),
+      ),
+    ];
+    this.isSendingSap = true;
+    forkJoin(
+      poNumbers.map((po) =>
+        this.receivingService.getSapPoInfo(po).pipe(
+          map((res) => ({
+            po,
+            docEntry: Number.parseInt(res?.poInfo?.oporDocEntry ?? "", 10),
+          })),
+        ),
+      ),
+    )
+      .pipe(
+        switchMap((poRows) => {
+          const docEntryByPo = new Map(
+            poRows.map((row) => [row.po, row.docEntry]),
+          );
+          for (const po of poNumbers) {
+            const docEntry = docEntryByPo.get(po);
+            if (!docEntry || Number.isNaN(docEntry)) {
+              throw new Error(
+                `Không lấy được DocEntry từ PO ${po}. Kiểm tra lại mã PO.`,
+              );
+            }
+          }
+          const opdn: GoodsReceiptPoLine[] = items.flatMap((item) => {
+            const po = (item.userData5 ?? "").trim();
+            const docEntry = docEntryByPo.get(po)!;
+            return this.buildOpdnLinesForItem(item, docEntry);
+          });
+          if (!opdn.length) {
+            throw new Error("Không có dữ liệu tem để gửi SAP.");
+          }
+          return this.receivingService.postGoodsReceiptPo({ OPDN: opdn });
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.isSendingSap = false;
+          items.forEach((item) => {
+            item.sapSent = true;
+          });
+          this.showSnackbar(
+            `Đã gửi SAP thành công (${items.length} dòng).`,
+            "Đóng",
+            4000,
+            "success",
+          );
+        },
+        error: (err: Error) => {
+          this.isSendingSap = false;
+          this.showSnackbar(
+            err.message?.trim() || "Gửi SAP thất bại.",
+            "Đóng",
+            6000,
+            "error",
+          );
+        },
+      });
+  }
+
+  private buildOpdnLinesForItem(
+    item: MaterialItem,
+    docEntry: number,
+  ): GoodsReceiptPoLine[] {
+    const tems = this.getTemRowsForProduct(item);
+    const vendor = (item.vendor ?? "").trim();
+    const storageUnit = (item.storageUnit ?? "").trim();
+    const quantity = Number(item.initialQuantity ?? 1);
+    const partNumber = (item.partNumber ?? "").trim();
+
+    return tems.map((tem) => ({
+      Vendor: vendor,
+      DocEntry: docEntry,
+      ItemCode: item.sapCode.trim(),
+      Quantity: quantity,
+      LotNum: (item.lot ?? "").trim(),
+      ReelID: tem.reelId,
+      PartNumber: partNumber || tem.partNumber || "",
+      ExpirationDate: this.formatSapDateTime(tem.expirationDate),
+      ManufacturingDate: this.formatSapDateTime(tem.manufacturingDate),
+      StorageUnit: storageUnit,
+    }));
+  }
+
+  private getTemRowsForProduct(item: MaterialItem): TemDetail[] {
+    const productId = Number(item.id);
+    return this.allTemDetails.filter(
+      (tem) => Number(tem.productOfRequestId) === productId,
+    );
+  }
+
+  private hasValidPo(item: MaterialItem): boolean {
+    const po = (item.userData5 ?? "").trim();
+    return Boolean(po) && po !== "-";
+  }
+
+  private formatSapDateTime(value: string | null | undefined): string {
+    if (!value?.trim()) {
+      return "0001-01-01T00:00:00";
+    }
+    const normalized = value.trim().slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+      return `${normalized}T00:00:00`;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return "0001-01-01T00:00:00";
+    }
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, "0");
+    const d = String(parsed.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}T00:00:00`;
+  }
+
+  private async validateStorageUnitExists(location: string): Promise<boolean> {
+    const trimmed = location.trim();
+    if (!trimmed) {
+      return false;
+    }
+    await this.receivingService.initWarehouses();
+    const results = await this.receivingService.searchWarehouses(trimmed);
+    return results.some((row) => row.locationName === trimmed);
+  }
+
+  private captureSapSentState(): Map<number, boolean> {
+    const sapSentMap = new Map<number, boolean>();
+    this.materials.forEach((item) => {
+      if (item.id && item.sapSent) {
+        sapSentMap.set(Number(item.id), true);
+      }
+    });
+    return sapSentMap;
+  }
+
+  private restoreSapSentState(sapSentByProductId: Map<number, boolean>): void {
+    if (!sapSentByProductId.size) {
+      return;
+    }
+    this.materials = this.materials.map((item) =>
+      item.id && sapSentByProductId.has(Number(item.id))
+        ? { ...item, sapSent: true }
+        : item,
+    );
   }
 }

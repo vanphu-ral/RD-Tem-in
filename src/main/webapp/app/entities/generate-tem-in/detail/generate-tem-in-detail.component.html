@@ -99,6 +99,15 @@
             <fa-icon [icon]="faPrint"></fa-icon>
           </button>
         </span>
+        <button
+          mat-raised-button
+          class="btn-sap-all"
+          (click)="onSendSapAll()"
+          [disabled]="!canSendSapAll() || isSendingSap"
+          *ngIf="!isDisable"
+        >
+          Gửi SAP
+        </button>
       </div>
     </div>
 
@@ -188,6 +197,16 @@
           >
             <fa-icon [icon]="faPrint"></fa-icon>
             <span>In all tem</span>
+          </button>
+
+          <button
+            mat-raised-button
+            class="mobile-action-btn btn-sap-all"
+            (click)="onSendSapAll()"
+            [disabled]="!canSendSapAll() || isSendingSap"
+            matTooltip="Gửi SAP tất cả dòng"
+          >
+            <span>Gửi SAP</span>
           </button>
         </ng-container>
 
@@ -312,6 +331,19 @@
                   class="accent-blue"
                 >
                   <mat-icon>system_update_alt</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="!isDisable">
+                <button
+                  mat-icon-button
+                  (click)="onSendSapItem(item)"
+                  [matTooltip]="getSapItemButtonLabel(item)"
+                  [disabled]="!canSendSapItem(item) || isSendingSap"
+                  class="accent-blue"
+                >
+                  <mat-icon>{{
+                    item.sapSent ? "check_circle" : "cloud_upload"
+                  }}</mat-icon>
                 </button>
               </span>
               <span
@@ -574,6 +606,16 @@
             >
               <mat-icon>local_printshop</mat-icon>
               <span>In tem</span>
+            </button>
+
+            <button
+              mat-menu-item
+              *ngIf="!isDisable"
+              [disabled]="!canSendSapItem(item) || isSendingSap"
+              (click)="onSendSapItem(item)"
+            >
+              <mat-icon>cloud_upload</mat-icon>
+              <span>{{ getSapItemButtonLabel(item) }}</span>
             </button>
 
             <!-- <button mat-menu-item>
