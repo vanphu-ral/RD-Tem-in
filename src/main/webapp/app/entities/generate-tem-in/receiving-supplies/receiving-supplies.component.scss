@@ -195,13 +195,39 @@
   align-items: flex-start;
 }
 
+.bulk-lot-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex: 1 1 100%;
+  align-items: flex-end;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 160px;
+  }
+}
+
 .bulk-sap-block {
   flex: 1 1 100%;
   min-width: 260px;
+}
+
+.bulk-sap-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
 
   .field-sap-codes {
-    width: 100%;
-    min-width: 260px;
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .btn-apply-sap {
+    flex-shrink: 0;
+    height: 40px;
+    margin-bottom: 2px;
   }
 }
 

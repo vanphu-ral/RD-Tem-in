@@ -20,7 +20,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { Subscription, Subject } from "rxjs";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { forkJoin } from "rxjs";
+import { forkJoin, of } from "rxjs";
 import {
   filter,
   takeUntil,
@@ -198,6 +198,7 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     userData4: "User Data 4",
     lotNumber: "Lot Number",
     userData5: "User Data 5",
+    itemName: "Tên vật tư",
   };
   public activeFiltersDetail: { [colDetail: string]: any[] } = {};
   public filterModesDetail: { [colDetail: string]: string } = {};
@@ -928,6 +929,9 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     cols.push("partNumber");
     if (this.selectedGroupingField !== "partNumber") {
       cols.push(this.selectedGroupingField);
+      if (this.selectedGroupingField === "userData4") {
+        cols.push("itemName");
+      }
     }
     cols.push("quantity", "availableQuantity", "recordCount");
 
@@ -997,6 +1001,22 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
     this.materialService
       .fetchDataSumary(apiUrl, body)
       .pipe(
+        switchMap((response): Observable<APISumaryResponse> => {
+          const inventories = response.inventories ?? [];
+          if (mode === "userData4" && inventories.length) {
+            return this.materialService
+              .enrichSummaryRowsWithItemNames(inventories)
+              .pipe(
+                map(
+                  (enriched): APISumaryResponse => ({
+                    totalItems: response.totalItems,
+                    inventories: enriched,
+                  }),
+                ),
+              );
+          }
+          return of(response);
+        }),
         takeUntil(this.destroy$),
         finalize(() => {
           this.isLoading = false;
@@ -1004,8 +1024,6 @@ export class ListMaterialSumaryComponent implements OnInit, AfterViewInit {
         }),
       )
       .subscribe((response) => {
-        // console.log("response  API:", response);
-        // console.log("response.totalItems:", response.totalItems);
         const totalItems = response.totalItems;
         this.length = totalItems;
         this.pageIndex = page - 1;

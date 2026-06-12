@@ -49,6 +49,7 @@ public class ListProductOfRequestService {
     }
 
     // update all for product
+    @Transactional
     public boolean updateProduct(UpdateProductInput input) {
         Optional<ListProductOfRequest> optional = repository.findById(
             input.getId()

@@ -82,6 +82,8 @@ export interface DataSumary {
   lotNumber: string;
   userData4: string;
   userData5: string;
+  /** Tên vật tư từ SAP OITM (mã SAP = phần trước '-' của userData4). */
+  itemName?: string;
   detailDataSource?: any;
 }
 
@@ -231,7 +233,7 @@ interface LocationQueryResponse {
 
 export interface APISumaryResponse {
   totalItems: number;
-  inventories: any[];
+  inventories: DataSumary[];
 }
 export interface APIDetailResponse {
   inventories: RawGraphQLMaterial[];
@@ -527,6 +529,52 @@ export class ListMaterialService {
         ),
       ),
     ).pipe(map(() => this.applyItemNamesToMaterials(materials)));
+  }
+
+  /** Gắn itemName cho dòng tổng hợp theo userData4 (view summary userData4). */
+  enrichSummaryRowsWithItemNames(rows: DataSumary[]): Observable<DataSumary[]> {
+    if (!rows.length) {
+      return of([]);
+    }
+
+    const itemCodes = [
+      ...new Set(
+        rows
+          .map((r) => this.extractItemCodeFromUserData4(r.userData4))
+          .filter((code): code is string => !!code),
+      ),
+    ];
+
+    const uncachedCodes = itemCodes.filter(
+      (code) => !this._itemNameCache.has(code),
+    );
+
+    const apply = (): DataSumary[] =>
+      rows.map((r) => {
+        const code = this.extractItemCodeFromUserData4(r.userData4);
+        return {
+          ...r,
+          itemName: code ? (this._itemNameCache.get(code) ?? "") : "",
+        };
+      });
+
+    if (uncachedCodes.length === 0) {
+      return of(apply());
+    }
+
+    return forkJoin(
+      uncachedCodes.map((code) =>
+        this.getItemDataByItemCode(code).pipe(
+          map((data) => {
+            this._itemNameCache.set(code, data?.itemName ?? "");
+          }),
+          catchError(() => {
+            this._itemNameCache.set(code, "");
+            return of(undefined);
+          }),
+        ),
+      ),
+    ).pipe(map(() => apply()));
   }
 
   fetchDataSumary(apiUrl: string, body: any): Observable<APISumaryResponse> {

@@ -112,17 +112,23 @@
         <div class="bulk-header-left">
           <h3 class="bulk-title">BỔ SUNG THÔNG TIN VẬT TƯ</h3>
           <p class="bulk-hint">
-            Vui lòng khai báo thêm thông tin sản phẩm và chỉ số ở dưới đây:
+            Nhập số lô, HSD, NSX trước; sau đó nhập mã SAP và nhấn Enter để thêm
+            vào bảng
+            <ng-container *ngIf="withPoMode"
+              >. Khi có PO, các thông tin này áp dụng cho toàn bộ vật tư khi lấy
+              PO</ng-container
+            >.
           </p>
         </div>
         <div class="bulk-header-actions">
-          <button mat-stroked-button type="button">
+          <button mat-stroked-button type="button" *ngIf="hasAnyGeneratedTem()">
             <mat-icon>download</mat-icon>
             Export Excel
           </button>
           <button
             mat-stroked-button
             type="button"
+            *ngIf="!withPoMode"
             (click)="openPoReconcileModal()"
           >
             <mat-icon>fact_check</mat-icon>
@@ -143,19 +149,63 @@
       </div>
 
       <div class="bulk-fields">
-        <div class="bulk-sap-block">
-          <mat-form-field
-            appearance="outline"
-            class="small-form-field field-sap-codes"
-          >
-            <mat-label>Nhập mã SAP...</mat-label>
+        <div class="bulk-lot-fields">
+          <mat-form-field appearance="outline" class="small-form-field">
+            <mat-label>Số lô</mat-label>
+            <input matInput [(ngModel)]="bulkLotNumber" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="small-form-field">
+            <mat-label>HSD</mat-label>
             <input
               matInput
-              [(ngModel)]="bulkSapCodesInput"
-              (keydown.enter)="onBulkSapCommit($event)"
-              placeholder="Nhập mã SAP, nhấn Enter"
+              [matDatepicker]="bulkExpPicker"
+              [(ngModel)]="bulkExpirationDate"
             />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="bulkExpPicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #bulkExpPicker></mat-datepicker>
           </mat-form-field>
+          <mat-form-field appearance="outline" class="small-form-field">
+            <mat-label>NSX</mat-label>
+            <input
+              matInput
+              [matDatepicker]="bulkMfgPicker"
+              [(ngModel)]="bulkManufacturingDate"
+            />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="bulkMfgPicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #bulkMfgPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+
+        <div class="bulk-sap-block">
+          <div class="bulk-sap-row">
+            <mat-form-field
+              appearance="outline"
+              class="small-form-field field-sap-codes"
+            >
+              <mat-label>Mã SAP</mat-label>
+              <input
+                matInput
+                [(ngModel)]="bulkSapCodesInput"
+                (keydown.enter)="onBulkSapCommit($event)"
+                placeholder="Nhập mã SAP, nhấn Enter hoặc Áp dụng"
+              />
+            </mat-form-field>
+            <button
+              mat-raised-button
+              color="primary"
+              type="button"
+              class="btn-apply-sap"
+              (click)="applyBulkInfo()"
+            >
+              Áp dụng
+            </button>
+          </div>
           <div class="sap-chips" *ngIf="selectedSapCodes.length">
             <mat-chip-set>
               <mat-chip
@@ -170,40 +220,6 @@
             </mat-chip-set>
           </div>
         </div>
-        <mat-form-field appearance="outline" class="small-form-field">
-          <mat-label>Nhập số lô...</mat-label>
-          <input matInput [(ngModel)]="bulkLotNumber" />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="small-form-field">
-          <mat-label>Nhập ngày về...</mat-label>
-          <input
-            matInput
-            [matDatepicker]="bulkArrivalPicker"
-            [(ngModel)]="bulkArrivalDate"
-          />
-          <mat-datepicker-toggle
-            matSuffix
-            [for]="bulkArrivalPicker"
-          ></mat-datepicker-toggle>
-          <mat-datepicker #bulkArrivalPicker></mat-datepicker>
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="small-form-field">
-          <mat-label>Nhập ngày sản xuất...</mat-label>
-          <input
-            matInput
-            [matDatepicker]="bulkMfgPicker"
-            [(ngModel)]="bulkManufacturingDate"
-          />
-          <mat-datepicker-toggle
-            matSuffix
-            [for]="bulkMfgPicker"
-          ></mat-datepicker-toggle>
-          <mat-datepicker #bulkMfgPicker></mat-datepicker>
-        </mat-form-field>
-
-        <button mat-raised-button color="primary" (click)="applyBulkInfo()">
-          Áp dụng
-        </button>
       </div>
     </mat-card-content>
   </mat-card>
@@ -626,10 +642,10 @@
           {{ isGenerating ? "Đang tạo mã..." : "Tạo mã" }}
         </button>
       </span>
-      <button mat-raised-button color="primary" (click)="onConfirmSave()">
+      <!-- <button mat-raised-button color="primary" (click)="onConfirmSave()">
         <mat-icon>check</mat-icon>
         Xác nhận hoàn tất
-      </button>
+      </button> -->
       <button
         mat-raised-button
         class="btn-sap-all"
@@ -858,10 +874,10 @@
 
         <mat-divider class="section-divider"></mat-divider>
 
-        <div class="lot-detail-preview-hint" *ngIf="lotDetailTemPreview.length">
+        <!-- <div class="lot-detail-preview-hint" *ngIf="lotDetailTemPreview.length">
           <mat-icon>info</mat-icon>
           <span>Di chuột vào mã QR để xem chuỗi mã đầy đủ.</span>
-        </div>
+        </div> -->
 
         <div
           class="table-container-modal desktop-view"
