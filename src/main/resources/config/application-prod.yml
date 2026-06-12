@@ -192,4 +192,6 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  sap:
+    goods-receipt-po-url: http://192.168.68.3:8082/api/PostGoodsReceiptPO

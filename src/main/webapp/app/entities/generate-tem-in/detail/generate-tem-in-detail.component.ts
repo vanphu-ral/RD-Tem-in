@@ -37,6 +37,8 @@ import { GenerateTemInConfirmDialogComponent } from "../generate-tem-in-modal-co
 import {
   GoodsReceiptPoLine,
   ReceivingSuppliesService,
+  resolveHttpErrorMessage,
+  validateStorageUnitForSap,
 } from "../service/receiving-supplies.service";
 import { PageEvent } from "@angular/material/paginator";
 import { MatCardActions } from "@angular/material/card";
@@ -2004,6 +2006,15 @@ export class GenerateTemInDetailComponent
           .filter((po) => po && po !== "-"),
       ),
     ];
+    for (const item of items) {
+      const storageUnit = (item.storageUnit ?? "").trim();
+      const sapUnitError = validateStorageUnitForSap(storageUnit);
+      if (sapUnitError) {
+        const label = `${item.sapCode}${item.lot ? ` / lô ${item.lot}` : ""}`;
+        this.showSnackbar(`${label}: ${sapUnitError}`, "Đóng", 8000, "error");
+        return;
+      }
+    }
     this.isSendingSap = true;
     forkJoin(
       poNumbers.map((po) =>
@@ -2052,12 +2063,12 @@ export class GenerateTemInDetailComponent
             "success",
           );
         },
-        error: (err: Error) => {
+        error: (err: unknown) => {
           this.isSendingSap = false;
           this.showSnackbar(
-            err.message?.trim() || "Gửi SAP thất bại.",
+            resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
             "Đóng",
-            6000,
+            8000,
             "error",
           );
         },

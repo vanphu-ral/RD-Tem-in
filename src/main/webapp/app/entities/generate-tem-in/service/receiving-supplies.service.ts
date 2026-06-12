@@ -123,6 +123,60 @@ export interface PoReconcileResponse {
   rowResults?: PoReconcileRowResult[];
 }
 
+/**
+ * SAP map StorageUnit → U_Unit (SAP_GRP_L), giới hạn ~10 ký tự — ví dụ "RD", "19-B08-01".
+ */
+export const SAP_STORAGE_UNIT_MAX_LENGTH = 10;
+
+/** Trả về thông báo lỗi nếu StorageUnit không hợp lệ cho SAP; null nếu OK. */
+export function validateStorageUnitForSap(storageUnit: string): string | null {
+  const trimmed = storageUnit.trim();
+  if (!trimmed) {
+    return "thiếu vị trí kho (StorageUnit)";
+  }
+  if (trimmed.length > SAP_STORAGE_UNIT_MAX_LENGTH) {
+    return (
+      `StorageUnit "${trimmed}" quá dài (${trimmed.length} ký tự). ` +
+      `SAP chỉ nhận tối đa ${SAP_STORAGE_UNIT_MAX_LENGTH} ký tự ` +
+      `(ví dụ: RD, 19-B08-01).`
+    );
+  }
+  return null;
+}
+
+export function resolveHttpErrorMessage(
+  err: unknown,
+  fallback: string,
+): string {
+  if (err && typeof err === "object") {
+    const httpErr = err as {
+      error?: string | { detail?: string; title?: string; message?: string };
+      message?: string;
+    };
+    if (typeof httpErr.error === "string" && httpErr.error.trim()) {
+      return httpErr.error.trim();
+    }
+    const detail =
+      typeof httpErr.error === "object"
+        ? httpErr.error?.detail?.trim()
+        : undefined;
+    if (detail) {
+      return detail;
+    }
+    const title =
+      typeof httpErr.error === "object"
+        ? httpErr.error?.title?.trim()
+        : undefined;
+    if (title && title !== "Internal Server Error") {
+      return title;
+    }
+  }
+  if (err instanceof Error && err.message?.trim()) {
+    return err.message.trim();
+  }
+  return fallback;
+}
+
 export interface GoodsReceiptPoLine {
   Vendor: string;
   DocEntry: number;
@@ -158,8 +212,6 @@ export interface SapOcrd {
 })
 export class ReceivingSuppliesService {
   private baseUrl = this.applicationConfigService.getEndpointFor("api");
-  private postGoodsReceiptPoUrl =
-    "http://192.168.68.3:8082/api/PostGoodsReceiptPO";
   // private sapOitmUrl = `http://192.168.10.99:8085/api/sap-oitms`;
   private sapOitmUrl =
     this.applicationConfigService.getEndpointFor("/api/sap-oitms");
@@ -269,9 +321,13 @@ export class ReceivingSuppliesService {
     );
   }
 
-  /** POST nhập kho SAP theo PO. */
-  postGoodsReceiptPo(payload: GoodsReceiptPoPayload): Observable<unknown> {
-    return this.http.post(this.postGoodsReceiptPoUrl, payload);
+  /** POST nhập kho SAP theo PO (proxy qua backend — tránh CORS). */
+  postGoodsReceiptPo(payload: GoodsReceiptPoPayload): Observable<string> {
+    return this.http.post(
+      this.applicationConfigService.getEndpointFor("api/post-goods-receipt-po"),
+      payload,
+      { responseType: "text" },
+    );
   }
 
   /** GET /api/sap-po-info/{oporDocEntry} */

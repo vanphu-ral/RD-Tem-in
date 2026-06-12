@@ -29,9 +29,11 @@ import {
   GoodsReceiptPoLine,
   PoReconcileResponse,
   ReceivingSuppliesService,
+  resolveHttpErrorMessage,
   SapOcrd,
   SapOitmDto,
   SapPoInfoResponse,
+  validateStorageUnitForSap,
   WarehouseLocation,
 } from "../service/receiving-supplies.service";
 
@@ -2069,6 +2071,15 @@ export class ReceivingSuppliesComponent
     const poNumbers = [
       ...new Set(entries.map(({ lot }) => this.getLotPoNumber(lot))),
     ];
+    for (const { parent, lot } of entries) {
+      const storageUnit = this.getEffectiveLotLocation(parent, lot);
+      const sapUnitError = validateStorageUnitForSap(storageUnit);
+      if (sapUnitError) {
+        const label = `${parent.sapCode}${lot.lotNumber ? ` / lô ${lot.lotNumber}` : ""}`;
+        this.showSnackbar(`${label}: ${sapUnitError}`, "Đóng", 8000, "error");
+        return;
+      }
+    }
     this.isSendingSap = true;
     forkJoin(
       poNumbers.map((po) =>
@@ -2120,12 +2131,12 @@ export class ReceivingSuppliesComponent
           );
           this.cdr.markForCheck();
         },
-        error: (err: Error) => {
+        error: (err: unknown) => {
           this.isSendingSap = false;
           this.showSnackbar(
-            err.message?.trim() || "Gửi SAP thất bại.",
+            resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
             "Đóng",
-            6000,
+            8000,
             "error",
           );
           this.cdr.markForCheck();
@@ -2435,6 +2446,10 @@ export class ReceivingSuppliesComponent
         const exists = results.some((r) => r.locationName === location);
         if (!exists) {
           return `${label}: StorageUnit không hợp lệ: ${location}`;
+        }
+        const sapUnitError = validateStorageUnitForSap(location);
+        if (sapUnitError) {
+          return `${label}: ${sapUnitError}`;
         }
       }
     }
