@@ -8,20 +8,11 @@
       <button
         mat-raised-button
         color="primary"
-        [routerLink]="['receiving-supplies', 'with-po']"
-        *jhiHasAnyAuthority="'ROLE_TEM_UPDATE'; rOLE_ADMIN_TEM"
-      >
-        <mat-icon>receipt_long</mat-icon>
-        <span class="button-text">Tạo đơn có PO</span>
-      </button>
-      <button
-        mat-raised-button
-        color="primary"
-        [routerLink]="['receiving-supplies', 'without-po']"
+        [routerLink]="['receiving-supplies']"
         *jhiHasAnyAuthority="'ROLE_TEM_UPDATE'; rOLE_ADMIN_TEM"
       >
         <mat-icon>note_add</mat-icon>
-        <span class="button-text">Tạo đơn không PO</span>
+        <span class="button-text">Tạo đơn nhập vật tư</span>
       </button>
       <button
         mat-raised-button

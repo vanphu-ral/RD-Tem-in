@@ -269,18 +269,11 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   }
 
   getDetailRoute(item: TemMaterialItem): (string | number)[] {
-    if (this.isReceivingDraft(item)) {
-      const mode =
-        (item.userData5 ?? "").trim() === "-" ? "without-po" : "with-po";
-      return ["receiving-supplies", mode, item.id];
-    }
-    return ["detail", item.id];
+    return ["receiving-supplies", item.id];
   }
 
   getDetailTooltip(item: TemMaterialItem): string {
-    return this.isReceivingDraft(item)
-      ? "Tiếp tục nhập vật tư"
-      : "Chi tiết đơn";
+    return "Tiếp tục nhập vật tư";
   }
 
   onImport(): void {

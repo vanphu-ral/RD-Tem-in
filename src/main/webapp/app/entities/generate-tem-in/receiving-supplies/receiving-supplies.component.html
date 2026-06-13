@@ -21,7 +21,7 @@
             (input)="onVendorSearch($any($event.target).value)"
             (focus)="onVendorSearch(vendorCode)"
             placeholder="V900000367"
-            [disabled]="isLoadingVendors"
+            [disabled]="isLoadingVendors || poAndVendorLocked"
           />
           <mat-spinner
             matSuffix
@@ -56,7 +56,7 @@
             (input)="onVendorSearch($any($event.target).value)"
             (focus)="onVendorSearch(vendorName)"
             placeholder="Sosen"
-            [disabled]="isLoadingVendors"
+            [disabled]="isLoadingVendors || poAndVendorLocked"
           />
           <mat-autocomplete
             #autoVendorName="matAutocomplete"
@@ -74,33 +74,57 @@
           </mat-autocomplete>
         </mat-form-field>
 
-        <ng-container *ngIf="withPoMode">
-          <mat-form-field
-            appearance="outline"
-            class="small-form-field field-po"
+        <mat-form-field appearance="outline" class="small-form-field field-po">
+          <mat-label>MÃ PO</mat-label>
+          <input
+            matInput
+            [(ngModel)]="poNumber"
+            placeholder="Nhập mã PO (không bắt buộc)"
+            (keydown.enter)="fetchPoInfo()"
+            [disabled]="poAndVendorLocked"
+          />
+        </mat-form-field>
+
+        <mat-form-field
+          appearance="outline"
+          class="small-form-field field-sap-wh"
+        >
+          <mat-label>MÃ KHO SAP</mat-label>
+          <input
+            matInput
+            [(ngModel)]="sapWarehouseCode"
+            [matAutocomplete]="autoSapWarehouse"
+            (input)="onSapWarehouseSearch($any($event.target).value)"
+            (focus)="onSapWarehouseSearch(sapWarehouseCode)"
+            (ngModelChange)="onHeaderSapWarehouseChange($event)"
+            placeholder="RD"
+          />
+          <mat-autocomplete
+            #autoSapWarehouse="matAutocomplete"
+            (optionSelected)="onHeaderSapWarehouseSelected($event.option.value)"
           >
-            <mat-label>MÃ PO</mat-label>
-            <input
-              matInput
-              [(ngModel)]="poNumber"
-              placeholder="Nhập mã PO"
-              (keydown.enter)="fetchPoInfo()"
-            />
-          </mat-form-field>
-          <button
-            mat-raised-button
-            color="primary"
-            type="button"
-            class="btn-fetch"
-            (click)="fetchPoInfo()"
-            [disabled]="isFetchingPo"
-          >
-            <mat-spinner diameter="18" *ngIf="isFetchingPo"></mat-spinner>
-            <mat-icon *ngIf="!isFetchingPo">search</mat-icon>
-            <span *ngIf="!isFetchingPo">Lấy thông tin</span>
-            <span *ngIf="isFetchingPo">Đang tải...</span>
-          </button>
-        </ng-container>
+            <mat-option
+              *ngFor="let code of filteredSapWarehouseOptions"
+              [value]="code"
+            >
+              {{ code }}
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="button"
+          class="btn-fetch"
+          (click)="fetchPoInfo()"
+          [disabled]="isFetchingPo || poAndVendorLocked"
+        >
+          <mat-spinner diameter="18" *ngIf="isFetchingPo"></mat-spinner>
+          <mat-icon *ngIf="!isFetchingPo">search</mat-icon>
+          <span *ngIf="!isFetchingPo">Lấy thông tin</span>
+          <span *ngIf="isFetchingPo">Đang tải...</span>
+        </button>
       </div>
     </mat-card-content>
   </mat-card>
@@ -112,27 +136,37 @@
         <div class="bulk-header-left">
           <h3 class="bulk-title">BỔ SUNG THÔNG TIN VẬT TƯ</h3>
           <p class="bulk-hint">
-            Nhập số lô, HSD, NSX trước; sau đó nhập mã SAP và nhấn Enter để thêm
-            vào bảng
-            <ng-container *ngIf="withPoMode"
-              >. Khi có PO, các thông tin này áp dụng cho toàn bộ vật tư khi lấy
-              PO</ng-container
-            >.
+            Nhập số lô, HSD, NSX, ngày về trước; sau đó nhập mã SAP và nhấn
+            Enter để thêm vào bảng. Khi có PO, nhấn "Lấy thông tin" để tải SL
+            theo PO.
           </p>
         </div>
         <div class="bulk-header-actions">
-          <button mat-stroked-button type="button" *ngIf="hasAnyGeneratedTem()">
+          <button
+            mat-stroked-button
+            type="button"
+            *ngIf="hasAnyGeneratedTem()"
+            (click)="onExportExcelAll()"
+          >
             <mat-icon>download</mat-icon>
             Export Excel
           </button>
           <button
             mat-stroked-button
             type="button"
-            *ngIf="!withPoMode"
             (click)="openPoReconcileModal()"
           >
             <mat-icon>fact_check</mat-icon>
             Đối chiếu PO
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            *ngIf="editingRequestId"
+            (click)="openPartImportModal()"
+          >
+            <mat-icon>upload_file</mat-icon>
+            Import đối chiếu partnumber
           </button>
           <button
             mat-raised-button
@@ -154,25 +188,20 @@
             <mat-label>Số lô</mat-label>
             <input matInput [(ngModel)]="bulkLotNumber" />
           </mat-form-field>
-          <mat-form-field appearance="outline" class="small-form-field">
-            <mat-label>HSD</mat-label>
-            <input
-              matInput
-              [matDatepicker]="bulkExpPicker"
-              [(ngModel)]="bulkExpirationDate"
-            />
-            <mat-datepicker-toggle
-              matSuffix
-              [for]="bulkExpPicker"
-            ></mat-datepicker-toggle>
-            <mat-datepicker #bulkExpPicker></mat-datepicker>
-          </mat-form-field>
+          <mat-checkbox
+            class="bulk-auto-lot"
+            [(ngModel)]="autoGenerateLot"
+            (change)="autoGenerateLot && generateAutoLotForAll()"
+          >
+            Tự sinh mã lô
+          </mat-checkbox>
           <mat-form-field appearance="outline" class="small-form-field">
             <mat-label>NSX</mat-label>
             <input
               matInput
               [matDatepicker]="bulkMfgPicker"
               [(ngModel)]="bulkManufacturingDate"
+              (ngModelChange)="onBulkDateFieldChange()"
             />
             <mat-datepicker-toggle
               matSuffix
@@ -180,6 +209,73 @@
             ></mat-datepicker-toggle>
             <mat-datepicker #bulkMfgPicker></mat-datepicker>
           </mat-form-field>
+          <mat-form-field appearance="outline" class="small-form-field">
+            <mat-label>Ngày về</mat-label>
+            <input
+              matInput
+              [matDatepicker]="bulkArrivalPicker"
+              [(ngModel)]="bulkArrivalDate"
+              (ngModelChange)="onBulkDateFieldChange()"
+            />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="bulkArrivalPicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #bulkArrivalPicker></mat-datepicker>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="small-form-field">
+            <mat-label>HSD</mat-label>
+            <input
+              matInput
+              [matDatepicker]="bulkExpPicker"
+              [(ngModel)]="bulkExpirationDate"
+              (ngModelChange)="onBulkDateFieldChange()"
+            />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="bulkExpPicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #bulkExpPicker></mat-datepicker>
+          </mat-form-field>
+          <div class="hsd-extend-group">
+            <span class="hsd-extend-label">Gia hạn:</span>
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-hsd-extend"
+              [class.is-active]="bulkExpirationExtend === '3m'"
+              (click)="onBulkExpirationExtendChange('3m')"
+            >
+              3 tháng
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-hsd-extend"
+              [class.is-active]="bulkExpirationExtend === '6m'"
+              (click)="onBulkExpirationExtendChange('6m')"
+            >
+              6 tháng
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-hsd-extend"
+              [class.is-active]="bulkExpirationExtend === '1y'"
+              (click)="onBulkExpirationExtendChange('1y')"
+            >
+              1 năm
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-hsd-extend"
+              [class.is-active]="bulkExpirationExtend === '2y'"
+              (click)="onBulkExpirationExtendChange('2y')"
+            >
+              2 năm
+            </button>
+          </div>
         </div>
 
         <div class="bulk-sap-block">
@@ -232,17 +328,16 @@
           <colgroup>
             <col class="col-stt" />
             <col class="col-sap" />
-            <!-- Tạm ẩn cột trạng thái đối chiếu PO (chưa lưu DB)
-            <col class="col-reconcile" />
-            -->
             <col class="col-item" />
             <col class="col-part" />
             <col class="col-location" />
+            <col class="col-sap-wh" />
             <col class="col-qty-po" />
             <col class="col-qty" />
             <col class="col-lot" />
             <col class="col-tem" />
             <col class="col-mfg" />
+            <col class="col-arrival" />
             <col class="col-exp" />
             <col class="col-note" />
             <col class="col-actions" />
@@ -284,20 +379,39 @@
                 <div class="header-filter">
                   <span>VỊ TRÍ</span>
                   <input
-                    class="header-filter-input"
-                    [(ngModel)]="filterLocation"
-                    (input)="applyTableFilter()"
-                    placeholder="Lọc..."
+                    matInput
+                    class="header-filter-input header-location-input"
+                    [(ngModel)]="headerLocation"
+                    (ngModelChange)="onHeaderLocationInput($event)"
+                    [matAutocomplete]="autoHeaderLocation"
+                    (input)="onLocationSearch($any($event.target).value)"
+                    (focus)="onLocationSearch(headerLocation)"
+                    placeholder="Chọn vị trí..."
                     (click)="$event.stopPropagation()"
                     (keydown)="$event.stopPropagation()"
                   />
+                  <mat-autocomplete
+                    #autoHeaderLocation="matAutocomplete"
+                    (optionSelected)="
+                      onHeaderLocationSelected($event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="let w of filteredLocationOptions"
+                      [value]="w"
+                    >
+                      {{ w.locationFullName || w.locationName }}
+                    </mat-option>
+                  </mat-autocomplete>
                 </div>
               </th>
+              <th>MÃ KHO SAP</th>
               <th class="th-num">SL THEO PO</th>
               <th class="th-num">SỐ LƯỢNG</th>
               <th>LOT NUMBER</th>
               <th class="th-num">SỐ TEM</th>
               <th>NGÀY SX *</th>
+              <th>NGÀY VỀ</th>
               <th>HẠN SỬ DỤNG</th>
               <th>GHI CHÚ</th>
               <th class="col-actions-th">Thao tác</th>
@@ -378,10 +492,14 @@
                     </mat-option>
                   </mat-autocomplete>
                 </td>
-                <td class="cell-empty">—</td>
+                <td class="cell-text">{{ row.sapWarehouse }}</td>
+                <td class="cell-text cell-num">
+                  {{ row.quantityByPo || "—" }}
+                </td>
                 <td class="cell-text cell-num">{{ row.quantity ?? 0 }}</td>
                 <td class="cell-text">{{ row.lotNumber }}</td>
                 <td class="cell-text cell-num">{{ row.temQuantity }}</td>
+                <td class="cell-empty">—</td>
                 <td class="cell-empty">—</td>
                 <td class="cell-empty">—</td>
                 <td class="cell-empty"></td>
@@ -412,18 +530,7 @@
                     <button
                       mat-icon-button
                       type="button"
-                      class="btn-parent-action"
-                      matTooltip="Đã tạo tem — không thể xóa"
-                      [matTooltipDisabled]="canRemoveParent(row)"
-                      (click)="onRemoveParent(row)"
-                      [disabled]="!canRemoveParent(row)"
-                    >
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                    <button
-                      mat-icon-button
-                      type="button"
-                      class="btn-parent-action"
+                      class="btn-parent-action btn-icon-print"
                       matTooltip="In tất cả lô"
                       [disabled]="!row.lots.length"
                       (click)="onPrintParent(row)"
@@ -433,12 +540,33 @@
                     <button
                       mat-icon-button
                       type="button"
-                      class="btn-parent-action"
+                      class="btn-parent-action btn-icon-export"
                       matTooltip="Gửi CSV"
                       [disabled]="!row.lots.length"
                       (click)="onExportCsvParent(row)"
                     >
                       <mat-icon>upload_file</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      class="btn-parent-action btn-icon-panacim"
+                      matTooltip="Gửi PanaCIM"
+                      [disabled]="!canSendPanacimParent(row)"
+                      (click)="onSendPanacimParent(row)"
+                    >
+                      <mat-icon>system_update_alt</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      class="btn-parent-action btn-icon-delete"
+                      matTooltip="Đã tạo tem — không thể xóa"
+                      [matTooltipDisabled]="canRemoveParent(row)"
+                      (click)="onRemoveParent(row)"
+                      [disabled]="!canRemoveParent(row)"
+                    >
+                      <mat-icon>delete</mat-icon>
                     </button>
                   </div>
                 </td>
@@ -498,11 +626,17 @@
                       </mat-option>
                     </mat-autocomplete>
                   </td>
-                  <td class="cell-empty">—</td>
+                  <td class="cell-text">
+                    {{ lot.sapWarehouse || row.sapWarehouse }}
+                  </td>
+                  <td class="cell-text cell-num">
+                    {{ row.quantityByPo > 0 ? row.quantityByPo : "—" }}
+                  </td>
                   <td class="td-input">
                     <input
                       class="grid-input"
                       type="number"
+                      step="any"
                       min="0"
                       [ngModel]="lot.quantity"
                       (ngModelChange)="onLotQuantityChange(row, lot, $event)"
@@ -515,6 +649,7 @@
                     <input
                       class="grid-input"
                       type="number"
+                      step="any"
                       min="0"
                       [ngModel]="lot.temQuantity"
                       (ngModelChange)="onLotTemQuantityChange(lot, $event)"
@@ -526,7 +661,17 @@
                       type="date"
                       [ngModel]="formatDateForInput(lot.manufacturingDate)"
                       (ngModelChange)="
-                        onLotDateChange(lot, 'manufacturingDate', $event)
+                        onLotDateChange(row, lot, 'manufacturingDate', $event)
+                      "
+                    />
+                  </td>
+                  <td class="td-input">
+                    <input
+                      class="grid-input"
+                      type="date"
+                      [ngModel]="formatDateForInput(lot.arrivalDate)"
+                      (ngModelChange)="
+                        onLotDateChange(row, lot, 'arrivalDate', $event)
                       "
                     />
                   </td>
@@ -536,7 +681,7 @@
                       type="date"
                       [ngModel]="formatDateForInput(lot.expirationDate)"
                       (ngModelChange)="
-                        onLotDateChange(lot, 'expirationDate', $event)
+                        onLotDateChange(row, lot, 'expirationDate', $event)
                       "
                     />
                   </td>
@@ -555,19 +700,8 @@
                       </button>
                       <button
                         mat-icon-button
-                        color="warn"
-                        class="btn-lot-icon"
-                        matTooltip="Đã tạo tem — không thể xóa"
-                        [matTooltipDisabled]="canRemoveLot(row, lot)"
-                        (click)="removeLot(row, lot)"
-                        [disabled]="!canRemoveLot(row, lot)"
-                      >
-                        <mat-icon>delete</mat-icon>
-                      </button>
-                      <button
-                        mat-icon-button
                         color="primary"
-                        class="btn-lot-icon"
+                        class="btn-lot-icon btn-icon-print"
                         matTooltip="In"
                         (click)="onPrintLot(row, lot)"
                       >
@@ -575,7 +709,7 @@
                       </button>
                       <button
                         mat-icon-button
-                        class="btn-lot-icon"
+                        class="btn-lot-icon btn-icon-export"
                         matTooltip="Gửi CSV"
                         (click)="onExportCsvLot(row, lot)"
                       >
@@ -583,12 +717,32 @@
                       </button>
                       <button
                         mat-icon-button
+                        class="btn-lot-icon btn-icon-panacim"
+                        matTooltip="Gửi PanaCIM"
+                        [disabled]="!canSendPanacimLot(row, lot)"
+                        (click)="onSendPanacimLot(row, lot)"
+                      >
+                        <mat-icon>system_update_alt</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
                         color="primary"
-                        class="btn-lot-icon"
+                        class="btn-lot-icon btn-icon-view"
                         matTooltip="Xem chi tiết"
                         (click)="onViewLotDetail(row, lot)"
                       >
                         <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        class="btn-lot-icon btn-icon-delete"
+                        matTooltip="Đã tạo tem — không thể xóa"
+                        [matTooltipDisabled]="canRemoveLot(row, lot)"
+                        (click)="removeLot(row, lot)"
+                        [disabled]="!canRemoveLot(row, lot)"
+                      >
+                        <mat-icon>delete</mat-icon>
                       </button>
                     </div>
                   </td>
@@ -602,12 +756,8 @@
           class="empty-state"
           *ngIf="!dataSource.data.length && !isFetchingPo"
         >
-          <ng-container *ngIf="withPoMode">
-            Chưa có dữ liệu. Nhập mã PO và nhấn "Lấy thông tin" để tải vật tư.
-          </ng-container>
-          <ng-container *ngIf="!withPoMode">
-            Chưa có dữ liệu. Khai báo SAP và apply thông tin bên dưới.
-          </ng-container>
+          Chưa có dữ liệu. Nhập mã PO (nếu có) và nhấn "Lấy thông tin", hoặc
+          khai báo mã SAP và áp dụng bên trên.
         </div>
       </div>
     </mat-card-content>
@@ -791,6 +941,166 @@
             *ngFor="let code of poReconcileResult!.missingFromPo"
             >{{ code }}</span
           >
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Modal import đối chiếu partnumber -->
+  <div
+    class="po-reconcile-overlay"
+    *ngIf="showPartImportModal"
+    (click)="closePartImportModal()"
+  ></div>
+  <div
+    class="po-reconcile-modal"
+    *ngIf="showPartImportModal"
+    (click)="$event.stopPropagation()"
+  >
+    <mat-card class="po-reconcile-card">
+      <mat-card-header class="po-reconcile-header">
+        <mat-card-title>
+          <div class="po-reconcile-header-content">
+            <div class="po-reconcile-title-section">
+              <mat-icon>upload_file</mat-icon>
+              <div>
+                <h2>Import đối chiếu partnumber</h2>
+                <p>
+                  Tự nhận diện cột part (DInvCode / Part number) và mã SAP
+                  (RDCode / RD code) trong file Excel
+                </p>
+              </div>
+            </div>
+            <button
+              mat-icon-button
+              type="button"
+              (click)="closePartImportModal()"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-divider></mat-divider>
+
+      <mat-card-content class="po-reconcile-body">
+        <div class="part-import-file-row">
+          <input
+            #partImportFileInput
+            type="file"
+            accept=".xlsx,.xls"
+            hidden
+            (change)="onPartImportFileSelected($event)"
+          />
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="partImportFileInput.click()"
+            [disabled]="isParsingPartImport"
+          >
+            <mat-icon>folder_open</mat-icon>
+            Chọn file Excel
+          </button>
+          <span class="part-import-file-name" *ngIf="partImportFileName">
+            {{ partImportFileName }}
+          </span>
+          <mat-spinner diameter="20" *ngIf="isParsingPartImport"></mat-spinner>
+        </div>
+
+        <p class="po-reconcile-hint">
+          {{ collectSapCodesFromTable().length }} mã SAP trên bảng
+          <span *ngIf="partImportRows.length">
+            · {{ partImportRows.length }} mã SAP trong file
+          </span>
+          <span *ngIf="partImportMeta">
+            <br />
+            Sheet: <strong>{{ partImportMeta.sheetName }}</strong> · Part:
+            <strong>{{ partImportMeta.partNumberHeader }}</strong> · SAP:
+            <strong>{{ partImportMeta.sapCodeHeader }}</strong>
+          </span>
+        </p>
+
+        <div class="po-reconcile-actions">
+          <button
+            mat-raised-button
+            color="primary"
+            type="button"
+            (click)="onReconcilePartNumbers()"
+            [disabled]="isParsingPartImport || !partImportRows.length"
+          >
+            Đối chiếu
+          </button>
+          <button
+            mat-raised-button
+            type="button"
+            class="btn-apply-po"
+            (click)="onApplyImportedPartNumbers()"
+            [disabled]="!canApplyImportedPartNumbers()"
+          >
+            Áp dụng mã part
+          </button>
+        </div>
+
+        <div
+          class="po-reconcile-result"
+          *ngIf="partImportResult"
+          [class.is-success]="partImportResult.matched"
+          [class.is-partial]="partImportResult.partialMatched"
+          [class.is-error]="
+            !partImportResult.matched && !partImportResult.partialMatched
+          "
+        >
+          <mat-icon>{{
+            partImportResult.matched
+              ? "check_circle"
+              : partImportResult.partialMatched
+                ? "warning"
+                : "error"
+          }}</mat-icon>
+          <span>{{ partImportResult.message }}</span>
+        </div>
+
+        <div
+          class="po-reconcile-row-errors"
+          *ngIf="partImportResult?.rows?.length"
+        >
+          <div
+            class="po-reconcile-row-item"
+            *ngFor="let item of partImportResult!.rows"
+            [class.is-pass]="item.status === 'matched'"
+            [class.is-fail]="item.status !== 'matched'"
+          >
+            <div class="po-reconcile-row-head">
+              <mat-icon>{{
+                item.status === "matched" ? "check_circle" : "cancel"
+              }}</mat-icon>
+              <strong>{{ item.sapCode }}</strong>
+              <span
+                class="reconcile-badge small"
+                [class.is-passed]="item.status === 'matched'"
+                [class.is-failed]="item.status !== 'matched'"
+              >
+                {{
+                  item.status === "matched"
+                    ? "OK"
+                    : item.status === "mismatch"
+                      ? "Khác part"
+                      : "Thiếu file"
+                }}
+              </span>
+            </div>
+            <p class="part-import-row-detail" *ngIf="item.itemName">
+              {{ item.itemName }}
+            </p>
+            <ul>
+              <li>{{ item.message }}</li>
+              <li *ngIf="item.tablePartNumber && item.importPartNumber">
+                Bảng: <strong>{{ item.tablePartNumber }}</strong> — File:
+                <strong>{{ item.importPartNumber }}</strong>
+              </li>
+            </ul>
+          </div>
         </div>
       </mat-card-content>
     </mat-card>

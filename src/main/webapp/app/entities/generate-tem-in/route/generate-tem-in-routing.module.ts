@@ -27,6 +27,16 @@ const generateTemInRoute: Routes = [
     canActivate: [UserRouteAccessService],
   },
   {
+    path: "receiving-supplies/:requestId",
+    component: ReceivingSuppliesComponent,
+    canActivate: [UserRouteAccessService],
+  },
+  {
+    path: "receiving-supplies",
+    component: ReceivingSuppliesComponent,
+    canActivate: [UserRouteAccessService],
+  },
+  {
     path: "receiving-supplies/:mode/:requestId",
     component: ReceivingSuppliesComponent,
     canActivate: [UserRouteAccessService],

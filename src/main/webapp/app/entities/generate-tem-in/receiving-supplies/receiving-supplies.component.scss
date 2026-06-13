@@ -208,6 +208,39 @@
   }
 }
 
+.bulk-auto-lot {
+  font-size: 12px;
+  margin-right: 4px;
+  align-self: center;
+}
+
+.hsd-extend-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  align-self: center;
+}
+
+.hsd-extend-label {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.btn-hsd-extend {
+  min-height: 28px !important;
+  line-height: 26px !important;
+  padding: 0 8px !important;
+  font-size: 11px !important;
+
+  &.is-active {
+    background: #e0f2fe !important;
+    border-color: #0284c7 !important;
+    color: #0369a1 !important;
+  }
+}
+
 .bulk-sap-block {
   flex: 1 1 100%;
   min-width: 260px;
@@ -229,6 +262,71 @@
     height: 40px;
     margin-bottom: 2px;
   }
+}
+
+.header-location-input {
+  color: #fff !important;
+}
+
+.btn-parent-action.btn-icon-delete {
+  border-color: #fca5a5 !important;
+  background: #fef2f2 !important;
+
+  .mat-icon {
+    color: #dc2626 !important;
+  }
+}
+
+.btn-parent-action.btn-icon-print,
+.btn-parent-action.btn-icon-export,
+.btn-parent-action.btn-icon-panacim {
+  border-color: #93c5fd !important;
+  background: #eff6ff !important;
+
+  .mat-icon {
+    color: #2563eb !important;
+  }
+}
+
+.lot-action-cell.action-buttons {
+  .btn-lot-icon.btn-icon-delete {
+    border-color: #fca5a5;
+    background: #fef2f2;
+
+    &:hover:not([disabled]) {
+      background: #fee2e2;
+      border-color: #f87171;
+    }
+  }
+
+  .btn-lot-icon.btn-icon-print,
+  .btn-lot-icon.btn-icon-view {
+    border-color: #93c5fd;
+    background: #eff6ff;
+
+    .mat-icon {
+      color: #2563eb;
+    }
+  }
+
+  .btn-lot-icon.btn-icon-export,
+  .btn-lot-icon.btn-icon-panacim {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+
+    .mat-icon {
+      color: #475569;
+    }
+  }
+
+  .btn-lot-icon.btn-icon-panacim:not([disabled]) .mat-icon {
+    color: #2563eb;
+  }
+}
+
+.field-sap-wh {
+  min-width: 120px;
+  max-width: 160px;
 }
 
 .sap-chips {
@@ -287,34 +385,39 @@
   }
 
   .col-location {
-    width: 8%;
+    width: 7%;
+  }
+
+  .col-sap-wh {
+    width: 5%;
   }
 
   .col-qty-po,
   .col-qty {
-    width: 5%;
+    width: 4%;
   }
 
   .col-lot {
-    width: 7%;
-  }
-
-  .col-tem {
-    width: 5%;
-  }
-
-  .col-mfg,
-  .col-exp {
     width: 6%;
   }
 
-  .col-note {
+  .col-tem {
+    width: 4%;
+  }
+
+  .col-mfg,
+  .col-arrival,
+  .col-exp {
     width: 5%;
   }
 
+  .col-note {
+    width: 4%;
+  }
+
   .col-actions {
-    width: 17%;
-    min-width: 220px;
+    width: 16%;
+    min-width: 200px;
   }
 
   th.col-reconcile-th {
@@ -880,6 +983,26 @@
   font-size: 13px;
   color: #64748b;
   line-height: 1.5;
+}
+
+.part-import-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.part-import-file-name {
+  font-size: 13px;
+  color: #334155;
+  word-break: break-all;
+}
+
+.part-import-row-detail {
+  margin: 4px 0 0 28px;
+  font-size: 12px;
+  color: #64748b;
 }
 
 .po-reconcile-actions {

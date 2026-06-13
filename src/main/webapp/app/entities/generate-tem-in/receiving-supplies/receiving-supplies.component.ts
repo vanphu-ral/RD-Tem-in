@@ -7,6 +7,7 @@ import {
   ChangeDetectorRef,
 } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
+import { HttpClient } from "@angular/common/http";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatPaginator } from "@angular/material/paginator";
 import {
@@ -39,6 +40,7 @@ import {
 
 interface SavedProductRow {
   id: number;
+  requestCreateTemId?: number;
   sapCode: string;
   productName: string;
   partNumber: string;
@@ -56,11 +58,27 @@ interface SavedProductRow {
   expirationDate: string;
   manufacturingDate: string;
   arrivalDate: string;
+  numberOfPrints?: number;
+  UploadPanacim?: boolean;
 }
 import {
   generateLabelBarcodes,
   runLabelPrint,
 } from "./receiving-label-print.util";
+import {
+  applyImportedPartNumbers,
+  PartNumberPlImportRow,
+  PartNumberReconcileResult,
+  PartNumberImportParseMeta,
+  parsePartNumberImportFile,
+  reconcilePartNumbersFromPl,
+  TablePartRow,
+} from "./part-number-pl-import.util";
+import {
+  generateTemPanacimCsvBlob,
+  generateTemPanacimExcelBlob,
+  TemPanacimExportInput,
+} from "./tem-panacim-export.util";
 
 interface SapOitmRowInfo {
   code: string;
@@ -74,6 +92,8 @@ export interface ReceivingLotRow {
   productId?: number;
   lotLabel?: string;
   location: string;
+  /** Mã kho SAP (gửi OPDN StorageUnit). */
+  sapWarehouse: string;
   /** true khi user tự chọn vị trí ở lớp con — không ghi đè khi đổi vị trí cha. */
   locationOverridden: boolean;
   lotNumber: string;
@@ -92,6 +112,8 @@ export interface ReceivingLotRow {
   note: string;
   /** Đã gửi SAP thành công trong phiên hiện tại. */
   sapSent?: boolean;
+  /** Đã gửi PanaCIM. */
+  uploadPanacim?: boolean;
 }
 
 export interface ReceivingLotDetailView {
@@ -166,6 +188,8 @@ export interface ReceivingMaterialRow {
   itemName: string;
   partNumber: string;
   location: string;
+  /** Mã kho SAP (gửi OPDN StorageUnit). */
+  sapWarehouse: string;
   quantityByPo: number;
   quantity: number | null;
   lotNumber: string;
@@ -178,6 +202,8 @@ export interface ReceivingMaterialRow {
   /** Trạng thái đối chiếu PO — chỉ dòng cha. */
   reconcileStatus: ReconcileStatus;
 }
+
+export type ExpirationExtendOption = "none" | "3m" | "6m" | "1y" | "2y";
 
 @Component({
   selector: "jhi-receiving-supplies",
@@ -193,27 +219,39 @@ export class ReceivingSuppliesComponent
   isSavingOrder = false;
   isGenerating = false;
   isSendingSap = false;
+  isSendingPanacim = false;
   isDisableGenerate = false;
-  withPoMode = false;
   editingRequestId: number | null = null;
   requestTemDetails: TemDetail[] = [];
 
   poNumber = "";
   /** Mã SAP thuộc PO hiện tại (từ sap-po-info). */
   poSapCodes: string[] = [];
+  /** SL theo PO theo mã SAP — từ por1Quantity. */
+  poQuantityBySapCode: Record<string, number> = {};
   vendorCode = "";
   vendorName = "";
   storageUnit = "";
+  /** Mã kho SAP header — áp dụng toàn bảng. */
+  sapWarehouseCode = "RD";
+  readonly sapWarehouseOptions = ["RD"];
+  filteredSapWarehouseOptions: string[] = ["RD"];
+  /** Khóa PO + vendor khi mở đơn đã có PO. */
+  poAndVendorLocked = false;
 
   bulkLotNumber = "";
-  bulkExpirationDate: Date | null = null;
+  bulkExpirationDate: Date | null = new Date();
   bulkManufacturingDate: Date | null = null;
+  bulkArrivalDate: Date | null = new Date();
+  bulkExpirationExtend: ExpirationExtendOption = "none";
+  autoGenerateLot = false;
   bulkSapCodesInput = "";
   selectedSapCodes: string[] = [];
 
   filterItemName = "";
   filterPartNumber = "";
-  filterLocation = "";
+  /** Vị trí header — chọn để áp dụng toàn bảng. */
+  headerLocation = "";
 
   filteredLocationOptions: WarehouseLocation[] = [];
   vendorOptions: SapOcrd[] = [];
@@ -255,6 +293,14 @@ export class ReceivingSuppliesComponent
   verifiedPoNumber = "";
   matchedSapCodesForApply: string[] = [];
 
+  showPartImportModal = false;
+  partImportFile: File | null = null;
+  partImportFileName = "";
+  isParsingPartImport = false;
+  partImportRows: PartNumberPlImportRow[] = [];
+  partImportResult: PartNumberReconcileResult | null = null;
+  partImportMeta: PartNumberImportParseMeta | null = null;
+
   showLotDetailModal = false;
   lotDetailView: ReceivingLotDetailView | null = null;
   lotDetailTemPreview: ReceivingTemPreviewRow[] = [];
@@ -291,6 +337,7 @@ export class ReceivingSuppliesComponent
   private readonly vendorDisplayLimit = 50;
   /** ID sản phẩm chờ xóa khi lưu — chỉ khi user bấm xóa lô/vật tư. */
   private pendingDeletedProductIds: number[] = [];
+  private savedProductsById = new Map<number, SavedProductRow>();
 
   constructor(
     private router: Router,
@@ -301,14 +348,31 @@ export class ReceivingSuppliesComponent
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private cdr: ChangeDetectorRef,
+    private http: HttpClient,
   ) {}
 
   ngOnInit(): void {
-    const mode = this.route.snapshot.paramMap.get("mode");
-    this.withPoMode = mode === "with-po";
-
-    const requestIdParam = this.route.snapshot.paramMap.get("requestId");
-    if (requestIdParam) {
+    let requestIdParam =
+      this.route.snapshot.paramMap.get("requestId") ??
+      this.route.snapshot.paramMap.get("id");
+    if (!requestIdParam) {
+      const mode = this.route.snapshot.paramMap.get("mode");
+      if (mode && /^\d+$/.test(mode)) {
+        requestIdParam = mode;
+      }
+    }
+    if (!requestIdParam) {
+      const legacyMode = this.route.snapshot.paramMap.get("mode");
+      const legacyId = this.route.snapshot.paramMap.get("requestId");
+      if (
+        legacyId &&
+        /^\d+$/.test(legacyId) &&
+        (legacyMode === "with-po" || legacyMode === "without-po")
+      ) {
+        requestIdParam = legacyId;
+      }
+    }
+    if (requestIdParam && /^\d+$/.test(requestIdParam)) {
       const parsedId = Number(requestIdParam);
       if (!Number.isNaN(parsedId) && parsedId > 0) {
         this.editingRequestId = parsedId;
@@ -330,14 +394,11 @@ export class ReceivingSuppliesComponent
       const f = JSON.parse(filter) as {
         itemName: string;
         partNumber: string;
-        location: string;
       };
       const match = (val: string, term: string): boolean =>
         !term || val.toLowerCase().includes(term.toLowerCase());
       return (
-        match(row.itemName, f.itemName) &&
-        match(row.partNumber, f.partNumber) &&
-        match(row.location, f.location)
+        match(row.itemName, f.itemName) && match(row.partNumber, f.partNumber)
       );
     };
     if (this.editingRequestId) {
@@ -523,6 +584,14 @@ export class ReceivingSuppliesComponent
   ): void {
     lot.quantity = this.sanitizeNonNegativeQuantity(raw);
     this.syncParentQuantityFromLots(row);
+    if (row.quantityByPo > 0 && (row.quantity ?? 0) > row.quantityByPo) {
+      this.showSnackbar(
+        `Mã ${row.sapCode}: tổng SL lô (${row.quantity}) vượt SL theo PO (${row.quantityByPo}).`,
+        "Đóng",
+        5000,
+        "warning",
+      );
+    }
     this.markParentReconcilePending(row);
     this.cdr.markForCheck();
   }
@@ -623,6 +692,7 @@ export class ReceivingSuppliesComponent
       row.location,
       `${row.id}-${Date.now()}`,
       prevLot?.lotNumber ?? "",
+      row.quantityByPo > 0 ? row.quantityByPo : null,
     );
     if (prevLot) {
       lot.manufacturingDate = prevLot.manufacturingDate
@@ -631,6 +701,12 @@ export class ReceivingSuppliesComponent
       lot.expirationDate = prevLot.expirationDate
         ? new Date(prevLot.expirationDate)
         : null;
+      lot.arrivalDate = prevLot.arrivalDate
+        ? new Date(prevLot.arrivalDate)
+        : new Date();
+    }
+    if (this.autoGenerateLot) {
+      lot.lotNumber = this.generateAutoLotNumber(row, lot);
     }
     row.lots = [...row.lots, lot];
     row.lotNumber = `${row.lots.length} lô`;
@@ -660,9 +736,81 @@ export class ReceivingSuppliesComponent
     this.dataSource.filter = JSON.stringify({
       itemName: this.filterItemName,
       partNumber: this.filterPartNumber,
-      location: this.filterLocation,
     });
     this.refreshTableView();
+  }
+
+  onSapWarehouseSearch(keyword: string): void {
+    const term = (keyword ?? "").trim().toLowerCase();
+    this.filteredSapWarehouseOptions = term
+      ? this.sapWarehouseOptions.filter((code) =>
+          code.toLowerCase().includes(term),
+        )
+      : [...this.sapWarehouseOptions];
+  }
+
+  onHeaderSapWarehouseChange(value: string): void {
+    const trimmed = value.trim();
+    this.sapWarehouseCode = trimmed;
+    if (!trimmed) {
+      return;
+    }
+    this.applySapWarehouseToAll(trimmed);
+  }
+
+  onHeaderSapWarehouseSelected(code: string): void {
+    this.sapWarehouseCode = code;
+    this.applySapWarehouseToAll(code);
+  }
+
+  onHeaderLocationInput(value: string): void {
+    this.headerLocation = value;
+    if (value.trim()) {
+      this.applyHeaderLocationToAll(value.trim());
+    }
+  }
+
+  onHeaderLocationSelected(loc: WarehouseLocation): void {
+    const name = loc.locationName ?? "";
+    this.headerLocation = name;
+    this.applyHeaderLocationToAll(name);
+  }
+
+  onBulkExpirationExtendChange(option: ExpirationExtendOption): void {
+    this.bulkExpirationExtend = option;
+    if (option === "none") {
+      this.bulkExpirationDate = new Date();
+    } else {
+      this.bulkExpirationDate = this.computeExpirationFromExtend(option);
+    }
+    this.onBulkDateFieldChange();
+  }
+
+  /** Chọn NSX / Ngày về / HSD ở bulk → áp dụng ngay (chỉ lô/vật tư chưa lưu nếu đang sửa đơn). */
+  onBulkDateFieldChange(): void {
+    if (!this.dataSource.data.length) {
+      return;
+    }
+    this.applyBulkFieldsToAllLots();
+    this.refreshTableView();
+    this.cdr.markForCheck();
+  }
+
+  generateAutoLotForAll(): void {
+    this.dataSource.data = this.dataSource.data.map((parent) => {
+      const lots = parent.lots.map((lot) => {
+        if (!this.shouldApplyBulkToLot(lot)) {
+          return lot;
+        }
+        return {
+          ...lot,
+          lotNumber: this.generateAutoLotNumber(parent, lot),
+        };
+      });
+      return { ...parent, lots };
+    });
+    this.refreshTableView();
+    this.cdr.markForCheck();
   }
 
   onSaveOrder(): void {
@@ -892,9 +1040,6 @@ export class ReceivingSuppliesComponent
   }
 
   openPoReconcileModal(): void {
-    if (this.withPoMode) {
-      return;
-    }
     const sapCodes = this.collectSapCodesFromTable();
     const lotCount = this.countChildLots();
     if (!sapCodes.length) {
@@ -936,6 +1081,150 @@ export class ReceivingSuppliesComponent
     this.matchedSapCodesForApply = [];
     document.body.classList.remove("modal-open");
     this.cdr.markForCheck();
+  }
+
+  openPartImportModal(): void {
+    const sapCodes = this.collectSapCodesFromTable();
+    if (!sapCodes.length) {
+      this.showSnackbar(
+        "Chưa có vật tư trên bảng để đối chiếu partnumber.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+    this.partImportFile = null;
+    this.partImportFileName = "";
+    this.partImportRows = [];
+    this.partImportResult = null;
+    this.partImportMeta = null;
+    this.showPartImportModal = true;
+    document.body.classList.add("modal-open");
+    this.cdr.markForCheck();
+  }
+
+  closePartImportModal(): void {
+    this.showPartImportModal = false;
+    this.isParsingPartImport = false;
+    this.partImportFile = null;
+    this.partImportFileName = "";
+    this.partImportRows = [];
+    this.partImportResult = null;
+    this.partImportMeta = null;
+    document.body.classList.remove("modal-open");
+    this.cdr.markForCheck();
+  }
+
+  onPartImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = "";
+    if (!file) {
+      return;
+    }
+    this.partImportFile = file;
+    this.partImportFileName = file.name;
+    this.partImportResult = null;
+    this.partImportRows = [];
+    this.partImportMeta = null;
+    this.isParsingPartImport = true;
+    this.cdr.markForCheck();
+
+    parsePartNumberImportFile(file)
+      .then(({ rows, meta }) => {
+        this.isParsingPartImport = false;
+        this.partImportRows = rows;
+        this.partImportMeta = meta;
+        this.onReconcilePartNumbers();
+        this.cdr.markForCheck();
+      })
+      .catch((err: unknown) => {
+        this.isParsingPartImport = false;
+        this.partImportFile = null;
+        this.partImportFileName = "";
+        this.partImportRows = [];
+        this.partImportResult = null;
+        this.partImportMeta = null;
+        const message =
+          err instanceof Error ? err.message : "Không đọc được file Excel.";
+        this.showSnackbar(message, "Đóng", 6000, "warning");
+        this.cdr.markForCheck();
+      });
+  }
+
+  onReconcilePartNumbers(): void {
+    if (!this.partImportRows.length) {
+      this.showSnackbar(
+        "Vui lòng chọn file Excel có cột DInvCode/Part number và RDCode trước.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+    const tableRows = this.collectRowsForPartReconcile();
+    if (!tableRows.length) {
+      this.showSnackbar(
+        "Chưa có dòng vật tư trên bảng để đối chiếu.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+    this.partImportResult = reconcilePartNumbersFromPl(
+      tableRows,
+      this.partImportRows,
+    );
+    this.cdr.markForCheck();
+  }
+
+  canApplyImportedPartNumbers(): boolean {
+    if (!this.partImportResult?.importPartBySap) {
+      return false;
+    }
+    return this.partImportResult.rows.some((r) => r.status === "mismatch");
+  }
+
+  onApplyImportedPartNumbers(): void {
+    if (!this.canApplyImportedPartNumbers() || !this.partImportResult) {
+      return;
+    }
+    const tableRows = this.collectRowsForPartReconcile();
+    const applied = applyImportedPartNumbers(
+      tableRows,
+      this.partImportResult.importPartBySap,
+      true,
+    );
+    this.dataSource.data.forEach((parent) => {
+      const match = tableRows.find(
+        (r) => r.sapCode.trim() === parent.sapCode.trim(),
+      );
+      if (match) {
+        parent.partNumber = match.partNumber;
+      }
+    });
+    this.onReconcilePartNumbers();
+    this.showSnackbar(
+      applied
+        ? `Đã áp dụng mã part từ file import cho ${applied} dòng.`
+        : "Không có mã part nào được áp dụng.",
+      "Đóng",
+      5000,
+      applied ? "success" : "warning",
+    );
+    this.cdr.markForCheck();
+  }
+
+  collectRowsForPartReconcile(): TablePartRow[] {
+    return this.dataSource.data
+      .filter((row) => row.sapCode.trim())
+      .map((row) => ({
+        sapCode: row.sapCode.trim(),
+        itemName: row.itemName.trim(),
+        partNumber: row.partNumber.trim(),
+      }));
   }
 
   onReconcilePo(): void {
@@ -1175,6 +1464,102 @@ export class ReceivingSuppliesComponent
     this.downloadCsv(rows, `tem_${parent.sapCode}_all.csv`);
   }
 
+  onExportExcelAll(): void {
+    const rows = this.collectAllTemPreviewRows();
+    if (!rows.length) {
+      this.showSnackbar(
+        "Chưa có mã tem. Vui lòng tạo mã trước.",
+        "Đóng",
+        3000,
+        "warning",
+      );
+      return;
+    }
+    const date = new Date().toISOString().split("T")[0];
+    const requestLabel = this.editingRequestId ?? "new";
+    this.downloadExcel(rows, `tem_export_${requestLabel}_${date}.xlsx`);
+  }
+
+  canSendPanacimLot(
+    _parent: ReceivingMaterialRow,
+    lot: ReceivingLotRow,
+  ): boolean {
+    return (
+      !this.isSendingPanacim &&
+      lot.productId != null &&
+      this.lotHasTem(lot) &&
+      !lot.uploadPanacim
+    );
+  }
+
+  canSendPanacimParent(parent: ReceivingMaterialRow): boolean {
+    if (this.isSendingPanacim) {
+      return false;
+    }
+    return parent.lots.some(
+      (lot) =>
+        lot.productId != null && this.lotHasTem(lot) && !lot.uploadPanacim,
+    );
+  }
+
+  onSendPanacimLot(parent: ReceivingMaterialRow, lot: ReceivingLotRow): void {
+    if (!this.canSendPanacimLot(parent, lot)) {
+      return;
+    }
+    const label = lot.lotNumber || parent.sapCode;
+    this.confirmAction(
+      `Gửi dữ liệu tem lô ${label} đến PanaCIM?`,
+      "Gửi PanaCIM",
+    ).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      const rows = this.getTemRowsForLot(parent, lot);
+      if (!rows.length) {
+        this.showSnackbar(
+          "Chưa có mã tem. Vui lòng tạo mã trước.",
+          "Đóng",
+          3000,
+          "warning",
+        );
+        return;
+      }
+      const fileName = `CSV_UP_Panacim_${parent.sapCode}_${label}_${new Date().toISOString().split("T")[0]}.csv`;
+      this.uploadTemRowsToPanacim(rows, fileName, [Number(lot.productId)]);
+    });
+  }
+
+  onSendPanacimParent(parent: ReceivingMaterialRow): void {
+    if (!this.canSendPanacimParent(parent)) {
+      return;
+    }
+    this.confirmAction(
+      `Gửi dữ liệu tem mã SAP ${parent.sapCode} đến PanaCIM?`,
+      "Gửi PanaCIM",
+    ).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      const lots = parent.lots.filter(
+        (lot) =>
+          lot.productId != null && this.lotHasTem(lot) && !lot.uploadPanacim,
+      );
+      const rows = lots.flatMap((lot) => this.getTemRowsForLot(parent, lot));
+      if (!rows.length) {
+        this.showSnackbar(
+          "Chưa có mã tem. Vui lòng tạo mã trước.",
+          "Đóng",
+          3000,
+          "warning",
+        );
+        return;
+      }
+      const productIds = [...new Set(lots.map((lot) => Number(lot.productId)))];
+      const fileName = `CSV_UP_Panacim_${parent.sapCode}_${new Date().toISOString().split("T")[0]}.csv`;
+      this.uploadTemRowsToPanacim(rows, fileName, productIds);
+    });
+  }
+
   onRemoveParent(parent: ReceivingMaterialRow): void {
     const lotCount = parent.lots.length;
     const msg = lotCount
@@ -1267,11 +1652,136 @@ export class ReceivingSuppliesComponent
   }
 
   onLotDateChange(
+    parent: ReceivingMaterialRow,
     lot: ReceivingLotRow,
-    field: "manufacturingDate" | "expirationDate",
+    field: "manufacturingDate" | "expirationDate" | "arrivalDate",
     value: string,
   ): void {
     lot[field] = value ? new Date(value) : null;
+    if (!this.shouldApplyBulkToLot(lot)) {
+      return;
+    }
+    if (field === "arrivalDate" && lot.arrivalDate) {
+      lot.userData4 = this.buildUserData4(parent.sapCode, lot.arrivalDate);
+    }
+    if (this.autoGenerateLot && field === "arrivalDate") {
+      lot.lotNumber = this.generateAutoLotNumber(parent, lot);
+    }
+    this.cdr.markForCheck();
+  }
+
+  private applySapWarehouseToAll(code: string): void {
+    this.dataSource.data = this.dataSource.data.map((parent) => {
+      const lots = parent.lots.map((lot) => ({ ...lot, sapWarehouse: code }));
+      return { ...parent, sapWarehouse: code, lots };
+    });
+    this.refreshTableView();
+    this.cdr.markForCheck();
+  }
+
+  private applyHeaderLocationToAll(location: string): void {
+    this.storageUnit = location;
+    this.dataSource.data = this.dataSource.data.map((parent) => {
+      const lots = parent.lots.map((lot) => ({
+        ...lot,
+        location,
+        locationOverridden: false,
+      }));
+      return { ...parent, location, lots };
+    });
+    this.refreshTableView();
+    this.cdr.markForCheck();
+  }
+
+  private computeExpirationFromExtend(
+    option: ExpirationExtendOption,
+  ): Date | null {
+    const base = new Date();
+    if (option === "none") {
+      return base;
+    }
+    const result = new Date(base);
+    switch (option) {
+      case "3m":
+        result.setMonth(result.getMonth() + 3);
+        break;
+      case "6m":
+        result.setMonth(result.getMonth() + 6);
+        break;
+      case "1y":
+        result.setFullYear(result.getFullYear() + 1);
+        break;
+      case "2y":
+        result.setFullYear(result.getFullYear() + 2);
+        break;
+    }
+    return result;
+  }
+
+  private generateAutoLotNumber(
+    parent: ReceivingMaterialRow,
+    lot: ReceivingLotRow,
+  ): string {
+    const today = new Date();
+    const arrival = lot.arrivalDate ?? this.bulkArrivalDate ?? today;
+    const referenceWarehouse =
+      this.sapWarehouseCode.trim() || parent.sapWarehouse.trim();
+    const lotWarehouse = (lot.sapWarehouse || parent.sapWarehouse).trim();
+    const suffix =
+      referenceWarehouse && lotWarehouse && referenceWarehouse !== lotWarehouse
+        ? "02"
+        : "01";
+    return `${this.formatYyMmDd(today)}${this.formatYyMmDd(arrival)}${suffix}`;
+  }
+
+  /** Lô chưa persist DB (chưa có productId). */
+  private isUnsavedLot(lot: ReceivingLotRow): boolean {
+    return lot.productId == null;
+  }
+
+  /** Đơn mới hoặc lô chưa lưu — bulk chỉ áp dụng cho đối tượng này khi sửa đơn đã lưu. */
+  private shouldApplyBulkToLot(lot: ReceivingLotRow): boolean {
+    if (!this.editingRequestId) {
+      return true;
+    }
+    return this.isUnsavedLot(lot);
+  }
+
+  private formatYyMmDd(date: Date): string {
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yy}${mm}${dd}`;
+  }
+
+  private getPoQuantityForSapCode(sapCode: string): number {
+    const normalized = this.normalizeSapCode(sapCode);
+    const entry = Object.entries(this.poQuantityBySapCode).find(
+      ([code]) => this.normalizeSapCode(code) === normalized,
+    );
+    return entry ? entry[1] : 0;
+  }
+
+  private populatePoQuantityMap(res: SapPoInfoResponse): void {
+    const qtyMap: Record<string, number> = {};
+    (res.poDetails ?? []).forEach((d) => {
+      const code = (d.por1ItemCode ?? "").trim();
+      if (!code) {
+        return;
+      }
+      qtyMap[code] = Number.parseFloat(d.por1Quantity ?? "0") || 0;
+    });
+    this.poQuantityBySapCode = qtyMap;
+  }
+
+  private applyPoQuantityToRow(row: ReceivingMaterialRow): void {
+    const qty = this.getPoQuantityForSapCode(row.sapCode);
+    if (qty <= 0) {
+      return;
+    }
+    row.quantityByPo = qty;
+    row.quantity = qty;
+    row.lots = row.lots.map((lot) => ({ ...lot, quantity: qty }));
   }
 
   private persistOrderChanges(
@@ -1390,17 +1900,9 @@ export class ReceivingSuppliesComponent
       });
   }
 
-  /** Sau lưu: without-po → tiếp tục nhập; with-po → trang detail. */
+  /** Sau lưu: luôn ở lại receiving-supplies. */
   private navigateAfterSave(requestId: number): void {
-    const mode = this.route.snapshot.paramMap.get("mode");
-    if (mode === "without-po" || !this.withPoMode) {
-      this.router.navigate([
-        "/generate-tem-in/receiving-supplies/without-po",
-        requestId,
-      ]);
-      return;
-    }
-    this.router.navigate(["/generate-tem-in/detail", requestId]);
+    this.router.navigate(["/generate-tem-in/receiving-supplies", requestId]);
   }
 
   private refreshTableView(): void {
@@ -1425,8 +1927,13 @@ export class ReceivingSuppliesComponent
     if (this.bulkLotNumber.trim()) {
       return true;
     }
+    if (this.autoGenerateLot) {
+      return true;
+    }
     return (
-      this.bulkExpirationDate != null || this.bulkManufacturingDate != null
+      this.bulkExpirationDate != null ||
+      this.bulkManufacturingDate != null ||
+      this.bulkArrivalDate != null
     );
   }
 
@@ -1436,7 +1943,7 @@ export class ReceivingSuppliesComponent
       return;
     }
 
-    if (this.withPoMode && !this.isSapCodeInCurrentPo(trimmed)) {
+    if (this.poSapCodes.length && !this.isSapCodeInCurrentPo(trimmed)) {
       this.notifySapCodeNotInPo(trimmed);
       this.bulkSapCodesInput = "";
       return;
@@ -1500,6 +2007,7 @@ export class ReceivingSuppliesComponent
         );
         valid.forEach(({ code, data }) => this.appendSapRowToTable(code, data));
 
+        this.applyBulkFieldsToAllLots();
         this.bulkSapCodesInput = "";
         this.refreshTableView();
         this.cdr.markForCheck();
@@ -1538,22 +2046,42 @@ export class ReceivingSuppliesComponent
       : null;
     const expirationDate = this.bulkExpirationDate
       ? new Date(this.bulkExpirationDate)
-      : manufacturingDate
-        ? this.addYears(manufacturingDate, 2)
-        : null;
+      : this.computeExpirationFromExtend(this.bulkExpirationExtend);
+    const arrivalDate = this.bulkArrivalDate
+      ? new Date(this.bulkArrivalDate)
+      : null;
 
-    if (!lotNumber && !manufacturingDate && !expirationDate) {
+    if (
+      !lotNumber &&
+      !manufacturingDate &&
+      !expirationDate &&
+      !arrivalDate &&
+      !this.autoGenerateLot
+    ) {
       return;
     }
 
     this.dataSource.data = this.dataSource.data.map((parent) => {
-      const lots = parent.lots.map((lot) => ({
-        ...lot,
-        lotNumber: lotNumber || lot.lotNumber,
-        manufacturingDate: manufacturingDate ?? lot.manufacturingDate,
-        expirationDate: expirationDate ?? lot.expirationDate,
-        arrivalDate: lot.arrivalDate ?? new Date(),
-      }));
+      const lots = parent.lots.map((lot) => {
+        if (!this.shouldApplyBulkToLot(lot)) {
+          return lot;
+        }
+        const updated = {
+          ...lot,
+          lotNumber: lotNumber || lot.lotNumber,
+          manufacturingDate: manufacturingDate ?? lot.manufacturingDate,
+          expirationDate: expirationDate ?? lot.expirationDate,
+          arrivalDate: arrivalDate ?? lot.arrivalDate ?? new Date(),
+        };
+        if (this.autoGenerateLot) {
+          updated.lotNumber = this.generateAutoLotNumber(parent, updated);
+        }
+        updated.userData4 = this.buildUserData4(
+          parent.sapCode,
+          updated.arrivalDate ?? new Date(),
+        );
+        return updated;
+      });
       const row = { ...parent, lots };
       this.syncParentQuantityFromLots(row);
       row.lotNumber = lots.length ? `${lots.length} lô` : parent.lotNumber;
@@ -1566,7 +2094,7 @@ export class ReceivingSuppliesComponent
     if (!code) {
       return;
     }
-    if (this.withPoMode && !this.isSapCodeInCurrentPo(code)) {
+    if (this.poSapCodes.length && !this.isSapCodeInCurrentPo(code)) {
       this.notifySapCodeNotInPo(code);
       this.bulkSapCodesInput = "";
       return;
@@ -1622,7 +2150,7 @@ export class ReceivingSuppliesComponent
     if (raw === "" || raw === null || raw === undefined) {
       return null;
     }
-    const value = Number(raw);
+    const value = Number.parseFloat(String(raw).replace(",", "."));
     if (Number.isNaN(value) || value < 0) {
       return 0;
     }
@@ -1738,15 +2266,18 @@ export class ReceivingSuppliesComponent
     sapCode: string,
     id: number,
   ): ReceivingMaterialRow {
-    const location = this.storageUnit || "";
+    const location = this.headerLocation || this.storageUnit || "";
+    const sapWarehouse = this.sapWarehouseCode.trim() || "RD";
+    const poQty = this.getPoQuantityForSapCode(sapCode);
     const row: ReceivingMaterialRow = {
       id,
       sapCode,
       itemName: "",
       partNumber: "",
       location,
-      quantityByPo: 0,
-      quantity: 0,
+      sapWarehouse,
+      quantityByPo: poQty,
+      quantity: poQty > 0 ? poQty : 0,
       lotNumber: "1 lô",
       temQuantity: 1,
       manufacturingDate: null,
@@ -1762,8 +2293,12 @@ export class ReceivingSuppliesComponent
         location,
         `bulk-${id}-${Date.now()}`,
         this.bulkLotNumber,
+        poQty,
       ),
     ];
+    if (this.autoGenerateLot) {
+      row.lots[0].lotNumber = this.generateAutoLotNumber(row, row.lots[0]);
+    }
     this.syncParentQuantityFromLots(row);
     return row;
   }
@@ -1773,23 +2308,27 @@ export class ReceivingSuppliesComponent
     location: string,
     rowKey: string,
     lotNumber = "",
+    defaultQuantity: number | null = null,
   ): ReceivingLotRow {
-    const arrivalDate = new Date();
+    const arrivalDate = this.bulkArrivalDate
+      ? new Date(this.bulkArrivalDate)
+      : new Date();
     const manufacturingDate = this.bulkManufacturingDate
       ? new Date(this.bulkManufacturingDate)
       : null;
     const expirationDate = this.bulkExpirationDate
       ? new Date(this.bulkExpirationDate)
-      : manufacturingDate
-        ? this.addYears(manufacturingDate, 2)
-        : null;
+      : new Date();
+    const qty =
+      defaultQuantity ?? (parent.quantityByPo > 0 ? parent.quantityByPo : null);
     return {
       rowKey,
       lotLabel: "",
       location,
+      sapWarehouse: parent.sapWarehouse || this.sapWarehouseCode.trim() || "RD",
       locationOverridden: false,
       lotNumber,
-      quantity: null,
+      quantity: qty,
       temQuantity: 1,
       manufacturingDate,
       expirationDate,
@@ -1928,9 +2467,38 @@ export class ReceivingSuppliesComponent
     };
   }
 
+  private formatDateForPanacimExport(value: Date | string | null): string {
+    if (!value) {
+      return "";
+    }
+    if (value instanceof Date) {
+      return this.formatDateYyyyMmDd(value);
+    }
+    return value.trim();
+  }
+
   private downloadCsv(rows: ReceivingTemPreviewRow[], filename: string): void {
-    const csvContent = this.generateCsvContent(rows);
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = generateTemPanacimCsvBlob(
+      this.toPanacimExportRows(rows),
+      (date) => this.formatDateForPanacimExport(date),
+    );
+    this.downloadBlob(blob, filename);
+    this.showSnackbar(`Đã tải CSV: ${filename}`, "Đóng", 3000, "success");
+  }
+
+  private downloadExcel(
+    rows: ReceivingTemPreviewRow[],
+    filename: string,
+  ): void {
+    const blob = generateTemPanacimExcelBlob(
+      this.toPanacimExportRows(rows),
+      (date) => this.formatDateForPanacimExport(date),
+    );
+    this.downloadBlob(blob, filename);
+    this.showSnackbar(`Đã tải Excel: ${filename}`, "Đóng", 3000, "success");
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
@@ -1940,82 +2508,105 @@ export class ReceivingSuppliesComponent
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    this.showSnackbar(`Đã tải CSV: ${filename}`, "Đóng", 3000, "success");
   }
 
-  private generateCsvContent(rows: ReceivingTemPreviewRow[]): string {
-    const headers = [
-      "ReelID",
-      "PartNumber",
-      "Vendor",
-      "Lot",
-      "UserData1",
-      "UserData2",
-      "UserData3",
-      "UserData4",
-      "UserData5",
-      "InitialQuantity",
-      "MSDLevel",
-      "MSDInitialFloorTime",
-      "MSDBagSealDate",
-      "MarketUsage",
-      "QuantityOverride",
-      "ShelfTime",
-      "SPMaterialName",
-      "WarningLimit",
-      "MaximumLimit",
-      "Comments",
-      "WarmupTime",
-      "StorageUnit",
-      "SubStorageUnit",
-      "LocationOverride",
-      "ExpirationDate",
-      "ManufacturingDate",
-      "Partclass",
-      "SAPCode",
-    ];
+  private collectAllTemPreviewRows(): ReceivingTemPreviewRow[] {
+    return this.requestTemDetails.map((t) => this.mapTemDetailToPreviewRow(t));
+  }
 
-    const csvRows = rows.map((item) => [
-      item.reelId,
-      item.partNumber,
-      item.vendor,
-      item.lot,
-      item.userData1,
-      item.userData2,
-      item.userData3,
-      item.userData4,
-      item.userData5,
-      item.initialQuantity,
-      "",
-      "",
-      "",
-      "",
-      "1",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      item.storageUnit,
-      "",
-      "",
-      item.expirationDate
-        ? this.formatDateYyyyMmDd(item.expirationDate).replace(/-/g, "")
-        : "",
-      item.manufacturingDate
-        ? this.formatDateYyyyMmDd(item.manufacturingDate).replace(/-/g, "")
-        : "",
-      "",
-      item.sapCode,
-    ]);
+  private toPanacimExportRows(
+    rows: ReceivingTemPreviewRow[],
+  ): TemPanacimExportInput[] {
+    return rows.map((item) => ({
+      reelId: item.reelId,
+      partNumber: item.partNumber,
+      vendor: item.vendor,
+      lot: item.lot,
+      userData1: item.userData1,
+      userData2: item.userData2,
+      userData3: item.userData3,
+      userData4: item.userData4,
+      userData5: item.userData5,
+      initialQuantity: item.initialQuantity,
+      storageUnit: item.storageUnit,
+      expirationDate: item.expirationDate,
+      manufacturingDate: item.manufacturingDate,
+      sapCode: item.sapCode,
+    }));
+  }
 
-    return (
-      "\ufeff" +
-      [headers, ...csvRows]
-        .map((row) => row.map((cell) => cell ?? "").join(","))
-        .join("\n")
+  private uploadTemRowsToPanacim(
+    rows: ReceivingTemPreviewRow[],
+    fileName: string,
+    productIds: number[],
+  ): void {
+    const blob = generateTemPanacimCsvBlob(
+      this.toPanacimExportRows(rows),
+      (date) => this.formatDateForPanacimExport(date),
     );
+    const formData = new FormData();
+    formData.append("file", blob, fileName);
+    this.isSendingPanacim = true;
+    this.cdr.markForCheck();
+
+    this.http
+      .post<{
+        success?: boolean;
+        message?: string;
+      }>("/api/csv-upload", formData)
+      .subscribe({
+        next: (response) => {
+          this.isSendingPanacim = false;
+          if (response?.success) {
+            this.markLotsUploadPanacim(productIds);
+            this.showSnackbar(
+              `Đã gửi ${rows.length} bản ghi tới PanaCIM thành công!`,
+              "Đóng",
+              5000,
+              "success",
+            );
+          } else {
+            this.showSnackbar(
+              `Lỗi: ${response?.message ?? "Gửi PanaCIM thất bại."}`,
+              "Đóng",
+              5000,
+              "error",
+            );
+          }
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          this.isSendingPanacim = false;
+          this.showSnackbar(
+            `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
+            "Đóng",
+            5000,
+            "error",
+          );
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  private markLotsUploadPanacim(productIds: number[]): void {
+    const idSet = new Set(productIds.map((id) => Number(id)));
+    this.dataSource.data = this.dataSource.data.map((parent) => ({
+      ...parent,
+      lots: parent.lots.map((lot) => {
+        if (lot.productId == null || !idSet.has(Number(lot.productId))) {
+          return lot;
+        }
+        const product = this.savedProductsById.get(Number(lot.productId));
+        if (product) {
+          product.UploadPanacim = true;
+          this.generateTemInService.updateUploadPanacim(product).subscribe({
+            error: (err) => console.error("Lỗi cập nhật UploadPanacim:", err),
+          });
+        }
+        return { ...lot, uploadPanacim: true };
+      }),
+    }));
+    this.refreshTableView();
   }
 
   private buildLotDetailView(
@@ -2072,7 +2663,7 @@ export class ReceivingSuppliesComponent
       ...new Set(entries.map(({ lot }) => this.getLotPoNumber(lot))),
     ];
     for (const { parent, lot } of entries) {
-      const storageUnit = this.getEffectiveLotLocation(parent, lot);
+      const storageUnit = this.getEffectiveSapWarehouse(parent, lot);
       const sapUnitError = validateStorageUnitForSap(storageUnit);
       if (sapUnitError) {
         const label = `${parent.sapCode}${lot.lotNumber ? ` / lô ${lot.lotNumber}` : ""}`;
@@ -2151,7 +2742,7 @@ export class ReceivingSuppliesComponent
   ): GoodsReceiptPoLine[] {
     const tems = this.getTemRowsForLot(parent, lot);
     const vendor = (lot.vendor || this.vendorCode).trim();
-    const storageUnit = this.getEffectiveLotLocation(parent, lot);
+    const storageUnit = this.getEffectiveSapWarehouse(parent, lot);
     const quantity = Number(lot.quantity ?? tems[0]?.initialQuantity ?? 1);
     const partNumber = parent.partNumber.trim();
 
@@ -2256,6 +2847,7 @@ export class ReceivingSuppliesComponent
   }
 
   private mapSapPoInfoToTable(res: SapPoInfoResponse): void {
+    this.populatePoQuantityMap(res);
     this.poSapCodes = (res.poDetails ?? [])
       .map((d) => (d.por1ItemCode ?? "").trim())
       .filter((code): code is string => Boolean(code));
@@ -2276,7 +2868,8 @@ export class ReceivingSuppliesComponent
       const lineVendor = (d.por1LineVendor ?? this.vendorCode).trim();
       const id = nextId;
       nextId += 1;
-      const location = this.storageUnit || "";
+      const location = this.headerLocation || this.storageUnit || "";
+      const sapWarehouse = this.sapWarehouseCode.trim() || "RD";
 
       const row: ReceivingMaterialRow = {
         id,
@@ -2284,8 +2877,9 @@ export class ReceivingSuppliesComponent
         itemName,
         partNumber: "",
         location,
+        sapWarehouse,
         quantityByPo: qtyByPo,
-        quantity: 0,
+        quantity: qtyByPo,
         lotNumber: "1 lô",
         temQuantity: 1,
         manufacturingDate: null,
@@ -2301,9 +2895,13 @@ export class ReceivingSuppliesComponent
         location,
         `po-${id}-${Date.now()}`,
         this.bulkLotNumber,
+        qtyByPo,
       );
       lot.vendor = lineVendor;
       lot.vendorName = this.vendorName;
+      if (this.autoGenerateLot) {
+        lot.lotNumber = this.generateAutoLotNumber(row, lot);
+      }
       row.lots = [lot];
       this.syncParentQuantityFromLots(row);
       return row;
@@ -2364,11 +2962,9 @@ export class ReceivingSuppliesComponent
       return "Chưa có mã PO hợp lệ. Vui lòng nhập PO trước khi tạo mã.";
     }
 
-    if (this.withPoMode) {
-      const poError = this.validateWithPoOrderBeforeGenerate();
-      if (poError) {
-        return poError;
-      }
+    const poQtyError = this.validateWithPoOrderBeforeGenerate();
+    if (poQtyError) {
+      return poQtyError;
     }
 
     const rows = this.dataSource.data.filter((r) => r.lots.length > 0);
@@ -2447,7 +3043,9 @@ export class ReceivingSuppliesComponent
         if (!exists) {
           return `${label}: StorageUnit không hợp lệ: ${location}`;
         }
-        const sapUnitError = validateStorageUnitForSap(location);
+        const sapUnitError = validateStorageUnitForSap(
+          this.getEffectiveSapWarehouse(parent, lot),
+        );
         if (sapUnitError) {
           return `${label}: ${sapUnitError}`;
         }
@@ -2480,10 +3078,40 @@ export class ReceivingSuppliesComponent
     tems: TemDetail[],
   ): void {
     this.requestTemDetails = tems;
+    this.savedProductsById.clear();
+    products.forEach((p) => {
+      const id = Number(p.id);
+      if (!Number.isNaN(id) && id > 0) {
+        this.savedProductsById.set(id, p);
+      }
+    });
     this.updateGenerateButtonState();
     this.syncProductIdsFromSavedProducts(products);
+    this.syncUploadPanacimFromSavedProducts(products);
     this.refreshLotDetailTemPreviewIfOpen();
     this.cdr.markForCheck();
+  }
+
+  private syncUploadPanacimFromSavedProducts(
+    products: SavedProductRow[],
+  ): void {
+    const byId = new Map(
+      products.map((p) => [Number(p.id), p.UploadPanacim === true]),
+    );
+    this.dataSource.data = this.dataSource.data.map((parent) => ({
+      ...parent,
+      lots: parent.lots.map((lot) => {
+        if (lot.productId == null) {
+          return lot;
+        }
+        const uploaded = byId.get(Number(lot.productId));
+        if (uploaded == null) {
+          return lot;
+        }
+        return { ...lot, uploadPanacim: uploaded };
+      }),
+    }));
+    this.refreshTableView();
   }
 
   private lotHasTem(lot: ReceivingLotRow): boolean {
@@ -2513,7 +3141,7 @@ export class ReceivingSuppliesComponent
   }
 
   private markParentReconcilePending(parent: ReceivingMaterialRow): void {
-    if (!this.withPoMode || parent.reconcileStatus === "pending") {
+    if (!this.poSapCodes.length || parent.reconcileStatus === "pending") {
       return;
     }
     parent.reconcileStatus = "pending";
@@ -2556,7 +3184,10 @@ export class ReceivingSuppliesComponent
           if (!picked || Number.isNaN(id) || id <= 0) {
             return lot;
           }
-          return lot.productId === id ? lot : { ...lot, productId: id };
+          return {
+            ...(lot.productId === id ? lot : { ...lot, productId: id }),
+            uploadPanacim: picked.UploadPanacim === true,
+          };
         };
 
         if (lot.productId) {
@@ -2795,20 +3426,37 @@ export class ReceivingSuppliesComponent
   private refreshPoSapCodesFromApi(po: string): void {
     this.receivingService.getSapPoInfo(po).subscribe({
       next: (res) => {
+        if (res) {
+          this.populatePoQuantityMap(res);
+        }
         this.poSapCodes = (res?.poDetails ?? [])
           .map((d) => (d.por1ItemCode ?? "").trim())
           .filter((code): code is string => Boolean(code));
+        this.dataSource.data.forEach((row) => this.applyPoQuantityToRow(row));
+        this.refreshTableView();
         this.cdr.markForCheck();
       },
     });
   }
 
-  private isSapCodeInCurrentPo(sapCode: string): boolean {
-    if (!this.withPoMode) {
-      return true;
+  private getEffectiveSapWarehouse(
+    parent: ReceivingMaterialRow,
+    lot: ReceivingLotRow,
+  ): string {
+    const lotWh = (lot.sapWarehouse ?? "").trim();
+    if (lotWh) {
+      return lotWh;
     }
+    const parentWh = (parent.sapWarehouse ?? "").trim();
+    if (parentWh) {
+      return parentWh;
+    }
+    return this.sapWarehouseCode.trim() || "RD";
+  }
+
+  private isSapCodeInCurrentPo(sapCode: string): boolean {
     if (!this.poSapCodes.length) {
-      return false;
+      return true;
     }
     const normalized = this.normalizeSapCode(sapCode);
     return this.poSapCodes.some(
@@ -2983,10 +3631,10 @@ export class ReceivingSuppliesComponent
           const po = (request.userData5 ?? "").trim();
           if (po && po !== "-") {
             this.poNumber = po;
-            this.withPoMode = true;
+            this.poAndVendorLocked = true;
           } else {
             this.poNumber = "";
-            this.withPoMode = false;
+            this.poAndVendorLocked = false;
           }
         } else if (products.length) {
           const first = products[0] as SavedProductRow;
@@ -3041,7 +3689,8 @@ export class ReceivingSuppliesComponent
         itemName: first.productName ?? "",
         partNumber: first.partNumber ?? "",
         location: parentLocation,
-        quantityByPo: 0,
+        sapWarehouse: this.sapWarehouseCode.trim() || "RD",
+        quantityByPo: this.getPoQuantityForSapCode(sapCode),
         quantity: 0,
         lotNumber: `${items.length} lô`,
         temQuantity: first.temQuantity ?? 1,
@@ -3055,6 +3704,7 @@ export class ReceivingSuppliesComponent
             productId: p.id,
             lotLabel: "",
             location: lotLocation,
+            sapWarehouse: this.sapWarehouseCode.trim() || "RD",
             locationOverridden: lotLocation !== parentLocation,
             lotNumber: p.lot ?? "",
             quantity: p.initialQuantity ?? null,
@@ -3072,6 +3722,7 @@ export class ReceivingSuppliesComponent
             vendor: p.vendor ?? this.vendorCode,
             vendorName: p.vendorName ?? this.vendorName,
             note: "",
+            uploadPanacim: p.UploadPanacim === true,
           };
         }),
         expanded: true,
