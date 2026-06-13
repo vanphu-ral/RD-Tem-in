@@ -20,6 +20,8 @@ public class CreateProductInput {
     private String expirationDate;
     private String manufacturingDate;
     private String arrivalDate;
+    private Boolean sapSendStatus;
+    private String whsCode;
 
     // Getters and Setters
     public Integer getRequestCreateTemId() {
@@ -164,5 +166,21 @@ public class CreateProductInput {
 
     public void setArrivalDate(String arrivalDate) {
         this.arrivalDate = arrivalDate;
+    }
+
+    public Boolean getSapSendStatus() {
+        return sapSendStatus;
+    }
+
+    public void setSapSendStatus(Boolean sapSendStatus) {
+        this.sapSendStatus = sapSendStatus;
+    }
+
+    public String getWhsCode() {
+        return whsCode;
+    }
+
+    public void setWhsCode(String whsCode) {
+        this.whsCode = whsCode;
     }
 }

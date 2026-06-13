@@ -16,6 +16,7 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -82,6 +83,14 @@ public class DatabaseConfiguration {
             ) // Adjust package as needed
             .persistenceUnit("default")
             .build();
+    }
+
+    @Bean(name = "jdbcTemplate")
+    @Primary
+    public JdbcTemplate jdbcTemplate(
+        @Qualifier("defaultDataSource") DataSource defaultDataSource
+    ) {
+        return new JdbcTemplate(defaultDataSource);
     }
 
     @Bean(name = "transactionManager")

@@ -51,6 +51,36 @@ public class RequestResolver {
         );
     }
 
+    @MutationMapping(name = "updateRequestCreateTem")
+    public UpdateResponse updateRequestCreateTem(
+        @Argument("input") Map<String, Object> inputMap
+    ) {
+        try {
+            Long requestId = getRequestCreateTemId(inputMap);
+            return service.updateRequest(requestId, inputMap);
+        } catch (Exception e) {
+            return new UpdateResponse(
+                false,
+                "Lỗi khi cập nhật: " + e.getMessage()
+            );
+        }
+    }
+
+    private Long getRequestCreateTemId(Map<String, Object> map) {
+        if (map == null) {
+            throw new IllegalArgumentException("Thiếu input");
+        }
+
+        Object idObj = map.get("id");
+        if (idObj instanceof Number) {
+            return ((Number) idObj).longValue();
+        }
+        if (idObj != null) {
+            return Long.valueOf(idObj.toString());
+        }
+        throw new IllegalArgumentException("Thiếu trường 'id'");
+    }
+
     private UpdateProductInput convertToInput(Map<String, Object> map) {
         UpdateProductInput input = new UpdateProductInput();
 
@@ -129,6 +159,23 @@ public class RequestResolver {
                     "UploadPanacim không phải kiểu boolean: {}",
                     uploadPanacimObj
                 );
+            }
+
+            Object sapSendStatusObj = map.get("sapSendStatus");
+            if (sapSendStatusObj instanceof Boolean) {
+                input.setSapSendStatus((Boolean) sapSendStatusObj);
+            } else {
+                log.warn(
+                    "sapSendStatus không phải kiểu boolean: {}",
+                    sapSendStatusObj
+                );
+            }
+
+            Object whsCodeObj = map.get("WhsCode");
+            if (whsCodeObj instanceof String) {
+                input.setWhsCode((String) whsCodeObj);
+            } else {
+                log.warn("WhsCode không phải kiểu string: {}", whsCodeObj);
             }
 
             log.info("Convert thành công: {}", input);

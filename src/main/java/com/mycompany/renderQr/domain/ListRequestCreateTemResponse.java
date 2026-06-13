@@ -12,4 +12,6 @@ public interface ListRequestCreateTemResponse {
     Long getTotalQuantity();
     String getStatus();
     LocalDateTime getCreatedDate();
+    Boolean getType();
+    LocalDateTime getEntryDate();
 }

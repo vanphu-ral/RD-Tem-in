@@ -57,6 +57,15 @@ const DELETE_REQUEST_MUTATION = gql`
   }
 `;
 
+const UPDATE_REQUEST_MUTATION = gql`
+  mutation UpdateRequestCreateTem($input: UpdateRequestCreateTemInput!) {
+    updateRequestCreateTem(input: $input) {
+      success
+      message
+    }
+  }
+`;
+
 const GET_REQUESTS_QUERY = gql`
   query GetRequests {
     listRequestCreateTems {
@@ -69,6 +78,8 @@ const GET_REQUESTS_QUERY = gql`
       createdDate
       totalQuantity
       status
+      type
+      entryDate
     }
   }
 `;
@@ -97,6 +108,8 @@ const GET_PRODUCTS_BY_REQUEST_QUERY = gql`
       arrivalDate
       numberOfPrints
       UploadPanacim
+      sapSendStatus
+      WhsCode
     }
   }
 `;
@@ -123,6 +136,8 @@ const CREATE_PRODUCT_MUTATION = gql`
       manufacturingDate
       arrivalDate
       numberOfPrints
+      sapSendStatus
+      WhsCode
     }
   }
 `;
@@ -153,6 +168,8 @@ const CREATE_PRODUCTS_BATCH_MUTATION = gql`
       manufacturingDate
       arrivalDate
       numberOfPrints
+      sapSendStatus
+      WhsCode
     }
   }
 `;
@@ -182,6 +199,8 @@ const CREATE_REQUEST_AND_PRODUCTS_MUTATION = gql`
         manufacturingDate
         arrivalDate
         numberOfPrints
+        sapSendStatus
+        WhsCode
       }
       message
     }
@@ -214,6 +233,8 @@ const UPDATE_REQUEST_PRODUCTS_MUTATION = gql`
       manufacturingDate
       arrivalDate
       numberOfPrints
+      sapSendStatus
+      WhsCode
     }
   }
 `;
@@ -300,11 +321,20 @@ export class GenerateTemInService {
   updateRequest(
     id: number,
     request: ListRequestCreateTemRequest,
-  ): Observable<ListRequestCreateTem> {
-    return this.http.put<ListRequestCreateTem>(
-      `${this.baseUrl}/requests/${id}`,
-      request,
-    );
+  ): Observable<UpdateResponse> {
+    return this.apollo
+      .mutate<{ updateRequestCreateTem: UpdateResponse }>({
+        mutation: UPDATE_REQUEST_MUTATION,
+        variables: { input: { id, ...request } },
+      })
+      .pipe(
+        map((result) => {
+          if (!result.data?.updateRequestCreateTem) {
+            throw new Error("No data returned from server");
+          }
+          return result.data.updateRequestCreateTem;
+        }),
+      );
   }
 
   deleteRequest(id: number): Observable<UpdateResponse> {
@@ -339,6 +369,9 @@ export class GenerateTemInService {
           manufacturingDate
           arrivalDate
           numberOfPrints
+          UploadPanacim
+          sapSendStatus
+          WhsCode
         }
       }
     `;

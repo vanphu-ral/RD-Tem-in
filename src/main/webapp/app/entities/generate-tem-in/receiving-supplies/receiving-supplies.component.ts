@@ -1334,6 +1334,9 @@ export class ReceivingSuppliesComponent
       tableRows,
       this.partImportRows,
     );
+    if (this.editingRequestId) {
+      this.updateRequestWithPoNumber();
+    }
     this.cdr.markForCheck();
   }
 
@@ -1420,6 +1423,9 @@ export class ReceivingSuppliesComponent
           this.verifiedPoNumber = po;
         }
         this.applyReconcileStatusToTable(result);
+        if (this.editingRequestId) {
+          this.updateRequestWithPoNumberFromModal(po);
+        }
         this.cdr.markForCheck();
       },
       error: () => {
@@ -4107,5 +4113,88 @@ export class ReceivingSuppliesComponent
 
   private enrichItemNames(rows: ReceivingMaterialRow[]): void {
     this.enrichSapOitmRows(rows);
+  }
+
+  private updateRequestWithPoNumber(): void {
+    if (!this.editingRequestId) {
+      return;
+    }
+    const po = this.poNumber.trim() || this.getEffectivePoNumber();
+    const totalQty = this.dataSource.data.reduce(
+      (sum, row) => sum + (row.quantity ?? 0),
+      0,
+    );
+    const lotCount = this.countChildLots();
+    this.generateTemInService
+      .updateRequest(this.editingRequestId, {
+        vendor: this.vendorCode,
+        vendorName: this.vendorName,
+        userData5: po || "-",
+        createdBy: this.currentUser,
+        numberProduction: lotCount,
+        totalQuantity: totalQty,
+        status: "Bản nháp",
+        createdDate: new Date().toISOString().slice(0, 10),
+        type: true,
+        entryDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+      })
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            console.log(
+              "[updateRequestWithPoNumber] Thành công:",
+              res.message,
+              "userData5:",
+              po,
+            );
+            if (po && po !== "-" && !this.poNumber) {
+              this.poNumber = po;
+            }
+          }
+        },
+        error: (err) => {
+          console.error("[updateRequestWithPoNumber] Lỗi:", err);
+        },
+      });
+  }
+
+  private updateRequestWithPoNumberFromModal(po: string): void {
+    if (!this.editingRequestId) {
+      return;
+    }
+    const totalQty = this.dataSource.data.reduce(
+      (sum, row) => sum + (row.quantity ?? 0),
+      0,
+    );
+    const lotCount = this.countChildLots();
+    this.generateTemInService
+      .updateRequest(this.editingRequestId, {
+        vendor: this.vendorCode,
+        vendorName: this.vendorName,
+        userData5: po,
+        createdBy: this.currentUser,
+        numberProduction: lotCount,
+        totalQuantity: totalQty,
+        status: "Bản nháp",
+        createdDate: new Date().toISOString().slice(0, 10),
+        type: true,
+        entryDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+      })
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            console.log(
+              "[updateRequestWithPoNumberFromModal] Thành công - userData5:",
+              po,
+            );
+            if (this.poNumber !== po) {
+              this.poNumber = po;
+            }
+          }
+        },
+        error: (err) => {
+          console.error("[updateRequestWithPoNumberFromModal] Lỗi:", err);
+        },
+      });
   }
 }

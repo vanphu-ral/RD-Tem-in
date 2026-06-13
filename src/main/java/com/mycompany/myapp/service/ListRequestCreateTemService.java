@@ -4,14 +4,17 @@ import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
 import com.mycompany.renderQr.domain.ListRequestCreateTem;
 import com.mycompany.renderQr.domain.ListRequestCreateTemResponse;
+import com.mycompany.renderQr.domain.UpdateResponse;
 import com.mycompany.renderQr.repository.InfoTemDetailRepository;
 import com.mycompany.renderQr.repository.ListProductOfRequestRepository;
 import com.mycompany.renderQr.repository.ListRequestCreateTemRepository;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +42,9 @@ public class ListRequestCreateTemService {
         String createdBy,
         int numberProduction,
         long totalQuantity,
-        LocalDateTime createdDate
+        LocalDateTime createdDate,
+        Boolean type,
+        LocalDateTime entryDate
     ) {
         ListRequestCreateTem request = new ListRequestCreateTem();
         request.setVendor(vendor);
@@ -64,6 +69,8 @@ public class ListRequestCreateTemService {
         } else {
             request.setCreatedDate(LocalDateTime.now());
         }
+        request.setType(type);
+        request.setEntryDate(entryDate);
 
         ListRequestCreateTem savedRequest = repository.save(request);
 
@@ -84,6 +91,95 @@ public class ListRequestCreateTemService {
         //            "Saved request with generated ID: " + savedRequest.getId()
         //        );
         return savedRequest;
+    }
+
+    @Transactional
+    public UpdateResponse updateRequest(Long id, Map<String, Object> fields) {
+        if (id == null) {
+            throw new IllegalArgumentException("id không được null");
+        }
+
+        Optional<ListRequestCreateTem> requestOpt = repository.findById(id);
+        if (requestOpt.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Không tìm thấy bản ghi list_request_create_tem có id=" + id
+            );
+        }
+
+        ListRequestCreateTem request = requestOpt.get();
+        if (fields != null) {
+            if (fields.containsKey("vendor")) {
+                request.setVendor((String) fields.get("vendor"));
+            }
+            if (fields.containsKey("vendorName")) {
+                request.setVendorName((String) fields.get("vendorName"));
+            }
+            if (fields.containsKey("userData5")) {
+                request.setUserData5((String) fields.get("userData5"));
+            }
+            if (fields.containsKey("createdBy")) {
+                request.setCreatedBy((String) fields.get("createdBy"));
+            }
+            if (fields.containsKey("numberProduction")) {
+                Object value = fields.get("numberProduction");
+                request.setNumberProduction(
+                    value == null ? null : ((Number) value).shortValue()
+                );
+            }
+            if (fields.containsKey("totalQuantity")) {
+                Object value = fields.get("totalQuantity");
+                request.setTotalQuantity(
+                    value == null ? null : ((Number) value).longValue()
+                );
+            }
+            if (fields.containsKey("status")) {
+                request.setStatus((String) fields.get("status"));
+            } else if (fields.containsKey("userData5")) {
+                request.setStatus(
+                    "-".equals(fields.get("userData5"))
+                        ? "chưa có PO"
+                        : "Bản nháp"
+                );
+            }
+            if (fields.containsKey("createdDate")) {
+                request.setCreatedDate(
+                    parseLocalDateTime(fields.get("createdDate"), "createdDate")
+                );
+            }
+            if (fields.containsKey("type")) {
+                request.setType((Boolean) fields.get("type"));
+            }
+            if (fields.containsKey("entryDate")) {
+                request.setEntryDate(
+                    parseLocalDateTime(fields.get("entryDate"), "entryDate")
+                );
+            }
+        }
+
+        repository.save(request);
+        return new UpdateResponse(true, "Cập nhật yêu cầu thành công");
+    }
+
+    private LocalDateTime parseLocalDateTime(Object value, String fieldName) {
+        if (value == null) {
+            return null;
+        }
+
+        String dateValue = value.toString();
+        if (dateValue.isBlank()) {
+            return null;
+        }
+
+        try {
+            if (dateValue.length() == 10 && dateValue.charAt(4) == '-') {
+                return LocalDate.parse(dateValue).atStartOfDay();
+            }
+            return LocalDateTime.parse(dateValue);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException(
+                fieldName + " có định dạng không hợp lệ: " + dateValue
+            );
+        }
     }
 
     @Transactional

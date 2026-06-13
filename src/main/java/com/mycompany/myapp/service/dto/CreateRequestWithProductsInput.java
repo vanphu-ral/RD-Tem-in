@@ -9,6 +9,8 @@ public class CreateRequestWithProductsInput {
     private String userData5;
     private String createdBy;
     private String createdDate;
+    private Boolean type;
+    private String entryDate;
     private List<CreateProductInput> products;
 
     // Getters and Setters
@@ -58,5 +60,21 @@ public class CreateRequestWithProductsInput {
 
     public void setCreatedDate(String createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public Boolean getType() {
+        return type;
+    }
+
+    public void setType(Boolean type) {
+        this.type = type;
+    }
+
+    public String getEntryDate() {
+        return entryDate;
+    }
+
+    public void setEntryDate(String entryDate) {
+        this.entryDate = entryDate;
     }
 }

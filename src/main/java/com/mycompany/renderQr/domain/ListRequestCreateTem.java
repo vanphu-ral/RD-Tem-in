@@ -35,6 +35,12 @@ public class ListRequestCreateTem {
     @Column(name = "created_date")
     private LocalDateTime createdDate;
 
+    @Column(name = "type")
+    private Boolean type;
+
+    @Column(name = "entry_date")
+    private LocalDateTime entryDate;
+
     // Getters and Setters
 
     public Long getId() {
@@ -107,5 +113,21 @@ public class ListRequestCreateTem {
 
     public void setVendorName(String vendorName) {
         this.vendorName = vendorName;
+    }
+
+    public Boolean getType() {
+        return type;
+    }
+
+    public void setType(Boolean type) {
+        this.type = type;
+    }
+
+    public LocalDateTime getEntryDate() {
+        return entryDate;
+    }
+
+    public void setEntryDate(LocalDateTime entryDate) {
+        this.entryDate = entryDate;
     }
 }

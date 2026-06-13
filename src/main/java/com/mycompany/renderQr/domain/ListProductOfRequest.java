@@ -71,6 +71,12 @@ public class ListProductOfRequest {
     @Column(name = "upload_panacim", nullable = false)
     private Boolean uploadPanacim;
 
+    @Column(name = "sap_send_status")
+    private Boolean sapSendStatus;
+
+    @Column(name = "WhsCode", length = 8)
+    private String whsCode;
+
     public Long getId() {
         return id;
     }
@@ -237,5 +243,21 @@ public class ListProductOfRequest {
 
     public void setUploadPanacim(Boolean uploadPanacim) {
         this.uploadPanacim = uploadPanacim;
+    }
+
+    public Boolean getSapSendStatus() {
+        return sapSendStatus;
+    }
+
+    public void setSapSendStatus(Boolean sapSendStatus) {
+        this.sapSendStatus = sapSendStatus;
+    }
+
+    public String getWhsCode() {
+        return whsCode;
+    }
+
+    public void setWhsCode(String whsCode) {
+        this.whsCode = whsCode;
     }
 }

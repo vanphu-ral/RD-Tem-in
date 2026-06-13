@@ -23,6 +23,8 @@ public class UpdateProductInput {
     private String arrivalDate;
     private Integer numberOfPrints;
     private Boolean uploadPanacim;
+    private Boolean sapSendStatus;
+    private String whsCode;
 
     // Getters và setters đầy đủ
     public Long getId() {
@@ -191,5 +193,21 @@ public class UpdateProductInput {
 
     public void setUploadPanacim(Boolean uploadPanacim) {
         this.uploadPanacim = uploadPanacim;
+    }
+
+    public Boolean getSapSendStatus() {
+        return sapSendStatus;
+    }
+
+    public void setSapSendStatus(Boolean sapSendStatus) {
+        this.sapSendStatus = sapSendStatus;
+    }
+
+    public String getWhsCode() {
+        return whsCode;
+    }
+
+    public void setWhsCode(String whsCode) {
+        this.whsCode = whsCode;
     }
 }

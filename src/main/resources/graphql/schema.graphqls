@@ -13,6 +13,7 @@ type Mutation {
     updateRequestProducts(requestId: Int!, products: [CreateProductInput!]!): [ListProductOfRequest!]!
     generateTem(requestId: Int!): GenerateTemResponse!
     updateProductOfRequest(input: UpdateProductInput!): UpdateResponse!
+    updateRequestCreateTem(input: UpdateRequestCreateTemInput!): UpdateResponse!
     updateStorageUnitForRequest(requestId: Int!, storageUnit: String!): UpdateResponse!
     deleteProduct(productId: Int!): UpdateResponse!
     deleteRequest(requestId: Int!): UpdateResponse!
@@ -37,6 +38,8 @@ input CreateProductInput {
     expirationDate: String!
     manufacturingDate: String!
     arrivalDate: String!
+    sapSendStatus: Boolean
+    WhsCode: String
 }
 
 input CreateRequestWithProductsInput {
@@ -45,7 +48,23 @@ input CreateRequestWithProductsInput {
     userData5: String!
     createdBy: String
     createdDate: String
+    type: Boolean
+    entryDate: String
     products: [CreateProductInput!]!
+}
+
+input UpdateRequestCreateTemInput {
+    id: ID!
+    vendor: String
+    vendorName: String
+    userData5: String
+    createdBy: String
+    numberProduction: Int
+    totalQuantity: Int
+    status: String
+    createdDate: String
+    type: Boolean
+    entryDate: String
 }
 
 type CreateRequestWithProductsResponse {
@@ -75,6 +94,8 @@ type ListRequestCreateTem {
     totalQuantity: Int
     status: String
     createdDate: String
+    type: Boolean
+    entryDate: String
 }
 
 #khai báo bảng list product of request
@@ -100,6 +121,8 @@ type ListProductOfRequest {
     arrivalDate: String
     numberOfPrints: Int
     UploadPanacim: Boolean
+    sapSendStatus: Boolean
+    WhsCode: String
 }
 
 #khai báo bảng info tem detail
@@ -154,4 +177,6 @@ input UpdateProductInput {
     arrivalDate: String
     numberOfPrints: Int
     UploadPanacim: Boolean
+    sapSendStatus: Boolean
+    WhsCode: String
 }

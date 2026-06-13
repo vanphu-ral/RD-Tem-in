@@ -207,6 +207,10 @@ public class GraphQLConfiguration {
                         Map<String, Object> inputMap = env.getArgument("input");
                         return requestResolver.updateProductOfRequest(inputMap);
                     })
+                    .dataFetcher("updateRequestCreateTem", env -> {
+                        Map<String, Object> inputMap = env.getArgument("input");
+                        return requestResolver.updateRequestCreateTem(inputMap);
+                    })
                     .dataFetcher("createProduct", env -> {
                         try {
                             @SuppressWarnings("unchecked")

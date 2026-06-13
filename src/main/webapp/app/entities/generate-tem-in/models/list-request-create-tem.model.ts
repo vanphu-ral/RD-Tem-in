@@ -8,6 +8,8 @@ export interface ListRequestCreateTem {
   status?: string;
   createdBy?: string;
   createdDate?: string; // LocalDate from backend
+  type?: boolean;
+  entryDate?: string; // LocalDate from backend
   lastModifiedDate?: string; // LocalDate from backend
 }
 
@@ -19,4 +21,7 @@ export interface ListRequestCreateTemRequest {
   numberProduction?: number;
   totalQuantity?: number;
   status?: string;
+  createdDate?: string;
+  type?: boolean;
+  entryDate?: string;
 }

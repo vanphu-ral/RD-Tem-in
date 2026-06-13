@@ -22,4 +22,7 @@ public interface ListProductOfRequestResponse {
     LocalDateTime getManufacturingDate();
     LocalDateTime getArrivalDate();
     Integer getNumberOfPrints();
+    Boolean getUploadPanacim();
+    Boolean getSapSendStatus();
+    String getWhsCode();
 }

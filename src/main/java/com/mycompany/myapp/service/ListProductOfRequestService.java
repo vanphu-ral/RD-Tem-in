@@ -76,6 +76,12 @@ public class ListProductOfRequestService {
         entity.setUserData5(input.getUserData5());
         entity.setStorageUnit(input.getStorageUnit());
         entity.setNumberOfPrints(input.getNumberOfPrints());
+        if (input.getSapSendStatus() != null) {
+            entity.setSapSendStatus(input.getSapSendStatus());
+        }
+        if (input.getWhsCode() != null) {
+            entity.setWhsCode(input.getWhsCode());
+        }
 
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
@@ -248,6 +254,12 @@ public class ListProductOfRequestService {
             input.getStorageUnit() != null ? input.getStorageUnit() : ""
         );
         product.setNumberOfPrints(0);
+        if (input.getSapSendStatus() != null) {
+            product.setSapSendStatus(input.getSapSendStatus());
+        }
+        product.setWhsCode(
+            input.getWhsCode() != null ? input.getWhsCode() : ""
+        );
 
         // Parse date strings to LocalDateTime with validation
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
@@ -358,6 +370,26 @@ public class ListProductOfRequestService {
                 parsedCreatedDate = LocalDateTime.now();
             }
 
+            LocalDateTime parsedEntryDate;
+            if (
+                input.getEntryDate() != null && !input.getEntryDate().isBlank()
+            ) {
+                try {
+                    parsedEntryDate = LocalDate.parse(
+                        input.getEntryDate()
+                    ).atStartOfDay();
+                } catch (DateTimeParseException e) {
+                    log.warn(
+                        "Invalid entryDate format '{}', using current time instead",
+                        input.getEntryDate()
+                    );
+                    parsedEntryDate = LocalDateTime.now();
+                }
+            } else {
+                log.warn("entryDate is null or blank, using current time");
+                parsedEntryDate = LocalDateTime.now();
+            }
+
             ListRequestCreateTem request = requestService.createRequest(
                 input.getVendor(),
                 input.getVendorName(),
@@ -365,7 +397,9 @@ public class ListProductOfRequestService {
                 input.getCreatedBy(),
                 numberProduction,
                 totalQuantity,
-                parsedCreatedDate
+                parsedCreatedDate,
+                input.getType(),
+                parsedEntryDate
             );
 
             // Debug: Check if request was created successfully
