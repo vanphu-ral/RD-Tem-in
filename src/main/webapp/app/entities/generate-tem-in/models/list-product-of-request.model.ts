@@ -61,4 +61,8 @@ export interface ExcelImportData {
   expirationDate: string;
   manufacturingDate: string;
   arrivalDate: string;
+  /** Mã kho SAP (test API — WhsCode). */
+  whsCode?: string;
+  /** Đã gửi SAP (test API). */
+  sapSendStatus?: boolean;
 }

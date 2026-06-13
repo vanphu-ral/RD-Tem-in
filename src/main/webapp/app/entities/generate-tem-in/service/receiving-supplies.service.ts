@@ -1,8 +1,79 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, catchError, firstValueFrom, map, of } from "rxjs";
+import {
+  Observable,
+  catchError,
+  concatMap,
+  firstValueFrom,
+  forkJoin,
+  from,
+  last,
+  map,
+  of,
+  switchMap,
+  take,
+  throwError,
+} from "rxjs";
 import { ApplicationConfigService } from "app/core/config/application-config.service";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
+import { environment } from "app/environments/environment";
+import { ExcelImportData } from "../models/list-product-of-request.model";
+
+export interface SapOwhsDto {
+  whsCode: string;
+  whsName: string;
+  createDate?: string;
+  updateDate?: string;
+  address2?: string;
+  uwhskeeper?: string;
+}
+
+/** Sản phẩm từ test GraphQL — có WhsCode và sapSendStatus. */
+export interface ReceivingProductRow {
+  id: number;
+  requestCreateTemId?: number;
+  sapCode: string;
+  productName: string;
+  partNumber: string;
+  lot: string;
+  initialQuantity: number;
+  temQuantity: number;
+  vendor: string;
+  vendorName?: string;
+  userData1: string;
+  userData2: string;
+  userData3: string;
+  userData4: string;
+  userData5: string;
+  storageUnit: string;
+  expirationDate: string;
+  manufacturingDate: string;
+  arrivalDate: string;
+  numberOfPrints?: number;
+  UploadPanacim?: boolean;
+  WhsCode?: string | null;
+  sapSendStatus?: boolean | null;
+}
+
+export interface ReceivingProductSyncRow {
+  productId?: number;
+  item: ExcelImportData;
+}
+
+export interface ReceivingProductSyncOptions {
+  rows: ReceivingProductSyncRow[];
+  deletedProductIds?: number[];
+}
+
+interface GraphQlResponse<T> {
+  data?: T;
+  errors?: Array<{ message?: string }>;
+}
+
+interface UpdateResponse {
+  success: boolean;
+  message: string;
+}
 
 export interface SapPoInfoHeader {
   id?: number;
@@ -23,12 +94,33 @@ export interface SapPoInfoDetail {
   por1LineNum?: string;
   por1LineStatus?: string;
   por1UnitMsr?: string;
+  por1UOMCode?: string;
   por1WhsCode?: string;
 }
 
 export interface SapPoInfoResponse {
   poInfo: SapPoInfoHeader | null;
   poDetails: SapPoInfoDetail[];
+}
+
+/** Bản ghi vật tư đã chọn theo PO (userData5). */
+export interface ProductInPoStatusDto {
+  id?: number;
+  sapCode: string;
+  productName: string;
+  whsCode: string;
+  userData5: string;
+  createdAt?: string;
+  createBy?: string;
+}
+
+export interface ProductInPoStatusCreatePayload {
+  sapCode: string;
+  productName: string;
+  whsCode: string;
+  userData5: string;
+  createdAt: string;
+  createBy: string;
 }
 
 export interface PoReconcileTableRow {
@@ -212,7 +304,7 @@ export interface SapOcrd {
 })
 export class ReceivingSuppliesService {
   private baseUrl = this.applicationConfigService.getEndpointFor("api");
-  // private sapOitmUrl = `http://192.168.10.99:8085/api/sap-oitms`;
+  private readonly graphqlUrl = environment.graphqlApiUrl;
   private sapOitmUrl =
     this.applicationConfigService.getEndpointFor("/api/sap-oitms");
   private isWarehouseInitDone = false;
@@ -343,6 +435,41 @@ export class ReceivingSuppliesService {
       .pipe(catchError(() => of(null)));
   }
 
+  /** GET /api/product-in-po-status/user-data5/{userData5} */
+  getProductInPoStatusByUserData5(
+    userData5: string,
+  ): Observable<ProductInPoStatusDto[]> {
+    const po = userData5.trim();
+    if (!po) {
+      return of([]);
+    }
+    return this.http
+      .get<
+        ProductInPoStatusDto | ProductInPoStatusDto[]
+      >(`${this.baseUrl}/product-in-po-status/user-data5/${encodeURIComponent(po)}`)
+      .pipe(
+        map((res) => {
+          if (!res) {
+            return [];
+          }
+          return Array.isArray(res) ? res : [res];
+        }),
+        catchError(() => of([])),
+      );
+  }
+
+  /** POST /api/product-in-po-status */
+  createProductInPoStatus(
+    payload: ProductInPoStatusCreatePayload,
+  ): Observable<ProductInPoStatusDto | null> {
+    return this.http
+      .post<ProductInPoStatusDto>(
+        `${this.baseUrl}/product-in-po-status`,
+        payload,
+      )
+      .pipe(catchError(() => of(null)));
+  }
+
   /**
    * Đối chiếu từng dòng cha trên bảng với poDetails từ sap-po-info.
    * So khớp: sapCode↔por1ItemCode, itemName↔por1Dscription, vendor↔por1LineVendor,
@@ -374,6 +501,192 @@ export class ReceivingSuppliesService {
         ),
         catchError(() => of(null)),
       );
+  }
+
+  /** Danh sách kho SAP. */
+  getSapWarehouses(): Observable<SapOwhsDto[]> {
+    return this.http.get<SapOwhsDto[]>(`${this.baseUrl}/owhs`).pipe(
+      map((rows) => (rows ?? []).filter((r) => Boolean(r.whsCode?.trim()))),
+      catchError(() => of([])),
+    );
+  }
+
+  /** Lấy sản phẩm đơn từ GraphQL (WhsCode, sapSendStatus). */
+  getProductsByRequestId(requestId: number): Observable<ReceivingProductRow[]> {
+    const query = `
+      query GetProductsByRequest($requestId: Int!) {
+        getProductOfRequestByRequestId(requestId: $requestId) {
+          id
+          requestCreateTemId
+          sapCode
+          temQuantity
+          partNumber
+          productName
+          lot
+          initialQuantity
+          vendor
+          vendorName
+          userData1
+          userData2
+          userData3
+          userData4
+          userData5
+          storageUnit
+          expirationDate
+          manufacturingDate
+          arrivalDate
+          numberOfPrints
+          UploadPanacim
+          WhsCode
+          sapSendStatus
+        }
+      }
+    `;
+    return this.postGraphql<{
+      getProductOfRequestByRequestId: ReceivingProductRow[];
+    }>(query, { requestId }).pipe(
+      map((data) =>
+        (data.getProductOfRequestByRequestId ?? []).map((p) => ({
+          ...p,
+          id: Number(p.id),
+          initialQuantity: Number(p.initialQuantity ?? 0),
+          temQuantity: Number(p.temQuantity ?? 0),
+        })),
+      ),
+      catchError(() => of([])),
+    );
+  }
+
+  createRequestAndProducts(
+    vendor: string,
+    vendorName: string,
+    userData5: string,
+    createdBy: string,
+    products: ExcelImportData[],
+  ): Observable<{ requestId: number; products: ReceivingProductRow[] }> {
+    const mutation = `
+      mutation CreateRequestAndProducts($input: CreateRequestWithProductsInput!) {
+        createRequestAndProducts(input: $input) {
+          requestId
+          products {
+            id
+            requestCreateTemId
+            sapCode
+            productName
+            temQuantity
+            partNumber
+            lot
+            initialQuantity
+            vendor
+            vendorName
+            userData1
+            userData2
+            userData3
+            userData4
+            userData5
+            storageUnit
+            expirationDate
+            manufacturingDate
+            arrivalDate
+            numberOfPrints
+            WhsCode
+            sapSendStatus
+          }
+          message
+        }
+      }
+    `;
+    const productInputs = products.map((item) =>
+      this.mapExcelToCreateInput(item),
+    );
+    return this.postGraphql<{
+      createRequestAndProducts: {
+        requestId: number;
+        products: ReceivingProductRow[];
+      };
+    }>(mutation, {
+      input: {
+        vendor,
+        vendorName,
+        userData5,
+        createdBy,
+        createdDate: new Date().toISOString().slice(0, 10),
+        products: productInputs,
+      },
+    }).pipe(
+      switchMap((data) => {
+        const result = data.createRequestAndProducts;
+        const requestId = Number(result.requestId);
+        return this.syncProductExtensions(
+          requestId,
+          result.products ?? [],
+          products,
+        ).pipe(
+          map((synced) => ({
+            requestId,
+            products: synced,
+          })),
+        );
+      }),
+    );
+  }
+
+  updateRequestProducts(
+    requestId: number,
+    products: ExcelImportData[],
+    syncOptions?: ReceivingProductSyncOptions,
+  ): Observable<ReceivingProductRow[]> {
+    const syncRows = syncOptions?.rows ?? [];
+    const deletedIds = syncOptions?.deletedProductIds ?? [];
+    if (syncRows.length || deletedIds.length) {
+      return this.syncRequestProducts(requestId, syncRows, deletedIds);
+    }
+
+    const mutation = `
+      mutation UpdateRequestProducts($requestId: Int!, $products: [CreateProductInput!]!) {
+        updateRequestProducts(requestId: $requestId, products: $products) {
+          id
+        }
+      }
+    `;
+    const productInputs = products.map((item) =>
+      this.mapExcelToCreateInput(item),
+    );
+    return this.postGraphql<{
+      updateRequestProducts: Array<{ id: number }>;
+    }>(mutation, { requestId, products: productInputs }).pipe(
+      switchMap(() => this.getProductsByRequestId(requestId).pipe(take(1))),
+      switchMap((saved) =>
+        this.syncProductExtensions(requestId, saved, products),
+      ),
+    );
+  }
+
+  syncSavedProductsForGenerate(
+    requestId: number,
+    updates: Array<{ productId: number; item: ExcelImportData }>,
+  ): Observable<void> {
+    if (!updates.length) {
+      return throwError(
+        () => new Error("Không có sản phẩm để cập nhật trước khi tạo mã."),
+      );
+    }
+    const calls = updates.map(({ productId, item }) =>
+      this.updateProductOnTest(productId, requestId, item),
+    );
+    return forkJoin(calls).pipe(map(() => undefined));
+  }
+
+  updateSapSendStatus(
+    productId: number,
+    requestId: number,
+    item: ExcelImportData,
+    sapSendStatus: boolean,
+  ): Observable<void> {
+    return this.updateProductOnTest(productId, requestId, {
+      ...item,
+      sapSendStatus,
+    });
   }
 
   private buildReconcileResultFromSapPoInfo(
@@ -513,5 +826,272 @@ export class ReceivingSuppliesService {
       return String(value);
     }
     return value.toLocaleString("vi-VN", { maximumFractionDigits: 4 });
+  }
+
+  private syncRequestProducts(
+    requestId: number,
+    syncRows: ReceivingProductSyncRow[],
+    deletedProductIds: number[],
+  ): Observable<ReceivingProductRow[]> {
+    const toDelete = [
+      ...new Set(deletedProductIds.filter((id) => !Number.isNaN(id) && id > 0)),
+    ];
+    const newItems = syncRows.filter((r) => !r.productId).map((r) => r.item);
+    const deleteStep$ = toDelete.length
+      ? forkJoin(
+          toDelete.map((id) =>
+            this.deleteProductOnTest(id).pipe(
+              map((body) => {
+                if (!body?.success) {
+                  throw new Error(
+                    body?.message ?? `Xóa sản phẩm #${id} thất bại`,
+                  );
+                }
+              }),
+            ),
+          ),
+        )
+      : of([]);
+
+    return deleteStep$.pipe(
+      switchMap(() => {
+        const updateOps = syncRows
+          .filter((r) => r.productId)
+          .map((r) =>
+            this.updateProductOnTest(r.productId!, requestId, r.item),
+          );
+        const updateStep$ = updateOps.length ? forkJoin(updateOps) : of([]);
+
+        return updateStep$.pipe(
+          switchMap(() => {
+            if (!newItems.length) {
+              return of(null);
+            }
+            return from(newItems).pipe(
+              concatMap((item) => this.createProductOnTest(requestId, item)),
+              last(),
+            );
+          }),
+          switchMap(() => this.getProductsByRequestId(requestId).pipe(take(1))),
+        );
+      }),
+      catchError((err: unknown) =>
+        throwError(() => {
+          const base = err instanceof Error ? err.message : "Lỗi khi lưu đơn.";
+          if (newItems.length) {
+            return new Error(
+              `Tạo lô mới thất bại. Các lô cũ có thể đã được cập nhật trước đó. ${base}`,
+            );
+          }
+          return new Error(base);
+        }),
+      ),
+    );
+  }
+
+  private syncProductExtensions(
+    requestId: number,
+    saved: ReceivingProductRow[],
+    items: ExcelImportData[],
+  ): Observable<ReceivingProductRow[]> {
+    const ops = saved.map((product, index) => {
+      const item = items[index];
+      if (!item) {
+        return of(undefined);
+      }
+      return this.updateProductOnTest(Number(product.id), requestId, item);
+    });
+    if (!ops.length) {
+      return of(saved);
+    }
+    return forkJoin(ops).pipe(
+      switchMap(() => this.getProductsByRequestId(requestId).pipe(take(1))),
+    );
+  }
+
+  private createProductOnTest(
+    requestId: number,
+    item: ExcelImportData,
+  ): Observable<ReceivingProductRow> {
+    const mutation = `
+      mutation CreateProduct($input: CreateProductInput!) {
+        createProduct(input: $input) {
+          id
+        }
+      }
+    `;
+    const input = {
+      ...this.mapExcelToCreateInput(item),
+      requestCreateTemId: requestId,
+    };
+    return this.postGraphql<{ createProduct: { id: number } }>(mutation, {
+      input,
+    }).pipe(
+      switchMap((data) => {
+        const id = Number(data.createProduct.id);
+        return this.updateProductOnTest(id, requestId, item).pipe(
+          switchMap(() =>
+            this.getProductsByRequestId(requestId).pipe(
+              take(1),
+              map((rows) => rows.find((r) => Number(r.id) === id)!),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  private updateProductOnTest(
+    productId: number,
+    requestId: number,
+    item: ExcelImportData,
+  ): Observable<void> {
+    const mutation = `
+      mutation UpdateProductOfRequest($input: UpdateProductInput!) {
+        updateProductOfRequest(input: $input) {
+          success
+          message
+        }
+      }
+    `;
+    const input = this.buildUpdateProductInput(productId, requestId, item);
+    return this.postGraphql<{
+      updateProductOfRequest: UpdateResponse;
+    }>(mutation, { input }).pipe(
+      map((data) => {
+        const body = data.updateProductOfRequest;
+        if (!body?.success) {
+          throw new Error(
+            body?.message ?? `Cập nhật sản phẩm #${productId} thất bại`,
+          );
+        }
+      }),
+    );
+  }
+
+  private deleteProductOnTest(
+    productId: number,
+  ): Observable<UpdateResponse | null> {
+    const mutation = `
+      mutation DeleteProduct($productId: Int!) {
+        deleteProduct(productId: $productId) {
+          success
+          message
+        }
+      }
+    `;
+    return this.postGraphql<{ deleteProduct: UpdateResponse }>(mutation, {
+      productId,
+    }).pipe(
+      map((data) => data.deleteProduct),
+      catchError(() => of(null)),
+    );
+  }
+
+  private buildUpdateProductInput(
+    productId: number,
+    requestId: number,
+    item: ExcelImportData,
+  ): Record<string, unknown> {
+    return {
+      id: productId,
+      requestCreateTemId: requestId,
+      sapCode: item.sapCode.trim(),
+      productName: item.tenSP.trim(),
+      partNumber: item.partNumber.trim(),
+      lot: item.lot.trim(),
+      temQuantity: item.temQuantity,
+      initialQuantity: item.initialQuantity,
+      vendor: item.vendor.trim(),
+      vendorName: item.tenNCC.trim(),
+      userData1: item.userData1 ?? "",
+      userData2: item.userData2 ?? "",
+      userData3: item.userData3 ?? "",
+      userData4: item.userData4 ?? "",
+      userData5: item.userData5 ?? "",
+      storageUnit: item.storageUnit ?? "",
+      expirationDate: this.formatDateForProductUpdate(item.expirationDate),
+      manufacturingDate: this.formatDateForProductUpdate(
+        item.manufacturingDate,
+      ),
+      arrivalDate: this.formatDateForProductUpdate(item.arrivalDate),
+      numberOfPrints: 0,
+      WhsCode: item.whsCode?.trim() ?? "",
+      sapSendStatus: item.sapSendStatus ?? false,
+    };
+  }
+
+  private mapExcelToCreateInput(
+    item: ExcelImportData,
+  ): Record<string, unknown> {
+    return {
+      sapCode: item.sapCode.trim(),
+      productName: item.tenSP?.trim() ?? "",
+      temQuantity: item.temQuantity,
+      partNumber: item.partNumber.trim(),
+      lot: item.lot.trim(),
+      initialQuantity: item.initialQuantity,
+      vendor: item.vendor.trim(),
+      vendorName: item.tenNCC.trim(),
+      userData1: item.userData1 ?? "",
+      userData2: item.userData2 ?? "",
+      userData3: item.userData3 ?? "",
+      userData4: item.userData4 ?? "",
+      userData5: item.userData5 ?? "",
+      storageUnit: item.storageUnit ?? "",
+      expirationDate: this.formatDateFromExcel(item.expirationDate),
+      manufacturingDate: this.formatDateFromExcel(item.manufacturingDate),
+      arrivalDate: this.formatDateFromExcel(item.arrivalDate),
+    };
+  }
+
+  private formatDateForProductUpdate(dateStr: string): string {
+    const iso = this.formatDateFromExcel(dateStr);
+    if (!iso) {
+      return "";
+    }
+    return iso.includes("T") ? iso : `${iso}T00:00:00`;
+  }
+
+  private formatDateFromExcel(dateStr: string): string {
+    if (!dateStr?.trim()) {
+      return "";
+    }
+    const cleaned = dateStr.trim();
+    if (/^\d{8}$/.test(cleaned)) {
+      const day = cleaned.substring(0, 2);
+      const month = cleaned.substring(2, 4);
+      const year = cleaned.substring(4, 8);
+      return `${year}-${month}-${day}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+      return cleaned;
+    }
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(cleaned)) {
+      const parts = cleaned.split("/");
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return cleaned;
+  }
+
+  private postGraphql<T>(
+    query: string,
+    variables?: Record<string, unknown>,
+  ): Observable<T> {
+    return this.http
+      .post<GraphQlResponse<T>>(this.graphqlUrl, { query, variables })
+      .pipe(
+        map((res) => {
+          if (res.errors?.length) {
+            throw new Error(
+              res.errors.map((e) => e.message ?? "GraphQL error").join("; "),
+            );
+          }
+          if (!res.data) {
+            throw new Error("GraphQL không trả dữ liệu.");
+          }
+          return res.data;
+        }),
+      );
   }
 }

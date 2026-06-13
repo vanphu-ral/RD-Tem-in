@@ -97,17 +97,18 @@
             (input)="onSapWarehouseSearch($any($event.target).value)"
             (focus)="onSapWarehouseSearch(sapWarehouseCode)"
             (ngModelChange)="onHeaderSapWarehouseChange($event)"
-            placeholder="RD"
+            placeholder="Chọn mã kho"
           />
           <mat-autocomplete
             #autoSapWarehouse="matAutocomplete"
+            [displayWith]="displaySapWarehouse"
             (optionSelected)="onHeaderSapWarehouseSelected($event.option.value)"
           >
             <mat-option
-              *ngFor="let code of filteredSapWarehouseOptions"
-              [value]="code"
+              *ngFor="let whs of filteredSapWarehouseList"
+              [value]="whs.whsCode"
             >
-              {{ code }}
+              {{ whs.whsCode }} - {{ whs.whsName }}
             </mat-option>
           </mat-autocomplete>
         </mat-form-field>
@@ -243,38 +244,40 @@
               mat-stroked-button
               type="button"
               class="btn-hsd-extend"
-              [class.is-active]="bulkExpirationExtend === '3m'"
-              (click)="onBulkExpirationExtendChange('3m')"
+              [class.is-active]="bulkExpirationExtendUnit === 'month'"
+              (click)="onBulkExpirationExtendUnitChange('month')"
             >
-              3 tháng
+              Tháng
             </button>
             <button
               mat-stroked-button
               type="button"
               class="btn-hsd-extend"
-              [class.is-active]="bulkExpirationExtend === '6m'"
-              (click)="onBulkExpirationExtendChange('6m')"
+              [class.is-active]="bulkExpirationExtendUnit === 'year'"
+              (click)="onBulkExpirationExtendUnitChange('year')"
             >
-              6 tháng
+              Năm
             </button>
-            <button
-              mat-stroked-button
-              type="button"
-              class="btn-hsd-extend"
-              [class.is-active]="bulkExpirationExtend === '1y'"
-              (click)="onBulkExpirationExtendChange('1y')"
+            <mat-form-field
+              appearance="outline"
+              class="small-form-field hsd-extend-select"
             >
-              1 năm
-            </button>
-            <button
-              mat-stroked-button
-              type="button"
-              class="btn-hsd-extend"
-              [class.is-active]="bulkExpirationExtend === '2y'"
-              (click)="onBulkExpirationExtendChange('2y')"
-            >
-              2 năm
-            </button>
+              <mat-label>{{
+                bulkExpirationExtendUnit === "month" ? "Số tháng" : "Số năm"
+              }}</mat-label>
+              <mat-select
+                [(ngModel)]="bulkExpirationExtendValue"
+                (ngModelChange)="onBulkExpirationExtendValueChange($event)"
+              >
+                <mat-option
+                  *ngFor="let opt of bulkExpirationExtendOptions"
+                  [value]="opt"
+                >
+                  {{ opt }}
+                  {{ bulkExpirationExtendUnit === "month" ? "tháng" : "năm" }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
           </div>
         </div>
 
@@ -805,6 +808,146 @@
         Gửi SAP
       </button>
     </div>
+  </div>
+
+  <!-- Modal chọn vật tư từ PO -->
+  <div
+    class="po-select-overlay"
+    *ngIf="showPoSelectModal"
+    (click)="closePoSelectModal()"
+  ></div>
+  <div
+    class="po-select-modal"
+    *ngIf="showPoSelectModal && pendingPoResponse"
+    (click)="$event.stopPropagation()"
+  >
+    <mat-card class="po-select-card">
+      <mat-card-header class="po-select-header">
+        <mat-card-title>
+          <div class="po-select-header-content">
+            <div class="po-select-title-section">
+              <mat-icon>inventory_2</mat-icon>
+              <div>
+                <h2>Chọn vật tư từ PO</h2>
+                <p class="po-select-subtitle">
+                  PO:
+                  <strong>{{
+                    pendingPoResponse.poInfo?.oporDocNum || poNumber
+                  }}</strong>
+                  · NCC:
+                  <strong>{{ vendorName || vendorCode || "—" }}</strong>
+                  <span *ngIf="pendingPoResponse.poInfo?.prMapPo">
+                    · PR: {{ pendingPoResponse.poInfo?.prMapPo }}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <button
+              mat-icon-button
+              type="button"
+              class="po-select-close-btn"
+              (click)="closePoSelectModal()"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-divider></mat-divider>
+
+      <mat-card-content class="po-select-body">
+        <p class="po-select-hint">
+          Chọn vật tư cần thêm vào bảng. Mã đã lưu PO (nền xám, khóa) không thao
+          tác được. Trạng thái chọn PO sẽ ghi khi bạn lưu đơn. ·
+          {{ getPoSelectSelectedCount() }} /
+          {{ getPoSelectSelectableRows().length }} đã chọn
+        </p>
+
+        <div class="po-select-table-wrap">
+          <table class="po-select-table">
+            <thead>
+              <tr>
+                <th class="col-check">
+                  <mat-checkbox
+                    [checked]="poSelectAllChecked"
+                    [indeterminate]="
+                      getPoSelectSelectedCount() > 0 &&
+                      getPoSelectSelectedCount() <
+                        getPoSelectSelectableRows().length
+                    "
+                    color="primary"
+                    [disabled]="!getPoSelectSelectableRows().length"
+                    (change)="onPoSelectAllChange($event.checked)"
+                  ></mat-checkbox>
+                </th>
+                <th class="col-stt">STT</th>
+                <th class="col-sap">Mã SAP</th>
+                <th class="col-name">Tên vật tư</th>
+                <th class="col-qty">SL theo PO</th>
+                <th class="col-unit">ĐVT</th>
+                <th class="col-whs">Mã kho SAP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let row of poSelectRows; let i = index"
+                [class.is-on-table]="row.alreadyOnTable"
+                [class.is-in-po-status]="row.alreadyInPoStatus"
+                [class.is-row-locked]="row.alreadyInPoStatus"
+              >
+                <td class="col-check">
+                  <mat-checkbox
+                    [checked]="row.selected"
+                    [disabled]="row.alreadyOnTable || row.alreadyInPoStatus"
+                    (change)="onPoSelectRowChange(row, $event.checked)"
+                    color="primary"
+                  ></mat-checkbox>
+                </td>
+                <td class="col-stt">{{ i + 1 }}</td>
+                <td class="col-sap">
+                  <strong>{{ row.sapCode || "—" }}</strong>
+                  <span class="on-table-badge" *ngIf="row.alreadyOnTable">
+                    Đã có trên bảng
+                  </span>
+                  <span
+                    class="on-table-badge is-po-saved"
+                    *ngIf="row.alreadyInPoStatus"
+                  >
+                    Đã lưu PO
+                  </span>
+                </td>
+                <td class="col-name" [title]="row.itemName">
+                  {{ row.itemName || "—" }}
+                </td>
+                <td class="col-qty">{{ row.quantity | number: "1.0-3" }}</td>
+                <td class="col-unit">{{ row.unit || "—" }}</td>
+                <td class="col-whs">
+                  {{ displaySapWarehouse(row.warehouse) || "—" }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </mat-card-content>
+
+      <mat-divider></mat-divider>
+
+      <mat-card-actions class="po-select-footer">
+        <button mat-stroked-button type="button" (click)="closePoSelectModal()">
+          Hủy
+        </button>
+        <button
+          mat-raised-button
+          color="primary"
+          type="button"
+          (click)="onConfirmPoSelect()"
+          [disabled]="!canConfirmPoSelect()"
+        >
+          Xác nhận
+        </button>
+      </mat-card-actions>
+    </mat-card>
   </div>
 
   <!-- Modal đối chiếu PO -->
