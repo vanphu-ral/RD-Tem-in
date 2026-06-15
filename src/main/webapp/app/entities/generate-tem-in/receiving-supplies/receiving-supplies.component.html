@@ -858,8 +858,9 @@
 
       <mat-card-content class="po-select-body">
         <p class="po-select-hint">
-          Chọn vật tư cần thêm vào bảng. Mã đã lưu PO (nền xám, khóa) không thao
-          tác được. Trạng thái chọn PO sẽ ghi khi bạn lưu đơn. ·
+          Chọn vật tư cần thêm vào bảng. Chọn mã kho SAP ở header (áp dụng tất
+          cả) hoặc từng dòng. Mã đã lưu PO (nền xám, khóa) không thao tác được.
+          Trạng thái chọn PO sẽ ghi khi bạn lưu đơn. ·
           {{ getPoSelectSelectedCount() }} /
           {{ getPoSelectSelectableRows().length }} đã chọn
         </p>
@@ -872,12 +873,12 @@
                   <mat-checkbox
                     [checked]="poSelectAllChecked"
                     [indeterminate]="
-                      getPoSelectSelectedCount() > 0 &&
-                      getPoSelectSelectedCount() <
-                        getPoSelectSelectableRows().length
+                      getPoSelectVisibleSelectedCount() > 0 &&
+                      getPoSelectVisibleSelectedCount() <
+                        getPoSelectAllCheckboxSelectableCount()
                     "
                     color="primary"
-                    [disabled]="!getPoSelectSelectableRows().length"
+                    [disabled]="!getPoSelectAllCheckboxSelectableCount()"
                     (change)="onPoSelectAllChange($event.checked)"
                   ></mat-checkbox>
                 </th>
@@ -888,10 +889,50 @@
                 <th class="col-unit">ĐVT</th>
                 <th class="col-whs">Mã kho SAP</th>
               </tr>
+              <tr class="po-select-filter-row">
+                <th></th>
+                <th></th>
+                <th class="col-sap">
+                  <input
+                    class="po-select-filter-input"
+                    type="text"
+                    [(ngModel)]="poSelectFilterSapCode"
+                    (ngModelChange)="onPoSelectFilterChange()"
+                    placeholder="Lọc mã SAP"
+                  />
+                </th>
+                <th class="col-name">
+                  <input
+                    class="po-select-filter-input"
+                    type="text"
+                    [(ngModel)]="poSelectFilterItemName"
+                    (ngModelChange)="onPoSelectFilterChange()"
+                    placeholder="Lọc tên vật tư"
+                  />
+                </th>
+                <th></th>
+                <th></th>
+                <th class="col-whs">
+                  <input
+                    class="po-select-whs-input"
+                    type="text"
+                    [(ngModel)]="poSelectHeaderWarehouse"
+                    [matAutocomplete]="autoPoSelectHeaderWhs"
+                    (input)="
+                      onPoSelectHeaderWarehouseSearch($any($event.target).value)
+                    "
+                    (focus)="
+                      onPoSelectHeaderWarehouseSearch(poSelectHeaderWarehouse)
+                    "
+                    (ngModelChange)="onPoSelectHeaderWarehouseChange($event)"
+                    placeholder="Chọn cho tất cả"
+                  />
+                </th>
+              </tr>
             </thead>
             <tbody>
               <tr
-                *ngFor="let row of poSelectRows; let i = index"
+                *ngFor="let row of getPoSelectVisibleRows(); let i = index"
                 [class.is-on-table]="row.alreadyOnTable"
                 [class.is-in-po-status]="row.alreadyInPoStatus"
                 [class.is-row-locked]="row.alreadyInPoStatus"
@@ -923,11 +964,63 @@
                 <td class="col-qty">{{ row.quantity | number: "1.0-3" }}</td>
                 <td class="col-unit">{{ row.unit || "—" }}</td>
                 <td class="col-whs">
-                  {{ displaySapWarehouse(row.warehouse) || "—" }}
+                  <span
+                    *ngIf="row.alreadyInPoStatus"
+                    class="po-select-whs-readonly"
+                  >
+                    {{ displaySapWarehouse(row.warehouse) || "—" }}
+                  </span>
+                  <input
+                    *ngIf="!row.alreadyInPoStatus"
+                    class="po-select-whs-input"
+                    type="text"
+                    [(ngModel)]="row.warehouse"
+                    [matAutocomplete]="autoPoSelectRowWhs"
+                    [disabled]="row.alreadyOnTable"
+                    (input)="
+                      onSapWarehouseSearch($any($event.target).value);
+                      onPoSelectRowWarehouseChange(
+                        row,
+                        $any($event.target).value
+                      )
+                    "
+                    (focus)="onPoSelectRowWarehouseFocus(row)"
+                    (ngModelChange)="onPoSelectRowWarehouseChange(row, $event)"
+                  />
                 </td>
               </tr>
             </tbody>
           </table>
+          <mat-autocomplete
+            #autoPoSelectHeaderWhs="matAutocomplete"
+            panelClass="po-select-whs-panel"
+            [displayWith]="displaySapWarehouse"
+            (optionSelected)="
+              onPoSelectHeaderWarehouseSelected($event.option.value)
+            "
+          >
+            <mat-option
+              *ngFor="let whs of filteredSapWarehouseList"
+              [value]="whs.whsCode"
+            >
+              {{ whs.whsCode }} - {{ whs.whsName }}
+            </mat-option>
+          </mat-autocomplete>
+          <mat-autocomplete
+            #autoPoSelectRowWhs="matAutocomplete"
+            panelClass="po-select-whs-panel"
+            [displayWith]="displaySapWarehouse"
+            (optionSelected)="
+              onPoSelectRowWarehouseSelectedFromPanel($event.option.value)
+            "
+          >
+            <mat-option
+              *ngFor="let whs of filteredSapWarehouseList"
+              [value]="whs.whsCode"
+            >
+              {{ whs.whsCode }} - {{ whs.whsName }}
+            </mat-option>
+          </mat-autocomplete>
         </div>
       </mat-card-content>
 

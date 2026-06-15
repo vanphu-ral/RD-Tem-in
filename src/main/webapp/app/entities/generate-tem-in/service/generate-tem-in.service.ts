@@ -19,6 +19,9 @@ import {
   ListRequestCreateTem,
   ListRequestCreateTemPage,
   ListRequestCreateTemRequest,
+  mapRequestCreateTemPageFromGraphql,
+  RequestCreateTemPageGraphql,
+  toGraphqlOptionalFilter,
 } from "../models/list-request-create-tem.model";
 import {
   ListProductOfRequest,
@@ -70,6 +73,7 @@ const UPDATE_REQUEST_MUTATION = gql`
 
 const GET_REQUESTS_QUERY = gql`
   query GetRequests(
+    $search: String
     $status: String
     $vendor: String
     $vendorName: String
@@ -80,6 +84,7 @@ const GET_REQUESTS_QUERY = gql`
     $size: Int
   ) {
     listRequestCreateTems(
+      search: $search
       status: $status
       vendor: $vendor
       vendorName: $vendorName
@@ -267,7 +272,7 @@ const UPDATE_REQUEST_PRODUCTS_MUTATION = gql`
 `;
 
 type GetRequestsResult = {
-  listRequestCreateTems: ListRequestCreateTemPage;
+  listRequestCreateTems: RequestCreateTemPageGraphql;
 };
 
 type GetProductsByRequestResult = {
@@ -290,34 +295,22 @@ export class GenerateTemInService {
   }
 
   getRequestList(): Observable<ListRequestCreateTem[]> {
-    const GET_REQUESTS = gql`
-      query {
-        listRequestCreateTems {
-          id
-          vendor
-          userData5
-          status
-        }
-      }
-    `;
-
-    return this.apollo
-      .watchQuery<{ listRequestCreateTems: ListRequestCreateTem[] }>({
-        query: GET_REQUESTS,
-      })
-      .valueChanges.pipe(map((result) => result.data.listRequestCreateTems));
+    return this.getAllRequests({ page: 0, size: 5000 }).pipe(
+      map((page: ListRequestCreateTemPage) => page.content),
+    );
   }
 
   getAllRequests(
     params: GetRequestsQueryParams = {},
   ): Observable<ListRequestCreateTemPage> {
     const variables = {
-      status: params.status?.trim() || null,
-      vendor: params.vendor?.trim() || null,
-      vendorName: params.vendorName?.trim() || null,
-      userData5: params.userData5?.trim() || null,
-      createdBy: params.createdBy?.trim() || null,
-      createdDate: params.createdDate?.trim() || null,
+      search: toGraphqlOptionalFilter(params.search),
+      status: toGraphqlOptionalFilter(params.status),
+      vendor: toGraphqlOptionalFilter(params.vendor),
+      vendorName: toGraphqlOptionalFilter(params.vendorName),
+      userData5: toGraphqlOptionalFilter(params.userData5),
+      createdBy: toGraphqlOptionalFilter(params.createdBy),
+      createdDate: toGraphqlOptionalFilter(params.createdDate),
       page: params.page ?? 0,
       size: params.size ?? 25,
     };
@@ -330,15 +323,11 @@ export class GenerateTemInService {
       })
       .pipe(
         map((result): ListRequestCreateTemPage => {
-          const data = result.data as GetRequestsResult | undefined;
-          return (
-            data?.listRequestCreateTems ?? {
-              content: [],
-              totalElements: 0,
-              page: variables.page,
-              size: variables.size,
-              totalPages: 0,
-            }
+          const data = result.data;
+          return mapRequestCreateTemPageFromGraphql(
+            data?.listRequestCreateTems,
+            variables.page,
+            variables.size,
           );
         }),
       );

@@ -4,6 +4,9 @@ import {
   AfterViewInit,
   AfterViewChecked,
   ViewChild,
+  ViewChildren,
+  QueryList,
+  HostListener,
   ChangeDetectorRef,
 } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
@@ -21,6 +24,7 @@ import {
 } from "rxjs";
 import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { AccountService } from "app/core/auth/account.service";
 import { ExcelImportData } from "../models/list-product-of-request.model";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
@@ -327,6 +331,12 @@ export class ReceivingSuppliesComponent
   pendingPoResponse: SapPoInfoResponse | null = null;
   poSelectRows: PoMaterialSelectRow[] = [];
   poSelectAllChecked = false;
+  /** Mã kho SAP header trong modal — áp dụng tất cả dòng. */
+  poSelectHeaderWarehouse = "";
+  poSelectFilterSapCode = "";
+  poSelectFilterItemName = "";
+  /** Dòng đang focus ô kho SAP trong modal (autocomplete dùng chung). */
+  poSelectActiveWarehouseRow: PoMaterialSelectRow | null = null;
 
   showPartImportModal = false;
   partImportFile: File | null = null;
@@ -368,6 +378,8 @@ export class ReceivingSuppliesComponent
   ];
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChildren(MatAutocompleteTrigger)
+  private poSelectWhsTriggers!: QueryList<MatAutocompleteTrigger>;
 
   private readonly vendorDisplayLimit = 50;
   /** ID sản phẩm chờ xóa khi lưu — chỉ khi user bấm xóa lô/vật tư. */
@@ -580,6 +592,11 @@ export class ReceivingSuppliesComponent
     poStatusRecords: ProductInPoStatusDto[] = [],
   ): void {
     this.pendingPoResponse = res;
+    this.poSelectHeaderWarehouse = this.normalizeWarehouseCode(
+      this.sapWarehouseCode,
+    );
+    this.poSelectFilterSapCode = "";
+    this.poSelectFilterItemName = "";
     this.poSelectRows = this.buildPoSelectRows(res, poStatusRecords);
     const selectable = this.getPoSelectSelectableRows();
     this.poSelectAllChecked =
@@ -594,7 +611,127 @@ export class ReceivingSuppliesComponent
     this.pendingPoResponse = null;
     this.poSelectRows = [];
     this.poSelectAllChecked = false;
+    this.poSelectHeaderWarehouse = "";
+    this.poSelectFilterSapCode = "";
+    this.poSelectFilterItemName = "";
+    this.poSelectActiveWarehouseRow = null;
+    this.closePoSelectWarehousePanels();
     document.body.classList.remove("modal-open");
+    this.cdr.markForCheck();
+  }
+
+  getPoSelectVisibleRows(): PoMaterialSelectRow[] {
+    const sap = this.poSelectFilterSapCode.trim().toLowerCase();
+    const name = this.poSelectFilterItemName.trim().toLowerCase();
+    return this.poSelectRows.filter((row) => {
+      if (sap && !row.sapCode.toLowerCase().includes(sap)) {
+        return false;
+      }
+      if (name && !row.itemName.toLowerCase().includes(name)) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  getPoSelectVisibleSelectableRows(): PoMaterialSelectRow[] {
+    return this.getPoSelectVisibleRows().filter(
+      (r) => !r.alreadyOnTable && !r.alreadyInPoStatus,
+    );
+  }
+
+  getPoSelectVisibleSelectedCount(): number {
+    const visibleKeys = new Set(
+      this.getPoSelectVisibleRows().map((r) => r.rowKey),
+    );
+    return this.poSelectRows.filter(
+      (r) =>
+        r.selected &&
+        !r.alreadyOnTable &&
+        !r.alreadyInPoStatus &&
+        visibleKeys.has(r.rowKey),
+    ).length;
+  }
+
+  getPoSelectAllCheckboxSelectableCount(): number {
+    const hasFilter =
+      Boolean(this.poSelectFilterSapCode.trim()) ||
+      Boolean(this.poSelectFilterItemName.trim());
+    return hasFilter
+      ? this.getPoSelectVisibleSelectableRows().length
+      : this.getPoSelectSelectableRows().length;
+  }
+
+  onPoSelectFilterChange(): void {
+    this.syncPoSelectAllChecked();
+    this.cdr.markForCheck();
+  }
+
+  onPoSelectRowWarehouseFocus(row: PoMaterialSelectRow): void {
+    this.poSelectActiveWarehouseRow = row;
+    this.onSapWarehouseSearch(row.warehouse);
+  }
+
+  onPoSelectRowWarehouseSelectedFromPanel(code: string): void {
+    if (!this.poSelectActiveWarehouseRow) {
+      return;
+    }
+    this.onPoSelectRowWarehouseSelected(this.poSelectActiveWarehouseRow, code);
+  }
+
+  @HostListener("document:mousedown", ["$event"])
+  onDocumentMouseDownForPoSelectWhs(event: MouseEvent): void {
+    if (!this.showPoSelectModal) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (!target) {
+      this.closePoSelectWarehousePanels();
+      return;
+    }
+    if (target.closest(".po-select-whs-input")) {
+      return;
+    }
+    if (target.closest(".mat-mdc-autocomplete-panel")) {
+      return;
+    }
+    this.closePoSelectWarehousePanels();
+  }
+
+  onPoSelectHeaderWarehouseSearch(keyword: string): void {
+    this.onSapWarehouseSearch(keyword);
+  }
+
+  onPoSelectHeaderWarehouseChange(value: string): void {
+    this.poSelectHeaderWarehouse = value.trim();
+    const code = this.normalizeWarehouseCode(value);
+    if (code) {
+      this.applyPoSelectWarehouseToAll(code);
+    }
+    this.cdr.markForCheck();
+  }
+
+  onPoSelectHeaderWarehouseSelected(code: string): void {
+    this.poSelectHeaderWarehouse = code;
+    this.sapWarehouseCode = code;
+    this.applyPoSelectWarehouseToAll(code);
+    this.cdr.markForCheck();
+  }
+
+  onPoSelectRowWarehouseChange(row: PoMaterialSelectRow, value: string): void {
+    if (row.alreadyInPoStatus) {
+      return;
+    }
+    const code = this.normalizeWarehouseCode(value);
+    row.warehouse = code || value.trim();
+    this.cdr.markForCheck();
+  }
+
+  onPoSelectRowWarehouseSelected(row: PoMaterialSelectRow, code: string): void {
+    if (row.alreadyInPoStatus) {
+      return;
+    }
+    row.warehouse = code;
     this.cdr.markForCheck();
   }
 
@@ -616,8 +753,14 @@ export class ReceivingSuppliesComponent
 
   onPoSelectAllChange(checked: boolean): void {
     this.poSelectAllChecked = checked;
+    const visibleKeys = new Set(
+      this.getPoSelectVisibleSelectableRows().map((r) => r.rowKey),
+    );
     this.poSelectRows = this.poSelectRows.map((row) => {
       if (row.alreadyOnTable || row.alreadyInPoStatus) {
+        return row;
+      }
+      if (!visibleKeys.has(row.rowKey)) {
         return row;
       }
       return { ...row, selected: checked };
@@ -648,12 +791,33 @@ export class ReceivingSuppliesComponent
     const selectedRows = this.poSelectRows.filter(
       (r) => r.selected && !r.alreadyOnTable && !r.alreadyInPoStatus,
     );
+    const missingWarehouse = selectedRows.filter(
+      (r) => !this.resolvePoSelectRowWhsCode(r),
+    );
+    if (missingWarehouse.length) {
+      this.showSnackbar(
+        "Vui lòng chọn mã kho SAP (header hoặc từng dòng) cho vật tư đã chọn.",
+        "Đóng",
+        5000,
+        "warning",
+      );
+      return;
+    }
     const selectedDetails = selectedRows.map((r) => r.detail);
 
-    const added = this.appendPoDetailsToTable(selectedDetails);
-    if (selectedRows.length) {
-      this.cachePendingProductInPoStatus(selectedRows);
+    const headerWhs = this.normalizeWarehouseCode(this.poSelectHeaderWarehouse);
+    if (headerWhs) {
+      this.sapWarehouseCode = headerWhs;
+    } else {
+      const firstSelectedWhs = this.resolvePoSelectRowWhsCode(selectedRows[0]);
+      if (firstSelectedWhs) {
+        this.sapWarehouseCode = firstSelectedWhs;
+      }
     }
+
+    const added = this.appendPoDetailsToTable(selectedDetails, selectedRows);
+    this.applyPoSelectWarehousesToTable(selectedRows);
+    this.cachePendingProductInPoStatus(this.poSelectRows);
     const po = this.poNumber.trim();
 
     if (added > 0) {
@@ -899,12 +1063,12 @@ export class ReceivingSuppliesComponent
   };
 
   onHeaderSapWarehouseChange(value: string): void {
-    const trimmed = value.trim();
-    this.sapWarehouseCode = trimmed;
-    if (!trimmed) {
+    const code = this.normalizeWarehouseCode(value);
+    this.sapWarehouseCode = code || value.trim();
+    if (!code) {
       return;
     }
-    this.applySapWarehouseToAll(trimmed);
+    this.applySapWarehouseToAll(code);
   }
 
   onHeaderSapWarehouseSelected(code: string): void {
@@ -1849,12 +2013,79 @@ export class ReceivingSuppliesComponent
   }
 
   private applySapWarehouseToAll(code: string): void {
+    const normalized = this.normalizeWarehouseCode(code);
+    if (!normalized) {
+      return;
+    }
     this.dataSource.data = this.dataSource.data.map((parent) => {
-      const lots = parent.lots.map((lot) => ({ ...lot, sapWarehouse: code }));
-      return { ...parent, sapWarehouse: code, lots };
+      const lots = parent.lots.map((lot) => ({
+        ...lot,
+        sapWarehouse: normalized,
+      }));
+      return { ...parent, sapWarehouse: normalized, lots };
     });
     this.refreshTableView();
     this.cdr.markForCheck();
+  }
+
+  private applyPoSelectWarehouseToAll(code: string): void {
+    const normalized = this.normalizeWarehouseCode(code);
+    if (!normalized) {
+      return;
+    }
+    this.poSelectHeaderWarehouse = normalized;
+    this.poSelectRows = this.poSelectRows.map((row) => {
+      if (row.alreadyInPoStatus) {
+        return row;
+      }
+      return { ...row, warehouse: normalized };
+    });
+  }
+
+  private resolvePoSelectRowWhsCode(row: PoMaterialSelectRow): string {
+    const rowWh = this.normalizeWarehouseCode(row.warehouse);
+    if (rowWh) {
+      return rowWh;
+    }
+    const modalHeaderWh = this.normalizeWarehouseCode(
+      this.poSelectHeaderWarehouse,
+    );
+    if (modalHeaderWh) {
+      return modalHeaderWh;
+    }
+    return this.normalizeWarehouseCode(this.sapWarehouseCode);
+  }
+
+  private normalizeWarehouseCode(value: string | null | undefined): string {
+    const trimmed = (value ?? "").trim();
+    if (!trimmed) {
+      return "";
+    }
+    const exact = this.sapWarehouseList.find((w) => w.whsCode === trimmed);
+    if (exact) {
+      return exact.whsCode;
+    }
+    const dashIdx = trimmed.indexOf(" - ");
+    if (dashIdx > 0) {
+      const codePart = trimmed.substring(0, dashIdx).trim();
+      const byCode = this.sapWarehouseList.find((w) => w.whsCode === codePart);
+      if (byCode) {
+        return byCode.whsCode;
+      }
+      return codePart;
+    }
+    const byLabel = this.sapWarehouseList.find(
+      (w) => `${w.whsCode} - ${w.whsName}` === trimmed,
+    );
+    return byLabel ? byLabel.whsCode : trimmed;
+  }
+
+  private closePoSelectWarehousePanels(): void {
+    this.poSelectWhsTriggers?.forEach((trigger) => {
+      if (trigger.panelOpen) {
+        trigger.closePanel();
+      }
+    });
   }
 
   private applyHeaderLocationToAll(location: string): void {
@@ -3213,7 +3444,9 @@ export class ReceivingSuppliesComponent
         itemName: (d.por1Dscription ?? "").trim(),
         quantity: Number.parseFloat(d.por1Quantity ?? "0") || 0,
         unit: (d.por1UOMCode ?? d.por1UnitMsr ?? "").trim(),
-        warehouse: this.sapWarehouseCode.trim(),
+        warehouse: this.normalizeWarehouseCode(
+          this.poSelectHeaderWarehouse || this.sapWarehouseCode,
+        ),
         alreadyOnTable,
         alreadyInPoStatus,
         detail: d,
@@ -3221,35 +3454,36 @@ export class ReceivingSuppliesComponent
     });
   }
 
+  /** Ghi product-in-po-status khi lưu đơn — tất cả mã PO; đã tick gửi whsCode, chưa tick gửi "". */
   private cachePendingProductInPoStatus(rows: PoMaterialSelectRow[]): void {
     const po = this.poNumber.trim();
     if (!po) {
       return;
     }
-    const existingKeys = new Set(
+    const pendingByKey = new Map(
       this.pendingProductInPoStatus.map(
-        (p) => `${p.userData5}|${p.sapCode.trim()}`,
+        (p) => [`${p.userData5}|${p.sapCode.trim()}`, p] as const,
       ),
     );
     rows.forEach((row) => {
+      if (row.alreadyInPoStatus || row.alreadyOnTable) {
+        return;
+      }
       const sapCode = row.sapCode.trim();
       if (!sapCode) {
         return;
       }
-      const key = `${po}|${sapCode}`;
-      if (existingKeys.has(key)) {
-        return;
-      }
-      existingKeys.add(key);
-      this.pendingProductInPoStatus.push({
+      const whsCode = row.selected ? this.resolvePoSelectRowWhsCode(row) : "";
+      pendingByKey.set(`${po}|${sapCode}`, {
         sapCode,
         productName: row.itemName.trim(),
-        whsCode: row.warehouse.trim() || this.sapWarehouseCode.trim(),
+        whsCode,
         userData5: po,
         createdAt: new Date().toISOString(),
         createBy: this.currentUser,
       });
     });
+    this.pendingProductInPoStatus = Array.from(pendingByKey.values());
   }
 
   private flushPendingProductInPoStatus(): void {
@@ -3258,6 +3492,7 @@ export class ReceivingSuppliesComponent
     }
     const payloads = this.pendingProductInPoStatus.map((p) => ({
       ...p,
+      whsCode: p.whsCode.trim(),
       createdAt: new Date().toISOString(),
       createBy: this.currentUser,
     }));
@@ -3292,15 +3527,29 @@ export class ReceivingSuppliesComponent
   }
 
   private syncPoSelectAllChecked(): void {
-    const selectable = this.getPoSelectSelectableRows();
+    const hasFilter =
+      Boolean(this.poSelectFilterSapCode.trim()) ||
+      Boolean(this.poSelectFilterItemName.trim());
+    const selectable = hasFilter
+      ? this.getPoSelectVisibleSelectableRows()
+      : this.getPoSelectSelectableRows();
     this.poSelectAllChecked =
       selectable.length > 0 && selectable.every((r) => r.selected);
   }
 
-  private appendPoDetailsToTable(details: SapPoInfoDetail[]): number {
+  private appendPoDetailsToTable(
+    details: SapPoInfoDetail[],
+    poSelectRows: PoMaterialSelectRow[] = [],
+  ): number {
     if (!details.length) {
       return 0;
     }
+
+    const warehouseBySap = new Map(
+      poSelectRows.map(
+        (r) => [r.sapCode.trim(), this.resolvePoSelectRowWhsCode(r)] as const,
+      ),
+    );
 
     const existingSap = new Set(
       this.dataSource.data.map((r) => r.sapCode.trim()).filter(Boolean),
@@ -3323,7 +3572,19 @@ export class ReceivingSuppliesComponent
       const id = nextId;
       nextId += 1;
       const location = this.headerLocation || this.storageUnit || "";
-      const sapWarehouse = this.sapWarehouseCode.trim();
+      const fromModalRow = warehouseBySap.get(sapCode)?.trim();
+      const fromModalHeader = this.normalizeWarehouseCode(
+        this.poSelectHeaderWarehouse,
+      );
+      const fromFormHeader = this.normalizeWarehouseCode(this.sapWarehouseCode);
+      let sapWarehouse = "";
+      if (fromModalRow) {
+        sapWarehouse = fromModalRow;
+      } else if (fromModalHeader) {
+        sapWarehouse = fromModalHeader;
+      } else {
+        sapWarehouse = fromFormHeader;
+      }
 
       const row: ReceivingMaterialRow = {
         id,
@@ -3366,6 +3627,31 @@ export class ReceivingSuppliesComponent
     this.applyTableFilter();
     this.syncSelectedSapCodesFromTable();
     return newRows.length;
+  }
+
+  private applyPoSelectWarehousesToTable(rows: PoMaterialSelectRow[]): void {
+    const warehouseBySap = new Map(
+      rows
+        .map((r) => {
+          const whs = this.resolvePoSelectRowWhsCode(r);
+          return whs ? ([r.sapCode.trim(), whs] as const) : null;
+        })
+        .filter((entry): entry is readonly [string, string] => entry !== null),
+    );
+    if (!warehouseBySap.size) {
+      return;
+    }
+
+    this.dataSource.data = this.dataSource.data.map((parent) => {
+      const whs = warehouseBySap.get(parent.sapCode.trim());
+      if (!whs) {
+        return parent;
+      }
+      const lots = parent.lots.map((lot) => ({ ...lot, sapWarehouse: whs }));
+      return { ...parent, sapWarehouse: whs, lots };
+    });
+    this.refreshTableView();
+    this.cdr.markForCheck();
   }
 
   private resolveOrderPoValue(): string {

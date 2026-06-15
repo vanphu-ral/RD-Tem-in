@@ -251,7 +251,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
       createdBy: item.createdBy ?? "",
       numberProduction: item.numberProduction ?? 0,
       totalQuantity: item.totalQuantity ?? 0,
-      whsCode: item.WhsCode ?? item.whsCode ?? "",
+      whsCode: item.whsCode ?? "",
     };
   }
 }

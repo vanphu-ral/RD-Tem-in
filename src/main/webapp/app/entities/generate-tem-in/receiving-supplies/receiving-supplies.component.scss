@@ -1082,10 +1082,65 @@
     white-space: nowrap;
   }
 
-  .col-unit,
-  .col-whs {
-    width: 120px;
+  .col-unit {
+    width: 72px;
     white-space: nowrap;
+  }
+
+  .col-whs {
+    min-width: 140px;
+    max-width: 160px;
+    white-space: nowrap;
+  }
+
+  .po-select-filter-row th {
+    padding: 4px 6px;
+    vertical-align: middle;
+  }
+
+  .po-select-filter-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 11px;
+    height: 26px;
+    background: #fff;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+  }
+
+  .po-select-whs-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 3px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 11px;
+    height: 26px;
+    line-height: 1.2;
+    background: #fff;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
+    }
+
+    &:disabled {
+      background: #f1f5f9;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+  }
+
+  .po-select-whs-readonly {
+    font-size: 11px;
+    color: #475569;
   }
 
   .col-name {
@@ -1094,6 +1149,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+::ng-deep .po-select-whs-panel.mat-mdc-autocomplete-panel {
+  .mat-mdc-option {
+    min-height: 30px;
+    font-size: 11px;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 }
 
