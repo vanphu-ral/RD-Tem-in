@@ -28,6 +28,7 @@ import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { AccountService } from "app/core/auth/account.service";
 import { ExcelImportData } from "../models/list-product-of-request.model";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
+import { ListRequestCreateTem } from "../models/list-request-create-tem.model";
 import { GenerateTemInConfirmDialogComponent } from "../generate-tem-in-modal-confirm/modal-confirm.component";
 import { TemDetail } from "../detail/generate-tem-in-detail.component";
 import {
@@ -36,6 +37,7 @@ import {
   ProductInPoStatusCreatePayload,
   ProductInPoStatusDto,
   ReceivingSuppliesService,
+  ReceivingProductRow,
   resolveHttpErrorMessage,
   SapOcrd,
   SapOitmDto,
@@ -228,7 +230,7 @@ export interface PoMaterialSelectRow {
   unit: string;
   warehouse: string;
   alreadyOnTable: boolean;
-  /** Đã có trong product-in-po-status — checked sẵn, nền xám. */
+  /** Đã có trong product-in-po-status và đã có kho — checked sẵn, khóa dòng. */
   alreadyInPoStatus: boolean;
   detail: SapPoInfoDetail;
 }
@@ -594,14 +596,11 @@ export class ReceivingSuppliesComponent
     this.pendingPoResponse = res;
     this.poSelectFilterSapCode = "";
     this.poSelectFilterItemName = "";
-    this.poSelectHeaderWarehouse =
-      this.normalizeWarehouseCode(this.sapWarehouseCode) ||
-      this.resolveCommonWarehouseFromPoStatus(poStatusRecords);
+    this.syncPoSelectHeaderWarehouseFromForm(poStatusRecords);
+    this.loadSapWarehouses(
+      this.poSelectHeaderWarehouse || this.sapWarehouseCode,
+    );
     this.poSelectRows = this.buildPoSelectRows(res, poStatusRecords);
-    if (!this.poSelectHeaderWarehouse) {
-      this.poSelectHeaderWarehouse =
-        this.resolveCommonWarehouseFromPoStatus(poStatusRecords);
-    }
     const selectable = this.getPoSelectSelectableRows();
     this.poSelectAllChecked =
       selectable.length > 0 && selectable.every((r) => r.selected);
@@ -615,7 +614,6 @@ export class ReceivingSuppliesComponent
     this.pendingPoResponse = null;
     this.poSelectRows = [];
     this.poSelectAllChecked = false;
-    this.poSelectHeaderWarehouse = "";
     this.poSelectFilterSapCode = "";
     this.poSelectFilterItemName = "";
     this.poSelectActiveWarehouseRow = null;
@@ -673,6 +671,10 @@ export class ReceivingSuppliesComponent
 
   onPoSelectRowWarehouseFocus(row: PoMaterialSelectRow): void {
     this.poSelectActiveWarehouseRow = row;
+    if (!this.sapWarehouseList.length && !this.isLoadingSapWarehouses) {
+      this.loadSapWarehouses(row.warehouse);
+      return;
+    }
     this.onSapWarehouseSearch(row.warehouse);
   }
 
@@ -703,14 +705,18 @@ export class ReceivingSuppliesComponent
   }
 
   onPoSelectHeaderWarehouseSearch(keyword: string): void {
+    if (!this.sapWarehouseList.length && !this.isLoadingSapWarehouses) {
+      this.loadSapWarehouses(keyword);
+      return;
+    }
     this.onSapWarehouseSearch(keyword);
   }
 
   onPoSelectHeaderWarehouseChange(value: string): void {
-    this.poSelectHeaderWarehouse = value.trim();
     const code = this.normalizeWarehouseCode(value);
+    this.poSelectHeaderWarehouse = code || value.trim();
     if (code) {
-      this.applyPoSelectWarehouseToAll(code);
+      this.sapWarehouseCode = code;
     }
     this.cdr.markForCheck();
   }
@@ -718,7 +724,6 @@ export class ReceivingSuppliesComponent
   onPoSelectHeaderWarehouseSelected(code: string): void {
     this.poSelectHeaderWarehouse = code;
     this.sapWarehouseCode = code;
-    this.applyPoSelectWarehouseToAll(code);
     this.cdr.markForCheck();
   }
 
@@ -812,10 +817,12 @@ export class ReceivingSuppliesComponent
     const headerWhs = this.normalizeWarehouseCode(this.poSelectHeaderWarehouse);
     if (headerWhs) {
       this.sapWarehouseCode = headerWhs;
+      this.poSelectHeaderWarehouse = headerWhs;
     } else {
       const firstSelectedWhs = this.resolvePoSelectRowWhsCode(selectedRows[0]);
       if (firstSelectedWhs) {
         this.sapWarehouseCode = firstSelectedWhs;
+        this.poSelectHeaderWarehouse = firstSelectedWhs;
       }
     }
 
@@ -1048,6 +1055,10 @@ export class ReceivingSuppliesComponent
   }
 
   onSapWarehouseSearch(keyword: string): void {
+    if (!this.sapWarehouseList.length && !this.isLoadingSapWarehouses) {
+      this.loadSapWarehouses(keyword);
+      return;
+    }
     const term = (keyword ?? "").trim().toLowerCase();
     this.filteredSapWarehouseList = term
       ? this.sapWarehouseList.filter(
@@ -2016,6 +2027,24 @@ export class ReceivingSuppliesComponent
     this.cdr.markForCheck();
   }
 
+  /** Giữ / khôi phục mã kho header modal — đồng bộ form ngoài, không mất khi mở lại. */
+  private syncPoSelectHeaderWarehouseFromForm(
+    poStatusRecords: ProductInPoStatusDto[] = [],
+  ): void {
+    const fromForm = this.normalizeWarehouseCode(this.sapWarehouseCode);
+    const fromModal = this.normalizeWarehouseCode(this.poSelectHeaderWarehouse);
+    const fromPoStatus =
+      this.resolveCommonWarehouseFromPoStatus(poStatusRecords);
+    const code = fromForm || fromModal || fromPoStatus;
+    this.poSelectHeaderWarehouse = code;
+    if (code && !fromForm) {
+      this.sapWarehouseCode = code;
+    }
+    if (code) {
+      this.onSapWarehouseSearch(code);
+    }
+  }
+
   private applySapWarehouseToAll(code: string): void {
     const normalized = this.normalizeWarehouseCode(code);
     if (!normalized) {
@@ -2030,20 +2059,6 @@ export class ReceivingSuppliesComponent
     });
     this.refreshTableView();
     this.cdr.markForCheck();
-  }
-
-  private applyPoSelectWarehouseToAll(code: string): void {
-    const normalized = this.normalizeWarehouseCode(code);
-    if (!normalized) {
-      return;
-    }
-    this.poSelectHeaderWarehouse = normalized;
-    this.poSelectRows = this.poSelectRows.map((row) => {
-      if (row.alreadyInPoStatus) {
-        return row;
-      }
-      return { ...row, warehouse: normalized };
-    });
   }
 
   private resolvePoSelectRowWhsCode(row: PoMaterialSelectRow): string {
@@ -2279,34 +2294,53 @@ export class ReceivingSuppliesComponent
       return;
     }
 
-    this.receivingService
-      .createRequestAndProducts(
-        vendor,
-        vendorName,
-        poValue,
-        this.currentUser,
-        products,
-        orderWhsCode,
+    this.findExistingRequestByPoAndWhs(poValue, orderWhsCode)
+      .pipe(
+        take(1),
+        switchMap((existing) => {
+          if (existing?.id) {
+            const requestId = existing.id;
+            return this.receivingService
+              .updateRequestProducts(requestId, products, {
+                rows: syncRows,
+                deletedProductIds: [],
+              })
+              .pipe(
+                map((savedProducts) => ({
+                  requestId,
+                  savedProducts,
+                  merged: true,
+                })),
+              );
+          }
+          return this.receivingService
+            .createRequestAndProducts(
+              vendor,
+              vendorName,
+              poValue,
+              this.currentUser,
+              products,
+              orderWhsCode,
+            )
+            .pipe(
+              map((result) => ({
+                requestId: result.requestId,
+                savedProducts: result.products,
+                merged: false,
+              })),
+            );
+        }),
       )
       .subscribe({
-        next: (result) => {
-          this.isSavingOrder = false;
-          const requestId = result.requestId;
-          this.editingRequestId = requestId;
-          if (silent) {
-            this.loadExistingRequest(requestId);
-            this.flushPendingProductInPoStatus();
-            options.onSuccess?.();
-            return;
-          }
-          this.showSnackbar(
-            `Đã tạo đơn #${requestId} với ${products.length} dòng sản phẩm.`,
-            "Đóng",
-            4000,
-            "success",
+        next: ({ requestId, savedProducts, merged }) => {
+          this.handleNewOrderPersistSuccess(
+            requestId,
+            savedProducts,
+            merged,
+            orderWhsCode,
+            silent,
+            options.onSuccess,
           );
-          this.flushPendingProductInPoStatus();
-          this.navigateAfterSave(requestId);
         },
         error: (err: Error) => {
           this.isSavingOrder = false;
@@ -2319,6 +2353,78 @@ export class ReceivingSuppliesComponent
           this.cdr.markForCheck();
         },
       });
+  }
+
+  /**
+   * Tìm đơn đã có cùng PO (userData5) và mã kho SAP trước khi tạo mới.
+   */
+  private findExistingRequestByPoAndWhs(
+    po: string,
+    whsCode: string,
+  ): Observable<ListRequestCreateTem | null> {
+    const normalizedPo = po.trim();
+    const normalizedWhs = this.normalizeWarehouseCode(whsCode);
+    if (!this.isValidPoCode(normalizedPo) || !normalizedWhs) {
+      return of(null);
+    }
+
+    return this.generateTemInService
+      .getAllRequests({
+        userData5: normalizedPo,
+        whsCode: normalizedWhs,
+        page: 0,
+        size: 25,
+      })
+      .pipe(
+        map((page) => {
+          const match = page.content.find((item) => item.id != null);
+          return match ?? null;
+        }),
+        catchError(() => of(null)),
+      );
+  }
+
+  private handleNewOrderPersistSuccess(
+    requestId: number,
+    savedProducts: ReceivingProductRow[],
+    merged: boolean,
+    orderWhsCode: string,
+    silent: boolean,
+    onSuccess?: () => void,
+  ): void {
+    this.isSavingOrder = false;
+    this.editingRequestId = requestId;
+    this.pendingDeletedProductIds = [];
+    if (merged && this.isValidPoCode(this.poNumber.trim())) {
+      this.poAndVendorLocked = true;
+    }
+    this.applyRequestTableAfterSave(savedProducts);
+    this.syncRequestHeaderWhsCode(orderWhsCode);
+    this.flushPendingProductInPoStatus();
+
+    if (silent) {
+      this.loadExistingRequest(requestId);
+      onSuccess?.();
+      return;
+    }
+
+    if (merged) {
+      this.showSnackbar(
+        `Đơn #${requestId} đã tồn tại (cùng PO và mã kho SAP). Đã thêm vật tư vào đơn này.`,
+        "Đóng",
+        5000,
+        "success",
+      );
+    } else {
+      this.showSnackbar(
+        `Đã tạo đơn #${requestId} với ${savedProducts.length} dòng sản phẩm.`,
+        "Đóng",
+        4000,
+        "success",
+      );
+    }
+    this.navigateAfterSave(requestId);
+    onSuccess?.();
   }
 
   /** Sau lưu: luôn ở lại receiving-supplies. */
@@ -3396,12 +3502,15 @@ export class ReceivingSuppliesComponent
     });
   }
 
-  private loadSapWarehouses(): void {
+  private loadSapWarehouses(keyword = ""): void {
+    if (this.isLoadingSapWarehouses) {
+      return;
+    }
     this.isLoadingSapWarehouses = true;
     this.receivingService.getSapWarehouses().subscribe({
       next: (data) => {
         this.sapWarehouseList = data;
-        this.filteredSapWarehouseList = [...data];
+        this.onSapWarehouseSearch(keyword);
         this.isLoadingSapWarehouses = false;
         this.cdr.markForCheck();
       },
@@ -3435,23 +3544,17 @@ export class ReceivingSuppliesComponent
       this.dataSource.data.map((r) => r.sapCode.trim()).filter(Boolean),
     );
     const poStatusBySap = this.buildPoStatusBySapCode(poStatusRecords);
-    const inPoStatus = new Set(poStatusBySap.keys());
-    const defaultWarehouse = this.normalizeWarehouseCode(
-      this.poSelectHeaderWarehouse || this.sapWarehouseCode,
-    );
 
     return (res.poDetails ?? []).map((d, idx) => {
       const sapCode = (d.por1ItemCode ?? "").trim();
       const lineNum = (d.por1LineNum ?? String(idx)).trim();
       const alreadyOnTable = onTable.has(sapCode);
-      const alreadyInPoStatus = inPoStatus.has(sapCode);
       const statusRecord = poStatusBySap.get(sapCode);
-      let warehouse = "";
-      if (statusRecord) {
-        warehouse = this.normalizeWarehouseCode(statusRecord.whsCode);
-      } else {
-        warehouse = defaultWarehouse;
-      }
+      const alreadyInPoStatus =
+        this.isPoStatusLockedWithWarehouse(statusRecord);
+      const warehouse = statusRecord
+        ? this.normalizeWarehouseCode(statusRecord.whsCode)
+        : "";
 
       return {
         rowKey: `${sapCode}-${lineNum}`,
@@ -3474,6 +3577,16 @@ export class ReceivingSuppliesComponent
         detail: d,
       };
     });
+  }
+
+  /** Khóa dòng khi đã lưu product-in-po-status và có mã kho SAP. */
+  private isPoStatusLockedWithWarehouse(
+    record: ProductInPoStatusDto | undefined,
+  ): boolean {
+    if (!record) {
+      return false;
+    }
+    return Boolean(this.normalizeWarehouseCode(record.whsCode));
   }
 
   private buildPoStatusBySapCode(

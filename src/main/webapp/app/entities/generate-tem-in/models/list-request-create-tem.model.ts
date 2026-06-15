@@ -21,6 +21,8 @@ export interface GetRequestsQueryParams {
   vendor?: string;
   vendorName?: string;
   userData5?: string;
+  /** Lọc phía FE sau khi gọi API (GraphQL chưa có arg whsCode). */
+  whsCode?: string;
   createdBy?: string;
   createdDate?: string;
   page?: number;

@@ -1125,6 +1125,12 @@
     line-height: 1.2;
     background: #fff;
 
+    &.mat-mdc-input-element {
+      border: none;
+      height: 24px;
+      padding: 0 2px;
+    }
+
     &:focus {
       outline: none;
       border-color: #3b82f6;
@@ -1135,6 +1141,37 @@
       background: #f1f5f9;
       color: #64748b;
       cursor: not-allowed;
+    }
+  }
+
+  .po-select-whs-field {
+    width: 100%;
+    margin: 0;
+
+    &.po-select-whs-header {
+      min-width: 140px;
+    }
+
+    ::ng-deep {
+      .mat-mdc-text-field-wrapper {
+        padding: 0 6px;
+      }
+
+      .mat-mdc-form-field-infix {
+        min-height: 28px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+      }
+
+      .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+      }
+
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: #cbd5e1;
+      }
     }
   }
 

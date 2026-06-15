@@ -98,6 +98,7 @@
             (focus)="onSapWarehouseSearch(sapWarehouseCode)"
             (ngModelChange)="onHeaderSapWarehouseChange($event)"
             placeholder="Chọn mã kho"
+            [disabled]="poAndVendorLocked"
           />
           <mat-autocomplete
             #autoSapWarehouse="matAutocomplete"
@@ -858,13 +859,12 @@
       <mat-divider></mat-divider>
 
       <mat-card-content class="po-select-body">
-        <p class="po-select-hint">
-          Chọn vật tư cần thêm vào bảng. Chọn mã kho SAP ở header (áp dụng tất
-          cả) hoặc từng dòng. Mã đã lưu PO (nền xám, khóa) không thao tác được.
-          Trạng thái chọn PO sẽ ghi khi bạn lưu đơn. ·
-          {{ getPoSelectSelectedCount() }} /
+        <!-- <p class="po-select-hint">
+          Chọn vật tư cần thêm vào bảng. Mã kho header đồng bộ với form ngoài —
+          dùng làm mặc định khi xác nhận (vật tư đã tick) hoặc chọn từng dòng.
+          Mã đã lưu PO (nền xám, khóa) không thao tác được. {{ getPoSelectSelectedCount() }} /
           {{ getPoSelectSelectableRows().length }} đã chọn
-        </p>
+        </p> -->
 
         <div class="po-select-table-wrap">
           <table class="po-select-table">
@@ -914,20 +914,28 @@
                 <th></th>
                 <th></th>
                 <th class="col-whs">
-                  <input
-                    class="po-select-whs-input"
-                    type="text"
-                    [(ngModel)]="poSelectHeaderWarehouse"
-                    [matAutocomplete]="autoPoSelectHeaderWhs"
-                    (input)="
-                      onPoSelectHeaderWarehouseSearch($any($event.target).value)
-                    "
-                    (focus)="
-                      onPoSelectHeaderWarehouseSearch(poSelectHeaderWarehouse)
-                    "
-                    (ngModelChange)="onPoSelectHeaderWarehouseChange($event)"
-                    placeholder="Chọn cho tất cả"
-                  />
+                  <mat-form-field
+                    class="po-select-whs-field po-select-whs-header"
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                  >
+                    <input
+                      matInput
+                      class="po-select-whs-input"
+                      [(ngModel)]="poSelectHeaderWarehouse"
+                      [matAutocomplete]="autoPoSelectHeaderWhs"
+                      (input)="
+                        onPoSelectHeaderWarehouseSearch(
+                          $any($event.target).value
+                        )
+                      "
+                      (focus)="
+                        onPoSelectHeaderWarehouseSearch(poSelectHeaderWarehouse)
+                      "
+                      (ngModelChange)="onPoSelectHeaderWarehouseChange($event)"
+                      placeholder="Mã kho (đồng bộ form)"
+                    />
+                  </mat-form-field>
                 </th>
               </tr>
             </thead>
@@ -971,23 +979,31 @@
                   >
                     {{ displaySapWarehouse(row.warehouse) || "—" }}
                   </span>
-                  <input
+                  <mat-form-field
                     *ngIf="!row.alreadyInPoStatus"
-                    class="po-select-whs-input"
-                    type="text"
-                    [(ngModel)]="row.warehouse"
-                    [matAutocomplete]="autoPoSelectRowWhs"
-                    [disabled]="row.alreadyOnTable"
-                    (input)="
-                      onSapWarehouseSearch($any($event.target).value);
-                      onPoSelectRowWarehouseChange(
-                        row,
-                        $any($event.target).value
-                      )
-                    "
-                    (focus)="onPoSelectRowWarehouseFocus(row)"
-                    (ngModelChange)="onPoSelectRowWarehouseChange(row, $event)"
-                  />
+                    class="po-select-whs-field"
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                  >
+                    <input
+                      matInput
+                      class="po-select-whs-input"
+                      [(ngModel)]="row.warehouse"
+                      [matAutocomplete]="autoPoSelectRowWhs"
+                      [disabled]="row.alreadyOnTable"
+                      (input)="
+                        onSapWarehouseSearch($any($event.target).value);
+                        onPoSelectRowWarehouseChange(
+                          row,
+                          $any($event.target).value
+                        )
+                      "
+                      (focus)="onPoSelectRowWarehouseFocus(row)"
+                      (ngModelChange)="
+                        onPoSelectRowWarehouseChange(row, $event)
+                      "
+                    />
+                  </mat-form-field>
                 </td>
               </tr>
             </tbody>

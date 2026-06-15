@@ -324,11 +324,12 @@ export class GenerateTemInService {
       .pipe(
         map((result): ListRequestCreateTemPage => {
           const data = result.data;
-          return mapRequestCreateTemPageFromGraphql(
+          const page = mapRequestCreateTemPageFromGraphql(
             data?.listRequestCreateTems,
             variables.page,
             variables.size,
           );
+          return this.applyClientSideRequestFilters(page, params);
         }),
       );
   }
@@ -994,6 +995,38 @@ export class GenerateTemInService {
       },
     });
   }
+  /**
+   * Lọc userData5 / whsCode phía FE.
+   * GraphQL hiện chỉ nhận userData5 (LIKE trên BE) — khớp chính xác làm ở đây.
+   */
+  private applyClientSideRequestFilters(
+    page: ListRequestCreateTemPage,
+    params: GetRequestsQueryParams,
+  ): ListRequestCreateTemPage {
+    let content = page.content;
+    const normalizedPo = (params.userData5 ?? "").trim();
+    if (normalizedPo) {
+      content = content.filter(
+        (item) => (item.userData5 ?? "").trim() === normalizedPo,
+      );
+    }
+    const normalizedWhs = (params.whsCode ?? "").trim();
+    if (normalizedWhs) {
+      content = content.filter(
+        (item) => (item.whsCode ?? "").trim() === normalizedWhs,
+      );
+    }
+    if (!normalizedPo && !normalizedWhs) {
+      return page;
+    }
+    return {
+      ...page,
+      content,
+      totalElements: content.length,
+      totalPages: content.length > 0 ? 1 : 0,
+    };
+  }
+
   /**
    * Lưu đơn receiving: cập nhật lô đã có, tạo lô mới.
    * Chỉ xóa DB khi user đã bấm xóa lô trên bảng (deletedProductIds).
