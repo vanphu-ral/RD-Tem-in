@@ -514,7 +514,7 @@ export class ReceivingSuppliesService {
 
   /** Danh sách kho SAP. */
   getSapWarehouses(): Observable<SapOwhsDto[]> {
-    return this.http.get<SapOwhsDto[]>(`${this.testurl}/owhs`).pipe(
+    return this.http.get<SapOwhsDto[]>(`${this.baseUrl}/owhs`).pipe(
       map((rows) => (rows ?? []).filter((r) => Boolean(r.whsCode?.trim()))),
       catchError(() => of([])),
     );
