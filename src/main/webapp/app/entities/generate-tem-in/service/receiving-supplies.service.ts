@@ -112,6 +112,10 @@ export interface ProductInPoStatusDto {
   userData5: string;
   createdAt?: string;
   createBy?: string;
+  quantityByPo?: number;
+  vendor?: string;
+  vendorName?: string;
+  uomcode?: string;
 }
 
 export interface ProductInPoStatusCreatePayload {
@@ -121,6 +125,10 @@ export interface ProductInPoStatusCreatePayload {
   userData5: string;
   createdAt: string;
   createBy: string;
+  quantityByPo: number;
+  vendor: string;
+  vendorName: string;
+  uomcode: string;
 }
 
 export interface PoReconcileTableRow {
@@ -303,8 +311,8 @@ export interface SapOcrd {
   providedIn: "root",
 })
 export class ReceivingSuppliesService {
-  // private baseUrl = this.applicationConfigService.getEndpointFor("api");
-  private baseUrl = `http://192.168.68.77:8085/api`;
+  private baseUrl = this.applicationConfigService.getEndpointFor("api");
+  private testurl = `http://192.168.68.77:8085/api`;
   private readonly graphqlUrl = environment.graphqlApiUrl;
   private sapOitmUrl =
     this.applicationConfigService.getEndpointFor("/api/sap-oitms");
@@ -564,6 +572,7 @@ export class ReceivingSuppliesService {
     userData5: string,
     createdBy: string,
     products: ExcelImportData[],
+    whsCode = "",
   ): Observable<{ requestId: number; products: ReceivingProductRow[] }> {
     const mutation = `
       mutation CreateRequestAndProducts($input: CreateRequestWithProductsInput!) {
@@ -612,6 +621,7 @@ export class ReceivingSuppliesService {
         userData5,
         createdBy,
         createdDate: new Date().toISOString().slice(0, 10),
+        WhsCode: whsCode.trim(),
         products: productInputs,
       },
     }).pipe(

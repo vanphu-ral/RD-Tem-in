@@ -592,12 +592,16 @@ export class ReceivingSuppliesComponent
     poStatusRecords: ProductInPoStatusDto[] = [],
   ): void {
     this.pendingPoResponse = res;
-    this.poSelectHeaderWarehouse = this.normalizeWarehouseCode(
-      this.sapWarehouseCode,
-    );
     this.poSelectFilterSapCode = "";
     this.poSelectFilterItemName = "";
+    this.poSelectHeaderWarehouse =
+      this.normalizeWarehouseCode(this.sapWarehouseCode) ||
+      this.resolveCommonWarehouseFromPoStatus(poStatusRecords);
     this.poSelectRows = this.buildPoSelectRows(res, poStatusRecords);
+    if (!this.poSelectHeaderWarehouse) {
+      this.poSelectHeaderWarehouse =
+        this.resolveCommonWarehouseFromPoStatus(poStatusRecords);
+    }
     const selectable = this.getPoSelectSelectableRows();
     this.poSelectAllChecked =
       selectable.length > 0 && selectable.every((r) => r.selected);
@@ -2224,6 +2228,7 @@ export class ReceivingSuppliesComponent
     const poValue = this.resolveOrderPoValue();
     const vendor = this.vendorCode.trim();
     const vendorName = this.vendorName.trim();
+    const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
 
     let syncRows: Array<{ productId?: number; item: ExcelImportData }>;
     try {
@@ -2260,6 +2265,7 @@ export class ReceivingSuppliesComponent
               );
             }
             this.applyRequestTableAfterSave(savedProducts);
+            this.syncRequestHeaderWhsCode(orderWhsCode);
             this.flushPendingProductInPoStatus();
             options.onSuccess?.();
           },
@@ -2280,6 +2286,7 @@ export class ReceivingSuppliesComponent
         poValue,
         this.currentUser,
         products,
+        orderWhsCode,
       )
       .subscribe({
         next: (result) => {
@@ -3427,31 +3434,69 @@ export class ReceivingSuppliesComponent
     const onTable = new Set(
       this.dataSource.data.map((r) => r.sapCode.trim()).filter(Boolean),
     );
-    const inPoStatus = new Set(
-      poStatusRecords
-        .map((r) => r.sapCode?.trim())
-        .filter((code): code is string => Boolean(code)),
+    const poStatusBySap = this.buildPoStatusBySapCode(poStatusRecords);
+    const inPoStatus = new Set(poStatusBySap.keys());
+    const defaultWarehouse = this.normalizeWarehouseCode(
+      this.poSelectHeaderWarehouse || this.sapWarehouseCode,
     );
+
     return (res.poDetails ?? []).map((d, idx) => {
       const sapCode = (d.por1ItemCode ?? "").trim();
       const lineNum = (d.por1LineNum ?? String(idx)).trim();
       const alreadyOnTable = onTable.has(sapCode);
       const alreadyInPoStatus = inPoStatus.has(sapCode);
+      const statusRecord = poStatusBySap.get(sapCode);
+      let warehouse = "";
+      if (statusRecord) {
+        warehouse = this.normalizeWarehouseCode(statusRecord.whsCode);
+      } else {
+        warehouse = defaultWarehouse;
+      }
+
       return {
         rowKey: `${sapCode}-${lineNum}`,
         selected: !alreadyOnTable && alreadyInPoStatus,
         sapCode,
         itemName: (d.por1Dscription ?? "").trim(),
-        quantity: Number.parseFloat(d.por1Quantity ?? "0") || 0,
-        unit: (d.por1UOMCode ?? d.por1UnitMsr ?? "").trim(),
-        warehouse: this.normalizeWarehouseCode(
-          this.poSelectHeaderWarehouse || this.sapWarehouseCode,
-        ),
+        quantity:
+          statusRecord?.quantityByPo && statusRecord.quantityByPo > 0
+            ? statusRecord.quantityByPo
+            : Number.parseFloat(d.por1Quantity ?? "0") || 0,
+        unit: (
+          statusRecord?.uomcode ??
+          d.por1UOMCode ??
+          d.por1UnitMsr ??
+          ""
+        ).trim(),
+        warehouse,
         alreadyOnTable,
         alreadyInPoStatus,
         detail: d,
       };
     });
+  }
+
+  private buildPoStatusBySapCode(
+    records: ProductInPoStatusDto[],
+  ): Map<string, ProductInPoStatusDto> {
+    const statusMap = new Map<string, ProductInPoStatusDto>();
+    records.forEach((record) => {
+      const sapCode = record.sapCode?.trim();
+      if (sapCode) {
+        statusMap.set(sapCode, record);
+      }
+    });
+    return statusMap;
+  }
+
+  private resolveCommonWarehouseFromPoStatus(
+    records: ProductInPoStatusDto[],
+  ): string {
+    const codes = records
+      .map((r) => this.normalizeWarehouseCode(r.whsCode))
+      .filter((code) => Boolean(code));
+    const unique = [...new Set(codes)];
+    return unique.length === 1 ? unique[0] : "";
   }
 
   /** Ghi product-in-po-status khi lưu đơn — tất cả mã PO; đã tick gửi whsCode, chưa tick gửi "". */
@@ -3473,17 +3518,38 @@ export class ReceivingSuppliesComponent
       if (!sapCode) {
         return;
       }
-      const whsCode = row.selected ? this.resolvePoSelectRowWhsCode(row) : "";
-      pendingByKey.set(`${po}|${sapCode}`, {
-        sapCode,
-        productName: row.itemName.trim(),
-        whsCode,
-        userData5: po,
-        createdAt: new Date().toISOString(),
-        createBy: this.currentUser,
-      });
+      pendingByKey.set(
+        `${po}|${sapCode}`,
+        this.buildProductInPoStatusCreatePayload(row, po),
+      );
     });
     this.pendingProductInPoStatus = Array.from(pendingByKey.values());
+  }
+
+  private buildProductInPoStatusCreatePayload(
+    row: PoMaterialSelectRow,
+    po: string,
+  ): ProductInPoStatusCreatePayload {
+    const detail = row.detail;
+    const lineVendor = (detail.por1LineVendor ?? this.vendorCode).trim();
+    const uomcode =
+      [row.unit, detail.por1UOMCode, detail.por1UnitMsr]
+        .map((v) => (v ?? "").trim())
+        .find((v) => v.length > 0) ?? "";
+    const qty = Number.isFinite(row.quantity) ? row.quantity : 0;
+
+    return {
+      sapCode: row.sapCode.trim(),
+      productName: row.itemName.trim(),
+      whsCode: row.selected ? this.resolvePoSelectRowWhsCode(row) : "",
+      userData5: po,
+      createdAt: new Date().toISOString(),
+      createBy: this.currentUser,
+      quantityByPo: Math.max(0, Math.round(qty)),
+      vendor: lineVendor,
+      vendorName: this.vendorName.trim(),
+      uomcode,
+    };
   }
 
   private flushPendingProductInPoStatus(): void {
@@ -3491,10 +3557,16 @@ export class ReceivingSuppliesComponent
       return;
     }
     const payloads = this.pendingProductInPoStatus.map((p) => ({
-      ...p,
+      sapCode: p.sapCode.trim(),
+      productName: p.productName.trim(),
       whsCode: p.whsCode.trim(),
+      userData5: p.userData5.trim(),
       createdAt: new Date().toISOString(),
       createBy: this.currentUser,
+      quantityByPo: p.quantityByPo ?? 0,
+      vendor: p.vendor.trim(),
+      vendorName: p.vendorName.trim(),
+      uomcode: p.uomcode.trim(),
     }));
     forkJoin(
       payloads.map((payload) =>
@@ -4511,6 +4583,19 @@ export class ReceivingSuppliesComponent
     this.enrichSapOitmRows(rows);
   }
 
+  private syncRequestHeaderWhsCode(whsCode: string): void {
+    if (!this.editingRequestId || !whsCode) {
+      return;
+    }
+    this.generateTemInService
+      .updateRequest(this.editingRequestId, { WhsCode: whsCode })
+      .subscribe({
+        error: (err: unknown) => {
+          console.error("[syncRequestHeaderWhsCode] Lỗi:", err);
+        },
+      });
+  }
+
   private updateRequestWithPoNumber(): void {
     if (!this.editingRequestId) {
       return;
@@ -4521,6 +4606,7 @@ export class ReceivingSuppliesComponent
       0,
     );
     const lotCount = this.countChildLots();
+    const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
     this.generateTemInService
       .updateRequest(this.editingRequestId, {
         vendor: this.vendorCode,
@@ -4533,6 +4619,7 @@ export class ReceivingSuppliesComponent
         createdDate: new Date().toISOString().slice(0, 10),
         type: true,
         entryDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+        WhsCode: orderWhsCode || undefined,
       })
       .subscribe({
         next: (res) => {
@@ -4563,6 +4650,7 @@ export class ReceivingSuppliesComponent
       0,
     );
     const lotCount = this.countChildLots();
+    const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
     this.generateTemInService
       .updateRequest(this.editingRequestId, {
         vendor: this.vendorCode,
@@ -4575,6 +4663,7 @@ export class ReceivingSuppliesComponent
         createdDate: new Date().toISOString().slice(0, 10),
         type: true,
         entryDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+        WhsCode: orderWhsCode || undefined,
       })
       .subscribe({
         next: (res) => {

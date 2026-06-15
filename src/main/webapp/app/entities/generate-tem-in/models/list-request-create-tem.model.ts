@@ -46,6 +46,8 @@ export interface ListRequestCreateTemRequest {
   createdDate?: string;
   type?: boolean;
   entryDate?: string;
+  /** Mã kho SAP cấp đơn — GraphQL field WhsCode. */
+  WhsCode?: string;
 }
 
 /** Raw shape từ GraphQL type ListRequestCreateTem (schema.graphqls). */

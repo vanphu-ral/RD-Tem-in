@@ -250,7 +250,9 @@ public class ListRequestCreateTemService {
                     parseLocalDateTime(fields.get("entryDate"), "entryDate")
                 );
             }
-            if (fields.containsKey("whsCode")) {
+            if (fields.containsKey("WhsCode")) {
+                request.setWhsCode((String) fields.get("WhsCode"));
+            } else if (fields.containsKey("whsCode")) {
                 request.setWhsCode((String) fields.get("whsCode"));
             }
         }
