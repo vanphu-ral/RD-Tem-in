@@ -4,10 +4,30 @@
     [class.collapsed]="isCollapsed"
     [class.expanded]="!isCollapsed"
   >
-    <!-- Collapse sidebar -->
-    <button class="btn-collapse" (click)="toggleSidebar()">
-      <fa-icon icon="bars"></fa-icon>
-    </button>
+    <div
+      class="app-header-brand"
+      [class.collapsed]="isCollapsed"
+      [class.expanded]="!isCollapsed"
+    >
+      <a class="sidebar-brand-link" (click)="collapseNavbar()">
+        <img
+          [src]="isCollapsed ? collapsedLogoSrc : expandedLogoSrc"
+          [alt]="isCollapsed ? 'Ral-iMes' : 'Logo-RangDong'"
+          class="sidebar-img"
+          [class.is-collapsed]="isCollapsed"
+        />
+      </a>
+    </div>
+    <div
+      class="app-header-start"
+      [class.collapsed]="isCollapsed"
+      [class.expanded]="!isCollapsed"
+    >
+      <button class="btn-collapse" (click)="toggleSidebar()">
+        <fa-icon icon="bars"></fa-icon>
+      </button>
+      <span class="app-header-title">Ral-iMes - Quản lý kho</span>
+    </div>
 
     <!-- Logout -->
     <ng-container *ngIf="account; else loginBtn">
@@ -62,29 +82,12 @@
     [class.expanded]="!isCollapsed && !(isHandset$ | async)"
     [class.hidden]="isCollapsed && (isHandset$ | async)"
   >
-    <a
-      style="
-        margin-left: 3px;
-        padding-top: 5px;
-        padding-top: 0px;
-        margin-bottom: 0px;
-      "
-      class="sidebar-brand logo"
-      (click)="collapseNavbar()"
-    >
-      <img
-        style="margin-bottom: 0px"
-        src="../../../content/images/logo-rang-dong.webp"
-        alt="Logo-RangDong"
-        class="sidebar-img"
-      />
-    </a>
-    <div [ngSwitch]="account !== null">
-      <nav id="manu-bar" style="max-width: 400px; height: 80vh">
+    <div [ngSwitch]="account !== null" class="sidebar-body">
+      <nav id="manu-bar">
         <div class="sidebar-content" style="margin-right: 10px">
           <div class="sidebar-menu">
             <ul
-              style="list-style-type: none; padding-left: 10px; margin-top: 2px"
+              style="list-style-type: none; padding-left: 17px; margin-top: 2px"
             >
               <li
                 class="sidebar-menu-item"

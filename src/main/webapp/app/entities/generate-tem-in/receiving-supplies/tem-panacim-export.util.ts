@@ -125,17 +125,111 @@ export function generateTemPanacimCsvBlob(
   });
 }
 
-export function generateTemPanacimExcelBlob(
-  rows: TemPanacimExportInput[],
+/** Mẫu ReelData — xuất Excel sau khi đã tạo tem. */
+export const TEM_REEL_DATA_EXPORT_HEADERS = [
+  "NumberOfPlanning",
+  "ItemCode",
+  "ProductName",
+  "SapWo",
+  "Lot",
+  "Version",
+  "TimeRecieved",
+  "ReelID",
+  "PartNumber",
+  "Vendor",
+  "QuantityOfPackage",
+  "MFGDate",
+  "ProductionShilt",
+  "OpName",
+  "Comments",
+  "Comments2",
+  "StorageUnit",
+  "TP/NK",
+  "Rank",
+  "entryDate",
+  "ExpirationDate",
+  "PO",
+  "userData1",
+  "userData2",
+  "userData3",
+  "QrCode",
+] as const;
+
+export interface TemReelDataExportInput {
+  /** Số lượng của lô vật tư. */
+  numberOfPlanning: number | null;
+  itemCode: string;
+  productName: string;
+  sapWo: string;
+  lot: string;
+  version: string;
+  timeReceived: Date | string | null;
+  reelId: string;
+  partNumber: string;
+  vendor: string;
+  quantityOfPackage: number | null;
+  mfgDate: Date | string | null;
+  productionShift: string;
+  opName: string;
+  comments: string;
+  comments2: string;
+  storageUnit: string;
+  tpNk: string;
+  rank: string;
+  entryDate: Date | string | null;
+  expirationDate: Date | string | null;
+  po: string;
+  userData1: string;
+  userData2: string;
+  userData3: string;
+  qrCode: string;
+}
+
+export function buildTemReelDataExportRows(
+  rows: TemReelDataExportInput[],
+  formatDateFn: FormatExportDateFn,
+): (string | number)[][] {
+  return rows.map((item) => [
+    item.numberOfPlanning ?? "",
+    item.itemCode,
+    item.productName,
+    item.sapWo,
+    item.lot,
+    item.version,
+    formatExportDate(item.timeReceived, formatDateFn),
+    item.reelId,
+    item.partNumber,
+    item.vendor,
+    item.quantityOfPackage ?? "",
+    formatExportDate(item.mfgDate, formatDateFn),
+    item.productionShift,
+    item.opName,
+    item.comments,
+    item.comments2,
+    item.storageUnit,
+    item.tpNk,
+    item.rank,
+    formatExportDate(item.entryDate, formatDateFn),
+    formatExportDate(item.expirationDate, formatDateFn),
+    item.po,
+    item.userData1,
+    item.userData2,
+    item.userData3,
+    item.qrCode,
+  ]);
+}
+
+export function generateTemReelDataExcelBlob(
+  rows: TemReelDataExportInput[],
   formatDateFn: FormatExportDateFn,
 ): Blob {
-  const dataRows = buildTemPanacimExportRows(rows, formatDateFn);
+  const dataRows = buildTemReelDataExportRows(rows, formatDateFn);
   const sheet = XLSX.utils.aoa_to_sheet([
-    [...TEM_PANACIM_EXPORT_HEADERS],
+    [...TEM_REEL_DATA_EXPORT_HEADERS],
     ...dataRows,
   ]);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, sheet, "TemExport");
+  XLSX.utils.book_append_sheet(workbook, sheet, "ReelData");
   const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
   return new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

@@ -49,6 +49,8 @@ export class NavbarComponent implements OnInit {
   faRightToBracket = faRightToBracket;
   faHome = faHome;
   faBars = faBars;
+  readonly collapsedLogoSrc = "/content/images/Ral-iMes%202026.png";
+  readonly expandedLogoSrc = "/content/images/logo-rang-dong.webp";
   isHandset$ = this.responsive.isHandset$;
   inProduction?: boolean;
   public isCollapsed = true;
@@ -227,7 +229,7 @@ export class NavbarComponent implements OnInit {
       document.getElementById("sidebar-id")!.style.width = "60px";
       this.mainComponent.closeNav();
     } else {
-      document.getElementById("sidebar-id")!.style.width = "300px";
+      document.getElementById("sidebar-id")!.style.width = "250px";
       this.mainComponent.openNav();
     }
   }

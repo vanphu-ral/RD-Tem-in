@@ -82,8 +82,9 @@ import {
 } from "./part-number-pl-import.util";
 import {
   generateTemPanacimCsvBlob,
-  generateTemPanacimExcelBlob,
+  generateTemReelDataExcelBlob,
   TemPanacimExportInput,
+  TemReelDataExportInput,
 } from "./tem-panacim-export.util";
 
 interface SapOitmRowInfo {
@@ -269,7 +270,9 @@ export class ReceivingSuppliesComponent
   bulkArrivalDate: Date | null = new Date();
   bulkExpirationExtendUnit: ExpirationExtendUnit = "month";
   bulkExpirationExtendValue = 3;
-  readonly expirationExtendMonthOptions = [3, 6, 9, 12];
+  readonly expirationExtendMonthOptions = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+  ];
   readonly expirationExtendYearOptions = [1, 2, 3, 4, 5];
   autoGenerateLot = false;
   bulkSapCodesInput = "";
@@ -386,10 +389,7 @@ export class ReceivingSuppliesComponent
   ) {}
 
   ngOnInit(): void {
-    this.bulkExpirationDate = this.computeExpirationFromExtend(
-      this.bulkExpirationExtendUnit,
-      this.bulkExpirationExtendValue,
-    );
+    this.bulkExpirationDate = this.computeBulkExpirationDate();
 
     let requestIdParam =
       this.route.snapshot.paramMap.get("requestId") ??
@@ -721,24 +721,26 @@ export class ReceivingSuppliesComponent
   ): void {
     lot.quantity = this.sanitizeNonNegativeQuantity(raw);
     this.syncParentQuantityFromLots(row);
-    if (row.quantityByPo > 0 && (row.quantity ?? 0) > row.quantityByPo) {
-      this.showSnackbar(
-        `Mã ${row.sapCode}: tổng SL lô (${row.quantity}) vượt SL theo PO (${row.quantityByPo}).`,
-        "Đóng",
-        5000,
-        "warning",
-      );
-    }
+    this.notifyIfLotTotalExceedsPo(row);
     this.markParentReconcilePending(row);
     this.cdr.markForCheck();
   }
 
   onLotTemQuantityChange(
+    row: ReceivingMaterialRow,
     lot: ReceivingLotRow,
     raw: string | number | null,
   ): void {
     lot.temQuantity = this.sanitizeNonNegativeQuantity(raw);
+    this.syncParentQuantityFromLots(row);
+    this.notifyIfLotTotalExceedsPo(row);
+    this.markParentReconcilePending(row);
     this.cdr.markForCheck();
+  }
+
+  /** SL theo PO của từng lô = số lượng lô × số tem lô. */
+  getLotLineTotal(lot: ReceivingLotRow): number {
+    return (lot.quantity ?? 0) * (lot.temQuantity ?? 0);
   }
 
   applyBulkInfo(): void {
@@ -943,7 +945,13 @@ export class ReceivingSuppliesComponent
       : this.expirationExtendYearOptions;
   }
 
-  /** Chọn NSX / Ngày về / HSD ở bulk → áp dụng ngay (chỉ lô/vật tư chưa lưu nếu đang sửa đơn). */
+  /** Chọn NSX → HSD = NSX + số tháng/năm đã chọn. */
+  onBulkManufacturingDateChange(): void {
+    this.bulkExpirationDate = this.computeBulkExpirationDate();
+    this.onBulkDateFieldChange();
+  }
+
+  /** Chọn NSX / Ngày về / HSD (thủ công) ở bulk → áp dụng ngay. */
   onBulkDateFieldChange(): void {
     if (!this.dataSource.data.length) {
       return;
@@ -1519,7 +1527,7 @@ export class ReceivingSuppliesComponent
         itemName: row.itemName.trim(),
         vendor: (row.lots[0]?.vendor || this.vendorCode).trim(),
         totalQuantity: row.lots.reduce(
-          (sum, lot) => sum + (lot.quantity ?? 0),
+          (sum, lot) => sum + this.getLotLineTotal(lot),
           0,
         ),
       }));
@@ -1824,6 +1832,13 @@ export class ReceivingSuppliesComponent
     if (!this.shouldApplyBulkToLot(lot)) {
       return;
     }
+    if (field === "manufacturingDate") {
+      lot.expirationDate = this.computeExpirationFromExtend(
+        this.bulkExpirationExtendUnit,
+        this.bulkExpirationExtendValue,
+        lot.manufacturingDate,
+      );
+    }
     if (field === "arrivalDate" && lot.arrivalDate) {
       lot.userData4 = this.buildUserData4(parent.sapCode, lot.arrivalDate);
     }
@@ -1856,11 +1871,20 @@ export class ReceivingSuppliesComponent
     this.cdr.markForCheck();
   }
 
+  private computeBulkExpirationDate(): Date {
+    return this.computeExpirationFromExtend(
+      this.bulkExpirationExtendUnit,
+      this.bulkExpirationExtendValue,
+      this.bulkManufacturingDate,
+    );
+  }
+
   private computeExpirationFromExtend(
     unit: ExpirationExtendUnit,
     value: number,
+    baseDate: Date | null = null,
   ): Date {
-    const result = new Date();
+    const result = baseDate ? new Date(baseDate) : new Date();
     if (unit === "month") {
       result.setMonth(result.getMonth() + value);
     } else {
@@ -1870,10 +1894,7 @@ export class ReceivingSuppliesComponent
   }
 
   private applyBulkExpirationExtend(): void {
-    this.bulkExpirationDate = this.computeExpirationFromExtend(
-      this.bulkExpirationExtendUnit,
-      this.bulkExpirationExtendValue,
-    );
+    this.bulkExpirationDate = this.computeBulkExpirationDate();
     this.onBulkDateFieldChange();
   }
 
@@ -1939,8 +1960,8 @@ export class ReceivingSuppliesComponent
       return;
     }
     row.quantityByPo = qty;
-    row.quantity = qty;
     row.lots = row.lots.map((lot) => ({ ...lot, quantity: qty }));
+    this.syncParentQuantityFromLots(row);
   }
 
   private persistOrderChanges(
@@ -2211,6 +2232,7 @@ export class ReceivingSuppliesComponent
       : this.computeExpirationFromExtend(
           this.bulkExpirationExtendUnit,
           this.bulkExpirationExtendValue,
+          manufacturingDate,
         );
     const arrivalDate = this.bulkArrivalDate
       ? new Date(this.bulkArrivalDate)
@@ -2323,7 +2345,21 @@ export class ReceivingSuppliesComponent
   }
 
   private syncParentQuantityFromLots(row: ReceivingMaterialRow): void {
-    row.quantity = row.lots.reduce((sum, lot) => sum + (lot.quantity ?? 0), 0);
+    row.quantity = row.lots.reduce(
+      (sum, lot) => sum + this.getLotLineTotal(lot),
+      0,
+    );
+  }
+
+  private notifyIfLotTotalExceedsPo(row: ReceivingMaterialRow): void {
+    if (row.quantityByPo > 0 && (row.quantity ?? 0) > row.quantityByPo) {
+      this.showSnackbar(
+        `Mã ${row.sapCode}: tổng SL lô (${row.quantity}) vượt SL theo PO (${row.quantityByPo}).`,
+        "Đóng",
+        5000,
+        "warning",
+      );
+    }
   }
 
   private enrichSapOitmRows(rows: ReceivingMaterialRow[]): void {
@@ -2442,7 +2478,7 @@ export class ReceivingSuppliesComponent
       location,
       sapWarehouse,
       quantityByPo: poQty,
-      quantity: poQty > 0 ? poQty : 0,
+      quantity: 0,
       lotNumber: "1 lô",
       temQuantity: 1,
       manufacturingDate: null,
@@ -2481,9 +2517,15 @@ export class ReceivingSuppliesComponent
     const manufacturingDate = this.bulkManufacturingDate
       ? new Date(this.bulkManufacturingDate)
       : null;
-    const expirationDate = this.bulkExpirationDate
-      ? new Date(this.bulkExpirationDate)
-      : new Date();
+    const expirationDate = manufacturingDate
+      ? this.computeExpirationFromExtend(
+          this.bulkExpirationExtendUnit,
+          this.bulkExpirationExtendValue,
+          manufacturingDate,
+        )
+      : this.bulkExpirationDate
+        ? new Date(this.bulkExpirationDate)
+        : this.computeBulkExpirationDate();
     const qty =
       defaultQuantity ?? (parent.quantityByPo > 0 ? parent.quantityByPo : null);
     return {
@@ -2655,8 +2697,8 @@ export class ReceivingSuppliesComponent
     rows: ReceivingTemPreviewRow[],
     filename: string,
   ): void {
-    const blob = generateTemPanacimExcelBlob(
-      this.toPanacimExportRows(rows),
+    const blob = generateTemReelDataExcelBlob(
+      this.toReelDataExportRows(rows),
       (date) => this.formatDateForPanacimExport(date),
     );
     this.downloadBlob(blob, filename);
@@ -2698,6 +2740,74 @@ export class ReceivingSuppliesComponent
       manufacturingDate: item.manufacturingDate,
       sapCode: item.sapCode,
     }));
+  }
+
+  private toReelDataExportRows(
+    rows: ReceivingTemPreviewRow[],
+  ): TemReelDataExportInput[] {
+    return rows.map((item) => {
+      const ctx = this.resolveLotContextForTem(item);
+      const parent = ctx?.parent;
+      const lot = ctx?.lot;
+
+      return {
+        numberOfPlanning:
+          parent && parent.quantityByPo > 0 ? parent.quantityByPo : null,
+        itemCode: item.sapCode,
+        productName: item.productName,
+        sapWo: "",
+        lot: item.lot,
+        version: "",
+        timeReceived: lot?.arrivalDate ?? item.arrivalDate,
+        reelId: item.reelId,
+        partNumber: item.partNumber,
+        vendor: item.vendor,
+        quantityOfPackage: lot?.quantity ?? item.initialQuantity ?? null,
+        mfgDate: lot?.manufacturingDate ?? item.manufacturingDate,
+        productionShift: "",
+        opName: "",
+        comments: "",
+        comments2: "",
+        storageUnit: item.storageUnit,
+        tpNk: "",
+        rank: "",
+        entryDate: lot?.arrivalDate ?? item.arrivalDate,
+        expirationDate: lot?.expirationDate ?? item.expirationDate,
+        po: lot ? this.resolveLotPoForSave(lot) : item.userData5,
+        userData1: lot?.userData1 ?? item.userData1,
+        userData2: lot?.userData2 ?? item.userData2,
+        userData3: lot?.userData3 ?? item.userData3,
+        qrCode: item.qrCode,
+      };
+    });
+  }
+
+  private resolveLotContextForTem(item: ReceivingTemPreviewRow): {
+    parent: ReceivingMaterialRow;
+    lot: ReceivingLotRow;
+  } | null {
+    const sap = item.sapCode.trim();
+    const lotNumber = (item.lot ?? "").trim();
+    const temDetail = this.requestTemDetails.find(
+      (t) => t.reelId === item.reelId,
+    );
+    const productId = temDetail?.productOfRequestId;
+
+    for (const parent of this.dataSource.data) {
+      for (const lot of parent.lots) {
+        if (productId != null && Number(lot.productId) === Number(productId)) {
+          return { parent, lot };
+        }
+        if (
+          parent.sapCode.trim() === sap &&
+          lot.lotNumber.trim() === lotNumber
+        ) {
+          return { parent, lot };
+        }
+      }
+    }
+
+    return null;
   }
 
   private uploadTemRowsToPanacim(
@@ -3223,7 +3333,7 @@ export class ReceivingSuppliesComponent
         location,
         sapWarehouse,
         quantityByPo: qtyByPo,
-        quantity: qtyByPo,
+        quantity: 0,
         lotNumber: "1 lô",
         temQuantity: 1,
         manufacturingDate: null,
@@ -3357,7 +3467,7 @@ export class ReceivingSuppliesComponent
 
     for (const parent of rowsWithPending) {
       const totalQty = parent.lots.reduce(
-        (sum, lot) => sum + (lot.quantity ?? 0),
+        (sum, lot) => sum + this.getLotLineTotal(lot),
         0,
       );
       if (parent.quantityByPo > 0 && totalQty > parent.quantityByPo) {

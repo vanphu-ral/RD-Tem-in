@@ -5,52 +5,29 @@ import {
   ViewChild,
   ChangeDetectorRef,
 } from "@angular/core";
-import { CommonModule, DatePipe } from "@angular/common";
-import { FormsModule } from "@angular/forms";
-
-// Angular Material
-import { MatTableModule, MatTableDataSource } from "@angular/material/table";
-import { MatPaginator, MatPaginatorModule } from "@angular/material/paginator";
-import { MatSort, MatSortModule } from "@angular/material/sort";
-import { MatButtonModule } from "@angular/material/button";
-import { MatTooltipModule } from "@angular/material/tooltip";
-import { MatChipsModule } from "@angular/material/chips";
-import { MatDividerModule } from "@angular/material/divider";
-import { MatIconModule } from "@angular/material/icon";
-import { MatFormFieldModule } from "@angular/material/form-field";
-import { MatInputModule } from "@angular/material/input";
-import { MatDatepickerModule } from "@angular/material/datepicker";
-import { MatNativeDateModule } from "@angular/material/core";
+import { DatePipe } from "@angular/common";
+import { MatTableDataSource } from "@angular/material/table";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
 
-// Models and Services
 import { ListRequestCreateTem } from "../models/list-request-create-tem.model";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
 import { DialogContentExampleDialogComponent } from "./confirm-dialog/confirm-dialog.component";
 import { PreviewOrderDialogComponent } from "./preview-order-dialog/preview-order-dialog.component";
 import { AlertService } from "app/core/util/alert.service";
 
-// Interfaces
 interface TemMaterialItem {
   id: number;
   status: string;
   vendor: string;
   userData5: string;
   vendorName: string;
-  createdDate: string; // LocalDate from backend as string
+  createdDate: string;
   createdBy: string;
   numberProduction: number;
   totalQuantity: number;
-}
-
-interface FilterOptions {
-  status: string;
-  vendor: string;
-  userData5: string;
-  createdDate: Date | null; // dùng Date để lọc ngày dễ hơn
-  createdBy: string;
-  numberProduction: string;
-  totalQuantity: string;
+  whsCode: string;
 }
 
 @Component({
@@ -60,10 +37,10 @@ interface FilterOptions {
   styleUrls: ["./generate-tem-in.component.scss"],
 })
 export class GenerateTemInComponent implements OnInit, AfterViewInit {
-  // Columns hiển thị
   displayedColumns: string[] = [
     "status",
     "userData5",
+    "whsCode",
     "vendor",
     "vendorName",
     "createdDate",
@@ -79,24 +56,16 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     vendorName: "",
     userData5: "",
     createdBy: "",
-    createdDate: "",
+    createdDate: null as Date | null,
   };
 
   dataSource = new MatTableDataSource<TemMaterialItem>([]);
   totalItems = 0;
+  pageIndex = 0;
+  pageSize = 25;
   isLoading = false;
-
-  filters: FilterOptions = {
-    status: "",
-    vendor: "",
-    userData5: "",
-    createdDate: null,
-    createdBy: "",
-    numberProduction: "",
-    totalQuantity: "",
-  };
   mobileItems: TemMaterialItem[] = [];
-  // ViewChild
+
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -108,128 +77,34 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     private cdr: ChangeDetectorRef,
   ) {}
 
-  // ================== LIFECYCLE ==================
   ngOnInit(): void {
     this.loadRequests();
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.filterPredicate = (
-      item: TemMaterialItem,
-      filterJson: string,
-    ): boolean => {
-      const f: FilterOptions = JSON.parse(filterJson);
-
-      const okStatus =
-        !f.status || item.status.toLowerCase().includes(f.status.toLowerCase());
-
-      const okVendor =
-        !f.vendor || item.vendor.toLowerCase().includes(f.vendor.toLowerCase());
-
-      const okUserData5 =
-        !f.userData5 ||
-        item.userData5.toLowerCase().includes(f.userData5.toLowerCase());
-
-      const okCreatedBy =
-        !f.createdBy ||
-        item.createdBy.toLowerCase().includes(f.createdBy.toLowerCase());
-
-      const okNumberProduction =
-        !f.numberProduction ||
-        String(item.numberProduction).includes(f.numberProduction);
-
-      const okTotal =
-        !f.totalQuantity ||
-        String(item.totalQuantity).includes(f.totalQuantity);
-      const okDate =
-        !f.createdDate || this.sameDate(item.createdDate, f.createdDate);
-
-      return (
-        okStatus &&
-        okVendor &&
-        okUserData5 &&
-        okCreatedBy &&
-        okNumberProduction &&
-        okTotal &&
-        okDate
-      );
-    };
-
     this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
-    this.updateMobileItems();
   }
+
   get mobileDataSource(): TemMaterialItem[] {
-    if (!this.dataSource) {
-      return [];
-    }
-
-    const data = this.dataSource.filteredData || this.dataSource.data || [];
-
-    // Nếu chưa có paginator, trả về tất cả data
-    if (!this.paginator) {
-      return data;
-    }
-
-    // Nếu có paginator, chỉ trả về data của trang hiện tại
-    const startIndex = this.paginator.pageIndex * this.paginator.pageSize;
-    const endIndex = startIndex + this.paginator.pageSize;
-
-    return data.slice(startIndex, endIndex);
+    return this.dataSource.data ?? [];
   }
 
   applyFilter(): void {
-    this.dataSource.filterPredicate = (
-      data: TemMaterialItem,
-      filter: string,
-    ) => {
-      const filters = JSON.parse(filter);
-      return (
-        (filters.status === "" || data.status === filters.status) &&
-        data.vendor.toLowerCase().includes(filters.vendor.toLowerCase()) &&
-        data.vendorName
-          .toLowerCase()
-          .includes(filters.vendorName.toLowerCase()) &&
-        data.userData5
-          .toLowerCase()
-          .includes(filters.userData5.toLowerCase()) &&
-        data.createdBy.toLowerCase().includes(filters.createdBy.toLowerCase())
-      );
-    };
-
-    this.dataSource.filter = JSON.stringify(this.filterValues);
-    this.mobileItems = this.dataSource.filteredData;
-    this.updateMobileItems();
+    this.pageIndex = 0;
+    this.loadRequests();
   }
+
   applyDateFilter(): void {
-    const selectedDate = this.filterValues.createdDate;
-    if (selectedDate) {
-      const formatted = this.datePipe.transform(selectedDate, "dd/MM/yyyy");
-      this.dataSource.filterPredicate = (data, filter) => {
-        const dataDate = this.datePipe.transform(
-          data.createdDate,
-          "dd/MM/yyyy",
-        );
-        return dataDate === formatted;
-      };
-      this.dataSource.filter = formatted ?? "";
-    } else {
-      this.dataSource.filter = "";
-    }
+    this.pageIndex = 0;
+    this.loadRequests();
   }
 
-  clearFilters(): void {
-    this.filters = {
-      status: "",
-      vendor: "",
-      userData5: "",
-      createdDate: null,
-      createdBy: "",
-      numberProduction: "",
-      totalQuantity: "",
-    };
-    this.applyFilter();
+  onPageChange(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.loadRequests();
   }
+
   statusColor(status: string): { [key: string]: string } {
     const normalized = (status || "").toLowerCase().trim();
     switch (normalized) {
@@ -262,7 +137,6 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /** Đơn tạo từ receiving-supplies, chưa gắn PO thật. */
   isReceivingDraft(item: TemMaterialItem): boolean {
     const status = (item.status ?? "").toLowerCase().trim();
     return status === "chưa có po" || (item.userData5 ?? "").trim() === "-";
@@ -274,14 +148,6 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
 
   getDetailTooltip(item: TemMaterialItem): string {
     return "Tiếp tục nhập vật tư";
-  }
-
-  onImport(): void {
-    // console.log("Import functionality");
-  }
-
-  onEdit(item: TemMaterialItem): void {
-    // console.log("Edit item:", item);
   }
 
   onDelete(item: TemMaterialItem): void {
@@ -303,29 +169,19 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
   }
 
   onView(item: TemMaterialItem): void {
-    const dialogRef = this.dialog.open(PreviewOrderDialogComponent, {
+    this.dialog.open(PreviewOrderDialogComponent, {
       width: "1000px",
       maxWidth: "90vw",
       data: {
         request: item,
       },
     });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      // Handle any actions after dialog closes if needed
-      // console.log("Preview dialog closed");
-    });
-  }
-
-  onPrint(item: TemMaterialItem): void {
-    // console.log("Print item:", item);
   }
 
   private performDelete(item: TemMaterialItem): void {
     this.isLoading = true;
     this.generateTemInService.deleteRequest(item.id).subscribe({
-      next: (response) => {
-        // console.log(`Deleted request ${item.id}: ${response.message}`);
+      next: () => {
         this.loadRequests();
       },
       error: (error) => {
@@ -345,70 +201,57 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
 
   private loadRequests(): void {
     this.isLoading = true;
-    this.generateTemInService.getAllRequests().subscribe({
-      next: (response: ListRequestCreateTem[]) => {
-        // console.log("Dữ liệu nhận từ gql: ", response);
-        const data: TemMaterialItem[] = response.map(
-          (item: ListRequestCreateTem) => ({
-            id: item.id ?? 0,
-            status: item.status ?? "",
-            vendor: item.vendor ?? "",
-            vendorName: item.vendorName ?? "",
-            userData5: item.userData5 ?? "",
-            createdDate: item.createdDate ?? "",
-            createdBy: item.createdBy ?? "",
-            numberProduction: item.numberProduction ?? 0,
-            totalQuantity: item.totalQuantity ?? 0,
-          }),
-        );
-        // console.log("Mapped data:", data);
-        // Sort data by createdDate in descending order (newest first)
-        data.sort((a, b) => {
-          const dateA = new Date(a.createdDate);
-          const dateB = new Date(b.createdDate);
-          return dateB.getTime() - dateA.getTime();
-        });
-        this.dataSource.data = data;
-        this.mobileItems = data;
-        this.totalItems = response.length;
-        this.isLoading = false;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.filter = JSON.stringify(this.filterValues);
-        this.updateMobileItems();
-        console.log("filteredData:", this.dataSource.filteredData);
-        console.log("mobileDataSource:", this.mobileDataSource);
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error("Error loading requests:", error);
-        console.error("Error details:", {
-          message: error.message,
-          status: error.status,
-          statusText: error.statusText,
-          url: error.url,
-        });
-        this.dataSource.data = [];
-        this.mobileItems = [];
-        this.totalItems = 0;
-        this.isLoading = false;
-        console.warn("Failed to load data from database.");
-      },
-    });
+    const createdDateStr = this.filterValues.createdDate
+      ? (this.datePipe.transform(this.filterValues.createdDate, "yyyy-MM-dd") ??
+        undefined)
+      : undefined;
+
+    this.generateTemInService
+      .getAllRequests({
+        status: this.filterValues.status || undefined,
+        vendor: this.filterValues.vendor || undefined,
+        vendorName: this.filterValues.vendorName || undefined,
+        userData5: this.filterValues.userData5 || undefined,
+        createdBy: this.filterValues.createdBy || undefined,
+        createdDate: createdDateStr,
+        page: this.pageIndex,
+        size: this.pageSize,
+      })
+      .subscribe({
+        next: (page) => {
+          const data: TemMaterialItem[] = (page.content ?? []).map(
+            (item: ListRequestCreateTem) => this.mapRequestItem(item),
+          );
+          this.dataSource.data = data;
+          this.mobileItems = data;
+          this.totalItems = page.totalElements ?? 0;
+          this.pageIndex = page.page ?? this.pageIndex;
+          this.pageSize = page.size ?? this.pageSize;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error("Error loading requests:", error);
+          this.dataSource.data = [];
+          this.mobileItems = [];
+          this.totalItems = 0;
+          this.isLoading = false;
+        },
+      });
   }
-  private updateMobileItems(): void {
-    const data = this.dataSource.filteredData || this.dataSource.data || [];
-    const startIndex =
-      this.paginator?.pageIndex * this.paginator?.pageSize || 0;
-    const endIndex = startIndex + (this.paginator?.pageSize || 25);
-    this.mobileItems = data.slice(startIndex, endIndex);
-    this.cdr.detectChanges();
-  }
-  private sameDate(a: Date | string, b: Date): boolean {
-    const d1 = new Date(a);
-    return (
-      d1.getFullYear() === b.getFullYear() &&
-      d1.getMonth() === b.getMonth() &&
-      d1.getDate() === b.getDate()
-    );
+
+  private mapRequestItem(item: ListRequestCreateTem): TemMaterialItem {
+    return {
+      id: item.id ?? 0,
+      status: item.status ?? "",
+      vendor: item.vendor ?? "",
+      vendorName: item.vendorName ?? "",
+      userData5: item.userData5 ?? "",
+      createdDate: item.createdDate ?? "",
+      createdBy: item.createdBy ?? "",
+      numberProduction: item.numberProduction ?? 0,
+      totalQuantity: item.totalQuantity ?? 0,
+      whsCode: item.WhsCode ?? item.whsCode ?? "",
+    };
   }
 }

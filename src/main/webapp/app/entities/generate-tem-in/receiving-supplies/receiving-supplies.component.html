@@ -202,7 +202,7 @@
               matInput
               [matDatepicker]="bulkMfgPicker"
               [(ngModel)]="bulkManufacturingDate"
-              (ngModelChange)="onBulkDateFieldChange()"
+              (ngModelChange)="onBulkManufacturingDateChange()"
             />
             <mat-datepicker-toggle
               matSuffix
@@ -633,7 +633,7 @@
                     {{ lot.sapWarehouse || row.sapWarehouse }}
                   </td>
                   <td class="cell-text cell-num">
-                    {{ row.quantityByPo > 0 ? row.quantityByPo : "—" }}
+                    {{ getLotLineTotal(lot) || "—" }}
                   </td>
                   <td class="td-input">
                     <input
@@ -655,7 +655,7 @@
                       step="any"
                       min="0"
                       [ngModel]="lot.temQuantity"
-                      (ngModelChange)="onLotTemQuantityChange(lot, $event)"
+                      (ngModelChange)="onLotTemQuantityChange(row, lot, $event)"
                     />
                   </td>
                   <td class="td-input">

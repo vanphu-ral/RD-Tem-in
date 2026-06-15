@@ -303,7 +303,8 @@ export interface SapOcrd {
   providedIn: "root",
 })
 export class ReceivingSuppliesService {
-  private baseUrl = this.applicationConfigService.getEndpointFor("api");
+  // private baseUrl = this.applicationConfigService.getEndpointFor("api");
+  private baseUrl = `http://192.168.68.77:8085/api`;
   private readonly graphqlUrl = environment.graphqlApiUrl;
   private sapOitmUrl =
     this.applicationConfigService.getEndpointFor("/api/sap-oitms");

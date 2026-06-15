@@ -218,6 +218,11 @@
         <td mat-cell *matCellDef="let item">{{ item.userData5 }}</td>
       </ng-container>
 
+      <ng-container matColumnDef="whsCode">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Mã kho SAP</th>
+        <td mat-cell *matCellDef="let item">{{ item.whsCode || "—" }}</td>
+      </ng-container>
+
       <ng-container matColumnDef="createdDate">
         <th mat-header-cell *matHeaderCellDef>
           <div class="header-with-filter">
@@ -341,6 +346,10 @@
             <span class="value">{{ item.userData5 }}</span>
           </div>
           <div class="info-row">
+            <span class="label">Mã kho SAP:</span>
+            <span class="value">{{ item.whsCode || "—" }}</span>
+          </div>
+          <div class="info-row">
             <span class="label">Mã NCC:</span>
             <span class="value">{{ item.vendor }}</span>
           </div>
@@ -402,8 +411,10 @@
   <mat-divider class="my-3"></mat-divider>
   <mat-paginator
     [length]="totalItems"
-    [pageSize]="25"
+    [pageIndex]="pageIndex"
+    [pageSize]="pageSize"
     [pageSizeOptions]="[25, 50, 100]"
+    (page)="onPageChange($event)"
   >
   </mat-paginator>
 </div>

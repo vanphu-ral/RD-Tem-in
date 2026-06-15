@@ -15,7 +15,9 @@ import {
   throwError,
 } from "rxjs";
 import {
+  GetRequestsQueryParams,
   ListRequestCreateTem,
+  ListRequestCreateTemPage,
   ListRequestCreateTemRequest,
 } from "../models/list-request-create-tem.model";
 import {
@@ -67,19 +69,44 @@ const UPDATE_REQUEST_MUTATION = gql`
 `;
 
 const GET_REQUESTS_QUERY = gql`
-  query GetRequests {
-    listRequestCreateTems {
-      id
-      vendor
-      vendorName
-      userData5
-      createdBy
-      numberProduction
-      createdDate
-      totalQuantity
-      status
-      type
-      entryDate
+  query GetRequests(
+    $status: String
+    $vendor: String
+    $vendorName: String
+    $userData5: String
+    $createdBy: String
+    $createdDate: String
+    $page: Int
+    $size: Int
+  ) {
+    listRequestCreateTems(
+      status: $status
+      vendor: $vendor
+      vendorName: $vendorName
+      userData5: $userData5
+      createdBy: $createdBy
+      createdDate: $createdDate
+      page: $page
+      size: $size
+    ) {
+      content {
+        id
+        vendor
+        vendorName
+        userData5
+        createdBy
+        numberProduction
+        totalQuantity
+        status
+        createdDate
+        type
+        entryDate
+        WhsCode
+      }
+      totalElements
+      page
+      size
+      totalPages
     }
   }
 `;
@@ -240,7 +267,7 @@ const UPDATE_REQUEST_PRODUCTS_MUTATION = gql`
 `;
 
 type GetRequestsResult = {
-  listRequestCreateTems: ListRequestCreateTem[];
+  listRequestCreateTems: ListRequestCreateTemPage;
 };
 
 type GetProductsByRequestResult = {
@@ -281,25 +308,39 @@ export class GenerateTemInService {
       .valueChanges.pipe(map((result) => result.data.listRequestCreateTems));
   }
 
-  getAllRequests(params?: {
-    status?: string;
-    vendor?: string;
-    createdBy?: string;
-    createdDate?: string;
-    page?: number;
-    size?: number;
-    sort?: string;
-  }): Observable<ListRequestCreateTem[]> {
+  getAllRequests(
+    params: GetRequestsQueryParams = {},
+  ): Observable<ListRequestCreateTemPage> {
+    const variables = {
+      status: params.status?.trim() || null,
+      vendor: params.vendor?.trim() || null,
+      vendorName: params.vendorName?.trim() || null,
+      userData5: params.userData5?.trim() || null,
+      createdBy: params.createdBy?.trim() || null,
+      createdDate: params.createdDate?.trim() || null,
+      page: params.page ?? 0,
+      size: params.size ?? 25,
+    };
+
     return this.apollo
       .query<GetRequestsResult>({
         query: GET_REQUESTS_QUERY,
+        variables,
         fetchPolicy: "network-only",
       })
       .pipe(
-        map(
-          (result) =>
-            result.data.listRequestCreateTems as ListRequestCreateTem[],
-        ),
+        map((result): ListRequestCreateTemPage => {
+          const data = result.data as GetRequestsResult | undefined;
+          return (
+            data?.listRequestCreateTems ?? {
+              content: [],
+              totalElements: 0,
+              page: variables.page,
+              size: variables.size,
+              totalPages: 0,
+            }
+          );
+        }),
       );
   }
 
