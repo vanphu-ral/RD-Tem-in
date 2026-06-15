@@ -4,6 +4,7 @@ import com.mycompany.renderQr.domain.ListProductOfRequest;
 import com.mycompany.renderQr.domain.ListProductOfRequestResponse;
 import com.mycompany.renderQr.domain.ListRequestCreateTem;
 import com.mycompany.renderQr.domain.ListRequestCreateTemResponse;
+import com.mycompany.renderQr.domain.RequestCreateTemPage;
 import com.mycompany.renderQr.domain.UpdateResponse;
 import com.mycompany.renderQr.repository.InfoTemDetailRepository;
 import com.mycompany.renderQr.repository.ListProductOfRequestRepository;
@@ -15,6 +16,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +35,95 @@ public class ListRequestCreateTemService {
     @Autowired
     private InfoTemDetailRepository detailRepository;
 
+    @Transactional(readOnly = true)
+    public RequestCreateTemPage getAll(
+        String search,
+        String status,
+        String vendor,
+        String vendorName,
+        String userData5,
+        String createdBy,
+        String createdDate,
+        Integer page,
+        Integer size
+    ) {
+        int safePage = page != null ? Math.max(page, 0) : 0;
+        int safeSize = size != null ? Math.min(Math.max(size, 1), 100) : 25;
+
+        String normalizedSearch = normalizeSearch(search);
+        String normalizedStatus = normalizeSearch(status);
+        String normalizedVendor = normalizeSearch(vendor);
+        String normalizedVendorName = normalizeSearch(vendorName);
+        String normalizedUserData5 = normalizeSearch(userData5);
+        String normalizedCreatedBy = normalizeSearch(createdBy);
+
+        String searchLike = like(normalizedSearch);
+        String vendorLike = like(normalizedVendor);
+        String vendorNameLike = like(normalizedVendorName);
+        String userData5Like = like(normalizedUserData5);
+        String createdByLike = like(normalizedCreatedBy);
+
+        LocalDateTime createdDateStart = parseCreatedDate(createdDate);
+        LocalDateTime createdDateEnd = createdDateStart != null
+            ? createdDateStart.plusDays(1)
+            : null;
+
+        Pageable pageable = PageRequest.of(
+            safePage,
+            safeSize,
+            Sort.by(Sort.Order.desc("createdDate"), Sort.Order.desc("id"))
+        );
+
+        Page<ListRequestCreateTem> result = repository.search(
+            normalizedSearch,
+            searchLike,
+            normalizedStatus,
+            normalizedVendor,
+            vendorLike,
+            normalizedVendorName,
+            vendorNameLike,
+            normalizedUserData5,
+            userData5Like,
+            normalizedCreatedBy,
+            createdByLike,
+            createdDateStart,
+            createdDateEnd,
+            pageable
+        );
+
+        return new RequestCreateTemPage(
+            result.getContent(),
+            result.getTotalElements(),
+            result.getNumber(),
+            result.getSize(),
+            result.getTotalPages()
+        );
+    }
+
+    private String normalizeSearch(String value) {
+        return value != null ? value.trim() : null;
+    }
+
+    private String like(String value) {
+        return value != null && !value.isBlank()
+            ? "%" + value.toLowerCase() + "%"
+            : null;
+    }
+
+    private LocalDateTime parseCreatedDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        try {
+            return LocalDate.parse(value).atStartOfDay();
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException(
+                "createdDate có định dạng không hợp lệ: " + value
+            );
+        }
+    }
+
     public List<ListRequestCreateTemResponse> getAll() {
         return repository.findAllProjectedBy();
     }
@@ -44,7 +138,8 @@ public class ListRequestCreateTemService {
         long totalQuantity,
         LocalDateTime createdDate,
         Boolean type,
-        LocalDateTime entryDate
+        LocalDateTime entryDate,
+        String whsCode
     ) {
         ListRequestCreateTem request = new ListRequestCreateTem();
         request.setVendor(vendor);
@@ -53,6 +148,7 @@ public class ListRequestCreateTemService {
         request.setCreatedBy(createdBy != null ? createdBy : "system");
         request.setNumberProduction((short) numberProduction);
         request.setTotalQuantity(totalQuantity);
+        request.setWhsCode(whsCode);
         if ("-".equals(userData5)) {
             request.setStatus("chưa có PO");
         } else {
@@ -153,6 +249,9 @@ public class ListRequestCreateTemService {
                 request.setEntryDate(
                     parseLocalDateTime(fields.get("entryDate"), "entryDate")
                 );
+            }
+            if (fields.containsKey("whsCode")) {
+                request.setWhsCode((String) fields.get("whsCode"));
             }
         }
 

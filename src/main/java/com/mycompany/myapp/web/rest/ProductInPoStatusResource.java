@@ -32,7 +32,7 @@ import tech.jhipster.web.util.PaginationUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
 @RestController
-@RequestMapping("/api/product-in-po-statuses")
+@RequestMapping("/api/product-in-po-status")
 @Transactional
 public class ProductInPoStatusResource {
 
@@ -73,7 +73,7 @@ public class ProductInPoStatusResource {
             productInPoStatusDTO
         );
         return ResponseEntity.created(
-            new URI("/api/product-in-po-statuses/" + result.getId())
+            new URI("/api/product-in-po-status/" + result.getId())
         )
             .headers(
                 HeaderUtil.createEntityCreationAlert(
@@ -186,23 +186,14 @@ public class ProductInPoStatusResource {
     }
 
     @GetMapping("/user-data5/{userData5}")
-    public ResponseEntity<
-        List<ProductInPoStatusDTO>
-    > getProductInPoStatusesByUserData5(
-        @PathVariable String userData5,
-        @org.springdoc.api.annotations.ParameterObject Pageable pageable
+    public List<ProductInPoStatusDTO> getProductInPoStatusesByUserData5(
+        @PathVariable String userData5
     ) {
         LOG.debug(
             "REST request to get ProductInPoStatus by userData5 : {}",
             userData5
         );
-        Page<ProductInPoStatusDTO> page =
-            productInPoStatusRepository.findByUserData5(userData5, pageable);
-        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
-            ServletUriComponentsBuilder.fromCurrentRequest(),
-            page
-        );
-        return ResponseEntity.ok().headers(headers).body(page.getContent());
+        return productInPoStatusRepository.findByUserData5List(userData5);
     }
 
     @GetMapping("/warehouse/{whsCode}")

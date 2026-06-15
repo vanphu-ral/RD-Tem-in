@@ -82,7 +82,17 @@ public class GraphQLConfiguration {
                 builder
                     .dataFetcher("listRequestCreateTems", env -> {
                         log.debug("Query: listRequestCreateTems called");
-                        return requestResolver.listRequestCreateTems();
+                        return requestResolver.listRequestCreateTems(
+                            env.getArgument("search"),
+                            env.getArgument("status"),
+                            env.getArgument("vendor"),
+                            env.getArgument("vendorName"),
+                            env.getArgument("userData5"),
+                            env.getArgument("createdBy"),
+                            env.getArgument("createdDate"),
+                            env.getArgument("page"),
+                            env.getArgument("size")
+                        );
                     })
                     .dataFetcher("listProductOfRequests", env -> {
                         log.debug("Query: listProductOfRequests called");
@@ -288,6 +298,7 @@ public class GraphQLConfiguration {
         input.setVendorName((String) inputMap.get("vendorName"));
         input.setUserData5((String) inputMap.get("userData5"));
         input.setCreatedBy((String) inputMap.get("createdBy"));
+        input.setWhsCode((String) inputMap.get("WhsCode"));
 
         @SuppressWarnings("unchecked")
         java.util.List<java.util.Map<String, Object>> productsMap =
@@ -351,6 +362,7 @@ public class GraphQLConfiguration {
                 (String) productMap.get("manufacturingDate")
             );
             productInput.setArrivalDate((String) productMap.get("arrivalDate"));
+            productInput.setWhsCode((String) productMap.get("WhsCode"));
 
             products.add(productInput);
         }

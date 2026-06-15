@@ -399,7 +399,8 @@ public class ListProductOfRequestService {
                 totalQuantity,
                 parsedCreatedDate,
                 input.getType(),
-                parsedEntryDate
+                parsedEntryDate,
+                input.getWhsCode()
             );
 
             // Debug: Check if request was created successfully

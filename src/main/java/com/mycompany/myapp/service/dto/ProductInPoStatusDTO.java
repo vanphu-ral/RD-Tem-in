@@ -30,6 +30,17 @@ public class ProductInPoStatusDTO implements Serializable {
     @Size(max = 100)
     private String createBy;
 
+    private Integer quantityByPo;
+
+    @Size(max = 100)
+    private String vendor;
+
+    @Size(max = 255)
+    private String vendorName;
+
+    @Size(max = 50)
+    private String UOMCode;
+
     public Long getId() {
         return id;
     }
@@ -84,5 +95,37 @@ public class ProductInPoStatusDTO implements Serializable {
 
     public void setCreateBy(String createBy) {
         this.createBy = createBy;
+    }
+
+    public Integer getQuantityByPo() {
+        return quantityByPo;
+    }
+
+    public void setQuantityByPo(Integer quantityByPo) {
+        this.quantityByPo = quantityByPo;
+    }
+
+    public String getVendor() {
+        return vendor;
+    }
+
+    public void setVendor(String vendor) {
+        this.vendor = vendor;
+    }
+
+    public String getVendorName() {
+        return vendorName;
+    }
+
+    public void setVendorName(String vendorName) {
+        this.vendorName = vendorName;
+    }
+
+    public String getUOMCode() {
+        return UOMCode;
+    }
+
+    public void setUOMCode(String UOMCode) {
+        this.UOMCode = UOMCode;
     }
 }

@@ -27,8 +27,28 @@ public class RequestResolver {
     private ListProductOfRequestService productService;
 
     @QueryMapping
-    public List<ListRequestCreateTemResponse> listRequestCreateTems() {
-        return service.getAll();
+    public RequestCreateTemPage listRequestCreateTems(
+        @Argument String search,
+        @Argument String status,
+        @Argument String vendor,
+        @Argument String vendorName,
+        @Argument String userData5,
+        @Argument String createdBy,
+        @Argument String createdDate,
+        @Argument Integer page,
+        @Argument Integer size
+    ) {
+        return service.getAll(
+            search,
+            status,
+            vendor,
+            vendorName,
+            userData5,
+            createdBy,
+            createdDate,
+            page,
+            size
+        );
     }
 
     @QueryMapping(name = "getProductOfRequestByRequestId")

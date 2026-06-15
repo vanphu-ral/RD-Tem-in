@@ -14,4 +14,5 @@ public interface ListRequestCreateTemResponse {
     LocalDateTime getCreatedDate();
     Boolean getType();
     LocalDateTime getEntryDate();
+    String getWhsCode();
 }

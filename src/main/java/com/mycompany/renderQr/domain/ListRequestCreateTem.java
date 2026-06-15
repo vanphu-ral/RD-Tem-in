@@ -41,6 +41,9 @@ public class ListRequestCreateTem {
     @Column(name = "entry_date")
     private LocalDateTime entryDate;
 
+    @Column(name = "WhsCode", length = 8)
+    private String whsCode;
+
     // Getters and Setters
 
     public Long getId() {
@@ -129,5 +132,13 @@ public class ListRequestCreateTem {
 
     public void setEntryDate(LocalDateTime entryDate) {
         this.entryDate = entryDate;
+    }
+
+    public String getWhsCode() {
+        return whsCode;
+    }
+
+    public void setWhsCode(String whsCode) {
+        this.whsCode = whsCode;
     }
 }

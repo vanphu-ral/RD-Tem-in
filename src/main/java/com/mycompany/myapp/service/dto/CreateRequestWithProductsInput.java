@@ -77,4 +77,14 @@ public class CreateRequestWithProductsInput {
     public void setEntryDate(String entryDate) {
         this.entryDate = entryDate;
     }
+
+    private String whsCode;
+
+    public String getWhsCode() {
+        return whsCode;
+    }
+
+    public void setWhsCode(String whsCode) {
+        this.whsCode = whsCode;
+    }
 }

@@ -1,5 +1,5 @@
 type Query {
-    listRequestCreateTems: [ListRequestCreateTem]
+    listRequestCreateTems(search: String, status: String, vendor: String, vendorName: String, userData5: String, createdBy: String, createdDate: String, page: Int, size: Int): RequestCreateTemPage
     getProductOfRequestByRequestId(requestId: Int!): [ListProductOfRequest]
     infoTemDetails: [InfoTemDetail]
     infoTemDetailsByProductId(productId: Int!): [InfoTemDetail]
@@ -50,6 +50,7 @@ input CreateRequestWithProductsInput {
     createdDate: String
     type: Boolean
     entryDate: String
+    WhsCode: String
     products: [CreateProductInput!]!
 }
 
@@ -65,6 +66,7 @@ input UpdateRequestCreateTemInput {
     createdDate: String
     type: Boolean
     entryDate: String
+    WhsCode: String
 }
 
 type CreateRequestWithProductsResponse {
@@ -96,6 +98,15 @@ type ListRequestCreateTem {
     createdDate: String
     type: Boolean
     entryDate: String
+    WhsCode: String
+}
+
+type RequestCreateTemPage {
+    content: [ListRequestCreateTem]
+    totalElements: Int
+    page: Int
+    size: Int
+    totalPages: Int
 }
 
 #khai báo bảng list product of request
