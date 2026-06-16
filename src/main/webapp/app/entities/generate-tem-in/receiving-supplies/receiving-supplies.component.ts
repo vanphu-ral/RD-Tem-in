@@ -286,6 +286,7 @@ export class ReceivingSuppliesComponent
 
   filterItemName = "";
   filterPartNumber = "";
+  filterSapCode = "";
   /** Vị trí header — chọn để áp dụng toàn bảng. */
   headerLocation = "";
 
@@ -446,13 +447,16 @@ export class ReceivingSuppliesComponent
 
     this.dataSource.filterPredicate = (row, filter) => {
       const f = JSON.parse(filter) as {
+        sapCode: string;
         itemName: string;
         partNumber: string;
       };
       const match = (val: string, term: string): boolean =>
         !term || val.toLowerCase().includes(term.toLowerCase());
       return (
-        match(row.itemName, f.itemName) && match(row.partNumber, f.partNumber)
+        match(row.sapCode, f.sapCode) &&
+        match(row.itemName, f.itemName) &&
+        match(row.partNumber, f.partNumber)
       );
     };
     if (this.editingRequestId) {
@@ -1048,6 +1052,7 @@ export class ReceivingSuppliesComponent
 
   applyTableFilter(): void {
     this.dataSource.filter = JSON.stringify({
+      sapCode: this.filterSapCode,
       itemName: this.filterItemName,
       partNumber: this.filterPartNumber,
     });

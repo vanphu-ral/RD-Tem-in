@@ -55,6 +55,7 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     vendor: "",
     vendorName: "",
     userData5: "",
+    whsCode: "",
     createdBy: "",
     createdDate: null as Date | null,
   };
@@ -205,6 +206,8 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
       ? (this.datePipe.transform(this.filterValues.createdDate, "yyyy-MM-dd") ??
         undefined)
       : undefined;
+    const whsCode = this.filterValues.whsCode.trim() || undefined;
+    const clientWhsFilter = Boolean(whsCode);
 
     this.generateTemInService
       .getAllRequests({
@@ -212,21 +215,34 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
         vendor: this.filterValues.vendor || undefined,
         vendorName: this.filterValues.vendorName || undefined,
         userData5: this.filterValues.userData5 || undefined,
+        whsCode,
         createdBy: this.filterValues.createdBy || undefined,
         createdDate: createdDateStr,
-        page: this.pageIndex,
-        size: this.pageSize,
+        page: clientWhsFilter ? 0 : this.pageIndex,
+        size: clientWhsFilter ? 5000 : this.pageSize,
       })
       .subscribe({
         next: (page) => {
-          const data: TemMaterialItem[] = (page.content ?? []).map(
+          let data: TemMaterialItem[] = (page.content ?? []).map(
             (item: ListRequestCreateTem) => this.mapRequestItem(item),
           );
+          let total = page.totalElements ?? 0;
+
+          if (clientWhsFilter) {
+            const start = this.pageIndex * this.pageSize;
+            total = data.length;
+            data = data.slice(start, start + this.pageSize);
+          }
+
           this.dataSource.data = data;
           this.mobileItems = data;
-          this.totalItems = page.totalElements ?? 0;
-          this.pageIndex = page.page ?? this.pageIndex;
-          this.pageSize = page.size ?? this.pageSize;
+          this.totalItems = total;
+          this.pageIndex = clientWhsFilter
+            ? this.pageIndex
+            : (page.page ?? this.pageIndex);
+          this.pageSize = clientWhsFilter
+            ? this.pageSize
+            : (page.size ?? this.pageSize);
           this.isLoading = false;
           this.cdr.detectChanges();
         },

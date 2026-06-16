@@ -1012,8 +1012,9 @@ export class GenerateTemInService {
     }
     const normalizedWhs = (params.whsCode ?? "").trim();
     if (normalizedWhs) {
-      content = content.filter(
-        (item) => (item.whsCode ?? "").trim() === normalizedWhs,
+      const term = normalizedWhs.toLowerCase();
+      content = content.filter((item) =>
+        (item.whsCode ?? "").trim().toLowerCase().includes(term),
       );
     }
     if (!normalizedPo && !normalizedWhs) {

@@ -350,7 +350,19 @@
           <thead>
             <tr>
               <th class="cell-stt">STT</th>
-              <th>MÃ SAP</th>
+              <th>
+                <div class="header-filter">
+                  <span>MÃ SAP</span>
+                  <input
+                    class="header-filter-input"
+                    [(ngModel)]="filterSapCode"
+                    (input)="applyTableFilter()"
+                    placeholder="Lọc..."
+                    (click)="$event.stopPropagation()"
+                    (keydown)="$event.stopPropagation()"
+                  />
+                </div>
+              </th>
               <!-- Tạm ẩn cột trạng thái đối chiếu PO (chưa lưu DB)
               <th class="col-reconcile-th">ĐC PO</th>
               -->
