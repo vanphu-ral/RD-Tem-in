@@ -401,6 +401,7 @@ export class ReceivingSuppliesService {
 
   /** Tìm vị trí trong IndexedDB (tối đa 50 kết quả). */
   async searchWarehouses(keyword: string): Promise<WarehouseLocation[]> {
+    await this.initWarehouses();
     const results = await this.warehouseCache.searchByName(keyword);
     return results.map((w) => ({
       id: w.locationId,
@@ -514,7 +515,7 @@ export class ReceivingSuppliesService {
 
   /** Danh sách kho SAP. */
   getSapWarehouses(): Observable<SapOwhsDto[]> {
-    return this.http.get<SapOwhsDto[]>(`${this.testurl}/owhs`).pipe(
+    return this.http.get<SapOwhsDto[]>(`${this.baseUrl}/owhs`).pipe(
       map((rows) => (rows ?? []).filter((r) => Boolean(r.whsCode?.trim()))),
       catchError(() => of([])),
     );

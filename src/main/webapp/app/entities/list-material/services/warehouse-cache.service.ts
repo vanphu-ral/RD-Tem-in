@@ -13,11 +13,45 @@ export class WarehouseCacheService {
   }
 
   async searchByName(keyword: string): Promise<CachedWarehouse[]> {
-    const lowerKeyword = keyword.toLowerCase();
-    const allWarehouses = await db.warehouses.toArray();
+    const trimmed = keyword.trim();
+    if (!trimmed) {
+      return [];
+    }
+    const lowerKeyword = trimmed.toLowerCase();
 
+    try {
+      const prefixMatches = await db.warehouses
+        .where("locationFullName")
+        .between(trimmed, `${trimmed}\uffff`, true, false)
+        .limit(50)
+        .toArray();
+      if (prefixMatches.length > 0) {
+        return prefixMatches;
+      }
+    } catch {
+      // Indexed range query unavailable — fall through to full scan.
+    }
+
+    const allWarehouses = await db.warehouses.toArray();
     return allWarehouses
-      .filter((w) => w.locationFullName.toLowerCase().includes(lowerKeyword))
+      .filter((w) =>
+        (w.locationFullName ?? "").toLowerCase().includes(lowerKeyword),
+      )
+      .sort((a, b) => {
+        const aFull = (a.locationFullName ?? "").toLowerCase();
+        const bFull = (b.locationFullName ?? "").toLowerCase();
+        const aRank = aFull.startsWith(lowerKeyword)
+          ? 0
+          : aFull.includes(lowerKeyword)
+            ? 1
+            : 2;
+        const bRank = bFull.startsWith(lowerKeyword)
+          ? 0
+          : bFull.includes(lowerKeyword)
+            ? 1
+            : 2;
+        return aRank - bRank || aFull.localeCompare(bFull);
+      })
       .slice(0, 50);
   }
 

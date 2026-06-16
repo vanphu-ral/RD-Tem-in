@@ -291,6 +291,10 @@ export class ReceivingSuppliesComponent
   headerLocation = "";
 
   filteredLocationOptions: WarehouseLocation[] = [];
+  /** Sau khi search xong — dùng hiển thị dòng "Không có kết quả" trong dropdown. */
+  lastLocationSearchTerm = "";
+  locationSearchSettled = false;
+  locationSearchPending = false;
   vendorOptions: SapOcrd[] = [];
   filteredVendorOptions: SapOcrd[] = [];
   isLoadingVendors = false;
@@ -383,6 +387,11 @@ export class ReceivingSuppliesComponent
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChildren(MatAutocompleteTrigger)
   private poSelectWhsTriggers!: QueryList<MatAutocompleteTrigger>;
+  @ViewChildren(MatAutocompleteTrigger)
+  private locationAutocompleteTriggers!: QueryList<MatAutocompleteTrigger>;
+
+  private locationSearchSeq = 0;
+  private locationSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly vendorDisplayLimit = 50;
   /** ID sản phẩm chờ xóa khi lưu — chỉ khi user bấm xóa lô/vật tư. */
@@ -510,25 +519,81 @@ export class ReceivingSuppliesComponent
   }
 
   onLocationSearch(keyword: string): void {
-    this.receivingService.searchWarehouses(keyword ?? "").then((list) => {
-      this.filteredLocationOptions = list;
+    if (this.locationSearchTimer) {
+      clearTimeout(this.locationSearchTimer);
+    }
+
+    const term = (keyword ?? "").trim();
+    if (!term) {
+      this.locationSearchSeq += 1;
+      this.filteredLocationOptions = [];
+      this.lastLocationSearchTerm = "";
+      this.locationSearchSettled = false;
+      this.locationSearchPending = false;
       this.cdr.markForCheck();
-    });
+      return;
+    }
+
+    this.locationSearchPending = true;
+    this.locationSearchSettled = false;
+
+    this.locationSearchTimer = setTimeout(() => {
+      const seq = ++this.locationSearchSeq;
+      void this.receivingService
+        .searchWarehouses(term)
+        .then((list) => {
+          if (seq !== this.locationSearchSeq) {
+            return;
+          }
+          this.filteredLocationOptions = list;
+          this.lastLocationSearchTerm = term;
+          this.locationSearchPending = false;
+          this.locationSearchSettled = true;
+          this.cdr.markForCheck();
+          this.openActiveLocationAutocompletePanel();
+        })
+        .catch(() => {
+          if (seq !== this.locationSearchSeq) {
+            return;
+          }
+          this.filteredLocationOptions = [];
+          this.lastLocationSearchTerm = term;
+          this.locationSearchPending = false;
+          this.locationSearchSettled = true;
+          this.cdr.markForCheck();
+          this.openActiveLocationAutocompletePanel();
+        });
+    }, 200);
+  }
+
+  showLocationNoResults(): boolean {
+    return (
+      this.locationSearchSettled &&
+      !this.locationSearchPending &&
+      Boolean(this.lastLocationSearchTerm) &&
+      this.filteredLocationOptions.length === 0
+    );
   }
 
   onParentLocationInput(
     row: ReceivingMaterialRow,
     value: string | WarehouseLocation,
   ): void {
-    const previousLocation = this.normalizeLocationValue(row.location);
     row.location = this.normalizeLocationValue(value);
+  }
+
+  onLocationSelected(
+    row: ReceivingMaterialRow,
+    selected: string | WarehouseLocation,
+  ): void {
+    const loc = this.resolveWarehouseLocation(selected);
+    const previousLocation = this.normalizeLocationValue(row.location);
+    row.location = loc?.locationName ?? this.normalizeLocationValue(selected);
     this.syncParentLocationToLots(row, previousLocation);
   }
 
-  onLocationSelected(row: ReceivingMaterialRow, loc: WarehouseLocation): void {
-    const previousLocation = this.normalizeLocationValue(row.location);
-    row.location = loc.locationName;
-    this.syncParentLocationToLots(row, previousLocation);
+  onParentLocationBlur(row: ReceivingMaterialRow): void {
+    this.syncParentLocationToLots(row);
   }
 
   onLotLocationInput(
@@ -536,6 +601,9 @@ export class ReceivingSuppliesComponent
     lot: ReceivingLotRow,
     value: string | WarehouseLocation,
   ): void {
+    if (!this.isLotEditable(lot)) {
+      return;
+    }
     lot.location = this.normalizeLocationValue(value);
     lot.locationOverridden =
       lot.location !== this.normalizeLocationValue(row.location);
@@ -544,14 +612,18 @@ export class ReceivingSuppliesComponent
   onLotLocationSelected(
     row: ReceivingMaterialRow,
     lot: ReceivingLotRow,
-    loc: WarehouseLocation,
+    selected: string | WarehouseLocation,
   ): void {
-    lot.location = loc.locationName;
+    if (!this.isLotEditable(lot)) {
+      return;
+    }
+    const loc = this.resolveWarehouseLocation(selected);
+    lot.location = loc?.locationName ?? this.normalizeLocationValue(selected);
     lot.locationOverridden = lot.location !== row.location;
   }
 
   fetchPoInfo(): void {
-    if (!this.poNumber.trim()) {
+    if (!this.canFetchPoInfo()) {
       this.showSnackbar("Vui lòng nhập mã PO.", "Đóng", 4000, "warning");
       return;
     }
@@ -898,6 +970,9 @@ export class ReceivingSuppliesComponent
     lot: ReceivingLotRow,
     raw: string | number | null,
   ): void {
+    if (!this.isLotEditable(lot)) {
+      return;
+    }
     lot.quantity = this.sanitizeNonNegativeQuantity(raw);
     this.syncParentQuantityFromLots(row);
     this.notifyIfLotTotalExceedsPo(row);
@@ -910,6 +985,9 @@ export class ReceivingSuppliesComponent
     lot: ReceivingLotRow,
     raw: string | number | null,
   ): void {
+    if (!this.isLotEditable(lot)) {
+      return;
+    }
     lot.temQuantity = this.sanitizeNonNegativeQuantity(raw);
     this.syncParentQuantityFromLots(row);
     this.notifyIfLotTotalExceedsPo(row);
@@ -986,6 +1064,15 @@ export class ReceivingSuppliesComponent
     return parent.lots.some((lot) => this.lotHasTem(lot));
   }
 
+  /** Lô đã tạo tem — không cho sửa / không gửi lên khi lưu đơn. */
+  isLotEditable(lot: ReceivingLotRow): boolean {
+    return !this.lotHasTem(lot);
+  }
+
+  canFetchPoInfo(): boolean {
+    return Boolean(this.poNumber.trim()) && !this.isFetchingPo;
+  }
+
   canRemoveLot(parent: ReceivingMaterialRow, lot: ReceivingLotRow): boolean {
     return !this.lotHasTem(lot);
   }
@@ -1040,6 +1127,9 @@ export class ReceivingSuppliesComponent
   }
 
   removeLot(parent: ReceivingMaterialRow, lot: ReceivingLotRow): void {
+    if (!this.isLotEditable(lot)) {
+      return;
+    }
     if (lot.productId) {
       this.queueProductDeletion(lot.productId);
     }
@@ -1103,8 +1193,9 @@ export class ReceivingSuppliesComponent
     }
   }
 
-  onHeaderLocationSelected(loc: WarehouseLocation): void {
-    const name = loc.locationName ?? "";
+  onHeaderLocationSelected(selected: string | WarehouseLocation): void {
+    const loc = this.resolveWarehouseLocation(selected);
+    const name = loc?.locationName ?? this.normalizeLocationValue(selected);
     this.headerLocation = name;
     this.applyHeaderLocationToAll(name);
   }
@@ -2012,6 +2103,9 @@ export class ReceivingSuppliesComponent
     field: "manufacturingDate" | "expirationDate" | "arrivalDate",
     value: string,
   ): void {
+    if (!this.isLotEditable(lot)) {
+      return;
+    }
     lot[field] = value ? new Date(value) : null;
     if (!this.shouldApplyBulkToLot(lot)) {
       return;
@@ -2247,7 +2341,6 @@ export class ReceivingSuppliesComponent
       return;
     }
 
-    const products = this.buildProductsForSave();
     const poValue = this.resolveOrderPoValue();
     const vendor = this.vendorCode.trim();
     const vendorName = this.vendorName.trim();
@@ -2267,11 +2360,29 @@ export class ReceivingSuppliesComponent
       return;
     }
 
+    if (
+      this.editingRequestId &&
+      !syncRows.length &&
+      !this.pendingDeletedProductIds.length
+    ) {
+      if (!silent) {
+        this.showSnackbar(
+          "Không có lô mới hoặc thay đổi cần lưu.",
+          "Đóng",
+          3000,
+          "warning",
+        );
+      }
+      return;
+    }
+
+    const products = syncRows.map((row) => row.item);
+
     this.isSavingOrder = true;
 
     if (this.editingRequestId) {
       this.receivingService
-        .updateRequestProducts(this.editingRequestId, products, {
+        .updateRequestProducts(this.editingRequestId, [], {
           rows: syncRows,
           deletedProductIds: this.pendingDeletedProductIds,
         })
@@ -3273,6 +3384,34 @@ export class ReceivingSuppliesComponent
     return value.locationName ?? "";
   }
 
+  private resolveWarehouseLocation(
+    selected: string | WarehouseLocation,
+  ): WarehouseLocation | null {
+    if (typeof selected === "string") {
+      const trimmed = selected.trim();
+      return (
+        this.filteredLocationOptions.find(
+          (w) => w.locationFullName === trimmed || w.locationName === trimmed,
+        ) ?? null
+      );
+    }
+    return selected;
+  }
+
+  private openActiveLocationAutocompletePanel(): void {
+    setTimeout(() => {
+      const active = document.activeElement;
+      this.locationAutocompleteTriggers?.forEach((trigger) => {
+        const inputEl = (
+          trigger as unknown as { _element?: { nativeElement: HTMLElement } }
+        )._element?.nativeElement;
+        if (inputEl === active && !trigger.panelOpen) {
+          trigger.openPanel();
+        }
+      });
+    });
+  }
+
   /** PO hợp lệ trên lô: userData5 có giá trị và khác "-". */
   private lotHasValidPo(lot: ReceivingLotRow): boolean {
     const po = (lot.userData5 ?? "").trim();
@@ -3463,6 +3602,9 @@ export class ReceivingSuppliesComponent
   ): void {
     const parentLocation = this.normalizeLocationValue(row.location);
     const syncedLots = row.lots.map((lot) => {
+      if (!this.isLotEditable(lot)) {
+        return lot;
+      }
       const inheritsFromParent =
         !lot.locationOverridden ||
         !lot.location?.trim() ||
@@ -4168,40 +4310,43 @@ export class ReceivingSuppliesComponent
     }
 
     const rows = this.dataSource.data.filter((r) => r.lots.length > 0);
-    if (!rows.length && !this.pendingDeletedProductIds.length) {
-      return "Chưa có dòng lô để lưu đơn.";
+    const editableLots = rows.flatMap((parent) =>
+      parent.lots
+        .filter((lot) => this.isLotEditable(lot))
+        .map((lot) => ({ parent, lot })),
+    );
+    if (!editableLots.length && !this.pendingDeletedProductIds.length) {
+      return "Chưa có lô mới hoặc thay đổi cần lưu đơn.";
     }
 
-    for (const parent of rows) {
-      for (const lot of parent.lots) {
-        const label = `${parent.sapCode}${lot.lotNumber ? ` / lô ${lot.lotNumber}` : ""}`;
-        if (!parent.sapCode.trim()) {
-          return "Thiếu mã SAP.";
-        }
-        if (!parent.partNumber.trim()) {
-          return `${label}: thiếu Part Number.`;
-        }
-        if (!lot.lotNumber.trim()) {
-          return `${label}: thiếu số lô.`;
-        }
-        if (!lot.temQuantity || lot.temQuantity <= 0) {
-          return `${label}: số tem phải > 0.`;
-        }
-        if (lot.quantity == null || lot.quantity <= 0) {
-          return `${label}: số lượng phải > 0.`;
-        }
-        if (!lot.manufacturingDate) {
-          return `${label}: thiếu ngày sản xuất.`;
-        }
-        if (!lot.expirationDate) {
-          return `${label}: thiếu hạn sử dụng.`;
-        }
-        if (!lot.arrivalDate) {
-          return `${label}: thiếu ngày về.`;
-        }
-        if (!this.getEffectiveLotLocation(parent, lot)) {
-          return `${label}: thiếu vị trí kho (StorageUnit).`;
-        }
+    for (const { parent, lot } of editableLots) {
+      const label = `${parent.sapCode}${lot.lotNumber ? ` / lô ${lot.lotNumber}` : ""}`;
+      if (!parent.sapCode.trim()) {
+        return "Thiếu mã SAP.";
+      }
+      if (!parent.partNumber.trim()) {
+        return `${label}: thiếu Part Number.`;
+      }
+      if (!lot.lotNumber.trim()) {
+        return `${label}: thiếu số lô.`;
+      }
+      if (!lot.temQuantity || lot.temQuantity <= 0) {
+        return `${label}: số tem phải > 0.`;
+      }
+      if (lot.quantity == null || lot.quantity <= 0) {
+        return `${label}: số lượng phải > 0.`;
+      }
+      if (!lot.manufacturingDate) {
+        return `${label}: thiếu ngày sản xuất.`;
+      }
+      if (!lot.expirationDate) {
+        return `${label}: thiếu hạn sử dụng.`;
+      }
+      if (!lot.arrivalDate) {
+        return `${label}: thiếu ngày về.`;
+      }
+      if (!this.getEffectiveLotLocation(parent, lot)) {
+        return `${label}: thiếu vị trí kho (StorageUnit).`;
       }
     }
 
@@ -4218,14 +4363,12 @@ export class ReceivingSuppliesComponent
     productId?: number;
     item: ExcelImportData;
   }> {
-    const products = this.buildProductsForSave();
-    let index = 0;
     const rows: Array<{ productId?: number; item: ExcelImportData }> = [];
     const usedProductIds = new Set<number>();
     for (const parent of this.dataSource.data) {
       for (const lot of parent.lots) {
-        if (!products[index]) {
-          throw new Error("Dữ liệu sản phẩm không khớp với bảng lô.");
+        if (this.lotHasTem(lot)) {
+          continue;
         }
         if (lot.productId) {
           if (usedProductIds.has(lot.productId)) {
@@ -4237,9 +4380,8 @@ export class ReceivingSuppliesComponent
         }
         rows.push({
           productId: lot.productId,
-          item: products[index],
+          item: this.buildExcelItemForLot(parent, lot),
         });
-        index += 1;
       }
     }
     return rows;

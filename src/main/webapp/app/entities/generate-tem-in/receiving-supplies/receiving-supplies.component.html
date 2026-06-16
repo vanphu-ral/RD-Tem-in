@@ -120,7 +120,7 @@
           type="button"
           class="btn-fetch"
           (click)="fetchPoInfo()"
-          [disabled]="isFetchingPo || poAndVendorLocked"
+          [disabled]="!canFetchPoInfo()"
         >
           <mat-spinner diameter="18" *ngIf="isFetchingPo"></mat-spinner>
           <mat-icon *ngIf="!isFetchingPo">search</mat-icon>
@@ -140,7 +140,7 @@
           <p class="bulk-hint">
             Nhập số lô, HSD, NSX, ngày về trước; sau đó nhập mã SAP và nhấn
             Enter để thêm vào bảng. Khi có PO, nhấn "Lấy thông tin" để tải SL
-            theo PO.
+            theo PO hoặc chọn thêm vật tư từ PO (kể cả đơn đã lưu).
           </p>
         </div>
         <div class="bulk-header-actions">
@@ -402,7 +402,7 @@
                     (ngModelChange)="onHeaderLocationInput($event)"
                     [matAutocomplete]="autoHeaderLocation"
                     (input)="onLocationSearch($any($event.target).value)"
-                    (focus)="onLocationSearch(headerLocation)"
+                    (focus)="onLocationSearch($any($event.target).value)"
                     placeholder="Chọn vị trí..."
                     (click)="$event.stopPropagation()"
                     (keydown)="$event.stopPropagation()"
@@ -415,9 +415,19 @@
                   >
                     <mat-option
                       *ngFor="let w of filteredLocationOptions"
-                      [value]="w"
+                      [value]="w.locationFullName"
                     >
                       {{ w.locationFullName || w.locationName }}
+                    </mat-option>
+                    <mat-option
+                      *ngIf="showLocationNoResults()"
+                      disabled
+                      class="location-no-results-option"
+                      [value]="lastLocationSearchTerm"
+                    >
+                      Không có kết quả<span class="location-search-term-echo">{{
+                        lastLocationSearchTerm
+                      }}</span>
                     </mat-option>
                   </mat-autocomplete>
                 </div>
@@ -486,7 +496,8 @@
                     (ngModelChange)="onParentLocationInput(row, $event)"
                     [matAutocomplete]="autoLocation"
                     (input)="onLocationSearch($any($event.target).value)"
-                    (focus)="onLocationSearch(row.location)"
+                    (focus)="onLocationSearch($any($event.target).value)"
+                    (blur)="onParentLocationBlur(row)"
                     placeholder="Nhập vị trí..."
                   />
                   <mat-autocomplete
@@ -497,15 +508,19 @@
                   >
                     <mat-option
                       *ngFor="let w of filteredLocationOptions"
-                      [value]="w"
+                      [value]="w.locationFullName"
                     >
                       {{ w.locationFullName || w.locationName }}
                     </mat-option>
                     <mat-option
-                      *ngIf="filteredLocationOptions.length === 0"
+                      *ngIf="showLocationNoResults()"
                       disabled
+                      class="location-no-results-option"
+                      [value]="lastLocationSearchTerm"
                     >
-                      Không tìm thấy
+                      Không có kết quả<span class="location-search-term-echo">{{
+                        lastLocationSearchTerm
+                      }}</span>
                     </mat-option>
                   </mat-autocomplete>
                 </td>
@@ -592,6 +607,7 @@
               <ng-container *ngIf="row.expanded">
                 <tr
                   class="lot-row"
+                  [class.lot-row-locked]="!isLotEditable(lot)"
                   *ngFor="let lot of row.lots; trackBy: trackByLotKey"
                 >
                   <td class="cell-stt"></td>
@@ -620,8 +636,9 @@
                       (ngModelChange)="onLotLocationInput(row, lot, $event)"
                       [matAutocomplete]="autoLotLocation"
                       (input)="onLocationSearch($any($event.target).value)"
-                      (focus)="onLocationSearch(lot.location)"
+                      (focus)="onLocationSearch($any($event.target).value)"
                       placeholder="Nhập vị trí..."
+                      [disabled]="!isLotEditable(lot)"
                     />
                     <mat-autocomplete
                       #autoLotLocation="matAutocomplete"
@@ -631,15 +648,20 @@
                     >
                       <mat-option
                         *ngFor="let w of filteredLocationOptions"
-                        [value]="w"
+                        [value]="w.locationFullName"
                       >
                         {{ w.locationFullName || w.locationName }}
                       </mat-option>
                       <mat-option
-                        *ngIf="filteredLocationOptions.length === 0"
+                        *ngIf="showLocationNoResults()"
                         disabled
+                        class="location-no-results-option"
+                        [value]="lastLocationSearchTerm"
                       >
-                        Không tìm thấy
+                        Không có kết quả<span
+                          class="location-search-term-echo"
+                          >{{ lastLocationSearchTerm }}</span
+                        >
                       </mat-option>
                     </mat-autocomplete>
                   </td>
@@ -657,10 +679,15 @@
                       min="0"
                       [ngModel]="lot.quantity"
                       (ngModelChange)="onLotQuantityChange(row, lot, $event)"
+                      [disabled]="!isLotEditable(lot)"
                     />
                   </td>
                   <td class="td-input">
-                    <input class="grid-input" [(ngModel)]="lot.lotNumber" />
+                    <input
+                      class="grid-input"
+                      [(ngModel)]="lot.lotNumber"
+                      [disabled]="!isLotEditable(lot)"
+                    />
                   </td>
                   <td class="td-input">
                     <input
@@ -670,6 +697,7 @@
                       min="0"
                       [ngModel]="lot.temQuantity"
                       (ngModelChange)="onLotTemQuantityChange(row, lot, $event)"
+                      [disabled]="!isLotEditable(lot)"
                     />
                   </td>
                   <td class="td-input">
@@ -680,6 +708,7 @@
                       (ngModelChange)="
                         onLotDateChange(row, lot, 'manufacturingDate', $event)
                       "
+                      [disabled]="!isLotEditable(lot)"
                     />
                   </td>
                   <td class="td-input">
@@ -690,6 +719,7 @@
                       (ngModelChange)="
                         onLotDateChange(row, lot, 'arrivalDate', $event)
                       "
+                      [disabled]="!isLotEditable(lot)"
                     />
                   </td>
                   <td class="td-input">
@@ -700,10 +730,15 @@
                       (ngModelChange)="
                         onLotDateChange(row, lot, 'expirationDate', $event)
                       "
+                      [disabled]="!isLotEditable(lot)"
                     />
                   </td>
                   <td class="td-input">
-                    <input class="grid-input" [(ngModel)]="lot.note" />
+                    <input
+                      class="grid-input"
+                      [(ngModel)]="lot.note"
+                      [disabled]="!isLotEditable(lot)"
+                    />
                   </td>
                   <td class="td-actions">
                     <div class="lot-action-cell action-buttons">
