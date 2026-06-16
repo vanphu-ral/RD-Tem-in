@@ -16,6 +16,7 @@ import { GenerateTemInService } from "../service/generate-tem-in.service";
 import { DialogContentExampleDialogComponent } from "./confirm-dialog/confirm-dialog.component";
 import { PreviewOrderDialogComponent } from "./preview-order-dialog/preview-order-dialog.component";
 import { AlertService } from "app/core/util/alert.service";
+import { AccountService } from "app/core/auth/account.service";
 
 interface TemMaterialItem {
   id: number;
@@ -74,12 +75,16 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     private generateTemInService: GenerateTemInService,
     private dialog: MatDialog,
     private alertService: AlertService,
+    private accountService: AccountService,
     private datePipe: DatePipe,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
-    this.loadRequests();
+    this.accountService.identity().subscribe((account) => {
+      this.filterValues.createdBy = account?.login ?? "";
+      this.loadRequests();
+    });
   }
 
   ngAfterViewInit(): void {

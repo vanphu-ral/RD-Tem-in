@@ -25,6 +25,7 @@ import {
 import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
+import * as XLSX from "xlsx";
 import { AccountService } from "app/core/auth/account.service";
 import { ExcelImportData } from "../models/list-product-of-request.model";
 import { GenerateTemInService } from "../service/generate-tem-in.service";
@@ -88,7 +89,7 @@ import {
 } from "./part-number-pl-import.util";
 import {
   generateTemPanacimCsvBlob,
-  generateTemReelDataExcelBlob,
+  generateTemReelDataWorkbook,
   TemPanacimExportInput,
   TemReelDataExportInput,
 } from "./tem-panacim-export.util";
@@ -1706,9 +1707,6 @@ export class ReceivingSuppliesComponent
           this.verifiedPoNumber = po;
         }
         this.applyReconcileStatusToTable(result);
-        if (this.editingRequestId) {
-          this.updateRequestWithPoNumberFromModal(po);
-        }
         this.cdr.markForCheck();
       },
       error: () => {
@@ -1739,9 +1737,31 @@ export class ReceivingSuppliesComponent
     this.markReconcilePassedForSapCodes(matchedSet);
     this.closePoReconcileModal();
 
+    this.receivingService
+      .getSapPoInfo(po)
+      .pipe(take(1))
+      .subscribe({
+        next: (res) => {
+          if (res) {
+            this.populatePoQuantityMap(res);
+            this.dataSource.data.forEach((row) => {
+              if (matchedSet.has(row.sapCode.trim())) {
+                this.applyPoQuantityToRow(row);
+              }
+            });
+            this.refreshTableView();
+            this.cdr.markForCheck();
+          }
+        },
+      });
+
     this.persistOrderChanges({
       silent: true,
+      allowEmptyProductSync: true,
       onSuccess: () => {
+        if (this.editingRequestId) {
+          this.updateRequestWithPoNumberFromModal(po);
+        }
         this.showSnackbar(
           `Đã áp dụng và lưu PO ${po} cho ${this.matchedSapCodesForApply.length} mã pass (${appliedLots} dòng lô).`,
           "Đóng",
@@ -2319,6 +2339,8 @@ export class ReceivingSuppliesComponent
   private persistOrderChanges(
     options: {
       silent?: boolean;
+      /** Gọi onSuccess khi không có lô cần sync (vd. chỉ cập nhật PO header). */
+      allowEmptyProductSync?: boolean;
       onSuccess?: () => void;
       onValidationFail?: (message: string) => void;
     } = {},
@@ -2365,6 +2387,10 @@ export class ReceivingSuppliesComponent
       !syncRows.length &&
       !this.pendingDeletedProductIds.length
     ) {
+      if (options.allowEmptyProductSync) {
+        options.onSuccess?.();
+        return;
+      }
       if (!silent) {
         this.showSnackbar(
           "Không có lô mới hoặc thay đổi cần lưu.",
@@ -3160,11 +3186,16 @@ export class ReceivingSuppliesComponent
     rows: ReceivingTemPreviewRow[],
     filename: string,
   ): void {
-    const blob = generateTemReelDataExcelBlob(
+    const workbook = generateTemReelDataWorkbook(
       this.toReelDataExportRows(rows),
       (date) => this.formatDateForPanacimExport(date),
     );
-    this.downloadBlob(blob, filename);
+    XLSX.writeFileXLSX(workbook, filename, {
+      bookType: "xlsx",
+      bookSST: false,
+      type: "binary",
+      compression: true,
+    });
     this.showSnackbar(`Đã tải Excel: ${filename}`, "Đóng", 3000, "success");
   }
 

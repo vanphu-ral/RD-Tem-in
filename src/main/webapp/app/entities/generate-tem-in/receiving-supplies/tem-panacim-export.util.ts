@@ -219,10 +219,10 @@ export function buildTemReelDataExportRows(
   ]);
 }
 
-export function generateTemReelDataExcelBlob(
+export function generateTemReelDataWorkbook(
   rows: TemReelDataExportInput[],
   formatDateFn: FormatExportDateFn,
-): Blob {
+): XLSX.WorkBook {
   const dataRows = buildTemReelDataExportRows(rows, formatDateFn);
   const sheet = XLSX.utils.aoa_to_sheet([
     [...TEM_REEL_DATA_EXPORT_HEADERS],
@@ -230,8 +230,5 @@ export function generateTemReelDataExcelBlob(
   ]);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, sheet, "ReelData");
-  const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-  return new Blob([buffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
+  return workbook;
 }
