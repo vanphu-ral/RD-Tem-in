@@ -2204,13 +2204,16 @@ export class ReceivingSuppliesComponent
     this.poQuantityBySapCode = qtyMap;
   }
 
+  /** Cập nhật SL theo PO trên dòng cha; chỉ gán SL lô từ PO cho lô chưa lưu DB. */
   private applyPoQuantityToRow(row: ReceivingMaterialRow): void {
     const qty = this.getPoQuantityForSapCode(row.sapCode);
     if (qty <= 0) {
       return;
     }
     row.quantityByPo = qty;
-    row.lots = row.lots.map((lot) => ({ ...lot, quantity: qty }));
+    row.lots = row.lots.map((lot) =>
+      this.isUnsavedLot(lot) ? { ...lot, quantity: qty } : lot,
+    );
     this.syncParentQuantityFromLots(row);
   }
 

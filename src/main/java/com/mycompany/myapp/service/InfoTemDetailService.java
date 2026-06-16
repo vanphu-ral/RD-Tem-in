@@ -143,7 +143,6 @@ public class InfoTemDetailService {
                     String qrCode = String.join(
                         "#",
                         reelId,
-                        product.getProductName(),
                         product.getPartNumber(),
                         product.getVendor(),
                         product.getLot(),
@@ -153,7 +152,7 @@ public class InfoTemDetailService {
                         product.getUserData4(),
                         product.getUserData5(),
                         String.valueOf(product.getInitialQuantity()),
-                        "MSL",
+                        "1",
                         product.getStorageUnit(),
                         product
                             .getManufacturingDate()
