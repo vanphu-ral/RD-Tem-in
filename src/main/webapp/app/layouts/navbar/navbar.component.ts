@@ -50,7 +50,7 @@ export class NavbarComponent implements OnInit {
   faHome = faHome;
   faBars = faBars;
   readonly collapsedLogoSrc = "/content/images/Ral-iMes%202026.png";
-  readonly expandedLogoSrc = "/content/images/logo-rang-dong.webp";
+  readonly expandedLogoSrc = "/content/images/Ral-iMes%202026.png";
   isHandset$ = this.responsive.isHandset$;
   inProduction?: boolean;
   public isCollapsed = true;
