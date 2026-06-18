@@ -49,6 +49,7 @@ export class ListMaterialWarehouseSummaryComponent
   stats: WarehouseSummaryStats = {
     warehouseCount: 0,
     locationCount: 0,
+    emptyLocationCount: 0,
     availableQuantity: 0,
     materialTypeCount: 0,
     unavailableQuantity: 0,

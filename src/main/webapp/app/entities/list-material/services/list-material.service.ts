@@ -239,6 +239,7 @@ export interface APISumaryResponse {
 export interface WarehouseSummaryStats {
   warehouseCount: number;
   locationCount: number;
+  emptyLocationCount: number;
   availableQuantity: number;
   materialTypeCount: number;
   unavailableQuantity: number;
@@ -653,6 +654,7 @@ export class ListMaterialService {
             stats: {
               warehouseCount: 0,
               locationCount: 0,
+              emptyLocationCount: 0,
               availableQuantity: 0,
               materialTypeCount: 0,
               unavailableQuantity: 0,

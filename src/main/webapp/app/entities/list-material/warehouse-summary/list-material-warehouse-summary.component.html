@@ -21,16 +21,22 @@
 
   <section class="kpi-row">
     <article class="kpi-card">
-      <span class="kpi-label">KHU VỰC KHO</span>
+      <span class="kpi-label">KHU VỰC KHO (AREA)</span>
       <strong class="kpi-value">{{
         formatNumber(stats.warehouseCount)
       }}</strong>
       <span class="kpi-unit">Kho</span>
     </article>
     <article class="kpi-card">
-      <span class="kpi-label">SỐ LƯỢNG LOCATION</span>
+      <span class="kpi-label">TỔNG SỐ VỊ TRÍ CÓ TỒN</span>
       <strong class="kpi-value">{{ formatNumber(stats.locationCount) }}</strong>
       <!-- <span class="kpi-unit">Kệ</span> -->
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">SỐ VỊ TRÍ KHO ĐANG TRỐNG</span>
+      <strong class="kpi-value">{{
+        formatNumber(stats.emptyLocationCount)
+      }}</strong>
     </article>
     <article class="kpi-card">
       <span class="kpi-label">SỐ LƯỢNG CHỦNG LOẠI VẬT TƯ</span>
@@ -41,13 +47,13 @@
       <!-- <span class="kpi-hint">Đầy đủ nhóm dòng kỹ thuật</span> -->
     </article>
     <article class="kpi-card highlight-blue">
-      <span class="kpi-label">VẬT TƯ AVAILABLE</span>
+      <span class="kpi-label">SỐ LƯỢNG TỒN KHO SẴN SÀNG</span>
       <strong class="kpi-value">{{
         formatNumber(stats.availableQuantity)
       }}</strong>
     </article>
     <article class="kpi-card highlight-red">
-      <span class="kpi-label">SỐ LƯỢNG VẬT TƯ HẾT HẠN</span>
+      <span class="kpi-label">CẢNH BÁO SL VẬT TƯ HẾT HẠN</span>
       <strong class="kpi-value">{{
         formatNumber(stats.unavailableQuantity)
       }}</strong>
@@ -116,7 +122,7 @@
         </mat-option>
       </mat-autocomplete>
     </mat-form-field>
-    <button mat-raised-button class="btn-search" type="submit">Search</button>
+    <button mat-raised-button class="btn-search" type="submit">Tìm kiếm</button>
   </form>
 
   <section class="table-panel">

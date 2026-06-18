@@ -6,6 +6,7 @@ public class WarehouseSummaryStatsDto implements WarehouseSummaryStatsResponse {
 
     private Integer warehouseCount;
     private Integer locationCount;
+    private Integer emptyLocationCount;
     private Long availableQuantity;
     private Integer materialTypeCount;
     private Long unavailableQuantity;
@@ -15,12 +16,14 @@ public class WarehouseSummaryStatsDto implements WarehouseSummaryStatsResponse {
     public WarehouseSummaryStatsDto(
         Integer warehouseCount,
         Integer locationCount,
+        Integer emptyLocationCount,
         Long availableQuantity,
         Integer materialTypeCount,
         Long unavailableQuantity
     ) {
         this.warehouseCount = warehouseCount;
         this.locationCount = locationCount;
+        this.emptyLocationCount = emptyLocationCount;
         this.availableQuantity = availableQuantity;
         this.materialTypeCount = materialTypeCount;
         this.unavailableQuantity = unavailableQuantity;
@@ -42,6 +45,15 @@ public class WarehouseSummaryStatsDto implements WarehouseSummaryStatsResponse {
 
     public void setLocationCount(Integer locationCount) {
         this.locationCount = locationCount;
+    }
+
+    @Override
+    public Integer getEmptyLocationCount() {
+        return emptyLocationCount;
+    }
+
+    public void setEmptyLocationCount(Integer emptyLocationCount) {
+        this.emptyLocationCount = emptyLocationCount;
     }
 
     @Override

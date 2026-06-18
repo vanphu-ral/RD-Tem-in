@@ -597,6 +597,11 @@ public class InventoryService {
                 .map(WarehouseSummaryStatsCombined::getLocationCount)
                 .orElse(0)
         );
+        stats.setEmptyLocationCount(
+            Optional.ofNullable(combinedStats)
+                .map(WarehouseSummaryStatsCombined::getEmptyLocationCount)
+                .orElse(0)
+        );
         stats.setAvailableQuantity(
             Optional.ofNullable(combinedStats)
                 .map(WarehouseSummaryStatsCombined::getAvailableQuantity)

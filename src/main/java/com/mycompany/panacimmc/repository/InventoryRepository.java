@@ -931,7 +931,15 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "        WHEN a.Inventory_Status = 19 \n" +
         "        THEN a.Inventory_MaterialIdentifier \n" +
         "        ELSE NULL \n" +
-        "     END), 0) AS unavailableQuantity\n" +
+        "     END), 0) AS unavailableQuantity,\n" +
+        "    (SELECT COUNT(*) FROM (\n" +
+        "         SELECT b2.Location_Id\n" +
+        "         FROM Inventory a2\n" +
+        "         INNER JOIN Location b2 ON a2.Inventory_LocationId = b2.Location_Id\n" +
+        "         WHERE a2.Inventory_Status IN (3,6,19)\n" +
+        "         GROUP BY b2.Location_Id\n" +
+        "         HAVING SUM(ISNULL(a2.Inventory_Quantity, 0)) = 0\n" +
+        "     ) emptyLoc) AS emptyLocationCount\n" +
         "FROM Inventory a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "LEFT JOIN Area ar ON ar.Area_Id = b.Location_AreaId\n" +
