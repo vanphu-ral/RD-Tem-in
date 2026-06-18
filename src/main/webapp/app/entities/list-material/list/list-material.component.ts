@@ -57,6 +57,7 @@ import {
   faEye,
   faTableColumns,
   faCircleExclamation,
+  faWarehouse,
 } from "@fortawesome/free-solid-svg-icons";
 
 interface sumary_mode {
@@ -97,6 +98,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   faEye = faEye;
   faTableColumns = faTableColumns;
   faCircleExclamation = faCircleExclamation;
+  faWarehouse = faWarehouse;
   value = "";
   tableMaxWidth: string = "100%";
   displayedColumns: string[] = [

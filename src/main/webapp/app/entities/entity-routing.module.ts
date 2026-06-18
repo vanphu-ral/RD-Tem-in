@@ -147,6 +147,14 @@ import { RouterModule } from "@angular/router";
           ),
       },
       {
+        path: "list-material/warehouse-summary",
+        data: { pageTitle: "Tổng hợp kho vật tư" },
+        loadChildren: () =>
+          import(
+            "./list-material/warehouse-summary/list-material-warehouse-summary.module"
+          ).then((m) => m.ListMaterialWarehouseSummaryModule),
+      },
+      {
         path: "generate-tem-in",
         data: { pageTitle: "QR Serial Rang Dong" },
         loadChildren: () =>

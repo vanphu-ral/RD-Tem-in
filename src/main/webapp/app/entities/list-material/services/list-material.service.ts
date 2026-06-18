@@ -235,6 +235,38 @@ export interface APISumaryResponse {
   totalItems: number;
   inventories: DataSumary[];
 }
+
+export interface WarehouseSummaryStats {
+  warehouseCount: number;
+  locationCount: number;
+  availableQuantity: number;
+  materialTypeCount: number;
+  unavailableQuantity: number;
+}
+
+export interface WarehouseAreaSummaryRow {
+  areaCode: string;
+  areaName: string;
+  materialType: string;
+  quantity: number;
+  materialIdentifierCount: number;
+}
+
+export interface WarehouseSummaryResponse {
+  totalItems: number;
+  stats: WarehouseSummaryStats;
+  inventories: WarehouseAreaSummaryRow[];
+}
+
+export interface WarehouseSummaryFilters {
+  warehouseName?: string;
+  locationName?: string;
+  materialName?: string;
+  materialCode?: string;
+  materialType?: string;
+  pageNumber?: number;
+  itemPerPage?: number;
+}
 export interface APIDetailResponse {
   inventories: RawGraphQLMaterial[];
   totalItems: number;
@@ -282,6 +314,9 @@ export class ListMaterialService {
   );
   public apiSumaryByLocation = this.applicationConfigService.getEndpointFor(
     "/api/inventory/group-by-location-name",
+  );
+  public apiWarehouseSummary = this.applicationConfigService.getEndpointFor(
+    "/api/inventory/warehouse-summary",
   );
   public _selectedIds = new BehaviorSubject<string[]>([]);
   public selectedItems$: Observable<RawGraphQLMaterial[]> = this._selectedIds
@@ -586,6 +621,39 @@ export class ListMaterialService {
         return of({ inventories: [], totalItems: 0 } as APISumaryResponse);
       }),
     );
+  }
+
+  fetchWarehouseSummary(
+    filters: WarehouseSummaryFilters,
+  ): Observable<WarehouseSummaryResponse> {
+    const body = {
+      warehouseName: filters.warehouseName ?? "",
+      locationName: filters.locationName ?? "",
+      materialName: filters.materialName ?? "",
+      materialCode: filters.materialCode ?? "",
+      materialType: filters.materialType ?? "",
+      pageNumber: filters.pageNumber ?? 1,
+      itemPerPage: filters.itemPerPage ?? 50,
+    };
+
+    return this.http
+      .post<WarehouseSummaryResponse>(this.apiWarehouseSummary, body)
+      .pipe(
+        catchError((err) => {
+          console.error("Lỗi khi lấy tổng hợp kho: ", err);
+          return of({
+            totalItems: 0,
+            stats: {
+              warehouseCount: 0,
+              locationCount: 0,
+              availableQuantity: 0,
+              materialTypeCount: 0,
+              unavailableQuantity: 0,
+            },
+            inventories: [],
+          });
+        }),
+      );
   }
   //  lấy dư liệu cho trang danh sach
 

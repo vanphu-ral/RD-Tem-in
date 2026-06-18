@@ -38,6 +38,10 @@ public class SapOitm implements Serializable {
     @Column(name = "U_PartNumber", length = 510)
     private String uPartNumber;
 
+    @Size(max = 510)
+    @Column(name = "U_IGroupName", length = 510)
+    private String uIGroupName;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -105,6 +109,19 @@ public class SapOitm implements Serializable {
         this.uPartNumber = uPartNumber;
     }
 
+    public String getuIGroupName() {
+        return this.uIGroupName;
+    }
+
+    public SapOitm uIGroupName(String uIGroupName) {
+        this.setuIGroupName(uIGroupName);
+        return this;
+    }
+
+    public void setuIGroupName(String uIGroupName) {
+        this.uIGroupName = uIGroupName;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
@@ -133,6 +150,7 @@ public class SapOitm implements Serializable {
             ", itemName='" + getItemName() + "'" +
             ", itmsGrpCod='" + getItmsGrpCod() + "'" +
             ", uPartNumber='" + getuPartNumber() + "'" +
+            ", uIGroupName='" + getuIGroupName() + "'" +
             "}";
     }
 }

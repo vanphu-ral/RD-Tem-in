@@ -28,8 +28,16 @@
       width: 50%;
 
       button {
-        box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.18);
         background-color: #fff;
+        transition:
+          box-shadow 0.2s ease,
+          transform 0.2s ease;
+
+        &:hover:not(:disabled) {
+          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.24);
+          transform: translateY(-1px);
+        }
       }
 
       .btn-text {

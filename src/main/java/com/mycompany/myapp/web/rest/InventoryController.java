@@ -1,9 +1,11 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.domain.InventoriesResponse;
+import com.mycompany.myapp.domain.WarehouseSummaryResponse;
 import com.mycompany.myapp.service.InventoryService;
 import com.mycompany.myapp.service.dto.InventoryDTO;
 import com.mycompany.myapp.service.dto.InventoryRequestDTO;
+import com.mycompany.myapp.service.dto.WarehouseSummaryRequestDTO;
 import com.mycompany.panacimmc.domain.Inventory;
 import com.mycompany.panacimmc.domain.InventoryResponse;
 import java.util.List;
@@ -65,6 +67,13 @@ public class InventoryController {
     ) {
         System.out.println("Cong doan: 5");
         return this.inventoryService.getDataGroupByLocationName(request);
+    }
+
+    @PostMapping("/warehouse-summary")
+    public WarehouseSummaryResponse getWarehouseSummary(
+        @RequestBody WarehouseSummaryRequestDTO request
+    ) {
+        return this.inventoryService.getWarehouseSummary(request);
     }
 
     @PostMapping("/detail")
