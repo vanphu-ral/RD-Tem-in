@@ -48,4 +48,7 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
         nativeQuery = true
     )
     public List<AreaAreaResponse> getArea();
+
+    @Query(value = "SELECT COUNT(*) FROM Area", nativeQuery = true)
+    Integer countAllAreas();
 }

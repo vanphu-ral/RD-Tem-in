@@ -15,7 +15,6 @@
   gap: 10px;
 
   &.is-page-loading {
-    pointer-events: none;
     user-select: none;
   }
 }
@@ -140,8 +139,10 @@
 }
 
 .filter-bar {
+  position: relative;
+  z-index: 21;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   gap: 8px;
   align-items: center;
   flex: 0 0 auto;
@@ -180,6 +181,16 @@
       opacity: 0.72;
     }
   }
+}
+
+.warehouse-option-code {
+  font-weight: 600;
+}
+
+.warehouse-option-desc {
+  margin-left: 6px;
+  color: #6b7280;
+  font-size: 0.85rem;
 }
 
 .btn-search {

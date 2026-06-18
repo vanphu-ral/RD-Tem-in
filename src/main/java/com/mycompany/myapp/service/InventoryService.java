@@ -13,6 +13,7 @@ import com.mycompany.panacimmc.domain.WarehouseAreaItemSummaryResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaSummaryResponse;
 import com.mycompany.panacimmc.domain.WarehouseSummaryStatsCombined;
 import com.mycompany.panacimmc.repository.InventoryRepository;
+import com.mycompany.panacimmc.repository.LocationRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -25,7 +26,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +40,12 @@ public class InventoryService {
 
     @Autowired
     WarehouseSummarySapCacheService warehouseSummarySapCacheService;
+
+    @Autowired
+    WarehouseSummaryDataCacheService warehouseSummaryDataCacheService;
+
+    @Autowired
+    LocationRepository locationRepository;
 
     public List<Inventory> getAll() {
         return this.inventoryRepository.findAll();
@@ -487,31 +493,22 @@ public class InventoryService {
         return inventoryRepository.getInventoriesByLocation(locationName);
     }
 
+    public List<String> getWarehouseSummaryMaterialTypes() {
+        return warehouseSummarySapCacheService.getDistinctGroupNames();
+    }
+
     public WarehouseSummaryResponse getWarehouseSummary(
         WarehouseSummaryRequestDTO request
     ) {
-        String warehouseName =
-            "%" +
-            Optional.ofNullable(request.getWarehouseName()).orElse("") +
-            "%";
-        String locationName =
-            "%" +
-            Optional.ofNullable(request.getLocationName()).orElse("") +
-            "%";
-        String materialName =
-            "%" +
-            Optional.ofNullable(request.getMaterialName()).orElse("") +
-            "%";
-        String materialCode =
-            "%" +
-            Optional.ofNullable(request.getMaterialCode()).orElse("") +
-            "%";
-        String materialTypeFilter = Optional.ofNullable(
-            request.getMaterialType()
-        )
-            .orElse("")
-            .trim()
-            .toLowerCase(Locale.ROOT);
+        if (Boolean.TRUE.equals(request.getRefreshCache())) {
+            warehouseSummaryDataCacheService.invalidate();
+        }
+
+        String warehouseFilter = normalizeFilter(request.getWarehouseName());
+        String warehouseAreaFilter = normalizeFilter(
+            request.getWarehouseAreaName()
+        );
+        String materialTypeFilter = normalizeFilter(request.getMaterialType());
 
         int pageNumber = Optional.ofNullable(request.getPageNumber()).orElse(1);
         int itemPerPage = Optional.ofNullable(request.getItemPerPage()).orElse(
@@ -519,41 +516,30 @@ public class InventoryService {
         );
         int offset = Math.max(0, (pageNumber - 1) * itemPerPage);
 
-        CompletableFuture<
-            List<WarehouseAreaItemSummaryResponse>
-        > rawRowsFuture = CompletableFuture.supplyAsync(() ->
-            this.inventoryRepository.getWarehouseSummaryByAreaAndItem(
-                warehouseName,
-                locationName,
-                materialName,
-                materialCode
-            )
+        WarehouseSummaryDataCacheService.CachedSnapshot snapshot =
+            warehouseSummaryDataCacheService.getOrLoadFullSnapshot();
+        List<WarehouseAreaItemSummaryResponse> rawRows = snapshot.getRawRows();
+        WarehouseSummaryStatsCombined combinedStats = snapshot.getStats();
+
+        List<WarehouseAreaSummaryResponse> aggregated = new ArrayList<>(
+            aggregateByAreaAndGroup(rawRows)
         );
-        CompletableFuture<WarehouseSummaryStatsCombined> statsFuture =
-            CompletableFuture.supplyAsync(() ->
-                this.inventoryRepository.getWarehouseSummaryStatsCombined(
-                    warehouseName,
-                    locationName,
-                    materialName,
-                    materialCode
+
+        if (!warehouseFilter.isEmpty()) {
+            aggregated = aggregated
+                .stream()
+                .filter(row -> matchesWarehouseFilter(row, warehouseFilter))
+                .collect(Collectors.toList());
+        }
+
+        if (!warehouseAreaFilter.isEmpty()) {
+            aggregated = aggregated
+                .stream()
+                .filter(row ->
+                    containsIgnoreCase(row.getAreaName(), warehouseAreaFilter)
                 )
-            );
-
-        List<WarehouseAreaItemSummaryResponse> rawRows = rawRowsFuture.join();
-        WarehouseSummaryStatsCombined combinedStats = statsFuture.join();
-
-        List<WarehouseAreaSummaryResponse> aggregated = aggregateByAreaAndGroup(
-            rawRows
-        );
-
-        int materialTypeCount = (int) aggregated
-            .stream()
-            .map(WarehouseAreaSummaryResponse::getMaterialType)
-            .filter(
-                name -> name != null && !name.isBlank() && !"-".equals(name)
-            )
-            .distinct()
-            .count();
+                .collect(Collectors.toList());
+        }
 
         if (!materialTypeFilter.isEmpty()) {
             aggregated = aggregated
@@ -566,6 +552,15 @@ public class InventoryService {
                 )
                 .collect(Collectors.toList());
         }
+
+        int materialTypeCount = (int) aggregated
+            .stream()
+            .map(WarehouseAreaSummaryResponse::getMaterialType)
+            .filter(
+                name -> name != null && !name.isBlank() && !"-".equals(name)
+            )
+            .distinct()
+            .count();
 
         aggregated.sort(
             Comparator.comparing((WarehouseAreaSummaryResponse row) ->
@@ -595,9 +590,7 @@ public class InventoryService {
 
         WarehouseSummaryStatsDto stats = new WarehouseSummaryStatsDto();
         stats.setWarehouseCount(
-            Optional.ofNullable(combinedStats)
-                .map(WarehouseSummaryStatsCombined::getWarehouseCount)
-                .orElse(0)
+            Optional.ofNullable(locationRepository.countAllAreas()).orElse(0)
         );
         stats.setLocationCount(
             Optional.ofNullable(combinedStats)
@@ -621,6 +614,34 @@ public class InventoryService {
         response.setStats(stats);
         response.setInventories(new ArrayList<>(pageRows));
         return response;
+    }
+
+    private String normalizeFilter(String value) {
+        return Optional.ofNullable(value)
+            .orElse("")
+            .trim()
+            .toLowerCase(Locale.ROOT);
+    }
+
+    private String toLikePattern(String value) {
+        return "%" + Optional.ofNullable(value).orElse("").trim() + "%";
+    }
+
+    private boolean matchesWarehouseFilter(
+        WarehouseAreaSummaryResponse row,
+        String filter
+    ) {
+        return containsIgnoreCase(row.getAreaCode(), filter);
+    }
+
+    private boolean containsIgnoreCase(String value, String filter) {
+        if (filter.isEmpty()) {
+            return true;
+        }
+        return Optional.ofNullable(value)
+            .orElse("")
+            .toLowerCase(Locale.ROOT)
+            .contains(filter);
     }
 
     private List<WarehouseAreaSummaryResponse> aggregateByAreaAndGroup(

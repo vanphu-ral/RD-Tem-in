@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -40,6 +41,20 @@ public class WarehouseSummarySapCacheService {
         }
         ensureLoaded();
         return itemCodeToGroupName.getOrDefault(itemCode.trim(), "-");
+    }
+
+    public List<String> getDistinctGroupNames() {
+        ensureLoaded();
+        return itemCodeToGroupName
+            .values()
+            .stream()
+            .filter(
+                name -> name != null && !name.isBlank() && !"-".equals(name)
+            )
+            .map(String::trim)
+            .distinct()
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .collect(Collectors.toList());
     }
 
     private void ensureLoaded() {

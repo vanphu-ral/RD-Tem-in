@@ -69,10 +69,21 @@ public class InventoryController {
         return this.inventoryService.getDataGroupByLocationName(request);
     }
 
+    @GetMapping("/warehouse-summary/material-types")
+    public List<String> getWarehouseSummaryMaterialTypes() {
+        return this.inventoryService.getWarehouseSummaryMaterialTypes();
+    }
+
     @PostMapping("/warehouse-summary")
     public WarehouseSummaryResponse getWarehouseSummary(
-        @RequestBody WarehouseSummaryRequestDTO request
+        @RequestBody WarehouseSummaryRequestDTO request,
+        @RequestParam(
+            value = "refreshCache",
+            required = false,
+            defaultValue = "false"
+        ) boolean refreshCache
     ) {
+        request.setRefreshCache(refreshCache);
         return this.inventoryService.getWarehouseSummary(request);
     }
 

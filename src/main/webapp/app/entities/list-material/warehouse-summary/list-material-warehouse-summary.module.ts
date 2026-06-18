@@ -7,6 +7,7 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
 import { MatTableModule } from "@angular/material/table";
 import { MatPaginatorModule } from "@angular/material/paginator";
+import { MatAutocompleteModule } from "@angular/material/autocomplete";
 import { SharedModule } from "app/shared/shared.module";
 import { ListMaterialWarehouseSummaryComponent } from "./list-material-warehouse-summary.component";
 import { ListMaterialWarehouseSummaryRoutingModule } from "./list-material-warehouse-summary-routing.module";
@@ -22,6 +23,7 @@ import { ListMaterialWarehouseSummaryRoutingModule } from "./list-material-wareh
     MatInputModule,
     MatTableModule,
     MatPaginatorModule,
+    MatAutocompleteModule,
     SharedModule,
     ListMaterialWarehouseSummaryRoutingModule,
   ],

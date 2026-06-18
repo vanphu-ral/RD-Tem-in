@@ -907,10 +907,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
         ") d1\n" +
         "WHERE a.Inventory_Status IN (3,6,19) AND a.Inventory_Quantity > 0\n" +
-        "AND ISNULL(b.Location_FullName, N'') LIKE ?1\n" +
-        "AND ISNULL(b.Location_Name, N'') LIKE ?2\n" +
-        "AND ISNULL(a.Inventroy_MaterialName, N'') LIKE ?3\n" +
-        "AND ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'') LIKE ?4\n" +
         "GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(ar.Area_Name)), N''), ISNULL(b.Location_AreaName, N'')),\n" +
         "    ISNULL(ar.Area_Description, N''),\n" +
         "    CASE \n" +
@@ -920,39 +916,36 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "     END",
         nativeQuery = true
     )
-    List<WarehouseAreaItemSummaryResponse> getWarehouseSummaryByAreaAndItem(
-        String warehouseName,
-        String locationName,
-        String materialName,
-        String materialCode
-    );
+    List<WarehouseAreaItemSummaryResponse> getWarehouseSummaryByAreaAndItem();
 
     @Query(
         value = "SELECT \n" +
         "    COUNT(DISTINCT b.Location_AreaId) AS warehouseCount,\n" +
         "    COUNT(DISTINCT b.Location_Id) AS locationCount,\n" +
-        "    ISNULL(SUM(CASE WHEN a.Inventory_Status = 3 THEN a.Inventory_Quantity ELSE 0 END), 0) AS availableQuantity,\n" +
-        "    ISNULL(SUM(CASE WHEN a.Inventory_Status <> 3 THEN a.Inventory_Quantity ELSE 0 END), 0) AS unavailableQuantity\n" +
+        "    ISNULL(SUM(CASE \n" +
+        "        WHEN a.Inventory_Status = 3 AND a.Inventory_Quantity > 0 \n" +
+        "        THEN a.Inventory_Quantity \n" +
+        "        ELSE 0 \n" +
+        "     END), 0) AS availableQuantity,\n" +
+        "    ISNULL(COUNT(CASE \n" +
+        "        WHEN a.Inventory_Status = 19 \n" +
+        "        THEN a.Inventory_MaterialIdentifier \n" +
+        "        ELSE NULL \n" +
+        "     END), 0) AS unavailableQuantity\n" +
         "FROM Inventory a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+        "LEFT JOIN Area ar ON ar.Area_Id = b.Location_AreaId\n" +
         "OUTER APPLY (\n" +
         "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
         "    FROM InventoryMaterialTraceDetail\n" +
         "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
         "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
         ") d1\n" +
-        "WHERE a.Inventory_Status IN (3,6,19) AND a.Inventory_Quantity > 0\n" +
-        "AND ISNULL(b.Location_FullName, N'') LIKE ?1 AND ISNULL(b.Location_Name, N'') LIKE ?2\n" +
-        "AND ISNULL(a.Inventroy_MaterialName, N'') LIKE ?3\n" +
-        "AND ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'') LIKE ?4",
+        "WHERE a.Inventory_Status IN (3,6,19)\n" +
+        "AND (a.Inventory_Quantity > 0 OR a.Inventory_Status = 19)",
         nativeQuery = true
     )
-    WarehouseSummaryStatsCombined getWarehouseSummaryStatsCombined(
-        String warehouseName,
-        String locationName,
-        String materialName,
-        String materialCode
-    );
+    WarehouseSummaryStatsCombined getWarehouseSummaryStatsCombined();
 
     @Query(
         value = "SELECT COUNT(DISTINCT b.Location_AreaId) FROM Inventory a\n" +

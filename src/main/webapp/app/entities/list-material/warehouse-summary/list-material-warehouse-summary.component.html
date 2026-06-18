@@ -21,7 +21,7 @@
 
   <section class="kpi-row">
     <article class="kpi-card">
-      <span class="kpi-label">SỐ LƯỢNG KHO</span>
+      <span class="kpi-label">KHU VỰC KHO</span>
       <strong class="kpi-value">{{
         formatNumber(stats.warehouseCount)
       }}</strong>
@@ -30,7 +30,7 @@
     <article class="kpi-card">
       <span class="kpi-label">SỐ LƯỢNG LOCATION</span>
       <strong class="kpi-value">{{ formatNumber(stats.locationCount) }}</strong>
-      <span class="kpi-unit">Kệ</span>
+      <!-- <span class="kpi-unit">Kệ</span> -->
     </article>
     <article class="kpi-card highlight-blue">
       <span class="kpi-label">VẬT TƯ AVAILABLE</span>
@@ -43,64 +43,81 @@
       <strong class="kpi-value">{{
         formatNumber(stats.materialTypeCount)
       }}</strong>
-      <span class="kpi-unit">Phân loại</span>
-      <span class="kpi-hint">Đầy đủ nhóm dòng kỹ thuật</span>
+      <!-- <span class="kpi-unit">Phân loại</span> -->
+      <!-- <span class="kpi-hint">Đầy đủ nhóm dòng kỹ thuật</span> -->
     </article>
     <article class="kpi-card highlight-red">
-      <span class="kpi-label">SỐ LƯỢNG VẬT TƯ UNAVAILABLE</span>
+      <span class="kpi-label">SỐ LƯỢNG VẬT TƯ HẾT HẠN</span>
       <strong class="kpi-value">{{
         formatNumber(stats.unavailableQuantity)
       }}</strong>
-      <span class="kpi-unit">Unavailable</span>
+      <!-- <span class="kpi-unit">Unavailable</span> -->
     </article>
   </section>
 
-  <section class="filter-bar" [formGroup]="filterForm">
+  <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="onSearch()">
     <mat-form-field appearance="outline" class="filter-field">
       <input
         matInput
-        placeholder="Tìm kho..."
+        placeholder="Tìm mã kho..."
         formControlName="warehouseName"
+        [matAutocomplete]="warehouseAuto"
       />
+      <mat-autocomplete
+        #warehouseAuto="matAutocomplete"
+        [displayWith]="displayWarehouseName"
+      >
+        <mat-option
+          *ngFor="let area of filteredWarehouses$ | async"
+          [value]="area.areaName"
+        >
+          <span class="warehouse-option-code">{{ area.areaName }}</span>
+          <span class="warehouse-option-desc" *ngIf="area.areaDescription">
+            — {{ area.areaDescription }}
+          </span>
+        </mat-option>
+      </mat-autocomplete>
     </mat-form-field>
     <mat-form-field appearance="outline" class="filter-field">
       <input
         matInput
-        placeholder="Tìm vị trí..."
-        formControlName="locationName"
+        placeholder="Tìm tên kho..."
+        formControlName="warehouseAreaName"
+        [matAutocomplete]="warehouseAreaAuto"
       />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="filter-field">
-      <input
-        matInput
-        placeholder="Tìm tên vật tư..."
-        formControlName="materialName"
-      />
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="filter-field">
-      <input
-        matInput
-        placeholder="Tìm mã vật tư..."
-        formControlName="materialCode"
-      />
+      <mat-autocomplete
+        #warehouseAreaAuto="matAutocomplete"
+        [displayWith]="displayWarehouseAreaDescription"
+      >
+        <mat-option
+          *ngFor="let description of filteredWarehouseAreaDescriptions$ | async"
+          [value]="description"
+        >
+          {{ description }}
+        </mat-option>
+      </mat-autocomplete>
     </mat-form-field>
     <mat-form-field appearance="outline" class="filter-field">
       <input
         matInput
         placeholder="Tìm chủng loại..."
         formControlName="materialType"
+        [matAutocomplete]="materialTypeAuto"
       />
+      <mat-autocomplete
+        #materialTypeAuto="matAutocomplete"
+        [displayWith]="displayMaterialType"
+      >
+        <mat-option
+          *ngFor="let materialType of filteredMaterialTypes$ | async"
+          [value]="materialType"
+        >
+          {{ materialType }}
+        </mat-option>
+      </mat-autocomplete>
     </mat-form-field>
-    <button
-      mat-raised-button
-      class="btn-search"
-      type="button"
-      (click)="onSearch()"
-      [disabled]="isLoading"
-    >
-      Search
-    </button>
-  </section>
+    <button mat-raised-button class="btn-search" type="submit">Search</button>
+  </form>
 
   <section class="table-panel">
     <div class="table-panel-header">

@@ -9,8 +9,8 @@ import { FormBuilder, FormGroup } from "@angular/forms";
 import { PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { Router } from "@angular/router";
-import { Subject } from "rxjs";
-import { finalize, takeUntil } from "rxjs/operators";
+import { Observable, Subject, forkJoin, of } from "rxjs";
+import { finalize, map, startWith, takeUntil } from "rxjs/operators";
 import {
   faArrowLeft,
   faRotateRight,
@@ -18,6 +18,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   ListMaterialService,
+  WarehouseAreaOption,
   WarehouseAreaSummaryRow,
   WarehouseSummaryStats,
 } from "../services/list-material.service";
@@ -53,6 +54,13 @@ export class ListMaterialWarehouseSummaryComponent
     unavailableQuantity: 0,
   };
 
+  warehouseOptions: WarehouseAreaOption[] = [];
+  warehouseAreaDescriptions: string[] = [];
+  materialTypeOptions: string[] = [];
+  filteredWarehouses$: Observable<WarehouseAreaOption[]> = of([]);
+  filteredWarehouseAreaDescriptions$: Observable<string[]> = of([]);
+  filteredMaterialTypes$: Observable<string[]> = of([]);
+
   isLoading = false;
   length = 0;
   pageIndex = 0;
@@ -71,11 +79,10 @@ export class ListMaterialWarehouseSummaryComponent
   ngOnInit(): void {
     this.filterForm = this.fb.group({
       warehouseName: [""],
-      locationName: [""],
-      materialName: [""],
-      materialCode: [""],
+      warehouseAreaName: [""],
       materialType: [""],
     });
+    this.initFilterAutocomplete();
     this.loadData();
   }
 
@@ -90,7 +97,7 @@ export class ListMaterialWarehouseSummaryComponent
   }
 
   onRefresh(): void {
-    this.loadData();
+    this.loadData(true);
   }
 
   onPageChange(event: PageEvent): void {
@@ -110,19 +117,142 @@ export class ListMaterialWarehouseSummaryComponent
     return new Intl.NumberFormat("vi-VN").format(value);
   }
 
-  private loadData(): void {
+  displayWarehouseName(areaName: string): string {
+    return areaName ?? "";
+  }
+
+  displayWarehouseAreaDescription(description: string): string {
+    return description ?? "";
+  }
+
+  displayMaterialType(materialType: string): string {
+    return materialType ?? "";
+  }
+
+  private initFilterAutocomplete(): void {
+    forkJoin({
+      areas: this.materialService.fetchWarehouseAreas(),
+      materialTypes: this.materialService.fetchWarehouseMaterialTypes(),
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        ({
+          areas,
+          materialTypes,
+        }: {
+          areas: WarehouseAreaOption[];
+          materialTypes: string[];
+        }) => {
+          this.warehouseOptions = [...areas].sort((a, b) =>
+            (a.areaName ?? "").localeCompare(b.areaName ?? "", "vi"),
+          );
+          this.warehouseAreaDescriptions =
+            this.buildWarehouseAreaDescriptions(areas);
+          this.materialTypeOptions = [...materialTypes].sort(
+            (a: string, b: string) => a.localeCompare(b, "vi"),
+          );
+
+          const warehouseControl = this.filterForm.get("warehouseName");
+          if (warehouseControl) {
+            this.filteredWarehouses$ = warehouseControl.valueChanges.pipe(
+              startWith(warehouseControl.value ?? ""),
+              map((value) => this.filterWarehouseOptions(value)),
+            );
+          }
+
+          const warehouseAreaControl = this.filterForm.get("warehouseAreaName");
+          if (warehouseAreaControl) {
+            this.filteredWarehouseAreaDescriptions$ =
+              warehouseAreaControl.valueChanges.pipe(
+                startWith(warehouseAreaControl.value ?? ""),
+                map((value) => this.filterWarehouseAreaDescriptions(value)),
+              );
+          }
+
+          const materialTypeControl = this.filterForm.get("materialType");
+          if (materialTypeControl) {
+            this.filteredMaterialTypes$ = materialTypeControl.valueChanges.pipe(
+              startWith(materialTypeControl.value ?? ""),
+              map((value) => this.filterMaterialTypeOptions(value)),
+            );
+          }
+
+          this.cdr.markForCheck();
+        },
+      );
+  }
+
+  private buildWarehouseAreaDescriptions(
+    areas: WarehouseAreaOption[],
+  ): string[] {
+    const seen = new Set<string>();
+    const descriptions: string[] = [];
+    for (const area of areas) {
+      const description = (area.areaDescription ?? "").trim();
+      if (!description) {
+        continue;
+      }
+      const key = description.toLowerCase();
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      descriptions.push(description);
+    }
+    return descriptions.sort((a, b) => a.localeCompare(b, "vi"));
+  }
+
+  private filterWarehouseAreaDescriptions(
+    value: string | null | undefined,
+  ): string[] {
+    const term = (value ?? "").trim().toLowerCase();
+    if (!term) {
+      return this.warehouseAreaDescriptions;
+    }
+    return this.warehouseAreaDescriptions.filter((description) =>
+      description.toLowerCase().includes(term),
+    );
+  }
+
+  private filterMaterialTypeOptions(
+    value: string | null | undefined,
+  ): string[] {
+    const term = (value ?? "").trim().toLowerCase();
+    if (!term) {
+      return this.materialTypeOptions;
+    }
+    return this.materialTypeOptions.filter((materialType) =>
+      materialType.toLowerCase().includes(term),
+    );
+  }
+
+  private filterWarehouseOptions(
+    value: string | null | undefined,
+  ): WarehouseAreaOption[] {
+    const term = (value ?? "").trim().toLowerCase();
+    if (!term) {
+      return this.warehouseOptions;
+    }
+    return this.warehouseOptions.filter(
+      (area) =>
+        (area.areaName ?? "").toLowerCase().includes(term) ||
+        (area.areaDescription ?? "").toLowerCase().includes(term),
+    );
+  }
+
+  private loadData(refreshCache = false): void {
     const filters = this.filterForm.getRawValue();
     this.isLoading = true;
+    this.cdr.markForCheck();
 
     this.materialService
       .fetchWarehouseSummary({
         warehouseName: filters.warehouseName,
-        locationName: filters.locationName,
-        materialName: filters.materialName,
-        materialCode: filters.materialCode,
+        warehouseAreaName: filters.warehouseAreaName,
         materialType: filters.materialType,
         pageNumber: this.pageIndex + 1,
         itemPerPage: this.pageSize,
+        refreshCache,
       })
       .pipe(
         takeUntil(this.destroy$),

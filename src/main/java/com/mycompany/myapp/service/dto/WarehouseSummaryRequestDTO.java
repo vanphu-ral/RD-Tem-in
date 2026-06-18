@@ -3,12 +3,11 @@ package com.mycompany.myapp.service.dto;
 public class WarehouseSummaryRequestDTO {
 
     private String warehouseName;
-    private String locationName;
-    private String materialName;
-    private String materialCode;
+    private String warehouseAreaName;
     private String materialType;
     private Integer pageNumber;
     private Integer itemPerPage;
+    private Boolean refreshCache;
 
     public String getWarehouseName() {
         return warehouseName;
@@ -18,28 +17,12 @@ public class WarehouseSummaryRequestDTO {
         this.warehouseName = warehouseName;
     }
 
-    public String getLocationName() {
-        return locationName;
+    public String getWarehouseAreaName() {
+        return warehouseAreaName;
     }
 
-    public void setLocationName(String locationName) {
-        this.locationName = locationName;
-    }
-
-    public String getMaterialName() {
-        return materialName;
-    }
-
-    public void setMaterialName(String materialName) {
-        this.materialName = materialName;
-    }
-
-    public String getMaterialCode() {
-        return materialCode;
-    }
-
-    public void setMaterialCode(String materialCode) {
-        this.materialCode = materialCode;
+    public void setWarehouseAreaName(String warehouseAreaName) {
+        this.warehouseAreaName = warehouseAreaName;
     }
 
     public String getMaterialType() {
@@ -64,5 +47,13 @@ public class WarehouseSummaryRequestDTO {
 
     public void setItemPerPage(Integer itemPerPage) {
         this.itemPerPage = itemPerPage;
+    }
+
+    public Boolean getRefreshCache() {
+        return refreshCache;
+    }
+
+    public void setRefreshCache(Boolean refreshCache) {
+        this.refreshCache = refreshCache;
     }
 }

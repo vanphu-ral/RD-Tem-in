@@ -244,6 +244,12 @@ export interface WarehouseSummaryStats {
   unavailableQuantity: number;
 }
 
+export interface WarehouseAreaOption {
+  areaId: number;
+  areaName: string;
+  areaDescription: string;
+}
+
 export interface WarehouseAreaSummaryRow {
   areaCode: string;
   areaName: string;
@@ -260,12 +266,11 @@ export interface WarehouseSummaryResponse {
 
 export interface WarehouseSummaryFilters {
   warehouseName?: string;
-  locationName?: string;
-  materialName?: string;
-  materialCode?: string;
+  warehouseAreaName?: string;
   materialType?: string;
   pageNumber?: number;
   itemPerPage?: number;
+  refreshCache?: boolean;
 }
 export interface APIDetailResponse {
   inventories: RawGraphQLMaterial[];
@@ -628,16 +633,18 @@ export class ListMaterialService {
   ): Observable<WarehouseSummaryResponse> {
     const body = {
       warehouseName: filters.warehouseName ?? "",
-      locationName: filters.locationName ?? "",
-      materialName: filters.materialName ?? "",
-      materialCode: filters.materialCode ?? "",
+      warehouseAreaName: filters.warehouseAreaName ?? "",
       materialType: filters.materialType ?? "",
       pageNumber: filters.pageNumber ?? 1,
       itemPerPage: filters.itemPerPage ?? 50,
     };
 
+    const options = filters.refreshCache
+      ? { params: { refreshCache: "true" } }
+      : {};
+
     return this.http
-      .post<WarehouseSummaryResponse>(this.apiWarehouseSummary, body)
+      .post<WarehouseSummaryResponse>(this.apiWarehouseSummary, body, options)
       .pipe(
         catchError((err) => {
           console.error("Lỗi khi lấy tổng hợp kho: ", err);
@@ -655,6 +662,29 @@ export class ListMaterialService {
         }),
       );
   }
+
+  fetchWarehouseAreas(): Observable<WarehouseAreaOption[]> {
+    return this.http
+      .get<WarehouseAreaOption[]>(`${this.apiLocations}/area`)
+      .pipe(
+        catchError((err) => {
+          console.error("Lỗi khi lấy danh sách kho: ", err);
+          return of([]);
+        }),
+      );
+  }
+
+  fetchWarehouseMaterialTypes(): Observable<string[]> {
+    return this.http
+      .get<string[]>(`${this.apiWarehouseSummary}/material-types`)
+      .pipe(
+        catchError((err) => {
+          console.error("Lỗi khi lấy danh sách chủng loại: ", err);
+          return of([]);
+        }),
+      );
+  }
+
   //  lấy dư liệu cho trang danh sach
 
   fetchMaterialsData(
