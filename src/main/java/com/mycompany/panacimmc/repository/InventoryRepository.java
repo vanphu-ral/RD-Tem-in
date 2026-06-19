@@ -3,6 +3,7 @@ package com.mycompany.panacimmc.repository;
 import com.mycompany.panacimmc.domain.Inventory;
 import com.mycompany.panacimmc.domain.InventoryResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaItemSummaryResponse;
+import com.mycompany.panacimmc.domain.WarehouseAreaLocationRawResponse;
 import com.mycompany.panacimmc.domain.WarehouseSummaryStatsCombined;
 import java.util.List;
 import javax.transaction.Transactional;
@@ -1041,5 +1042,66 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         String locationName,
         String materialName,
         String materialCode
+    );
+
+    @Query(
+        value = "SELECT \n" +
+        "    l.Location_Id AS locationId,\n" +
+        "    l.Location_Name AS locationName,\n" +
+        "    l.Location_FullName AS locationFullName,\n" +
+        "    l.Location_XPos AS xPos,\n" +
+        "    l.Location_YPos AS yPos,\n" +
+        "    l.Location_ProductLimit AS productLimit,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END AS itemCode,\n" +
+        "    ISNULL(SUM(a.Inventory_Quantity), 0) AS quantity,\n" +
+        "    ISNULL(COUNT(a.Inventory_MaterialIdentifier), 0) AS materialIdentifierCount\n" +
+        "FROM Location l\n" +
+        "INNER JOIN Area ar ON ar.Area_Id = l.Location_AreaId\n" +
+        "LEFT JOIN Inventory a ON a.Inventory_LocationId = l.Location_Id\n" +
+        "    AND a.Inventory_Status IN (3,6,19)\n" +
+        "    AND a.Inventory_Quantity > 0\n" +
+        "OUTER APPLY (\n" +
+        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
+        "    FROM InventoryMaterialTraceDetail\n" +
+        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
+        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        ") d1\n" +
+        "WHERE LTRIM(RTRIM(ISNULL(NULLIF(ar.Area_Name, N''), ISNULL(l.Location_AreaName, N'')))) = LTRIM(RTRIM(:areaCode))\n" +
+        "AND (\n" +
+        "    LTRIM(RTRIM(:areaName)) = N''\n" +
+        "    OR LTRIM(RTRIM(ISNULL(ar.Area_Description, N''))) = LTRIM(RTRIM(:areaName))\n" +
+        ")\n" +
+        "AND (\n" +
+        "    :searchLocations = 0\n" +
+        "    OR l.Location_Name LIKE :locationPattern\n" +
+        "    OR l.Location_FullName LIKE :locationPattern\n" +
+        ")\n" +
+        "AND (\n" +
+        "    :searchLocations = 1\n" +
+        "    OR EXISTS (\n" +
+        "        SELECT 1 FROM Inventory inv\n" +
+        "        WHERE inv.Inventory_LocationId = l.Location_Id\n" +
+        "          AND inv.Inventory_Status IN (3,6,19)\n" +
+        "          AND inv.Inventory_Quantity > 0\n" +
+        "    )\n" +
+        ")\n" +
+        "GROUP BY l.Location_Id, l.Location_Name, l.Location_FullName, l.Location_XPos, l.Location_YPos,\n" +
+        "    l.Location_ProductLimit,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END",
+        nativeQuery = true
+    )
+    List<WarehouseAreaLocationRawResponse> getWarehouseAreaLocationBreakdown(
+        @Param("areaCode") String areaCode,
+        @Param("areaName") String areaName,
+        @Param("searchLocations") int searchLocations,
+        @Param("locationPattern") String locationPattern
     );
 }

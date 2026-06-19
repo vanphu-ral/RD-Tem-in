@@ -1,6 +1,8 @@
 package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.domain.InventoriesResponse;
+import com.mycompany.myapp.domain.WarehouseAreaLocationDto;
+import com.mycompany.myapp.domain.WarehouseAreaLocationsResponse;
 import com.mycompany.myapp.domain.WarehouseAreaSummaryRowDto;
 import com.mycompany.myapp.domain.WarehouseSummaryResponse;
 import com.mycompany.myapp.domain.WarehouseSummaryStatsDto;
@@ -10,6 +12,7 @@ import com.mycompany.myapp.service.dto.WarehouseSummaryRequestDTO;
 import com.mycompany.panacimmc.domain.Inventory;
 import com.mycompany.panacimmc.domain.InventoryResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaItemSummaryResponse;
+import com.mycompany.panacimmc.domain.WarehouseAreaLocationRawResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaSummaryResponse;
 import com.mycompany.panacimmc.domain.WarehouseSummaryStatsCombined;
 import com.mycompany.panacimmc.repository.InventoryRepository;
@@ -21,11 +24,14 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -495,6 +501,155 @@ public class InventoryService {
 
     public List<String> getWarehouseSummaryMaterialTypes() {
         return warehouseSummarySapCacheService.getDistinctGroupNames();
+    }
+
+    public WarehouseAreaLocationsResponse getWarehouseAreaLocations(
+        String areaCode,
+        String areaName,
+        String selectedMaterialType,
+        String locationSearch
+    ) {
+        String normalizedAreaCode = Optional.ofNullable(areaCode)
+            .orElse("")
+            .trim();
+        String normalizedAreaName = Optional.ofNullable(areaName)
+            .orElse("")
+            .trim();
+        String normalizedMaterialType = Optional.ofNullable(
+            selectedMaterialType
+        )
+            .orElse("")
+            .trim();
+        String normalizedSearch = Optional.ofNullable(locationSearch)
+            .orElse("")
+            .trim();
+
+        int searchLocations = normalizedSearch.isEmpty() ? 0 : 1;
+        String locationPattern = searchLocations == 1
+            ? "%" + normalizedSearch + "%"
+            : "%";
+
+        List<WarehouseAreaLocationRawResponse> rawRows =
+            inventoryRepository.getWarehouseAreaLocationBreakdown(
+                normalizedAreaCode,
+                normalizedAreaName,
+                searchLocations,
+                locationPattern
+            );
+
+        Map<Long, WarehouseAreaLocationDto> grouped = new LinkedHashMap<>();
+        Map<Long, Map<String, Integer>> typeQtyByLocation = new HashMap<>();
+
+        for (WarehouseAreaLocationRawResponse row : rawRows) {
+            if (row.getLocationId() == null) {
+                continue;
+            }
+
+            WarehouseAreaLocationDto dto = grouped.computeIfAbsent(
+                row.getLocationId(),
+                id -> {
+                    WarehouseAreaLocationDto loc =
+                        new WarehouseAreaLocationDto();
+                    loc.setLocationId(row.getLocationId());
+                    loc.setLocationName(row.getLocationName());
+                    loc.setLocationFullName(row.getLocationFullName());
+                    loc.setXPos(row.getXPos());
+                    loc.setYPos(row.getYPos());
+                    loc.setProductLimit(row.getProductLimit());
+                    loc.setTotalQuantity(0);
+                    loc.setMaterialIdentifierCount(0);
+                    return loc;
+                }
+            );
+
+            int qty = Optional.ofNullable(row.getQuantity()).orElse(0);
+            int qrCount = Optional.ofNullable(
+                row.getMaterialIdentifierCount()
+            ).orElse(0);
+            dto.setTotalQuantity(
+                Optional.ofNullable(dto.getTotalQuantity()).orElse(0) + qty
+            );
+            dto.setMaterialIdentifierCount(
+                Optional.ofNullable(dto.getMaterialIdentifierCount()).orElse(
+                    0
+                ) +
+                qrCount
+            );
+
+            String itemCode = Optional.ofNullable(row.getItemCode())
+                .map(String::trim)
+                .orElse("");
+            if (!itemCode.isEmpty() && qty > 0) {
+                String groupName =
+                    warehouseSummarySapCacheService.resolveGroupName(itemCode);
+                if (!"-".equals(groupName)) {
+                    typeQtyByLocation
+                        .computeIfAbsent(row.getLocationId(), k ->
+                            new HashMap<>()
+                        )
+                        .merge(groupName, qty, Integer::sum);
+                }
+            }
+        }
+
+        Set<String> legendTypes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+        for (WarehouseAreaLocationDto dto : grouped.values()) {
+            Map<String, Integer> typeQty = typeQtyByLocation.getOrDefault(
+                dto.getLocationId(),
+                Map.of()
+            );
+            List<String> types = typeQty
+                .entrySet()
+                .stream()
+                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+            dto.setMaterialTypes(types);
+            dto.setMaterialTypeCount(types.size());
+            dto.setDominantMaterialType(types.isEmpty() ? "-" : types.get(0));
+            dto.setEmpty(
+                Optional.ofNullable(dto.getTotalQuantity()).orElse(0) <= 0
+            );
+
+            boolean containsSelected =
+                !normalizedMaterialType.isEmpty() &&
+                !"-".equals(normalizedMaterialType) &&
+                types
+                    .stream()
+                    .anyMatch(type ->
+                        type.equalsIgnoreCase(normalizedMaterialType)
+                    );
+            dto.setContainsSelectedMaterialType(containsSelected);
+
+            legendTypes.addAll(types);
+        }
+
+        List<WarehouseAreaLocationDto> locations = grouped
+            .values()
+            .stream()
+            .sorted(
+                Comparator.comparing(
+                    (WarehouseAreaLocationDto loc) ->
+                        !normalizedMaterialType.isEmpty() &&
+                        !loc.isContainsSelectedMaterialType()
+                ).thenComparing(
+                    loc ->
+                        Optional.ofNullable(loc.getLocationName()).orElse(""),
+                    String.CASE_INSENSITIVE_ORDER
+                )
+            )
+            .collect(Collectors.toList());
+
+        WarehouseAreaLocationsResponse response =
+            new WarehouseAreaLocationsResponse();
+        response.setAreaCode(normalizedAreaCode);
+        response.setAreaName(normalizedAreaName);
+        response.setSelectedMaterialType(normalizedMaterialType);
+        response.setLegendMaterialTypes(new ArrayList<>(legendTypes));
+        response.setLocations(locations);
+        response.setTotalCount(locations.size());
+        return response;
     }
 
     public WarehouseSummaryResponse getWarehouseSummary(

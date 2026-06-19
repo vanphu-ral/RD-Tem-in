@@ -30,7 +30,6 @@
     <article class="kpi-card">
       <span class="kpi-label">TỔNG SỐ VỊ TRÍ CÓ TỒN</span>
       <strong class="kpi-value">{{ formatNumber(stats.locationCount) }}</strong>
-      <!-- <span class="kpi-unit">Kệ</span> -->
     </article>
     <article class="kpi-card">
       <span class="kpi-label">SỐ VỊ TRÍ KHO ĐANG TRỐNG</span>
@@ -43,8 +42,6 @@
       <strong class="kpi-value">{{
         formatNumber(stats.materialTypeCount)
       }}</strong>
-      <!-- <span class="kpi-unit">Phân loại</span> -->
-      <!-- <span class="kpi-hint">Đầy đủ nhóm dòng kỹ thuật</span> -->
     </article>
     <article class="kpi-card highlight-blue">
       <span class="kpi-label">SỐ LƯỢNG TỒN KHO SẴN SÀNG</span>
@@ -57,7 +54,6 @@
       <strong class="kpi-value">{{
         formatNumber(stats.unavailableQuantity)
       }}</strong>
-      <!-- <span class="kpi-unit">Unavailable</span> -->
     </article>
   </section>
 
@@ -125,88 +121,487 @@
     <button mat-raised-button class="btn-search" type="submit">Tìm kiếm</button>
   </form>
 
-  <section class="table-panel">
-    <div class="table-panel-header">
-      <div class="table-title">
-        <fa-icon [icon]="faWarehouse"></fa-icon>
-        <span>BẢNG THỐNG KÊ KHO</span>
+  <mat-tab-group
+    class="main-tabs"
+    [(selectedIndex)]="selectedTabIndex"
+    animationDuration="200ms"
+  >
+    <mat-tab label="Thống kê">
+      <section class="table-panel">
+        <div class="table-panel-header">
+          <div class="table-title">
+            <fa-icon [icon]="faWarehouse"></fa-icon>
+            <span>BẢNG THỐNG KÊ KHO</span>
+          </div>
+          <button
+            mat-icon-button
+            type="button"
+            class="btn-refresh-table"
+            (click)="onRefresh()"
+            [disabled]="isLoading"
+            aria-label="Làm mới"
+          >
+            <fa-icon [icon]="faRotateRight"></fa-icon>
+          </button>
+        </div>
+
+        <p class="table-hint">
+          Nhấp vào một dòng để xem sơ đồ vị trí kho tương ứng ở tab Sơ đồ kho.
+        </p>
+
+        <div class="table-wrapper">
+          <table
+            mat-table
+            [dataSource]="dataSource"
+            class="summary-table"
+            aria-label="Bảng thống kê kho"
+          >
+            <ng-container matColumnDef="areaCode">
+              <th mat-header-cell *matHeaderCellDef>Mã kho</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="area-badge">{{ row.areaCode || "-" }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="areaName">
+              <th mat-header-cell *matHeaderCellDef>Tên khu vực</th>
+              <td mat-cell *matCellDef="let row">{{ row.areaName || "-" }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="materialType">
+              <th mat-header-cell *matHeaderCellDef>Chủng loại hàng hoá</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.materialType || "-" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="materialIdentifierCount">
+              <th mat-header-cell *matHeaderCellDef class="col-qty">
+                Số lượng mã QR
+              </th>
+              <td mat-cell *matCellDef="let row" class="col-qty">
+                {{ formatNumber(row.materialIdentifierCount) }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="quantity">
+              <th mat-header-cell *matHeaderCellDef class="col-qty">
+                Số lượng tồn
+              </th>
+              <td mat-cell *matCellDef="let row" class="col-qty">
+                {{ formatNumber(row.quantity) }}
+              </td>
+            </ng-container>
+
+            <tr
+              mat-header-row
+              *matHeaderRowDef="displayedColumns; sticky: true"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: displayedColumns"
+              class="summary-row-clickable"
+              [class.summary-row-active]="isSummaryRowActive(row)"
+              (click)="onSummaryRowClick(row)"
+            ></tr>
+
+            <tr class="empty-row" *matNoDataRow>
+              <td [attr.colspan]="displayedColumns.length">
+                Không có dữ liệu phù hợp.
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <mat-paginator
+          class="table-paginator"
+          [length]="length"
+          [pageIndex]="pageIndex"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="pageSizeOptions"
+          (page)="onPageChange($event)"
+          showFirstLastButtons
+        ></mat-paginator>
+      </section>
+    </mat-tab>
+
+    <mat-tab label="Sơ đồ kho">
+      <div class="floor-plan-tab-content">
+        <ng-container *ngIf="floorPlanContext; else floorPlanEmpty">
+          <section class="floor-plan-stage">
+            <div class="floor-plan-header">
+              <div class="floor-plan-title">
+                <fa-icon [icon]="faMapLocationDot"></fa-icon>
+                <div>
+                  <strong
+                    >{{ floorPlanContext.areaCode }} —
+                    {{ floorPlanContext.areaName }}</strong
+                  >
+                  <span class="floor-plan-subtitle"
+                    >Chủng loại:
+                    {{ floorPlanContext.materialType || "-" }}</span
+                  >
+                </div>
+              </div>
+              <span class="floor-plan-count"
+                >{{ formatNumber(floorPlanLocationCount) }} vị trí</span
+              >
+            </div>
+
+            <form
+              class="floor-plan-toolbar"
+              [formGroup]="locationSearchForm"
+              (ngSubmit)="$event.preventDefault()"
+            >
+              <mat-form-field
+                appearance="outline"
+                class="location-search-field"
+              >
+                <input
+                  matInput
+                  placeholder="Tìm vị trí (tên kệ, mã location)..."
+                  formControlName="locationSearch"
+                />
+              </mat-form-field>
+              <span class="search-hint"
+                >Gõ để tìm cả vị trí trống. Mặc định chỉ hiển thị vị trí có
+                tồn.</span
+              >
+            </form>
+
+            <div
+              class="floor-plan-loading"
+              *ngIf="isFloorPlanLoading"
+              aria-live="polite"
+            >
+              <div class="loader"></div>
+              <span>Đang tải sơ đồ...</span>
+            </div>
+
+            <div class="floor-plan-body" *ngIf="!isFloorPlanLoading">
+              <div class="floor-plan-map-section">
+                <div class="legend-row" *ngIf="legendMaterialTypes.length">
+                  <span class="legend-title">Chú thích chủng loại:</span>
+                  <span
+                    class="legend-item"
+                    *ngFor="let type of legendMaterialTypes"
+                  >
+                    <span
+                      class="legend-dot"
+                      [style.background]="getMaterialTypeColor(type)"
+                    ></span>
+                    {{ type }}
+                  </span>
+                </div>
+
+                <div
+                  class="location-grid-scroll"
+                  *ngIf="floorPlanLocations.length"
+                >
+                  <div class="location-grid">
+                    <button
+                      type="button"
+                      class="location-card"
+                      *ngFor="let location of floorPlanLocations"
+                      [class.location-card-selected]="
+                        isLocationSelected(location)
+                      "
+                      [class.location-card-empty]="location.empty"
+                      [style.borderColor]="getLocationCardColor(location)"
+                      (click)="onLocationSelect(location)"
+                    >
+                      <span class="location-card-name">{{
+                        location.locationName || location.locationFullName
+                      }}</span>
+                      <span class="location-card-qty"
+                        >Tồn {{ formatNumber(location.totalQuantity) }}</span
+                      >
+                      <div
+                        class="location-card-progress"
+                        *ngIf="hasProductCapacity(location)"
+                      >
+                        <mat-progress-bar
+                          mode="determinate"
+                          [value]="getFillPercent(location)"
+                          [color]="location.empty ? 'warn' : 'primary'"
+                        ></mat-progress-bar>
+                        <span class="progress-label"
+                          >{{ getFillPercent(location) }}% · Max
+                          {{ getFillMaxLabel(location) }}</span
+                        >
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <p
+                  class="floor-plan-empty-msg"
+                  *ngIf="!floorPlanLocations.length"
+                >
+                  Không có vị trí phù hợp. Thử tìm kiếm tên location khác.
+                </p>
+              </div>
+
+              <aside class="floor-plan-sidebar">
+                <div class="location-list-panel">
+                  <h3>Danh sách vị trí</h3>
+                  <ul class="location-list">
+                    <li
+                      *ngFor="let location of floorPlanLocations"
+                      class="location-list-card-wrap"
+                    >
+                      <button
+                        type="button"
+                        class="location-list-item"
+                        [class.active]="isLocationSelected(location)"
+                        (click)="onLocationSelect(location)"
+                      >
+                        <span
+                          class="location-list-accent"
+                          [style.background]="getLocationCardColor(location)"
+                        ></span>
+                        <span class="location-list-content">
+                          <span class="location-list-name">{{
+                            location.locationName || location.locationFullName
+                          }}</span>
+                          <span class="location-list-meta">
+                            {{ location.materialTypeCount }} chủng loại
+                            <ng-container *ngIf="hasProductCapacity(location)">
+                              · {{ getFillPercent(location) }}% sức chứa
+                            </ng-container>
+                          </span>
+                        </span>
+                        <span class="location-list-qty">{{
+                          formatNumber(location.totalQuantity)
+                        }}</span>
+                      </button>
+                    </li>
+                  </ul>
+                  <p
+                    class="location-list-empty"
+                    *ngIf="!floorPlanLocations.length"
+                  >
+                    Chưa có dữ liệu.
+                  </p>
+                </div>
+
+                <div class="location-detail-panel">
+                  <h3>Chi tiết vị trí</h3>
+                  <ng-container
+                    *ngIf="selectedLocation; else noLocationSelected"
+                  >
+                    <div class="location-detail-card">
+                      <div class="location-detail-head">
+                        <span
+                          class="location-detail-badge"
+                          [style.background]="
+                            getLocationCardColor(selectedLocation)
+                          "
+                        ></span>
+                        <div>
+                          <strong class="location-detail-title">{{
+                            selectedLocation.locationName ||
+                              selectedLocation.locationFullName
+                          }}</strong>
+                          <span class="location-detail-subtitle">{{
+                            selectedLocation.locationFullName || "-"
+                          }}</span>
+                        </div>
+                      </div>
+                      <dl class="location-detail-grid">
+                        <div class="detail-field">
+                          <dt>Số lượng tồn</dt>
+                          <dd>
+                            {{ formatNumber(selectedLocation.totalQuantity) }}
+                          </dd>
+                        </div>
+                        <div class="detail-field">
+                          <dt>Số mã QR</dt>
+                          <dd>
+                            {{
+                              formatNumber(
+                                selectedLocation.materialIdentifierCount
+                              )
+                            }}
+                          </dd>
+                        </div>
+                        <div class="detail-field">
+                          <dt>Số chủng loại</dt>
+                          <dd>
+                            {{
+                              formatNumber(selectedLocation.materialTypeCount)
+                            }}
+                          </dd>
+                        </div>
+                        <div class="detail-field">
+                          <dt>Sức chứa</dt>
+                          <dd>
+                            <ng-container
+                              *ngIf="
+                                hasProductCapacity(selectedLocation);
+                                else noCapacity
+                              "
+                            >
+                              {{ formatNumber(selectedLocation.productLimit) }}
+                              ({{ getFillPercent(selectedLocation) }}%)
+                            </ng-container>
+                            <ng-template #noCapacity>Chưa cấu hình</ng-template>
+                          </dd>
+                        </div>
+                        <div class="detail-field detail-field-wide">
+                          <dt>Chủng loại chính</dt>
+                          <dd>
+                            {{ selectedLocation.dominantMaterialType || "-" }}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </ng-container>
+                  <ng-template #noLocationSelected>
+                    <div
+                      class="location-detail-card location-detail-card-empty"
+                    >
+                      <p class="location-detail-placeholder">
+                        Chọn một vị trí trên sơ đồ hoặc danh sách bên trên.
+                      </p>
+                    </div>
+                  </ng-template>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="location-materials-panel">
+            <div class="table-panel-header">
+              <div class="table-title">
+                <fa-icon [icon]="faWarehouse"></fa-icon>
+                <span>
+                  Vật tư trong vị trí:
+                  {{
+                    selectedLocation?.locationName ||
+                      selectedLocation?.locationFullName ||
+                      "—"
+                  }}
+                </span>
+              </div>
+            </div>
+
+            <div
+              class="materials-loading"
+              *ngIf="isMaterialsLoading"
+              aria-live="polite"
+            >
+              Đang tải vật tư...
+            </div>
+
+            <div class="table-wrapper materials-table-wrapper">
+              <table
+                mat-table
+                [dataSource]="locationMaterialsSource"
+                class="summary-table"
+                aria-label="Bảng vật tư theo location"
+              >
+                <ng-container matColumnDef="materialIdentifier">
+                  <th mat-header-cell *matHeaderCellDef>Mã QR</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.materialIdentifier || "-" }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="materialName">
+                  <th mat-header-cell *matHeaderCellDef>Tên vật tư</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.materialName || "-" }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="itemCode">
+                  <th mat-header-cell *matHeaderCellDef>Mã vật tư</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.itemCode || "-" }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="partNumber">
+                  <th mat-header-cell *matHeaderCellDef>Part number</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.partNumber || "-" }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="quantity">
+                  <th mat-header-cell *matHeaderCellDef class="col-qty">
+                    Số lượng
+                  </th>
+                  <td mat-cell *matCellDef="let row" class="col-qty">
+                    {{ formatNumber(row.quantity) }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="lotNumber">
+                  <th mat-header-cell *matHeaderCellDef>Lot</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.lotNumber || "-" }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="materialType">
+                  <th mat-header-cell *matHeaderCellDef>Chủng loại</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.materialType || "-" }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Trạng thái</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span
+                      class="inventory-status"
+                      [class.status-ready]="
+                        row.status == 3 || row.status == '3'
+                      "
+                      [class.status-empty]="
+                        row.status == 6 || row.status == '6'
+                      "
+                      [class.status-expired]="
+                        row.status == 19 || row.status == '19'
+                      "
+                    >
+                      {{ formatInventoryStatus(row.status) }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <tr
+                  mat-header-row
+                  *matHeaderRowDef="locationMaterialColumns; sticky: true"
+                ></tr>
+                <tr
+                  mat-row
+                  *matRowDef="let row; columns: locationMaterialColumns"
+                ></tr>
+
+                <tr class="empty-row" *matNoDataRow>
+                  <td [attr.colspan]="locationMaterialColumns.length">
+                    {{
+                      selectedLocation
+                        ? "Không có vật tư trong vị trí này."
+                        : "Chọn vị trí để xem vật tư."
+                    }}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </section>
+        </ng-container>
+
+        <ng-template #floorPlanEmpty>
+          <div class="floor-plan-placeholder">
+            <fa-icon [icon]="faMapLocationDot"></fa-icon>
+            <p>Chọn một dòng ở tab Thống kê để xem sơ đồ vị trí kho.</p>
+          </div>
+        </ng-template>
       </div>
-      <button
-        mat-icon-button
-        type="button"
-        class="btn-refresh-table"
-        (click)="onRefresh()"
-        [disabled]="isLoading"
-        aria-label="Làm mới"
-      >
-        <fa-icon [icon]="faRotateRight"></fa-icon>
-      </button>
-    </div>
-
-    <div class="table-wrapper">
-      <table
-        mat-table
-        [dataSource]="dataSource"
-        class="summary-table"
-        aria-label="Bảng thống kê kho"
-      >
-        <ng-container matColumnDef="areaCode">
-          <th mat-header-cell *matHeaderCellDef>Mã kho</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="area-badge">{{ row.areaCode || "-" }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="areaName">
-          <th mat-header-cell *matHeaderCellDef>Tên khu vực</th>
-          <td mat-cell *matCellDef="let row">{{ row.areaName || "-" }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="materialType">
-          <th mat-header-cell *matHeaderCellDef>Chủng loại hàng hoá</th>
-          <td mat-cell *matCellDef="let row">{{ row.materialType || "-" }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="materialIdentifierCount">
-          <th mat-header-cell *matHeaderCellDef class="col-qty">
-            Số lượng mã QR
-          </th>
-          <td mat-cell *matCellDef="let row" class="col-qty">
-            {{ formatNumber(row.materialIdentifierCount) }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="quantity">
-          <th mat-header-cell *matHeaderCellDef class="col-qty">
-            Số lượng tồn
-          </th>
-          <td mat-cell *matCellDef="let row" class="col-qty">
-            {{ formatNumber(row.quantity) }}
-          </td>
-        </ng-container>
-
-        <tr
-          mat-header-row
-          *matHeaderRowDef="displayedColumns; sticky: true"
-        ></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-
-        <tr class="empty-row" *matNoDataRow>
-          <td [attr.colspan]="displayedColumns.length">
-            Không có dữ liệu phù hợp.
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <mat-paginator
-      class="table-paginator"
-      [length]="length"
-      [pageIndex]="pageIndex"
-      [pageSize]="pageSize"
-      [pageSizeOptions]="pageSizeOptions"
-      (page)="onPageChange($event)"
-      showFirstLastButtons
-    ></mat-paginator>
-  </section>
+    </mat-tab>
+  </mat-tab-group>
 </div>

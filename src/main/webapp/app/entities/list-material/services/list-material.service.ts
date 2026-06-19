@@ -273,14 +273,60 @@ export interface WarehouseSummaryFilters {
   itemPerPage?: number;
   refreshCache?: boolean;
 }
-export interface APIDetailResponse {
-  inventories: RawGraphQLMaterial[];
-  totalItems: number;
+
+export interface WarehouseAreaLocation {
+  locationId: number;
+  locationName: string;
+  locationFullName: string;
+  xPos?: number | null;
+  yPos?: number | null;
+  productLimit?: number | null;
+  totalQuantity: number;
+  materialIdentifierCount: number;
+  materialTypeCount: number;
+  dominantMaterialType: string;
+  containsSelectedMaterialType: boolean;
+  empty: boolean;
+  materialTypes: string[];
+}
+
+export interface WarehouseAreaLocationsResponse {
+  areaCode: string;
+  areaName: string;
+  selectedMaterialType: string;
+  legendMaterialTypes: string[];
+  locations: WarehouseAreaLocation[];
+  totalCount: number;
+}
+
+export interface WarehouseFloorPlanContext {
+  areaCode: string;
+  areaName: string;
+  materialType: string;
+}
+
+export interface WarehouseLocationInventoryRow {
+  materialIdentifier?: string;
+  materialName?: string;
+  userData4?: string;
+  itemCode?: string;
+  partNumber?: string;
+  quantity?: number;
+  status?: string | number;
+  lotNumber?: string;
+  materialType?: string;
+  updatedDate?: string;
 }
 
 export interface ItemDataDto {
   itemCode?: string;
   itemName?: string;
+  uIGroupName?: string;
+}
+
+export interface APIDetailResponse {
+  inventories: RawGraphQLMaterial[];
+  totalItems: number;
 }
 
 @Injectable({
@@ -410,6 +456,7 @@ export class ListMaterialService {
 
   /** Cache itemName theo mã vật tư (phần trước dấu '-' của userData4). */
   private _itemNameCache = new Map<string, string>();
+  private _groupNameCache = new Map<string, string>();
 
   private _materialsDataFetchedOnce = false;
   private readonly defaultPageSize = 20;
@@ -509,6 +556,7 @@ export class ListMaterialService {
         Array<{
           itemCode?: string;
           itemName?: string;
+          uIGroupName?: string;
           uPartNumber?: string | null;
         }>
       >(`${this.apiItemData}/itemCode/${encodeURIComponent(code)}`)
@@ -519,10 +567,14 @@ export class ListMaterialService {
           if (!first) {
             return null;
           }
-          return {
+          const dto: ItemDataDto = {
             itemCode: first.itemCode ?? code,
             itemName: first.itemName ?? "",
+            uIGroupName: first.uIGroupName ?? "",
           };
+          this._itemNameCache.set(code, dto.itemName ?? "");
+          this._groupNameCache.set(code, dto.uIGroupName ?? "");
+          return dto;
         }),
         catchError(() => of(null)),
       );
@@ -685,6 +737,55 @@ export class ListMaterialService {
           return of([]);
         }),
       );
+  }
+
+  fetchWarehouseAreaLocations(params: {
+    areaCode: string;
+    areaName?: string;
+    materialType?: string;
+    locationSearch?: string;
+  }): Observable<WarehouseAreaLocationsResponse> {
+    const query = new URLSearchParams();
+    query.set("areaCode", params.areaCode ?? "");
+    query.set("areaName", params.areaName ?? "");
+    query.set("materialType", params.materialType ?? "");
+    query.set("locationSearch", params.locationSearch ?? "");
+    return this.http
+      .get<WarehouseAreaLocationsResponse>(
+        `${this.apiWarehouseSummary}/area-locations?${query.toString()}`,
+      )
+      .pipe(
+        catchError((err) => {
+          console.error("Lỗi khi lấy sơ đồ location theo kho: ", err);
+          return of({
+            areaCode: params.areaCode ?? "",
+            areaName: params.areaName ?? "",
+            selectedMaterialType: params.materialType ?? "",
+            legendMaterialTypes: [],
+            locations: [],
+            totalCount: 0,
+          });
+        }),
+      );
+  }
+
+  fetchLocationInventoryMaterials(
+    locationFullName: string,
+  ): Observable<WarehouseLocationInventoryRow[]> {
+    const encoded = encodeURIComponent(locationFullName);
+    const url = this.applicationConfigService.getEndpointFor(
+      `/api/inventory/scan/${encoded}`,
+    );
+    return this.http.get<WarehouseLocationInventoryRow[]>(url).pipe(
+      switchMap((rows) => this.enrichLocationInventoryRows(rows ?? [])),
+      catchError((err) => {
+        if (err.status === 404) {
+          return of([]);
+        }
+        console.error("Lỗi khi lấy vật tư theo location: ", err);
+        return of([]);
+      }),
+    );
   }
 
   //  lấy dư liệu cho trang danh sach
@@ -1580,6 +1681,62 @@ export class ListMaterialService {
     if (savedIds) {
       this._selectedIds.next(JSON.parse(savedIds));
     }
+  }
+
+  private enrichLocationInventoryRows(
+    rows: WarehouseLocationInventoryRow[],
+  ): Observable<WarehouseLocationInventoryRow[]> {
+    if (!rows.length) {
+      return of([]);
+    }
+
+    const baseRows = rows.map((row) => {
+      const itemCode = this.extractItemCodeFromUserData4(row.userData4);
+      return {
+        ...row,
+        itemCode: itemCode ?? undefined,
+      };
+    });
+
+    const itemCodes = [
+      ...new Set(
+        baseRows
+          .map((r) => r.itemCode)
+          .filter((code): code is string => !!code),
+      ),
+    ];
+
+    const uncachedCodes = itemCodes.filter(
+      (code) => !this._itemNameCache.has(code),
+    );
+
+    const apply = (): WarehouseLocationInventoryRow[] =>
+      baseRows.map((row) => {
+        const code = row.itemCode;
+        const cachedName = code ? this._itemNameCache.get(code) : undefined;
+        const cachedGroup = code ? this._groupNameCache.get(code) : undefined;
+        return {
+          ...row,
+          materialName: cachedName ?? row.materialName ?? "",
+          materialType: cachedGroup ?? row.materialType ?? "",
+        };
+      });
+
+    if (uncachedCodes.length === 0) {
+      return of(apply());
+    }
+
+    return forkJoin(
+      uncachedCodes.map((code) =>
+        this.getItemDataByItemCode(code).pipe(
+          catchError(() => {
+            this._itemNameCache.set(code, "");
+            this._groupNameCache.set(code, "");
+            return of(null);
+          }),
+        ),
+      ),
+    ).pipe(map(() => apply()));
   }
 
   private applyItemNamesToMaterials(

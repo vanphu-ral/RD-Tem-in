@@ -1,6 +1,7 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.domain.InventoriesResponse;
+import com.mycompany.myapp.domain.WarehouseAreaLocationsResponse;
 import com.mycompany.myapp.domain.WarehouseSummaryResponse;
 import com.mycompany.myapp.service.InventoryService;
 import com.mycompany.myapp.service.dto.InventoryDTO;
@@ -72,6 +73,21 @@ public class InventoryController {
     @GetMapping("/warehouse-summary/material-types")
     public List<String> getWarehouseSummaryMaterialTypes() {
         return this.inventoryService.getWarehouseSummaryMaterialTypes();
+    }
+
+    @GetMapping("/warehouse-summary/area-locations")
+    public WarehouseAreaLocationsResponse getWarehouseAreaLocations(
+        @RequestParam String areaCode,
+        @RequestParam(required = false, defaultValue = "") String areaName,
+        @RequestParam(required = false, defaultValue = "") String materialType,
+        @RequestParam(required = false, defaultValue = "") String locationSearch
+    ) {
+        return this.inventoryService.getWarehouseAreaLocations(
+            areaCode,
+            areaName,
+            materialType,
+            locationSearch
+        );
     }
 
     @PostMapping("/warehouse-summary")

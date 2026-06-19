@@ -8,6 +8,8 @@ import { MatInputModule } from "@angular/material/input";
 import { MatTableModule } from "@angular/material/table";
 import { MatPaginatorModule } from "@angular/material/paginator";
 import { MatAutocompleteModule } from "@angular/material/autocomplete";
+import { MatTabsModule } from "@angular/material/tabs";
+import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { SharedModule } from "app/shared/shared.module";
 import { ListMaterialWarehouseSummaryComponent } from "./list-material-warehouse-summary.component";
 import { ListMaterialWarehouseSummaryRoutingModule } from "./list-material-warehouse-summary-routing.module";
@@ -24,6 +26,8 @@ import { ListMaterialWarehouseSummaryRoutingModule } from "./list-material-wareh
     MatTableModule,
     MatPaginatorModule,
     MatAutocompleteModule,
+    MatTabsModule,
+    MatProgressBarModule,
     SharedModule,
     ListMaterialWarehouseSummaryRoutingModule,
   ],
