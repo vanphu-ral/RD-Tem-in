@@ -41,6 +41,8 @@ public class ProductInPoStatusDTO implements Serializable {
     @Size(max = 50)
     private String UOMCode;
 
+    private Long listRequestCreateTemId;
+
     public Long getId() {
         return id;
     }
@@ -127,5 +129,13 @@ public class ProductInPoStatusDTO implements Serializable {
 
     public void setUOMCode(String UOMCode) {
         this.UOMCode = UOMCode;
+    }
+
+    public Long getListRequestCreateTemId() {
+        return listRequestCreateTemId;
+    }
+
+    public void setListRequestCreateTemId(Long listRequestCreateTemId) {
+        this.listRequestCreateTemId = listRequestCreateTemId;
     }
 }

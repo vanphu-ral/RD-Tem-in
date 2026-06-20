@@ -19,7 +19,7 @@ import org.springframework.util.StringUtils;
 public class ProductInPoStatusRepository {
 
     private static final String SELECT_COLUMNS =
-        "SELECT [id], [sap_code], [product_name], [WhsCode], [UserData5], [created_at], [create_by], [quantity_by_po], [vendor], [vendor_name], [UOMCode]";
+        "SELECT [id], [sap_code], [product_name], [WhsCode], [UserData5], [created_at], [create_by], [quantity_by_po], [vendor], [vendor_name], [UOMCode], [list_request_create_tem_id]";
 
     private static final String FROM_TABLE = "FROM [product_in_po_status]";
 
@@ -65,6 +65,17 @@ public class ProductInPoStatusRepository {
         return jdbcTemplate.query(sql, this::mapRow, userData5);
     }
 
+    public Page<ProductInPoStatusDTO> findByListRequestCreateTemId(
+        Long listRequestCreateTemId,
+        Pageable pageable
+    ) {
+        return findPage(
+            "WHERE [list_request_create_tem_id] = ?",
+            List.of(listRequestCreateTemId),
+            pageable
+        );
+    }
+
     public Page<ProductInPoStatusDTO> search(
         String keyword,
         Pageable pageable
@@ -89,7 +100,7 @@ public class ProductInPoStatusRepository {
 
     public ProductInPoStatusDTO insert(ProductInPoStatusDTO dto) {
         String sql =
-            "INSERT INTO [product_in_po_status] ([sap_code], [product_name], [WhsCode], [UserData5], [create_by], [quantity_by_po], [vendor], [vendor_name], [UOMCode]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "INSERT INTO [product_in_po_status] ([sap_code], [product_name], [WhsCode], [UserData5], [create_by], [quantity_by_po], [vendor], [vendor_name], [UOMCode], [list_request_create_tem_id]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(
@@ -110,6 +121,7 @@ public class ProductInPoStatusRepository {
                 ps.setString(7, dto.getVendor());
                 ps.setString(8, dto.getVendorName());
                 ps.setString(9, dto.getUOMCode());
+                ps.setObject(10, dto.getListRequestCreateTemId());
                 return ps;
             },
             keyHolder
@@ -121,7 +133,7 @@ public class ProductInPoStatusRepository {
 
     public Optional<ProductInPoStatusDTO> update(ProductInPoStatusDTO dto) {
         String sql =
-            "UPDATE [product_in_po_status] SET [sap_code] = ?, [product_name] = ?, [WhsCode] = ?, [UserData5] = ?, [create_by] = ?, [quantity_by_po] = ?, [vendor] = ?, [vendor_name] = ?, [UOMCode] = ? WHERE [id] = ?";
+            "UPDATE [product_in_po_status] SET [sap_code] = ?, [product_name] = ?, [WhsCode] = ?, [UserData5] = ?, [create_by] = ?, [quantity_by_po] = ?, [vendor] = ?, [vendor_name] = ?, [UOMCode] = ?, [list_request_create_tem_id] = ? WHERE [id] = ?";
         int updated = jdbcTemplate.update(
             sql,
             dto.getSapCode(),
@@ -133,6 +145,7 @@ public class ProductInPoStatusRepository {
             dto.getVendor(),
             dto.getVendorName(),
             dto.getUOMCode(),
+            dto.getListRequestCreateTemId(),
             dto.getId()
         );
 
@@ -200,6 +213,11 @@ public class ProductInPoStatusRepository {
         dto.setVendor(rs.getString("vendor"));
         dto.setVendorName(rs.getString("vendor_name"));
         dto.setUOMCode(rs.getString("UOMCode"));
+        dto.setListRequestCreateTemId(
+            rs.getObject("list_request_create_tem_id") != null
+                ? rs.getLong("list_request_create_tem_id")
+                : null
+        );
         return dto;
     }
 }

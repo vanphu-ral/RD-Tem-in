@@ -4,6 +4,7 @@ import com.mycompany.myapp.service.dto.CreateProductInput;
 import com.mycompany.myapp.service.dto.CreateRequestWithProductsInput;
 import com.mycompany.myapp.service.dto.CreateRequestWithProductsResponse;
 import com.mycompany.myapp.web.graphql.DetailResolver;
+import com.mycompany.myapp.web.graphql.ProductInPoStatusResolver;
 import com.mycompany.myapp.web.graphql.ProductResolver;
 import com.mycompany.myapp.web.graphql.RequestResolver;
 import com.mycompany.renderQr.domain.GenerateTemResponse;
@@ -33,15 +34,18 @@ public class GraphQLConfiguration {
     private final RequestResolver requestResolver;
     private final ProductResolver productResolver;
     private final DetailResolver detailResolver;
+    private final ProductInPoStatusResolver productInPoStatusResolver;
 
     public GraphQLConfiguration(
         RequestResolver requestResolver,
         ProductResolver productResolver,
-        DetailResolver detailResolver
+        DetailResolver detailResolver,
+        ProductInPoStatusResolver productInPoStatusResolver
     ) {
         this.requestResolver = requestResolver;
         this.productResolver = productResolver;
         this.detailResolver = detailResolver;
+        this.productInPoStatusResolver = productInPoStatusResolver;
 
         // THÊM LOG ĐỂ KIỂM TRA
         log.info("==========================================");
@@ -119,6 +123,50 @@ public class GraphQLConfiguration {
                         Integer requestId = env.getArgument("requestId");
                         return requestResolver.listProductOfRequestByRequestId(
                             requestId
+                        );
+                    })
+                    .dataFetcher("productInPoStatuses", env -> {
+                        return productInPoStatusResolver.productInPoStatuses(
+                            env.getArgument("keyword"),
+                            env.getArgument("sapCode"),
+                            env.getArgument("userData5"),
+                            env.getArgument("whsCode"),
+                            env.getArgument("page"),
+                            env.getArgument("size")
+                        );
+                    })
+                    .dataFetcher("productInPoStatusBySapCode", env -> {
+                        return productInPoStatusResolver.productInPoStatusBySapCode(
+                            env.getArgument("sapCode"),
+                            env.getArgument("page"),
+                            env.getArgument("size")
+                        );
+                    })
+                    .dataFetcher("productInPoStatusByUserData5", env -> {
+                        return productInPoStatusResolver.productInPoStatusByUserData5(
+                            env.getArgument("userData5")
+                        );
+                    })
+                    .dataFetcher("productInPoStatusByWhsCode", env -> {
+                        return productInPoStatusResolver.productInPoStatusByWhsCode(
+                            env.getArgument("whsCode"),
+                            env.getArgument("page"),
+                            env.getArgument("size")
+                        );
+                    })
+                    .dataFetcher(
+                        "productInPoStatusByListRequestCreateTemId",
+                        env -> {
+                            return productInPoStatusResolver.productInPoStatusByListRequestCreateTemId(
+                                env.getArgument("listRequestCreateTemId"),
+                                env.getArgument("page"),
+                                env.getArgument("size")
+                            );
+                        }
+                    )
+                    .dataFetcher("productInPoStatus", env -> {
+                        return productInPoStatusResolver.productInPoStatus(
+                            env.getArgument("id")
                         );
                     })
             )
@@ -220,6 +268,24 @@ public class GraphQLConfiguration {
                     .dataFetcher("updateRequestCreateTem", env -> {
                         Map<String, Object> inputMap = env.getArgument("input");
                         return requestResolver.updateRequestCreateTem(inputMap);
+                    })
+                    .dataFetcher("createProductInPoStatus", env -> {
+                        Map<String, Object> inputMap = env.getArgument("input");
+                        return productInPoStatusResolver.createProductInPoStatus(
+                            inputMap
+                        );
+                    })
+                    .dataFetcher("updateProductInPoStatus", env -> {
+                        Map<String, Object> inputMap = env.getArgument("input");
+                        return productInPoStatusResolver.updateProductInPoStatus(
+                            inputMap
+                        );
+                    })
+                    .dataFetcher("deleteProductInPoStatus", env -> {
+                        Integer id = env.getArgument("id");
+                        return productInPoStatusResolver.deleteProductInPoStatus(
+                            id
+                        );
                     })
                     .dataFetcher("createProduct", env -> {
                         try {

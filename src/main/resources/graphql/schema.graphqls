@@ -1,9 +1,38 @@
+type ProductInPoStatus {
+    id: ID
+    sapCode: String
+    productName: String
+    whsCode: String
+    userData5: String
+    createdAt: String
+    createBy: String
+    quantityByPo: Int
+    vendor: String
+    vendorName: String
+    uomcode: String
+    listRequestCreateTemId: Int
+}
+
+type ProductInPoStatusPage {
+    content: [ProductInPoStatus]
+    totalElements: Int
+    page: Int
+    size: Int
+    totalPages: Int
+}
+
 type Query {
-    listRequestCreateTems(search: String, status: String, vendor: String, vendorName: String, userData5: String, createdBy: String, createdDate: String, page: Int, size: Int): RequestCreateTemPage
+    listRequestCreateTems(search: String, status: String, vendor: String, vendorName: String, userData5: String, createdBy: String, createdDate: String, WhsCode: String, page: Int, size: Int): RequestCreateTemPage
     getProductOfRequestByRequestId(requestId: Int!): [ListProductOfRequest]
     infoTemDetails: [InfoTemDetail]
     infoTemDetailsByProductId(productId: Int!): [InfoTemDetail]
     infoTemDetailsByRequestId(requestId: Int!): [InfoTemDetail]
+    productInPoStatuses(keyword: String, sapCode: String, userData5: String, whsCode: String, page: Int, size: Int): ProductInPoStatusPage
+    productInPoStatusBySapCode(sapCode: String!, page: Int, size: Int): ProductInPoStatusPage
+    productInPoStatusByUserData5(userData5: String!): [ProductInPoStatus]
+    productInPoStatusByWhsCode(whsCode: String!, page: Int, size: Int): ProductInPoStatusPage
+    productInPoStatusByListRequestCreateTemId(listRequestCreateTemId: Int!, page: Int, size: Int): ProductInPoStatusPage
+    productInPoStatus(id: Int!): ProductInPoStatus
 }
 #mutation để gọi trong configuration
 type Mutation {
@@ -17,6 +46,9 @@ type Mutation {
     updateStorageUnitForRequest(requestId: Int!, storageUnit: String!): UpdateResponse!
     deleteProduct(productId: Int!): UpdateResponse!
     deleteRequest(requestId: Int!): UpdateResponse!
+    createProductInPoStatus(input: CreateProductInPoStatusInput!): ProductInPoStatus!
+    updateProductInPoStatus(input: UpdateProductInPoStatusInput!): ProductInPoStatus!
+    deleteProductInPoStatus(id: Int!): UpdateResponse!
 }
 
 input CreateProductInput {
@@ -190,4 +222,31 @@ input UpdateProductInput {
     UploadPanacim: Boolean
     sapSendStatus: Boolean
     WhsCode: String
+}
+
+input CreateProductInPoStatusInput {
+    sapCode: String!
+    productName: String!
+    whsCode: String
+    userData5: String!
+    createBy: String!
+    quantityByPo: Int
+    vendor: String!
+    vendorName: String!
+    uomcode: String
+    listRequestCreateTemId: Int
+}
+
+input UpdateProductInPoStatusInput {
+    id: ID!
+    sapCode: String
+    productName: String
+    whsCode: String
+    userData5: String
+    createBy: String
+    quantityByPo: Int
+    vendor: String
+    vendorName: String
+    uomcode: String
+    listRequestCreateTemId: Int
 }

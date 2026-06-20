@@ -196,6 +196,29 @@ public class ProductInPoStatusResource {
         return productInPoStatusRepository.findByUserData5List(userData5);
     }
 
+    @GetMapping("/list-request-create-tem/{listRequestCreateTemId}")
+    public ResponseEntity<
+        List<ProductInPoStatusDTO>
+    > getProductInPoStatusesByListRequestCreateTemId(
+        @PathVariable Long listRequestCreateTemId,
+        @org.springdoc.api.annotations.ParameterObject Pageable pageable
+    ) {
+        LOG.debug(
+            "REST request to get ProductInPoStatus by listRequestCreateTemId : {}",
+            listRequestCreateTemId
+        );
+        Page<ProductInPoStatusDTO> page =
+            productInPoStatusRepository.findByListRequestCreateTemId(
+                listRequestCreateTemId,
+                pageable
+            );
+        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
+            ServletUriComponentsBuilder.fromCurrentRequest(),
+            page
+        );
+        return ResponseEntity.ok().headers(headers).body(page.getContent());
+    }
+
     @GetMapping("/warehouse/{whsCode}")
     public ResponseEntity<
         List<ProductInPoStatusDTO>
