@@ -12,7 +12,6 @@ import {
 import { ActivatedRoute, Router } from "@angular/router";
 import { HttpClient } from "@angular/common/http";
 import { MatTableDataSource } from "@angular/material/table";
-import { MatPaginator } from "@angular/material/paginator";
 import {
   catchError,
   forkJoin,
@@ -319,12 +318,9 @@ export class ReceivingSuppliesComponent
   ];
 
   dataSource = new MatTableDataSource<ReceivingMaterialRow>([]);
-  /** Cache trang hiện tại — tránh gọi hàm trong template gây vòng lặp CD. */
+  /** Cache dòng hiển thị — tránh gọi hàm trong template gây vòng lặp CD. */
   visiblePageRows: ReceivingMaterialRow[] = [];
   totalItems = 0;
-  pageSize = 50;
-  pageSizeOptions = [25, 50, 100];
-  pageIndex = 0;
 
   showPoReconcileModal = false;
   reconcilePoInput = "";
@@ -385,7 +381,6 @@ export class ReceivingSuppliesComponent
     "arrivalDate",
   ];
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChildren(MatAutocompleteTrigger)
   private poSelectWhsTriggers!: QueryList<MatAutocompleteTrigger>;
   @ViewChildren(MatAutocompleteTrigger)
@@ -475,9 +470,6 @@ export class ReceivingSuppliesComponent
   }
 
   ngAfterViewInit(): void {
-    if (this.paginator) {
-      this.dataSource.paginator = this.paginator;
-    }
     this.updateVisiblePageRows();
   }
 
@@ -678,6 +670,10 @@ export class ReceivingSuppliesComponent
       this.poSelectHeaderWarehouse || this.sapWarehouseCode,
     );
     this.poSelectRows = this.buildPoSelectRows(res, poStatusRecords);
+    const headerWh = this.normalizeWarehouseCode(this.poSelectHeaderWarehouse);
+    if (headerWh) {
+      this.applyPoSelectHeaderWarehouseToRows(headerWh);
+    }
     const selectable = this.getPoSelectSelectableRows();
     this.poSelectAllChecked =
       selectable.length > 0 && selectable.every((r) => r.selected);
@@ -794,6 +790,12 @@ export class ReceivingSuppliesComponent
     this.poSelectHeaderWarehouse = code || value.trim();
     if (code) {
       this.sapWarehouseCode = code;
+      const isKnownWarehouse = this.sapWarehouseList.some(
+        (w) => w.whsCode === code,
+      );
+      if (isKnownWarehouse) {
+        this.applyPoSelectHeaderWarehouseToRows(code);
+      }
     }
     this.cdr.markForCheck();
   }
@@ -801,6 +803,7 @@ export class ReceivingSuppliesComponent
   onPoSelectHeaderWarehouseSelected(code: string): void {
     this.poSelectHeaderWarehouse = code;
     this.sapWarehouseCode = code;
+    this.applyPoSelectHeaderWarehouseToRows(code);
     this.cdr.markForCheck();
   }
 
@@ -911,10 +914,14 @@ export class ReceivingSuppliesComponent
     if (added > 0) {
       this.applyBulkFieldsToAllLots();
       this.applyPoToAllChildLots(po);
+      const groupNote =
+        selectedRows.length !== added
+          ? ` (${selectedRows.length} dòng PO → ${added} mã SAP${selectedRows.length > added ? ", gom trùng mã" : ""})`
+          : "";
       this.showSnackbar(
-        `Đã thêm ${added} vật tư từ PO ${po} vào bảng.`,
+        `Đã thêm ${added} vật tư từ PO ${po} vào bảng${groupNote}. Tổng ${this.dataSource.data.length} dòng trên bảng.`,
         "Đóng",
-        4000,
+        6000,
         "success",
       );
     } else {
@@ -2088,15 +2095,7 @@ export class ReceivingSuppliesComponent
   }
 
   getStt(index: number): number {
-    const pageIndex = this.paginator?.pageIndex ?? this.pageIndex;
-    const pageSize = this.paginator?.pageSize ?? this.pageSize;
-    return pageIndex * pageSize + index + 1;
-  }
-
-  onPaginatorChange(): void {
-    this.pageIndex = this.paginator?.pageIndex ?? 0;
-    this.pageSize = this.paginator?.pageSize ?? this.pageSize;
-    this.updateVisiblePageRows();
+    return index + 1;
   }
 
   formatDateForInput(date: Date | null): string {
@@ -2147,6 +2146,19 @@ export class ReceivingSuppliesComponent
   }
 
   /** Giữ / khôi phục mã kho header modal — đồng bộ form ngoài, không mất khi mở lại. */
+  private applyPoSelectHeaderWarehouseToRows(code: string): void {
+    const normalized = this.normalizeWarehouseCode(code);
+    if (!normalized) {
+      return;
+    }
+    this.poSelectRows.forEach((row) => {
+      if (row.alreadyInPoStatus) {
+        return;
+      }
+      row.warehouse = normalized;
+    });
+  }
+
   private syncPoSelectHeaderWarehouseFromForm(
     poStatusRecords: ProductInPoStatusDto[] = [],
   ): void {
@@ -2586,13 +2598,9 @@ export class ReceivingSuppliesComponent
   }
 
   private updateVisiblePageRows(): void {
-    const filtered = this.dataSource.filteredData.length
+    this.visiblePageRows = this.dataSource.filteredData.length
       ? this.dataSource.filteredData
       : this.dataSource.data;
-    const pageIndex = this.paginator?.pageIndex ?? this.pageIndex;
-    const pageSize = this.paginator?.pageSize ?? this.pageSize;
-    const start = pageIndex * pageSize;
-    this.visiblePageRows = filtered.slice(start, start + pageSize);
   }
 
   private hasBulkLotFieldValues(): boolean {
@@ -3925,10 +3933,23 @@ export class ReceivingSuppliesComponent
     const existingSap = new Set(
       this.dataSource.data.map((r) => r.sapCode.trim()).filter(Boolean),
     );
-    const toAdd = details.filter((d) => {
+    /** Gom theo mã SAP: bảng 1 dòng cha / mã; cộng SL nếu PO có nhiều dòng cùng mã. */
+    const toAddBySap = new Map<string, SapPoInfoDetail>();
+    details.forEach((d) => {
       const code = (d.por1ItemCode ?? "").trim();
-      return code && !existingSap.has(code);
+      if (!code || existingSap.has(code)) {
+        return;
+      }
+      const prev = toAddBySap.get(code);
+      if (!prev) {
+        toAddBySap.set(code, d);
+        return;
+      }
+      const qPrev = Number.parseFloat(prev.por1Quantity ?? "0") || 0;
+      const qNext = Number.parseFloat(d.por1Quantity ?? "0") || 0;
+      toAddBySap.set(code, { ...prev, por1Quantity: String(qPrev + qNext) });
     });
+    const toAdd = [...toAddBySap.values()];
 
     if (!toAdd.length) {
       return 0;
