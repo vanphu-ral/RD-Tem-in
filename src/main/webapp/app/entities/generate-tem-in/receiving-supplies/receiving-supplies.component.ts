@@ -3850,6 +3850,10 @@ export class ReceivingSuppliesComponent
     if (!this.pendingProductInPoStatus.length) {
       return;
     }
+    const requestId = this.editingRequestId;
+    if (!requestId) {
+      return;
+    }
     const payloads = this.pendingProductInPoStatus.map((p) => ({
       sapCode: p.sapCode.trim(),
       productName: p.productName.trim(),
@@ -3861,6 +3865,7 @@ export class ReceivingSuppliesComponent
       vendor: p.vendor.trim(),
       vendorName: p.vendorName.trim(),
       uomcode: p.uomcode.trim(),
+      listRequestCreateTemId: requestId,
     }));
     forkJoin(
       payloads.map((payload) =>

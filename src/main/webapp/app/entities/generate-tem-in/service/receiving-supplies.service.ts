@@ -116,6 +116,7 @@ export interface ProductInPoStatusDto {
   vendor?: string;
   vendorName?: string;
   uomcode?: string;
+  listRequestCreateTemId?: number | null;
 }
 
 export interface ProductInPoStatusCreatePayload {
@@ -129,6 +130,7 @@ export interface ProductInPoStatusCreatePayload {
   vendor: string;
   vendorName: string;
   uomcode: string;
+  listRequestCreateTemId?: number | null;
 }
 
 export interface PoReconcileTableRow {
@@ -515,7 +517,7 @@ export class ReceivingSuppliesService {
 
   /** Danh sách kho SAP. */
   getSapWarehouses(): Observable<SapOwhsDto[]> {
-    return this.http.get<SapOwhsDto[]>(`${this.baseUrl}/owhs`).pipe(
+    return this.http.get<SapOwhsDto[]>(`${this.testurl}/owhs`).pipe(
       map((rows) => (rows ?? []).filter((r) => Boolean(r.whsCode?.trim()))),
       catchError(() => of([])),
     );
