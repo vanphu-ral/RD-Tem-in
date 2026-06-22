@@ -8,6 +8,7 @@ public class WarehouseSummaryRequestDTO {
     private Integer pageNumber;
     private Integer itemPerPage;
     private Boolean refreshCache;
+    private Boolean includeOverview;
 
     public String getWarehouseName() {
         return warehouseName;
@@ -55,5 +56,13 @@ public class WarehouseSummaryRequestDTO {
 
     public void setRefreshCache(Boolean refreshCache) {
         this.refreshCache = refreshCache;
+    }
+
+    public Boolean getIncludeOverview() {
+        return includeOverview;
+    }
+
+    public void setIncludeOverview(Boolean includeOverview) {
+        this.includeOverview = includeOverview;
     }
 }

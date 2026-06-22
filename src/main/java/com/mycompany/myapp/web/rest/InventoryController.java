@@ -1,7 +1,9 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.domain.InventoriesResponse;
+import com.mycompany.myapp.domain.WarehouseAreaInventoryItemsResponse;
 import com.mycompany.myapp.domain.WarehouseAreaLocationsResponse;
+import com.mycompany.myapp.domain.WarehouseLocationMaterialsResponse;
 import com.mycompany.myapp.domain.WarehouseSummaryResponse;
 import com.mycompany.myapp.service.InventoryService;
 import com.mycompany.myapp.service.dto.InventoryDTO;
@@ -90,6 +92,32 @@ public class InventoryController {
         );
     }
 
+    @GetMapping("/warehouse-summary/area-materials")
+    public WarehouseAreaInventoryItemsResponse getWarehouseAreaInventoryItems(
+        @RequestParam String areaCode,
+        @RequestParam(required = false, defaultValue = "") String areaName,
+        @RequestParam(
+            required = false,
+            defaultValue = ""
+        ) String materialSearch,
+        @RequestParam(
+            required = false,
+            defaultValue = "sap"
+        ) String searchField,
+        @RequestParam(
+            required = false,
+            defaultValue = "100"
+        ) Integer previewLimit
+    ) {
+        return this.inventoryService.getWarehouseAreaInventoryItems(
+            areaCode,
+            areaName,
+            materialSearch,
+            searchField,
+            previewLimit
+        );
+    }
+
     @PostMapping("/warehouse-summary")
     public WarehouseSummaryResponse getWarehouseSummary(
         @RequestBody WarehouseSummaryRequestDTO request,
@@ -155,6 +183,33 @@ public class InventoryController {
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/warehouse-summary/location-materials")
+    public WarehouseLocationMaterialsResponse getLocationInventoryMaterials(
+        @RequestParam String locationName,
+        @RequestParam(required = false, defaultValue = "") String qrCode,
+        @RequestParam(required = false, defaultValue = "") String materialName,
+        @RequestParam(required = false, defaultValue = "") String itemCode,
+        @RequestParam(required = false, defaultValue = "") String partNumber,
+        @RequestParam(required = false, defaultValue = "") String lotNumber,
+        @RequestParam(required = false, defaultValue = "") String materialType,
+        @RequestParam(required = false, defaultValue = "") String status,
+        @RequestParam(required = false, defaultValue = "0") Integer page,
+        @RequestParam(required = false, defaultValue = "25") Integer size
+    ) {
+        return this.inventoryService.getLocationInventoryMaterials(
+            locationName,
+            qrCode,
+            materialName,
+            itemCode,
+            partNumber,
+            lotNumber,
+            materialType,
+            status,
+            page,
+            size
+        );
     }
 
     @GetMapping("/scan/{locationName}")

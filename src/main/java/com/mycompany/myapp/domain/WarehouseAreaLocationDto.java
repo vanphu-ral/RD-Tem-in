@@ -18,6 +18,7 @@ public class WarehouseAreaLocationDto {
     private boolean containsSelectedMaterialType;
     private boolean empty;
     private List<String> materialTypes = new ArrayList<>();
+    private List<String> itemCodes = new ArrayList<>();
 
     public Long getLocationId() {
         return locationId;
@@ -123,5 +124,13 @@ public class WarehouseAreaLocationDto {
 
     public void setMaterialTypes(List<String> materialTypes) {
         this.materialTypes = materialTypes;
+    }
+
+    public List<String> getItemCodes() {
+        return itemCodes;
+    }
+
+    public void setItemCodes(List<String> itemCodes) {
+        this.itemCodes = itemCodes;
     }
 }

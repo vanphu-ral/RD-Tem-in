@@ -14,7 +14,7 @@ import {
   tap,
   throwError,
 } from "rxjs";
-import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
 import { environment } from "app/environments/environment";
 import * as XLSX from "xlsx";
 import * as FileSaver from "file-saver";
@@ -263,6 +263,24 @@ export interface WarehouseSummaryResponse {
   totalItems: number;
   stats: WarehouseSummaryStats;
   inventories: WarehouseAreaSummaryRow[];
+  overviewAreas?: WarehouseOverviewArea[];
+  overviewMaterialTypes?: WarehouseOverviewMaterialType[];
+}
+
+export interface WarehouseOverviewArea {
+  areaCode: string;
+  areaName: string;
+  quantity: number;
+  materialIdentifierCount: number;
+  materialTypeCount: number;
+  materialTypes: string[];
+}
+
+export interface WarehouseOverviewMaterialType {
+  materialType: string;
+  warehouseCount: number;
+  quantity: number;
+  materialIdentifierCount: number;
 }
 
 export interface WarehouseSummaryFilters {
@@ -272,6 +290,7 @@ export interface WarehouseSummaryFilters {
   pageNumber?: number;
   itemPerPage?: number;
   refreshCache?: boolean;
+  includeOverview?: boolean;
 }
 
 export interface WarehouseAreaLocation {
@@ -288,6 +307,30 @@ export interface WarehouseAreaLocation {
   containsSelectedMaterialType: boolean;
   empty: boolean;
   materialTypes: string[];
+  itemCodes?: string[];
+}
+
+export interface WarehouseAreaInventoryItemsResponse {
+  items: WarehouseAreaInventoryItem[];
+  totalCount: number;
+  previewLimit?: number | null;
+  previewLimited?: boolean;
+}
+
+export type WarehouseMaterialSearchField = "name" | "sap";
+
+export interface WarehouseAreaInventoryItem {
+  locationId: number;
+  locationName: string;
+  locationFullName: string;
+  materialIdentifier: string;
+  itemCode: string;
+  materialName: string;
+  partNumber: string;
+  quantity: number;
+  status: string | number;
+  lotNumber: string;
+  materialType: string;
 }
 
 export interface WarehouseAreaLocationsResponse {
@@ -316,6 +359,23 @@ export interface WarehouseLocationInventoryRow {
   lotNumber?: string;
   materialType?: string;
   updatedDate?: string;
+}
+
+export interface WarehouseLocationMaterialFilters {
+  qrCode?: string;
+  materialName?: string;
+  itemCode?: string;
+  partNumber?: string;
+  lotNumber?: string;
+  materialType?: string;
+  status?: string;
+}
+
+export interface WarehouseLocationMaterialsResponse {
+  items: WarehouseLocationInventoryRow[];
+  totalCount: number;
+  page: number;
+  size: number;
 }
 
 export interface ItemDataDto {
@@ -546,6 +606,16 @@ export class ListMaterialService {
     return code || null;
   }
 
+  /** Lấy token tìm QR: phần trước dấu # đầu tiên trong materialIdentifier. */
+  extractQrSearchToken(value: string | null | undefined): string {
+    const trimmed = (value ?? "").trim();
+    if (!trimmed) {
+      return "";
+    }
+    const hashIndex = trimmed.indexOf("#");
+    return hashIndex >= 0 ? trimmed.slice(0, hashIndex).trim() : trimmed;
+  }
+
   getItemDataByItemCode(itemCode: string): Observable<ItemDataDto | null> {
     const code = itemCode.trim();
     if (!code) {
@@ -690,6 +760,7 @@ export class ListMaterialService {
       materialType: filters.materialType ?? "",
       pageNumber: filters.pageNumber ?? 1,
       itemPerPage: filters.itemPerPage ?? 50,
+      includeOverview: filters.includeOverview ?? false,
     };
 
     const options = filters.refreshCache
@@ -769,6 +840,38 @@ export class ListMaterialService {
       );
   }
 
+  fetchWarehouseAreaMaterials(params: {
+    areaCode: string;
+    areaName?: string;
+    materialSearch?: string;
+    searchField?: WarehouseMaterialSearchField;
+    previewLimit?: number;
+  }): Observable<WarehouseAreaInventoryItemsResponse> {
+    const query = new URLSearchParams();
+    query.set("areaCode", params.areaCode ?? "");
+    query.set("areaName", params.areaName ?? "");
+    query.set("materialSearch", params.materialSearch ?? "");
+    query.set("searchField", params.searchField ?? "sap");
+    if (params.previewLimit != null) {
+      query.set("previewLimit", String(params.previewLimit));
+    }
+    return this.http
+      .get<WarehouseAreaInventoryItemsResponse>(
+        `${this.apiWarehouseSummary}/area-materials?${query.toString()}`,
+      )
+      .pipe(
+        catchError((err) => {
+          console.error("Lỗi khi lấy vật tư theo khu vực kho: ", err);
+          return of({
+            items: [],
+            totalCount: 0,
+            previewLimit: params.previewLimit ?? 100,
+            previewLimited: false,
+          });
+        }),
+      );
+  }
+
   fetchLocationInventoryMaterials(
     locationFullName: string,
   ): Observable<WarehouseLocationInventoryRow[]> {
@@ -786,6 +889,50 @@ export class ListMaterialService {
         return of([]);
       }),
     );
+  }
+
+  fetchLocationInventoryMaterialsPage(
+    locationFullName: string,
+    page: number,
+    size: number,
+    filters: WarehouseLocationMaterialFilters = {},
+  ): Observable<WarehouseLocationMaterialsResponse> {
+    let params = new HttpParams()
+      .set("locationName", locationFullName)
+      .set("page", String(page))
+      .set("size", String(size));
+
+    const setIfPresent = (key: string, value?: string): void => {
+      const normalized = (value ?? "").trim();
+      if (normalized) {
+        params = params.set(key, normalized);
+      }
+    };
+
+    setIfPresent("qrCode", this.extractQrSearchToken(filters.qrCode));
+    setIfPresent("materialName", filters.materialName);
+    setIfPresent("itemCode", filters.itemCode);
+    setIfPresent("partNumber", filters.partNumber);
+    setIfPresent("lotNumber", filters.lotNumber);
+    setIfPresent("materialType", filters.materialType);
+    setIfPresent("status", filters.status);
+
+    const url = this.applicationConfigService.getEndpointFor(
+      "/api/inventory/warehouse-summary/location-materials",
+    );
+    return this.http
+      .get<WarehouseLocationMaterialsResponse>(url, { params })
+      .pipe(
+        catchError((err) => {
+          console.error("Lỗi khi lấy vật tư theo location (phân trang): ", err);
+          return of({
+            items: [],
+            totalCount: 0,
+            page,
+            size,
+          });
+        }),
+      );
   }
 
   //  lấy dư liệu cho trang danh sach

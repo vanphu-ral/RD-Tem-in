@@ -24,7 +24,7 @@ public interface SapOitmRepository extends JpaRepository<SapOitm, Long> {
     );
 
     @Query(
-        value = "SELECT ItemCode, U_IGroupName FROM SAP_OITM WHERE ItemCode IS NOT NULL AND LTRIM(RTRIM(ItemCode)) <> ''",
+        value = "SELECT ItemCode, U_IGroupName, ItemName FROM SAP_OITM WHERE ItemCode IS NOT NULL AND LTRIM(RTRIM(ItemCode)) <> ''",
         nativeQuery = true
     )
     List<Object[]> findAllItemGroupNames();
