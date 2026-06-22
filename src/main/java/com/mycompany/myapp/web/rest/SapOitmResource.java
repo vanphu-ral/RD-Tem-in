@@ -207,6 +207,17 @@ public class SapOitmResource {
     }
 
     /**
+     * {@code GET /sap-oitms/itemCode/:itemCode/part-numbers} : part numbers from OITM U_PartNumber (comma-separated).
+     */
+    @GetMapping("/itemCode/{itemCode}/part-numbers")
+    public List<String> getPartNumbersByItemCode(
+        @PathVariable("itemCode") String itemCode
+    ) {
+        LOG.debug("REST request to get part numbers by itemCode: {}", itemCode);
+        return sapOitmService.findPartNumbersByItemCode(itemCode);
+    }
+
+    /**
      * {@code GET  /sap-oitms} : get all the sapOitms.
      *
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of sapOitms in body.

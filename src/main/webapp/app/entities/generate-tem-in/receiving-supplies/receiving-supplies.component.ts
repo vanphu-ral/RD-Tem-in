@@ -78,13 +78,12 @@ import {
   runLabelPrint,
 } from "./receiving-label-print.util";
 import {
-  applyImportedPartNumbers,
   PartNumberPlImportRow,
   PartNumberReconcileResult,
+  PartNumberReconcileStatus,
   PartNumberImportParseMeta,
   parsePartNumberImportFile,
-  reconcilePartNumbersFromPl,
-  TablePartRow,
+  reconcilePoSelectPartsFromImport,
 } from "./part-number-pl-import.util";
 import {
   generateTemPanacimCsvBlob,
@@ -226,12 +225,21 @@ export interface PoMaterialSelectRow {
   selected: boolean;
   sapCode: string;
   itemName: string;
+  partNumber: string;
   quantity: number;
   unit: string;
   warehouse: string;
   alreadyOnTable: boolean;
   /** Đã có trong product-in-po-status và đã có kho — checked sẵn, khóa dòng. */
   alreadyInPoStatus: boolean;
+  /** Trạng thái đối chiếu part từ file ListCont. */
+  partReconcileStatus: PartNumberReconcileStatus | null;
+  partReconcileMessage: string;
+  /** Người dùng đã chọn part thủ công sau lỗi đối chiếu. */
+  partReconcileResolved: boolean;
+  /** Danh sách part từ OITM (U_PartNumber, tách bởi dấu ,). */
+  oitmPartOptions: string[];
+  loadingOitmParts: boolean;
   detail: SapPoInfoDetail;
 }
 
@@ -342,7 +350,7 @@ export class ReceivingSuppliesComponent
   /** Dòng đang focus ô kho SAP trong modal (autocomplete dùng chung). */
   poSelectActiveWarehouseRow: PoMaterialSelectRow | null = null;
 
-  showPartImportModal = false;
+  /** Import đối chiếu part trong modal chọn PO. */
   partImportFile: File | null = null;
   partImportFileName = "";
   isParsingPartImport = false;
@@ -395,6 +403,7 @@ export class ReceivingSuppliesComponent
   /** Vật tư đã chọn trong modal PO — gửi createProductInPoStatus khi lưu đơn. */
   private pendingProductInPoStatus: ProductInPoStatusCreatePayload[] = [];
   private savedProductsById = new Map<number, SavedProductRow>();
+  private oitmPartsCache = new Map<string, string[]>();
 
   constructor(
     private router: Router,
@@ -665,11 +674,13 @@ export class ReceivingSuppliesComponent
     this.pendingPoResponse = res;
     this.poSelectFilterSapCode = "";
     this.poSelectFilterItemName = "";
+    this.resetPoSelectPartImport();
     this.syncPoSelectHeaderWarehouseFromForm(poStatusRecords);
     this.loadSapWarehouses(
       this.poSelectHeaderWarehouse || this.sapWarehouseCode,
     );
     this.poSelectRows = this.buildPoSelectRows(res, poStatusRecords);
+    this.enrichPoSelectRowsWithOitmPart();
     const headerWh = this.normalizeWarehouseCode(this.poSelectHeaderWarehouse);
     if (headerWh) {
       this.applyPoSelectHeaderWarehouseToRows(headerWh);
@@ -690,6 +701,7 @@ export class ReceivingSuppliesComponent
     this.poSelectFilterSapCode = "";
     this.poSelectFilterItemName = "";
     this.poSelectActiveWarehouseRow = null;
+    this.resetPoSelectPartImport();
     this.closePoSelectWarehousePanels();
     document.body.classList.remove("modal-open");
     this.cdr.markForCheck();
@@ -837,7 +849,191 @@ export class ReceivingSuppliesComponent
   }
 
   canConfirmPoSelect(): boolean {
-    return this.getPoSelectSelectedCount() > 0;
+    if (this.getPoSelectSelectedCount() <= 0) {
+      return false;
+    }
+    if (
+      this.partImportRows.length > 0 &&
+      !this.isPoSelectPartReconcileComplete()
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  isPoSelectPartReconcileComplete(): boolean {
+    if (!this.partImportRows.length) {
+      return true;
+    }
+    return this.partImportRows.every((importRow) => {
+      const row = this.findPoSelectRowForImport(importRow);
+      if (!row) {
+        return false;
+      }
+      return row.partReconcileStatus === "matched" || row.partReconcileResolved;
+    });
+  }
+
+  onPoSelectPartImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = "";
+    if (!file) {
+      return;
+    }
+    this.partImportFile = file;
+    this.partImportFileName = file.name;
+    this.partImportResult = null;
+    this.partImportRows = [];
+    this.partImportMeta = null;
+    this.isParsingPartImport = true;
+    this.clearPoSelectPartReconcileState();
+    this.cdr.markForCheck();
+
+    parsePartNumberImportFile(file)
+      .then(({ rows, meta }) => {
+        this.isParsingPartImport = false;
+        this.partImportRows = rows;
+        this.partImportMeta = meta;
+        this.onReconcilePoSelectParts();
+        this.cdr.markForCheck();
+      })
+      .catch((err: unknown) => {
+        this.isParsingPartImport = false;
+        this.partImportFile = null;
+        this.partImportFileName = "";
+        this.partImportRows = [];
+        this.partImportResult = null;
+        this.partImportMeta = null;
+        const message =
+          err instanceof Error ? err.message : "Không đọc được file Excel.";
+        this.showSnackbar(message, "Đóng", 6000, "warning");
+        this.cdr.markForCheck();
+      });
+  }
+
+  onReconcilePoSelectParts(): void {
+    if (!this.partImportRows.length) {
+      this.showSnackbar(
+        "Vui lòng chọn file Excel ListCont trước.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+
+    const sapCodes = [
+      ...new Set(
+        this.partImportRows
+          .map((r) => r.sapCode.trim())
+          .filter((code): code is string => Boolean(code)),
+      ),
+    ];
+
+    const missingCache = sapCodes.filter(
+      (code) => !this.oitmPartsCache.has(code),
+    );
+    if (missingCache.length) {
+      forkJoin(
+        missingCache.map((code) =>
+          this.receivingService
+            .getOitmPartNumbersBySapCode(code)
+            .pipe(map((parts) => ({ code, parts }))),
+        ),
+      ).subscribe((results) => {
+        results.forEach(({ code, parts }) => {
+          this.oitmPartsCache.set(code, parts);
+        });
+        this.runPoSelectPartReconcile();
+      });
+      return;
+    }
+
+    this.runPoSelectPartReconcile();
+  }
+
+  loadOitmPartOptionsForRow(row: PoMaterialSelectRow): void {
+    const sapCode = row.sapCode.trim();
+    if (!sapCode) {
+      return;
+    }
+    const cached = this.oitmPartsCache.get(sapCode);
+    if (cached) {
+      row.oitmPartOptions = cached;
+      return;
+    }
+    row.loadingOitmParts = true;
+    this.receivingService.getOitmPartNumbersBySapCode(sapCode).subscribe({
+      next: (parts) => {
+        row.loadingOitmParts = false;
+        row.oitmPartOptions = parts;
+        this.oitmPartsCache.set(sapCode, parts);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        row.loadingOitmParts = false;
+        row.oitmPartOptions = [];
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  getFilteredOitmParts(row: PoMaterialSelectRow): string[] {
+    const keyword = (row.partNumber ?? "").trim().toLowerCase();
+    const parts = row.oitmPartOptions ?? [];
+    if (!keyword) {
+      return parts;
+    }
+    return parts.filter((p) => p.toLowerCase().includes(keyword));
+  }
+
+  onPoSelectPartPicked(row: PoMaterialSelectRow, part: string): void {
+    if (row.alreadyOnTable || row.alreadyInPoStatus) {
+      return;
+    }
+    row.partNumber = part.trim();
+    row.partReconcileResolved = true;
+    row.partReconcileStatus = "matched";
+    row.partReconcileMessage = "Đã chọn mã part thủ công.";
+    row.selected = true;
+    this.syncPoSelectAllChecked();
+    this.cdr.markForCheck();
+  }
+
+  onPoSelectPartNumberChange(row: PoMaterialSelectRow): void {
+    if (
+      row.partReconcileStatus &&
+      row.partReconcileStatus !== "matched" &&
+      row.partNumber.trim()
+    ) {
+      row.partReconcileResolved = true;
+      if (
+        row.selected === false &&
+        !row.alreadyOnTable &&
+        !row.alreadyInPoStatus
+      ) {
+        row.selected = true;
+        this.syncPoSelectAllChecked();
+      }
+    }
+    this.cdr.markForCheck();
+  }
+
+  getPoSelectPartReconcileHint(): string {
+    if (!this.partImportRows.length) {
+      return "";
+    }
+    if (this.isPoSelectPartReconcileComplete()) {
+      return "Đối chiếu part đã hoàn tất — có thể chọn kho và xác nhận.";
+    }
+    return "Vui lòng xử lý hết lỗi đối chiếu part trước khi xác nhận.";
+  }
+
+  getPoSelectPartImportFailedRows(): PartNumberReconcileResult["rows"] {
+    return (this.partImportResult?.rows ?? []).filter(
+      (item) => item.status !== "matched",
+    );
   }
 
   onPoSelectAllChange(checked: boolean): void {
@@ -862,12 +1058,32 @@ export class ReceivingSuppliesComponent
       return;
     }
     row.selected = checked;
+    if (checked) {
+      const headerWh = this.normalizeWarehouseCode(
+        this.poSelectHeaderWarehouse,
+      );
+      if (headerWh && !this.normalizeWarehouseCode(row.warehouse)) {
+        row.warehouse = headerWh;
+      }
+    }
     this.syncPoSelectAllChecked();
     this.cdr.markForCheck();
   }
 
   onConfirmPoSelect(): void {
     if (!this.canConfirmPoSelect() || !this.pendingPoResponse) {
+      if (
+        this.partImportRows.length > 0 &&
+        !this.isPoSelectPartReconcileComplete()
+      ) {
+        this.showSnackbar(
+          "Vui lòng xử lý hết lỗi đối chiếu part từ file ListCont trước khi xác nhận.",
+          "Đóng",
+          5000,
+          "warning",
+        );
+        return;
+      }
       this.showSnackbar(
         "Vui lòng chọn ít nhất một vật tư.",
         "Đóng",
@@ -1531,153 +1747,6 @@ export class ReceivingSuppliesComponent
     this.cdr.markForCheck();
   }
 
-  openPartImportModal(): void {
-    const sapCodes = this.collectSapCodesFromTable();
-    if (!sapCodes.length) {
-      this.showSnackbar(
-        "Chưa có vật tư trên bảng để đối chiếu partnumber.",
-        "Đóng",
-        4000,
-        "warning",
-      );
-      return;
-    }
-    this.partImportFile = null;
-    this.partImportFileName = "";
-    this.partImportRows = [];
-    this.partImportResult = null;
-    this.partImportMeta = null;
-    this.showPartImportModal = true;
-    document.body.classList.add("modal-open");
-    this.cdr.markForCheck();
-  }
-
-  closePartImportModal(): void {
-    this.showPartImportModal = false;
-    this.isParsingPartImport = false;
-    this.partImportFile = null;
-    this.partImportFileName = "";
-    this.partImportRows = [];
-    this.partImportResult = null;
-    this.partImportMeta = null;
-    document.body.classList.remove("modal-open");
-    this.cdr.markForCheck();
-  }
-
-  onPartImportFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    input.value = "";
-    if (!file) {
-      return;
-    }
-    this.partImportFile = file;
-    this.partImportFileName = file.name;
-    this.partImportResult = null;
-    this.partImportRows = [];
-    this.partImportMeta = null;
-    this.isParsingPartImport = true;
-    this.cdr.markForCheck();
-
-    parsePartNumberImportFile(file)
-      .then(({ rows, meta }) => {
-        this.isParsingPartImport = false;
-        this.partImportRows = rows;
-        this.partImportMeta = meta;
-        this.onReconcilePartNumbers();
-        this.cdr.markForCheck();
-      })
-      .catch((err: unknown) => {
-        this.isParsingPartImport = false;
-        this.partImportFile = null;
-        this.partImportFileName = "";
-        this.partImportRows = [];
-        this.partImportResult = null;
-        this.partImportMeta = null;
-        const message =
-          err instanceof Error ? err.message : "Không đọc được file Excel.";
-        this.showSnackbar(message, "Đóng", 6000, "warning");
-        this.cdr.markForCheck();
-      });
-  }
-
-  onReconcilePartNumbers(): void {
-    if (!this.partImportRows.length) {
-      this.showSnackbar(
-        "Vui lòng chọn file Excel có cột DInvCode/Part number và RDCode trước.",
-        "Đóng",
-        4000,
-        "warning",
-      );
-      return;
-    }
-    const tableRows = this.collectRowsForPartReconcile();
-    if (!tableRows.length) {
-      this.showSnackbar(
-        "Chưa có dòng vật tư trên bảng để đối chiếu.",
-        "Đóng",
-        4000,
-        "warning",
-      );
-      return;
-    }
-    this.partImportResult = reconcilePartNumbersFromPl(
-      tableRows,
-      this.partImportRows,
-    );
-    if (this.editingRequestId) {
-      this.updateRequestWithPoNumber();
-    }
-    this.cdr.markForCheck();
-  }
-
-  canApplyImportedPartNumbers(): boolean {
-    if (!this.partImportResult?.importPartBySap) {
-      return false;
-    }
-    return this.partImportResult.rows.some((r) => r.status === "mismatch");
-  }
-
-  onApplyImportedPartNumbers(): void {
-    if (!this.canApplyImportedPartNumbers() || !this.partImportResult) {
-      return;
-    }
-    const tableRows = this.collectRowsForPartReconcile();
-    const applied = applyImportedPartNumbers(
-      tableRows,
-      this.partImportResult.importPartBySap,
-      true,
-    );
-    this.dataSource.data.forEach((parent) => {
-      const match = tableRows.find(
-        (r) => r.sapCode.trim() === parent.sapCode.trim(),
-      );
-      if (match) {
-        parent.partNumber = match.partNumber;
-      }
-    });
-    this.onReconcilePartNumbers();
-    this.showSnackbar(
-      applied
-        ? `Đã áp dụng mã part từ file import cho ${applied} dòng.`
-        : "Không có mã part nào được áp dụng.",
-      "Đóng",
-      5000,
-      applied ? "success" : "warning",
-    );
-    this.cdr.markForCheck();
-  }
-
-  collectRowsForPartReconcile(): TablePartRow[] {
-    return this.dataSource.data
-      .filter((row) => row.sapCode.trim())
-      .map((row) => ({
-        sapCode: row.sapCode.trim(),
-        itemName: row.itemName.trim(),
-        partNumber: row.partNumber.trim(),
-      }));
-  }
-
   onReconcilePo(): void {
     const po = this.reconcilePoInput.trim();
     if (!po) {
@@ -2145,6 +2214,126 @@ export class ReceivingSuppliesComponent
     this.cdr.markForCheck();
   }
 
+  private resetPoSelectPartImport(): void {
+    this.isParsingPartImport = false;
+    this.partImportFile = null;
+    this.partImportFileName = "";
+    this.partImportRows = [];
+    this.partImportResult = null;
+    this.partImportMeta = null;
+    this.oitmPartsCache.clear();
+  }
+
+  private runPoSelectPartReconcile(): void {
+    const oitmPartsBySap: Record<string, string[]> = {};
+    this.oitmPartsCache.forEach((parts, code) => {
+      oitmPartsBySap[code] = parts;
+    });
+
+    this.clearPoSelectPartReconcileState();
+    const dialogRows = this.poSelectRows.map((row) => ({
+      rowKey: row.rowKey,
+      sapCode: row.sapCode,
+      itemName: row.itemName,
+      partNumber: row.partNumber,
+      selected: row.selected,
+      alreadyOnTable: row.alreadyOnTable,
+      alreadyInPoStatus: row.alreadyInPoStatus,
+    }));
+
+    this.partImportResult = reconcilePoSelectPartsFromImport(
+      dialogRows,
+      this.partImportRows,
+      oitmPartsBySap,
+    );
+
+    this.applyPoSelectPartReconcileResult(this.partImportResult);
+    this.syncPoSelectAllChecked();
+    this.cdr.markForCheck();
+  }
+
+  private clearPoSelectPartReconcileState(): void {
+    this.poSelectRows.forEach((row) => {
+      row.partReconcileStatus = null;
+      row.partReconcileMessage = "";
+      row.partReconcileResolved = false;
+    });
+  }
+
+  private applyPoSelectPartReconcileResult(
+    result: PartNumberReconcileResult,
+  ): void {
+    result.rows.forEach((item) => {
+      const row = item.rowKey
+        ? this.poSelectRows.find((r) => r.rowKey === item.rowKey)
+        : this.findPoSelectRowForImport({
+            sapCode: item.sapCode,
+            dInvCode: item.importPartNumber,
+            itemName: item.importItemName,
+          });
+
+      if (!row || row.alreadyOnTable || row.alreadyInPoStatus) {
+        return;
+      }
+
+      row.partReconcileStatus = item.status;
+      row.partReconcileMessage = item.message;
+
+      if (item.status === "matched") {
+        row.partNumber = item.importPartNumber;
+        row.selected = true;
+        row.partReconcileResolved = true;
+        return;
+      }
+
+      if (item.status === "part_mismatch") {
+        row.partNumber = item.importPartNumber;
+        this.loadOitmPartOptionsForRow(row);
+        return;
+      }
+
+      if (
+        item.status === "name_mismatch" ||
+        item.status === "missing_in_dialog"
+      ) {
+        this.loadOitmPartOptionsForRow(row);
+      }
+    });
+  }
+
+  private findPoSelectRowForImport(
+    importRow: PartNumberPlImportRow,
+  ): PoMaterialSelectRow | undefined {
+    const normalized = this.normalizeSapCode(importRow.sapCode);
+    const candidates = this.poSelectRows.filter(
+      (row) => this.normalizeSapCode(row.sapCode) === normalized,
+    );
+    if (!candidates.length) {
+      return undefined;
+    }
+    const importName = (importRow.itemName ?? "").trim();
+    if (!importName) {
+      return candidates[0];
+    }
+    return (
+      candidates.find((row) =>
+        this.poSelectItemNamesMatch(row.itemName, importName),
+      ) ?? candidates[0]
+    );
+  }
+
+  private poSelectItemNamesMatch(a: string, b: string): boolean {
+    const left = a.toLowerCase().replace(/\s+/g, " ").trim();
+    const right = b.toLowerCase().replace(/\s+/g, " ").trim();
+    if (!right) {
+      return true;
+    }
+    if (!left) {
+      return false;
+    }
+    return left === right || left.includes(right) || right.includes(left);
+  }
+
   /** Giữ / khôi phục mã kho header modal — đồng bộ form ngoài, không mất khi mở lại. */
   private applyPoSelectHeaderWarehouseToRows(code: string): void {
     const normalized = this.normalizeWarehouseCode(code);
@@ -2152,7 +2341,7 @@ export class ReceivingSuppliesComponent
       return;
     }
     this.poSelectRows.forEach((row) => {
-      if (row.alreadyInPoStatus) {
+      if (row.alreadyInPoStatus || !row.selected) {
         return;
       }
       row.warehouse = normalized;
@@ -2897,7 +3086,7 @@ export class ReceivingSuppliesComponent
         return {
           ...row,
           itemName: info.itemName || row.itemName,
-          partNumber: info.partNumber || row.partNumber,
+          partNumber: row.partNumber || info.partNumber,
         };
       });
       this.refreshTableView();
@@ -3750,6 +3939,7 @@ export class ReceivingSuppliesComponent
         selected: !alreadyOnTable && alreadyInPoStatus,
         sapCode,
         itemName: (d.por1Dscription ?? "").trim(),
+        partNumber: "",
         quantity:
           statusRecord?.quantityByPo && statusRecord.quantityByPo > 0
             ? statusRecord.quantityByPo
@@ -3763,8 +3953,54 @@ export class ReceivingSuppliesComponent
         warehouse,
         alreadyOnTable,
         alreadyInPoStatus,
+        partReconcileStatus: null,
+        partReconcileMessage: "",
+        partReconcileResolved: false,
+        oitmPartOptions: [],
+        loadingOitmParts: false,
         detail: d,
       };
+    });
+  }
+
+  /** Lấy mã part từ OITM khi mở modal — để trống nếu không có. */
+  private enrichPoSelectRowsWithOitmPart(): void {
+    const codes = [
+      ...new Set(
+        this.poSelectRows
+          .map((r) => r.sapCode.trim())
+          .filter((code): code is string => Boolean(code)),
+      ),
+    ];
+    if (!codes.length) {
+      return;
+    }
+
+    forkJoin(
+      codes.map((code) =>
+        this.receivingService
+          .getOitmPartNumbersBySapCode(code)
+          .pipe(map((parts) => ({ code, parts }))),
+      ),
+    ).subscribe((results) => {
+      const partsBySap = new Map<string, string[]>();
+      results.forEach(({ code, parts }) => {
+        const list = parts ?? [];
+        partsBySap.set(code, list);
+        this.oitmPartsCache.set(code, list);
+      });
+
+      this.poSelectRows = this.poSelectRows.map((row) => {
+        const parts = partsBySap.get(row.sapCode.trim()) ?? [];
+        const nextPart = row.partNumber || parts[0] || "";
+        return {
+          ...row,
+          partNumber: nextPart,
+          oitmPartOptions: parts,
+          loadingOitmParts: false,
+        };
+      });
+      this.cdr.markForCheck();
     });
   }
 
@@ -3929,6 +4165,9 @@ export class ReceivingSuppliesComponent
         (r) => [r.sapCode.trim(), this.resolvePoSelectRowWhsCode(r)] as const,
       ),
     );
+    const partBySap = new Map(
+      poSelectRows.map((r) => [r.sapCode.trim(), r.partNumber.trim()] as const),
+    );
 
     const existingSap = new Set(
       this.dataSource.data.map((r) => r.sapCode.trim()).filter(Boolean),
@@ -3982,7 +4221,7 @@ export class ReceivingSuppliesComponent
         id,
         sapCode,
         itemName,
-        partNumber: "",
+        partNumber: partBySap.get(sapCode) ?? "",
         location,
         sapWarehouse,
         quantityByPo: qtyByPo,

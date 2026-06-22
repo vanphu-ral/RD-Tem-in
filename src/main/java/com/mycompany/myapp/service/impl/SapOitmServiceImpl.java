@@ -3,8 +3,11 @@ package com.mycompany.myapp.service.impl;
 import com.mycompany.myapp.domain.partner4.SapOitm;
 import com.mycompany.myapp.repository.partner4.SapOitmRepository;
 import com.mycompany.myapp.service.SapOitmService;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -83,6 +86,21 @@ public class SapOitmServiceImpl implements SapOitmService {
     public List<SapOitm> findByItemCode(String itemCode) {
         LOG.debug("Request to get SapOitms by itemCode: {}", itemCode);
         return sapOitmRepository.findByItemCode(itemCode);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> findPartNumbersByItemCode(String itemCode) {
+        LOG.debug("Request to get part numbers by itemCode: {}", itemCode);
+        return findByItemCode(itemCode)
+            .stream()
+            .map(SapOitm::getuPartNumber)
+            .filter(Objects::nonNull)
+            .flatMap(value -> Arrays.stream(value.split(",")))
+            .map(String::trim)
+            .filter(part -> !part.isEmpty())
+            .distinct()
+            .collect(Collectors.toList());
     }
 
     @Override

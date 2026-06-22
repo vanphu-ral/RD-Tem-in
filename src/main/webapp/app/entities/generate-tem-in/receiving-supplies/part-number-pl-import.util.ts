@@ -3,18 +3,26 @@ import * as XLSX from "xlsx";
 export interface PartNumberPlImportRow {
   sapCode: string;
   dInvCode: string;
+  /** Tên vật tư từ file (RDName / Commodity). */
+  itemName?: string;
 }
 
 export type PartNumberReconcileStatus =
   | "matched"
   | "mismatch"
-  | "missing_in_import";
+  | "missing_in_import"
+  | "name_mismatch"
+  | "sap_mismatch"
+  | "missing_in_dialog"
+  | "part_mismatch";
 
 export interface PartNumberReconcileRowResult {
   sapCode: string;
   itemName: string;
   tablePartNumber: string;
   importPartNumber: string;
+  importItemName?: string;
+  rowKey?: string;
   status: PartNumberReconcileStatus;
   message: string;
 }
@@ -34,6 +42,13 @@ export interface TablePartRow {
   partNumber: string;
 }
 
+export interface PoSelectPartRow extends TablePartRow {
+  rowKey: string;
+  selected: boolean;
+  alreadyOnTable: boolean;
+  alreadyInPoStatus: boolean;
+}
+
 export interface PartNumberImportParseMeta {
   sheetName: string;
   headerRowIndex: number;
@@ -49,6 +64,28 @@ function normalizeSapCode(code: string): string {
 
 function normalizePartNumber(value: string): string {
   return value.trim();
+}
+
+function normalizeItemName(value: string): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function itemNamesMatch(dialogName: string, importName: string): boolean {
+  const a = normalizeItemName(dialogName);
+  const b = normalizeItemName(importName);
+  if (!b) {
+    return true;
+  }
+  if (!a) {
+    return false;
+  }
+  if (a === b) {
+    return true;
+  }
+  return a.includes(b) || b.includes(a);
 }
 
 /** Chuẩn hóa tên cột: lowercase, gộp khoảng trắng. */
@@ -82,6 +119,26 @@ function isPartNumberHeader(key: string): boolean {
 function isSapCodeHeader(key: string): boolean {
   const compact = key.replace(/\s+/g, "");
   return compact === "rdcode";
+}
+
+/** Cột tên vật tư: RDName / Commodity. */
+function isItemNameHeader(key: string): boolean {
+  const compact = key.replace(/\s+/g, "");
+  if (compact === "rdname") {
+    return true;
+  }
+  return key === "commodity" || compact === "commodity";
+}
+
+function itemNameColumnScore(key: string): number {
+  const compact = key.replace(/\s+/g, "");
+  if (compact === "rdname") {
+    return 100;
+  }
+  if (key === "commodity" || compact === "commodity") {
+    return 60;
+  }
+  return -1;
 }
 
 function partNumberColumnScore(key: string): number {
@@ -124,15 +181,20 @@ function findHeaderRowIndex(rows: unknown[][]): number {
 function resolveColumnIndexes(headerRow: unknown[]): {
   partNumberIdx: number;
   sapCodeIdx: number;
+  itemNameIdx: number;
   partNumberHeader: string;
   sapCodeHeader: string;
+  itemNameHeader: string;
 } {
   let partNumberIdx = -1;
   let sapCodeIdx = -1;
+  let itemNameIdx = -1;
   let bestPartScore = -1;
   let bestSapScore = -1;
+  let bestNameScore = -1;
   let partNumberHeader = "";
   let sapCodeHeader = "";
+  let itemNameHeader = "";
 
   headerRow.forEach((cell, idx) => {
     const key = headerKey(cell);
@@ -148,9 +210,22 @@ function resolveColumnIndexes(headerRow: unknown[]): {
       sapCodeIdx = idx;
       sapCodeHeader = String(cell ?? "").trim();
     }
+    const nameScore = itemNameColumnScore(key);
+    if (nameScore > bestNameScore) {
+      bestNameScore = nameScore;
+      itemNameIdx = idx;
+      itemNameHeader = String(cell ?? "").trim();
+    }
   });
 
-  return { partNumberIdx, sapCodeIdx, partNumberHeader, sapCodeHeader };
+  return {
+    partNumberIdx,
+    sapCodeIdx,
+    itemNameIdx,
+    partNumberHeader,
+    sapCodeHeader,
+    itemNameHeader,
+  };
 }
 
 function findImportSheet(workbook: XLSX.WorkBook): {
@@ -159,8 +234,10 @@ function findImportSheet(workbook: XLSX.WorkBook): {
   headerRowIndex: number;
   partNumberIdx: number;
   sapCodeIdx: number;
+  itemNameIdx: number;
   partNumberHeader: string;
   sapCodeHeader: string;
+  itemNameHeader: string;
 } | null {
   const orderedNames = [
     ...workbook.SheetNames.filter((n) => headerKey(n).includes("pl")),
@@ -191,8 +268,10 @@ function findImportSheet(workbook: XLSX.WorkBook): {
       headerRowIndex: headerIdx,
       partNumberIdx: resolved.partNumberIdx,
       sapCodeIdx: resolved.sapCodeIdx,
+      itemNameIdx: resolved.itemNameIdx,
       partNumberHeader: resolved.partNumberHeader,
       sapCodeHeader: resolved.sapCodeHeader,
+      itemNameHeader: resolved.itemNameHeader,
     };
   }
   return null;
@@ -203,6 +282,7 @@ function parseRowsFromSheet(
   headerIdx: number,
   partNumberIdx: number,
   sapCodeIdx: number,
+  itemNameIdx: number,
 ): PartNumberPlImportRow[] {
   const bySap = new Map<string, PartNumberPlImportRow>();
   const conflicts: string[] = [];
@@ -211,6 +291,8 @@ function parseRowsFromSheet(
     const row = rows[i];
     const sapRaw = String(row[sapCodeIdx] ?? "").trim();
     const partRaw = String(row[partNumberIdx] ?? "").trim();
+    const nameRaw =
+      itemNameIdx >= 0 ? String(row[itemNameIdx] ?? "").trim() : "";
     if (!sapRaw || !partRaw) {
       continue;
     }
@@ -227,6 +309,7 @@ function parseRowsFromSheet(
     bySap.set(sapKey, {
       sapCode: sapRaw,
       dInvCode: partRaw,
+      itemName: nameRaw || undefined,
     });
   }
 
@@ -283,6 +366,7 @@ export function parsePartNumberImportFile(
           found.headerRowIndex,
           found.partNumberIdx,
           found.sapCodeIdx,
+          found.itemNameIdx,
         );
 
         if (!importRows.length) {
@@ -435,4 +519,131 @@ export function applyImportedPartNumbers(
     applied += 1;
   });
   return applied;
+}
+
+function findDialogRowForImport(
+  dialogRows: PoSelectPartRow[],
+  importRow: PartNumberPlImportRow,
+): PoSelectPartRow | undefined {
+  const sapKey = normalizeSapCode(importRow.sapCode);
+  const candidates = dialogRows.filter(
+    (row) => normalizeSapCode(row.sapCode) === sapKey,
+  );
+  if (!candidates.length) {
+    return undefined;
+  }
+  const importName = importRow.itemName ?? "";
+  if (!importName.trim()) {
+    return candidates[0];
+  }
+  const exact = candidates.find((row) =>
+    itemNamesMatch(row.itemName, importName),
+  );
+  return exact ?? candidates[0];
+}
+
+/**
+ * Đối chiếu file ListCont với danh sách vật tư trong modal chọn PO.
+ * Khớp mã SAP + tên → áp mã part từ file (mã đúng).
+ */
+export function reconcilePoSelectPartsFromImport(
+  dialogRows: PoSelectPartRow[],
+  importRows: PartNumberPlImportRow[],
+  oitmPartsBySap: Record<string, string[]> = {},
+): PartNumberReconcileResult {
+  const results: PartNumberReconcileRowResult[] = [];
+  const importPartBySap: Record<string, string> = {};
+  let matchedCount = 0;
+  let mismatchCount = 0;
+  let missingCount = 0;
+
+  importRows.forEach((importRow) => {
+    const importPart = normalizePartNumber(importRow.dInvCode);
+    const dialogRow = findDialogRowForImport(dialogRows, importRow);
+
+    if (!dialogRow) {
+      missingCount += 1;
+      results.push({
+        sapCode: importRow.sapCode,
+        itemName: importRow.itemName ?? "",
+        tablePartNumber: "",
+        importPartNumber: importPart,
+        importItemName: importRow.itemName,
+        status: "missing_in_dialog",
+        message: "Không tìm thấy mã SAP này trong danh sách PO.",
+      });
+      return;
+    }
+
+    const dialogName = dialogRow.itemName;
+    const importName = importRow.itemName ?? "";
+    if (importName.trim() && !itemNamesMatch(dialogName, importName)) {
+      mismatchCount += 1;
+      results.push({
+        sapCode: importRow.sapCode,
+        itemName: dialogName,
+        tablePartNumber: normalizePartNumber(dialogRow.partNumber),
+        importPartNumber: importPart,
+        importItemName: importName,
+        rowKey: dialogRow.rowKey,
+        status: "name_mismatch",
+        message: `Sai tên — PO: "${dialogName}", file: "${importName}".`,
+      });
+      return;
+    }
+
+    importPartBySap[dialogRow.sapCode.trim()] = importRow.dInvCode;
+
+    const oitmParts = oitmPartsBySap[dialogRow.sapCode.trim()] ?? [];
+    const importPartValid =
+      !oitmParts.length ||
+      oitmParts.some((p) => normalizePartNumber(p) === importPart);
+
+    if (!importPartValid) {
+      mismatchCount += 1;
+      results.push({
+        sapCode: importRow.sapCode,
+        itemName: dialogName,
+        tablePartNumber: normalizePartNumber(dialogRow.partNumber),
+        importPartNumber: importPart,
+        importItemName: importName,
+        rowKey: dialogRow.rowKey,
+        status: "part_mismatch",
+        message: `Mã part file "${importPart}" không có trong OITM (${oitmParts.join(", ") || "—"}). Vui lòng chọn part.`,
+      });
+      return;
+    }
+
+    matchedCount += 1;
+    results.push({
+      sapCode: importRow.sapCode,
+      itemName: dialogName,
+      tablePartNumber: normalizePartNumber(dialogRow.partNumber) || "—",
+      importPartNumber: importPart,
+      importItemName: importName,
+      rowKey: dialogRow.rowKey,
+      status: "matched",
+      message: "Khớp mã SAP, tên và mã part.",
+    });
+  });
+
+  const allMatched = mismatchCount === 0 && missingCount === 0;
+  const partialMatched = matchedCount > 0 && !allMatched;
+
+  let message = "";
+  if (allMatched) {
+    message = `Đối chiếu OK — ${matchedCount} mã SAP khớp.`;
+  } else if (partialMatched) {
+    message = `Đối chiếu một phần — khớp: ${matchedCount}, lỗi: ${mismatchCount + missingCount}.`;
+  } else {
+    message = `Đối chiếu thất bại — lỗi: ${mismatchCount + missingCount}.`;
+  }
+
+  return {
+    matched: allMatched,
+    partialMatched,
+    message,
+    rows: results,
+    importPartBySap,
+  };
 }

@@ -48,6 +48,11 @@ public interface SapOitmService {
     List<SapOitm> findByItemCode(String itemCode);
 
     /**
+     * Part numbers (U_PartNumber) for an item code — comma-separated values split into a list.
+     */
+    List<String> findPartNumbersByItemCode(String itemCode);
+
+    /**
      * Get the "id" sapOitm.
      *
      * @param id the id of the entity.

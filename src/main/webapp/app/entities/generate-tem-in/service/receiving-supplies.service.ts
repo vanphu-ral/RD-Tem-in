@@ -515,6 +515,24 @@ export class ReceivingSuppliesService {
       );
   }
 
+  /** Danh sách mã part từ OITM U_PartNumber (ngăn cách bởi dấu ,). */
+  getOitmPartNumbersBySapCode(sapCode: string): Observable<string[]> {
+    const code = sapCode.trim();
+    if (!code) {
+      return of([]);
+    }
+    return this.http
+      .get<
+        string[]
+      >(`${this.sapOitmUrl}/itemCode/${encodeURIComponent(code)}/part-numbers`)
+      .pipe(
+        map((parts) =>
+          (parts ?? []).map((p) => String(p).trim()).filter(Boolean),
+        ),
+        catchError(() => of([])),
+      );
+  }
+
   /** Danh sách kho SAP. */
   getSapWarehouses(): Observable<SapOwhsDto[]> {
     return this.http.get<SapOwhsDto[]>(`${this.testurl}/owhs`).pipe(

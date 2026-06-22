@@ -162,15 +162,6 @@
             Đối chiếu PO
           </button>
           <button
-            mat-stroked-button
-            type="button"
-            *ngIf="editingRequestId"
-            (click)="openPartImportModal()"
-          >
-            <mat-icon>upload_file</mat-icon>
-            Import đối chiếu partnumber
-          </button>
-          <button
             mat-raised-button
             color="primary"
             type="button"
@@ -907,12 +898,91 @@
       <mat-divider></mat-divider>
 
       <mat-card-content class="po-select-body">
-        <!-- <p class="po-select-hint">
-          Chọn vật tư cần thêm vào bảng. Mã kho header đồng bộ với form ngoài —
-          dùng làm mặc định khi xác nhận (vật tư đã tick) hoặc chọn từng dòng.
-          Mã đã lưu PO (nền xám, khóa) không thao tác được. {{ getPoSelectSelectedCount() }} /
-          {{ getPoSelectSelectableRows().length }} đã chọn
-        </p> -->
+        <div class="po-select-import-section">
+          <div class="part-import-file-row">
+            <input
+              #poSelectPartImportInput
+              type="file"
+              accept=".xlsx,.xls"
+              hidden
+              (change)="onPoSelectPartImportFileSelected($event)"
+            />
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="poSelectPartImportInput.click()"
+              [disabled]="isParsingPartImport"
+            >
+              <mat-icon>upload_file</mat-icon>
+              Import ListCont đối chiếu part
+            </button>
+            <a
+              class="part-import-template-link"
+              href="../../../content/template/mau-listcont-detail-nhap-khau.xlsx"
+              download="Mẫu ListCont Detail-Nhập khẩu.xlsx"
+            >
+              Tải file mẫu
+            </a>
+            <span class="part-import-file-name" *ngIf="partImportFileName">
+              {{ partImportFileName }}
+            </span>
+            <mat-spinner
+              diameter="20"
+              *ngIf="isParsingPartImport"
+            ></mat-spinner>
+          </div>
+          <p class="po-select-hint" *ngIf="partImportMeta">
+            Sheet: <strong>{{ partImportMeta.sheetName }}</strong> · Part:
+            <strong>{{ partImportMeta.partNumberHeader }}</strong> · SAP:
+            <strong>{{ partImportMeta.sapCodeHeader }}</strong>
+            <span *ngIf="partImportRows.length">
+              · {{ partImportRows.length }} mã trong file
+            </span>
+          </p>
+          <p
+            class="po-select-reconcile-hint"
+            *ngIf="getPoSelectPartReconcileHint()"
+            [class.is-complete]="isPoSelectPartReconcileComplete()"
+          >
+            {{ getPoSelectPartReconcileHint() }}
+          </p>
+          <div
+            class="po-reconcile-result po-select-reconcile-result"
+            *ngIf="partImportResult"
+            [class.is-success]="partImportResult.matched"
+            [class.is-partial]="partImportResult.partialMatched"
+            [class.is-error]="
+              !partImportResult.matched && !partImportResult.partialMatched
+            "
+          >
+            <mat-icon>{{
+              partImportResult.matched
+                ? "check_circle"
+                : partImportResult.partialMatched
+                  ? "warning"
+                  : "error"
+            }}</mat-icon>
+            <span>{{ partImportResult.message }}</span>
+          </div>
+
+          <div
+            class="po-select-import-errors"
+            *ngIf="getPoSelectPartImportFailedRows().length"
+          >
+            <div
+              class="po-select-import-error-item"
+              *ngFor="let item of getPoSelectPartImportFailedRows()"
+              [class.is-fail]="item.status !== 'matched'"
+            >
+              <strong>{{ item.sapCode }}</strong>
+              <span *ngIf="item.importItemName">
+                · File: {{ item.importItemName }}
+              </span>
+              <span *ngIf="item.itemName"> · PO: {{ item.itemName }} </span>
+              <div class="po-select-import-error-msg">{{ item.message }}</div>
+            </div>
+          </div>
+        </div>
 
         <div class="po-select-table-wrap">
           <table class="po-select-table">
@@ -934,6 +1004,7 @@
                 <th class="col-stt">STT</th>
                 <th class="col-sap">Mã SAP</th>
                 <th class="col-name">Tên vật tư</th>
+                <th class="col-part">Part number</th>
                 <th class="col-qty">SL theo PO</th>
                 <th class="col-unit">ĐVT</th>
                 <th class="col-whs">Mã kho SAP</th>
@@ -959,6 +1030,7 @@
                     placeholder="Lọc tên vật tư"
                   />
                 </th>
+                <th class="col-part"></th>
                 <th></th>
                 <th></th>
                 <th class="col-whs">
@@ -981,7 +1053,7 @@
                         onPoSelectHeaderWarehouseSearch(poSelectHeaderWarehouse)
                       "
                       (ngModelChange)="onPoSelectHeaderWarehouseChange($event)"
-                      placeholder="Mã kho (đồng bộ form)"
+                      placeholder="Mã kho"
                     />
                   </mat-form-field>
                 </th>
@@ -993,6 +1065,11 @@
                 [class.is-on-table]="row.alreadyOnTable"
                 [class.is-in-po-status]="row.alreadyInPoStatus"
                 [class.is-row-locked]="row.alreadyInPoStatus"
+                [class.is-part-fail]="
+                  row.partReconcileStatus &&
+                  row.partReconcileStatus !== 'matched' &&
+                  !row.partReconcileResolved
+                "
               >
                 <td class="col-check">
                   <mat-checkbox
@@ -1017,6 +1094,52 @@
                 </td>
                 <td class="col-name" [title]="row.itemName">
                   {{ row.itemName || "—" }}
+                  <span
+                    class="part-reconcile-badge"
+                    *ngIf="
+                      row.partReconcileMessage &&
+                      row.partReconcileStatus !== 'matched'
+                    "
+                    [title]="row.partReconcileMessage"
+                  >
+                    {{ row.partReconcileMessage }}
+                  </span>
+                </td>
+                <td class="col-part">
+                  <mat-form-field
+                    class="po-select-part-field"
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                  >
+                    <input
+                      matInput
+                      class="po-select-part-input"
+                      type="text"
+                      [(ngModel)]="row.partNumber"
+                      [disabled]="row.alreadyOnTable || row.alreadyInPoStatus"
+                      (focus)="loadOitmPartOptionsForRow(row)"
+                      (ngModelChange)="onPoSelectPartNumberChange(row)"
+                      [matAutocomplete]="autoPoSelectPart"
+                      placeholder="Part number"
+                    />
+                  </mat-form-field>
+                  <mat-autocomplete
+                    #autoPoSelectPart="matAutocomplete"
+                    (optionSelected)="
+                      onPoSelectPartPicked(row, $event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="let part of getFilteredOitmParts(row)"
+                      [value]="part"
+                    >
+                      {{ part }}
+                    </mat-option>
+                  </mat-autocomplete>
+                  <mat-spinner
+                    diameter="16"
+                    *ngIf="row.loadingOitmParts"
+                  ></mat-spinner>
                 </td>
                 <td class="col-qty">{{ row.quantity | number: "1.0-3" }}</td>
                 <td class="col-unit">{{ row.unit || "—" }}</td>
@@ -1101,8 +1224,9 @@
           type="button"
           (click)="onConfirmPoSelect()"
           [disabled]="!canConfirmPoSelect()"
+          [title]="getPoSelectPartReconcileHint()"
         >
-          Xác nhận
+          Xác nhận ({{ getPoSelectSelectedCount() }})
         </button>
       </mat-card-actions>
     </mat-card>
@@ -1244,166 +1368,6 @@
             *ngFor="let code of poReconcileResult!.missingFromPo"
             >{{ code }}</span
           >
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
-
-  <!-- Modal import đối chiếu partnumber -->
-  <div
-    class="po-reconcile-overlay"
-    *ngIf="showPartImportModal"
-    (click)="closePartImportModal()"
-  ></div>
-  <div
-    class="po-reconcile-modal"
-    *ngIf="showPartImportModal"
-    (click)="$event.stopPropagation()"
-  >
-    <mat-card class="po-reconcile-card">
-      <mat-card-header class="po-reconcile-header">
-        <mat-card-title>
-          <div class="po-reconcile-header-content">
-            <div class="po-reconcile-title-section">
-              <mat-icon>upload_file</mat-icon>
-              <div>
-                <h2>Import đối chiếu partnumber</h2>
-                <p>
-                  Tự nhận diện cột part (DInvCode / Part number) và mã SAP
-                  (RDCode / RD code) trong file Excel
-                </p>
-              </div>
-            </div>
-            <button
-              mat-icon-button
-              type="button"
-              (click)="closePartImportModal()"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-        </mat-card-title>
-      </mat-card-header>
-
-      <mat-divider></mat-divider>
-
-      <mat-card-content class="po-reconcile-body">
-        <div class="part-import-file-row">
-          <input
-            #partImportFileInput
-            type="file"
-            accept=".xlsx,.xls"
-            hidden
-            (change)="onPartImportFileSelected($event)"
-          />
-          <button
-            mat-stroked-button
-            type="button"
-            (click)="partImportFileInput.click()"
-            [disabled]="isParsingPartImport"
-          >
-            <mat-icon>folder_open</mat-icon>
-            Chọn file Excel
-          </button>
-          <span class="part-import-file-name" *ngIf="partImportFileName">
-            {{ partImportFileName }}
-          </span>
-          <mat-spinner diameter="20" *ngIf="isParsingPartImport"></mat-spinner>
-        </div>
-
-        <p class="po-reconcile-hint">
-          {{ collectSapCodesFromTable().length }} mã SAP trên bảng
-          <span *ngIf="partImportRows.length">
-            · {{ partImportRows.length }} mã SAP trong file
-          </span>
-          <span *ngIf="partImportMeta">
-            <br />
-            Sheet: <strong>{{ partImportMeta.sheetName }}</strong> · Part:
-            <strong>{{ partImportMeta.partNumberHeader }}</strong> · SAP:
-            <strong>{{ partImportMeta.sapCodeHeader }}</strong>
-          </span>
-        </p>
-
-        <div class="po-reconcile-actions">
-          <button
-            mat-raised-button
-            color="primary"
-            type="button"
-            (click)="onReconcilePartNumbers()"
-            [disabled]="isParsingPartImport || !partImportRows.length"
-          >
-            Đối chiếu
-          </button>
-          <button
-            mat-raised-button
-            type="button"
-            class="btn-apply-po"
-            (click)="onApplyImportedPartNumbers()"
-            [disabled]="!canApplyImportedPartNumbers()"
-          >
-            Áp dụng mã part
-          </button>
-        </div>
-
-        <div
-          class="po-reconcile-result"
-          *ngIf="partImportResult"
-          [class.is-success]="partImportResult.matched"
-          [class.is-partial]="partImportResult.partialMatched"
-          [class.is-error]="
-            !partImportResult.matched && !partImportResult.partialMatched
-          "
-        >
-          <mat-icon>{{
-            partImportResult.matched
-              ? "check_circle"
-              : partImportResult.partialMatched
-                ? "warning"
-                : "error"
-          }}</mat-icon>
-          <span>{{ partImportResult.message }}</span>
-        </div>
-
-        <div
-          class="po-reconcile-row-errors"
-          *ngIf="partImportResult?.rows?.length"
-        >
-          <div
-            class="po-reconcile-row-item"
-            *ngFor="let item of partImportResult!.rows"
-            [class.is-pass]="item.status === 'matched'"
-            [class.is-fail]="item.status !== 'matched'"
-          >
-            <div class="po-reconcile-row-head">
-              <mat-icon>{{
-                item.status === "matched" ? "check_circle" : "cancel"
-              }}</mat-icon>
-              <strong>{{ item.sapCode }}</strong>
-              <span
-                class="reconcile-badge small"
-                [class.is-passed]="item.status === 'matched'"
-                [class.is-failed]="item.status !== 'matched'"
-              >
-                {{
-                  item.status === "matched"
-                    ? "OK"
-                    : item.status === "mismatch"
-                      ? "Khác part"
-                      : "Thiếu file"
-                }}
-              </span>
-            </div>
-            <p class="part-import-row-detail" *ngIf="item.itemName">
-              {{ item.itemName }}
-            </p>
-            <ul>
-              <li>{{ item.message }}</li>
-              <li *ngIf="item.tablePartNumber && item.importPartNumber">
-                Bảng: <strong>{{ item.tablePartNumber }}</strong> — File:
-                <strong>{{ item.importPartNumber }}</strong>
-              </li>
-            </ul>
-          </div>
         </div>
       </mat-card-content>
     </mat-card>

@@ -985,6 +985,55 @@
   color: #64748b;
 }
 
+.po-select-import-section {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.po-select-reconcile-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #b45309;
+
+  &.is-complete {
+    color: #15803d;
+  }
+}
+
+.po-select-reconcile-result {
+  margin-top: 8px;
+}
+
+.po-select-import-errors {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  border-radius: 8px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.po-select-import-error-item {
+  padding: 6px 0;
+  border-bottom: 1px dashed #fda4af;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.is-fail {
+    color: #991b1b;
+  }
+}
+
+.po-select-import-error-msg {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
 .po-select-table-wrap {
   flex: 1;
   min-height: 0;
@@ -1060,6 +1109,74 @@
   .col-sap {
     width: 110px;
     white-space: nowrap;
+  }
+
+  .col-part {
+    min-width: 120px;
+    max-width: 160px;
+  }
+
+  .po-select-part-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 11px;
+    height: 26px;
+    background: #fff;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    &:disabled {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+  }
+
+  .po-select-part-field {
+    width: 100%;
+    font-size: 11px;
+    margin: 0;
+
+    ::ng-deep {
+      .mat-mdc-text-field-wrapper {
+        padding: 0 6px;
+        min-height: 30px;
+      }
+
+      .mat-mdc-form-field-flex {
+        min-height: 30px;
+        align-items: center;
+      }
+
+      .mat-mdc-form-field-infix {
+        min-height: 30px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+      }
+
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-width: 1px !important;
+      }
+    }
+  }
+
+  .part-reconcile-badge {
+    display: block;
+    margin-top: 4px;
+    font-size: 10px;
+    color: #b91c1c;
+    line-height: 1.3;
+  }
+
+  tbody tr.is-part-fail {
+    background: #fff7ed;
   }
 
   .col-qty {
@@ -1327,6 +1444,19 @@
   font-size: 13px;
   color: #334155;
   word-break: break-all;
+}
+
+.part-import-template-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+  }
 }
 
 .part-import-row-detail {
