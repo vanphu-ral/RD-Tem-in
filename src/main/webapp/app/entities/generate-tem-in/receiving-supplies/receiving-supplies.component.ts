@@ -3453,7 +3453,7 @@ export class ReceivingSuppliesComponent
         reelId: item.reelId,
         partNumber: item.partNumber,
         vendor: item.vendor,
-        quantityOfPackage: lot?.quantity ?? item.initialQuantity ?? null,
+        quantityOfPackage: item.initialQuantity ?? lot?.quantity ?? null,
         mfgDate: lot?.manufacturingDate ?? item.manufacturingDate,
         productionShift: "",
         opName: "",
@@ -3477,18 +3477,27 @@ export class ReceivingSuppliesComponent
     parent: ReceivingMaterialRow;
     lot: ReceivingLotRow;
   } | null {
-    const sap = item.sapCode.trim();
-    const lotNumber = (item.lot ?? "").trim();
     const temDetail = this.requestTemDetails.find(
       (t) => t.reelId === item.reelId,
     );
     const productId = temDetail?.productOfRequestId;
 
+    if (productId != null) {
+      for (const parent of this.dataSource.data) {
+        for (const lot of parent.lots) {
+          if (Number(lot.productId) === Number(productId)) {
+            return { parent, lot };
+          }
+        }
+      }
+      return null;
+    }
+
+    const sap = item.sapCode.trim();
+    const lotNumber = (item.lot ?? "").trim();
+
     for (const parent of this.dataSource.data) {
       for (const lot of parent.lots) {
-        if (productId != null && Number(lot.productId) === Number(productId)) {
-          return { parent, lot };
-        }
         if (
           parent.sapCode.trim() === sap &&
           lot.lotNumber.trim() === lotNumber
