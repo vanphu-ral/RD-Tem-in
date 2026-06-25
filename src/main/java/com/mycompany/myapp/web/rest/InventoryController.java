@@ -195,6 +195,10 @@ public class InventoryController {
         @RequestParam(required = false, defaultValue = "") String lotNumber,
         @RequestParam(required = false, defaultValue = "") String materialType,
         @RequestParam(required = false, defaultValue = "") String status,
+        @RequestParam(
+            required = false,
+            defaultValue = ""
+        ) String locationFullName,
         @RequestParam(required = false, defaultValue = "0") Integer page,
         @RequestParam(required = false, defaultValue = "25") Integer size
     ) {
@@ -207,6 +211,7 @@ public class InventoryController {
             lotNumber,
             materialType,
             status,
+            locationFullName,
             page,
             size
         );

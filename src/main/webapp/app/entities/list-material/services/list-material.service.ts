@@ -358,6 +358,7 @@ export interface WarehouseLocationInventoryRow {
   status?: string | number;
   lotNumber?: string;
   materialType?: string;
+  locationFullName?: string;
   updatedDate?: string;
 }
 
@@ -369,6 +370,7 @@ export interface WarehouseLocationMaterialFilters {
   lotNumber?: string;
   materialType?: string;
   status?: string;
+  locationFullName?: string;
 }
 
 export interface WarehouseLocationMaterialsResponse {
@@ -916,6 +918,7 @@ export class ListMaterialService {
     setIfPresent("lotNumber", filters.lotNumber);
     setIfPresent("materialType", filters.materialType);
     setIfPresent("status", filters.status);
+    setIfPresent("locationFullName", filters.locationFullName);
 
     const url = this.applicationConfigService.getEndpointFor(
       "/api/inventory/warehouse-summary/location-materials",

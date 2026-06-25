@@ -28,4 +28,21 @@ public interface SapOitmRepository extends JpaRepository<SapOitm, Long> {
         nativeQuery = true
     )
     List<Object[]> findAllItemGroupNames();
+
+    @Query(
+        value = "SELECT DISTINCT ItemCode FROM SAP_OITM " +
+        "WHERE ItemCode IS NOT NULL AND LTRIM(RTRIM(ItemCode)) <> '' " +
+        "AND ItemName IS NOT NULL AND LTRIM(RTRIM(ItemName)) <> '' " +
+        "AND ItemName COLLATE Latin1_General_CI_AI LIKE :pattern COLLATE Latin1_General_CI_AI",
+        nativeQuery = true
+    )
+    List<String> findItemCodesByItemNameLike(@Param("pattern") String pattern);
+
+    @Query(
+        value = "SELECT ItemCode, ItemName FROM SAP_OITM WHERE ItemCode IN (:itemCodes)",
+        nativeQuery = true
+    )
+    List<Object[]> findItemNamesByItemCodesIn(
+        @Param("itemCodes") List<String> itemCodes
+    );
 }

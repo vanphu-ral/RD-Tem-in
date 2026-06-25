@@ -1229,7 +1229,13 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "        ))\n" +
         "    )\n" +
         ")\n" +
-        "ORDER BY l.Location_Name, itemCode, a.Inventory_MaterialIdentifier\n" +
+        "ORDER BY l.Location_Name,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END,\n" +
+        "    a.Inventory_MaterialIdentifier\n" +
         "OFFSET 0 ROWS FETCH NEXT :rowLimit ROWS ONLY",
         nativeQuery = true
     )
@@ -1241,6 +1247,203 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         @Param("materialPattern") String materialPattern,
         @Param("useNameItemCodes") int useNameItemCodes,
         @Param("nameItemCodes") List<String> nameItemCodes,
+        @Param("rowLimit") int rowLimit
+    );
+
+    @Query(
+        value = "SELECT \n" +
+        "    l.Location_Id AS locationId,\n" +
+        "    l.Location_Name AS locationName,\n" +
+        "    l.Location_FullName AS locationFullName,\n" +
+        "    a.Inventory_MaterialIdentifier AS materialIdentifier,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END AS itemCode,\n" +
+        "    N'' AS materialName,\n" +
+        "    ISNULL(a.Inventory_Quantity, 0) AS quantity,\n" +
+        "    CAST(a.Inventory_Status AS VARCHAR(10)) AS status,\n" +
+        "    ISNULL(d2.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'') AS lotNumber,\n" +
+        "    ISNULL(a.Inventory_PartNumber, N'') AS partNumber\n" +
+        "FROM Inventory a\n" +
+        "INNER JOIN Location l ON a.Inventory_LocationId = l.Location_Id\n" +
+        "INNER JOIN Area ar ON ar.Area_Id = l.Location_AreaId\n" +
+        "OUTER APPLY (\n" +
+        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
+        "    FROM InventoryMaterialTraceDetail\n" +
+        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
+        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        ") d1\n" +
+        "OUTER APPLY (\n" +
+        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
+        "    FROM InventoryMaterialTraceDetail\n" +
+        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
+        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'\n" +
+        ") d2\n" +
+        "WHERE LTRIM(RTRIM(ISNULL(NULLIF(ar.Area_Name, N''), ISNULL(l.Location_AreaName, N'')))) = LTRIM(RTRIM(:areaCode))\n" +
+        "AND (\n" +
+        "    LTRIM(RTRIM(:areaName)) = N''\n" +
+        "    OR LTRIM(RTRIM(ISNULL(ar.Area_Description, N''))) = LTRIM(RTRIM(:areaName))\n" +
+        ")\n" +
+        "AND a.Inventory_Status IN (3,6,19)\n" +
+        "AND a.Inventory_Quantity > 0\n" +
+        "AND LTRIM(RTRIM(\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END\n" +
+        ")) = LTRIM(RTRIM(:itemCode))\n" +
+        "ORDER BY l.Location_Name,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END,\n" +
+        "    a.Inventory_MaterialIdentifier\n" +
+        "OFFSET 0 ROWS FETCH NEXT :rowLimit ROWS ONLY",
+        nativeQuery = true
+    )
+    List<
+        WarehouseAreaInventoryItemRawResponse
+    > getWarehouseAreaInventoryItemsBySingleItemCode(
+        @Param("areaCode") String areaCode,
+        @Param("areaName") String areaName,
+        @Param("itemCode") String itemCode,
+        @Param("rowLimit") int rowLimit
+    );
+
+    @Query(
+        value = "SELECT \n" +
+        "    l.Location_Id AS locationId,\n" +
+        "    l.Location_Name AS locationName,\n" +
+        "    l.Location_FullName AS locationFullName,\n" +
+        "    a.Inventory_MaterialIdentifier AS materialIdentifier,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END AS itemCode,\n" +
+        "    N'' AS materialName,\n" +
+        "    ISNULL(a.Inventory_Quantity, 0) AS quantity,\n" +
+        "    CAST(a.Inventory_Status AS VARCHAR(10)) AS status,\n" +
+        "    ISNULL(d2.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'') AS lotNumber,\n" +
+        "    ISNULL(a.Inventory_PartNumber, N'') AS partNumber\n" +
+        "FROM Inventory a\n" +
+        "INNER JOIN Location l ON a.Inventory_LocationId = l.Location_Id\n" +
+        "INNER JOIN Area ar ON ar.Area_Id = l.Location_AreaId\n" +
+        "OUTER APPLY (\n" +
+        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
+        "    FROM InventoryMaterialTraceDetail\n" +
+        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
+        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        ") d1\n" +
+        "OUTER APPLY (\n" +
+        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
+        "    FROM InventoryMaterialTraceDetail\n" +
+        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
+        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'\n" +
+        ") d2\n" +
+        "WHERE LTRIM(RTRIM(ISNULL(NULLIF(ar.Area_Name, N''), ISNULL(l.Location_AreaName, N'')))) = LTRIM(RTRIM(:areaCode))\n" +
+        "AND (\n" +
+        "    LTRIM(RTRIM(:areaName)) = N''\n" +
+        "    OR LTRIM(RTRIM(ISNULL(ar.Area_Description, N''))) = LTRIM(RTRIM(:areaName))\n" +
+        ")\n" +
+        "AND a.Inventory_Status IN (3,6,19)\n" +
+        "AND a.Inventory_Quantity > 0\n" +
+        "AND EXISTS (\n" +
+        "    SELECT 1\n" +
+        "    FROM STRING_SPLIT(:itemCodesCsv, NCHAR(31)) AS matchedCodes\n" +
+        "    WHERE LTRIM(RTRIM(matchedCodes.value)) <> N''\n" +
+        "    AND LTRIM(RTRIM(matchedCodes.value)) = LTRIM(RTRIM(\n" +
+        "        CASE \n" +
+        "            WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "            THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "            ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "         END\n" +
+        "    ))\n" +
+        ")\n" +
+        "ORDER BY l.Location_Name,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END,\n" +
+        "    a.Inventory_MaterialIdentifier\n" +
+        "OFFSET 0 ROWS FETCH NEXT :rowLimit ROWS ONLY",
+        nativeQuery = true
+    )
+    List<
+        WarehouseAreaInventoryItemRawResponse
+    > getWarehouseAreaInventoryItemsByItemCodesCsv(
+        @Param("areaCode") String areaCode,
+        @Param("areaName") String areaName,
+        @Param("itemCodesCsv") String itemCodesCsv,
+        @Param("rowLimit") int rowLimit
+    );
+
+    @Query(
+        value = "SELECT \n" +
+        "    l.Location_Id AS locationId,\n" +
+        "    l.Location_Name AS locationName,\n" +
+        "    l.Location_FullName AS locationFullName,\n" +
+        "    a.Inventory_MaterialIdentifier AS materialIdentifier,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END AS itemCode,\n" +
+        "    N'' AS materialName,\n" +
+        "    ISNULL(a.Inventory_Quantity, 0) AS quantity,\n" +
+        "    CAST(a.Inventory_Status AS VARCHAR(10)) AS status,\n" +
+        "    ISNULL(d2.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'') AS lotNumber,\n" +
+        "    ISNULL(a.Inventory_PartNumber, N'') AS partNumber\n" +
+        "FROM Inventory a\n" +
+        "INNER JOIN Location l ON a.Inventory_LocationId = l.Location_Id\n" +
+        "INNER JOIN Area ar ON ar.Area_Id = l.Location_AreaId\n" +
+        "OUTER APPLY (\n" +
+        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
+        "    FROM InventoryMaterialTraceDetail\n" +
+        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
+        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        ") d1\n" +
+        "OUTER APPLY (\n" +
+        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
+        "    FROM InventoryMaterialTraceDetail\n" +
+        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
+        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'\n" +
+        ") d2\n" +
+        "WHERE LTRIM(RTRIM(ISNULL(NULLIF(ar.Area_Name, N''), ISNULL(l.Location_AreaName, N'')))) = LTRIM(RTRIM(:areaCode))\n" +
+        "AND (\n" +
+        "    LTRIM(RTRIM(:areaName)) = N''\n" +
+        "    OR LTRIM(RTRIM(ISNULL(ar.Area_Description, N''))) = LTRIM(RTRIM(:areaName))\n" +
+        ")\n" +
+        "AND a.Inventory_Status IN (3,6,19)\n" +
+        "AND a.Inventory_Quantity > 0\n" +
+        "AND (\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END\n" +
+        ") IN (:itemCodes)\n" +
+        "ORDER BY l.Location_Name,\n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END,\n" +
+        "    a.Inventory_MaterialIdentifier\n" +
+        "OFFSET 0 ROWS FETCH NEXT :rowLimit ROWS ONLY",
+        nativeQuery = true
+    )
+    List<
+        WarehouseAreaInventoryItemRawResponse
+    > getWarehouseAreaInventoryItemsByItemCodes(
+        @Param("areaCode") String areaCode,
+        @Param("areaName") String areaName,
+        @Param("itemCodes") List<String> itemCodes,
         @Param("rowLimit") int rowLimit
     );
 
@@ -1320,6 +1523,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
         "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
         "     END AS itemCode,\n" +
+        "    ISNULL(b.Location_FullName, N'') AS locationFullName,\n" +
         "    ISNULL(a.Inventory_PartNumber, N'') AS partNumber,\n" +
         "    ISNULL(a.Inventory_Quantity, 0) AS quantity,\n" +
         "    CAST(a.Inventory_Status AS VARCHAR(10)) AS status,\n" +
@@ -1356,6 +1560,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "     END LIKE :itemCodePattern\n" +
         "))\n" +
         "AND (:filterPartNumber = 0 OR ISNULL(a.Inventory_PartNumber, N'') LIKE :partNumberPattern)\n" +
+        "AND (:filterLocationFullName = 0 OR ISNULL(b.Location_FullName, N'') LIKE :locationFullNamePattern)\n" +
         "AND (:filterLot = 0 OR ISNULL(d2.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'') LIKE :lotPattern)\n" +
         "AND (:filterStatus = 0 OR CAST(a.Inventory_Status AS VARCHAR(10)) = :statusValue)\n" +
         "AND (:useOitmItemCodes = 0 OR (\n" +
@@ -1379,6 +1584,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         @Param("itemCodePattern") String itemCodePattern,
         @Param("filterPartNumber") int filterPartNumber,
         @Param("partNumberPattern") String partNumberPattern,
+        @Param("filterLocationFullName") int filterLocationFullName,
+        @Param("locationFullNamePattern") String locationFullNamePattern,
         @Param("filterLot") int filterLot,
         @Param("lotPattern") String lotPattern,
         @Param("filterStatus") int filterStatus,
@@ -1423,6 +1630,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "     END LIKE :itemCodePattern\n" +
         "))\n" +
         "AND (:filterPartNumber = 0 OR ISNULL(a.Inventory_PartNumber, N'') LIKE :partNumberPattern)\n" +
+        "AND (:filterLocationFullName = 0 OR ISNULL(b.Location_FullName, N'') LIKE :locationFullNamePattern)\n" +
         "AND (:filterLot = 0 OR ISNULL(d2.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'') LIKE :lotPattern)\n" +
         "AND (:filterStatus = 0 OR CAST(a.Inventory_Status AS VARCHAR(10)) = :statusValue)\n" +
         "AND (:useOitmItemCodes = 0 OR (\n" +
@@ -1442,6 +1650,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         @Param("itemCodePattern") String itemCodePattern,
         @Param("filterPartNumber") int filterPartNumber,
         @Param("partNumberPattern") String partNumberPattern,
+        @Param("filterLocationFullName") int filterLocationFullName,
+        @Param("locationFullNamePattern") String locationFullNamePattern,
         @Param("filterLot") int filterLot,
         @Param("lotPattern") String lotPattern,
         @Param("filterStatus") int filterStatus,

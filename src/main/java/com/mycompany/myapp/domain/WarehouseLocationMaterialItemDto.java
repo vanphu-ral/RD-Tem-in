@@ -10,6 +10,7 @@ public class WarehouseLocationMaterialItemDto {
     private String status;
     private String lotNumber;
     private String materialType;
+    private String locationFullName;
 
     public String getMaterialIdentifier() {
         return materialIdentifier;
@@ -73,5 +74,13 @@ public class WarehouseLocationMaterialItemDto {
 
     public void setMaterialType(String materialType) {
         this.materialType = materialType;
+    }
+
+    public String getLocationFullName() {
+        return locationFullName;
+    }
+
+    public void setLocationFullName(String locationFullName) {
+        this.locationFullName = locationFullName;
     }
 }

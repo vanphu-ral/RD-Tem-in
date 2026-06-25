@@ -33,10 +33,27 @@
   @extend .thin-scrollbar;
 }
 
+:host.is-page-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  width: 100vw;
+  height: 100vh !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  @extend .thin-scrollbar;
+}
+
+:host.is-page-fullscreen.scrollable-tab-active {
+  height: 100vh !important;
+  overflow-y: auto;
+}
+
 .warehouse-summary-page {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 100%;
   height: 100%;
   padding: 12px 16px 16px;
   box-sizing: border-box;
@@ -58,6 +75,50 @@
   &.is-page-loading {
     user-select: none;
   }
+}
+
+:host.is-page-fullscreen .warehouse-summary-page {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  padding: 16px 20px 24px;
+}
+
+.btn-page-fullscreen {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--ws-border-strong);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  color: var(--ws-text);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    background: var(--ws-bg-elevated);
+    border-color: var(--ws-accent);
+    transform: scale(1.04);
+  }
+
+  fa-icon {
+    font-size: 1rem;
+  }
+}
+
+::ng-deep body.warehouse-summary-fullscreen-active .cdk-overlay-container {
+  z-index: 1400;
 }
 
 @keyframes skeleton-shimmer {
@@ -692,6 +753,15 @@
   gap: 10px;
 }
 
+.floor-plan-map-section.has-highlight-focus {
+  .location-card:not(.location-card-highlighted):not(.location-card-selected) {
+    opacity: 0.38;
+    filter: grayscale(0.35) saturate(0.65);
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 .overview-grid {
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
@@ -704,10 +774,14 @@
   padding: 10px 12px;
   text-align: left;
   cursor: pointer;
+  position: relative;
+  isolation: isolate;
   transition:
     box-shadow 0.15s ease,
     transform 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    opacity 0.2s ease,
+    filter 0.2s ease;
 
   &:hover {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
@@ -720,11 +794,31 @@
   }
 
   &.location-card-highlighted {
+    z-index: 2;
+    transform: scale(1.05);
+    border-width: 3px;
+    border-color: #7dd3fc !important;
     box-shadow:
-      0 0 0 2px var(--ws-accent),
-      0 0 18px rgba(56, 189, 248, 0.45);
-    background: rgba(56, 189, 248, 0.22);
-    animation: pulse-highlight 1.6s ease-in-out infinite;
+      0 0 0 3px rgba(56, 189, 248, 0.95),
+      0 0 28px rgba(56, 189, 248, 0.65),
+      inset 0 0 18px rgba(56, 189, 248, 0.18);
+    background: linear-gradient(
+      145deg,
+      rgba(56, 189, 248, 0.34),
+      rgba(14, 165, 233, 0.16)
+    );
+    animation: pulse-highlight 1.2s ease-in-out infinite;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      border-radius: 14px;
+      border: 2px solid rgba(125, 211, 252, 0.85);
+      animation: ring-pulse 1.2s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
   }
 
   &.location-card-empty {
@@ -733,17 +827,31 @@
   }
 }
 
+@keyframes ring-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
 @keyframes pulse-highlight {
   0%,
   100% {
     box-shadow:
-      0 0 0 2px var(--ws-accent),
-      0 0 12px rgba(56, 189, 248, 0.35);
+      0 0 0 3px rgba(56, 189, 248, 0.9),
+      0 0 20px rgba(56, 189, 248, 0.45),
+      inset 0 0 14px rgba(56, 189, 248, 0.14);
   }
   50% {
     box-shadow:
-      0 0 0 2px var(--ws-accent),
-      0 0 22px rgba(56, 189, 248, 0.55);
+      0 0 0 3px rgba(125, 211, 252, 1),
+      0 0 34px rgba(56, 189, 248, 0.75),
+      inset 0 0 22px rgba(56, 189, 248, 0.24);
   }
 }
 
@@ -886,7 +994,7 @@
 
 .material-search-row {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(108px, 118px) minmax(0, 1fr) auto;
   gap: 6px;
   align-items: start;
   margin-bottom: 8px;

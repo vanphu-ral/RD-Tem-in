@@ -61,6 +61,18 @@
   </div>
 
   <ng-container *ngIf="!isLoading">
+    <button
+      type="button"
+      class="btn-page-fullscreen"
+      (click)="togglePageFullscreen()"
+      [attr.aria-label]="
+        isPageFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'
+      "
+      [attr.title]="isPageFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'"
+    >
+      <fa-icon [icon]="isPageFullscreen ? faCompress : faExpand"></fa-icon>
+    </button>
+
     <header class="page-header">
       <button mat-button class="btn-back" type="button" (click)="goBack()">
         <fa-icon [icon]="faArrowLeft"></fa-icon>
@@ -202,7 +214,10 @@
             </div>
 
             <div class="floor-plan-body">
-              <div class="floor-plan-map-section map-section-bordered">
+              <div
+                class="floor-plan-map-section map-section-bordered"
+                [class.has-highlight-focus]="hasOverviewHighlightFocus()"
+              >
                 <div class="legend-row" *ngIf="selectedOverviewMaterialType">
                   <span class="legend-title">Đang lọc chủng loại:</span>
                   <span class="legend-item">
@@ -553,7 +568,10 @@
               </div>
 
               <div class="floor-plan-body" *ngIf="!isFloorPlanLoading">
-                <div class="floor-plan-map-section map-section-bordered">
+                <div
+                  class="floor-plan-map-section map-section-bordered"
+                  [class.has-highlight-focus]="hasFloorPlanHighlightFocus()"
+                >
                   <div class="legend-row" *ngIf="legendMaterialTypes.length">
                     <span class="legend-title">Chú thích chủng loại:</span>
                     <span
@@ -664,7 +682,10 @@
                         appearance="outline"
                         class="material-search-type-field"
                       >
-                        <mat-select formControlName="materialSearchField">
+                        <mat-select
+                          formControlName="materialSearchField"
+                          panelClass="warehouse-summary-select-panel"
+                        >
                           <mat-option value="sap">Mã SAP</mat-option>
                           <mat-option value="name">Tên VT</mat-option>
                         </mat-select>
@@ -675,7 +696,7 @@
                       >
                         <input
                           matInput
-                          placeholder="Nhập từ khóa tìm kiếm..."
+                          placeholder="Tìm theo từ chứa trong tên..."
                           formControlName="materialSearch"
                         />
                       </mat-form-field>
@@ -958,7 +979,7 @@
                           "
                           (keydown)="onLocationMaterialHeaderKeydown($event)"
                           enterkeyhint="search"
-                          placeholder="Tìm..."
+                          placeholder="Từ chứa..."
                           [disabled]="!selectedLocation"
                         />
                       </div>
@@ -1003,6 +1024,27 @@
                     </th>
                     <td mat-cell *matCellDef="let row">
                       {{ row.partNumber || "-" }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="locationFullName">
+                    <th mat-header-cell *matHeaderCellDef>
+                      <div class="col-header-filter">
+                        <span>Vị trí đầy đủ</span>
+                        <input
+                          class="col-header-filter-input"
+                          [(ngModel)]="
+                            locationMaterialFiltersDraft.locationFullName
+                          "
+                          (keydown)="onLocationMaterialHeaderKeydown($event)"
+                          enterkeyhint="search"
+                          placeholder="Tìm..."
+                          [disabled]="!selectedLocation"
+                        />
+                      </div>
+                    </th>
+                    <td mat-cell *matCellDef="let row">
+                      {{ row.locationFullName || "-" }}
                     </td>
                   </ng-container>
 

@@ -22,6 +22,8 @@ import {
 } from "rxjs/operators";
 import {
   faArrowLeft,
+  faCompress,
+  faExpand,
   faMapMarkerAlt,
   faRotateRight,
   faWarehouse,
@@ -51,6 +53,8 @@ export class ListMaterialWarehouseSummaryComponent
   implements OnInit, OnDestroy
 {
   faArrowLeft = faArrowLeft;
+  faCompress = faCompress;
+  faExpand = faExpand;
   faRotateRight = faRotateRight;
   faWarehouse = faWarehouse;
   faMapLocationDot = faMapMarkerAlt;
@@ -73,6 +77,7 @@ export class ListMaterialWarehouseSummaryComponent
     "materialName",
     "itemCode",
     "partNumber",
+    "locationFullName",
     "quantity",
     "lotNumber",
     "materialType",
@@ -83,6 +88,9 @@ export class ListMaterialWarehouseSummaryComponent
   get isScrollableTabActive(): boolean {
     return this.selectedTabIndex === 0 || this.selectedTabIndex === 1;
   }
+
+  @HostBinding("class.is-page-fullscreen")
+  isPageFullscreen = false;
 
   dataSource = new MatTableDataSource<WarehouseAreaSummaryRow>([]);
   locationMaterialsSource =
@@ -148,7 +156,9 @@ export class ListMaterialWarehouseSummaryComponent
   readonly skeletonOverviewCards = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   readonly skeletonSidebarItems = [1, 2, 3, 4, 5, 6];
   readonly skeletonMaterialRows = [1, 2, 3, 4, 5, 6, 7, 8];
-  readonly skeletonMaterialCols = [1, 2, 3, 4, 5, 6, 7, 8];
+  readonly skeletonMaterialCols = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+  private readonly fullscreenBodyClass = "warehouse-summary-fullscreen-active";
 
   private readonly destroy$ = new Subject<void>();
   private readonly locationSearch$ = new Subject<string>();
@@ -195,8 +205,24 @@ export class ListMaterialWarehouseSummaryComponent
   }
 
   ngOnDestroy(): void {
+    this.setPageFullscreenState(false);
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  togglePageFullscreen(): void {
+    this.setPageFullscreenState(!this.isPageFullscreen);
+  }
+
+  hasFloorPlanHighlightFocus(): boolean {
+    if (this.highlightedLocationIds.size > 0) {
+      return true;
+    }
+    return !!(this.floorPlanContext?.materialType ?? "").trim();
+  }
+
+  hasOverviewHighlightFocus(): boolean {
+    return !!this.selectedOverviewMaterialType || !!this.selectedOverviewArea;
   }
 
   onSearch(): void {
@@ -343,7 +369,14 @@ export class ListMaterialWarehouseSummaryComponent
   }
 
   isLocationHighlighted(location: WarehouseAreaLocation): boolean {
-    return this.highlightedLocationIds.has(location.locationId);
+    if (this.highlightedLocationIds.has(location.locationId)) {
+      return true;
+    }
+    const materialType = (this.floorPlanContext?.materialType ?? "").trim();
+    if (!materialType) {
+      return false;
+    }
+    return location.containsSelectedMaterialType;
   }
 
   isOverviewAreaHighlighted(area: WarehouseOverviewArea): boolean {
@@ -535,6 +568,12 @@ export class ListMaterialWarehouseSummaryComponent
 
   displayMaterialType(materialType: string): string {
     return materialType ?? "";
+  }
+
+  private setPageFullscreenState(active: boolean): void {
+    this.isPageFullscreen = active;
+    document.body.classList.toggle(this.fullscreenBodyClass, active);
+    this.cdr.markForCheck();
   }
 
   private openFloorPlanForRow(row: WarehouseAreaSummaryRow): void {
@@ -848,6 +887,7 @@ export class ListMaterialWarehouseSummaryComponent
       lotNumber: "",
       materialType: "",
       status: "",
+      locationFullName: "",
     };
   }
 

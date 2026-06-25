@@ -50,6 +50,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class InventoryService {
 
+    private static final int NAME_ITEM_CODES_BATCH_SIZE = 400;
+    private static final int NAME_SEARCH_ROW_LIMIT = 5000;
+
     @Autowired
     InventoryRepository inventoryRepository;
 
@@ -716,27 +719,54 @@ public class InventoryService {
             }
             if (!matchedCodes.isEmpty()) {
                 useNameItemCodes = 1;
-                nameItemCodes = matchedCodes;
+                nameItemCodes = WarehouseItemCodeFilterUtils.dedupeItemCodes(
+                    matchedCodes
+                );
             }
         }
 
         int defaultPreview = Optional.ofNullable(previewLimit).orElse(100);
-        int rowLimit = searchMaterials == 0 ? defaultPreview : 50000;
+        int rowLimit = searchMaterials == 0
+            ? defaultPreview
+            : fieldMode == 1 && useNameItemCodes == 1
+                ? NAME_SEARCH_ROW_LIMIT
+                : 50000;
 
-        Integer totalCount =
-            inventoryRepository.countWarehouseAreaInventoryItems(
+        int safeTotal;
+        List<WarehouseAreaInventoryItemRawResponse> rawRows;
+        if (fieldMode == 1 && useNameItemCodes == 1) {
+            rawRows = getWarehouseAreaInventoryItemsByItemCodes(
+                normalizedAreaCode,
+                normalizedAreaName,
+                nameItemCodes,
+                rowLimit
+            );
+            safeTotal = rawRows.size();
+        } else if (
+            useNameItemCodes == 1 &&
+            nameItemCodes.size() > NAME_ITEM_CODES_BATCH_SIZE
+        ) {
+            rawRows = getWarehouseAreaInventoryItemsBatched(
                 normalizedAreaCode,
                 normalizedAreaName,
                 searchMaterials,
                 fieldMode,
                 materialPattern,
-                useNameItemCodes,
-                nameItemCodes
+                nameItemCodes,
+                rowLimit
             );
-        int safeTotal = Optional.ofNullable(totalCount).orElse(0);
-
-        List<WarehouseAreaInventoryItemRawResponse> rawRows =
-            inventoryRepository.getWarehouseAreaInventoryItems(
+            safeTotal = searchMaterials == 1
+                ? rawRows.size()
+                : countWarehouseAreaInventoryItemsBatched(
+                    normalizedAreaCode,
+                    normalizedAreaName,
+                    searchMaterials,
+                    fieldMode,
+                    materialPattern,
+                    nameItemCodes
+                );
+        } else if (searchMaterials == 1) {
+            rawRows = inventoryRepository.getWarehouseAreaInventoryItems(
                 normalizedAreaCode,
                 normalizedAreaName,
                 searchMaterials,
@@ -746,6 +776,30 @@ public class InventoryService {
                 nameItemCodes,
                 rowLimit
             );
+            safeTotal = rawRows.size();
+        } else {
+            Integer totalCount =
+                inventoryRepository.countWarehouseAreaInventoryItems(
+                    normalizedAreaCode,
+                    normalizedAreaName,
+                    searchMaterials,
+                    fieldMode,
+                    materialPattern,
+                    useNameItemCodes,
+                    nameItemCodes
+                );
+            safeTotal = Optional.ofNullable(totalCount).orElse(0);
+            rawRows = inventoryRepository.getWarehouseAreaInventoryItems(
+                normalizedAreaCode,
+                normalizedAreaName,
+                searchMaterials,
+                fieldMode,
+                materialPattern,
+                useNameItemCodes,
+                nameItemCodes,
+                rowLimit
+            );
+        }
 
         List<WarehouseAreaInventoryItemDto> items = mapAreaInventoryItems(
             rawRows
@@ -771,6 +825,7 @@ public class InventoryService {
         String lotNumber,
         String materialType,
         String status,
+        String locationFullName,
         Integer page,
         Integer size
     ) {
@@ -791,12 +846,14 @@ public class InventoryService {
         String lotFilter = normalizeFilter(lotNumber);
         String typeFilter = normalizeFilter(materialType);
         String statusFilter = normalizeFilter(status);
+        String locationFullNameFilter = normalizeFilter(locationFullName);
 
         int filterQr = qrFilter.isEmpty() ? 0 : 1;
         int filterItemCode = itemCodeFilter.isEmpty() ? 0 : 1;
         int filterPartNumber = partNumberFilter.isEmpty() ? 0 : 1;
         int filterLot = lotFilter.isEmpty() ? 0 : 1;
         int filterStatus = statusFilter.isEmpty() ? 0 : 1;
+        int filterLocationFullName = locationFullNameFilter.isEmpty() ? 0 : 1;
 
         String qrPattern = filterQr == 1 ? "%" + qrFilter + "%" : "%";
         String itemCodePattern = filterItemCode == 1
@@ -806,6 +863,9 @@ public class InventoryService {
             ? "%" + partNumberFilter + "%"
             : "%";
         String lotPattern = filterLot == 1 ? "%" + lotFilter + "%" : "%";
+        String locationFullNamePattern = filterLocationFullName == 1
+            ? "%" + locationFullNameFilter + "%"
+            : "%";
 
         int useOitmItemCodes = 0;
         List<String> oitmItemCodes = List.of("");
@@ -857,6 +917,8 @@ public class InventoryService {
                 itemCodePattern,
                 filterPartNumber,
                 partNumberPattern,
+                filterLocationFullName,
+                locationFullNamePattern,
                 filterLot,
                 lotPattern,
                 filterStatus,
@@ -875,6 +937,8 @@ public class InventoryService {
                 itemCodePattern,
                 filterPartNumber,
                 partNumberPattern,
+                filterLocationFullName,
+                locationFullNamePattern,
                 filterLot,
                 lotPattern,
                 filterStatus,
@@ -907,6 +971,11 @@ public class InventoryService {
                 code.isEmpty()
                     ? "-"
                     : warehouseSummarySapCacheService.resolveGroupName(code)
+            );
+            dto.setLocationFullName(
+                Optional.ofNullable(row.getLocationFullName())
+                    .map(String::trim)
+                    .orElse("")
             );
             items.add(dto);
         }
@@ -1368,6 +1437,121 @@ public class InventoryService {
                 )
             )
             .collect(Collectors.toList());
+    }
+
+    private List<
+        WarehouseAreaInventoryItemRawResponse
+    > getWarehouseAreaInventoryItemsByItemCodes(
+        String areaCode,
+        String areaName,
+        List<String> itemCodes,
+        int rowLimit
+    ) {
+        List<String> uniqueCodes = WarehouseItemCodeFilterUtils.dedupeItemCodes(
+            itemCodes
+        );
+        if (uniqueCodes.isEmpty()) {
+            return List.of();
+        }
+        if (uniqueCodes.size() == 1) {
+            return inventoryRepository.getWarehouseAreaInventoryItemsBySingleItemCode(
+                areaCode,
+                areaName,
+                uniqueCodes.get(0),
+                rowLimit
+            );
+        }
+        String itemCodesCsv = WarehouseItemCodeFilterUtils.encodeItemCodesCsv(
+            uniqueCodes
+        );
+        return inventoryRepository.getWarehouseAreaInventoryItemsByItemCodesCsv(
+            areaCode,
+            areaName,
+            itemCodesCsv,
+            rowLimit
+        );
+    }
+
+    private int countWarehouseAreaInventoryItemsBatched(
+        String areaCode,
+        String areaName,
+        int searchMaterials,
+        int fieldMode,
+        String materialPattern,
+        List<String> nameItemCodes
+    ) {
+        return getWarehouseAreaInventoryItemsBatched(
+            areaCode,
+            areaName,
+            searchMaterials,
+            fieldMode,
+            materialPattern,
+            nameItemCodes,
+            Integer.MAX_VALUE
+        ).size();
+    }
+
+    private List<
+        WarehouseAreaInventoryItemRawResponse
+    > getWarehouseAreaInventoryItemsBatched(
+        String areaCode,
+        String areaName,
+        int searchMaterials,
+        int fieldMode,
+        String materialPattern,
+        List<String> nameItemCodes,
+        int rowLimit
+    ) {
+        LinkedHashMap<String, WarehouseAreaInventoryItemRawResponse> merged =
+            new LinkedHashMap<>();
+
+        for (
+            int index = 0;
+            index < nameItemCodes.size();
+            index += NAME_ITEM_CODES_BATCH_SIZE
+        ) {
+            if (merged.size() >= rowLimit) {
+                break;
+            }
+            List<String> batch = nameItemCodes.subList(
+                index,
+                Math.min(
+                    index + NAME_ITEM_CODES_BATCH_SIZE,
+                    nameItemCodes.size()
+                )
+            );
+            int remaining = Math.max(1, rowLimit - merged.size());
+            List<WarehouseAreaInventoryItemRawResponse> rows =
+                inventoryRepository.getWarehouseAreaInventoryItems(
+                    areaCode,
+                    areaName,
+                    searchMaterials,
+                    fieldMode,
+                    materialPattern,
+                    1,
+                    batch,
+                    fieldMode == 1 ? remaining : Integer.MAX_VALUE
+                );
+            for (WarehouseAreaInventoryItemRawResponse row : rows) {
+                merged.putIfAbsent(buildAreaInventoryItemKey(row), row);
+                if (merged.size() >= rowLimit) {
+                    break;
+                }
+            }
+        }
+
+        return new ArrayList<>(merged.values());
+    }
+
+    private String buildAreaInventoryItemKey(
+        WarehouseAreaInventoryItemRawResponse row
+    ) {
+        return String.join(
+            "|",
+            String.valueOf(row.getLocationId()),
+            Optional.ofNullable(row.getMaterialIdentifier()).orElse(""),
+            Optional.ofNullable(row.getStatus()).orElse("")
+        );
     }
 
     private String normalizeFilter(String value) {
