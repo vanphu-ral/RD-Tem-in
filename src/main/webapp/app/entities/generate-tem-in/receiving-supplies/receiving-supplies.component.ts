@@ -2627,6 +2627,7 @@ export class ReceivingSuppliesComponent
             }
             this.applyRequestTableAfterSave(savedProducts);
             this.syncRequestHeaderWhsCode(orderWhsCode);
+            this.syncRequestHeaderSummary(this.editingRequestId);
             this.flushPendingProductInPoStatus();
             options.onSuccess?.();
           },
@@ -2746,6 +2747,7 @@ export class ReceivingSuppliesComponent
     }
     this.applyRequestTableAfterSave(savedProducts);
     this.syncRequestHeaderWhsCode(orderWhsCode);
+    this.syncRequestHeaderSummary(requestId);
     this.flushPendingProductInPoStatus();
 
     if (silent) {
@@ -5164,15 +5166,30 @@ export class ReceivingSuppliesComponent
       });
   }
 
+  private syncRequestHeaderSummary(requestId?: number | null): void {
+    if (!requestId) {
+      return;
+    }
+    const lotCount = this.countChildLots();
+    const totalQty = this.computeRequestTotalQuantity();
+    this.generateTemInService
+      .updateRequest(requestId, {
+        numberProduction: lotCount,
+        totalQuantity: totalQty,
+      })
+      .subscribe({
+        error: (err: unknown) => {
+          console.error("[syncRequestHeaderSummary] Lỗi:", err);
+        },
+      });
+  }
+
   private updateRequestWithPoNumber(): void {
     if (!this.editingRequestId) {
       return;
     }
     const po = this.poNumber.trim() || this.getEffectivePoNumber();
-    const totalQty = this.dataSource.data.reduce(
-      (sum, row) => sum + (row.quantity ?? 0),
-      0,
-    );
+    const totalQty = this.computeRequestTotalQuantity();
     const lotCount = this.countChildLots();
     const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
     this.generateTemInService
@@ -5213,10 +5230,7 @@ export class ReceivingSuppliesComponent
     if (!this.editingRequestId) {
       return;
     }
-    const totalQty = this.dataSource.data.reduce(
-      (sum, row) => sum + (row.quantity ?? 0),
-      0,
-    );
+    const totalQty = this.computeRequestTotalQuantity();
     const lotCount = this.countChildLots();
     const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
     this.generateTemInService
@@ -5249,5 +5263,18 @@ export class ReceivingSuppliesComponent
           console.error("[updateRequestWithPoNumberFromModal] Lỗi:", err);
         },
       });
+  }
+
+  /**
+   * Tổng số lượng đơn = tổng(quantity x temQuantity) của tất cả lô.
+   * Tính trực tiếp từ lot để tránh lệ thuộc trường tổng trung gian ở parent row.
+   */
+  private computeRequestTotalQuantity(): number {
+    return this.dataSource.data.reduce(
+      (sum, row) =>
+        sum +
+        row.lots.reduce((lotSum, lot) => lotSum + this.getLotLineTotal(lot), 0),
+      0,
+    );
   }
 }

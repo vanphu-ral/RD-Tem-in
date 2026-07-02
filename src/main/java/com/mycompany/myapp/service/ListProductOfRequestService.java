@@ -341,10 +341,14 @@ public class ListProductOfRequestService {
             long totalQuantity = input
                 .getProducts()
                 .stream()
-                .mapToLong(p ->
-                    p.getInitialQuantity() != null
-                        ? p.getInitialQuantity().longValue()
-                        : 0L
+                .mapToLong(
+                    p ->
+                        (p.getInitialQuantity() != null
+                                ? p.getInitialQuantity().longValue()
+                                : 0L) *
+                        (p.getTemQuantity() != null
+                                ? p.getTemQuantity().longValue()
+                                : 0L)
                 )
                 .sum();
 

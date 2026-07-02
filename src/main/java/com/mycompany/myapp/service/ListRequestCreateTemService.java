@@ -298,8 +298,14 @@ public class ListRequestCreateTemService {
 
         long newTotalQuantity = remainingProducts
             .stream()
-            .mapToLong(p ->
-                p.getInitialQuantity() != null ? p.getInitialQuantity() : 0
+            .mapToLong(
+                p ->
+                    (p.getInitialQuantity() != null
+                            ? p.getInitialQuantity()
+                            : 0L) *
+                    (p.getTemQuantity() != null
+                            ? p.getTemQuantity().longValue()
+                            : 0L)
             )
             .sum();
 
