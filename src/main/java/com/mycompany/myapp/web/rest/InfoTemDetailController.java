@@ -1,6 +1,8 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.service.InfoTemDetailService;
+import com.mycompany.myapp.service.dto.VendorImportedTemBatchDTO;
+import com.mycompany.renderQr.domain.GenerateTemResponse;
 import com.mycompany.renderQr.domain.InfoTemDetailResponse;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,5 +19,18 @@ public class InfoTemDetailController {
     @GetMapping("")
     public List<InfoTemDetailResponse> getDataDetail() {
         return infoTemDetailService.getInfoTemDetail();
+    }
+
+    @PostMapping("/vendor-import/{requestId}")
+    public ResponseEntity<GenerateTemResponse> createVendorTemFromImportedReels(
+        @PathVariable Long requestId,
+        @RequestBody List<VendorImportedTemBatchDTO> batches
+    ) {
+        return ResponseEntity.ok(
+            infoTemDetailService.createVendorTemFromImportedReels(
+                requestId,
+                batches
+            )
+        );
     }
 }

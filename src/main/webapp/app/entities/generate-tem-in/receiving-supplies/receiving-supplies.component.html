@@ -144,15 +144,61 @@
           </p>
         </div>
         <div class="bulk-header-actions">
+          <input
+            #vendorReelImportInput
+            type="file"
+            accept=".txt,.log"
+            hidden
+            (change)="onVendorReelImportFileSelected($event)"
+          />
           <button
             mat-stroked-button
             type="button"
-            *ngIf="hasAnyGeneratedTem()"
-            (click)="onExportExcelAll()"
+            class="bulk-more-actions-trigger"
+            [matMenuTriggerFor]="bulkMoreActionsMenu"
           >
-            <mat-icon>download</mat-icon>
-            Export Excel
+            <mat-icon>expand_more</mat-icon>
+            Tuỳ chọn
           </button>
+          <mat-menu
+            #bulkMoreActionsMenu="matMenu"
+            class="bulk-more-actions-menu"
+          >
+            <button
+              mat-menu-item
+              type="button"
+              (click)="openVendorReelImportFilePicker(vendorReelImportInput)"
+              [disabled]="isParsingVendorReelImport"
+            >
+              <mat-icon>upload_file</mat-icon>
+              <span>Import ReelID</span>
+            </button>
+            <button
+              mat-menu-item
+              type="button"
+              (click)="onExportVendorPrintSource()"
+            >
+              <mat-icon>table_view</mat-icon>
+              <span>Xuất nguồn in</span>
+            </button>
+            <button
+              mat-menu-item
+              type="button"
+              (click)="openVendorPrintModal()"
+            >
+              <mat-icon>print</mat-icon>
+              <span>In tem NCC</span>
+            </button>
+            <button
+              mat-menu-item
+              type="button"
+              *ngIf="hasAnyGeneratedTem()"
+              (click)="onExportExcelAll()"
+            >
+              <mat-icon>download</mat-icon>
+              <span>Export Excel</span>
+            </button>
+          </mat-menu>
           <button
             mat-stroked-button
             type="button"
@@ -566,12 +612,7 @@
                       color="primary"
                       class="btn-sm"
                       (click)="addLot(row)"
-                      [disabled]="parentHasTemLot(row)"
-                      [matTooltip]="
-                        parentHasTemLot(row)
-                          ? 'Đã có lô tạo tem — thêm mã SAP mới thay vì thêm lô'
-                          : 'Thêm lô'
-                      "
+                      matTooltip="Thêm lô"
                     >
                       Thêm lô
                     </button>
@@ -885,6 +926,24 @@
           {{ isGenerating ? "Đang tạo mã..." : "Tạo mã" }}
         </button>
       </span>
+      <span
+        matTooltip="Vui lòng lưu đơn trước (PO nháp sẽ được sinh tự động nếu chưa nhập PO)."
+        [matTooltipDisabled]="hasValidPoForTemGenerate()"
+      >
+        <button
+          mat-raised-button
+          color="accent"
+          (click)="onCreateVendorTem()"
+          [disabled]="
+            isGeneratingVendorTem ||
+            isDisableGenerate ||
+            !hasValidPoForTemGenerate()
+          "
+        >
+          <mat-icon>qr_code_2</mat-icon>
+          {{ isGeneratingVendorTem ? "Đang tạo tem NCC..." : "Tạo tem NCC" }}
+        </button>
+      </span>
       <!-- <button mat-raised-button color="primary" (click)="onConfirmSave()">
         <mat-icon>check</mat-icon>
         Xác nhận hoàn tất
@@ -1079,7 +1138,20 @@
                     placeholder="Lọc tên vật tư"
                   />
                 </th>
-                <th class="col-part"></th>
+                <th class="col-part">
+                  <input
+                    class="po-select-filter-input"
+                    type="text"
+                    matAutocompleteTrigger
+                    [ngModel]="poSelectFilterPartNumber"
+                    (ngModelChange)="onPoSelectPartFilterInputChange($event)"
+                    [matAutocomplete]="autoPoSelectPartFilter"
+                    #poSelectPartFilterTrigger="matAutocompleteTrigger"
+                    (focus)="onPoSelectPartFilterOpen()"
+                    (click)="onPoSelectPartFilterOpen()"
+                    placeholder="Lọc Part"
+                  />
+                </th>
                 <th></th>
                 <th></th>
                 <th class="col-whs">
@@ -1110,7 +1182,11 @@
             </thead>
             <tbody>
               <tr
-                *ngFor="let row of getPoSelectVisibleRows(); let i = index"
+                *ngFor="
+                  let row of getPoSelectVisibleRows();
+                  let i = index;
+                  trackBy: trackPoSelectRow
+                "
                 [class.is-on-table]="row.alreadyOnTable"
                 [class.is-in-po-status]="row.alreadyInPoStatus"
                 [class.is-row-locked]="row.alreadyInPoStatus"
@@ -1228,6 +1304,23 @@
               </tr>
             </tbody>
           </table>
+          <mat-autocomplete
+            #autoPoSelectPartFilter="matAutocomplete"
+            panelClass="po-select-part-filter-panel"
+            [displayWith]="displayPoSelectPartFilter"
+            autoActiveFirstOption
+            (optionSelected)="onPoSelectPartFilterSelected($event.option.value)"
+          >
+            <mat-option [value]="poSelectEmptyPartFilterLabel">
+              {{ poSelectEmptyPartFilterLabel }}
+            </mat-option>
+            <mat-option
+              *ngFor="let part of filteredPoSelectPartOptions"
+              [value]="part"
+            >
+              {{ part }}
+            </mat-option>
+          </mat-autocomplete>
           <mat-autocomplete
             #autoPoSelectHeaderWhs="matAutocomplete"
             panelClass="po-select-whs-panel"
@@ -1848,4 +1941,179 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- Modal import file log ReelID (Bartender) -->
+<div
+  class="po-reconcile-overlay"
+  *ngIf="showVendorReelImportModal"
+  (click)="closeVendorReelImportModal()"
+></div>
+<div
+  class="vendor-import-modal"
+  *ngIf="showVendorReelImportModal"
+  (click)="$event.stopPropagation()"
+>
+  <mat-card class="po-select-card">
+    <mat-card-header class="po-select-header">
+      <mat-card-title>
+        <div class="po-select-header-content">
+          <div class="po-select-title-section">
+            <mat-icon>upload_file</mat-icon>
+            <div>
+              <h2>Import ReelID từ file log</h2>
+              <p class="po-select-subtitle" *ngIf="vendorReelImportFileName">
+                File: <strong>{{ vendorReelImportFileName }}</strong> ·
+                {{ vendorReelImportRows.length }} dòng hợp lệ
+              </p>
+            </div>
+          </div>
+          <button
+            mat-icon-button
+            type="button"
+            class="po-select-close-btn"
+            (click)="closeVendorReelImportModal()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-content class="po-select-body">
+      <div class="vendor-import-errors" *ngIf="vendorReelImportErrors.length">
+        <p *ngFor="let err of vendorReelImportErrors">{{ err }}</p>
+      </div>
+
+      <p class="po-select-hint">
+        Thiếu HSD, mã vị trí, mã kho — vui lòng bổ sung thủ công sau khi xác
+        nhận. userData1–5 và MSL sẽ tự điền mặc định.
+      </p>
+
+      <div class="vendor-import-table-wrap" *ngIf="vendorReelImportRows.length">
+        <table class="vendor-import-table">
+          <thead>
+            <tr>
+              <th>ReelID</th>
+              <th>STT</th>
+              <th>Part Number</th>
+              <th>SL/túi</th>
+              <th>PO</th>
+              <th>MFG Date</th>
+              <th>Mã SAP</th>
+              <th>Mã lô</th>
+              <th>Tên SP</th>
+              <th>Đối chiếu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of vendorReelImportRows">
+              <td>{{ row.reelId }}</td>
+              <td>{{ row.boxStt }}</td>
+              <td>{{ row.partNumber }}</td>
+              <td>{{ row.quantity }}</td>
+              <td>{{ row.poNumber }}</td>
+              <td>{{ row.mfgDate }}</td>
+              <td>{{ row.sapCode }}</td>
+              <td>{{ row.lotNumber }}</td>
+              <td>{{ row.itemName }}</td>
+              <td
+                [class.is-matched]="row.reconcileStatus === 'matched'"
+                [class.is-warning]="row.reconcileStatus !== 'matched'"
+              >
+                {{ row.reconcileMessage }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </mat-card-content>
+
+    <mat-divider></mat-divider>
+    <mat-card-actions class="po-select-actions">
+      <button mat-button type="button" (click)="closeVendorReelImportModal()">
+        Hủy
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="confirmVendorReelImport()"
+        [disabled]="!canConfirmVendorReelImport()"
+      >
+        Xác nhận import ({{ vendorReelImportRows.length }})
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>
+
+<!-- Modal in tem NCC (placeholder — mẫu in bổ sung sau) -->
+<div
+  class="po-reconcile-overlay"
+  *ngIf="showVendorPrintModal"
+  (click)="closeVendorPrintModal()"
+></div>
+<div
+  class="po-reconcile-modal vendor-print-modal"
+  *ngIf="showVendorPrintModal"
+  (click)="$event.stopPropagation()"
+>
+  <mat-card class="po-reconcile-card">
+    <mat-card-header class="po-reconcile-header">
+      <mat-card-title>
+        <div class="po-reconcile-header-content">
+          <div class="po-reconcile-title-section">
+            <mat-icon>print</mat-icon>
+            <div>
+              <h2>In tem nhà cung cấp</h2>
+              <p>Chọn mẫu tem, khoảng ReelID và in / xuất PDF</p>
+            </div>
+          </div>
+          <button
+            mat-icon-button
+            type="button"
+            (click)="closeVendorPrintModal()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-content class="po-reconcile-body">
+      <p class="po-reconcile-hint vendor-print-placeholder">
+        Mẫu in tem NCC sẽ được cập nhật sau. Tạm thời dùng
+        <strong>Xuất nguồn in</strong> để gửi file Excel cho Bartender.
+      </p>
+      <div class="vendor-print-fields">
+        <mat-form-field appearance="outline" class="small-form-field" disabled>
+          <mat-label>Mẫu tem NCC</mat-label>
+          <input matInput value="(Sẽ bổ sung)" disabled />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="small-form-field" disabled>
+          <mat-label>Từ ReelID</mat-label>
+          <input matInput placeholder="—" disabled />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="small-form-field" disabled>
+          <mat-label>Đến ReelID</mat-label>
+          <input matInput placeholder="—" disabled />
+        </mat-form-field>
+      </div>
+    </mat-card-content>
+
+    <mat-divider></mat-divider>
+    <mat-card-actions class="po-reconcile-actions">
+      <button mat-button type="button" (click)="closeVendorPrintModal()">
+        Đóng
+      </button>
+      <button mat-stroked-button type="button" disabled>Xuất PDF</button>
+      <button mat-raised-button color="primary" type="button" disabled>
+        In trực tiếp
+      </button>
+    </mat-card-actions>
+  </mat-card>
 </div>

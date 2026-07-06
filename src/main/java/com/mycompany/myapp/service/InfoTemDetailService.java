@@ -1,5 +1,7 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.service.dto.VendorImportedReelDTO;
+import com.mycompany.myapp.service.dto.VendorImportedTemBatchDTO;
 import com.mycompany.panacimmc.repository.LocationRepository;
 import com.mycompany.renderQr.domain.*;
 import com.mycompany.renderQr.repository.InfoTemDetailRepository;
@@ -223,6 +225,351 @@ public class InfoTemDetailService {
         } catch (Exception e) {
             e.printStackTrace();
             return new GenerateTemResponse(false, "Lỗi: " + e.getMessage(), 0);
+        }
+    }
+
+    /**
+     * Tạo tem theo format NCC (CN4):
+     * ReelID = yyyyMMdd + STT thùng (4 số) + PartNumber
+     * QR = ReelID#Partnumber#PO#ngày sx#Số lượng#số lô
+     */
+    @Transactional
+    public GenerateTemResponse generateVendorTemForAllProducts(Long requestId) {
+        try {
+            List<ListProductOfRequest> allProducts =
+                productRepo.findByRequestCreateTemId(requestId);
+
+            if (allProducts.isEmpty()) {
+                return new GenerateTemResponse(
+                    false,
+                    "Không có sản phẩm nào trong bảng",
+                    0
+                );
+            }
+
+            String datePrefix = LocalDate.now().format(
+                DateTimeFormatter.ofPattern("yyyyMMdd")
+            );
+            int boxStt = getLastVendorBoxSequence(datePrefix) + 1;
+
+            List<InfoTemDetail> allTemList = new ArrayList<>();
+            int totalTems = 0;
+
+            for (ListProductOfRequest product : allProducts) {
+                List<InfoTemDetail> existingTems =
+                    detailRepo.findByProductOfRequestId(product.getId());
+                if (!existingTems.isEmpty()) {
+                    continue;
+                }
+
+                if (
+                    product.getTemQuantity() == null ||
+                    product.getTemQuantity() <= 0
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Sản phẩm có số lượng tem không hợp lệ",
+                        0
+                    );
+                }
+
+                if (
+                    product.getInitialQuantity() == null ||
+                    product.getInitialQuantity() <= 0
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Thiếu thông tin số lượng ban đầu",
+                        0
+                    );
+                }
+
+                if (product.getManufacturingDate() == null) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Thiếu ngày sản xuất",
+                        0
+                    );
+                }
+
+                if (
+                    product.getProductName() == null ||
+                    product.getProductName().isBlank()
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Thiếu tên sản phẩm",
+                        0
+                    );
+                }
+
+                if (
+                    product.getPartNumber() == null ||
+                    product.getPartNumber().isBlank()
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Thiếu mã linh kiện",
+                        0
+                    );
+                }
+
+                if (
+                    product.getStorageUnit() == null ||
+                    locationRepo.checkLocationExists(
+                        product.getStorageUnit()
+                    ) ==
+                    null
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "StorageUnit không hợp lệ: " + product.getStorageUnit(),
+                        0
+                    );
+                }
+
+                String poNumber = product.getUserData5() != null
+                    ? product.getUserData5().trim()
+                    : "";
+                String mfgDate = product
+                    .getManufacturingDate()
+                    .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+                String lotNumber = product.getLot() != null
+                    ? product.getLot().trim()
+                    : mfgDate;
+                String partNumber = product.getPartNumber().trim();
+                int initialQty = product.getInitialQuantity().intValue();
+
+                for (int i = 0; i < product.getTemQuantity(); i++) {
+                    String stt = String.format("%04d", boxStt);
+                    String reelId = datePrefix + stt + partNumber;
+                    String qrCode = String.join(
+                        "#",
+                        reelId,
+                        partNumber,
+                        poNumber,
+                        mfgDate,
+                        String.valueOf(initialQty),
+                        lotNumber
+                    );
+
+                    InfoTemDetail detail = new InfoTemDetail();
+                    detail.setProductOfRequestId(product.getId());
+                    detail.setReelID(reelId);
+                    detail.setSapCode(product.getSapCode());
+                    detail.setProductName(product.getProductName());
+                    detail.setPartNumber(partNumber);
+                    detail.setLot(lotNumber);
+                    detail.setInitialQuantity(initialQty);
+                    detail.setVendor(product.getVendor());
+                    detail.setUserData1(product.getUserData1());
+                    detail.setUserData2(product.getUserData2());
+                    detail.setUserData3(product.getUserData3());
+                    detail.setUserData4(product.getUserData4());
+                    detail.setUserData5(product.getUserData5());
+                    detail.setStorageUnit(product.getStorageUnit());
+                    detail.setExpirationDate(
+                        product.getExpirationDate().toLocalDate()
+                    );
+                    detail.setManufacturingDate(
+                        product.getManufacturingDate().toLocalDate()
+                    );
+                    detail.setArrivalDate(
+                        product.getArrivalDate().toLocalDate()
+                    );
+                    detail.setQrCode(qrCode);
+
+                    allTemList.add(detail);
+                    boxStt++;
+                    totalTems++;
+                }
+            }
+
+            if (totalTems == 0) {
+                return new GenerateTemResponse(
+                    false,
+                    "Không có sản phẩm mới cần tạo tem (tất cả đã có tem).",
+                    0
+                );
+            }
+
+            if (!allTemList.isEmpty()) {
+                detailRepo.saveAll(allTemList);
+            }
+
+            Optional<ListRequestCreateTem> requestOpt = requestRepo.findById(
+                requestId
+            );
+            if (requestOpt.isPresent()) {
+                ListRequestCreateTem request = requestOpt.get();
+                request.setStatus("Đã tạo mã QR NCC");
+                requestRepo.save(request);
+            }
+
+            String message = String.format(
+                "Tạo tem NCC thành công! Tổng số tem: %d",
+                totalTems
+            );
+            return new GenerateTemResponse(true, message, totalTems);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new GenerateTemResponse(false, "Lỗi: " + e.getMessage(), 0);
+        }
+    }
+
+    /**
+     * Tạo tem từ ReelID đã import (file log NCC) — không sinh ReelID mới.
+     */
+    @Transactional
+    public GenerateTemResponse createVendorTemFromImportedReels(
+        Long requestId,
+        List<VendorImportedTemBatchDTO> batches
+    ) {
+        try {
+            if (batches == null || batches.isEmpty()) {
+                return new GenerateTemResponse(
+                    false,
+                    "Không có ReelID import để tạo tem.",
+                    0
+                );
+            }
+
+            List<InfoTemDetail> allTemList = new ArrayList<>();
+            int totalTems = 0;
+
+            for (VendorImportedTemBatchDTO batch : batches) {
+                if (batch.getProductId() == null || batch.getReels() == null) {
+                    continue;
+                }
+
+                Long productId = batch.getProductId();
+                Optional<ListProductOfRequest> productOpt =
+                    productRepo.findById(productId);
+                if (!productOpt.isPresent()) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Không tìm thấy sản phẩm #" + productId,
+                        0
+                    );
+                }
+
+                ListProductOfRequest product = productOpt.get();
+                if (
+                    product.getRequestCreateTemId() == null ||
+                    !product.getRequestCreateTemId().equals(requestId)
+                ) {
+                    return new GenerateTemResponse(
+                        false,
+                        "Sản phẩm #" +
+                        productId +
+                        " không thuộc đơn #" +
+                        requestId,
+                        0
+                    );
+                }
+
+                List<InfoTemDetail> existingTems =
+                    detailRepo.findByProductOfRequestId(productId);
+                if (!existingTems.isEmpty()) {
+                    continue;
+                }
+
+                for (VendorImportedReelDTO reel : batch.getReels()) {
+                    String reelId = reel.getReelId() != null
+                        ? reel.getReelId().trim()
+                        : "";
+                    if (reelId.isEmpty()) {
+                        continue;
+                    }
+
+                    InfoTemDetail detail = new InfoTemDetail();
+                    detail.setProductOfRequestId(productId);
+                    detail.setReelID(reelId);
+                    detail.setQrCode(
+                        reel.getQrCode() != null ? reel.getQrCode().trim() : ""
+                    );
+                    detail.setSapCode(product.getSapCode());
+                    detail.setProductName(product.getProductName());
+                    detail.setPartNumber(product.getPartNumber());
+                    detail.setLot(product.getLot());
+                    detail.setInitialQuantity(
+                        product.getInitialQuantity().intValue()
+                    );
+                    detail.setVendor(product.getVendor());
+                    detail.setUserData1(product.getUserData1());
+                    detail.setUserData2(product.getUserData2());
+                    detail.setUserData3(product.getUserData3());
+                    detail.setUserData4(product.getUserData4());
+                    detail.setUserData5(product.getUserData5());
+                    detail.setStorageUnit(product.getStorageUnit());
+                    detail.setExpirationDate(
+                        product.getExpirationDate().toLocalDate()
+                    );
+                    detail.setManufacturingDate(
+                        product.getManufacturingDate().toLocalDate()
+                    );
+                    detail.setArrivalDate(
+                        product.getArrivalDate().toLocalDate()
+                    );
+
+                    allTemList.add(detail);
+                    totalTems++;
+                }
+            }
+
+            if (totalTems == 0) {
+                return new GenerateTemResponse(
+                    false,
+                    "Không có tem mới cần tạo từ ReelID import.",
+                    0
+                );
+            }
+
+            detailRepo.saveAll(allTemList);
+
+            Optional<ListRequestCreateTem> requestOpt = requestRepo.findById(
+                requestId
+            );
+            if (requestOpt.isPresent()) {
+                ListRequestCreateTem request = requestOpt.get();
+                request.setStatus("Đã tạo mã QR NCC");
+                requestRepo.save(request);
+            }
+
+            return new GenerateTemResponse(
+                true,
+                String.format(
+                    "Đã tạo %d tem từ ReelID import (không sinh mã mới).",
+                    totalTems
+                ),
+                totalTems
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new GenerateTemResponse(false, "Lỗi: " + e.getMessage(), 0);
+        }
+    }
+
+    private int getLastVendorBoxSequence(String datePrefix) {
+        Optional<InfoTemDetail> lastTem = detailRepo.findTopByOrderByIdDesc();
+        if (!lastTem.isPresent()) {
+            return 0;
+        }
+
+        String reelId = lastTem.get().getReelID();
+        if (reelId == null || !reelId.startsWith(datePrefix)) {
+            return 0;
+        }
+
+        String remainder = reelId.substring(datePrefix.length());
+        if (remainder.length() < 4) {
+            return 0;
+        }
+
+        try {
+            return Integer.parseInt(remainder.substring(0, 4));
+        } catch (NumberFormatException e) {
+            return 0;
         }
     }
 

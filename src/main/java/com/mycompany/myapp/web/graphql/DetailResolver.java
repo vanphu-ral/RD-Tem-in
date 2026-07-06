@@ -40,6 +40,11 @@ public class DetailResolver {
         return service.generateTemForAllProducts(Long.valueOf(requestId));
     }
 
+    @MutationMapping
+    public GenerateTemResponse generateVendorTem(@Argument Integer requestId) {
+        return service.generateVendorTemForAllProducts(Long.valueOf(requestId));
+    }
+
     @QueryMapping
     public List<InfoTemDetailResponse> infoTemDetailsByProductId(
         @Argument Integer productId

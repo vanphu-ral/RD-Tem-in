@@ -185,6 +185,15 @@
   gap: 8px;
   flex-shrink: 0;
   align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+
+  .bulk-more-actions-trigger {
+    mat-icon {
+      margin-right: 4px;
+    }
+  }
 }
 
 .bulk-lot-fields {
@@ -1309,6 +1318,10 @@
   }
 }
 
+::ng-deep .po-select-part-filter-panel.mat-mdc-autocomplete-panel {
+  max-height: 240px;
+}
+
 ::ng-deep .po-select-whs-panel.mat-mdc-autocomplete-panel {
   .mat-mdc-option {
     min-height: 30px;
@@ -2197,4 +2210,87 @@
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
+}
+
+.vendor-import-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1101;
+  width: min(1100px, 96vw);
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.vendor-import-modal .po-select-card {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.vendor-import-table-wrap {
+  overflow: auto;
+  max-height: 50vh;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.vendor-import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: #f8fafc;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  td.is-matched {
+    color: #15803d;
+  }
+
+  td.is-warning {
+    color: #b45309;
+  }
+}
+
+.vendor-import-errors {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+
+  p {
+    margin: 0 0 4px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.vendor-print-modal {
+  max-width: min(640px, 96vw);
+}
+
+.vendor-print-placeholder {
+  margin-bottom: 16px;
+}
+
+.vendor-print-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }

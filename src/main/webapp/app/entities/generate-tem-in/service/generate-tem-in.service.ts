@@ -822,6 +822,62 @@ export class GenerateTemInService {
       );
   }
 
+  generateVendorTemByRequest(
+    requestId: number,
+  ): Observable<GenerateTemResponse> {
+    const GENERATE_VENDOR_TEM_BY_REQUEST = gql`
+      mutation ($requestId: Int!) {
+        generateVendorTem(requestId: $requestId) {
+          success
+          message
+          totalTems
+        }
+      }
+    `;
+
+    return this.apollo
+      .mutate<{ generateVendorTem: GenerateTemResponse }>({
+        mutation: GENERATE_VENDOR_TEM_BY_REQUEST,
+        variables: { requestId },
+      })
+      .pipe(
+        map(
+          (result) =>
+            result.data?.generateVendorTem ?? {
+              success: false,
+              message: "Không nhận được response",
+              totalTems: 0,
+            },
+        ),
+      );
+  }
+
+  createVendorTemsFromImportedReels(
+    requestId: number,
+    batches: Array<{
+      productId: number;
+      reels: Array<{ reelId: string; qrCode: string }>;
+    }>,
+  ): Observable<GenerateTemResponse> {
+    return this.http
+      .post<GenerateTemResponse>(
+        `api/info-tem-detail/vendor-import/${requestId}`,
+        batches,
+      )
+      .pipe(
+        catchError((err) =>
+          of({
+            success: false,
+            message:
+              err?.error?.message ??
+              err?.message ??
+              "Lỗi khi tạo tem từ ReelID import.",
+            totalTems: 0,
+          }),
+        ),
+      );
+  }
+
   //Lấy chi tiết tem detai theo Request_create_tem_id của list_product_of_request
   getTemDetailsByProductId(productId: number): Observable<TemDetail[]> {
     const GET_TEM_DETAILS = gql`
