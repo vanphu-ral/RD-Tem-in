@@ -79,7 +79,7 @@
           <input
             matInput
             [(ngModel)]="poNumber"
-            placeholder="Nhập mã PO (không bắt buộc)"
+            placeholder="PO thật (không bắt buộc — lưu đơn sẽ sinh PO nháp)"
             (keydown.enter)="fetchPoInfo()"
             [disabled]="poAndVendorLocked"
           />
@@ -488,7 +488,30 @@
                     placeholder="Tên vật tư..."
                   />
                 </td>
-                <td class="cell-text">{{ row.partNumber }}</td>
+                <td class="td-input">
+                  <input
+                    matInput
+                    class="grid-input grid-input-autocomplete"
+                    [(ngModel)]="row.partNumber"
+                    (ngModelChange)="onParentPartNumberInput(row, $event)"
+                    (focus)="loadOitmPartOptionsForMaterialRow(row)"
+                    [matAutocomplete]="autoMaterialPart"
+                    placeholder="Chọn Part Number..."
+                  />
+                  <mat-autocomplete
+                    #autoMaterialPart="matAutocomplete"
+                    (optionSelected)="
+                      onMaterialPartPicked(row, $event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="let part of getFilteredOitmPartsForMaterial(row)"
+                      [value]="part"
+                    >
+                      {{ part }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </td>
                 <td class="td-input">
                   <input
                     matInput
@@ -623,11 +646,37 @@
                   <!-- Tạm ẩn cột trạng thái đối chiếu PO (chưa lưu DB)
                   <td class="cell-reconcile"></td>
                   -->
-                  <td class="cell-text" [title]="row.itemName">
+                  <td
+                    class="cell-text cell-item-name-lot"
+                    [title]="row.itemName"
+                  >
                     {{ row.itemName }}
                   </td>
-                  <td class="cell-text" [title]="row.partNumber">
-                    {{ row.partNumber }}
+                  <td class="td-input">
+                    <input
+                      matInput
+                      class="grid-input grid-input-autocomplete"
+                      [(ngModel)]="row.partNumber"
+                      (ngModelChange)="onParentPartNumberInput(row, $event)"
+                      (focus)="loadOitmPartOptionsForMaterialRow(row)"
+                      [matAutocomplete]="autoLotMaterialPart"
+                      placeholder="Chọn Part Number..."
+                    />
+                    <mat-autocomplete
+                      #autoLotMaterialPart="matAutocomplete"
+                      (optionSelected)="
+                        onMaterialPartPicked(row, $event.option.value)
+                      "
+                    >
+                      <mat-option
+                        *ngFor="
+                          let part of getFilteredOitmPartsForMaterial(row)
+                        "
+                        [value]="part"
+                      >
+                        {{ part }}
+                      </mat-option>
+                    </mat-autocomplete>
                   </td>
                   <td class="td-input">
                     <input
@@ -821,7 +870,7 @@
     <div class="footer-actions">
       <button mat-stroked-button (click)="goBack()">Hủy bỏ</button>
       <span
-        matTooltip="Chưa có mã PO hợp lệ. Vui lòng nhập PO trước khi tạo mã."
+        matTooltip="Vui lòng lưu đơn trước (PO nháp sẽ được sinh tự động nếu chưa nhập PO)."
         [matTooltipDisabled]="hasValidPoForTemGenerate()"
       >
         <button

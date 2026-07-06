@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpParams } from "@angular/common/http";
 import {
   Observable,
   catchError,
@@ -445,6 +445,21 @@ export class ReceivingSuppliesService {
         `${this.baseUrl}/sap-po-info/${encodeURIComponent(po)}`,
       )
       .pipe(catchError(() => of(null)));
+  }
+
+  /** GET /api/product-in-po-status/list-request-create-tem/{listRequestCreateTemId} */
+  getProductInPoStatusByListRequestCreateTemId(
+    listRequestCreateTemId: number,
+  ): Observable<ProductInPoStatusDto[]> {
+    if (!listRequestCreateTemId) {
+      return of([]);
+    }
+    const params = new HttpParams().set("size", "500").set("sort", "id,asc");
+    return this.http
+      .get<
+        ProductInPoStatusDto[]
+      >(`${this.baseUrl}/product-in-po-status/list-request-create-tem/${listRequestCreateTemId}`, { params })
+      .pipe(catchError(() => of([])));
   }
 
   /** GET /api/product-in-po-status/user-data5/{userData5} */

@@ -57,6 +57,7 @@ public class ListProductOfRequestService {
         if (optional.isEmpty()) return false;
 
         ListProductOfRequest entity = optional.get();
+        Long previousRequestId = entity.getRequestCreateTemId();
 
         entity.setSapCode(input.getSapCode());
         if (input.getProductName() != null) {
@@ -99,6 +100,17 @@ public class ListProductOfRequestService {
         }
 
         repository.save(entity);
+
+        Long newRequestId = entity.getRequestCreateTemId();
+        if (
+            previousRequestId != null &&
+            newRequestId != null &&
+            !previousRequestId.equals(newRequestId)
+        ) {
+            requestService.updateRequestProductCount(previousRequestId);
+            requestService.updateRequestProductCount(newRequestId);
+        }
+
         return true;
     }
 

@@ -387,11 +387,12 @@
   }
 
   .col-item {
-    width: 20%;
+    width: 12%;
   }
 
   .col-part {
-    width: 6%;
+    width: 11%;
+    min-width: 120px;
   }
 
   .col-location {
@@ -402,9 +403,14 @@
     width: 5%;
   }
 
-  .col-qty-po,
+  .col-qty-po {
+    width: 5%;
+    min-width: 72px;
+  }
+
   .col-qty {
-    width: 4%;
+    width: 6%;
+    min-width: 80px;
   }
 
   .col-lot {
@@ -517,11 +523,22 @@
     }
 
     td {
-      height: 36px;
       min-height: 36px;
-      max-height: 36px;
+      height: auto;
       vertical-align: middle;
       box-sizing: border-box;
+    }
+
+    .cell-item-name-lot {
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      overflow: visible;
+      text-overflow: unset;
+      line-height: 1.35;
+      vertical-align: top;
+      padding-top: 6px;
+      padding-bottom: 6px;
     }
 
     .lot-label-td {
