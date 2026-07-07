@@ -197,6 +197,30 @@ public class GraphQLConfiguration {
                             );
                         }
                     })
+                    .dataFetcher("generateVendorTem", env -> {
+                        Integer requestId = env.getArgument("requestId");
+
+                        try {
+                            GenerateTemResponse response =
+                                detailResolver.generateVendorTem(requestId);
+
+                            if (response == null) {
+                                return new GenerateTemResponse(
+                                    false,
+                                    "Resolver returned null",
+                                    0
+                                );
+                            }
+
+                            return response;
+                        } catch (Exception e) {
+                            return new GenerateTemResponse(
+                                false,
+                                "Error: " + e.getMessage(),
+                                0
+                            );
+                        }
+                    })
                     .dataFetcher("createRequestAndProducts", env -> {
                         Map<String, Object> inputMap = env.getArgument("input");
                         log.info("Input map: {}", inputMap);
@@ -429,6 +453,7 @@ public class GraphQLConfiguration {
             );
             productInput.setArrivalDate((String) productMap.get("arrivalDate"));
             productInput.setWhsCode((String) productMap.get("WhsCode"));
+            productInput.setPor1LineNum((String) productMap.get("por1LineNum"));
 
             products.add(productInput);
         }

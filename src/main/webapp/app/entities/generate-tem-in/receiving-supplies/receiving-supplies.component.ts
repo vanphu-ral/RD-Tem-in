@@ -74,6 +74,7 @@ interface SavedProductRow {
   UploadPanacim?: boolean;
   WhsCode?: string | null;
   sapSendStatus?: boolean | null;
+  por1LineNum?: string | null;
 }
 import {
   generateLabelBarcodes,
@@ -97,6 +98,12 @@ import {
   generateVendorPrintSourceWorkbook,
   VendorPrintSourceExportInput,
 } from "./vendor-print-source-export.util";
+import {
+  buildVendorNccLabels,
+  VendorNccImportedReelGroup,
+  VendorNccPrintBuildInput,
+} from "./vendor-ncc-label-print.util";
+import { VendorNccPrintDialogComponent } from "./vendor-ncc-print-dialog/vendor-ncc-print-dialog.component";
 import {
   generateTemPanacimCsvBlob,
   generateTemReelDataWorkbook,
@@ -236,6 +243,8 @@ export interface ReceivingMaterialRow {
   loadingOitmParts?: boolean;
   /** Khóa dòng PO — phân biệt cùng mã SAP khác SL / khác dòng PO. */
   poLineKey?: string;
+  /** Số dòng PO (POR1_LineNum) — lưu DB, phân biệt trùng mã + trùng SL. */
+  por1LineNum?: string;
 }
 
 export type ExpirationExtendUnit = "month" | "year";
@@ -389,8 +398,6 @@ export class ReceivingSuppliesComponent
   vendorReelImportRows: VendorReelLogImportRow[] = [];
   vendorReelImportErrors: string[] = [];
 
-  /** Dialog in tem NCC — mẫu in sẽ bổ sung sau. */
-  showVendorPrintModal = false;
   isGeneratingVendorTem = false;
 
   showLotDetailModal = false;
@@ -962,13 +969,16 @@ export class ReceivingSuppliesComponent
     if (!this.partImportRows.length) {
       return true;
     }
-    return this.partImportRows.every((importRow) => {
-      const row = this.findPoSelectRowForImport(importRow);
-      if (!row) {
-        return false;
-      }
-      return row.partReconcileStatus === "matched" || row.partReconcileResolved;
-    });
+    // Chỉ bắt xử lý các dòng PO đã tick chọn — dòng file không có trong PO bỏ qua.
+    return !this.poSelectRows.some(
+      (row) =>
+        row.selected &&
+        !row.alreadyOnTable &&
+        !row.alreadyInPoStatus &&
+        row.partReconcileStatus &&
+        row.partReconcileStatus !== "matched" &&
+        !row.partReconcileResolved,
+    );
   }
 
   onPoSelectPartImportFileSelected(event: Event): void {
@@ -1123,16 +1133,43 @@ export class ReceivingSuppliesComponent
     if (!this.partImportRows.length) {
       return "";
     }
-    if (this.isPoSelectPartReconcileComplete()) {
+    const pending = this.poSelectRows.filter(
+      (row) =>
+        row.selected &&
+        !row.alreadyOnTable &&
+        !row.alreadyInPoStatus &&
+        row.partReconcileStatus &&
+        row.partReconcileStatus !== "matched" &&
+        !row.partReconcileResolved,
+    ).length;
+    if (pending === 0) {
+      const skipped =
+        this.partImportResult?.rows.filter(
+          (item) => item.status === "missing_in_dialog",
+        ).length ?? 0;
+      if (skipped > 0) {
+        return `Đã khớp part cho vật tư đã chọn — ${skipped} dòng file không có trong PO đã bỏ qua. Có thể chọn kho và xác nhận.`;
+      }
       return "Đối chiếu part đã hoàn tất — có thể chọn kho và xác nhận.";
     }
-    return "Vui lòng xử lý hết lỗi đối chiếu part trước khi xác nhận.";
+    return `Còn ${pending} vật tư đã chọn cần xử lý part trước khi xác nhận.`;
   }
 
   getPoSelectPartImportFailedRows(): PartNumberReconcileResult["rows"] {
-    return (this.partImportResult?.rows ?? []).filter(
-      (item) => item.status !== "matched",
-    );
+    return (this.partImportResult?.rows ?? []).filter((item) => {
+      if (item.status === "matched" || item.status === "missing_in_dialog") {
+        return false;
+      }
+      if (!item.rowKey) {
+        return false;
+      }
+      const row = this.poSelectRows.find((r) => r.rowKey === item.rowKey);
+      return (
+        Boolean(row?.selected) &&
+        row?.partReconcileStatus !== "matched" &&
+        !row?.partReconcileResolved
+      );
+    });
   }
 
   onPoSelectAllChange(checked: boolean): void {
@@ -1176,7 +1213,7 @@ export class ReceivingSuppliesComponent
         !this.isPoSelectPartReconcileComplete()
       ) {
         this.showSnackbar(
-          "Vui lòng xử lý hết lỗi đối chiếu part từ file ListCont trước khi xác nhận.",
+          "Vui lòng xử lý part cho các vật tư đã chọn còn lỗi đối chiếu trước khi xác nhận.",
           "Đóng",
           5000,
           "warning",
@@ -1818,16 +1855,37 @@ export class ReceivingSuppliesComponent
     const reader = new FileReader();
     reader.onload = () => {
       const content = String(reader.result ?? "");
+      const currentOrderPo = this.poNumber.trim();
       const parsed = parseVendorReelLogContent(
         content,
-        this.getEffectivePoNumber(),
+        currentOrderPo,
         this.poSapCodes,
       );
+      const poMismatchRows = parsed.rows.filter((row) =>
+        this.isImportRowPoMismatchWithOrder(row.poNumber),
+      );
+      const poMismatchMessage =
+        poMismatchRows.length > 0
+          ? `Phát hiện ${poMismatchRows.length} dòng PO trong file không khớp PO đơn. Không thể xác nhận import.`
+          : null;
+      const missingOrderPoMessage = !this.hasCurrentOrderPoForImport()
+        ? "Đơn chưa có PO. Vui lòng nhập/chọn PO đơn trước khi import ReelID."
+        : null;
+
       this.vendorReelImportRows = parsed.rows;
-      this.vendorReelImportErrors = parsed.errors;
+      this.vendorReelImportErrors = [
+        ...parsed.errors,
+        ...(missingOrderPoMessage ? [missingOrderPoMessage] : []),
+        ...(poMismatchMessage ? [poMismatchMessage] : []),
+      ];
       this.isParsingVendorReelImport = false;
       this.showVendorReelImportModal = true;
       document.body.classList.add("modal-open");
+      if (missingOrderPoMessage) {
+        this.showSnackbar(missingOrderPoMessage, "Đóng", 5000, "error");
+      } else if (poMismatchMessage) {
+        this.showSnackbar(poMismatchMessage, "Đóng", 5000, "error");
+      }
       this.cdr.markForCheck();
     };
     reader.onerror = () => {
@@ -1845,13 +1903,34 @@ export class ReceivingSuppliesComponent
   }
 
   canConfirmVendorReelImport(): boolean {
+    const hasPoMismatch = this.vendorReelImportRows.some((row) =>
+      this.isImportRowPoMismatchWithOrder(row.poNumber),
+    );
     return (
-      this.vendorReelImportRows.length > 0 && !this.isParsingVendorReelImport
+      this.vendorReelImportRows.length > 0 &&
+      this.hasCurrentOrderPoForImport() &&
+      !this.isParsingVendorReelImport &&
+      !hasPoMismatch
     );
   }
 
   confirmVendorReelImport(): void {
     if (!this.canConfirmVendorReelImport()) {
+      if (!this.hasCurrentOrderPoForImport()) {
+        this.showSnackbar(
+          "Đơn chưa có PO. Vui lòng nhập/chọn PO đơn trước khi import ReelID.",
+          "Đóng",
+          5000,
+          "error",
+        );
+      } else {
+        this.showSnackbar(
+          "PO trong file import không khớp PO đơn hiện tại. Không thể xác nhận.",
+          "Đóng",
+          5000,
+          "error",
+        );
+      }
       return;
     }
 
@@ -1901,15 +1980,77 @@ export class ReceivingSuppliesComponent
   }
 
   openVendorPrintModal(): void {
-    this.showVendorPrintModal = true;
-    document.body.classList.add("modal-open");
-    this.cdr.markForCheck();
+    const sourceRows = this.collectVendorPrintSourceRows();
+    const buildInput = this.buildVendorNccPrintInput(sourceRows);
+    const labels = buildVendorNccLabels(buildInput);
+
+    if (!labels.length) {
+      this.showSnackbar(
+        "Chưa có dữ liệu tem NCC để in.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+
+    this.dialog.open(VendorNccPrintDialogComponent, {
+      width: "100vw",
+      height: "100vh",
+      maxWidth: "100vw",
+      maxHeight: "100vh",
+      panelClass: "vendor-ncc-print-dialog-panel",
+      data: {
+        labels,
+        requestLabel: String(this.editingRequestId ?? "new"),
+      },
+    });
   }
 
-  closeVendorPrintModal(): void {
-    this.showVendorPrintModal = false;
-    document.body.classList.remove("modal-open");
-    this.cdr.markForCheck();
+  buildVendorNccPrintInput(
+    sourceRows: VendorPrintSourceExportInput[],
+  ): VendorNccPrintBuildInput {
+    const importedReelGroups: VendorNccImportedReelGroup[] = [];
+
+    this.dataSource.data.forEach((parent) => {
+      parent.lots.forEach((lot) => {
+        const reels = lot.vendorImportedReels ?? [];
+        if (!reels.length) {
+          return;
+        }
+        const sourceRowIndex = sourceRows.findIndex(
+          (row) =>
+            row.sapCode.trim() === parent.sapCode.trim() &&
+            row.lotBatchNo.trim() === (lot.lotNumber?.trim() ?? ""),
+        );
+        const fallbackIndex = sourceRows.findIndex(
+          (row) => row.sapCode.trim() === parent.sapCode.trim(),
+        );
+        const index = sourceRowIndex >= 0 ? sourceRowIndex : fallbackIndex;
+        if (index >= 0) {
+          importedReelGroups.push({
+            sourceRowIndex: index,
+            reels: reels.map((reel) => ({ ...reel })),
+          });
+        }
+      });
+    });
+
+    return {
+      sourceRows,
+      temDetails: this.requestTemDetails.map((tem) => ({
+        reelId: tem.reelId,
+        qrCode: tem.qrCode,
+        sapCode: tem.sapCode,
+        partNumber: tem.partNumber,
+        productOfRequestId: tem.productOfRequestId,
+        lot: tem.lot,
+        initialQuantity: tem.initialQuantity,
+        userData5: tem.userData5,
+        manufacturingDate: tem.manufacturingDate,
+      })),
+      importedReelGroups,
+    };
   }
 
   showSnackbar(
@@ -3097,6 +3238,51 @@ export class ReceivingSuppliesComponent
       qtyMap[lineKey] = qty;
     });
     this.poQuantityByLineKey = qtyMap;
+    this.applyPoQuantityByLineNumFromMap();
+  }
+
+  /** SL theo PO từ sap-po-info theo por1LineNum đã lưu trên dòng cha. */
+  private applyPoQuantityByLineNumFromMap(): void {
+    if (!this.dataSource.data.length) {
+      return;
+    }
+    this.dataSource.data = this.dataSource.data.map((parent) => {
+      const lineNum = this.resolveParentPor1LineNum(parent);
+      if (!lineNum) {
+        return parent;
+      }
+      const sap = parent.sapCode.trim();
+      const lineKey = `${sap}|L${lineNum}`;
+      const exactKey = Object.keys(this.poQuantityByLineKey).find((k) =>
+        k.startsWith(`${lineKey}|`),
+      );
+      if (!exactKey) {
+        return parent;
+      }
+      const qty = Math.round(this.poQuantityByLineKey[exactKey]);
+      if (qty === parent.quantityByPo) {
+        return parent;
+      }
+      return { ...parent, quantityByPo: qty };
+    });
+  }
+
+  private resolveParentPor1LineNum(parent: ReceivingMaterialRow): string {
+    const fromField = parent.por1LineNum?.trim();
+    if (fromField) {
+      return fromField;
+    }
+    const fromKey = parent.poLineKey?.match(/\|L([^|]+)/)?.[1]?.trim();
+    return fromKey ?? "";
+  }
+
+  private resolveSavedProductGroupKey(product: SavedProductRow): string {
+    const sap = product.sapCode?.trim() ?? "";
+    const lineNum = (product.por1LineNum ?? "").trim();
+    if (sap && lineNum) {
+      return `${sap}|L${lineNum}`;
+    }
+    return `product:${product.id}`;
   }
 
   private persistOrderChanges(
@@ -4800,6 +4986,7 @@ export class ReceivingSuppliesComponent
       const d = selectRow.detail;
       const sapCode = selectRow.sapCode.trim();
       const poLineKey = this.buildPoLineKeyFromDetail(d, selectRow.quantity);
+      const por1LineNum = (d.por1LineNum ?? "").trim();
       const itemName =
         selectRow.itemName.trim() || (d.por1Dscription ?? "").trim();
       const qtyByPo =
@@ -4844,6 +5031,7 @@ export class ReceivingSuppliesComponent
         oitmPartOptions: [],
         loadingOitmParts: false,
         poLineKey,
+        por1LineNum: por1LineNum || undefined,
       };
       this.initMaterialRowPartState(row, sapCode, selectRow.partNumber.trim());
       this.loadOitmPartOptionsForMaterialRow(row);
@@ -4954,6 +5142,7 @@ export class ReceivingSuppliesComponent
           requestId,
         );
         this.applyPoStatusQuantitiesToTable(records, requestId);
+        this.applyPoQuantityByLineNumFromMap();
         this.refreshTableView();
         this.cdr.markForCheck();
       },
@@ -5010,9 +5199,13 @@ export class ReceivingSuppliesComponent
         if (sapCmp) {
           return sapCmp;
         }
-        const aMin = this.getParentMinProductId(a);
-        const bMin = this.getParentMinProductId(b);
-        return aMin - bMin || a.id - b.id;
+        const aLine =
+          Number(this.resolveParentPor1LineNum(a)) ||
+          this.getParentMinProductId(a);
+        const bLine =
+          Number(this.resolveParentPor1LineNum(b)) ||
+          this.getParentMinProductId(b);
+        return aLine - bLine || a.id - b.id;
       })
       .forEach((parent) => {
         const sap = parent.sapCode.trim();
@@ -5253,6 +5446,26 @@ export class ReceivingSuppliesComponent
       }
     }
     return "";
+  }
+
+  private normalizePoForCompare(value: string): string {
+    return (value ?? "").trim().toUpperCase();
+  }
+
+  private hasCurrentOrderPoForImport(): boolean {
+    return this.normalizePoForCompare(this.poNumber).length > 0;
+  }
+
+  private isImportRowPoMismatchWithOrder(importPo: string): boolean {
+    const orderPo = this.normalizePoForCompare(this.poNumber);
+    const rowPo = this.normalizePoForCompare(importPo);
+    if (!orderPo) {
+      return true;
+    }
+    if (!rowPo) {
+      return true;
+    }
+    return rowPo !== orderPo;
   }
 
   /** Đơn có PO: chỉ kiểm tra SL không vượt PO (không bắt đối chiếu lại). */
@@ -5706,9 +5919,10 @@ export class ReceivingSuppliesComponent
     const sapSentByProductId = this.captureLotSapSentState();
     const reconcileBySapCode = this.captureReconcileStatusState();
     const poByProductId = this.captureLotPoState();
-    this.mapSavedProductsToTable(savedProducts);
-    this.restoreVendorImportedReelsState(vendorReelSnapshots);
+    // Giữ cấu trúc bảng — không rebuild (tránh gộp dòng trùng SAP + SL).
     this.syncProductIdsFromSavedProducts(savedProducts);
+    this.applyPoQuantityByLineNumFromMap();
+    this.restoreVendorImportedReelsState(vendorReelSnapshots);
     this.restoreLotSapSentState(sapSentByProductId);
     this.restoreReconcileStatusState(reconcileBySapCode);
     this.restoreLotPoState(poByProductId);
@@ -5854,6 +6068,7 @@ export class ReceivingSuppliesComponent
       arrivalDate: this.formatDateYyyyMmDd(lot.arrivalDate!),
       whsCode: this.getEffectiveSapWarehouse(parent, lot),
       sapSendStatus: this.lotIsSapSent(lot),
+      por1LineNum: this.resolveParentPor1LineNum(parent) || undefined,
     };
   }
 
@@ -6365,13 +6580,14 @@ export class ReceivingSuppliesComponent
   }
 
   private mapSavedProductsToTable(products: SavedProductRow[]): void {
+    const sorted = [...products].sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
     const grouped = new Map<string, SavedProductRow[]>();
-    products.forEach((p) => {
+    sorted.forEach((p) => {
       const sap = p.sapCode?.trim() ?? "";
       if (!sap) {
         return;
       }
-      const key = `${sap}|${p.initialQuantity ?? 0}|${p.temQuantity ?? 1}`;
+      const key = this.resolveSavedProductGroupKey(p);
       const list = grouped.get(key) ?? [];
       list.push(p);
       grouped.set(key, list);
@@ -6386,6 +6602,10 @@ export class ReceivingSuppliesComponent
     grouped.forEach((items) => {
       const first = items[0];
       const sapCode = first.sapCode?.trim() ?? "";
+      const por1LineNum = (first.por1LineNum ?? "").trim();
+      const poLineKey = por1LineNum
+        ? `${sapCode}|L${por1LineNum}|Q${first.initialQuantity ?? 0}`
+        : undefined;
       const parentLocation = first.storageUnit ?? this.storageUnit;
       const parentWhs =
         (first.WhsCode ?? "").trim() || this.sapWarehouseCode.trim();
@@ -6403,6 +6623,8 @@ export class ReceivingSuppliesComponent
         manufacturingDate: null,
         expirationDate: null,
         note: "",
+        poLineKey,
+        por1LineNum: por1LineNum || undefined,
         lots: items.map((p, idx) => {
           const lotLocation = p.storageUnit ?? "";
           const lotWhs =
@@ -6454,6 +6676,7 @@ export class ReceivingSuppliesComponent
     if (headerWhs && !this.sapWarehouseCode.trim()) {
       this.sapWarehouseCode = headerWhs;
     }
+    this.applyPoQuantityByLineNumFromMap();
     this.applyTableFilter();
     this.syncSelectedSapCodesFromTable();
   }

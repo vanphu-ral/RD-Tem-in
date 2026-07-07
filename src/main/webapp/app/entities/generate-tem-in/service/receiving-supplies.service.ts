@@ -53,6 +53,7 @@ export interface ReceivingProductRow {
   UploadPanacim?: boolean;
   WhsCode?: string | null;
   sapSendStatus?: boolean | null;
+  por1LineNum?: string | null;
 }
 
 export interface ReceivingProductSyncRow {
@@ -584,6 +585,7 @@ export class ReceivingSuppliesService {
           UploadPanacim
           WhsCode
           sapSendStatus
+          por1LineNum
         }
       }
     `;
@@ -637,6 +639,7 @@ export class ReceivingSuppliesService {
             numberOfPrints
             WhsCode
             sapSendStatus
+            por1LineNum
           }
           message
         }
@@ -1065,6 +1068,7 @@ export class ReceivingSuppliesService {
       numberOfPrints: 0,
       WhsCode: item.whsCode?.trim() ?? "",
       sapSendStatus: item.sapSendStatus ?? false,
+      por1LineNum: item.por1LineNum?.trim() ?? "",
     };
   }
 
@@ -1089,6 +1093,8 @@ export class ReceivingSuppliesService {
       expirationDate: this.formatDateFromExcel(item.expirationDate),
       manufacturingDate: this.formatDateFromExcel(item.manufacturingDate),
       arrivalDate: this.formatDateFromExcel(item.arrivalDate),
+      WhsCode: item.whsCode?.trim() ?? "",
+      por1LineNum: item.por1LineNum?.trim() ?? "",
     };
   }
 

@@ -1,0 +1,162 @@
+<div class="vendor-ncc-print-dialog">
+  <header class="dialog-toolbar">
+    <div class="toolbar-left">
+      <mat-icon>print</mat-icon>
+      <div>
+        <h2>In tem nhà cung cấp</h2>
+        <p>
+          Preview {{ displayLabels.length }}/{{ totalLabels }} tem · Khổ
+          {{ paperSize }}
+        </p>
+      </div>
+    </div>
+    <div class="toolbar-actions">
+      <button
+        mat-stroked-button
+        class="btn-pdf"
+        type="button"
+        (click)="exportPdf()"
+        [disabled]="!displayLabels.length || isExportingPdf"
+      >
+        <mat-icon>picture_as_pdf</mat-icon>
+        Xuất PDF
+      </button>
+      <button
+        mat-raised-button
+        class="btn-print"
+        type="button"
+        (click)="printLabels()"
+        [disabled]="!displayLabels.length || isExportingPdf"
+      >
+        <mat-icon>print</mat-icon>
+        In trực tiếp
+      </button>
+      <button mat-icon-button type="button" (click)="close()" aria-label="Đóng">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <mat-progress-bar
+    *ngIf="isExportingPdf"
+    mode="determinate"
+    [value]="pdfProgress"
+  ></mat-progress-bar>
+
+  <div class="dialog-body">
+    <aside class="settings-panel">
+      <h3>Tùy chọn in</h3>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Khổ giấy</mat-label>
+        <mat-select
+          [ngModel]="paperSize"
+          (ngModelChange)="onPaperSizeChange($event)"
+        >
+          <mat-option value="A5">A5 (mặc định)</mat-option>
+          <mat-option value="A4">A4</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-divider></mat-divider>
+
+      <!--
+      Tạm thời ẩn phần chọn icon theo yêu cầu.
+      Khi bật lại, bỏ comment block dưới:
+
+      <h3>Lưu ý vận chuyển</h3>
+      <p class="hint">Chọn tối đa 4 biểu tượng hiển thị trên tem.</p>
+      <div class="handling-icon-list">
+        ...
+      </div>
+      -->
+    </aside>
+
+    <section class="preview-panel">
+      <div class="preview-scroll">
+        <div [id]="previewContainerId" class="preview-container">
+          <div
+            class="vendor-ncc-label-page"
+            [class.paper-a5]="paperSize === 'A5'"
+            [class.paper-a4]="paperSize === 'A4'"
+            *ngFor="let label of displayLabels; trackBy: trackByLabelId"
+          >
+            <div class="label-sheet">
+              <div class="label-header">
+                <div class="qr-box">
+                  <qrcode
+                    *ngIf="label.qrCode"
+                    [qrdata]="label.qrCode"
+                    [width]="120"
+                    [margin]="0"
+                    [errorCorrectionLevel]="'M'"
+                  ></qrcode>
+                </div>
+                <div class="header-codes">
+                  <div class="code-box">{{ label.sapCode }}</div>
+                  <div class="code-box">{{ label.partNumber }}</div>
+                </div>
+              </div>
+
+              <div class="label-body">
+                <table class="label-table">
+                  <tbody>
+                    <tr>
+                      <th>Quantity:</th>
+                      <td>{{ label.quantity }}</td>
+                      <td class="unit">PCS</td>
+                    </tr>
+                    <tr>
+                      <th>Gross/Net Weigh:</th>
+                      <td>{{ label.grossNetWeight }}</td>
+                      <td class="unit">KG</td>
+                    </tr>
+                    <tr>
+                      <th>Meas:</th>
+                      <td>{{ label.meas }}</td>
+                      <td class="unit">cm</td>
+                    </tr>
+                    <tr>
+                      <th>PO No:</th>
+                      <td colspan="2">{{ label.poNo }}</td>
+                    </tr>
+                    <tr>
+                      <th>Contract No:</th>
+                      <td colspan="2">{{ label.contractNo }}</td>
+                    </tr>
+                    <tr>
+                      <th>Invoice no:</th>
+                      <td colspan="2">{{ label.invoiceNo }}</td>
+                    </tr>
+                    <tr>
+                      <th>Batch no:</th>
+                      <td colspan="2">{{ label.batchNo }}</td>
+                    </tr>
+                    <tr>
+                      <th>MFG Date:</th>
+                      <td colspan="2">{{ label.mfgDate }}</td>
+                    </tr>
+                    <tr>
+                      <th>Box No:</th>
+                      <td colspan="2">{{ label.boxNo }}</td>
+                    </tr>
+                    <tr>
+                      <th>Made by:</th>
+                      <td colspan="2">{{ label.madeIn }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <!-- Tạm thời ẩn icon trên tem theo yêu cầu -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-preview" *ngIf="!displayLabels.length">
+          Không có tem để in.
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

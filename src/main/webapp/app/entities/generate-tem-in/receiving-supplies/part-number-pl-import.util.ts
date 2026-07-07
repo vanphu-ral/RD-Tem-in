@@ -634,7 +634,9 @@ export function reconcilePoSelectPartsFromImport(
   if (allMatched) {
     message = `Đối chiếu OK — ${matchedCount} mã SAP khớp.`;
   } else if (partialMatched) {
-    message = `Đối chiếu một phần — khớp: ${matchedCount}, lỗi: ${mismatchCount + missingCount}.`;
+    const skippedMsg =
+      missingCount > 0 ? `, bỏ qua ${missingCount} dòng không có trong PO` : "";
+    message = `Đối chiếu một phần — khớp: ${matchedCount}, cần xử lý: ${mismatchCount}${skippedMsg}.`;
   } else {
     message = `Đối chiếu thất bại — lỗi: ${mismatchCount + missingCount}.`;
   }

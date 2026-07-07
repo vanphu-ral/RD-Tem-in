@@ -77,6 +77,9 @@ public class ListProductOfRequest {
     @Column(name = "WhsCode", length = 8)
     private String whsCode;
 
+    @Column(name = "POR1_LineNum", length = 20)
+    private String por1LineNum;
+
     public Long getId() {
         return id;
     }
@@ -259,5 +262,13 @@ public class ListProductOfRequest {
 
     public void setWhsCode(String whsCode) {
         this.whsCode = whsCode;
+    }
+
+    public String getPor1LineNum() {
+        return por1LineNum;
+    }
+
+    public void setPor1LineNum(String por1LineNum) {
+        this.por1LineNum = por1LineNum;
     }
 }

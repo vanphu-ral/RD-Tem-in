@@ -25,6 +25,7 @@ public class UpdateProductInput {
     private Boolean uploadPanacim;
     private Boolean sapSendStatus;
     private String whsCode;
+    private String por1LineNum;
 
     // Getters và setters đầy đủ
     public Long getId() {
@@ -209,5 +210,13 @@ public class UpdateProductInput {
 
     public void setWhsCode(String whsCode) {
         this.whsCode = whsCode;
+    }
+
+    public String getPor1LineNum() {
+        return por1LineNum;
+    }
+
+    public void setPor1LineNum(String por1LineNum) {
+        this.por1LineNum = por1LineNum;
     }
 }

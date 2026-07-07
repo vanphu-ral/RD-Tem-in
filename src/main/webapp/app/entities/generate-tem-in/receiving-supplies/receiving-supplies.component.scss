@@ -2280,17 +2280,3 @@
     }
   }
 }
-
-.vendor-print-modal {
-  max-width: min(640px, 96vw);
-}
-
-.vendor-print-placeholder {
-  margin-bottom: 16px;
-}
-
-.vendor-print-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}

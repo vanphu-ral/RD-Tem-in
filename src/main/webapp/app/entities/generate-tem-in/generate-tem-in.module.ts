@@ -32,6 +32,7 @@ import { MatCardModule } from "@angular/material/card";
 import { MatExpansionModule } from "@angular/material/expansion";
 import { EditProductDialogComponent } from "./detail/edit-product-dialog.component";
 import { ReceivingSuppliesComponent } from "./receiving-supplies/receiving-supplies.component";
+import { VendorNccPrintDialogComponent } from "./receiving-supplies/vendor-ncc-print-dialog/vendor-ncc-print-dialog.component";
 // import { ApolloModule } from 'apollo-angular';
 // import { HttpClientModule } from '@angular/common/http';
 import { MatDialogModule } from "@angular/material/dialog";
@@ -75,6 +76,7 @@ import { MatDividerModule } from "@angular/material/divider";
     QRCodeComponent,
     MatDialogModule,
     MatExpansionModule,
+    VendorNccPrintDialogComponent,
   ],
 
   declarations: [

@@ -73,6 +73,7 @@ input CreateProductInput {
     arrivalDate: String!
     sapSendStatus: Boolean
     WhsCode: String
+    por1LineNum: String
 }
 
 input CreateRequestWithProductsInput {
@@ -167,6 +168,7 @@ type ListProductOfRequest {
     UploadPanacim: Boolean
     sapSendStatus: Boolean
     WhsCode: String
+    por1LineNum: String
 }
 
 #khai báo bảng info tem detail
@@ -223,6 +225,7 @@ input UpdateProductInput {
     UploadPanacim: Boolean
     sapSendStatus: Boolean
     WhsCode: String
+    por1LineNum: String
 }
 
 input CreateProductInPoStatusInput {

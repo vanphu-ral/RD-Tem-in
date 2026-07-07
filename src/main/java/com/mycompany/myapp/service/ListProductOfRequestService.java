@@ -83,6 +83,9 @@ public class ListProductOfRequestService {
         if (input.getWhsCode() != null) {
             entity.setWhsCode(input.getWhsCode());
         }
+        if (input.getPor1LineNum() != null) {
+            entity.setPor1LineNum(input.getPor1LineNum().trim());
+        }
 
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
@@ -272,6 +275,9 @@ public class ListProductOfRequestService {
         product.setWhsCode(
             input.getWhsCode() != null ? input.getWhsCode() : ""
         );
+        if (input.getPor1LineNum() != null) {
+            product.setPor1LineNum(input.getPor1LineNum().trim());
+        }
 
         // Parse date strings to LocalDateTime with validation
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;

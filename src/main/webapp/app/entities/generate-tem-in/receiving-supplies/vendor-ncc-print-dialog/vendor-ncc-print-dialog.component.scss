@@ -1,0 +1,340 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.vendor-ncc-print-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #f3f5f8;
+}
+
+.dialog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: #fff;
+  flex-shrink: 0;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    opacity: 0.9;
+  }
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  mat-icon {
+    font-size: 30px;
+    width: 30px;
+    height: 30px;
+  }
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .btn-pdf,
+  .btn-print {
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff !important;
+    font-weight: 600;
+  }
+
+  .btn-pdf:hover,
+  .btn-print:hover {
+    background: rgba(255, 255, 255, 0.24);
+  }
+
+  .btn-pdf[disabled],
+  .btn-print[disabled] {
+    opacity: 0.65;
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  button mat-icon {
+    margin-right: 4px;
+  }
+
+  .mat-mdc-icon-button {
+    color: #fff;
+  }
+}
+
+.dialog-body {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-panel {
+  background: #fff;
+  border-right: 1px solid #e0e0e0;
+  padding: 16px;
+  overflow: auto;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .hint {
+    margin: 0 0 12px;
+    font-size: 12px;
+    color: #666;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.handling-icon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.handling-icon-item {
+  display: grid;
+  grid-template-columns: auto 44px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.icon-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #111;
+  background: #fff;
+
+  mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: #111;
+  }
+}
+
+.icon-label {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.preview-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.preview-scroll {
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+}
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.empty-preview {
+  text-align: center;
+  color: #666;
+  padding: 40px 16px;
+}
+
+.vendor-ncc-label-page {
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  overflow: hidden;
+
+  &.paper-a5 {
+    width: 148mm;
+    min-height: 210mm;
+    padding: 6mm;
+  }
+
+  &.paper-a4 {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 8mm;
+  }
+}
+
+.label-sheet {
+  border: 2px solid #111;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.label-header {
+  display: grid;
+  grid-template-columns: 34% 1fr;
+  border-bottom: 2px solid #111;
+}
+
+.qr-box {
+  border-right: 2px solid #111;
+  min-height: 34mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4mm;
+
+  qrcode,
+  ::ng-deep canvas {
+    max-width: 100%;
+    max-height: 100%;
+  }
+}
+
+.header-codes {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+}
+
+.code-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #111;
+  padding: 4mm;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.label-body {
+  display: block;
+  position: relative;
+  flex: 1;
+}
+
+.label-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    border: 1px solid #111;
+    padding: 5px 8px;
+    vertical-align: middle;
+  }
+
+  th {
+    width: 34%;
+    text-align: left;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  td {
+    font-weight: 600;
+  }
+
+  .unit {
+    width: 48px;
+    text-align: center;
+    font-weight: 700;
+  }
+}
+
+.handling-icons {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-end;
+  justify-content: flex-end;
+  width: 108px;
+  height: 108px;
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  gap: 4px;
+  z-index: 2;
+}
+
+.handling-icon-cell {
+  border: 2px solid #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+
+  mat-icon {
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+    color: #111;
+  }
+}
+
+::ng-deep .vendor-ncc-print-dialog-panel .mat-mdc-dialog-container {
+  padding: 0;
+  border-radius: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+::ng-deep .vendor-ncc-print-dialog-panel .mat-mdc-dialog-surface {
+  border-radius: 0;
+}
+
+@media (max-width: 960px) {
+  .dialog-body {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-panel {
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    max-height: 42vh;
+  }
+}
+
+@media print {
+  .dialog-toolbar,
+  .settings-panel,
+  mat-progress-bar {
+    display: none !important;
+  }
+}

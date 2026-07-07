@@ -22,6 +22,7 @@ public class CreateProductInput {
     private String arrivalDate;
     private Boolean sapSendStatus;
     private String whsCode;
+    private String por1LineNum;
 
     // Getters and Setters
     public Integer getRequestCreateTemId() {
@@ -182,5 +183,13 @@ public class CreateProductInput {
 
     public void setWhsCode(String whsCode) {
         this.whsCode = whsCode;
+    }
+
+    public String getPor1LineNum() {
+        return por1LineNum;
+    }
+
+    public void setPor1LineNum(String por1LineNum) {
+        this.por1LineNum = por1LineNum;
     }
 }

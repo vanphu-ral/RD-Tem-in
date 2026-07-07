@@ -65,4 +65,6 @@ export interface ExcelImportData {
   whsCode?: string;
   /** Đã gửi SAP (test API). */
   sapSendStatus?: boolean;
+  /** Số dòng PO (POR1_LineNum) — lưu list_product_of_request. */
+  por1LineNum?: string;
 }

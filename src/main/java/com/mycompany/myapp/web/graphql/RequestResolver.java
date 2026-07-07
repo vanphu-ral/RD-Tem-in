@@ -198,6 +198,13 @@ public class RequestResolver {
                 log.warn("WhsCode không phải kiểu string: {}", whsCodeObj);
             }
 
+            Object por1LineNumObj = map.get("por1LineNum");
+            if (por1LineNumObj instanceof String) {
+                input.setPor1LineNum((String) por1LineNumObj);
+            } else if (por1LineNumObj != null) {
+                input.setPor1LineNum(por1LineNumObj.toString());
+            }
+
             log.info("Convert thành công: {}", input);
         } catch (Exception e) {
             log.error("Lỗi khi convert input map: {}", e.getMessage(), e);

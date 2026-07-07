@@ -68,6 +68,19 @@ function parseYyyyMmDd(value: string): string {
   return digits.length === 8 ? digits : "";
 }
 
+function deriveSapCode(explicitSap: string, partNumber: string): string {
+  const sap = explicitSap.trim();
+  if (sap) {
+    return sap;
+  }
+  const part = partNumber.trim();
+  if (!part) {
+    return "";
+  }
+  const fromPart = part.split("_")[0]?.trim() ?? "";
+  return fromPart;
+}
+
 /** ReelID = ngày + STT thùng (4 số) + mã PartNumber. */
 export function buildVendorReelId(
   datePrefix: string,
@@ -146,25 +159,73 @@ function parseLogLine(
     return {};
   }
 
-  const parts = trimmed.split("\t");
+  const tabParts = trimmed.split("\t");
+  const commaParts = trimmed.split(",");
+  const useTab = tabParts.length >= commaParts.length;
+  const parts = useTab ? tabParts : commaParts;
+  const format: "legacy_tab" | "document_010_csv" = useTab
+    ? "legacy_tab"
+    : "document_010_csv";
+
   if (parts.length < 12) {
     return {
-      error: `Dòng ${lineNo}: không đủ cột (cần file log Bartender tab-separated).`,
+      error: `Dòng ${lineNo}: không đủ cột (cần file log Bartender).`,
     };
   }
 
   const datePrefix = parts[0]?.trim() ?? "";
   const boxStt = parts[1]?.trim() ?? "";
   const partNumber = parts[2]?.trim() ?? "";
-  const quantity = parsePositiveInt(parts[parts.length - 8] ?? "0");
-  const mfgDate = parseYyyyMmDd(parts[parts.length - 7] ?? "");
-  const lotNumber = parseYyyyMmDd(parts[parts.length - 6] ?? "") || mfgDate;
-  const sapCode = (parts[parts.length - 5] ?? "").trim();
-  const temQuantity = parsePositiveInt(parts[parts.length - 4] ?? "0");
-  const itemName = (parts[parts.length - 3] ?? "").trim();
-  const poNumber = (parts[parts.length - 2] ?? "").trim();
-  const madeIn = (parts[parts.length - 9] ?? "").trim();
-  const contractNo = (parts[24] ?? "").trim();
+
+  let quantity = 0;
+  let mfgDate = "";
+  let lotNumber = "";
+  let sapCode = "";
+  let temQuantity = 0;
+  let itemName = "";
+  let poNumber = "";
+  let madeIn = "";
+  let contractNo = "";
+
+  if (format === "legacy_tab") {
+    quantity = parsePositiveInt(parts[parts.length - 8] ?? "0");
+    mfgDate = parseYyyyMmDd(parts[parts.length - 7] ?? "");
+    lotNumber = parseYyyyMmDd(parts[parts.length - 6] ?? "") || mfgDate;
+    sapCode = (parts[parts.length - 5] ?? "").trim();
+    temQuantity = parsePositiveInt(parts[parts.length - 4] ?? "0");
+    itemName = (parts[parts.length - 3] ?? "").trim();
+    poNumber = (parts[parts.length - 2] ?? "").trim();
+    madeIn = (parts[parts.length - 9] ?? "").trim();
+    contractNo = (parts[24] ?? "").trim();
+  } else {
+    // Mẫu CSV mới:
+    // A) Document1_010:
+    // [0]=date,[1]=box,[2]=part,[9]=contract,[10]=stt,[11]=qty,[12]=mfg,[13]=lot,[14]=part,[15]=temQty,[16]=item,[17]=po
+    // B) label_template_01_011:
+    // [0]=date,[1]=box,[2]=part,[8]=stt,[13]=mfg,[14]=lot,[16]=po,[17]=part,[18]=qty,[19]=sap,[20]=temQty,[21]=item
+    if (parts.length >= 22) {
+      contractNo = (parts[9] ?? "").trim();
+      mfgDate = parseYyyyMmDd(parts[13] ?? "");
+      lotNumber = parseYyyyMmDd(parts[14] ?? "") || mfgDate;
+      const partFromRow = (parts[17] ?? "").trim() || partNumber;
+      quantity = parsePositiveInt(parts[18] ?? "0");
+      sapCode = deriveSapCode((parts[19] ?? "").trim(), partFromRow);
+      temQuantity = parsePositiveInt(parts[20] ?? "0");
+      itemName = (parts[21] ?? "").trim();
+      poNumber = (parts[16] ?? "").trim();
+    } else {
+      contractNo = (parts[9] ?? "").trim();
+      mfgDate = parseYyyyMmDd(parts[12] ?? "");
+      lotNumber = parseYyyyMmDd(parts[13] ?? "") || mfgDate;
+      const partFromRow = (parts[14] ?? "").trim() || partNumber;
+      temQuantity = parsePositiveInt(parts[15] ?? "0");
+      itemName = (parts[16] ?? "").trim();
+      poNumber = (parts[17] ?? "").trim();
+      quantity = parsePositiveInt(parts[11] ?? "0");
+      sapCode = deriveSapCode("", partFromRow);
+    }
+    madeIn = "";
+  }
 
   if (!datePrefix || !boxStt || !partNumber) {
     return {
