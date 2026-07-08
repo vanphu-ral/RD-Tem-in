@@ -15,6 +15,7 @@ import com.mycompany.myapp.domain.WarehouseSummaryStatsDto;
 import com.mycompany.myapp.service.dto.InventoryDTO;
 import com.mycompany.myapp.service.dto.InventoryRequestDTO;
 import com.mycompany.myapp.service.dto.WarehouseSummaryRequestDTO;
+import com.mycompany.panacimmc.domain.AreaAreaResponse;
 import com.mycompany.panacimmc.domain.Inventory;
 import com.mycompany.panacimmc.domain.InventoryResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaInventoryItemRawResponse;
@@ -1338,6 +1339,29 @@ public class InventoryService {
             ) {
                 dto.getMaterialTypes().add(materialType);
             }
+        }
+
+        // Always include areas without inventory so they are visible on the map
+        // with quantity = 0.
+        for (AreaAreaResponse area : locationRepository.getArea()) {
+            String areaCode = Optional.ofNullable(area.getAreaName())
+                .map(String::trim)
+                .orElse("-");
+            String areaName = Optional.ofNullable(area.getAreaDescription())
+                .map(String::trim)
+                .orElse("");
+            String key = areaCode + "|" + areaName;
+            grouped.computeIfAbsent(key, k -> {
+                WarehouseOverviewAreaDto emptyArea =
+                    new WarehouseOverviewAreaDto();
+                emptyArea.setAreaCode(areaCode);
+                emptyArea.setAreaName(areaName);
+                emptyArea.setQuantity(0);
+                emptyArea.setMaterialIdentifierCount(0);
+                emptyArea.setMaterialTypes(new ArrayList<>());
+                emptyArea.setMaterialTypeCount(0);
+                return emptyArea;
+            });
         }
 
         for (WarehouseOverviewAreaDto dto : grouped.values()) {

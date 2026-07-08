@@ -247,6 +247,26 @@ export class ListMaterialWarehouseSummaryComponent
   }
 
   onOverviewAreaClick(area: WarehouseOverviewArea): void {
+    const isSameAreaSelected =
+      this.selectedOverviewArea?.areaCode === area.areaCode &&
+      this.selectedOverviewArea?.areaName === area.areaName;
+    const nextWarehouseFilter = isSameAreaSelected ? "" : area.areaCode;
+
+    this.filterForm.patchValue(
+      {
+        warehouseName: nextWarehouseFilter,
+      },
+      { emitEvent: false },
+    );
+    this.pageIndex = 0;
+
+    if (isSameAreaSelected) {
+      this.selectedOverviewArea = null;
+      this.loadData();
+      this.cdr.markForCheck();
+      return;
+    }
+
     this.selectedOverviewArea = area;
     this.openFloorPlanForRow({
       areaCode: area.areaCode,
@@ -255,6 +275,7 @@ export class ListMaterialWarehouseSummaryComponent
       quantity: area.quantity,
       materialIdentifierCount: area.materialIdentifierCount,
     });
+    this.loadData();
     this.cdr.markForCheck();
   }
 
@@ -986,6 +1007,14 @@ export class ListMaterialWarehouseSummaryComponent
         this.dataSource.data = response.inventories ?? [];
         this.overviewAreas = response.overviewAreas ?? [];
         this.overviewMaterialTypes = response.overviewMaterialTypes ?? [];
+        if (this.selectedOverviewArea) {
+          const refreshedOverviewArea = this.overviewAreas.find(
+            (area) =>
+              area.areaCode === this.selectedOverviewArea?.areaCode &&
+              area.areaName === this.selectedOverviewArea?.areaName,
+          );
+          this.selectedOverviewArea = refreshedOverviewArea ?? null;
+        }
         this.cdr.markForCheck();
       });
   }

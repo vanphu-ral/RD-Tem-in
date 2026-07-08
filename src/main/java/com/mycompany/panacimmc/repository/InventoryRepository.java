@@ -1082,15 +1082,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    OR l.Location_Name LIKE :locationPattern\n" +
         "    OR l.Location_FullName LIKE :locationPattern\n" +
         ")\n" +
-        "AND (\n" +
-        "    :searchLocations = 1\n" +
-        "    OR EXISTS (\n" +
-        "        SELECT 1 FROM Inventory inv\n" +
-        "        WHERE inv.Inventory_LocationId = l.Location_Id\n" +
-        "          AND inv.Inventory_Status IN (3,6,19)\n" +
-        "          AND inv.Inventory_Quantity > 0\n" +
-        "    )\n" +
-        ")\n" +
         "GROUP BY l.Location_Id, l.Location_Name, l.Location_FullName, l.Location_XPos, l.Location_YPos,\n" +
         "    l.Location_ProductLimit,\n" +
         "    CASE \n" +
