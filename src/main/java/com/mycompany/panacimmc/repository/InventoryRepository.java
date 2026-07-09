@@ -5,6 +5,7 @@ import com.mycompany.panacimmc.domain.InventoryResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaInventoryItemRawResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaItemSummaryResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaLocationRawResponse;
+import com.mycompany.panacimmc.domain.WarehouseAreaMaterialGroupLocationRawResponse;
 import com.mycompany.panacimmc.domain.WarehouseLocationInventoryRawResponse;
 import com.mycompany.panacimmc.domain.WarehouseSummaryStatsCombined;
 import java.util.List;
@@ -1239,6 +1240,100 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         @Param("useNameItemCodes") int useNameItemCodes,
         @Param("nameItemCodes") List<String> nameItemCodes,
         @Param("rowLimit") int rowLimit
+    );
+
+    @Query(
+        value = "SELECT \n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END AS itemCode,\n" +
+        "    l.Location_Id AS locationId,\n" +
+        "    l.Location_Name AS locationName,\n" +
+        "    ISNULL(SUM(a.Inventory_Quantity), 0) AS quantity,\n" +
+        "    ISNULL(COUNT(a.Inventory_MaterialIdentifier), 0) AS materialIdentifierCount\n" +
+        "FROM Inventory a\n" +
+        "INNER JOIN Location l ON a.Inventory_LocationId = l.Location_Id\n" +
+        "INNER JOIN Area ar ON ar.Area_Id = l.Location_AreaId\n" +
+        "OUTER APPLY (\n" +
+        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
+        "    FROM InventoryMaterialTraceDetail\n" +
+        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
+        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
+        ") d1\n" +
+        "WHERE LTRIM(RTRIM(ISNULL(NULLIF(ar.Area_Name, N''), ISNULL(l.Location_AreaName, N'')))) = LTRIM(RTRIM(:areaCode))\n" +
+        "AND (\n" +
+        "    LTRIM(RTRIM(:areaName)) = N''\n" +
+        "    OR LTRIM(RTRIM(ISNULL(ar.Area_Description, N''))) = LTRIM(RTRIM(:areaName))\n" +
+        ")\n" +
+        "AND a.Inventory_Status IN (3,6,19)\n" +
+        "AND a.Inventory_Quantity > 0\n" +
+        "AND (\n" +
+        "    :searchMaterials = 0\n" +
+        "    OR (\n" +
+        "        (:searchField = 0 AND (\n" +
+        "            a.Inventory_MaterialIdentifier LIKE :materialPattern\n" +
+        "            OR ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'') LIKE :materialPattern\n" +
+        "            OR ISNULL(a.Inventory_PartNumber, N'') LIKE :materialPattern\n" +
+        "            OR (\n" +
+        "                :useNameItemCodes = 1\n" +
+        "                AND (\n" +
+        "                    CASE \n" +
+        "                        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "                        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "                        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "                     END\n" +
+        "                ) IN (:nameItemCodes)\n" +
+        "            )\n" +
+        "        ))\n" +
+        "        OR (\n" +
+        "            :searchField = 1\n" +
+        "            AND :useNameItemCodes = 1\n" +
+        "            AND (\n" +
+        "                CASE \n" +
+        "                    WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "                    THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "                    ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "                 END\n" +
+        "            ) IN (:nameItemCodes)\n" +
+        "        )\n" +
+        "        OR (:searchField = 2 AND (\n" +
+        "            CASE \n" +
+        "                WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "                THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "                ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "             END LIKE :materialPattern\n" +
+        "        ))\n" +
+        "    )\n" +
+        ")\n" +
+        "GROUP BY \n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END,\n" +
+        "    l.Location_Id,\n" +
+        "    l.Location_Name\n" +
+        "ORDER BY \n" +
+        "    CASE \n" +
+        "        WHEN CHARINDEX(N'-', ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')) > 0 \n" +
+        "        THEN LTRIM(RTRIM(LEFT(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, CHARINDEX(N'-', d1.InventoryMaterialTraceDetail_MaterialTraceDataValue) - 1)))\n" +
+        "        ELSE LTRIM(RTRIM(ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, N'')))\n" +
+        "     END,\n" +
+        "    l.Location_Name",
+        nativeQuery = true
+    )
+    List<
+        WarehouseAreaMaterialGroupLocationRawResponse
+    > getWarehouseAreaMaterialGroupBreakdown(
+        @Param("areaCode") String areaCode,
+        @Param("areaName") String areaName,
+        @Param("searchMaterials") int searchMaterials,
+        @Param("searchField") int searchField,
+        @Param("materialPattern") String materialPattern,
+        @Param("useNameItemCodes") int useNameItemCodes,
+        @Param("nameItemCodes") List<String> nameItemCodes
     );
 
     @Query(

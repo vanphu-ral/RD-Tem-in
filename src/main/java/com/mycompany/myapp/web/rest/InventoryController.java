@@ -3,6 +3,7 @@ package com.mycompany.myapp.web.rest;
 import com.mycompany.myapp.domain.InventoriesResponse;
 import com.mycompany.myapp.domain.WarehouseAreaInventoryItemsResponse;
 import com.mycompany.myapp.domain.WarehouseAreaLocationsResponse;
+import com.mycompany.myapp.domain.WarehouseAreaMaterialGroupsResponse;
 import com.mycompany.myapp.domain.WarehouseLocationMaterialsResponse;
 import com.mycompany.myapp.domain.WarehouseSummaryResponse;
 import com.mycompany.myapp.service.InventoryService;
@@ -110,6 +111,32 @@ public class InventoryController {
         ) Integer previewLimit
     ) {
         return this.inventoryService.getWarehouseAreaInventoryItems(
+            areaCode,
+            areaName,
+            materialSearch,
+            searchField,
+            previewLimit
+        );
+    }
+
+    @GetMapping("/warehouse-summary/area-material-groups")
+    public WarehouseAreaMaterialGroupsResponse getWarehouseAreaMaterialGroups(
+        @RequestParam String areaCode,
+        @RequestParam(required = false, defaultValue = "") String areaName,
+        @RequestParam(
+            required = false,
+            defaultValue = ""
+        ) String materialSearch,
+        @RequestParam(
+            required = false,
+            defaultValue = "sap"
+        ) String searchField,
+        @RequestParam(
+            required = false,
+            defaultValue = "100"
+        ) Integer previewLimit
+    ) {
+        return this.inventoryService.getWarehouseAreaMaterialGroups(
             areaCode,
             areaName,
             materialSearch,

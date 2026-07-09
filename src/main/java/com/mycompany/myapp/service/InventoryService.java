@@ -5,6 +5,9 @@ import com.mycompany.myapp.domain.WarehouseAreaInventoryItemDto;
 import com.mycompany.myapp.domain.WarehouseAreaInventoryItemsResponse;
 import com.mycompany.myapp.domain.WarehouseAreaLocationDto;
 import com.mycompany.myapp.domain.WarehouseAreaLocationsResponse;
+import com.mycompany.myapp.domain.WarehouseAreaMaterialGroupDto;
+import com.mycompany.myapp.domain.WarehouseAreaMaterialGroupLocationDto;
+import com.mycompany.myapp.domain.WarehouseAreaMaterialGroupsResponse;
 import com.mycompany.myapp.domain.WarehouseAreaSummaryRowDto;
 import com.mycompany.myapp.domain.WarehouseLocationMaterialItemDto;
 import com.mycompany.myapp.domain.WarehouseLocationMaterialsResponse;
@@ -21,6 +24,7 @@ import com.mycompany.panacimmc.domain.InventoryResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaInventoryItemRawResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaItemSummaryResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaLocationRawResponse;
+import com.mycompany.panacimmc.domain.WarehouseAreaMaterialGroupLocationRawResponse;
 import com.mycompany.panacimmc.domain.WarehouseAreaSummaryResponse;
 import com.mycompany.panacimmc.domain.WarehouseLocationInventoryRawResponse;
 import com.mycompany.panacimmc.domain.WarehouseSummaryStatsCombined;
@@ -39,6 +43,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -817,6 +822,81 @@ public class InventoryService {
         return response;
     }
 
+    public WarehouseAreaMaterialGroupsResponse getWarehouseAreaMaterialGroups(
+        String areaCode,
+        String areaName,
+        String materialSearch,
+        String searchField,
+        Integer previewLimit
+    ) {
+        String normalizedAreaCode = Optional.ofNullable(areaCode)
+            .orElse("")
+            .trim();
+        String normalizedAreaName = Optional.ofNullable(areaName)
+            .orElse("")
+            .trim();
+        String normalizedSearch = Optional.ofNullable(materialSearch)
+            .orElse("")
+            .trim();
+
+        int searchMaterials = normalizedSearch.isEmpty() ? 0 : 1;
+        int fieldMode = resolveMaterialSearchField(
+            searchField,
+            searchMaterials
+        );
+        String materialPattern = searchMaterials == 1
+            ? "%" + normalizedSearch + "%"
+            : "%";
+
+        int useNameItemCodes = 0;
+        List<String> nameItemCodes = List.of("");
+        if (searchMaterials == 1 && (fieldMode == 0 || fieldMode == 1)) {
+            List<String> matchedCodes =
+                warehouseSummarySapCacheService.findItemCodesByNameContaining(
+                    normalizedSearch
+                );
+            if (fieldMode == 1 && matchedCodes.isEmpty()) {
+                return emptyAreaMaterialGroupsResponse(previewLimit);
+            }
+            if (!matchedCodes.isEmpty()) {
+                useNameItemCodes = 1;
+                nameItemCodes = WarehouseItemCodeFilterUtils.dedupeItemCodes(
+                    matchedCodes
+                );
+            }
+        }
+
+        List<WarehouseAreaMaterialGroupLocationRawResponse> rawRows =
+            fetchWarehouseAreaMaterialGroupBreakdown(
+                normalizedAreaCode,
+                normalizedAreaName,
+                searchMaterials,
+                fieldMode,
+                materialPattern,
+                useNameItemCodes,
+                nameItemCodes
+            );
+
+        List<WarehouseAreaMaterialGroupDto> groups =
+            buildWarehouseAreaMaterialGroups(rawRows);
+
+        int defaultPreview = Optional.ofNullable(previewLimit).orElse(100);
+        int totalCount = groups.size();
+        boolean previewLimited =
+            searchMaterials == 0 && totalCount > defaultPreview;
+        List<WarehouseAreaMaterialGroupDto> visibleGroups = previewLimited
+            ? groups.subList(0, defaultPreview)
+            : groups;
+
+        WarehouseAreaMaterialGroupsResponse response =
+            new WarehouseAreaMaterialGroupsResponse();
+        response.setGroups(new ArrayList<>(visibleGroups));
+        response.setTotalCount(totalCount);
+        response.setPreviewLimit(searchMaterials == 0 ? defaultPreview : null);
+        response.setPreviewLimited(previewLimited);
+        return response;
+    }
+
     public WarehouseLocationMaterialsResponse getLocationInventoryMaterials(
         String locationName,
         String qrCode,
@@ -1001,6 +1081,189 @@ public class InventoryService {
         response.setPage(page);
         response.setSize(size);
         return response;
+    }
+
+    private WarehouseAreaMaterialGroupsResponse emptyAreaMaterialGroupsResponse(
+        Integer previewLimit
+    ) {
+        WarehouseAreaMaterialGroupsResponse response =
+            new WarehouseAreaMaterialGroupsResponse();
+        response.setGroups(List.of());
+        response.setTotalCount(0);
+        response.setPreviewLimit(Optional.ofNullable(previewLimit).orElse(100));
+        response.setPreviewLimited(false);
+        return response;
+    }
+
+    private List<
+        WarehouseAreaMaterialGroupLocationRawResponse
+    > fetchWarehouseAreaMaterialGroupBreakdown(
+        String areaCode,
+        String areaName,
+        int searchMaterials,
+        int fieldMode,
+        String materialPattern,
+        int useNameItemCodes,
+        List<String> nameItemCodes
+    ) {
+        if (
+            useNameItemCodes == 1 &&
+            nameItemCodes.size() > NAME_ITEM_CODES_BATCH_SIZE
+        ) {
+            List<WarehouseAreaMaterialGroupLocationRawResponse> merged =
+                new ArrayList<>();
+            for (
+                int offset = 0;
+                offset < nameItemCodes.size();
+                offset += NAME_ITEM_CODES_BATCH_SIZE
+            ) {
+                int end = Math.min(
+                    offset + NAME_ITEM_CODES_BATCH_SIZE,
+                    nameItemCodes.size()
+                );
+                List<String> batch = nameItemCodes.subList(offset, end);
+                merged.addAll(
+                    inventoryRepository.getWarehouseAreaMaterialGroupBreakdown(
+                        areaCode,
+                        areaName,
+                        searchMaterials,
+                        fieldMode,
+                        materialPattern,
+                        useNameItemCodes,
+                        batch
+                    )
+                );
+            }
+            return merged;
+        }
+
+        return inventoryRepository.getWarehouseAreaMaterialGroupBreakdown(
+            areaCode,
+            areaName,
+            searchMaterials,
+            fieldMode,
+            materialPattern,
+            useNameItemCodes,
+            nameItemCodes
+        );
+    }
+
+    private List<
+        WarehouseAreaMaterialGroupDto
+    > buildWarehouseAreaMaterialGroups(
+        List<WarehouseAreaMaterialGroupLocationRawResponse> rawRows
+    ) {
+        Map<String, WarehouseAreaMaterialGroupDto> grouped =
+            new LinkedHashMap<>();
+
+        for (WarehouseAreaMaterialGroupLocationRawResponse row : rawRows) {
+            String itemCode = Optional.ofNullable(row.getItemCode())
+                .map(String::trim)
+                .orElse("");
+            if (itemCode.isEmpty()) {
+                continue;
+            }
+
+            WarehouseAreaMaterialGroupDto group = grouped.computeIfAbsent(
+                itemCode,
+                code -> {
+                    WarehouseAreaMaterialGroupDto dto =
+                        new WarehouseAreaMaterialGroupDto();
+                    dto.setGroupKey(code);
+                    dto.setItemCode(code);
+                    dto.setMaterialName(
+                        warehouseSummarySapCacheService.resolveItemName(code)
+                    );
+                    dto.setMaterialType(
+                        warehouseSummarySapCacheService.resolveGroupName(code)
+                    );
+                    dto.setTotalQuantity(0);
+                    dto.setMaterialIdentifierCount(0);
+                    dto.setLocationSummaries(new ArrayList<>());
+                    return dto;
+                }
+            );
+
+            int quantity = Optional.ofNullable(row.getQuantity()).orElse(0);
+            int qrCount = Optional.ofNullable(
+                row.getMaterialIdentifierCount()
+            ).orElse(0);
+            group.setTotalQuantity(
+                Optional.ofNullable(group.getTotalQuantity()).orElse(0) +
+                quantity
+            );
+            group.setMaterialIdentifierCount(
+                Optional.ofNullable(group.getMaterialIdentifierCount()).orElse(
+                    0
+                ) +
+                qrCount
+            );
+
+            Long locationId = row.getLocationId();
+            String locationName = Optional.ofNullable(row.getLocationName())
+                .map(String::trim)
+                .filter(name -> !name.isEmpty())
+                .orElse("—");
+
+            WarehouseAreaMaterialGroupLocationDto locationSummary = group
+                .getLocationSummaries()
+                .stream()
+                .filter(loc -> Objects.equals(loc.getLocationId(), locationId))
+                .findFirst()
+                .orElse(null);
+
+            if (locationSummary == null) {
+                locationSummary = new WarehouseAreaMaterialGroupLocationDto();
+                locationSummary.setLocationId(
+                    Optional.ofNullable(locationId).orElse(0L)
+                );
+                locationSummary.setLocationName(locationName);
+                locationSummary.setQuantity(0);
+                locationSummary.setMaterialIdentifierCount(0);
+                group.getLocationSummaries().add(locationSummary);
+            }
+
+            locationSummary.setQuantity(
+                Optional.ofNullable(locationSummary.getQuantity()).orElse(0) +
+                quantity
+            );
+            locationSummary.setMaterialIdentifierCount(
+                Optional.ofNullable(
+                    locationSummary.getMaterialIdentifierCount()
+                ).orElse(0) +
+                qrCount
+            );
+        }
+
+        List<WarehouseAreaMaterialGroupDto> groups = new ArrayList<>(
+            grouped.values()
+        );
+        for (WarehouseAreaMaterialGroupDto group : groups) {
+            group
+                .getLocationSummaries()
+                .sort(
+                    Comparator.comparing(
+                        loc ->
+                            Optional.ofNullable(loc.getLocationName()).orElse(
+                                ""
+                            ),
+                        String.CASE_INSENSITIVE_ORDER
+                    )
+                );
+        }
+
+        groups.sort(
+            Comparator.comparing(
+                (WarehouseAreaMaterialGroupDto group) ->
+                    Optional.ofNullable(group.getItemCode()).orElse(""),
+                String.CASE_INSENSITIVE_ORDER
+            ).thenComparing(
+                group ->
+                    Optional.ofNullable(group.getMaterialName()).orElse(""),
+                String.CASE_INSENSITIVE_ORDER
+            )
+        );
+        return groups;
     }
 
     private WarehouseAreaInventoryItemsResponse emptyAreaInventoryItemsResponse(

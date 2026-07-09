@@ -661,15 +661,19 @@
                       <h3>Danh sách vật tư</h3>
                       <span
                         class="material-list-count"
-                        *ngIf="areaMaterialsTotalCount"
+                        *ngIf="
+                          groupedAreaMaterials.length || areaMaterialsTotalCount
+                        "
                       >
                         {{
                           areaMaterialsPreviewLimited
                             ? "Hiển thị " +
-                              formatNumber(areaMaterials.length) +
+                              formatNumber(groupedAreaMaterials.length) +
                               " / " +
-                              formatNumber(areaMaterialsTotalCount)
-                            : formatNumber(areaMaterialsTotalCount) + " vật tư"
+                              formatNumber(areaMaterialsTotalCount) +
+                              " mã"
+                            : formatNumber(groupedAreaMaterials.length) +
+                              " mã vật tư"
                         }}
                       </span>
                     </div>
@@ -718,33 +722,29 @@
                     >
                       <li
                         *ngFor="
-                          let item of areaMaterials;
-                          trackBy: trackAreaMaterial
+                          let group of groupedAreaMaterials;
+                          trackBy: trackAreaMaterialGroup
                         "
                         class="location-list-card-wrap"
                       >
                         <button
                           type="button"
                           class="location-list-item"
-                          [class.active]="
-                            selectedAreaMaterial?.materialIdentifier ===
-                              item.materialIdentifier &&
-                            selectedAreaMaterial?.locationId === item.locationId
-                          "
-                          (click)="onAreaMaterialSelect(item)"
+                          [class.active]="isAreaMaterialGroupActive(group)"
+                          (click)="onAreaMaterialGroupSelect(group)"
                         >
                           <span
                             class="location-list-accent"
                             [style.background]="
-                              getMaterialTypeColor(item.materialType)
+                              getMaterialTypeColor(group.materialType)
                             "
                           ></span>
                           <span class="location-list-content">
                             <span class="location-list-name">{{
-                              getMaterialListTitle(item)
+                              getMaterialGroupTitle(group)
                             }}</span>
                             <span class="location-list-meta">{{
-                              getMaterialListMeta(item)
+                              getMaterialGroupMeta(group)
                             }}</span>
                           </span>
                         </button>
@@ -752,7 +752,9 @@
                     </ul>
                     <p
                       class="location-list-empty"
-                      *ngIf="!isAreaMaterialsLoading && !areaMaterials.length"
+                      *ngIf="
+                        !isAreaMaterialsLoading && !groupedAreaMaterials.length
+                      "
                     >
                       Chưa có vật tư phù hợp.
                     </p>

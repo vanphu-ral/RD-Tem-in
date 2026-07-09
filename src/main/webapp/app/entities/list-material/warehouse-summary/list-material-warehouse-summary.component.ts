@@ -32,6 +32,7 @@ import {
   ListMaterialService,
   WarehouseAreaInventoryItem,
   WarehouseAreaLocation,
+  WarehouseAreaMaterialGroup,
   WarehouseAreaOption,
   WarehouseAreaSummaryRow,
   WarehouseFloorPlanContext,
@@ -119,7 +120,7 @@ export class ListMaterialWarehouseSummaryComponent
 
   floorPlanContext: WarehouseFloorPlanContext | null = null;
   floorPlanLocations: WarehouseAreaLocation[] = [];
-  areaMaterials: WarehouseAreaInventoryItem[] = [];
+  groupedAreaMaterials: WarehouseAreaMaterialGroup[] = [];
   areaMaterialsTotalCount = 0;
   areaMaterialsPreviewLimited = false;
   readonly areaMaterialsPreviewLimit = 100;
@@ -127,6 +128,7 @@ export class ListMaterialWarehouseSummaryComponent
   legendMaterialTypes: string[] = [];
   selectedLocation: WarehouseAreaLocation | null = null;
   selectedAreaMaterial: WarehouseAreaInventoryItem | null = null;
+  selectedMaterialGroupKey: string | null = null;
   selectedSummaryRow: WarehouseAreaSummaryRow | null = null;
   highlightedLocationIds = new Set<number>();
 
@@ -294,6 +296,7 @@ export class ListMaterialWarehouseSummaryComponent
       this.selectedLocation?.locationId !== location.locationId;
     this.selectedLocation = location;
     this.selectedAreaMaterial = null;
+    this.selectedMaterialGroupKey = null;
     this.selectedMaterialOccurrences = [];
     this.highlightedLocationIds = new Set([location.locationId]);
     if (locationChanged) {
@@ -303,22 +306,14 @@ export class ListMaterialWarehouseSummaryComponent
     this.cdr.markForCheck();
   }
 
-  onAreaMaterialSelect(item: WarehouseAreaInventoryItem): void {
-    this.selectedAreaMaterial = item;
-    const nextLocation =
-      this.floorPlanLocations.find(
-        (loc) => loc.locationId === item.locationId,
-      ) ?? null;
-    const locationChanged =
-      nextLocation?.locationId !== this.selectedLocation?.locationId;
-    this.selectedLocation = nextLocation;
-    this.loadMaterialOccurrences(item);
-    if (this.selectedLocation) {
-      if (locationChanged) {
-        this.resetLocationMaterialTableState();
-      }
-      this.loadLocationMaterials(this.selectedLocation);
-    }
+  onAreaMaterialGroupSelect(group: WarehouseAreaMaterialGroup): void {
+    this.selectedMaterialGroupKey = group.groupKey;
+    this.selectedAreaMaterial = this.buildRepresentativeMaterial(group);
+    this.selectedLocation = null;
+    this.locationMaterialsSource.data = [];
+    this.locationMaterialsTotalCount = 0;
+    this.resetLocationMaterialTableState();
+    this.loadMaterialOccurrences(this.selectedAreaMaterial);
     this.cdr.markForCheck();
   }
 
@@ -329,8 +324,33 @@ export class ListMaterialWarehouseSummaryComponent
     this.loadAreaMaterials(term);
   }
 
-  trackAreaMaterial(_index: number, item: WarehouseAreaInventoryItem): string {
-    return `${item.locationId}-${item.materialIdentifier}-${item.status}`;
+  trackAreaMaterialGroup(
+    _index: number,
+    group: WarehouseAreaMaterialGroup,
+  ): string {
+    return group.groupKey;
+  }
+
+  isAreaMaterialGroupActive(group: WarehouseAreaMaterialGroup): boolean {
+    return this.selectedMaterialGroupKey === group.groupKey;
+  }
+
+  getMaterialGroupTitle(group: WarehouseAreaMaterialGroup): string {
+    const code = (group.itemCode ?? "").trim();
+    const name = (group.materialName ?? "").trim();
+    if (code && name) {
+      return `${code} - ${name}`;
+    }
+    return code || name || "—";
+  }
+
+  getMaterialGroupMeta(group: WarehouseAreaMaterialGroup): string {
+    if (!group.locationSummaries.length) {
+      return `Tổng SL ${this.formatNumber(group.totalQuantity)}`;
+    }
+    return group.locationSummaries
+      .map((loc) => `${loc.locationName} SL ${this.formatNumber(loc.quantity)}`)
+      .join(" · ");
   }
 
   getMaterialListTitle(item: WarehouseAreaInventoryItem): string {
@@ -606,6 +626,7 @@ export class ListMaterialWarehouseSummaryComponent
     };
     this.selectedLocation = null;
     this.selectedAreaMaterial = null;
+    this.selectedMaterialGroupKey = null;
     this.selectedMaterialOccurrences = [];
     this.highlightedLocationIds = new Set();
     this.locationMaterialsSource.data = [];
@@ -766,7 +787,7 @@ export class ListMaterialWarehouseSummaryComponent
 
   private loadAreaMaterials(materialSearch: string): void {
     if (!this.floorPlanContext?.areaCode) {
-      this.areaMaterials = [];
+      this.groupedAreaMaterials = [];
       this.areaMaterialsTotalCount = 0;
       this.areaMaterialsPreviewLimited = false;
       return;
@@ -775,16 +796,17 @@ export class ListMaterialWarehouseSummaryComponent
     const searchField =
       (this.materialSearchForm.get("materialSearchField")
         ?.value as WarehouseMaterialSearchField) ?? "sap";
-    const isPreview = !materialSearch.trim();
+    const normalizedSearch = materialSearch.trim();
+    const isPreview = !normalizedSearch;
 
     this.isAreaMaterialsLoading = true;
     this.cdr.markForCheck();
 
     this.materialService
-      .fetchWarehouseAreaMaterials({
+      .fetchWarehouseAreaMaterialGroups({
         areaCode: this.floorPlanContext.areaCode,
         areaName: this.floorPlanContext.areaName,
-        materialSearch,
+        materialSearch: normalizedSearch,
         searchField,
         previewLimit: isPreview ? this.areaMaterialsPreviewLimit : undefined,
       })
@@ -796,23 +818,45 @@ export class ListMaterialWarehouseSummaryComponent
         }),
       )
       .subscribe((response) => {
-        this.areaMaterials = response.items ?? [];
+        this.groupedAreaMaterials = response.groups ?? [];
         this.areaMaterialsTotalCount = response.totalCount ?? 0;
         this.areaMaterialsPreviewLimited = response.previewLimited ?? false;
 
-        if (this.selectedAreaMaterial) {
-          const refreshed = this.areaMaterials.find(
-            (item) =>
-              item.materialIdentifier ===
-                this.selectedAreaMaterial?.materialIdentifier &&
-              item.locationId === this.selectedAreaMaterial?.locationId,
+        if (this.selectedMaterialGroupKey) {
+          const refreshedGroup = this.groupedAreaMaterials.find(
+            (group) => group.groupKey === this.selectedMaterialGroupKey,
           );
-          if (refreshed) {
-            this.selectedAreaMaterial = refreshed;
+          if (refreshedGroup) {
+            this.selectedAreaMaterial =
+              this.buildRepresentativeMaterial(refreshedGroup);
+          } else {
+            this.selectedMaterialGroupKey = null;
+            this.selectedAreaMaterial = null;
+            this.selectedMaterialOccurrences = [];
+            this.highlightedLocationIds = new Set();
           }
         }
         this.cdr.markForCheck();
       });
+  }
+
+  private buildRepresentativeMaterial(
+    group: WarehouseAreaMaterialGroup,
+  ): WarehouseAreaInventoryItem {
+    const firstLocation = group.locationSummaries[0];
+    return {
+      locationId: firstLocation?.locationId ?? 0,
+      locationName: firstLocation?.locationName ?? "",
+      locationFullName: firstLocation?.locationName ?? "",
+      materialIdentifier: "",
+      itemCode: group.itemCode,
+      materialName: group.materialName,
+      partNumber: "",
+      quantity: group.totalQuantity,
+      status: "",
+      lotNumber: "",
+      materialType: group.materialType,
+    };
   }
 
   private loadMaterialOccurrences(item: WarehouseAreaInventoryItem): void {

@@ -333,6 +333,30 @@ export interface WarehouseAreaInventoryItem {
   materialType: string;
 }
 
+export interface WarehouseAreaMaterialGroupLocation {
+  locationId: number;
+  locationName: string;
+  quantity: number;
+  materialIdentifierCount?: number;
+}
+
+export interface WarehouseAreaMaterialGroup {
+  groupKey: string;
+  itemCode: string;
+  materialName: string;
+  materialType: string;
+  totalQuantity: number;
+  materialIdentifierCount: number;
+  locationSummaries: WarehouseAreaMaterialGroupLocation[];
+}
+
+export interface WarehouseAreaMaterialGroupsResponse {
+  groups: WarehouseAreaMaterialGroup[];
+  totalCount: number;
+  previewLimit?: number | null;
+  previewLimited?: boolean;
+}
+
 export interface WarehouseAreaLocationsResponse {
   areaCode: string;
   areaName: string;
@@ -866,6 +890,38 @@ export class ListMaterialService {
           console.error("Lỗi khi lấy vật tư theo khu vực kho: ", err);
           return of({
             items: [],
+            totalCount: 0,
+            previewLimit: params.previewLimit ?? 100,
+            previewLimited: false,
+          });
+        }),
+      );
+  }
+
+  fetchWarehouseAreaMaterialGroups(params: {
+    areaCode: string;
+    areaName?: string;
+    materialSearch?: string;
+    searchField?: WarehouseMaterialSearchField;
+    previewLimit?: number;
+  }): Observable<WarehouseAreaMaterialGroupsResponse> {
+    const query = new URLSearchParams();
+    query.set("areaCode", params.areaCode ?? "");
+    query.set("areaName", params.areaName ?? "");
+    query.set("materialSearch", params.materialSearch ?? "");
+    query.set("searchField", params.searchField ?? "sap");
+    if (params.previewLimit != null) {
+      query.set("previewLimit", String(params.previewLimit));
+    }
+    return this.http
+      .get<WarehouseAreaMaterialGroupsResponse>(
+        `${this.apiWarehouseSummary}/area-material-groups?${query.toString()}`,
+      )
+      .pipe(
+        catchError((err) => {
+          console.error("Lỗi khi lấy nhóm vật tư theo khu vực kho: ", err);
+          return of({
+            groups: [],
             totalCount: 0,
             previewLimit: params.previewLimit ?? 100,
             previewLimited: false,
