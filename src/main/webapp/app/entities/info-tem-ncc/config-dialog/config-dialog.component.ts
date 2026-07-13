@@ -189,9 +189,9 @@ export class ConfigDialogComponent implements OnInit {
 
     const now = new Date().toISOString();
     const currentUser = this.currentUser;
+    const isEdit = !!this.form.id;
 
     const payload = {
-      id: Number(this.form.id),
       vendorCode: this.form.vendorCode,
       vendorName: this.form.vendorName,
       mappingConfig,
@@ -199,10 +199,10 @@ export class ConfigDialogComponent implements OnInit {
       createdAt: now,
       updatedBy: currentUser,
       updatedAt: now,
+      ...(isEdit ? { id: Number(this.form.id) } : {}),
     };
 
     this.isSaving = true;
-    const isEdit = !!this.form.id;
 
     const request$ = isEdit
       ? this.managerTemNccService.updateTemIdentificationScenario(

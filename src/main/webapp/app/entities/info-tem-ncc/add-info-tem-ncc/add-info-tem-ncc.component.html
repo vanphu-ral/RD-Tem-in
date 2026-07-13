@@ -171,6 +171,28 @@
             <mat-icon>qr_code_scanner</mat-icon>
             Scan
           </button>
+          <input
+            #reelImportInput
+            type="file"
+            accept=".txt,.csv,.log,.xlsx,.xls,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            hidden
+            (change)="onReelImportFileSelected($event)"
+          />
+          <button
+            mat-raised-button
+            color="primary"
+            type="button"
+            (click)="openReelImportFilePicker(reelImportInput)"
+            [disabled]="isImportingReel"
+          >
+            <mat-spinner
+              diameter="16"
+              *ngIf="isImportingReel"
+              style="display: inline-block; margin-right: 6px"
+            ></mat-spinner>
+            <mat-icon *ngIf="!isImportingReel">upload_file</mat-icon>
+            {{ isImportingReel ? "Đang import..." : "Import ReelID" }}
+          </button>
         </div>
       </div>
     </mat-card-content>
