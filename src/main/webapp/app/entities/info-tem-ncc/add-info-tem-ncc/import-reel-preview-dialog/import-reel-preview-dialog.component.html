@@ -175,13 +175,26 @@
                         onHeaderValueChange(group, col.key, $event)
                       "
                       [matAutocomplete]="autoHeaderLocation"
-                      (input)="onLocationSearch($any($event.target).value)"
-                      (focus)="onLocationSearch($any($event.target).value)"
+                      #headerLocTrigger="matAutocompleteTrigger"
+                      (input)="
+                        onLocationSearch(
+                          $any($event.target).value,
+                          headerLocTrigger
+                        )
+                      "
+                      (focus)="
+                        onLocationSearch(
+                          $any($event.target).value,
+                          headerLocTrigger
+                        )
+                      "
                       placeholder="Chọn vị trí..."
                       title="Vị trí"
                     />
                     <mat-autocomplete
                       #autoHeaderLocation="matAutocomplete"
+                      class="import-location-ac"
+                      panelWidth="200px"
                       (optionSelected)="
                         onHeaderLocationSelected(group, $event.option.value)
                       "
@@ -301,12 +314,25 @@
                       [(ngModel)]="row.locationOverride"
                       (ngModelChange)="onCellChange(group, row, col.key)"
                       [matAutocomplete]="autoRowLocation"
-                      (input)="onLocationSearch($any($event.target).value)"
-                      (focus)="onLocationSearch($any($event.target).value)"
+                      #rowLocTrigger="matAutocompleteTrigger"
+                      (input)="
+                        onLocationSearch(
+                          $any($event.target).value,
+                          rowLocTrigger
+                        )
+                      "
+                      (focus)="
+                        onLocationSearch(
+                          $any($event.target).value,
+                          rowLocTrigger
+                        )
+                      "
                       [title]="row.locationOverride"
                     />
                     <mat-autocomplete
                       #autoRowLocation="matAutocomplete"
+                      class="import-location-ac"
+                      panelWidth="200px"
                       (optionSelected)="
                         onRowLocationSelected(row, $event.option.value)
                       "

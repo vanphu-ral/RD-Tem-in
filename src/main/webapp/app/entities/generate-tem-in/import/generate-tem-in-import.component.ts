@@ -7,6 +7,7 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { Router } from "@angular/router";
 import { GenerateTemInImportEditDialogComponent } from "./generate-tem-in-import-edit-dialog.component";
 import { SaveConfirmationDialogComponent } from "./save-confirmation-dialog.component";
@@ -128,6 +129,7 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
   //danh sach kh
   danhSachKho: CachedWarehouse[] = [];
   khoControl = new FormControl<string | null>(null);
+  activeKhoTrigger: MatAutocompleteTrigger | null = null;
 
   currentUser: string = "unknown";
 
@@ -1153,5 +1155,10 @@ export class GenerateTemInImportComponent implements OnInit, AfterViewInit {
     }
 
     this.danhSachKho = await this.warehouseCache.searchByName(keyword);
+    setTimeout(() => {
+      if (this.activeKhoTrigger && !this.activeKhoTrigger.panelOpen) {
+        this.activeKhoTrigger.openPanel();
+      }
+    });
   }
 }

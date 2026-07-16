@@ -10,12 +10,22 @@ interface LocationApiRow {
   locationFullName: string;
 }
 
+interface SearchIndexRow {
+  locationId: number;
+  locationName: string;
+  locationFullName: string;
+  /** locationFullName + locationName, đã lower-case — dùng cho contains. */
+  searchText: string;
+}
+
 @Injectable({ providedIn: "root" })
 export class WarehouseCacheService {
   private readonly apiLocations =
     this.applicationConfigService.getEndpointFor("/api/location");
 
   private syncInFlight: Promise<void> | null = null;
+  /** Index tìm kiếm trong RAM — load 1 lần sau sync, không hydrate vào Angular component. */
+  private searchIndex: SearchIndexRow[] = [];
 
   constructor(
     private http: HttpClient,
@@ -45,6 +55,7 @@ export class WarehouseCacheService {
       key: "cacheVersion",
       value: WAREHOUSE_CACHE_VERSION,
     });
+    this.setSearchIndex(list);
   }
 
   async getAll(): Promise<CachedWarehouse[]> {
@@ -66,61 +77,68 @@ export class WarehouseCacheService {
     if (!trimmed) {
       return undefined;
     }
-    const exact = await db.warehouses
-      .where("locationFullName")
-      .equals(trimmed)
-      .first();
-    if (exact) {
-      return exact;
-    }
+    await this.ensureSearchIndex();
     const lower = trimmed.toLowerCase();
-    return db.warehouses
-      .filter((w) => (w.locationFullName ?? "").trim().toLowerCase() === lower)
-      .first();
+    const found = this.searchIndex.find(
+      (w) => (w.locationFullName ?? "").trim().toLowerCase() === lower,
+    );
+    return found
+      ? {
+          locationId: found.locationId,
+          locationName: found.locationName,
+          locationFullName: found.locationFullName,
+        }
+      : undefined;
   }
 
+  /**
+   * Contains + không phân biệt hoa thường trên index RAM.
+   * Ví dụ: "zone" khớp "SMT-ZONE-01". Ưu tiên kết quả bắt đầu bằng keyword.
+   */
   async searchByName(keyword: string): Promise<CachedWarehouse[]> {
     const trimmed = keyword.trim();
     if (!trimmed) {
       return [];
     }
+    await this.ensureSearchIndex();
+
     const lowerKeyword = trimmed.toLowerCase();
+    const matched = this.searchIndex.filter((w) =>
+      w.searchText.includes(lowerKeyword),
+    );
 
-    try {
-      const prefixMatches = await db.warehouses
-        .where("locationFullName")
-        .between(trimmed, `${trimmed}\uffff`, true, false)
-        .limit(50)
-        .toArray();
-      if (prefixMatches.length > 0) {
-        return prefixMatches;
-      }
-    } catch {
-      // Indexed range query unavailable — fall through.
-    }
+    matched.sort((a, b) => {
+      const aFull = (a.locationFullName ?? "").toLowerCase();
+      const bFull = (b.locationFullName ?? "").toLowerCase();
+      const aRank = aFull.startsWith(lowerKeyword) ? 0 : 1;
+      const bRank = bFull.startsWith(lowerKeyword) ? 0 : 1;
+      return aRank - bRank || aFull.localeCompare(bFull);
+    });
 
-    return db.warehouses
-      .filter((w) =>
-        (w.locationFullName ?? "").toLowerCase().includes(lowerKeyword),
-      )
-      .limit(50)
-      .toArray();
+    return matched.slice(0, 50).map((w) => ({
+      locationId: w.locationId,
+      locationName: w.locationName,
+      locationFullName: w.locationFullName,
+    }));
   }
 
   updateOne(
     locationId: number,
     data: Partial<CachedWarehouse>,
   ): Promise<number> {
+    this.searchIndex = [];
     return db.warehouses.update(locationId, data);
   }
 
   private async doEnsureSynced(force: boolean): Promise<void> {
     if (!force && (await this.isCacheCurrent())) {
+      await this.ensureSearchIndex();
       return;
     }
 
     await db.warehouses.clear();
     await db.meta.delete("cacheVersion");
+    this.searchIndex = [];
 
     const data = await firstValueFrom(
       this.http.get<LocationApiRow[]>(this.apiLocations),
@@ -139,5 +157,23 @@ export class WarehouseCacheService {
       db.warehouses.count(),
     ]);
     return meta?.value === WAREHOUSE_CACHE_VERSION && count > 0;
+  }
+
+  private async ensureSearchIndex(): Promise<void> {
+    if (this.searchIndex.length > 0) {
+      return;
+    }
+    const rows = await db.warehouses.toArray();
+    this.setSearchIndex(rows);
+  }
+
+  private setSearchIndex(list: CachedWarehouse[]): void {
+    this.searchIndex = list.map((w) => ({
+      locationId: w.locationId,
+      locationName: w.locationName,
+      locationFullName: w.locationFullName,
+      searchText:
+        `${w.locationFullName ?? ""} ${w.locationName ?? ""}`.toLowerCase(),
+    }));
   }
 }

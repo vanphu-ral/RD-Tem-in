@@ -20,6 +20,7 @@ import {
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { AccountService } from "app/core/auth/account.service";
 import { take } from "rxjs";
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 
@@ -261,13 +262,22 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
     }
     return w.locationFullName;
   }
-  onWarehouseSearch(keyword: string): void {
+  onWarehouseSearch(
+    keyword: string,
+    trigger?: MatAutocompleteTrigger | null,
+  ): void {
     if (!keyword?.trim()) {
       this.filteredWarehouseOptions = [];
       return;
     }
     this.warehouseCacheService.searchByName(keyword).then((result) => {
       this.filteredWarehouseOptions = result;
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        if (trigger && !trigger.panelOpen) {
+          trigger.openPanel();
+        }
+      });
     });
   }
 

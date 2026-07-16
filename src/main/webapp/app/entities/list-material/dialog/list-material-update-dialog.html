@@ -374,6 +374,7 @@
                         formControlName="selectedWarehouseControl"
                         [matAutocomplete]="autoWarehouse"
                         (focus)="openHeaderPanel(headerTrigger)"
+                        (input)="openHeaderPanel(headerTrigger)"
                         #headerTrigger="matAutocompleteTrigger"
                       />
                     </mat-form-field>
@@ -416,6 +417,7 @@
                 [matAutocomplete]="autoWarehouseRow"
                 #rowTrigger="matAutocompleteTrigger"
                 (focus)="openRowPanel(rowTrigger)"
+                (input)="openRowPanel(rowTrigger)"
                 [disabled]="!isWarehouseReady || scanLoadingRow[element.materialIdentifier]"
               />
               <mat-autocomplete

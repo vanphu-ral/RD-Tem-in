@@ -448,6 +448,7 @@ export class ReceivingSuppliesComponent
   > | null = null;
   private locationSearchSeq = 0;
   private locationSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private activeLocationTrigger: MatAutocompleteTrigger | null = null;
 
   private readonly vendorDisplayLimit = 50;
   /** ID sản phẩm chờ xóa khi lưu — chỉ khi user bấm xóa lô/vật tư. */
@@ -574,9 +575,16 @@ export class ReceivingSuppliesComponent
     this.cdr.markForCheck();
   }
 
-  onLocationSearch(keyword: string): void {
+  onLocationSearch(
+    keyword: string,
+    trigger?: MatAutocompleteTrigger | null,
+  ): void {
     if (this.locationSearchTimer) {
       clearTimeout(this.locationSearchTimer);
+    }
+
+    if (trigger) {
+      this.activeLocationTrigger = trigger;
     }
 
     const term = (keyword ?? "").trim();
@@ -584,9 +592,10 @@ export class ReceivingSuppliesComponent
       this.locationSearchSeq += 1;
       this.filteredLocationOptions = [];
       this.lastLocationSearchTerm = "";
-      this.locationSearchSettled = false;
       this.locationSearchPending = false;
-      this.cdr.markForCheck();
+      this.locationSearchSettled = true;
+      this.cdr.detectChanges();
+      this.openActiveLocationAutocompletePanel();
       return;
     }
 
@@ -605,7 +614,7 @@ export class ReceivingSuppliesComponent
           this.lastLocationSearchTerm = term;
           this.locationSearchPending = false;
           this.locationSearchSettled = true;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
           this.openActiveLocationAutocompletePanel();
         })
         .catch(() => {
@@ -616,7 +625,7 @@ export class ReceivingSuppliesComponent
           this.lastLocationSearchTerm = term;
           this.locationSearchPending = false;
           this.locationSearchSettled = true;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
           this.openActiveLocationAutocompletePanel();
         });
     }, 200);
@@ -626,7 +635,6 @@ export class ReceivingSuppliesComponent
     return (
       this.locationSearchSettled &&
       !this.locationSearchPending &&
-      Boolean(this.lastLocationSearchTerm) &&
       this.filteredLocationOptions.length === 0
     );
   }
@@ -4545,13 +4553,23 @@ export class ReceivingSuppliesComponent
 
   private openActiveLocationAutocompletePanel(): void {
     setTimeout(() => {
+      const trigger = this.activeLocationTrigger;
+      if (trigger && !trigger.panelOpen) {
+        trigger.openPanel();
+        return;
+      }
+      // Fallback: khớp input đang focus (Material _element / _elementRef)
       const active = document.activeElement;
-      this.locationAutocompleteTriggers?.forEach((trigger) => {
-        const inputEl = (
-          trigger as unknown as { _element?: { nativeElement: HTMLElement } }
-        )._element?.nativeElement;
-        if (inputEl === active && !trigger.panelOpen) {
-          trigger.openPanel();
+      this.locationAutocompleteTriggers?.forEach((t) => {
+        const anyTrigger = t as unknown as {
+          _element?: { nativeElement: HTMLElement };
+          _elementRef?: { nativeElement: HTMLElement };
+        };
+        const inputEl =
+          anyTrigger._element?.nativeElement ??
+          anyTrigger._elementRef?.nativeElement;
+        if (inputEl === active && !t.panelOpen) {
+          t.openPanel();
         }
       });
     });

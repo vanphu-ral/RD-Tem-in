@@ -468,8 +468,19 @@
                     [(ngModel)]="headerLocation"
                     (ngModelChange)="onHeaderLocationInput($event)"
                     [matAutocomplete]="autoHeaderLocation"
-                    (input)="onLocationSearch($any($event.target).value)"
-                    (focus)="onLocationSearch($any($event.target).value)"
+                    #headerLocTrigger="matAutocompleteTrigger"
+                    (input)="
+                      onLocationSearch(
+                        $any($event.target).value,
+                        headerLocTrigger
+                      )
+                    "
+                    (focus)="
+                      onLocationSearch(
+                        $any($event.target).value,
+                        headerLocTrigger
+                      )
+                    "
                     placeholder="Chọn vị trí..."
                     (click)="$event.stopPropagation()"
                     (keydown)="$event.stopPropagation()"
@@ -490,11 +501,13 @@
                       *ngIf="showLocationNoResults()"
                       disabled
                       class="location-no-results-option"
-                      [value]="lastLocationSearchTerm"
+                      [value]="lastLocationSearchTerm || ' '"
                     >
-                      Không có kết quả<span class="location-search-term-echo">{{
-                        lastLocationSearchTerm
-                      }}</span>
+                      Không có kết quả<span
+                        *ngIf="lastLocationSearchTerm"
+                        class="location-search-term-echo"
+                        >{{ lastLocationSearchTerm }}</span
+                      >
                     </mat-option>
                   </mat-autocomplete>
                 </div>
@@ -595,8 +608,19 @@
                     [(ngModel)]="row.location"
                     (ngModelChange)="onParentLocationInput(row, $event)"
                     [matAutocomplete]="autoLocation"
-                    (input)="onLocationSearch($any($event.target).value)"
-                    (focus)="onLocationSearch($any($event.target).value)"
+                    #parentLocTrigger="matAutocompleteTrigger"
+                    (input)="
+                      onLocationSearch(
+                        $any($event.target).value,
+                        parentLocTrigger
+                      )
+                    "
+                    (focus)="
+                      onLocationSearch(
+                        $any($event.target).value,
+                        parentLocTrigger
+                      )
+                    "
                     (blur)="onParentLocationBlur(row)"
                     placeholder="Nhập vị trí..."
                   />
@@ -616,11 +640,13 @@
                       *ngIf="showLocationNoResults()"
                       disabled
                       class="location-no-results-option"
-                      [value]="lastLocationSearchTerm"
+                      [value]="lastLocationSearchTerm || ' '"
                     >
-                      Không có kết quả<span class="location-search-term-echo">{{
-                        lastLocationSearchTerm
-                      }}</span>
+                      Không có kết quả<span
+                        *ngIf="lastLocationSearchTerm"
+                        class="location-search-term-echo"
+                        >{{ lastLocationSearchTerm }}</span
+                      >
                     </mat-option>
                   </mat-autocomplete>
                 </td>
@@ -764,8 +790,19 @@
                       [(ngModel)]="lot.location"
                       (ngModelChange)="onLotLocationInput(row, lot, $event)"
                       [matAutocomplete]="autoLotLocation"
-                      (input)="onLocationSearch($any($event.target).value)"
-                      (focus)="onLocationSearch($any($event.target).value)"
+                      #lotLocTrigger="matAutocompleteTrigger"
+                      (input)="
+                        onLocationSearch(
+                          $any($event.target).value,
+                          lotLocTrigger
+                        )
+                      "
+                      (focus)="
+                        onLocationSearch(
+                          $any($event.target).value,
+                          lotLocTrigger
+                        )
+                      "
                       placeholder="Nhập vị trí..."
                       [disabled]="!isLotEditable(lot)"
                     />
@@ -785,9 +822,10 @@
                         *ngIf="showLocationNoResults()"
                         disabled
                         class="location-no-results-option"
-                        [value]="lastLocationSearchTerm"
+                        [value]="lastLocationSearchTerm || ' '"
                       >
                         Không có kết quả<span
+                          *ngIf="lastLocationSearchTerm"
                           class="location-search-term-echo"
                           >{{ lastLocationSearchTerm }}</span
                         >

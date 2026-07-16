@@ -34,7 +34,8 @@
             matInput
             [(ngModel)]="selectedStorageUnit"
             [matAutocomplete]="auto"
-            (input)="filterStorageUnits()"
+            #storageTrigger="matAutocompleteTrigger"
+            (input)="filterStorageUnits(storageTrigger)"
             autocomplete="off"
           />
           <mat-autocomplete
@@ -136,7 +137,8 @@
             matInput
             [(ngModel)]="selectedStorageUnit"
             [matAutocomplete]="autoMobile"
-            (input)="filterStorageUnits()"
+            #storageMobileTrigger="matAutocompleteTrigger"
+            (input)="filterStorageUnits(storageMobileTrigger)"
             autocomplete="off"
           />
           <mat-icon matPrefix>warehouse</mat-icon>

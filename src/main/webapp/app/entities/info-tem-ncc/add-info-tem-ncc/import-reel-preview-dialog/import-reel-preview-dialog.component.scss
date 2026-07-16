@@ -391,3 +391,18 @@
     overflow: hidden;
   }
 }
+
+/* Panel vị trí rộng hơn input cột hẹp — tránh xuống dòng khó đọc */
+::ng-deep .import-location-ac.mat-mdc-autocomplete-panel {
+  min-width: 200px !important;
+  max-width: min(520px, 90vw);
+
+  .mat-mdc-option {
+    min-height: 32px;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+  }
+}

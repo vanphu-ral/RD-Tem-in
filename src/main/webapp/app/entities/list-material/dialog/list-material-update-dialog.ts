@@ -48,6 +48,7 @@ import {
   distinctUntilChanged,
   debounceTime,
   switchMap,
+  tap,
 } from "rxjs/operators";
 import {
   DialogContentExampleDialogComponent,
@@ -197,6 +198,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   public isWarehouseReady = false;
   private bufferedScanValue: string | null = null;
   private isSelectHeader: boolean = false;
+  private activeWarehouseTrigger: MatAutocompleteTrigger | null = null;
   private ngUnsubscribe = new Subject<void>();
   private allApprovers: UserSummary[] = [];
   private scanBuffer = "";
@@ -327,6 +329,17 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
               name: w.locationFullName,
             })),
           ),
+          tap(() => {
+            const trigger = this.activeWarehouseTrigger;
+            if (!trigger) {
+              return;
+            }
+            setTimeout(() => {
+              if (!trigger.panelOpen) {
+                trigger.openPanel();
+              }
+            });
+          }),
         );
       // Định nghĩa interface cho filter được parse từ JSON
       interface FilterData {
@@ -416,7 +429,21 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
 
   // #region Public methods
   openHeaderPanel(trigger: MatAutocompleteTrigger): void {
-    trigger.openPanel();
+    this.activeWarehouseTrigger = trigger;
+    Promise.resolve().then(() => {
+      if (!trigger.panelOpen) {
+        trigger.openPanel();
+      }
+    });
+  }
+
+  openRowPanel(trigger: MatAutocompleteTrigger): void {
+    this.activeWarehouseTrigger = trigger;
+    Promise.resolve().then(() => {
+      if (!trigger.panelOpen) {
+        trigger.openPanel();
+      }
+    });
   }
 
   refreshWarehouses(): void {
@@ -451,6 +478,17 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
               ),
             ),
           ),
+          tap(() => {
+            const trigger = this.activeWarehouseTrigger;
+            if (!trigger) {
+              return;
+            }
+            setTimeout(() => {
+              if (!trigger.panelOpen) {
+                trigger.openPanel();
+              }
+            });
+          }),
         ),
       );
     }
@@ -737,9 +775,6 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   get minQuantityAcrossRows(): number {
     const q = this.itemsDataSource?.data.map((d) => d.quantity) || [];
     return q.length ? Math.min(...q) : 0;
-  }
-  openRowPanel(trigger: MatAutocompleteTrigger): void {
-    Promise.resolve().then(() => trigger.openPanel());
   }
 
   clampHeaderQuantity(input: HTMLInputElement): void {

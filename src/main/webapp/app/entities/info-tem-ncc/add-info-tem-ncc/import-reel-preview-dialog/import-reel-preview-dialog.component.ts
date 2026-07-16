@@ -6,6 +6,7 @@ import {
   OnInit,
 } from "@angular/core";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import {
   ReceivingSuppliesService,
   SapOwhsDto,
@@ -236,6 +237,7 @@ export class ImportReelPreviewDialogComponent implements OnInit, OnDestroy {
 
   private locationSearchSeq = 0;
   private locationSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private activeLocationTrigger: MatAutocompleteTrigger | null = null;
 
   constructor(
     public dialogRef: MatDialogRef<
@@ -413,9 +415,16 @@ export class ImportReelPreviewDialogComponent implements OnInit, OnDestroy {
 
   // ==================== Location autocomplete ====================
 
-  onLocationSearch(keyword: string): void {
+  onLocationSearch(
+    keyword: string,
+    trigger?: MatAutocompleteTrigger | null,
+  ): void {
     if (this.locationSearchTimer) {
       clearTimeout(this.locationSearchTimer);
+    }
+
+    if (trigger) {
+      this.activeLocationTrigger = trigger;
     }
 
     const term = (keyword ?? "").trim();
@@ -444,7 +453,13 @@ export class ImportReelPreviewDialogComponent implements OnInit, OnDestroy {
           this.lastLocationSearchTerm = term;
           this.locationSearchPending = false;
           this.locationSearchSettled = true;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            const panelTrigger = this.activeLocationTrigger;
+            if (panelTrigger && !panelTrigger.panelOpen) {
+              panelTrigger.openPanel();
+            }
+          });
         })
         .catch(() => {
           if (seq !== this.locationSearchSeq) {
@@ -454,7 +469,13 @@ export class ImportReelPreviewDialogComponent implements OnInit, OnDestroy {
           this.lastLocationSearchTerm = term;
           this.locationSearchPending = false;
           this.locationSearchSettled = true;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            const panelTrigger = this.activeLocationTrigger;
+            if (panelTrigger && !panelTrigger.panelOpen) {
+              panelTrigger.openPanel();
+            }
+          });
         });
     }, 200);
   }

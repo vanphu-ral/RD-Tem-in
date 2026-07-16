@@ -320,6 +320,7 @@ export class ReceivingSuppliesService {
     this.applicationConfigService.getEndpointFor("/api/sap-oitms");
   private isWarehouseInitDone = false;
   private isFetchingWarehouses = false;
+  private warehouseInitPromise: Promise<void> | null = null;
 
   constructor(
     private http: HttpClient,
@@ -368,17 +369,25 @@ export class ReceivingSuppliesService {
 
   /** Đồng bộ IndexedDB theo WAREHOUSE_CACHE_VERSION — không hydrate vào RAM. */
   async initWarehouses(force = false): Promise<void> {
-    if (!force && (this.isWarehouseInitDone || this.isFetchingWarehouses)) {
+    if (!force && this.isWarehouseInitDone) {
       return;
     }
-
-    this.isFetchingWarehouses = true;
-    try {
-      await this.warehouseCache.ensureSynced(force);
-      this.isWarehouseInitDone = true;
-    } finally {
-      this.isFetchingWarehouses = false;
+    if (!force && this.warehouseInitPromise) {
+      return this.warehouseInitPromise;
     }
+
+    this.warehouseInitPromise = (async () => {
+      this.isFetchingWarehouses = true;
+      try {
+        await this.warehouseCache.ensureSynced(force);
+        this.isWarehouseInitDone = true;
+      } finally {
+        this.isFetchingWarehouses = false;
+      }
+    })().finally(() => {
+      this.warehouseInitPromise = null;
+    });
+    return this.warehouseInitPromise;
   }
 
   /** Tìm vị trí trong IndexedDB (tối đa 50 kết quả). */

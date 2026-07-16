@@ -10,6 +10,7 @@ import {
 } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { MatSnackBar } from "@angular/material/snack-bar";
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import {
   faFileImport,
   faEye,
@@ -428,8 +429,8 @@ export class GenerateTemInDetailComponent
   }
 
   //ham loc location
-  filterStorageUnits(): void {
-    const keyword = this.selectedStorageUnit?.toLowerCase() || "";
+  filterStorageUnits(trigger?: MatAutocompleteTrigger | null): void {
+    const keyword = this.selectedStorageUnit?.trim() || "";
     if (keyword.length < 2) {
       this.filteredUnits = [];
       return;
@@ -439,6 +440,11 @@ export class GenerateTemInDetailComponent
       .searchByName(keyword)
       .then((results: CachedWarehouse[]) => {
         this.filteredUnits = results.map((w) => w.locationName).slice(0, 25);
+        setTimeout(() => {
+          if (trigger && !trigger.panelOpen) {
+            trigger.openPanel();
+          }
+        });
       });
   }
 

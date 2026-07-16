@@ -472,6 +472,7 @@ export class ListMaterialService {
   private currentItems: any[] = [];
   private isLocationLoaded = false;
   private isFetchingLocations = false;
+  private locationInitPromise: Promise<void> | null = null;
   // public get summaryData$(): Observable<DataSumary[]> {
   //   return this.summaryDataSource.asObservable();
   // }
@@ -1710,19 +1711,27 @@ export class ListMaterialService {
    * Không hydrate 90k bản ghi vào memory Angular — autocomplete tìm thẳng IndexedDB.
    */
   public async initLocations(): Promise<void> {
-    if (this.isLocationLoaded || this.isFetchingLocations) {
+    if (this.isLocationLoaded) {
       return;
     }
-
-    this.isFetchingLocations = true;
-    try {
-      await this.warehouseCache.ensureSynced();
-      this.isLocationLoaded = true;
-    } catch (err) {
-      console.error(err);
-    } finally {
-      this.isFetchingLocations = false;
+    if (this.locationInitPromise) {
+      return this.locationInitPromise;
     }
+
+    this.locationInitPromise = (async () => {
+      this.isFetchingLocations = true;
+      try {
+        await this.warehouseCache.ensureSynced();
+        this.isLocationLoaded = true;
+      } catch (err) {
+        console.error(err);
+      } finally {
+        this.isFetchingLocations = false;
+      }
+    })().finally(() => {
+      this.locationInitPromise = null;
+    });
+    return this.locationInitPromise;
   }
 
   /** Force tải lại full location vào IndexedDB (vd. nút refresh). */

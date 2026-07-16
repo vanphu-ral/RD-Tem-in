@@ -265,6 +265,9 @@
                   matInput
                   [formControl]="khoControl"
                   [matAutocomplete]="auto"
+                  #khoTrigger="matAutocompleteTrigger"
+                  (focus)="activeKhoTrigger = khoTrigger"
+                  (input)="activeKhoTrigger = khoTrigger"
                   placeholder="Nhập tên kho..."
                 />
                 <mat-autocomplete
