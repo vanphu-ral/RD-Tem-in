@@ -4,7 +4,6 @@ import {
   Observable,
   catchError,
   concatMap,
-  firstValueFrom,
   forkJoin,
   from,
   last,
@@ -367,35 +366,15 @@ export class ReceivingSuppliesService {
     );
   }
 
-  /** Ưu tiên IndexedDB — chỉ gọi API khi cache trống. */
-  async initWarehouses(): Promise<void> {
-    if (this.isWarehouseInitDone || this.isFetchingWarehouses) {
-      return;
-    }
-
-    const cached = await this.warehouseCache.getAll();
-    if (cached.length > 0) {
-      this.isWarehouseInitDone = true;
+  /** Đồng bộ IndexedDB theo WAREHOUSE_CACHE_VERSION — không hydrate vào RAM. */
+  async initWarehouses(force = false): Promise<void> {
+    if (!force && (this.isWarehouseInitDone || this.isFetchingWarehouses)) {
       return;
     }
 
     this.isFetchingWarehouses = true;
     try {
-      const data = await firstValueFrom(
-        this.http
-          .get<WarehouseLocation[]>(`${this.baseUrl}/location`)
-          .pipe(catchError(() => of([]))),
-      );
-
-      if (data.length > 0) {
-        await this.warehouseCache.saveAll(
-          data.map((loc) => ({
-            locationId: loc.id,
-            locationName: loc.locationName,
-            locationFullName: loc.locationFullName,
-          })),
-        );
-      }
+      await this.warehouseCache.ensureSynced(force);
       this.isWarehouseInitDone = true;
     } finally {
       this.isFetchingWarehouses = false;

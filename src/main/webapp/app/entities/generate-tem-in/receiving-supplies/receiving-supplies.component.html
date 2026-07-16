@@ -198,6 +198,15 @@
               <mat-icon>download</mat-icon>
               <span>Export Excel</span>
             </button>
+            <button
+              mat-menu-item
+              type="button"
+              *ngIf="hasAnyGeneratedTem()"
+              (click)="onExportCsvAllSelected()"
+            >
+              <mat-icon>description</mat-icon>
+              <span>Xuất CSV</span>
+            </button>
           </mat-menu>
           <button
             mat-stroked-button
@@ -379,6 +388,7 @@
         <table class="receiving-table">
           <colgroup>
             <col class="col-stt" />
+            <col class="col-select" />
             <col class="col-sap" />
             <col class="col-item" />
             <col class="col-part" />
@@ -397,6 +407,16 @@
           <thead>
             <tr>
               <th class="cell-stt">STT</th>
+              <th class="cell-select">
+                <mat-checkbox
+                  color="primary"
+                  [checked]="isAllLotsSelected()"
+                  [indeterminate]="isAllLotsIndeterminate()"
+                  (change)="onToggleSelectAllLots($event.checked)"
+                  [disabled]="!dataSource.data?.length"
+                  aria-label="Chọn tất cả"
+                ></mat-checkbox>
+              </th>
               <th>
                 <div class="header-filter">
                   <span>MÃ SAP</span>
@@ -502,6 +522,16 @@
               <!-- Dòng cha -->
               <tr class="parent-row">
                 <td class="cell-stt">{{ getStt(i) }}</td>
+                <td class="cell-select">
+                  <mat-checkbox
+                    color="primary"
+                    [checked]="isParentAllLotsSelected(row)"
+                    [indeterminate]="isParentLotsIndeterminate(row)"
+                    (change)="onToggleSelectParentLots(row, $event.checked)"
+                    [disabled]="!row.lots?.length"
+                    aria-label="Chọn tất cả lô của vật tư"
+                  ></mat-checkbox>
+                </td>
                 <td>
                   <div class="sap-cell">
                     <button
@@ -676,6 +706,14 @@
                   *ngFor="let lot of row.lots; trackBy: trackByLotKey"
                 >
                   <td class="cell-stt"></td>
+                  <td class="cell-select">
+                    <mat-checkbox
+                      color="primary"
+                      [checked]="isLotSelected(lot)"
+                      (change)="onToggleSelectLot(row, lot, $event.checked)"
+                      aria-label="Chọn lô để xuất"
+                    ></mat-checkbox>
+                  </td>
                   <td class="lot-label-td">
                     <div class="lot-label-cell">
                       <mat-icon class="sub-icon"

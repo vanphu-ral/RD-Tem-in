@@ -151,6 +151,8 @@ export interface ReceivingLotRow {
   vendorImportedReels?: VendorImportedReelEntry[];
   /** Số TEM metadata từ file log Bartender (vd. 600) — dùng xuất nguồn in. */
   vendorPrintTemQuantity?: number;
+  /** Chọn để Export Excel / CSV / Xuất nguồn in. Mặc định true. */
+  selected?: boolean;
 }
 
 export interface ReceivingLotDetailView {
@@ -1951,7 +1953,16 @@ export class ReceivingSuppliesComponent
   }
 
   onExportVendorPrintSource(): void {
-    const rows = this.collectVendorPrintSourceRows();
+    if (!this.hasAnySelectedExportLot()) {
+      this.showSnackbar(
+        "Vui lòng tích chọn mã cần xuất nguồn in.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+    const rows = this.collectVendorPrintSourceRows(true);
     if (!rows.length) {
       this.showSnackbar(
         "Chưa có dữ liệu vật tư để xuất nguồn in.",
@@ -1977,6 +1988,71 @@ export class ReceivingSuppliesComponent
       4000,
       "success",
     );
+  }
+
+  isLotSelected(lot: ReceivingLotRow): boolean {
+    return lot.selected !== false;
+  }
+
+  isParentAllLotsSelected(parent: ReceivingMaterialRow): boolean {
+    if (!parent.lots?.length) {
+      return false;
+    }
+    return parent.lots.every((lot) => this.isLotSelected(lot));
+  }
+
+  isParentLotsIndeterminate(parent: ReceivingMaterialRow): boolean {
+    if (!parent.lots?.length) {
+      return false;
+    }
+    const selectedCount = parent.lots.filter((lot) =>
+      this.isLotSelected(lot),
+    ).length;
+    return selectedCount > 0 && selectedCount < parent.lots.length;
+  }
+
+  isAllLotsSelected(): boolean {
+    const lots = this.getAllExportLots();
+    return lots.length > 0 && lots.every((lot) => this.isLotSelected(lot));
+  }
+
+  isAllLotsIndeterminate(): boolean {
+    const lots = this.getAllExportLots();
+    if (!lots.length) {
+      return false;
+    }
+    const selectedCount = lots.filter((lot) => this.isLotSelected(lot)).length;
+    return selectedCount > 0 && selectedCount < lots.length;
+  }
+
+  onToggleSelectAllLots(checked: boolean): void {
+    // Cập nhật trực tiếp trên object đang bind (visiblePageRows / dataSource)
+    // để checkbox header ↔ cha ↔ con đồng bộ ngay trên UI.
+    this.dataSource.data.forEach((parent) => {
+      parent.lots.forEach((lot) => {
+        lot.selected = checked;
+      });
+    });
+    this.refreshTableView();
+  }
+
+  onToggleSelectParentLots(
+    parent: ReceivingMaterialRow,
+    checked: boolean,
+  ): void {
+    parent.lots.forEach((lot) => {
+      lot.selected = checked;
+    });
+    this.refreshTableView();
+  }
+
+  onToggleSelectLot(
+    _parent: ReceivingMaterialRow,
+    lot: ReceivingLotRow,
+    checked: boolean,
+  ): void {
+    lot.selected = checked;
+    this.refreshTableView();
   }
 
   openVendorPrintModal(): void {
@@ -2590,7 +2666,16 @@ export class ReceivingSuppliesComponent
   }
 
   onExportExcelAll(): void {
-    const rows = this.collectAllTemPreviewRows();
+    if (!this.hasAnySelectedExportLot()) {
+      this.showSnackbar(
+        "Vui lòng tích chọn mã cần xuất Excel.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+    const rows = this.collectSelectedTemPreviewRows();
     if (!rows.length) {
       this.showSnackbar(
         "Chưa có mã tem. Vui lòng tạo mã trước.",
@@ -2603,6 +2688,31 @@ export class ReceivingSuppliesComponent
     const date = new Date().toISOString().split("T")[0];
     const requestLabel = this.editingRequestId ?? "new";
     this.downloadExcel(rows, `tem_export_${requestLabel}_${date}.xlsx`);
+  }
+
+  onExportCsvAllSelected(): void {
+    if (!this.hasAnySelectedExportLot()) {
+      this.showSnackbar(
+        "Vui lòng tích chọn mã cần xuất CSV.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+    const rows = this.collectSelectedTemPreviewRows();
+    if (!rows.length) {
+      this.showSnackbar(
+        "Chưa có mã tem. Vui lòng tạo mã trước.",
+        "Đóng",
+        3000,
+        "warning",
+      );
+      return;
+    }
+    const date = new Date().toISOString().split("T")[0];
+    const requestLabel = this.editingRequestId ?? "new";
+    this.downloadCsv(rows, `tem_export_${requestLabel}_${date}.csv`);
   }
 
   canSendPanacimLot(
@@ -4017,6 +4127,7 @@ export class ReceivingSuppliesComponent
       vendor: this.vendorCode,
       vendorName: this.vendorName,
       note: "",
+      selected: true,
     };
   }
 
@@ -4191,6 +4302,22 @@ export class ReceivingSuppliesComponent
 
   private collectAllTemPreviewRows(): ReceivingTemPreviewRow[] {
     return this.requestTemDetails.map((t) => this.mapTemDetailToPreviewRow(t));
+  }
+
+  private getAllExportLots(): ReceivingLotRow[] {
+    return this.dataSource.data.flatMap((parent) => parent.lots ?? []);
+  }
+
+  private hasAnySelectedExportLot(): boolean {
+    return this.getAllExportLots().some((lot) => this.isLotSelected(lot));
+  }
+
+  private collectSelectedTemPreviewRows(): ReceivingTemPreviewRow[] {
+    return this.dataSource.data.flatMap((parent) =>
+      (parent.lots ?? [])
+        .filter((lot) => this.isLotSelected(lot))
+        .flatMap((lot) => this.getTemRowsForLot(parent, lot)),
+    );
   }
 
   private toPanacimExportRows(
@@ -6402,36 +6529,41 @@ export class ReceivingSuppliesComponent
       vendorImportedReels: reels,
       vendorPrintTemQuantity:
         first.temQuantity > 0 ? first.temQuantity : undefined,
+      selected: true,
     };
   }
 
-  private collectVendorPrintSourceRows(): VendorPrintSourceExportInput[] {
+  private collectVendorPrintSourceRows(
+    selectedOnly = false,
+  ): VendorPrintSourceExportInput[] {
     const po = this.getEffectivePoNumber();
     return this.dataSource.data.flatMap((parent) =>
-      parent.lots.map((lot) => ({
-        sapCode: parent.sapCode.trim(),
-        productName: parent.itemName.trim(),
-        partNumber: parent.partNumber.trim(),
-        quantity: lot.quantity,
-        grossNetWeight: "",
-        meas: "",
-        po: (lot.userData5 || po).trim(),
-        contractNo: "",
-        invoiceNo: "",
-        lotBatchNo: (lot.lotNumber || "").trim(),
-        mfgDate: this.formatYyyyMmDdForExport(lot.manufacturingDate),
-        madeIn: "China",
-        temCount: this.resolveVendorPrintSourceTemCount(parent, lot),
-        vendor: (lot.vendor || this.vendorCode).trim(),
-        vendorName: (lot.vendorName || this.vendorName).trim(),
-        userData1: lot.userData1?.trim() || "NO",
-        userData2: lot.userData2?.trim() || "NO",
-        userData3: lot.userData3?.trim() || "NO",
-        userData4: lot.userData4?.trim() || "",
-        storageUnit: this.getEffectiveLotLocation(parent, lot),
-        expirationDate: this.formatYyyyMmDdForExport(lot.expirationDate),
-        arrivalDate: this.formatYyyyMmDdForExport(lot.arrivalDate),
-      })),
+      parent.lots
+        .filter((lot) => !selectedOnly || this.isLotSelected(lot))
+        .map((lot) => ({
+          sapCode: parent.sapCode.trim(),
+          productName: parent.itemName.trim(),
+          partNumber: parent.partNumber.trim(),
+          quantity: lot.quantity,
+          grossNetWeight: "",
+          meas: "",
+          po: (lot.userData5 || po).trim(),
+          contractNo: "",
+          invoiceNo: "",
+          lotBatchNo: (lot.lotNumber || "").trim(),
+          mfgDate: this.formatYyyyMmDdForExport(lot.manufacturingDate),
+          madeIn: "China",
+          temCount: this.resolveVendorPrintSourceTemCount(parent, lot),
+          vendor: (lot.vendor || this.vendorCode).trim(),
+          vendorName: (lot.vendorName || this.vendorName).trim(),
+          userData1: lot.userData1?.trim() || "NO",
+          userData2: lot.userData2?.trim() || "NO",
+          userData3: lot.userData3?.trim() || "NO",
+          userData4: lot.userData4?.trim() || "",
+          storageUnit: this.getEffectiveLotLocation(parent, lot),
+          expirationDate: this.formatYyyyMmDdForExport(lot.expirationDate),
+          arrivalDate: this.formatYyyyMmDdForExport(lot.arrivalDate),
+        })),
     );
   }
 
@@ -6659,6 +6791,7 @@ export class ReceivingSuppliesComponent
             uploadPanacim: p.UploadPanacim === true,
             sapSendStatus: sapSent,
             sapSent: sapSent,
+            selected: true,
           };
         }),
         expanded: true,

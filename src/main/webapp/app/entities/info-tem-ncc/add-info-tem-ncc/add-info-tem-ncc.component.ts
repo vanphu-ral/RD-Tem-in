@@ -64,6 +64,11 @@ import {
   parseVendorQrByMappingConfig,
 } from "../shared/vendor-qr-mapping.util";
 import { ReceivingSuppliesService } from "app/entities/generate-tem-in/service/receiving-supplies.service";
+import {
+  ImportReelPreviewDialogComponent,
+  ReelImportPreviewDialogData,
+  ReelImportPreviewRow,
+} from "./import-reel-preview-dialog/import-reel-preview-dialog.component";
 
 // ==================== INTERFACES ====================
 
@@ -541,10 +546,12 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     }
 
     this.isImportingReel = true;
+    input.value = "";
     const poSapCodes = this.dataSource.data
       .map((row) => (row.sapCode ?? "").trim())
       .filter(Boolean);
     const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+    const fileName = file.name;
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -574,30 +581,58 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           return;
         }
 
-        const dialogRef = this.dialog.open(
-          DialogContentExampleDialogComponent,
-          {
-            width: "420px",
-            data: {
-              title: "Import ReelID",
-              message:
-                `Tìm thấy ${parsed.rows.length} dòng hợp lệ` +
-                (parsed.errors.length
-                  ? `, ${parsed.errors.length} dòng lỗi sẽ bỏ qua`
-                  : "") +
-                `. Xác nhận thêm vào bảng theo kịch bản tem đang chọn?`,
-              confirmText: "Import",
-              cancelText: "Hủy",
-            },
-          },
-        );
+        const poCode = (this.orderInfo.poCode ?? "").trim();
+        this.resolveSapCodeByPartFromPo(poCode).subscribe({
+          next: (partToSap) => {
+            const previewRows = this.buildReelImportPreviewRows(
+              parsed.rows,
+              partToSap,
+            );
+            if (!previewRows.length) {
+              this.isImportingReel = false;
+              this.notificationService.error(
+                "Không dựng được dữ liệu preview từ file import.",
+              );
+              return;
+            }
 
-        dialogRef.afterClosed().subscribe((confirmed: boolean) => {
-          if (!confirmed) {
+            const dialogRef = this.dialog.open(
+              ImportReelPreviewDialogComponent,
+              {
+                width: "96vw",
+                maxWidth: "96vw",
+                height: "92vh",
+                maxHeight: "92vh",
+                panelClass: "import-reel-preview-panel",
+                disableClose: true,
+                autoFocus: false,
+                data: {
+                  fileName,
+                  rows: previewRows,
+                  errors: parsed.errors,
+                } as ReelImportPreviewDialogData,
+              },
+            );
+
             this.isImportingReel = false;
-            return;
-          }
-          this.applyReelImportRows(parsed.rows, parsed.errors);
+            this.cdr.markForCheck();
+
+            dialogRef
+              .afterClosed()
+              .subscribe((confirmedRows: ReelImportPreviewRow[] | null) => {
+                if (!confirmedRows?.length) {
+                  return;
+                }
+                this.isImportingReel = true;
+                this.applyReelImportPreviewRows(confirmedRows, parsed.errors);
+              });
+          },
+          error: () => {
+            this.isImportingReel = false;
+            this.notificationService.error(
+              "Không lấy được thông tin SAP từ PO để preview import.",
+            );
+          },
         });
       } catch {
         this.isImportingReel = false;
@@ -1466,8 +1501,153 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       },
     });
   }
-  private applyReelImportRows(
+  private buildReelImportPreviewRows(
     rows: VendorReelLogImportRow[],
+    partToSap: Map<string, string>,
+  ): ReelImportPreviewRow[] {
+    if (!this.activeMappingConfig) {
+      return [];
+    }
+
+    const parentItems = this.dataSource.data.map((r) => ({
+      id: r.id,
+      partNumber: r.partNumber,
+      sapCode: r.sapCode,
+    }));
+
+    const previewRows: ReelImportPreviewRow[] = [];
+
+    rows.forEach((row, index) => {
+      const imported = toVendorImportedReelEntry(row);
+      const qrCode = imported.qrCode;
+      const fieldMap = parseVendorQrByMappingConfig(
+        qrCode,
+        this.activeMappingConfig!,
+      );
+
+      const reelId = this.firstNonEmpty(fieldMap["reelId"], imported.reelId);
+      const partNumber = this.firstNonEmpty(
+        fieldMap["partNumber"],
+        imported.partNumber,
+      );
+      const manufacturingDate = this.firstNonEmpty(
+        fieldMap["manufacturingDate"],
+        imported.mfgDate,
+      );
+      const lotFromMapping = (fieldMap["lotNumber"] ?? "").trim();
+      const qtyRaw = (fieldMap["initialQuantity"] ?? "").trim();
+      const qtyFromMapping = Number(qtyRaw);
+      const initialQuantity =
+        qtyRaw !== "" && Number.isFinite(qtyFromMapping)
+          ? qtyFromMapping
+          : imported.quantity;
+
+      let cleanDate = "";
+      const dateSource =
+        manufacturingDate ||
+        (this.orderInfo.arrivalDate
+          ? this.datePipe.transform(this.orderInfo.arrivalDate, "yyyyMMdd")
+          : "");
+      if (dateSource && /^\d{8}$/.test(String(dateSource))) {
+        cleanDate = String(dateSource);
+      }
+
+      const matchedRow = parentItems.find(
+        (r) =>
+          (r.partNumber ?? "").trim().toLowerCase() ===
+          partNumber.toLowerCase(),
+      );
+      const resolvedSap = this.firstNonEmpty(
+        partToSap.get(partNumber.toLowerCase()),
+        matchedRow?.sapCode,
+        row.sapCode,
+      );
+      const vendor = this.firstNonEmpty(
+        fieldMap["vendor"],
+        this.selectedScenario?.vendorCode,
+        this.orderInfo.vendorCode,
+      );
+      const lotNumber = this.firstNonEmpty(
+        lotFromMapping,
+        partNumber && cleanDate ? `${partNumber}${cleanDate}` : "",
+        imported.lotNumber,
+      );
+      const poNumber = this.firstNonEmpty(
+        fieldMap["poNumber"],
+        imported.poNumber,
+        this.orderInfo.poCode,
+      );
+      // Mapped values from QR nếu có; mặc định userData1-4/MSL/HSD để trống
+      // (chỉ điền khi user tích "Tự điền mặc định" trên dialog).
+      const mappedUserData1 = isVendorQrFieldMapped(
+        this.activeMappingConfig,
+        "userData1",
+      )
+        ? (fieldMap["userData1"] ?? "").trim()
+        : "";
+      const mappedUserData2 = isVendorQrFieldMapped(
+        this.activeMappingConfig,
+        "userData2",
+      )
+        ? (fieldMap["userData2"] ?? "").trim()
+        : "";
+      const mappedUserData3 = isVendorQrFieldMapped(
+        this.activeMappingConfig,
+        "userData3",
+      )
+        ? (fieldMap["userData3"] ?? "").trim()
+        : "";
+      const mappedUserData4 = isVendorQrFieldMapped(
+        this.activeMappingConfig,
+        "userData4",
+      )
+        ? (fieldMap["userData4"] ?? "").trim()
+        : "";
+      const mappedMsl = isVendorQrFieldMapped(this.activeMappingConfig, "msl")
+        ? (fieldMap["msl"] ?? "").trim()
+        : "";
+      const mappedExpiration = isVendorQrFieldMapped(
+        this.activeMappingConfig,
+        "expirationDate",
+      )
+        ? (fieldMap["expirationDate"] ?? "").trim()
+        : "";
+
+      previewRows.push({
+        uid: `import-${row.lineNo}-${index}-${reelId || "empty"}`,
+        lineNo: row.lineNo,
+        reelId,
+        partNumber,
+        initialQuantity: Number.isFinite(initialQuantity) ? initialQuantity : 0,
+        poNumber,
+        manufacturingDate,
+        lotNumber,
+        itemName: (row.itemName ?? "").trim(),
+        expirationDate: mappedExpiration,
+        locationOverride: "",
+        storageUnit: this.firstNonEmpty(fieldMap["storageUnit"]),
+        sapCode: resolvedSap,
+        vendor,
+        userData1: mappedUserData1,
+        userData2: mappedUserData2,
+        userData3: mappedUserData3,
+        userData4: mappedUserData4,
+        userData5: this.firstNonEmpty(
+          fieldMap["userData5"],
+          fieldMap["poNumber"],
+          imported.poNumber,
+          this.orderInfo.poCode,
+        ),
+        msl: mappedMsl,
+        vendorQrCode: qrCode,
+      });
+    });
+
+    return previewRows;
+  }
+
+  private applyReelImportPreviewRows(
+    rows: ReelImportPreviewRow[],
     parseErrors: string[],
   ): void {
     if (!this.currentTransactionId || !this.activeMappingConfig) {
@@ -1475,319 +1655,211 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const poCode = (this.orderInfo.poCode ?? "").trim();
-    this.resolveSapCodeByPartFromPo(poCode)
-      .pipe(
-        switchMap((partToSap) => {
-          const parentItems = this.dataSource.data.map((r) => ({
-            id: r.id,
-            partNumber: r.partNumber,
-            sapCode: r.sapCode,
-            orderQty: r.totalQuantityOrder,
-          }));
-          const hasParents = parentItems.length > 0;
-          const now = new Date().toISOString();
-          const skipMessages: string[] = [...parseErrors];
-          const payloads: CreateVendorTemDetailPayload[] = [];
+    const parentItems = this.dataSource.data.map((r) => ({
+      id: r.id,
+      partNumber: r.partNumber,
+      sapCode: r.sapCode,
+      orderQty: r.totalQuantityOrder,
+    }));
+    const hasParents = parentItems.length > 0;
+    const now = new Date().toISOString();
+    const skipMessages: string[] = [...parseErrors];
+    const payloads: CreateVendorTemDetailPayload[] = [];
 
-          for (const row of rows) {
-            const imported = toVendorImportedReelEntry(row);
-            const qrCode = imported.qrCode;
-            const fieldMap = parseVendorQrByMappingConfig(
-              qrCode,
-              this.activeMappingConfig,
-            );
+    for (const row of rows) {
+      const reelId = (row.reelId ?? "").trim();
+      const partNumber = (row.partNumber ?? "").trim();
+      const manufacturingDate = (row.manufacturingDate ?? "").trim();
+      const initialQuantity = Number(row.initialQuantity) || 0;
 
-            const reelId = this.firstNonEmpty(
-              fieldMap["reelId"],
-              imported.reelId,
-            );
-            const partNumber = this.firstNonEmpty(
-              fieldMap["partNumber"],
-              imported.partNumber,
-            );
-            const manufacturingDate = this.firstNonEmpty(
-              fieldMap["manufacturingDate"],
-              imported.mfgDate,
-            );
-            const lotFromMapping = (fieldMap["lotNumber"] ?? "").trim();
-            const qtyRaw = (fieldMap["initialQuantity"] ?? "").trim();
-            const qtyFromMapping = Number(qtyRaw);
-            const initialQuantity =
-              qtyRaw !== "" && Number.isFinite(qtyFromMapping)
-                ? qtyFromMapping
-                : imported.quantity;
+      if (!reelId) {
+        skipMessages.push(`Dòng ${row.lineNo}: thiếu ReelID.`);
+        continue;
+      }
+      if (this.scannedReelIds.has(reelId)) {
+        skipMessages.push(`ReelID "${reelId}" đã tồn tại — bỏ qua.`);
+        continue;
+      }
 
-            if (!reelId) {
-              skipMessages.push(`Dòng ${row.lineNo}: thiếu ReelID.`);
-              continue;
+      const matchedRow = parentItems.find(
+        (r) =>
+          (r.partNumber ?? "").trim().toLowerCase() ===
+            partNumber.toLowerCase() ||
+          (!!(row.sapCode ?? "").trim() &&
+            (r.sapCode ?? "").trim().toLowerCase() ===
+              (row.sapCode ?? "").trim().toLowerCase()),
+      );
+      if (hasParents && partNumber && !matchedRow) {
+        skipMessages.push(
+          `ReelID "${reelId}": Part Number "${partNumber}" không có trong đơn.`,
+        );
+        continue;
+      }
+
+      const isOrphan = !matchedRow;
+      const lot = this.firstNonEmpty(
+        row.lotNumber,
+        partNumber && manufacturingDate
+          ? `${partNumber}${manufacturingDate}`
+          : "",
+      );
+
+      const payload: CreateVendorTemDetailPayload = {
+        reelId,
+        partNumber,
+        vendor: (row.vendor ?? "").trim(),
+        lot,
+        userData1: (row.userData1 ?? "").trim(),
+        userData2: (row.userData2 ?? "").trim(),
+        userData3: (row.userData3 ?? "").trim(),
+        userData4: (row.userData4 ?? "").trim(),
+        userData5: this.firstNonEmpty(
+          row.userData5,
+          row.poNumber,
+          this.orderInfo.poCode,
+        ),
+        initialQuantity,
+        msdLevel: (row.msl ?? "").trim(),
+        msdInitialFloorTime: "",
+        msdBagSealDate: "",
+        marketUsage: "",
+        quantityOverride: 0,
+        shelfTime: "",
+        spMaterialName: (row.itemName ?? "").trim(),
+        warningLimit: "",
+        maximumLimit: "",
+        comments: "",
+        warmupTime: "",
+        storageUnit: (row.storageUnit ?? "").trim(),
+        subStorageUnit: "",
+        locationOverride: (row.locationOverride ?? "").trim(),
+        manufacturingDate,
+        expirationDate: (row.expirationDate ?? "").trim(),
+        partClass: "",
+        sapCode: (row.sapCode ?? "").trim(),
+        vendorQrCode: (row.vendorQrCode ?? "").trim(),
+        status: isOrphan ? "DRAFT" : "NEW",
+        createdBy: this.currentUser,
+        createdAt: now,
+        updatedBy: this.currentUser,
+        updatedAt: now,
+        poDetailId: matchedRow?.id ?? (null as any),
+        importVendorTemTransactionsId: this.currentTransactionId!,
+      };
+
+      this.scannedReelIds.add(reelId);
+      payloads.push(payload);
+    }
+
+    if (!payloads.length) {
+      this.isImportingReel = false;
+      this.notificationService.warning(
+        skipMessages[0] ?? "Không có dòng nào để import.",
+      );
+      this.cdr.markForCheck();
+      return;
+    }
+
+    forkJoin(
+      payloads.map((payload) =>
+        this.managerTemNccService.createVendorTemDetails(payload).pipe(
+          map((res) => ({ ok: true as const, payload, res })),
+          catchError(() => {
+            if (payload.reelId) {
+              this.scannedReelIds.delete(payload.reelId);
             }
-            if (this.scannedReelIds.has(reelId)) {
-              skipMessages.push(`ReelID "${reelId}" đã tồn tại — bỏ qua.`);
-              continue;
-            }
-
-            const matchedRow = parentItems.find(
-              (r) =>
-                (r.partNumber ?? "").trim().toLowerCase() ===
-                partNumber.toLowerCase(),
-            );
-            if (hasParents && partNumber && !matchedRow) {
-              skipMessages.push(
-                `ReelID "${reelId}": Part Number "${partNumber}" không có trong đơn.`,
-              );
-              continue;
-            }
-
-            let cleanDate = "";
-            const dateSource =
-              manufacturingDate ||
-              (this.orderInfo.arrivalDate
-                ? this.datePipe.transform(
-                    this.orderInfo.arrivalDate,
-                    "yyyyMMdd",
-                  )
-                : "");
-            if (dateSource && /^\d{8}$/.test(String(dateSource))) {
-              cleanDate = String(dateSource);
-            }
-
-            const resolvedSap = this.firstNonEmpty(
-              partToSap.get(partNumber.toLowerCase()),
-              matchedRow?.sapCode,
-              row.sapCode,
-            );
-            const isOrphan = !matchedRow;
-            const vendor = this.firstNonEmpty(
-              fieldMap["vendor"],
-              this.selectedScenario?.vendorCode,
-              this.orderInfo.vendorCode,
-            );
-            const lot = this.firstNonEmpty(
-              lotFromMapping,
-              partNumber && cleanDate ? `${partNumber}${cleanDate}` : "",
-              imported.lotNumber,
-            );
-
-            const defaultUserData4 =
-              resolvedSap && manufacturingDate
-                ? `${resolvedSap}-${this.formatYyyyMmDdToDdMmYyyy(manufacturingDate)}`
-                : resolvedSap;
-            const defaultExpiration = manufacturingDate
-              ? this.addYearsToYyyyMmDd(manufacturingDate, 2)
-              : "";
-
-            const payload: CreateVendorTemDetailPayload = {
-              reelId,
-              partNumber,
-              vendor,
-              lot,
-              userData1: this.resolveImportMappedOrDefault(
-                "userData1",
-                fieldMap["userData1"],
-                "NO",
-              ),
-              userData2: this.resolveImportMappedOrDefault(
-                "userData2",
-                fieldMap["userData2"],
-                "NO",
-              ),
-              userData3: this.resolveImportMappedOrDefault(
-                "userData3",
-                fieldMap["userData3"],
-                "NO",
-              ),
-              userData4: this.resolveImportMappedOrDefault(
-                "userData4",
-                fieldMap["userData4"],
-                defaultUserData4,
-              ),
-              userData5: this.firstNonEmpty(
-                fieldMap["userData5"],
-                fieldMap["poNumber"],
-                imported.poNumber,
-                this.orderInfo.poCode,
-              ),
-              initialQuantity: Number.isFinite(initialQuantity)
-                ? initialQuantity
-                : 0,
-              msdLevel: this.resolveImportMappedOrDefault(
-                "msl",
-                fieldMap["msl"],
-                "1",
-              ),
-              msdInitialFloorTime: "",
-              msdBagSealDate: "",
-              marketUsage: "",
-              quantityOverride: Number(fieldMap["totalQty"]) || 0,
-              shelfTime: "",
-              spMaterialName: "",
-              warningLimit: "",
-              maximumLimit: "",
-              comments: "",
-              warmupTime: "",
-              storageUnit: this.firstNonEmpty(
-                fieldMap["storageUnit"],
-                this.orderInfo.warehouse,
-              ),
-              subStorageUnit: "",
-              locationOverride: "",
-              manufacturingDate,
-              expirationDate: this.resolveImportMappedOrDefault(
-                "expirationDate",
-                fieldMap["expirationDate"],
-                defaultExpiration,
-              ),
-              partClass: "",
-              sapCode: resolvedSap,
-              vendorQrCode: qrCode,
-              status: isOrphan ? "DRAFT" : "NEW",
-              createdBy: this.currentUser,
-              createdAt: now,
-              updatedBy: this.currentUser,
-              updatedAt: now,
-              poDetailId: matchedRow?.id ?? (null as any),
-              importVendorTemTransactionsId: this.currentTransactionId!,
-            };
-
-            this.scannedReelIds.add(reelId);
-            payloads.push(payload);
-          }
-
-          if (!payloads.length) {
             return of({
-              results: [] as Array<{
-                ok: boolean;
-                payload: CreateVendorTemDetailPayload;
-                res: any;
-              }>,
-              payloads,
-              skipMessages,
+              ok: false as const,
+              payload,
+              res: null,
             });
-          }
+          }),
+        ),
+      ),
+    ).subscribe({
+      next: (results) => {
+        const successItems = results.filter((r) => r.ok);
+        const failCount = results.length - successItems.length;
+        const matchedLots: { poDetailId: number; lot: LotItem }[] = [];
+        const orphanLots: LotItem[] = [];
 
-          return forkJoin(
-            payloads.map((payload) =>
-              this.managerTemNccService.createVendorTemDetails(payload).pipe(
-                map((res) => ({ ok: true as const, payload, res })),
-                catchError(() => {
-                  if (payload.reelId) {
-                    this.scannedReelIds.delete(payload.reelId);
-                  }
-                  return of({
-                    ok: false as const,
-                    payload,
-                    res: null,
-                  });
-                }),
-              ),
-            ),
-          ).pipe(
-            map((results) => ({
-              results,
-              payloads,
-              skipMessages,
-            })),
-          );
-        }),
-      )
-      .subscribe({
-        next: ({ results, payloads, skipMessages }) => {
-          if (!payloads.length) {
-            this.isImportingReel = false;
-            this.notificationService.warning(
-              skipMessages[0] ?? "Không có dòng nào để import.",
-            );
-            this.cdr.markForCheck();
-            return;
-          }
+        successItems.forEach(({ payload, res }) => {
+          const lot: LotItem = {
+            vendorTemDetailId: res?.id ?? 0,
+            lotNumber: payload.lot,
+            reelId: payload.reelId,
+            partNumber: payload.partNumber,
+            vendor: payload.vendor,
+            boxCount: 1,
+            totalQty: payload.initialQuantity,
+            initialQuantity: payload.initialQuantity,
+            userData1: payload.userData1,
+            userData2: payload.userData2,
+            userData3: payload.userData3,
+            userData4: payload.userData4,
+            userData5: payload.userData5,
+            msl: payload.msdLevel,
+            storageUnit: payload.storageUnit,
+            manufacturingDate: payload.manufacturingDate,
+            expirationDate: payload.expirationDate,
+            sapCode: payload.sapCode,
+            vendorQrCode: payload.vendorQrCode,
+            status: payload.status,
+            createdBy: payload.createdBy,
+            createdAt: payload.createdAt,
+            poDetailId: payload.poDetailId,
+            importVendorTemTransactionsId:
+              payload.importVendorTemTransactionsId,
+            details: [],
+          };
 
-          const successItems = results.filter((r) => r.ok);
-          const failCount = results.length - successItems.length;
-          const matchedLots: { poDetailId: number; lot: LotItem }[] = [];
-          const orphanLots: LotItem[] = [];
-
-          successItems.forEach(({ payload, res }) => {
-            const lot: LotItem = {
-              vendorTemDetailId: res?.id ?? 0,
-              lotNumber: payload.lot,
-              reelId: payload.reelId,
-              partNumber: payload.partNumber,
-              vendor: payload.vendor,
-              boxCount: 1,
-              totalQty: payload.initialQuantity,
-              initialQuantity: payload.initialQuantity,
-              userData1: payload.userData1,
-              userData2: payload.userData2,
-              userData3: payload.userData3,
-              userData4: payload.userData4,
-              userData5: payload.userData5,
-              msl: payload.msdLevel,
-              storageUnit: payload.storageUnit,
-              manufacturingDate: payload.manufacturingDate,
-              expirationDate: payload.expirationDate,
-              sapCode: payload.sapCode,
-              vendorQrCode: payload.vendorQrCode,
-              status: payload.status,
-              createdBy: payload.createdBy,
-              createdAt: payload.createdAt,
-              poDetailId: payload.poDetailId,
-              importVendorTemTransactionsId:
-                payload.importVendorTemTransactionsId,
-              details: [],
-            };
-
-            if (payload.poDetailId) {
-              matchedLots.push({ poDetailId: payload.poDetailId, lot });
-            } else {
-              orphanLots.push(lot);
-            }
-          });
-
-          if (matchedLots.length) {
-            this.dataSource.data = this.dataSource.data.map((row) => {
-              const related = matchedLots.filter(
-                (m) => m.poDetailId === row.id,
-              );
-              if (!related.length) {
-                return row;
-              }
-              const addedQty = related.reduce(
-                (sum, m) => sum + (Number(m.lot.initialQuantity) || 0),
-                0,
-              );
-              return {
-                ...row,
-                boxScan: row.boxScan + related.length,
-                totalQuantity: row.totalQuantity + addedQty,
-                lots: [...row.lots, ...related.map((m) => m.lot)],
-              };
-            });
-          }
-
-          if (orphanLots.length) {
-            this.draftLots = [...orphanLots, ...this.draftLots];
-          }
-
-          this.isImportingReel = false;
-          const msg = `Đã import ${successItems.length}/${payloads.length} ReelID.`;
-          if (failCount || skipMessages.length) {
-            this.notificationService.warning(
-              `${msg} Bỏ qua ${failCount + skipMessages.length} dòng.`,
-            );
+          if (payload.poDetailId) {
+            matchedLots.push({ poDetailId: payload.poDetailId, lot });
           } else {
-            this.notificationService.success(msg);
+            orphanLots.push(lot);
           }
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.isImportingReel = false;
-          this.notificationService.error(
-            "Không lấy được thông tin SAP từ PO để import ReelID.",
+        });
+
+        if (matchedLots.length) {
+          this.dataSource.data = this.dataSource.data.map((row) => {
+            const related = matchedLots.filter((m) => m.poDetailId === row.id);
+            if (!related.length) {
+              return row;
+            }
+            const addedQty = related.reduce(
+              (sum, m) => sum + (Number(m.lot.initialQuantity) || 0),
+              0,
+            );
+            return {
+              ...row,
+              boxScan: row.boxScan + related.length,
+              totalQuantity: row.totalQuantity + addedQty,
+              lots: [...row.lots, ...related.map((m) => m.lot)],
+            };
+          });
+        }
+
+        if (orphanLots.length) {
+          this.draftLots = [...orphanLots, ...this.draftLots];
+        }
+
+        this.isImportingReel = false;
+        const msg = `Đã import ${successItems.length}/${payloads.length} ReelID.`;
+        if (failCount || skipMessages.length) {
+          this.notificationService.warning(
+            `${msg} Bỏ qua ${failCount + skipMessages.length} dòng.`,
           );
-          this.cdr.markForCheck();
-        },
-      });
+        } else {
+          this.notificationService.success(msg);
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isImportingReel = false;
+        this.notificationService.error("Import ReelID thất bại.");
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   /** Map partNumber (lowercase) → mã SAP lấy từ PO + OITM part-numbers. */
@@ -1837,45 +1909,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       }),
       catchError(() => of(new Map<string, string>())),
     );
-  }
-
-  /**
-   * Có trong cấu hình kịch bản → ưu tiên giá trị từ file/QR.
-   * Không có trong cấu hình → dùng default.
-   */
-  private resolveImportMappedOrDefault(
-    fieldKey: string,
-    mappedValue: string | undefined,
-    defaultValue: string,
-  ): string {
-    if (isVendorQrFieldMapped(this.activeMappingConfig, fieldKey)) {
-      return (mappedValue ?? "").trim();
-    }
-    return defaultValue;
-  }
-
-  private formatYyyyMmDdToDdMmYyyy(value: string): string {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length !== 8) {
-      return value.trim();
-    }
-    return `${digits.slice(6, 8)}${digits.slice(4, 6)}${digits.slice(0, 4)}`;
-  }
-
-  private addYearsToYyyyMmDd(value: string, years: number): string {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length !== 8) {
-      return "";
-    }
-    const y = Number(digits.slice(0, 4));
-    const m = Number(digits.slice(4, 6));
-    const d = Number(digits.slice(6, 8));
-    if (!y || !m || !d) {
-      return "";
-    }
-    const date = new Date(y, m - 1, d);
-    date.setFullYear(date.getFullYear() + years);
-    return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
   }
 
   private firstNonEmpty(...values: Array<string | null | undefined>): string {

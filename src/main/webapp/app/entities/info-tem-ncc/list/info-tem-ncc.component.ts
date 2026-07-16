@@ -29,7 +29,6 @@ import {
   PoImportTem,
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
-import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 import { StatusBadgeService } from "app/entities/list-material/services/status-badge.service";
 
 // ==================== INTERFACES ====================
@@ -470,36 +469,15 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const cached = await this.warehouseCacheService.getAll();
-
-    if (cached.length > 0) {
-      this.isWarehouseLoaded = true;
-      return;
-    }
-
     this.isFetchingWarehouses = true;
-    this.managerTemNccService.getWarehouses().subscribe({
-      next: (list) => {
-        const mapped: CachedWarehouse[] = list.map((loc) => ({
-          locationId: loc.id,
-          locationName: loc.locationName,
-          locationFullName: loc.locationFullName,
-        }));
-        this.warehouseCacheService
-          .saveAll(mapped)
-          .then(() => {
-            this.isWarehouseLoaded = true;
-            this.isFetchingWarehouses = false;
-          })
-          .catch(() => {
-            this.isFetchingWarehouses = false;
-          });
-      },
-      error: () => {
-        console.warn("Khong the cache danh sach kho");
-        this.isFetchingWarehouses = false;
-      },
-    });
+    try {
+      await this.warehouseCacheService.ensureSynced();
+      this.isWarehouseLoaded = true;
+    } catch {
+      console.warn("Khong the cache danh sach kho");
+    } finally {
+      this.isFetchingWarehouses = false;
+    }
   }
   private openSummaryDialog(item: TemNccItem): void {
     this.dialog.open(OrderSummaryDialogComponent, {

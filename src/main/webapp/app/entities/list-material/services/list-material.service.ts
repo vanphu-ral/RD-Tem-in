@@ -1587,7 +1587,11 @@ export class ListMaterialService {
           quantityChange: String(item.quantityChange),
           type: item.extendExpiration ? "EXTEND" : "MOVE",
           locationId: finalLocationId,
-          locationName: this.getLocationNameById(finalLocationId) ?? "",
+          locationName:
+            item.locationName ??
+            item.locationFullName ??
+            item.selectedWarehouse?.name ??
+            "",
           status: item.calculatedStatus,
           requestId: null,
           expiredTime: item.expirationDate ? String(item.expirationDate) : "",
@@ -1646,8 +1650,7 @@ export class ListMaterialService {
     const requestDetails: inventory_update_requests_detail[] =
       dialogData.updatedItems.map((item) => {
         // Ưu tiên tên kho từ item.locationName
-        const finalLocationName =
-          item.locationName ?? this.getLocationNameById(item.locationId) ?? "";
+        const finalLocationName = item.locationName ?? "";
 
         return {
           id: item.id,
@@ -1687,12 +1690,9 @@ export class ListMaterialService {
     );
   }
 
-  //  lấy data location hỗ trợ gửi request
-
-  // Lưu dữ liệu vào Dexie
+  // Lưu dữ liệu vào Dexie (cache version được gắn trong WarehouseCacheService.saveAll)
   async cacheLocations(data: RawGraphQLLocation[]): Promise<void> {
     try {
-      // console.log(`💾 Đang lưu ${data.length} bản ghi vào IndexedDB...`);
       await this.warehouseCache.saveAll(
         data.map((loc) => ({
           locationId: loc.id,
@@ -1700,62 +1700,41 @@ export class ListMaterialService {
           locationFullName: loc.locationFullName,
         })),
       );
-      // console.log("✅ Đã lưu dữ liệu kho vào IndexedDB");
     } catch (err) {
-      // console.error("Lỗi khi lưu cache kho:", err);
       console.error(err);
     }
   }
 
-  // Ưu tiên lấy từ cache
+  /**
+   * Đồng bộ IndexedDB theo WAREHOUSE_CACHE_VERSION.
+   * Không hydrate 90k bản ghi vào memory Angular — autocomplete tìm thẳng IndexedDB.
+   */
   public async initLocations(): Promise<void> {
     if (this.isLocationLoaded || this.isFetchingLocations) {
-      // console.log("🔁 Dữ liệu kho đã được load trước đó, không gọi lại");
       return;
     }
 
-    const cached = await this.warehouseCache.getAll();
-    // console.log(`📦 Kiểm tra cache: có ${cached.length} bản ghi`);
-
-    if (cached.length > 0) {
-      // console.log("✅ Dùng dữ liệu từ cache IndexedDB");
-      this._locationsData.next(
-        cached.map((loc) => ({
-          id: loc.locationId,
-          locationName: loc.locationName,
-          locationFullName: loc.locationFullName,
-        })),
-      );
+    this.isFetchingLocations = true;
+    try {
+      await this.warehouseCache.ensureSynced();
       this.isLocationLoaded = true;
-    } else {
-      this.isFetchingLocations = true;
-      // console.log("🚨 Cache trống → gọi API để lấy dữ liệu");
-      await this.fetchLocations();
-      this.isLocationLoaded = true;
+    } catch (err) {
+      console.error(err);
+    } finally {
       this.isFetchingLocations = false;
     }
   }
-  public async fetchLocations(): Promise<void> {
-    // console.log("🌐 Đang gọi API để lấy danh sách kho...");
-    try {
-      const data = await firstValueFrom(
-        this.http.get<RawGraphQLLocation[]>(this.apiLocations),
-      );
-      // console.log(`✅ API trả về ${data.length} bản ghi kho`);
-      this._locationsData.next(data);
 
-      const cached = await this.warehouseCache.getAll();
-      if (cached.length === 0) {
-        // console.log(`💾 Đang lưu ${data.length} bản ghi vào IndexedDB...`);
-        await this.cacheLocations(data);
-        // console.log("✅ Đã lưu dữ liệu kho vào IndexedDB");
-      } else {
-        // console.log("⚠️ Đã có dữ liệu trong IndexedDB, không ghi đè");
-      }
+  /** Force tải lại full location vào IndexedDB (vd. nút refresh). */
+  public async fetchLocations(): Promise<void> {
+    this.isFetchingLocations = true;
+    try {
+      await this.warehouseCache.ensureSynced(true);
+      this.isLocationLoaded = true;
     } catch (err) {
-      // console.error("❌ Lỗi khi gọi API locations:", err);
       console.error(err);
-      this._locationsData.next([]);
+    } finally {
+      this.isFetchingLocations = false;
     }
   }
 
@@ -1784,8 +1763,7 @@ export class ListMaterialService {
     };
     const requestDetails: inventory_update_requests_detail[] =
       dialogData.updatedItems.map((item) => {
-        const finalLocationName =
-          item.locationName ?? this.getLocationNameById(item.locationId) ?? "";
+        const finalLocationName = item.locationName ?? "";
         return {
           id: item.id,
           materialId: String(item.materialId ?? ""),
@@ -1961,16 +1939,7 @@ export class ListMaterialService {
     raw: RawGraphQLMaterial,
     selectedIds: string[],
   ): RawGraphQLMaterial {
-    const locations = this._locationsData.getValue();
-    const locationMap = new Map<string, string>();
-
-    locations.forEach((loc) => {
-      locationMap.set(loc.id.toString(), loc.locationName);
-    });
-
-    const rawLocId = String(raw.locationId ?? "").trim();
-
-    const locationName = locationMap.get(rawLocId) ?? "Unknown";
+    const locationName = raw.locationName || raw.locationFullName || "Unknown";
 
     return {
       ...raw,
@@ -1978,16 +1947,6 @@ export class ListMaterialService {
       select_update: false,
       locationName,
     };
-  }
-
-  private getLocationNameById(locationId: string | null): string | null {
-    if (!locationId) {
-      return null;
-    }
-    const location = this._locationsData.value.find(
-      (loc) => locationId === loc.id.toString(),
-    );
-    return location ? location.locationName : null;
   }
 
   private saveExcelFile(buffer: any, fileName: string): void {

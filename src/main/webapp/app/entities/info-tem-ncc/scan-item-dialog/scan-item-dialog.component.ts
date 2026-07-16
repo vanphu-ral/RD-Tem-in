@@ -263,7 +263,7 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
   }
   onWarehouseSearch(keyword: string): void {
     if (!keyword?.trim()) {
-      this.filteredWarehouseOptions = this.warehouseOptions.slice(0, 50);
+      this.filteredWarehouseOptions = [];
       return;
     }
     this.warehouseCacheService.searchByName(keyword).then((result) => {
@@ -354,11 +354,16 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
 
   private loadWarehouseOptions(): void {
     this.isLoadingWarehouses = true;
-    this.warehouseCacheService.getAll().then((list) => {
-      this.warehouseOptions = list;
-      this.filteredWarehouseOptions = list.slice(0, 50);
-      this.isLoadingWarehouses = false;
-    });
+    this.warehouseCacheService
+      .ensureSynced()
+      .then(() => {
+        this.warehouseOptions = [];
+        this.filteredWarehouseOptions = [];
+        this.isLoadingWarehouses = false;
+      })
+      .catch(() => {
+        this.isLoadingWarehouses = false;
+      });
   }
   private drainQueue(): void {
     if (this.processingQueue) {

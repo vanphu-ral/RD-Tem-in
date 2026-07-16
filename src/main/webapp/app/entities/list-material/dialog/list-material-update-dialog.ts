@@ -145,7 +145,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   //       { name: "admin5", completed: false },
   //     ],
   //   });
-  warehouseSelection: Array<{ value: string; name: string }> = [];
+  warehouseSelection: Array<{ value: string; name: string }> = []; // legacy — không còn hydrate full list
   filteredWarehouses!: Observable<Array<{ value: string; name: string }>>;
   displayableItemKeys: string[][] = [];
   itemsDataSource: MatTableDataSource<MaterialItem> =
@@ -263,83 +263,40 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
 
   // #region Lifecycle hooks
   ngOnInit(): void {
-    this.materialService.initLocations().then(() => {
-      from(this.warehouseCache.getAll()).subscribe((locations) => {
-        this.warehouseSelection = locations.map((loc) => ({
-          value: loc.locationId.toString(),
-          name: loc.locationFullName,
-        }));
-        // console.log("warehouseSelection:", this.warehouseSelection);
+    this.materialService.initLocations().then(async () => {
+      const headerCtl = this.dialogForm.get("selectedWarehouseControl")!;
 
-        const headerCtl = this.dialogForm.get("selectedWarehouseControl")!;
-        const headerInit =
-          this.warehouseSelection.find((w) => w.value === headerCtl.value) ??
-          null;
-        headerCtl.setValue(headerInit, { emitEvent: false });
-        headerCtl.updateValueAndValidity({ emitEvent: true });
-
-        this.itemsDataSource.data.forEach((item) => {
-          const fg = this.getFormGroupForItem(item);
-          const rowCtl = fg.get("selectedWarehouseItem")!;
-          const initial =
-            this.warehouseSelection.find((w) => w.value === item.locationId) ??
-            null;
-          rowCtl.setValue(initial, { emitEvent: false });
-          rowCtl.updateValueAndValidity({ emitEvent: true });
-        });
-        this.isWarehouseReady = true;
-        // console.log("[INIT] Danh sách kho đã sẵn sàng");
-
-        if (this.bufferedScanValue) {
-          const buffered = this.bufferedScanValue;
-          const matched = this.warehouseSelection.find(
-            (w) => w.name.trim().toLowerCase() === buffered.toLowerCase(),
+      for (const item of this.itemsDataSource.data) {
+        const fg = this.getFormGroupForItem(item);
+        const rowCtl = fg.get("selectedWarehouseItem")!;
+        let initial: Warehouse | null = null;
+        if (item.locationId) {
+          const cached = await this.warehouseCache.getById(
+            Number(item.locationId),
           );
-
-          if (matched) {
-            if (this.isScanAll) {
-              this.globalWarehouseChanged(matched);
-              this.scanLoadingAll = false;
-              this.isScanAll = false;
-            } else if (this.currentScanRow) {
-              this.rowWarehouseChanged(matched, this.currentScanRow);
-              this.scanLoadingRow[this.currentScanRow.materialIdentifier] =
-                false;
-              this.currentScanRow = null;
-            }
-          } else {
-            console.warn("[SCAN] fallback header scan → gán chuỗi vào input");
-            if (headerCtl) {
-              headerCtl.setValue(buffered, { emitEvent: true });
-            }
-
-            this.itemsDataSource.data.forEach((item) => {
-              item.locationId = "";
-              item.locationFullName = buffered;
-
-              const formGroup = this.getFormGroupForItem(item);
-              formGroup
-                .get("selectedWarehouseItem")
-                ?.setValue(null, { emitEvent: true });
-            });
-
-            this.scanLoadingAll = false;
-            this.isScanAll = false;
-
-            this.snackBar.open(
-              "Giá trị scan đã lưu không khớp với danh sách.",
-              "Đóng",
-              {
-                duration: 3000,
-                panelClass: ["snack-info"],
-                horizontalPosition: "center",
-                verticalPosition: "top",
-              },
-            );
+          if (cached) {
+            initial = {
+              value: cached.locationId.toString(),
+              name: cached.locationFullName,
+            };
+          } else if (item.locationFullName) {
+            initial = {
+              value: item.locationId,
+              name: item.locationFullName,
+            };
           }
-          this.bufferedScanValue = null;
         }
-      });
+        rowCtl.setValue(initial, { emitEvent: false });
+        rowCtl.updateValueAndValidity({ emitEvent: true });
+      }
+
+      headerCtl.updateValueAndValidity({ emitEvent: true });
+      this.isWarehouseReady = true;
+
+      if (this.bufferedScanValue) {
+        await this.applyScannedWarehouse(this.bufferedScanValue);
+        this.bufferedScanValue = null;
+      }
       this.materialService.getApprovers().subscribe((list) => {
         this.allApprovers = list;
       });
@@ -353,21 +310,6 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       this.itemsDataSource.data.forEach((item) => {
         item.quantityChange = item.quantity;
       });
-      // this.kcApi.getUsersByRole('ROLE_PANACIM_ADMIN', 0, 100).subscribe({
-      //   next: (list) => {
-      //     console.log('[ApproverSelect] Fetched users:', list);
-      //     if (Array.isArray(list) && list.length > 0) {
-      //       this.approvers.set(list);
-      //     } else {
-      //       console.warn('[ApproverSelect] API trả về mảng rỗng hoặc không phải mảng:', list);
-      //       this.approvers.set([]);
-      //     }
-      //   },
-      //   error: (err) => {
-      //     console.error('[ApproverSelect] Lỗi fetch users Keycloak:', err);
-      //     this.approvers.set([]);
-      //   }
-      // });
 
       this.filteredWarehouses = this.dialogForm
         .get("selectedWarehouseControl")!
@@ -478,7 +420,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
   }
 
   refreshWarehouses(): void {
-    this.materialService.fetchLocations();
+    void this.materialService.fetchLocations();
   }
 
   totalQuantityselect(): number {
@@ -497,8 +439,18 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       this.rowFilteredWarehouses.set(
         key,
         control.valueChanges.pipe(
+          debounceTime(300),
           map((v) => (typeof v === "string" ? v : (v?.name ?? ""))),
-          map((name) => this._filterWarehouses(name)),
+          switchMap((name) =>
+            from(this.warehouseCache.searchByName(name)).pipe(
+              map((list: CachedWarehouse[]) =>
+                list.map((w) => ({
+                  value: w.locationId.toString(),
+                  name: w.locationFullName,
+                })),
+              ),
+            ),
+          ),
         ),
       );
     }
@@ -867,8 +819,10 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     if (!locationId) {
       return null;
     }
-    const found = this.warehouseSelection.find((w) => w.value === locationId);
-    return found ? found.name : null;
+    const fromItem = this.itemsDataSource.data.find(
+      (i) => i.locationId === locationId,
+    );
+    return fromItem?.locationFullName ?? fromItem?.locationName ?? null;
   }
   onSave(): void {
     this.confirmAndMarkExpired();
@@ -1260,7 +1214,7 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     }
 
     // nếu kho chưa load xong, buffer lại
-    if (!this.warehouseSelection?.length) {
+    if (!this.isWarehouseReady) {
       this.bufferedScanValue = processed;
       this.snackBar.open(
         "Danh sách kho chưa sẵn sàng. Vui lòng đợi giây lát.",
@@ -1275,20 +1229,40 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       return;
     }
 
-    // tìm kho match
-    const matched = this.warehouseSelection.find(
-      (w) => w.name.trim().toLowerCase() === processed.toLowerCase(),
-    );
+    void this.applyScannedWarehouse(processed);
 
-    // nếu đang scan cả list
+    // Xoá input & tập trung lại để lần scan sau không bị out-focus
+    this.clearScanInput();
+    this.cdr.markForCheck();
+  }
+
+  private async applyScannedWarehouse(processed: string): Promise<void> {
+    const found = await this.warehouseCache.findExactByFullName(processed);
+    const matched: Warehouse | null = found
+      ? { value: found.locationId.toString(), name: found.locationFullName }
+      : null;
+
     if (this.isScanAll) {
       matched
         ? this.globalWarehouseChanged(matched)
         : this.fallbackApplyHeader(processed);
+      this.scanLoadingAll = false;
       this.isScanAll = false;
+      if (!matched) {
+        this.snackBar.open(
+          "Giá trị scan đã lưu không khớp với danh sách.",
+          "Đóng",
+          {
+            duration: 3000,
+            panelClass: ["snack-info"],
+            horizontalPosition: "center",
+            verticalPosition: "top",
+          },
+        );
+      }
+      return;
     }
 
-    // nếu đang scan 1 dòng
     if (this.currentScanRow) {
       matched
         ? this.rowWarehouseChanged(matched, this.currentScanRow)
@@ -1296,11 +1270,8 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
       this.scanLoadingRow[this.currentScanRow.materialIdentifier] = false;
       this.currentScanRow = null;
     }
-
-    // Xoá input & tập trung lại để lần scan sau không bị out-focus
-    this.clearScanInput();
-    this.cdr.markForCheck();
   }
+
   private clearScanInput(): void {
     this.scanBuffer = "";
     const inp = this.scanInput.nativeElement;
@@ -1351,14 +1322,6 @@ export class ListMaterialUpdateDialogComponent implements OnInit {
     return result.trim();
   }
 
-  private _filterWarehouses(
-    name: string,
-  ): Array<{ value: string; name: string }> {
-    const filterValue = name.toLowerCase();
-    return this.warehouseSelection
-      .filter((w) => w.name.toLowerCase().includes(filterValue))
-      .slice(0, 50);
-  }
   private filterByName(name: string): UserSummary[] {
     const filter = name.toLowerCase();
     return this.allApprovers.filter((u) =>

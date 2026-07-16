@@ -387,6 +387,10 @@
     width: 2%;
   }
 
+  .col-select {
+    width: 2.5%;
+  }
+
   .col-sap {
     width: 6%;
   }
@@ -493,6 +497,19 @@
     vertical-align: middle;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  th.cell-select,
+  td.cell-select {
+    text-align: center;
+    vertical-align: middle;
+    padding-left: 4px;
+    padding-right: 4px;
+
+    .mat-mdc-checkbox,
+    .mat-checkbox {
+      margin: 0;
+    }
   }
 
   th.cell-stt,

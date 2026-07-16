@@ -1194,3 +1194,17 @@ table {
     }
   }
 }
+
+::ng-deep .import-reel-preview-panel {
+  .mat-mdc-dialog-container,
+  .mat-dialog-container {
+    padding: 0 !important;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .mdc-dialog__surface {
+    padding: 0 !important;
+    overflow: hidden;
+  }
+}

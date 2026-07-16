@@ -37,6 +37,7 @@ import { ConfigTemNccComponent } from "./config-tem-ncc/config-tem-ncc.component
 import { ConfigDialogComponent } from "./config-dialog/config-dialog.component";
 import { InfoTemNccDetailComponent } from "./info-tem-ncc-detail/info-tem-ncc.-detail.component";
 import { AddInfoTemNccComponent } from "./add-info-tem-ncc/add-info-tem-ncc.component";
+import { ImportReelPreviewDialogComponent } from "./add-info-tem-ncc/import-reel-preview-dialog/import-reel-preview-dialog.component";
 import { LotDetailDialogComponent } from "./lot-detail-dialog/lot-detail-dialog.component";
 import { ScanItemDialogComponent } from "./scan-item-dialog/scan-item-dialog.component";
 import { OrderSummaryDialogComponent } from "./list/order-summary-dialog/order-summary-dialog.component";
@@ -85,6 +86,7 @@ import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-
     ConfigDialogComponent,
     InfoTemNccDetailComponent,
     AddInfoTemNccComponent,
+    ImportReelPreviewDialogComponent,
     LotDetailDialogComponent,
     ScanItemDialogComponent,
     OrderSummaryDialogComponent,
