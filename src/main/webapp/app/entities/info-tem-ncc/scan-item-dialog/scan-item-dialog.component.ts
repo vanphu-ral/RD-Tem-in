@@ -13,16 +13,45 @@ import {
   MatDialog,
   MatDialogRef,
 } from "@angular/material/dialog";
+import { PageEvent } from "@angular/material/paginator";
 import { ScanListViewDialogComponent } from "./scan-list-view-dialog/scan-list-view-dialog.component";
 import {
   CreateVendorTemDetailPayload,
   ManagerTemNccService,
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { AccountService } from "app/core/auth/account.service";
-import { take } from "rxjs";
+import {
+  Observable,
+  catchError,
+  forkJoin,
+  map,
+  of,
+  switchMap,
+  take,
+} from "rxjs";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
+import {
+  parseVendorFullQrExcelArrayBuffer,
+  parseVendorReelLogContent,
+  toVendorImportedReelEntry,
+  VendorReelLogImportRow,
+  VendorReelLogParseResult,
+} from "app/entities/generate-tem-in/receiving-supplies/vendor-reel-log-import.util";
+import {
+  isVendorQrFieldMapped,
+  parseVendorQrByMappingConfig,
+} from "../shared/vendor-qr-mapping.util";
+import { ReceivingSuppliesService } from "app/entities/generate-tem-in/service/receiving-supplies.service";
+import { ReelImportPreviewRow } from "../add-info-tem-ncc/import-reel-preview-dialog/import-reel-preview-dialog.component";
+import { ScanAggregateDialogComponent } from "./scan-aggregate-dialog/scan-aggregate-dialog.component";
+import {
+  SCAN_ITEM_LIST_COLUMNS,
+  getScanItemFieldValue,
+} from "../shared/scan-item-columns.util";
+
+export type ScanImportTab = "scan" | "import";
 
 export interface ScannedItem {
   id: string;
@@ -70,6 +99,8 @@ export interface ScannedItem {
 
   poDetailId: number;
   importVendorTemTransactionsId: number;
+  /** Đã có sẵn trên đơn khi mở dialog — không trả lại khi Tổng hợp. */
+  fromOrder?: boolean;
 }
 export interface ScanDialogData {
   mappingConfig: {
@@ -89,10 +120,15 @@ export interface ScanDialogData {
     partNumber: string;
     sapCode: string;
     orderQty: number;
+    materialName?: string;
   }[];
   vendorCode?: string;
   existingReelIds?: string[];
+  /** Vật tư đã lưu trên đơn — hiển thị sẵn trong danh sách dialog. */
+  existingItems?: ScannedItem[];
   poCode?: string;
+  /** Đồng bộ lot trên đơn sau khi cập nhật trong dialog tổng hợp. */
+  onItemsUpdated?: (items: ScannedItem[]) => void;
 }
 
 @Component({
@@ -100,15 +136,23 @@ export interface ScanDialogData {
   templateUrl: "./scan-item-dialog.component.html",
   styleUrls: ["./scan-item-dialog.component.scss"],
 })
-export class ScanItemDialogComponent implements OnInit, AfterViewInit {
-  @ViewChild("scanInput") scanInputRef!: ElementRef<HTMLInputElement>;
+export class ScanItemDialogComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
+  @ViewChild("scanInputRef") scanInputRef!: ElementRef<HTMLInputElement>;
+  @ViewChild("reelImportInput")
+  reelImportInputRef!: ElementRef<HTMLInputElement>;
 
+  activeTab: ScanImportTab = "scan";
   scanInput = "";
   scannedList: ScannedItem[] = [];
   errorMessage = "";
+  importErrorMessage = "";
   isInputFocused = false;
   lastScannedCode = "";
   duplicateHighlightId: string | null = null;
+  isImportingReel = false;
+  isImportDragging = false;
 
   warehouse = "";
   approver = "";
@@ -120,38 +164,34 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
   scanStatusSummary: { type: "ok" | "over" | "under" | null; message: string } =
     { type: null, message: "" };
 
-  lotColumns = [
-    { key: "lot", label: "Lot", minWidth: 130 },
-    { key: "reelId", label: "ReelId", minWidth: 190 },
-    { key: "partNumber", label: "Part Number", minWidth: 140 },
-    { key: "vendor", label: "Vendor", minWidth: 110 },
-    { key: "boxCount", label: "Số thùng", minWidth: 90 },
-    { key: "totalQty", label: "Tổng SL", minWidth: 90 },
-    { key: "initialQuantity", label: "Quantity", minWidth: 100 },
-    { key: "userData1", label: "Userdata1", minWidth: 110 },
-    { key: "userData2", label: "Userdata2", minWidth: 110 },
-    { key: "userData3", label: "Userdata3", minWidth: 110 },
-    { key: "userData4", label: "Userdata4", minWidth: 110 },
-    { key: "userData5", label: "Userdata5", minWidth: 110 },
-    { key: "msl", label: "MSL", minWidth: 80 },
-    { key: "storageUnit", label: "StorageUnit", minWidth: 120 },
-    { key: "manufacturingDate", label: "ManufacturingDate", minWidth: 150 },
-    { key: "expirationDate", label: "ExpirationDate", minWidth: 150 },
-  ];
+  pageIndex = 0;
+  pageSize = 10;
+  pageSizeOptions = [5, 10, 20, 50];
+
+  /** Cột hiển thị danh sách scan/import. */
+  displayColumns = SCAN_ITEM_LIST_COLUMNS;
+
+  lotColumns = SCAN_ITEM_LIST_COLUMNS.map((col) => ({
+    key: col.key,
+    label: col.label,
+    minWidth: 110,
+  }));
   currentUser = "unknown";
   failedItems: ScannedItem[] = [];
-  //danh sach kho
   warehouseOptions: CachedWarehouse[] = [];
   filteredWarehouseOptions: CachedWarehouse[] = [];
   isLoadingWarehouses = false;
-  // existingReelIds?: string[];
   private rawQueue: string[] = [];
   private processingQueue = false;
   private existingReelIds = new Set<string>();
+  /** ReelID đã có trên đơn lúc mở dialog. */
+  private preloadedReelIds = new Set<string>();
   private pendingSaves = new Map<string, CreateVendorTemDetailPayload>();
-
-  // ── Debounce cache ──
   private cacheFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  /** SL theo mã SAP từ sap-po-info (por1Quantity). Không có PO → map rỗng, không cảnh báo. */
+  private poQtyBySapCode = new Map<string, number>();
+  private hasPoQuantityCheck = false;
+
   constructor(
     private dialogRef: MatDialogRef<ScanItemDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ScanDialogData | null,
@@ -159,12 +199,15 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
     private managerTemNccService: ManagerTemNccService,
     private accountService: AccountService,
     private warehouseCacheService: WarehouseCacheService,
+    private receivingSuppliesService: ReceivingSuppliesService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.dialogRef.disableClose = true;
-    this.isMobile = window.innerWidth <= 600;
+    this.updateIsMobile();
+    window.addEventListener("resize", this.onWindowResize);
+    this.pageSize = this.isMobile ? 5 : 10;
     this.warehouse = this.data?.warehouse ?? "";
     (this.data?.existingReelIds ?? []).forEach((id) =>
       this.existingReelIds.add(id),
@@ -177,8 +220,60 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       });
     this.approver = this.data?.approver ?? "";
     this.loadWarehouseOptions();
+    this.seedExistingOrderItems();
     this.loadFromCache();
+    this.loadPoQuantities();
+    this.updateStats();
   }
+
+  ngOnDestroy(): void {
+    window.removeEventListener("resize", this.onWindowResize);
+    if (this.cacheFlushTimer) {
+      clearTimeout(this.cacheFlushTimer);
+      this.cacheFlushTimer = null;
+    }
+  }
+
+  get pagedItems(): ScannedItem[] {
+    const start = this.pageIndex * this.pageSize;
+    return this.scannedList.slice(start, start + this.pageSize);
+  }
+
+  get newItemCount(): number {
+    return this.scannedList.filter(
+      (item) => !item.fromOrder && !this.preloadedReelIds.has(item.reelId),
+    ).length;
+  }
+
+  get existingOrderCount(): number {
+    return this.scannedList.filter(
+      (item) =>
+        (item.fromOrder ?? false) || this.preloadedReelIds.has(item.reelId),
+    ).length;
+  }
+
+  isExistingOnOrder(item: ScannedItem): boolean {
+    return (item.fromOrder ?? false) || this.preloadedReelIds.has(item.reelId);
+  }
+
+  setActiveTab(tab: ScanImportTab): void {
+    this.activeTab = tab;
+    this.errorMessage = "";
+    this.importErrorMessage = "";
+    if (tab === "scan") {
+      setTimeout(() => this.focusInput(), 120);
+    }
+  }
+
+  getDisplayValue(item: ScannedItem, key: string): string | number {
+    return getScanItemFieldValue(item, key);
+  }
+
+  onPage(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+  }
+
   openListDialog(): void {
     this.dialog.open(ScanListViewDialogComponent, {
       width: "95vw",
@@ -197,10 +292,11 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
   }
 
   get totalOrderQty(): number {
-    return (this.data?.parentItems ?? []).reduce(
-      (sum, p) => sum + (p.orderQty ?? 0),
-      0,
-    );
+    let total = 0;
+    this.poQtyBySapCode.forEach((qty) => {
+      total += qty;
+    });
+    return total;
   }
 
   // So sánh tổng scan vs tổng đơn (gộp cả existing + session hiện tại)
@@ -282,10 +378,16 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
   }
 
   clearAll(): void {
-    this.scannedList = [];
+    // Chỉ xóa mã mới trong phiên — giữ vật tư đã có trên đơn.
+    this.scannedList = this.scannedList.filter(
+      (item) =>
+        (item.fromOrder ?? false) || this.preloadedReelIds.has(item.reelId),
+    );
     this.failedItems = [];
     this.lastScannedCode = "";
     this.errorMessage = "";
+    this.importErrorMessage = "";
+    this.pageIndex = 0;
     if (this.cacheFlushTimer) {
       clearTimeout(this.cacheFlushTimer);
       this.cacheFlushTimer = null;
@@ -293,20 +395,66 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
     sessionStorage.removeItem(this.cacheKey);
     this.updateStats();
     this.cdr.markForCheck();
-    this.focusInput();
+    if (this.activeTab === "scan") {
+      this.focusInput();
+    }
   }
 
   onConfirm(): void {
-    if (this.cacheFlushTimer) {
-      clearTimeout(this.cacheFlushTimer);
-      this.cacheFlushTimer = null;
+    if (!this.scannedList.length) {
+      return;
     }
-    sessionStorage.removeItem(this.cacheKey);
-    this.dialogRef.close({
-      items: this.scannedList,
-      warehouse: this.warehouse,
-      approver: this.approver,
+    const newItems = this.scannedList.filter(
+      (item) => !item.fromOrder && !this.preloadedReelIds.has(item.reelId),
+    );
+    const productNameBySap: Record<string, string> = {};
+    const productNameByPoDetailId: Record<number, string> = {};
+    (this.data?.parentItems ?? []).forEach((p) => {
+      const name = (p.materialName ?? "").trim();
+      const sap = (p.sapCode ?? "").trim();
+      if (sap && name) {
+        productNameBySap[sap] = name;
+      }
+      if (p.id && name) {
+        productNameByPoDetailId[p.id] = name;
+      }
     });
+
+    const aggregateRef = this.dialog.open(ScanAggregateDialogComponent, {
+      width: "100vw",
+      maxWidth: "100vw",
+      height: "100vh",
+      maxHeight: "100vh",
+      panelClass: "scan-aggregate-panel",
+      disableClose: true,
+      autoFocus: false,
+      data: {
+        items: [...this.scannedList],
+        poCode: this.data?.poCode,
+        newItemCount: newItems.length,
+        importVendorTemTransactionsId:
+          this.data?.importVendorTemTransactionsId ?? 0,
+        productNameBySap,
+        productNameByPoDetailId,
+        currentUser: this.currentUser,
+      },
+    });
+
+    aggregateRef.afterClosed().subscribe(
+      (
+        result: {
+          confirmed: boolean;
+          items: ScannedItem[];
+        } | null,
+      ) => {
+        if (!result?.confirmed) {
+          return;
+        }
+        this.mergeScannedItems(result.items);
+        this.data?.onItemsUpdated?.(result.items);
+        this.cdr.markForCheck();
+      },
+    );
   }
   removeItem(id: string): void {
     this.scannedList = this.scannedList.filter((item) => item.id !== id);
@@ -317,6 +465,460 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
 
   onCancel(): void {
     this.dialogRef.close(null);
+  }
+
+  onFinish(): void {
+    const itemsToApply = this.scannedList.filter(
+      (item) => !item.fromOrder && !this.preloadedReelIds.has(item.reelId),
+    );
+    if (this.cacheFlushTimer) {
+      clearTimeout(this.cacheFlushTimer);
+      this.cacheFlushTimer = null;
+    }
+    sessionStorage.removeItem(this.cacheKey);
+    this.dialogRef.close({
+      items: itemsToApply,
+      warehouse: this.warehouse,
+      approver: this.approver,
+    });
+  }
+
+  openImportFilePicker(): void {
+    if (!this.data?.importVendorTemTransactionsId) {
+      this.importErrorMessage =
+        "Chưa có transaction — vui lòng Apply đơn trước.";
+      return;
+    }
+    if (!this.data?.mappingConfig) {
+      this.importErrorMessage =
+        "Vui lòng chọn kịch bản nhập TEM trước khi import.";
+      return;
+    }
+    const input = this.reelImportInputRef?.nativeElement;
+    if (input) {
+      input.value = "";
+      input.click();
+    }
+  }
+
+  onImportDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isImportDragging = true;
+  }
+
+  onImportDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isImportDragging = false;
+  }
+
+  onImportDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isImportDragging = false;
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      this.handleImportFile(file);
+    }
+  }
+
+  onImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (file) {
+      this.handleImportFile(file);
+    }
+  }
+
+  private updateIsMobile(): void {
+    this.isMobile = window.innerWidth <= 600;
+  }
+
+  private readonly onWindowResize = (): void => {
+    this.updateIsMobile();
+  };
+
+  private handleImportFile(file: File): void {
+    if (!this.data?.mappingConfig) {
+      this.importErrorMessage =
+        "Vui lòng chọn kịch bản nhập TEM trước khi import.";
+      return;
+    }
+    this.isImportingReel = true;
+    this.importErrorMessage = "";
+    const poSapCodes = (this.data?.parentItems ?? [])
+      .map((row) => (row.sapCode ?? "").trim())
+      .filter(Boolean);
+    const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        let parsed: VendorReelLogParseResult;
+        if (isExcel) {
+          parsed = parseVendorFullQrExcelArrayBuffer(
+            reader.result as ArrayBuffer,
+            this.data?.poCode ?? "",
+            poSapCodes,
+            { requireSap: false },
+          );
+        } else {
+          parsed = parseVendorReelLogContent(
+            String(reader.result ?? ""),
+            this.data?.poCode ?? "",
+            poSapCodes,
+            { requireSap: false },
+          );
+        }
+
+        if (!parsed.rows.length) {
+          this.isImportingReel = false;
+          this.importErrorMessage =
+            parsed.errors[0] ?? "File không có dòng ReelID hợp lệ.";
+          this.cdr.markForCheck();
+          return;
+        }
+
+        this.resolveSapCodeByPartFromPo(
+          (this.data?.poCode ?? "").trim(),
+        ).subscribe({
+          next: (partToSap) => {
+            const previewRows = this.buildReelImportPreviewRows(
+              parsed.rows,
+              partToSap,
+            );
+            if (!previewRows.length) {
+              this.isImportingReel = false;
+              this.importErrorMessage =
+                "Không dựng được dữ liệu import từ file.";
+              this.cdr.markForCheck();
+              return;
+            }
+
+            if (parsed.errors.length) {
+              this.importErrorMessage = parsed.errors.slice(0, 3).join(" · ");
+            }
+
+            this.applyImportPreviewRows(previewRows);
+          },
+          error: () => {
+            this.isImportingReel = false;
+            this.importErrorMessage =
+              "Không lấy được thông tin SAP từ PO để import.";
+            this.cdr.markForCheck();
+          },
+        });
+      } catch {
+        this.isImportingReel = false;
+        this.importErrorMessage = "Không đọc được file import ReelID.";
+        this.cdr.markForCheck();
+      }
+    };
+    reader.onerror = () => {
+      this.isImportingReel = false;
+      this.importErrorMessage = "Đọc file thất bại.";
+      this.cdr.markForCheck();
+    };
+
+    if (isExcel) {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
+  }
+
+  private applyImportPreviewRows(rows: ReelImportPreviewRow[]): void {
+    if (!this.data?.importVendorTemTransactionsId) {
+      return;
+    }
+    this.isImportingReel = true;
+    const parentItems = this.data.parentItems ?? [];
+    const now = new Date().toISOString();
+    const payloads: Array<{
+      tempId: string;
+      payload: CreateVendorTemDetailPayload;
+    }> = [];
+
+    for (const row of rows) {
+      const reelId = (row.reelId ?? "").trim();
+      const partNumber = (row.partNumber ?? "").trim();
+      if (!reelId) {
+        continue;
+      }
+      if (
+        this.scannedList.some((i) => i.reelId === reelId) ||
+        this.existingReelIds.has(reelId)
+      ) {
+        continue;
+      }
+
+      const matchedRow = parentItems.find(
+        (r) =>
+          (r.partNumber ?? "").trim().toLowerCase() ===
+            partNumber.toLowerCase() ||
+          (!!(row.sapCode ?? "").trim() &&
+            (r.sapCode ?? "").trim().toLowerCase() ===
+              (row.sapCode ?? "").trim().toLowerCase()),
+      );
+      if (parentItems.length && partNumber && !matchedRow) {
+        continue;
+      }
+
+      const manufacturingDate = (row.manufacturingDate ?? "").trim();
+      const lot =
+        (row.lotNumber ?? "").trim() ||
+        (partNumber && manufacturingDate
+          ? `${partNumber}${manufacturingDate}`
+          : "");
+      const tempId = this.generateId();
+      const payload: CreateVendorTemDetailPayload = {
+        reelId,
+        partNumber,
+        vendor: (row.vendor ?? "").trim() || (this.data?.vendorCode ?? ""),
+        lot,
+        userData1: (row.userData1 ?? "").trim(),
+        userData2: (row.userData2 ?? "").trim(),
+        userData3: (row.userData3 ?? "").trim(),
+        userData4: (row.userData4 ?? "").trim(),
+        userData5: (row.userData5 ?? "").trim(),
+        initialQuantity: Number(row.initialQuantity) || 0,
+        msdLevel: (row.msl ?? "").trim(),
+        msdInitialFloorTime: "",
+        msdBagSealDate: "",
+        marketUsage: "",
+        quantityOverride: 0,
+        shelfTime: "",
+        spMaterialName: (row.itemName ?? "").trim(),
+        warningLimit: "",
+        maximumLimit: "",
+        comments: "",
+        warmupTime: "",
+        storageUnit: (row.storageUnit ?? "").trim() || this.warehouse,
+        subStorageUnit: "",
+        locationOverride: (row.locationOverride ?? "").trim(),
+        manufacturingDate,
+        expirationDate: (row.expirationDate ?? "").trim(),
+        partClass: "",
+        sapCode: (row.sapCode ?? "").trim(),
+        vendorQrCode: (row.vendorQrCode ?? "").trim(),
+        status: matchedRow ? "NEW" : "DRAFT",
+        createdBy: this.currentUser,
+        createdAt: now,
+        updatedBy: this.currentUser,
+        updatedAt: now,
+        poDetailId: matchedRow?.id ?? (null as any),
+        importVendorTemTransactionsId: this.data.importVendorTemTransactionsId,
+      };
+      payloads.push({ tempId, payload });
+      this.existingReelIds.add(reelId);
+    }
+
+    if (!payloads.length) {
+      this.isImportingReel = false;
+      this.importErrorMessage = "Không có dòng hợp lệ để import.";
+      this.cdr.markForCheck();
+      return;
+    }
+
+    forkJoin(
+      payloads.map(({ tempId, payload }) =>
+        this.managerTemNccService.createVendorTemDetails(payload).pipe(
+          map((res) => ({ ok: true as const, tempId, payload, res })),
+          catchError(() => {
+            this.existingReelIds.delete(payload.reelId);
+            return of({
+              ok: false as const,
+              tempId,
+              payload,
+              res: null,
+            });
+          }),
+        ),
+      ),
+    ).subscribe({
+      next: (results) => {
+        const successItems = results.filter((r) => r.ok);
+        successItems.reverse().forEach(({ payload, res }) => {
+          const uiItem: ScannedItem = {
+            id: this.generateId(),
+            dbId: res?.id,
+            ...payload,
+          } as any;
+          this.scannedList.unshift(uiItem);
+        });
+        this.isImportingReel = false;
+        this.importErrorMessage = "";
+        this.lastScannedCode = `Đã import ${successItems.length}/${payloads.length} ReelID`;
+        this.pageIndex = 0;
+        this.updateStats();
+        this.saveToCache();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isImportingReel = false;
+        this.importErrorMessage = "Import ReelID thất bại.";
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private buildReelImportPreviewRows(
+    rows: VendorReelLogImportRow[],
+    partToSap: Map<string, string>,
+  ): ReelImportPreviewRow[] {
+    if (!this.data?.mappingConfig) {
+      return [];
+    }
+    const parentItems = this.data.parentItems ?? [];
+    const previewRows: ReelImportPreviewRow[] = [];
+
+    rows.forEach((row, index) => {
+      const imported = toVendorImportedReelEntry(row);
+      const qrCode = imported.qrCode;
+      const fieldMap = parseVendorQrByMappingConfig(
+        qrCode,
+        this.data!.mappingConfig!,
+      );
+      const reelId = this.firstNonEmpty(fieldMap["reelId"], imported.reelId);
+      const partNumber = this.firstNonEmpty(
+        fieldMap["partNumber"],
+        imported.partNumber,
+      );
+      const manufacturingDate = this.firstNonEmpty(
+        fieldMap["manufacturingDate"],
+        imported.mfgDate,
+      );
+      const qtyRaw = (fieldMap["initialQuantity"] ?? "").trim();
+      const qtyFromMapping = Number(qtyRaw);
+      const initialQuantity =
+        qtyRaw !== "" && Number.isFinite(qtyFromMapping)
+          ? qtyFromMapping
+          : imported.quantity;
+      const matchedRow = parentItems.find(
+        (r) =>
+          (r.partNumber ?? "").trim().toLowerCase() ===
+          partNumber.toLowerCase(),
+      );
+      const resolvedSap = this.firstNonEmpty(
+        partToSap.get(partNumber.toLowerCase()),
+        matchedRow?.sapCode,
+        row.sapCode,
+      );
+      const lotNumber = this.firstNonEmpty(
+        fieldMap["lotNumber"],
+        imported.lotNumber,
+        partNumber && manufacturingDate
+          ? `${partNumber}${manufacturingDate}`
+          : "",
+      );
+      const poNumber = this.firstNonEmpty(
+        fieldMap["poNumber"],
+        imported.poNumber,
+        this.data?.poCode,
+      );
+
+      previewRows.push({
+        uid: `import-${row.lineNo}-${index}-${reelId || "empty"}`,
+        lineNo: row.lineNo,
+        reelId,
+        partNumber,
+        initialQuantity: Number.isFinite(initialQuantity) ? initialQuantity : 0,
+        poNumber,
+        manufacturingDate,
+        lotNumber,
+        itemName: (row.itemName ?? "").trim(),
+        expirationDate: isVendorQrFieldMapped(
+          this.data!.mappingConfig,
+          "expirationDate",
+        )
+          ? (fieldMap["expirationDate"] ?? "").trim()
+          : "",
+        locationOverride: "",
+        storageUnit: this.firstNonEmpty(fieldMap["storageUnit"]),
+        sapCode: resolvedSap,
+        vendor: this.firstNonEmpty(fieldMap["vendor"], this.data?.vendorCode),
+        userData1: isVendorQrFieldMapped(this.data!.mappingConfig, "userData1")
+          ? (fieldMap["userData1"] ?? "").trim()
+          : "",
+        userData2: isVendorQrFieldMapped(this.data!.mappingConfig, "userData2")
+          ? (fieldMap["userData2"] ?? "").trim()
+          : "",
+        userData3: isVendorQrFieldMapped(this.data!.mappingConfig, "userData3")
+          ? (fieldMap["userData3"] ?? "").trim()
+          : "",
+        userData4: isVendorQrFieldMapped(this.data!.mappingConfig, "userData4")
+          ? (fieldMap["userData4"] ?? "").trim()
+          : "",
+        userData5: isVendorQrFieldMapped(this.data!.mappingConfig, "userData5")
+          ? (fieldMap["userData5"] ?? "").trim()
+          : isVendorQrFieldMapped(this.data!.mappingConfig, "poNumber")
+            ? this.firstNonEmpty(fieldMap["poNumber"], imported.poNumber)
+            : "",
+        msl: isVendorQrFieldMapped(this.data!.mappingConfig, "msl")
+          ? (fieldMap["msl"] ?? "").trim()
+          : "",
+        vendorQrCode: qrCode,
+      });
+    });
+
+    return previewRows;
+  }
+
+  private resolveSapCodeByPartFromPo(
+    poCode: string,
+  ): Observable<Map<string, string>> {
+    if (!poCode) {
+      return of(new Map<string, string>());
+    }
+    return this.receivingSuppliesService.getSapPoInfo(poCode).pipe(
+      switchMap((res) => {
+        const sapCodes = Array.from(
+          new Set(
+            (res?.poDetails ?? [])
+              .map((d) => (d.por1ItemCode ?? "").trim())
+              .filter(Boolean),
+          ),
+        );
+        if (!sapCodes.length) {
+          return of(new Map<string, string>());
+        }
+        return forkJoin(
+          sapCodes.map((sapCode) =>
+            this.receivingSuppliesService
+              .getOitmPartNumbersBySapCode(sapCode)
+              .pipe(
+                map((parts) => ({ sapCode, parts })),
+                catchError(() => of({ sapCode, parts: [] as string[] })),
+              ),
+          ),
+        ).pipe(
+          map((rows) => {
+            const partToSap = new Map<string, string>();
+            rows.forEach(({ sapCode, parts }) => {
+              parts.forEach((part) => {
+                const key = part.trim().toLowerCase();
+                if (key && !partToSap.has(key)) {
+                  partToSap.set(key, sapCode);
+                }
+              });
+            });
+            return partToSap;
+          }),
+        );
+      }),
+      catchError(() => of(new Map<string, string>())),
+    );
+  }
+
+  private firstNonEmpty(...values: Array<string | null | undefined>): string {
+    for (const value of values) {
+      const trimmed = (value ?? "").trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+    return "";
   }
 
   private highlightDuplicate(id: string): void {
@@ -449,11 +1051,30 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const dateSource = fieldMap["manufacturingDate"] || this.data?.arrivalDate;
+    const manufacturingDate = isVendorQrFieldMapped(
+      mappingConfig,
+      "manufacturingDate",
+    )
+      ? (fieldMap["manufacturingDate"] ?? "").trim()
+      : "";
     let cleanDate = "";
-    if (dateSource && /^\d{8}$/.test(String(dateSource))) {
-      cleanDate = String(dateSource);
+    if (manufacturingDate && /^\d{8}$/.test(manufacturingDate)) {
+      cleanDate = manufacturingDate;
+    } else if (
+      isVendorQrFieldMapped(mappingConfig, "manufacturingDate") &&
+      this.data?.arrivalDate &&
+      /^\d{8}$/.test(String(this.data.arrivalDate))
+    ) {
+      cleanDate = String(this.data.arrivalDate);
     }
+    const lotFromMapping = isVendorQrFieldMapped(mappingConfig, "lotNumber")
+      ? (fieldMap["lotNumber"] ?? fieldMap["lot"] ?? "").trim()
+      : "";
+    const lotNumber =
+      lotFromMapping ||
+      (scannedPartNumber && cleanDate
+        ? `${scannedPartNumber}${cleanDate}`
+        : "");
 
     const now = new Date().toISOString();
     const tempId = this.generateId();
@@ -461,39 +1082,61 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
     const payload: CreateVendorTemDetailPayload = {
       reelId: reelIdToCheck,
       partNumber: scannedPartNumber,
-      vendor: fieldMap["vendor"] ?? this.data?.vendorCode ?? "",
-      lot: `${scannedPartNumber}${cleanDate}`,
-      userData1: fieldMap["userData1"] || "NO",
-      userData2: fieldMap["userData2"] || "NO",
-      userData3: fieldMap["userData3"] || "NO",
-      userData4: fieldMap["userData4"] || (matchedRow?.sapCode ?? ""),
-      userData5: fieldMap["userData5"] || (this.data?.poCode ?? ""),
+      vendor: isVendorQrFieldMapped(mappingConfig, "vendor")
+        ? (fieldMap["vendor"] ?? "").trim()
+        : (this.data?.vendorCode ?? ""),
+      lot: lotNumber,
+      userData1: isVendorQrFieldMapped(mappingConfig, "userData1")
+        ? (fieldMap["userData1"] ?? "").trim()
+        : "",
+      userData2: isVendorQrFieldMapped(mappingConfig, "userData2")
+        ? (fieldMap["userData2"] ?? "").trim()
+        : "",
+      userData3: isVendorQrFieldMapped(mappingConfig, "userData3")
+        ? (fieldMap["userData3"] ?? "").trim()
+        : "",
+      userData4: isVendorQrFieldMapped(mappingConfig, "userData4")
+        ? (fieldMap["userData4"] ?? "").trim()
+        : "",
+      userData5: isVendorQrFieldMapped(mappingConfig, "userData5")
+        ? this.firstNonEmpty(fieldMap["userData5"], fieldMap["poNumber"])
+        : "",
       initialQuantity: parsedQty,
-      msdLevel: fieldMap["msdLevel"] ?? "",
+      msdLevel: isVendorQrFieldMapped(mappingConfig, "msl")
+        ? (fieldMap["msl"] ?? fieldMap["msdLevel"] ?? "").trim()
+        : "",
       msdInitialFloorTime: "",
       msdBagSealDate: "",
       marketUsage: "",
       quantityOverride: Number(fieldMap["quantityOverride"]) || 0,
       shelfTime: "",
-      spMaterialName: "",
+      spMaterialName: isVendorQrFieldMapped(mappingConfig, "spMaterialName")
+        ? (fieldMap["spMaterialName"] ?? "").trim()
+        : (matchedRow?.materialName ?? "").trim(),
       warningLimit: "",
       maximumLimit: "",
       comments: "",
       warmupTime: "",
-      storageUnit: fieldMap["storageUnit"] || this.warehouse || "",
+      storageUnit: isVendorQrFieldMapped(mappingConfig, "storageUnit")
+        ? (fieldMap["storageUnit"] ?? "").trim()
+        : "",
       subStorageUnit: "",
-      locationOverride: "",
-      manufacturingDate: fieldMap["manufacturingDate"] ?? "",
-      expirationDate: fieldMap["expirationDate"] ?? "",
+      locationOverride: isVendorQrFieldMapped(mappingConfig, "locationOverride")
+        ? (fieldMap["locationOverride"] ?? "").trim()
+        : "",
+      manufacturingDate,
+      expirationDate: isVendorQrFieldMapped(mappingConfig, "expirationDate")
+        ? (fieldMap["expirationDate"] ?? "").trim()
+        : "",
       partClass: "",
       sapCode: matchedRow?.sapCode ?? "",
       vendorQrCode: rawCode,
-      status: isOrphan ? "DRAFT" : "NEW", // phan biet scan tu do
+      status: isOrphan ? "DRAFT" : "NEW",
       createdBy: this.currentUser,
       createdAt: now,
       updatedBy: this.currentUser,
       updatedAt: now,
-      poDetailId: matchedRow?.id ?? (null as any), // null neu chua co PO
+      poDetailId: matchedRow?.id ?? (null as any),
       importVendorTemTransactionsId: this.data.importVendorTemTransactionsId,
     };
 
@@ -527,7 +1170,7 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       sessionStorage.setItem(
         this.cacheKey,
         JSON.stringify({
-          scannedList: this.scannedList,
+          scannedList: this.scannedList.filter((i) => !i.fromOrder),
           failedItems: this.failedItems,
           lastScannedCode: this.lastScannedCode,
         }),
@@ -574,7 +1217,7 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       sessionStorage.setItem(
         this.cacheKey,
         JSON.stringify({
-          scannedList: this.scannedList,
+          scannedList: this.scannedList.filter((i) => !i.fromOrder),
           failedItems: this.failedItems,
           lastScannedCode: this.lastScannedCode,
         }),
@@ -591,19 +1234,82 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
         return;
       }
       const cached = JSON.parse(raw);
-      this.scannedList = cached.scannedList ?? [];
+      const cachedList: ScannedItem[] = cached.scannedList ?? [];
+      const knownReelIds = new Set(
+        this.scannedList.map((i) => (i.reelId ?? "").trim()).filter(Boolean),
+      );
+      const toAdd = cachedList.filter((item) => {
+        const reelId = (item.reelId ?? "").trim();
+        if (!reelId || knownReelIds.has(reelId)) {
+          return false;
+        }
+        knownReelIds.add(reelId);
+        this.existingReelIds.add(reelId);
+        return true;
+      });
+      // Cache (mã chưa tổng hợp) đưa lên đầu, giữ vật tư đã có trên đơn phía sau.
+      this.scannedList = [...toAdd, ...this.scannedList];
       this.failedItems = cached.failedItems ?? [];
       this.lastScannedCode = cached.lastScannedCode ?? "";
-      // Sync lại existingReelIds từ cache
-      this.scannedList.forEach((i) => {
-        if (i.reelId) {
-          this.existingReelIds.add(i.reelId);
-        }
-      });
     } catch {
       //code
     }
   }
+
+  private seedExistingOrderItems(): void {
+    const existing = (this.data?.existingItems ?? [])
+      .filter((item) => !!(item.reelId ?? "").trim())
+      .map((item) => ({
+        ...item,
+        fromOrder: true,
+        id: item.id ?? `order-${item.dbId ?? item.reelId}`,
+      }));
+    if (!existing.length) {
+      return;
+    }
+    this.scannedList = existing;
+    existing.forEach((item) => {
+      if (item.reelId) {
+        this.existingReelIds.add(item.reelId);
+        this.preloadedReelIds.add(item.reelId);
+      }
+    });
+  }
+
+  /** Lấy por1Quantity từ sap-po-info theo mã PO; không có PO → bỏ qua cảnh báo. */
+  private loadPoQuantities(): void {
+    const poCode = (this.data?.poCode ?? "").trim();
+    if (!poCode) {
+      this.hasPoQuantityCheck = false;
+      this.poQtyBySapCode.clear();
+      this.updateStats();
+      return;
+    }
+    this.receivingSuppliesService.getSapPoInfo(poCode).subscribe({
+      next: (res) => {
+        const qtyMap = new Map<string, number>();
+        (res?.poDetails ?? []).forEach((d) => {
+          const sap = (d.por1ItemCode ?? "").trim();
+          if (!sap) {
+            return;
+          }
+          const qty = Number.parseFloat(d.por1Quantity ?? "0") || 0;
+          qtyMap.set(sap, (qtyMap.get(sap) ?? 0) + qty);
+        });
+        this.poQtyBySapCode = qtyMap;
+        this.hasPoQuantityCheck = qtyMap.size > 0;
+        this.updateStats();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.hasPoQuantityCheck = false;
+        this.poQtyBySapCode.clear();
+        this.updateStats();
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   private updateStats(): void {
     this.totalCount = this.scannedList.length;
     this.totalScannedQty = this.scannedList.reduce(
@@ -614,27 +1320,72 @@ export class ScanItemDialogComponent implements OnInit, AfterViewInit {
       this.scannedList.map((i) => i.partNumber),
     ).size;
 
-    if (this.scannedList.length === 0) {
+    const maxPage = Math.max(
+      0,
+      Math.ceil(this.scannedList.length / this.pageSize) - 1,
+    );
+    if (this.pageIndex > maxPage) {
+      this.pageIndex = maxPage;
+    }
+
+    // Không có PO / không lấy được por1Quantity → không cảnh báo, cho scan tự do.
+    if (!this.hasPoQuantityCheck || this.scannedList.length === 0) {
       this.scanStatusSummary = { type: null, message: "" };
       return;
     }
-    const totalOrder = this.totalOrderQty;
-    const scanned = this.totalScannedQty;
-    if (scanned === totalOrder) {
-      this.scanStatusSummary = {
-        type: "ok",
-        message: `Đã scan đủ số lượng (${scanned}/${totalOrder})`,
-      };
-    } else if (scanned > totalOrder) {
+
+    const scannedBySap = new Map<string, number>();
+    this.scannedList.forEach((item) => {
+      const sap = (item.sapCode ?? "").trim();
+      if (!sap) {
+        return;
+      }
+      scannedBySap.set(
+        sap,
+        (scannedBySap.get(sap) ?? 0) + (Number(item.initialQuantity) || 0),
+      );
+    });
+
+    const overLines: string[] = [];
+    scannedBySap.forEach((scannedQty, sap) => {
+      const poQty = this.poQtyBySapCode.get(sap);
+      if (poQty == null) {
+        return;
+      }
+      if (scannedQty > poQty) {
+        overLines.push(`${sap}: ${scannedQty}/${poQty}`);
+      }
+    });
+
+    if (overLines.length) {
       this.scanStatusSummary = {
         type: "over",
-        message: `Vượt quá số lượng — đã scan ${scanned}, đơn hàng ${totalOrder}`,
+        message: `Vượt quá số lượng PO — ${overLines.join("; ")}`,
       };
-    } else {
-      this.scanStatusSummary = {
-        type: "under",
-        message: `Chưa đủ — đã scan ${scanned}/${totalOrder}`,
-      };
+      return;
     }
+
+    // Có PO nhưng chưa vượt từng mã SAP; nếu tổng scan vẫn vượt tổng PO (thiếu sapCode) thì báo tổng.
+    const totalOrder = this.totalOrderQty;
+    const scanned = this.totalScannedQty;
+    if (scanned > totalOrder && totalOrder > 0) {
+      this.scanStatusSummary = {
+        type: "over",
+        message: `Vượt quá số lượng PO — đã scan ${scanned}, PO ${totalOrder}`,
+      };
+      return;
+    }
+
+    this.scanStatusSummary = { type: null, message: "" };
+  }
+
+  private mergeScannedItems(items: ScannedItem[]): void {
+    const byId = new Map(items.map((item) => [item.id, item]));
+    this.scannedList = this.scannedList.map(
+      (item) => byId.get(item.id) ?? item,
+    );
+    this.updateStats();
+    this.saveToCache();
+    this.cdr.markForCheck();
   }
 }

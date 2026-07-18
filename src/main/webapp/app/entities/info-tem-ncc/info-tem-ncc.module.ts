@@ -42,6 +42,7 @@ import { LotDetailDialogComponent } from "./lot-detail-dialog/lot-detail-dialog.
 import { ScanItemDialogComponent } from "./scan-item-dialog/scan-item-dialog.component";
 import { OrderSummaryDialogComponent } from "./list/order-summary-dialog/order-summary-dialog.component";
 import { ScanListViewDialogComponent } from "./scan-item-dialog/scan-list-view-dialog/scan-list-view-dialog.component";
+import { ScanAggregateDialogComponent } from "./scan-item-dialog/scan-aggregate-dialog/scan-aggregate-dialog.component";
 import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-detail-dialog/approve-lot-detail-dialog.component";
 @NgModule({
   imports: [
@@ -91,6 +92,7 @@ import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-
     ScanItemDialogComponent,
     OrderSummaryDialogComponent,
     ScanListViewDialogComponent,
+    ScanAggregateDialogComponent,
     ApproveLotDetailDialogComponent,
   ],
 

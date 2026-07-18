@@ -19,6 +19,7 @@ import { MatTableModule, MatTableDataSource } from "@angular/material/table";
 import { MatPaginator, MatPaginatorModule } from "@angular/material/paginator";
 import { MatSort, MatSortModule } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
+import { HttpClient } from "@angular/common/http";
 
 import { AlertService } from "app/core/util/alert.service";
 import {
@@ -63,7 +64,17 @@ import {
   isVendorQrFieldMapped,
   parseVendorQrByMappingConfig,
 } from "../shared/vendor-qr-mapping.util";
-import { ReceivingSuppliesService } from "app/entities/generate-tem-in/service/receiving-supplies.service";
+import {
+  GoodsReceiptPoLine,
+  ReceivingSuppliesService,
+  resolveHttpErrorMessage,
+  validateStorageUnitForSap,
+} from "app/entities/generate-tem-in/service/receiving-supplies.service";
+import {
+  generateTemPanacimCsvBlob,
+  TemPanacimExportInput,
+} from "app/entities/generate-tem-in/receiving-supplies/tem-panacim-export.util";
+import { SEND_REQUIRED_FIELDS } from "../shared/scan-item-columns.util";
 import {
   ImportReelPreviewDialogComponent,
   ReelImportPreviewDialogData,
@@ -157,8 +168,11 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     "totalQuantity",
     // "quantityBoxOrder",
     "totalQuantityOrder",
+    "actions",
   ];
   isScanning = false;
+  isSendingSap = false;
+  isSendingPanacim = false;
   scanMessage = "";
   lotColumns = [
     { key: "lotNumber", label: "Lot", minWidth: 130 },
@@ -300,6 +314,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     private notificationService: NotificationService,
     private warehouseCacheService: WarehouseCacheService,
     private receivingSuppliesService: ReceivingSuppliesService,
+    private http: HttpClient,
   ) {}
 
   // ==================== LIFECYCLE ====================
@@ -422,11 +437,16 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       partNumber: r.partNumber,
       sapCode: r.sapCode,
       orderQty: r.totalQuantityOrder,
+      materialName: r.materialName,
     }));
 
+    const existingItems = this.collectExistingScannedItems();
+
     const dialogRef = this.dialog.open(ScanItemDialogComponent, {
-      width: "95vw",
+      width: "96vw",
       maxWidth: "1400px",
+      height: "92vh",
+      maxHeight: "92vh",
       panelClass: "scan-dialog-panel",
       autoFocus: false,
       data: {
@@ -439,7 +459,10 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           this.selectedScenario?.vendorCode ?? this.orderInfo.vendorCode,
         parentItems,
         existingReelIds: Array.from(this.scannedReelIds),
+        existingItems,
         poCode: this.orderInfo.poCode,
+        onItemsUpdated: (items: ScannedItem[]) =>
+          this.syncLotsFromScannedItems(items),
       },
     });
 
@@ -465,8 +488,11 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.orderInfo.approver = result.approver;
 
         const scannedItems: ScannedItem[] = result.items;
+        const matchedItems = scannedItems.filter((s) => !!s.poDetailId);
+        const orphanItems = scannedItems.filter((s) => !s.poDetailId);
+
         this.dataSource.data = this.dataSource.data.map((row) => {
-          const relatedScans = scannedItems.filter(
+          const relatedScans = matchedItems.filter(
             (s) => s.poDetailId === row.id,
           );
           if (relatedScans.length === 0) {
@@ -478,7 +504,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             0,
           );
 
-          // map them lot moi vao
           const newLots: LotItem[] = relatedScans.map((s) => ({
             vendorTemDetailId: s.dbId ?? 0,
             lotNumber: s.lot,
@@ -513,6 +538,37 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             lots: [...row.lots, ...newLots],
           };
         });
+
+        if (orphanItems.length) {
+          const orphanLots: LotItem[] = orphanItems.map((s) => ({
+            vendorTemDetailId: s.dbId ?? 0,
+            lotNumber: s.lot,
+            reelId: s.reelId,
+            partNumber: s.partNumber,
+            vendor: s.vendor,
+            boxCount: 1,
+            totalQty: s.initialQuantity,
+            initialQuantity: s.initialQuantity,
+            userData1: s.userData1,
+            userData2: s.userData2,
+            userData3: s.userData3,
+            userData4: s.userData4,
+            userData5: s.userData5,
+            msl: s.msdLevel,
+            storageUnit: s.storageUnit,
+            manufacturingDate: s.manufacturingDate,
+            expirationDate: s.expirationDate,
+            sapCode: s.sapCode,
+            vendorQrCode: s.vendorQrCode,
+            status: s.status,
+            createdBy: s.createdBy,
+            createdAt: s.createdAt,
+            poDetailId: s.poDetailId,
+            importVendorTemTransactionsId: s.importVendorTemTransactionsId,
+            details: [],
+          }));
+          this.draftLots = [...orphanLots, ...this.draftLots];
+        }
 
         this.cdr.detectChanges();
       },
@@ -1074,7 +1130,483 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     });
   }
 
+  canSendSapParent(row: ParentItem): boolean {
+    if (this.isSendingSap) {
+      return false;
+    }
+    return (row.lots ?? []).some((lot) => this.canSendSapLot(lot));
+  }
+
+  canSendPanacimParent(row: ParentItem): boolean {
+    if (this.isSendingPanacim) {
+      return false;
+    }
+    return (row.lots ?? []).some((lot) => this.canSendPanacimLot(lot));
+  }
+
+  onSendSapParent(row: ParentItem): void {
+    if (this.isSendingSap) {
+      return;
+    }
+    const lots = (row.lots ?? []).filter((lot) => this.canSendSapLot(lot));
+    if (!lots.length) {
+      this.notificationService.warning(
+        "Không có vật tư đủ điều kiện gửi SAP (cần PO hợp lệ trên Userdata5 và chưa gửi).",
+      );
+      return;
+    }
+    const missingMsg = this.buildMissingFieldsMessage(row, lots);
+    if (missingMsg) {
+      this.showMissingFieldsDialog(missingMsg);
+      return;
+    }
+    this.dialog
+      .open(DialogContentExampleDialogComponent, {
+        width: "420px",
+        data: {
+          title: "Xác nhận gửi SAP",
+          message: `Bạn có chắc muốn gửi ${lots.length} vật tư SAP của mã ${row.sapCode}?`,
+          confirmText: "Gửi SAP",
+          cancelText: "Hủy",
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.executeSendSap(row, lots);
+      });
+  }
+
+  onSendPanacimParent(row: ParentItem): void {
+    if (this.isSendingPanacim) {
+      return;
+    }
+    if (!this.canSendPanacimParent(row)) {
+      return;
+    }
+    const lots = (row.lots ?? []).filter((lot) => this.canSendPanacimLot(lot));
+    if (!lots.length) {
+      this.notificationService.warning(
+        "Không có vật tư đủ điều kiện gửi PanaCIM.",
+      );
+      return;
+    }
+    const missingMsg = this.buildMissingFieldsMessage(row, lots);
+    if (missingMsg) {
+      this.showMissingFieldsDialog(missingMsg);
+      return;
+    }
+    this.dialog
+      .open(DialogContentExampleDialogComponent, {
+        width: "420px",
+        data: {
+          title: "Xác nhận gửi PanaCIM",
+          message: `Bạn có chắc muốn gửi ${lots.length} vật tư mã SAP ${row.sapCode} đến PanaCIM?`,
+          confirmText: "Gửi PanaCIM",
+          cancelText: "Hủy",
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.executeSendPanacim(row, lots);
+      });
+  }
+
   // ==================== PRIVATE ====================
+
+  private canSendSapLot(lot: LotItem): boolean {
+    if (lot.sapSent === true) {
+      return false;
+    }
+    if (!(lot.reelId ?? "").trim()) {
+      return false;
+    }
+    return this.lotHasValidPo(lot);
+  }
+
+  private canSendPanacimLot(lot: LotItem): boolean {
+    return (
+      Boolean((lot.reelId ?? "").trim()) &&
+      Boolean(lot.vendorTemDetailId) &&
+      lot.panaSendStatus !== true
+    );
+  }
+
+  private lotHasValidPo(lot: LotItem): boolean {
+    const po = this.getLotPoNumber(lot);
+    return Boolean(po) && po !== "-";
+  }
+
+  private getLotPoNumber(lot: LotItem): string {
+    const fromLot = String(lot.userData5 ?? "").trim();
+    if (fromLot) {
+      return fromLot;
+    }
+    return (this.orderInfo.poCode ?? "").trim();
+  }
+
+  private getEffectiveSapWarehouse(lot: LotItem): string {
+    return String(lot.storageUnit ?? this.orderInfo.warehouse ?? "").trim();
+  }
+
+  /** Kiểm tra đủ cột theo chuẩn dialog tổng hợp. Trả về message lỗi hoặc null. */
+  private buildMissingFieldsMessage(
+    parent: ParentItem,
+    lots: LotItem[],
+  ): string | null {
+    const issues: string[] = [];
+    lots.forEach((lot) => {
+      const missing = this.getMissingSendFields(parent, lot);
+      if (!missing.length) {
+        return;
+      }
+      const sap = String(lot.sapCode || parent.sapCode || "—").trim();
+      const reel = String(lot.reelId ?? "").trim() || "—";
+      issues.push(`• SAP ${sap} / ReelID ${reel}: thiếu ${missing.join(", ")}`);
+    });
+    if (!issues.length) {
+      return null;
+    }
+    const maxShow = 15;
+    const shown = issues.slice(0, maxShow);
+    const more =
+      issues.length > maxShow
+        ? `\n… và ${issues.length - maxShow} vật tư khác.`
+        : "";
+    return (
+      `Không thể gửi — chưa đủ thông tin theo chuẩn dialog Tổng hợp.\n` +
+      `Vui lòng điền đủ các trường còn thiếu rồi thử lại:\n\n` +
+      `${shown.join("\n")}${more}`
+    );
+  }
+
+  private showMissingFieldsDialog(message: string): void {
+    this.notificationService.error(
+      "Không thể gửi — còn vật tư thiếu thông tin. Xem chi tiết trong hộp thoại.",
+    );
+    this.dialog.open(DialogContentExampleDialogComponent, {
+      width: "560px",
+      maxHeight: "80vh",
+      data: {
+        title: "Thiếu thông tin — không thể gửi",
+        message,
+        confirmText: "Đã hiểu",
+        cancelText: "Đóng",
+      },
+    });
+  }
+
+  private getMissingSendFields(parent: ParentItem, lot: LotItem): string[] {
+    const values: Record<string, string | number | null | undefined> = {
+      reelId: lot.reelId,
+      partNumber: lot.partNumber || parent.partNumber,
+      itemName: parent.materialName,
+      sapCode: lot.sapCode || parent.sapCode,
+      vendor: lot.vendor || this.orderInfo.vendorCode,
+      initialQuantity: lot.initialQuantity,
+      manufacturingDate: lot.manufacturingDate,
+      lotNumber: lot.lotNumber,
+      expirationDate: lot.expirationDate,
+      locationOverride: lot.locationOverride,
+      storageUnit: lot.storageUnit || this.orderInfo.warehouse,
+      userData1: lot.userData1,
+      userData2: lot.userData2,
+      userData3: lot.userData3,
+      userData4: lot.userData4,
+      userData5: lot.userData5 || this.orderInfo.poCode,
+      msl: lot.msl,
+    };
+
+    return SEND_REQUIRED_FIELDS.filter((field) => {
+      const raw = values[field.key];
+      if (field.key === "initialQuantity") {
+        const n = Number(raw);
+        return !Number.isFinite(n) || n <= 0;
+      }
+      return !String(raw ?? "").trim();
+    }).map((field) => field.label);
+  }
+
+  private executeSendSap(parent: ParentItem, lots: LotItem[]): void {
+    for (const lot of lots) {
+      const storageUnit = this.getEffectiveSapWarehouse(lot);
+      const sapUnitError = validateStorageUnitForSap(storageUnit);
+      if (sapUnitError) {
+        const label = `${parent.sapCode}${lot.lotNumber ? ` / lô ${lot.lotNumber}` : ""}`;
+        this.notificationService.error(`${label}: ${sapUnitError}`);
+        return;
+      }
+    }
+
+    const poNumbers = [...new Set(lots.map((lot) => this.getLotPoNumber(lot)))];
+    this.isSendingSap = true;
+    this.cdr.markForCheck();
+
+    forkJoin(
+      poNumbers.map((po) =>
+        this.receivingSuppliesService.getSapPoInfo(po).pipe(
+          map((res) => ({
+            po,
+            docEntry: Number.parseInt(res?.poInfo?.oporDocEntry ?? "", 10),
+          })),
+        ),
+      ),
+    )
+      .pipe(
+        switchMap((poRows) => {
+          const docEntryByPo = new Map(
+            poRows.map((row) => [row.po, row.docEntry]),
+          );
+          for (const po of poNumbers) {
+            const docEntry = docEntryByPo.get(po);
+            if (!docEntry || Number.isNaN(docEntry)) {
+              throw new Error(
+                `Không lấy được DocEntry từ PO ${po}. Kiểm tra lại mã PO.`,
+              );
+            }
+          }
+          const opdn: GoodsReceiptPoLine[] = lots.flatMap((lot) => {
+            const po = this.getLotPoNumber(lot);
+            const docEntry = docEntryByPo.get(po)!;
+            return this.buildOpdnLines(parent, lot, docEntry);
+          });
+          if (!opdn.length) {
+            throw new Error("Không có dữ liệu tem để gửi SAP.");
+          }
+          return this.receivingSuppliesService.postGoodsReceiptPo({
+            OPDN: opdn,
+          });
+        }),
+      )
+      .subscribe({
+        next: () => {
+          lots.forEach((lot) => {
+            lot.sapSent = true;
+          });
+          this.dataSource.data = [...this.dataSource.data];
+          this.isSendingSap = false;
+          this.notificationService.success(
+            `Đã gửi SAP thành công (${lots.length} vật tư).`,
+          );
+          this.cdr.markForCheck();
+        },
+        error: (err: unknown) => {
+          this.isSendingSap = false;
+          this.notificationService.error(
+            resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
+          );
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  private buildOpdnLines(
+    parent: ParentItem,
+    lot: LotItem,
+    docEntry: number,
+  ): GoodsReceiptPoLine[] {
+    const reelId = String(lot.reelId ?? "").trim();
+    if (!reelId) {
+      return [];
+    }
+    const vendor = String(lot.vendor || this.orderInfo.vendorCode || "").trim();
+    const storageUnit = this.getEffectiveSapWarehouse(lot);
+    const quantity = Number(lot.initialQuantity ?? lot.totalQty ?? 1) || 1;
+    const partNumber = String(parent.partNumber || lot.partNumber || "").trim();
+
+    return [
+      {
+        Vendor: vendor,
+        DocEntry: docEntry,
+        ItemCode: String(parent.sapCode ?? lot.sapCode ?? "").trim(),
+        Quantity: quantity,
+        LotNum: String(lot.lotNumber ?? "").trim(),
+        ReelID: reelId,
+        PartNumber: partNumber,
+        ExpirationDate: this.formatSapDateTime(lot.expirationDate),
+        ManufacturingDate: this.formatSapDateTime(lot.manufacturingDate),
+        StorageUnit: storageUnit,
+      },
+    ];
+  }
+
+  private formatSapDateTime(value: string | Date | null | undefined): string {
+    if (!value) {
+      return "0001-01-01T00:00:00";
+    }
+    if (value instanceof Date) {
+      if (Number.isNaN(value.getTime())) {
+        return "0001-01-01T00:00:00";
+      }
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, "0");
+      const d = String(value.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}T00:00:00`;
+    }
+    const digits = String(value).replace(/\D/g, "");
+    if (digits.length === 8) {
+      return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}T00:00:00`;
+    }
+    return "0001-01-01T00:00:00";
+  }
+
+  private executeSendPanacim(parent: ParentItem, lots: LotItem[]): void {
+    const exportRows = this.toPanacimExportRows(parent, lots);
+    if (!exportRows.length) {
+      this.notificationService.warning("Chưa có mã tem. Vui lòng scan trước.");
+      return;
+    }
+    const fileName = `CSV_UP_Panacim_${parent.sapCode}_${new Date().toISOString().split("T")[0]}.csv`;
+    const blob = generateTemPanacimCsvBlob(exportRows, (date) =>
+      this.formatDateForPanacimExport(date),
+    );
+    const formData = new FormData();
+    formData.append("file", blob, fileName);
+
+    this.isSendingPanacim = true;
+    this.cdr.markForCheck();
+
+    this.http
+      .post<{
+        success?: boolean;
+        message?: string;
+      }>("/api/csv-upload", formData)
+      .subscribe({
+        next: (response) => {
+          this.isSendingPanacim = false;
+          if (response?.success) {
+            this.notificationService.success(
+              `Đã gửi ${exportRows.length} bản ghi tới PanaCIM thành công!`,
+            );
+            this.updatePanaSendStatus(lots);
+          } else {
+            this.notificationService.error(
+              `Lỗi: ${response?.message ?? "Gửi PanaCIM thất bại."}`,
+            );
+          }
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          this.isSendingPanacim = false;
+          this.notificationService.error(
+            `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
+          );
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  private toPanacimExportRows(
+    parent: ParentItem,
+    lots: LotItem[],
+  ): TemPanacimExportInput[] {
+    return lots
+      .filter((lot) => Boolean((lot.reelId ?? "").trim()))
+      .map((lot) => ({
+        reelId: String(lot.reelId ?? "").trim(),
+        partNumber: String(lot.partNumber || parent.partNumber || "").trim(),
+        vendor: String(lot.vendor || this.orderInfo.vendorCode || "").trim(),
+        lot: String(lot.lotNumber ?? "").trim(),
+        userData1: String(lot.userData1 ?? "").trim(),
+        userData2: String(lot.userData2 ?? "").trim(),
+        userData3: String(lot.userData3 ?? "").trim(),
+        userData4: String(lot.userData4 ?? "").trim(),
+        userData5: String(lot.userData5 ?? "").trim(),
+        initialQuantity: Number(lot.initialQuantity) || null,
+        storageUnit: String(lot.storageUnit ?? "").trim(),
+        expirationDate: lot.expirationDate ?? null,
+        manufacturingDate: lot.manufacturingDate ?? null,
+        sapCode: String(lot.sapCode || parent.sapCode || "").trim(),
+      }));
+  }
+
+  private formatDateForPanacimExport(value: Date | string | null): string {
+    if (!value) {
+      return "";
+    }
+    if (value instanceof Date) {
+      if (Number.isNaN(value.getTime())) {
+        return "";
+      }
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, "0");
+      const d = String(value.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    return String(value).trim();
+  }
+
+  private updatePanaSendStatus(lots: LotItem[]): void {
+    const now = new Date().toISOString();
+    const payloads: CreateVendorTemDetailPayload[] = lots
+      .filter((lot) => !!lot.vendorTemDetailId)
+      .map((lot) => ({
+        id: lot.vendorTemDetailId,
+        reelId: lot.reelId ?? "",
+        partNumber: lot.partNumber ?? "",
+        vendor: lot.vendor ?? "",
+        lot: lot.lotNumber ?? "",
+        userData1: lot.userData1 ?? "",
+        userData2: lot.userData2 ?? "",
+        userData3: lot.userData3 ?? "",
+        userData4: lot.userData4 ?? "",
+        userData5: lot.userData5 ?? "",
+        initialQuantity: Number(lot.initialQuantity) || 0,
+        msdLevel: lot.msl ?? "",
+        msdInitialFloorTime: "",
+        msdBagSealDate: "",
+        marketUsage: "",
+        quantityOverride: 0,
+        shelfTime: "",
+        spMaterialName: "",
+        warningLimit: "",
+        maximumLimit: "",
+        comments: "",
+        warmupTime: "",
+        storageUnit: lot.storageUnit ?? "",
+        subStorageUnit: "",
+        locationOverride: lot.locationOverride ?? "",
+        expirationDate: lot.expirationDate ?? "",
+        manufacturingDate: lot.manufacturingDate ?? "",
+        partClass: "",
+        sapCode: lot.sapCode ?? "",
+        vendorQrCode: lot.vendorQrCode ?? "",
+        status: lot.status ?? "NEW",
+        createdBy: lot.createdBy ?? this.currentUser,
+        createdAt: lot.createdAt ?? now,
+        updatedBy: this.currentUser,
+        updatedAt: now,
+        poDetailId: lot.poDetailId,
+        importVendorTemTransactionsId:
+          lot.importVendorTemTransactionsId ?? this.currentTransactionId ?? 0,
+        panaSendStatus: true,
+      }));
+
+    lots.forEach((lot) => {
+      lot.panaSendStatus = true;
+    });
+    this.dataSource.data = [...this.dataSource.data];
+
+    if (!payloads.length) {
+      return;
+    }
+
+    this.managerTemNccService.batchUpdateVendorTemDetails(payloads).subscribe({
+      next: () => {
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.notificationService.warning(
+          "Đã gửi PanaCIM nhưng lưu trạng thái thất bại.",
+        );
+      },
+    });
+  }
 
   private performDelete(item: ParentItem): void {
     // Call service to delete, then reload
@@ -1176,6 +1708,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             storageUnit: v.storageUnit,
             manufacturingDate: v.manufacturingDate,
             expirationDate: v.expirationDate,
+            locationOverride: v.locationOverride,
             sapCode: v.sapCode,
             vendorQrCode: v.vendorQrCode,
             status: v.status,
@@ -1221,6 +1754,10 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             storageUnit: v.storageUnit,
             manufacturingDate: v.manufacturingDate,
             expirationDate: v.expirationDate,
+            locationOverride: String(
+              (v as { locationOverride?: string | null }).locationOverride ??
+                "",
+            ),
             sapCode: v.sapCode,
             vendorQrCode: v.vendorQrCode,
             status: v.status,
@@ -1228,6 +1765,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             createdAt: v.createdAt,
             poDetailId: pd.id,
             importVendorTemTransactionsId: transaction.id,
+            panaSendStatus: v.panaSendStatus === true,
+            sapSent: false,
             details: [] as [],
           })),
         );
@@ -1256,6 +1795,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.dataSource.data = parentItems;
         this.totalItems = parentItems.length;
         this.enrichPartNumberForParents(parentItems);
+        this.enrichPoQuantitiesFromSap(detail.poNumber);
         lots.forEach((l) => {
           if (l.reelId) {
             this.scannedReelIds.add(l.reelId);
@@ -2004,6 +2544,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.totalItems = parentItems.length;
         this.selectedLots.clear();
         this.matchOrphanLots(parentItems);
+        this.enrichPoQuantitiesFromSap(this.orderInfo.poCode);
         this.isLoadingPo = false;
         this.alertService.addAlert({
           type: "success",
@@ -2018,5 +2559,183 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         });
       },
     });
+  }
+
+  /**
+   * Điền cột "Số lượng trong PO" từ por1Quantity của /api/sap-po-info/{PO}
+   * (map theo por1ItemCode ↔ sapCode).
+   */
+  private enrichPoQuantitiesFromSap(poCode?: string | null): void {
+    const po = (poCode ?? this.orderInfo.poCode ?? "").trim();
+    if (!po || !this.dataSource.data.length) {
+      return;
+    }
+
+    this.receivingSuppliesService.getSapPoInfo(po).subscribe({
+      next: (res) => {
+        const qtyBySap = new Map<string, number>();
+        (res?.poDetails ?? []).forEach((d) => {
+          const sap = (d.por1ItemCode ?? "").trim();
+          if (!sap) {
+            return;
+          }
+          const qty = Number.parseFloat(String(d.por1Quantity ?? "0")) || 0;
+          qtyBySap.set(sap, (qtyBySap.get(sap) ?? 0) + qty);
+        });
+
+        if (!qtyBySap.size) {
+          return;
+        }
+
+        this.dataSource.data = this.dataSource.data.map((row) => {
+          const sap = (row.sapCode ?? "").trim();
+          if (!sap || !qtyBySap.has(sap)) {
+            return row;
+          }
+          return {
+            ...row,
+            totalQuantityOrder: qtyBySap.get(sap) ?? row.totalQuantityOrder,
+          };
+        });
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Giữ số lượng hiện có nếu không lấy được PO info
+      },
+    });
+  }
+
+  /** Gom lot đã có trên đơn (+ draft) để hiển thị sẵn trong dialog Scan/Import. */
+  private collectExistingScannedItems(): ScannedItem[] {
+    const fromParents = this.dataSource.data.flatMap((row) =>
+      (row.lots ?? []).map((lot) => this.mapLotToScannedItem(lot)),
+    );
+    const fromDrafts = (this.draftLots ?? []).map((lot) =>
+      this.mapLotToScannedItem(lot),
+    );
+    const merged = [...fromParents, ...fromDrafts];
+    const seen = new Set<string>();
+    return merged.filter((item) => {
+      const reelId = (item.reelId ?? "").trim();
+      if (!reelId || seen.has(reelId)) {
+        return false;
+      }
+      seen.add(reelId);
+      return true;
+    });
+  }
+
+  /** Cập nhật lot trên đơn ngay sau khi lưu trong dialog tổng hợp (không cần F5). */
+  private syncLotsFromScannedItems(items: ScannedItem[]): void {
+    if (!items?.length) {
+      return;
+    }
+    const byDbId = new Map<number, ScannedItem>();
+    const byReelId = new Map<string, ScannedItem>();
+    items.forEach((item) => {
+      if (item.dbId) {
+        byDbId.set(item.dbId, item);
+      }
+      const reelId = (item.reelId ?? "").trim();
+      if (reelId) {
+        byReelId.set(reelId, item);
+      }
+    });
+
+    const patchLot = (lot: LotItem): LotItem => {
+      const matchById = lot.vendorTemDetailId
+        ? byDbId.get(lot.vendorTemDetailId)
+        : undefined;
+      const match = matchById ?? byReelId.get((lot.reelId ?? "").trim());
+      if (!match) {
+        return lot;
+      }
+      return {
+        ...lot,
+        lotNumber: match.lot,
+        reelId: match.reelId,
+        partNumber: match.partNumber,
+        vendor: match.vendor,
+        initialQuantity: match.initialQuantity,
+        totalQty: match.initialQuantity,
+        userData1: match.userData1,
+        userData2: match.userData2,
+        userData3: match.userData3,
+        userData4: match.userData4,
+        userData5: match.userData5,
+        msl: match.msdLevel,
+        storageUnit: match.storageUnit,
+        locationOverride: match.locationOverride,
+        expirationDate: match.expirationDate,
+        manufacturingDate: match.manufacturingDate,
+        sapCode: match.sapCode,
+        vendorQrCode: match.vendorQrCode,
+        status: match.status,
+      };
+    };
+
+    this.dataSource.data = this.dataSource.data.map((row) => ({
+      ...row,
+      lots: (row.lots ?? []).map(patchLot),
+    }));
+    this.draftLots = (this.draftLots ?? []).map(patchLot);
+    this.dataSource.data = [...this.dataSource.data];
+    this.cdr.markForCheck();
+  }
+
+  private mapLotToScannedItem(lot: LotItem): ScannedItem {
+    const reelId = (lot.reelId ?? "").trim();
+    const parentRow = this.dataSource.data.find((p) => p.id === lot.poDetailId);
+    const materialName =
+      (parentRow?.materialName ?? "").trim() ||
+      (
+        this.dataSource.data.find(
+          (p) =>
+            (p.sapCode ?? "").trim() &&
+            (p.sapCode ?? "").trim() === (lot.sapCode ?? "").trim(),
+        )?.materialName ?? ""
+      ).trim();
+    return {
+      id: `order-${lot.vendorTemDetailId ?? reelId}`,
+      dbId: lot.vendorTemDetailId ?? undefined,
+      reelId,
+      partNumber: lot.partNumber ?? "",
+      vendor: lot.vendor ?? "",
+      lot: lot.lotNumber ?? "",
+      userData1: lot.userData1 ?? "",
+      userData2: lot.userData2 ?? "",
+      userData3: lot.userData3 ?? "",
+      userData4: lot.userData4 ?? "",
+      userData5: lot.userData5 ?? "",
+      initialQuantity: Number(lot.initialQuantity) || 0,
+      msdLevel: lot.msl ?? "",
+      msdInitialFloorTime: "",
+      msdBagSealDate: "",
+      marketUsage: "",
+      quantityOverride: Number(lot.totalQty) || 0,
+      shelfTime: "",
+      spMaterialName: materialName,
+      warningLimit: "",
+      maximumLimit: "",
+      comments: "",
+      warmupTime: "",
+      storageUnit: lot.storageUnit ?? "",
+      subStorageUnit: "",
+      locationOverride: lot.locationOverride ?? "",
+      expirationDate: lot.expirationDate ?? "",
+      manufacturingDate: lot.manufacturingDate ?? "",
+      partClass: "",
+      sapCode: lot.sapCode ?? "",
+      vendorQrCode: lot.vendorQrCode ?? "",
+      status: lot.status ?? "NEW",
+      createdBy: lot.createdBy ?? "",
+      createdAt: lot.createdAt ?? new Date().toISOString(),
+      updatedBy: "",
+      updatedAt: "",
+      poDetailId: lot.poDetailId ?? (null as any),
+      importVendorTemTransactionsId:
+        lot.importVendorTemTransactionsId ?? this.currentTransactionId ?? 0,
+      fromOrder: true,
+    };
   }
 }

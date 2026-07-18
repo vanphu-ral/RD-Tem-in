@@ -169,29 +169,7 @@
           </button>
           <button mat-raised-button color="primary" (click)="onScan()">
             <mat-icon>qr_code_scanner</mat-icon>
-            Scan
-          </button>
-          <input
-            #reelImportInput
-            type="file"
-            accept=".txt,.csv,.log,.xlsx,.xls,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-            hidden
-            (change)="onReelImportFileSelected($event)"
-          />
-          <button
-            mat-raised-button
-            color="primary"
-            type="button"
-            (click)="openReelImportFilePicker(reelImportInput)"
-            [disabled]="isImportingReel"
-          >
-            <mat-spinner
-              diameter="16"
-              *ngIf="isImportingReel"
-              style="display: inline-block; margin-right: 6px"
-            ></mat-spinner>
-            <mat-icon *ngIf="!isImportingReel">upload_file</mat-icon>
-            {{ isImportingReel ? "Đang import..." : "Import ReelID" }}
+            Scan/Import ReelID
           </button>
         </div>
       </div>
@@ -413,9 +391,42 @@
           <!-- Total Quantity Order -->
           <ng-container matColumnDef="totalQuantityOrder">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Số lượng trong đơn hàng
+              Số lượng trong PO
             </th>
             <td mat-cell *matCellDef="let row">{{ row.totalQuantityOrder }}</td>
+          </ng-container>
+
+          <!-- Actions -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Thao tác</th>
+            <td
+              mat-cell
+              *matCellDef="let row"
+              (click)="$event.stopPropagation()"
+            >
+              <div class="parent-action-btns">
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="btn-send-sap"
+                  matTooltip="Gửi SAP"
+                  [disabled]="!canSendSapParent(row) || isSendingSap"
+                  (click)="onSendSapParent(row)"
+                >
+                  {{ isSendingSap ? "Đang gửi..." : "Gửi SAP" }}
+                </button>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="btn-send-panacim"
+                  matTooltip="Gửi PanaCIM"
+                  [disabled]="!canSendPanacimParent(row) || isSendingPanacim"
+                  (click)="onSendPanacimParent(row)"
+                >
+                  {{ isSendingPanacim ? "Đang gửi..." : "Gửi PanaCIM" }}
+                </button>
+              </div>
+            </td>
           </ng-container>
 
           <!-- ===== LEVEL-1 EXPANDED ROW (child items) ===== -->
@@ -456,117 +467,6 @@
                             </div>
                           </th>
                         </tr>
-
-                        <!-- Apply row -->
-                        <tr class="apply-row">
-                          <!-- <td class="col-action-th"></td> -->
-                          <td class="col-chk-th"></td>
-                          <td *ngFor="let col of lotColumns">
-                            <div class="apply-cell">
-                              <ng-container
-                                *ngIf="
-                                  col.key === 'storageUnit';
-                                  else normalApplyInput
-                                "
-                              >
-                                <input
-                                  class="apply-input"
-                                  [(ngModel)]="
-                                    lotBulkValues[row.id + '_' + col.key]
-                                  "
-                                  [matAutocomplete]="autoLotWarehouse"
-                                  (input)="
-                                    onLotWarehouseSearch(
-                                      row.id,
-                                      $any($event.target).value
-                                    )
-                                  "
-                                  (focus)="
-                                    onLotWarehouseSearch(
-                                      row.id,
-                                      lotBulkValues[row.id + '_' + col.key] ??
-                                        ''
-                                    )
-                                  "
-                                  (keydown.enter)="applyLotColumn(row, col.key)"
-                                  placeholder="Tìm kho..."
-                                />
-                                <mat-autocomplete
-                                  #autoLotWarehouse="matAutocomplete"
-                                  (optionSelected)="
-                                    onLotWarehouseSelected(
-                                      row,
-                                      col.key,
-                                      $event.option.value
-                                    )
-                                  "
-                                >
-                                  <!-- <mat-option *ngFor="let w of getLotWarehouseOptions(row.id)" [value]="w">
-                                    {{ w.locationFullName }}
-                                  </mat-option> -->
-                                  <mat-option
-                                    *ngFor="
-                                      let w of getLotWarehouseOptions(row.id)
-                                    "
-                                    [value]="w"
-                                  >
-                                    {{ w.label }}
-                                  </mat-option>
-                                  <mat-option
-                                    *ngIf="
-                                      getLotWarehouseOptions(row.id).length ===
-                                      0
-                                    "
-                                    disabled
-                                  >
-                                    Không tìm thấy
-                                  </mat-option>
-                                </mat-autocomplete>
-                              </ng-container>
-
-                              <ng-template #normalApplyInput>
-                                <ng-container
-                                  *ngIf="
-                                    col.key === 'initialQuantity';
-                                    else textApplyInput
-                                  "
-                                >
-                                  <input
-                                    class="apply-input"
-                                    type="number"
-                                    min="0"
-                                    [(ngModel)]="
-                                      lotBulkValues[row.id + '_' + col.key]
-                                    "
-                                    (keydown.enter)="
-                                      applyLotColumn(row, col.key)
-                                    "
-                                  />
-                                </ng-container>
-                                <ng-template #textApplyInput>
-                                  <input
-                                    class="apply-input"
-                                    [(ngModel)]="
-                                      lotBulkValues[row.id + '_' + col.key]
-                                    "
-                                    (keydown.enter)="
-                                      applyLotColumn(row, col.key)
-                                    "
-                                  />
-                                </ng-template>
-                              </ng-template>
-
-                              <button
-                                mat-icon-button
-                                class="apply-icon-btn"
-                                (click)="applyLotColumn(row, col.key)"
-                                matTooltip="Áp dụng cho cả cột"
-                              >
-                                <mat-icon>save</mat-icon>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
                       </thead>
 
                       <tbody>
@@ -574,10 +474,6 @@
                           <tr
                             *ngFor="let lot of row.lots; let i = index"
                             class="data-row"
-                            [class.editing-row]="
-                              lotEditingCell?.rowId === row.id &&
-                              lotEditingCell?.lotIdx === i
-                            "
                             [class.lot-pending]="isLotPending(lot)"
                           >
                             <!-- Action -->
@@ -586,7 +482,6 @@
                                 <mat-icon>visibility</mat-icon>
                               </button>
                             </td> -->
-                            <!-- Data cells -->
                             <td class="col-chk-th">
                               <mat-checkbox
                                 [checked]="
@@ -600,59 +495,11 @@
                             </td>
                             <td
                               *ngFor="let col of lotColumns"
-                              class="data-cell editable-cell"
-                              [class.active-edit]="
-                                lotEditingCell?.rowId === row.id &&
-                                lotEditingCell?.lotIdx === i &&
-                                lotEditingCell?.col === col.key
-                              "
-                              (dblclick)="startLotEdit(row.id, i, col.key)"
+                              class="data-cell"
                             >
-                              <ng-container
-                                *ngIf="
-                                  lotEditingCell?.rowId === row.id &&
-                                    lotEditingCell?.lotIdx === i &&
-                                    lotEditingCell?.col === col.key;
-                                  else lotDisplay
-                                "
-                              >
-                                <!-- Input số: chặn âm -->
-                                <ng-container
-                                  *ngIf="
-                                    col.key === 'initialQuantity';
-                                    else textInput
-                                  "
-                                >
-                                  <input
-                                    class="cell-input"
-                                    type="number"
-                                    min="0"
-                                    [(ngModel)]="lot[col.key]"
-                                    (input)="onQtyInput($event, lot, col.key)"
-                                    (blur)="stopLotEdit()"
-                                    (keydown.enter)="stopLotEdit()"
-                                    (keydown.escape)="stopLotEdit()"
-                                  />
-                                </ng-container>
-
-                                <!-- Input text: giữ nguyên -->
-                                <ng-template #textInput>
-                                  <input
-                                    class="cell-input"
-                                    [(ngModel)]="lot[col.key]"
-                                    (blur)="stopLotEdit()"
-                                    (keydown.enter)="stopLotEdit()"
-                                    (keydown.escape)="stopLotEdit()"
-                                  />
-                                </ng-template>
-                              </ng-container>
-                              <ng-template #lotDisplay>
-                                <span
-                                  class="cell-value"
-                                  [title]="lot[col.key]"
-                                  >{{ lot[col.key] }}</span
-                                >
-                              </ng-template>
+                              <span class="cell-value" [title]="lot[col.key]">{{
+                                lot[col.key]
+                              }}</span>
                             </td>
                           </tr>
                         </ng-container>
@@ -670,15 +517,6 @@
                       </tbody>
                     </table>
                   </div>
-                </div>
-                <div class="lot-save-bar" *ngIf="hasLots(row)">
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    (click)="onSaveLots(row)"
-                  >
-                    Lưu vật tư
-                  </button>
                 </div>
               </div>
             </td>
@@ -767,8 +605,28 @@
                 ><span class="value">{{ item.quantityBoxOrder }}</span>
               </div> -->
               <div class="info-row">
-                <span class="label">SL trong ĐH:</span
+                <span class="label">SL trong PO:</span
                 ><span class="value">{{ item.totalQuantityOrder }}</span>
+              </div>
+              <div class="parent-action-btns mobile-parent-actions">
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="btn-send-sap"
+                  [disabled]="!canSendSapParent(item) || isSendingSap"
+                  (click)="onSendSapParent(item)"
+                >
+                  Gửi SAP
+                </button>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="btn-send-panacim"
+                  [disabled]="!canSendPanacimParent(item) || isSendingPanacim"
+                  (click)="onSendPanacimParent(item)"
+                >
+                  Gửi PanaCIM
+                </button>
               </div>
             </mat-card-content>
 
@@ -784,37 +642,14 @@
                     <span class="mobile-lot-index">{{ li + 1 }}</span>
                     <span class="mobile-lot-number">{{ lot.lotNumber }}</span>
                   </div>
-                  <!-- Editable fields as stacked rows -->
+                  <!-- Read-only fields -->
                   <div class="mobile-lot-fields">
                     <div
                       class="mobile-lot-field"
                       *ngFor="let col of lotColumns"
                     >
                       <span class="lot-field-label">{{ col.label }}:</span>
-                      <span
-                        class="lot-field-value"
-                        (dblclick)="startLotEdit(item.id, li, col.key)"
-                      >
-                        <ng-container
-                          *ngIf="
-                            lotEditingCell?.rowId === item.id &&
-                              lotEditingCell?.lotIdx === li &&
-                              lotEditingCell?.col === col.key;
-                            else mobileDisplay
-                          "
-                        >
-                          <input
-                            class="mobile-cell-input"
-                            [(ngModel)]="lot[col.key]"
-                            (blur)="stopLotEdit()"
-                            (keydown.enter)="stopLotEdit()"
-                            (keydown.escape)="stopLotEdit()"
-                          />
-                        </ng-container>
-                        <ng-template #mobileDisplay>{{
-                          lot[col.key]
-                        }}</ng-template>
-                      </span>
+                      <span class="lot-field-value">{{ lot[col.key] }}</span>
                     </div>
                   </div>
                 </div>

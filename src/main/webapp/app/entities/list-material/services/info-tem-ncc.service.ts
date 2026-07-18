@@ -74,6 +74,7 @@ export interface VendorTemDetail {
   initialQuantity: number;
   msdLevel: string;
   storageUnit: string;
+  locationOverride?: string;
   expirationDate: string;
   manufacturingDate: string;
   sapCode: string;
