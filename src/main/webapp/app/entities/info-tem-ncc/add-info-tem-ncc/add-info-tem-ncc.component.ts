@@ -2097,10 +2097,12 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           (r.partNumber ?? "").trim().toLowerCase() ===
           partNumber.toLowerCase(),
       );
+      // Ưu tiên mã SAP có sẵn trong file/QR; chỉ fallback map Part→SAP khi file thiếu SAP.
       const resolvedSap = this.firstNonEmpty(
+        fieldMap["sapCode"],
+        row.sapCode,
         partToSap.get(partNumber.toLowerCase()),
         matchedRow?.sapCode,
-        row.sapCode,
       );
       const vendor = this.firstNonEmpty(
         fieldMap["vendor"],

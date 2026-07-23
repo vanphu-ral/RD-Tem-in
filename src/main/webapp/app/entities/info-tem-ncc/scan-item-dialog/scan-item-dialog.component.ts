@@ -653,15 +653,18 @@ export class ScanItemDialogComponent
         continue;
       }
 
-      const matchedRow = parentItems.find(
-        (r) =>
-          (r.partNumber ?? "").trim().toLowerCase() ===
-            partNumber.toLowerCase() ||
-          (!!(row.sapCode ?? "").trim() &&
-            (r.sapCode ?? "").trim().toLowerCase() ===
-              (row.sapCode ?? "").trim().toLowerCase()),
-      );
-      if (parentItems.length && partNumber && !matchedRow) {
+      const rowSap = (row.sapCode ?? "").trim().toLowerCase();
+      const matchedRow = parentItems.find((r) => {
+        const parentSap = (r.sapCode ?? "").trim().toLowerCase();
+        if (rowSap && parentSap && rowSap === parentSap) {
+          return true;
+        }
+        return (
+          !!partNumber &&
+          (r.partNumber ?? "").trim().toLowerCase() === partNumber.toLowerCase()
+        );
+      });
+      if (parentItems.length && (partNumber || rowSap) && !matchedRow) {
         continue;
       }
 
@@ -739,14 +742,16 @@ export class ScanItemDialogComponent
     ).subscribe({
       next: (results) => {
         const successItems = results.filter((r) => r.ok);
-        successItems.reverse().forEach(({ payload, res }) => {
-          const uiItem: ScannedItem = {
-            id: this.generateId(),
-            dbId: res?.id,
-            ...payload,
-          } as any;
-          this.scannedList.unshift(uiItem);
-        });
+        // Import: giữ thứ tự file, block mới lên đầu danh sách.
+        const importedItems: ScannedItem[] = successItems.map(
+          ({ payload, res }) =>
+            ({
+              id: this.generateId(),
+              dbId: res?.id,
+              ...payload,
+            }) as ScannedItem,
+        );
+        this.prependScannedItems(importedItems);
         this.isImportingReel = false;
         this.importErrorMessage = "";
         this.lastScannedCode = `Đã import ${successItems.length}/${payloads.length} ReelID`;
@@ -800,10 +805,12 @@ export class ScanItemDialogComponent
           (r.partNumber ?? "").trim().toLowerCase() ===
           partNumber.toLowerCase(),
       );
+      // Ưu tiên mã SAP có sẵn trong file/QR; chỉ fallback map Part→SAP khi file thiếu SAP.
       const resolvedSap = this.firstNonEmpty(
+        fieldMap["sapCode"],
+        row.sapCode,
         partToSap.get(partNumber.toLowerCase()),
         matchedRow?.sapCode,
-        row.sapCode,
       );
       const lotNumber = this.firstNonEmpty(
         fieldMap["lotNumber"],
@@ -1146,8 +1153,7 @@ export class ScanItemDialogComponent
       ...payload,
     } as any;
     this.existingReelIds.add(reelIdToCheck);
-    // unshift thay vì spread — mutate trực tiếp, không copy array
-    this.scannedList.unshift(uiItem);
+    this.prependScannedItem(uiItem);
     this.errorMessage = "";
     this.lastScannedCode = rawCode;
 
@@ -1308,6 +1314,26 @@ export class ScanItemDialogComponent
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /** Đưa mã mới lên đầu; giữ vật tư đã có trên đơn ở cuối. */
+  private prependScannedItem(item: ScannedItem): void {
+    this.prependScannedItems([item]);
+  }
+
+  private prependScannedItems(items: ScannedItem[]): void {
+    if (!items.length) {
+      return;
+    }
+    const sessionItems = this.scannedList.filter(
+      (i) => !this.isExistingOnOrder(i),
+    );
+    const orderItems = this.scannedList.filter((i) =>
+      this.isExistingOnOrder(i),
+    );
+    // items[0] = mới nhất trong batch → lên đầu danh sách
+    this.scannedList = [...items, ...sessionItems, ...orderItems];
+    this.pageIndex = 0;
   }
 
   private updateStats(): void {

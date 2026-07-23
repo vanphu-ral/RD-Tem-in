@@ -207,10 +207,12 @@ function parseLogLine(
     contractNo = (parts[24] ?? "").trim();
   } else {
     // Mẫu CSV mới:
-    // A) Document1_010:
-    // [0]=date,[1]=box,[2]=part,[9]=contract,[10]=stt,[11]=qty,[12]=mfg,[13]=lot,[14]=part,[15]=temQty,[16]=item,[17]=po
-    // B) label_template_01_011:
-    // [0]=date,[1]=box,[2]=part,[8]=stt,[13]=mfg,[14]=lot,[16]=po,[17]=part,[18]=qty,[19]=sap,[20]=temQty,[21]=item
+    // A) Document1_010 (≤21 cột):
+    // [0]=date,[1]=box,[2]=part,[9]=contract,[10]=stt,[11]=qtyVậtTư (không dùng),
+    // [12]=mfg,[13]=lot,[14]=sapCode,[15]=qtyTem,[16]=item,[17]=po
+    // B) label_template_01_011 (≥22 cột):
+    // [0]=date,[1]=box,[2]=part,[8]=stt,[13]=mfg,[14]=lot,[16]=po,[17]=part,
+    // [18]=qty,[19]=sap,[20]=temQty,[21]=item
     if (parts.length >= 22) {
       contractNo = (parts[9] ?? "").trim();
       mfgDate = parseYyyyMmDd(parts[13] ?? "");
@@ -225,12 +227,14 @@ function parseLogLine(
       contractNo = (parts[9] ?? "").trim();
       mfgDate = parseYyyyMmDd(parts[12] ?? "");
       lotNumber = parseYyyyMmDd(parts[13] ?? "") || mfgDate;
-      const partFromRow = (parts[14] ?? "").trim() || partNumber;
-      temQuantity = parsePositiveInt(parts[15] ?? "0");
+      // Cột [14] là mã SAP thật trong file Document1_010 (vd: 00012836 / 00012837),
+      // không dùng để cắt từ PartNumber (parts[2] = 00012836_V1).
+      sapCode = deriveSapCode((parts[14] ?? "").trim(), partNumber);
+      // [15]=số lượng tem (vd: 500); [11]=số lượng vật tư (vd: 600) — không dùng làm SL import.
+      quantity = parsePositiveInt(parts[15] ?? "0");
+      temQuantity = quantity;
       itemName = (parts[16] ?? "").trim();
       poNumber = (parts[17] ?? "").trim();
-      quantity = parsePositiveInt(parts[11] ?? "0");
-      sapCode = deriveSapCode("", partFromRow);
     }
     madeIn = "";
   }

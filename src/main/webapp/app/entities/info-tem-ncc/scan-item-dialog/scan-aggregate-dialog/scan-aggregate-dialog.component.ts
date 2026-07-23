@@ -5,6 +5,7 @@ import {
   OnDestroy,
   OnInit,
 } from "@angular/core";
+import { BreakpointObserver } from "@angular/cdk/layout";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -22,7 +23,7 @@ import {
   ManagerTemNccService,
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
-import { catchError, forkJoin, map, of } from "rxjs";
+import { Subscription, catchError, forkJoin, map, of } from "rxjs";
 import { ScannedItem } from "../scan-item-dialog.component";
 import {
   AggregateEditRow,
@@ -38,6 +39,16 @@ import {
   scannedItemToEditRow,
   toDateInputValue as toDateInputValueUtil,
 } from "../../shared/scan-item-columns.util";
+
+/** Trường bắt buộc highlight trên mobile. */
+const MOBILE_REQUIRED_KEYS = [
+  "expirationDate",
+  "locationOverride",
+  "storageUnit",
+] as const;
+
+/** Breakpoint xem card mobile (máy tính bảng dọc / điện thoại). */
+const MOBILE_BREAKPOINT = "(max-width: 960px)";
 
 export interface ScanAggregateDialogData {
   items: ScannedItem[];
@@ -67,10 +78,20 @@ export interface ScanAggregateGroup {
 export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   readonly largeListThreshold = 80;
   readonly groupPageSize = 40;
+  readonly mobileRequiredKeys = MOBILE_REQUIRED_KEYS;
 
   columns: ScanItemColumnDef[] = SCAN_AGGREGATE_COLUMNS;
+  /** Cột hiển thị trong lưới 2 cột mobile (bỏ itemName — nằm ở header nhóm). */
+  mobileFields: ScanItemColumnDef[] = SCAN_AGGREGATE_COLUMNS.filter(
+    (c) => c.key !== "itemName",
+  );
   groups: ScanAggregateGroup[] = [];
   sourceById = new Map<string, ScannedItem>();
+
+  /** Tìm kiếm thông minh (SAP / Part / ReelID). */
+  smartSearch = "";
+  filterSmartTerm = "";
+  showAdvancedFilters = false;
 
   searchSapCode = "";
   searchPartNumber = "";
@@ -78,6 +99,8 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   filterSapTerm = "";
   filterPartTerm = "";
   filterReelTerm = "";
+
+  isMobileView = false;
 
   filteredLocationOptions: WarehouseLocation[] = [];
   lastLocationSearchTerm = "";
@@ -94,6 +117,7 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   private activeLocationTrigger: MatAutocompleteTrigger | null = null;
   private initialSnapshot = new Map<string, string>();
   private groupPageIndex = new Map<string, number>();
+  private breakpointSub: Subscription | null = null;
 
   constructor(
     private dialogRef: MatDialogRef<
@@ -106,6 +130,7 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     private managerTemNccService: ManagerTemNccService,
     private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
+    private breakpointObserver: BreakpointObserver,
   ) {}
 
   ngOnInit(): void {
@@ -116,6 +141,12 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     this.enrichProductNames();
     void this.receivingService.initWarehouses();
     this.loadSapWarehouses();
+    this.breakpointSub = this.breakpointObserver
+      .observe(MOBILE_BREAKPOINT)
+      .subscribe((state) => {
+        this.isMobileView = state.matches;
+        this.cdr.markForCheck();
+      });
   }
 
   ngOnDestroy(): void {
@@ -127,6 +158,8 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
       clearTimeout(this.filterDebounceTimer);
       this.filterDebounceTimer = null;
     }
+    this.breakpointSub?.unsubscribe();
+    this.breakpointSub = null;
   }
 
   get isLargeList(): boolean {
@@ -153,20 +186,12 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   }
 
   get visibleGroups(): ScanAggregateGroup[] {
-    const sapTerm = this.filterSapTerm;
-    const partTerm = this.filterPartTerm;
-    const reelTerm = this.filterReelTerm;
-    if (!sapTerm && !partTerm && !reelTerm) {
+    if (!this.hasAnyFilterTerm()) {
       return this.groups;
     }
-    return this.groups.filter((group) => {
-      const matchSap = !sapTerm || this.groupMatchesSapSearch(group, sapTerm);
-      const matchPart =
-        !partTerm || this.groupMatchesPartSearch(group, partTerm);
-      const matchReel =
-        !reelTerm || this.groupMatchesReelSearch(group, reelTerm);
-      return matchSap && matchPart && matchReel;
-    });
+    return this.groups.filter(
+      (group) => this.getFilteredGroupRows(group).length > 0,
+    );
   }
 
   get visibleGroupCount(): number {
@@ -174,11 +199,15 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   }
 
   get visibleRowCount(): number {
-    return this.visibleGroups.reduce((sum, g) => sum + g.rows.length, 0);
+    return this.visibleGroups.reduce(
+      (sum, g) => sum + this.getFilteredGroupRows(g).length,
+      0,
+    );
   }
 
   get hasActiveGroupFilter(): boolean {
     return (
+      Boolean(this.smartSearch.trim()) ||
       Boolean(this.searchSapCode.trim()) ||
       Boolean(this.searchPartNumber.trim()) ||
       Boolean(this.searchReelId.trim())
@@ -193,10 +222,33 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     return Array.from(labels);
   }
 
+  /** Gợi ý datalist — HSD đã có trong danh sách. */
+  get expirationSuggestions(): string[] {
+    return this.collectFieldSuggestions("expirationDate");
+  }
+
+  /** Gợi ý datalist — vị trí. */
+  get locationSuggestions(): string[] {
+    const fromRows = this.collectFieldSuggestions("locationOverride");
+    const fromSearch = this.filteredLocationOptions
+      .map((w) => (w.locationName || w.locationFullName || "").trim())
+      .filter(Boolean);
+    return Array.from(new Set([...fromRows, ...fromSearch])).slice(0, 40);
+  }
+
+  /** Gợi ý datalist — mã kho. */
+  get storageSuggestions(): string[] {
+    const fromRows = this.collectFieldSuggestions("storageUnit");
+    const fromWhs = this.sapWarehouseList.map((w) => w.whsCode).filter(Boolean);
+    return Array.from(new Set([...fromRows, ...fromWhs])).slice(0, 40);
+  }
+
   clearGroupFilters(): void {
+    this.smartSearch = "";
     this.searchSapCode = "";
     this.searchPartNumber = "";
     this.searchReelId = "";
+    this.filterSmartTerm = "";
     this.filterSapTerm = "";
     this.filterPartTerm = "";
     this.filterReelTerm = "";
@@ -204,11 +256,16 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  toggleAdvancedFilters(): void {
+    this.showAdvancedFilters = !this.showAdvancedFilters;
+  }
+
   scheduleFilterUpdate(): void {
     if (this.filterDebounceTimer) {
       clearTimeout(this.filterDebounceTimer);
     }
     this.filterDebounceTimer = setTimeout(() => {
+      this.filterSmartTerm = this.smartSearch.trim().toLowerCase();
       this.filterSapTerm = this.searchSapCode.trim().toLowerCase();
       this.filterPartTerm = this.searchPartNumber.trim().toLowerCase();
       this.filterReelTerm = this.searchReelId.trim().toLowerCase();
@@ -217,13 +274,22 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     }, 250);
   }
 
+  /** Lọc dòng trong nhóm theo bộ lọc đang active. */
+  getFilteredGroupRows(group: ScanAggregateGroup): AggregateEditRow[] {
+    if (!this.hasAnyFilterTerm()) {
+      return group.rows;
+    }
+    return group.rows.filter((row) => this.rowMatchesFilters(row));
+  }
+
   getGroupPageRows(group: ScanAggregateGroup): AggregateEditRow[] {
     if (!group.expanded) {
       return [];
     }
+    const rows = this.getFilteredGroupRows(group);
     const page = this.groupPageIndex.get(group.key) ?? 0;
     const start = page * this.groupPageSize;
-    return group.rows.slice(start, start + this.groupPageSize);
+    return rows.slice(start, start + this.groupPageSize);
   }
 
   getGroupPageIndex(group: ScanAggregateGroup): number {
@@ -231,7 +297,10 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   }
 
   getGroupPageCount(group: ScanAggregateGroup): number {
-    return Math.max(1, Math.ceil(group.rows.length / this.groupPageSize));
+    return Math.max(
+      1,
+      Math.ceil(this.getFilteredGroupRows(group).length / this.groupPageSize),
+    );
   }
 
   prevGroupPage(group: ScanAggregateGroup): void {
@@ -266,6 +335,18 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     return !String(row[key] ?? "").trim();
   }
 
+  /** Header nhóm thiếu giá trị trong khi còn dòng thiếu field đó. */
+  isGroupHeaderMissing(group: ScanAggregateGroup, key: string): boolean {
+    if (String(group.headerValues[key] ?? "").trim()) {
+      return false;
+    }
+    return this.getGroupMissingFields(group).some((f) => f.key === key);
+  }
+
+  isMobileRequiredKey(key: string): boolean {
+    return (MOBILE_REQUIRED_KEYS as readonly string[]).includes(key);
+  }
+
   isDateColumn(key: string): boolean {
     return key === "manufacturingDate" || key === "expirationDate";
   }
@@ -277,6 +358,110 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
 
   fromDateInputValue(value: string | null | undefined): string {
     return fromDateInputValueUtil(value);
+  }
+
+  getGroupSapCode(group: ScanAggregateGroup): string {
+    if (group.groupBy === "sap") {
+      return group.key.replace(/^sap:/i, "");
+    }
+    const first = group.rows.find((r) => String(r.sapCode ?? "").trim());
+    return String(first?.sapCode ?? "").trim() || "—";
+  }
+
+  getGroupTotalQty(group: ScanAggregateGroup): number {
+    return this.getFilteredGroupRows(group).reduce(
+      (sum, row) => sum + (Number(row.initialQuantity) || 0),
+      0,
+    );
+  }
+
+  getGroupItemName(group: ScanAggregateGroup): string {
+    const named = group.rows.find((r) => String(r.itemName ?? "").trim());
+    return String(named?.itemName ?? "").trim();
+  }
+
+  getGroupPo(group: ScanAggregateGroup): string {
+    const withPo = group.rows.find((r) => String(r.userData5 ?? "").trim());
+    return (
+      String(withPo?.userData5 ?? "").trim() ||
+      String(this.data.poCode ?? "").trim()
+    );
+  }
+
+  getRowDisplayIndex(group: ScanAggregateGroup, row: AggregateEditRow): number {
+    const idx = this.getFilteredGroupRows(group).findIndex(
+      (r) => r.id === row.id,
+    );
+    return idx >= 0 ? idx + 1 : 0;
+  }
+
+  getDatalistId(key: string): string {
+    if (key === "expirationDate") {
+      return "agg-dl-hsd";
+    }
+    if (key === "locationOverride") {
+      return "agg-dl-location";
+    }
+    if (key === "storageUnit") {
+      return "agg-dl-storage";
+    }
+    return "";
+  }
+
+  /** Áp dụng giá trị header nhóm + mặc định UD/MSL cho cả nhóm. */
+  applyGroupBatch(group: ScanAggregateGroup): void {
+    Object.entries(group.headerValues).forEach(([key, value]) => {
+      const trimmed = String(value ?? "").trim();
+      if (!trimmed) {
+        return;
+      }
+      this.onHeaderValueChange(group, key, String(value));
+    });
+    group.rows.forEach((row) => this.applyDefaultFields(row));
+    group.autoFillDefaults = true;
+    this.notificationService.success(
+      `Đã áp dụng nhóm cho ${group.rows.length} reel.`,
+    );
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Điền nhanh toàn bộ: lấy giá trị phổ biến nhất cho HSD / Vị trí / Mã kho,
+   * rồi điền vào các ô còn trống + mặc định UD/MSL.
+   */
+  fillAllMissingQuick(): void {
+    let filled = 0;
+    MOBILE_REQUIRED_KEYS.forEach((key) => {
+      const common = this.getMostCommonValue(key);
+      if (!common) {
+        return;
+      }
+      this.groups.forEach((group) => {
+        if (!String(group.headerValues[key] ?? "").trim()) {
+          group.headerValues[key] = common;
+        }
+        group.rows.forEach((row) => {
+          if (!String(row[key] ?? "").trim()) {
+            row[key] = common;
+            filled += 1;
+          }
+        });
+      });
+    });
+    this.groups.forEach((group) => {
+      group.rows.forEach((row) => this.applyDefaultFields(row));
+      group.autoFillDefaults = true;
+    });
+    if (filled > 0) {
+      this.notificationService.success(
+        `Đã điền nhanh ${filled} ô thiếu (HSD / Vị trí / Mã kho) + mặc định UD/MSL.`,
+      );
+    } else {
+      this.notificationService.success(
+        "Đã áp dụng mặc định UD/MSL. Không còn ô HSD/Vị trí/Mã kho trống để copy.",
+      );
+    }
+    this.cdr.markForCheck();
   }
 
   toggleExpand(group: ScanAggregateGroup): void {
@@ -529,49 +714,73 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     row.storageUnit = (code ?? "").trim();
   }
 
-  private groupMatchesSapSearch(
-    group: ScanAggregateGroup,
-    term: string,
-  ): boolean {
-    if (group.groupBy === "sap") {
-      const groupKey = group.key.replace(/^sap:/i, "").toLowerCase();
-      if (groupKey.includes(term) || group.label.toLowerCase().includes(term)) {
-        return true;
-      }
-    }
-    return group.rows.some((row) =>
-      String(row.sapCode ?? "")
-        .toLowerCase()
-        .includes(term),
+  private hasAnyFilterTerm(): boolean {
+    return Boolean(
+      this.filterSmartTerm ||
+        this.filterSapTerm ||
+        this.filterPartTerm ||
+        this.filterReelTerm,
     );
   }
 
-  private groupMatchesPartSearch(
-    group: ScanAggregateGroup,
-    term: string,
-  ): boolean {
-    if (group.groupBy === "part") {
-      const groupKey = group.key.replace(/^part:/i, "").toLowerCase();
-      if (groupKey.includes(term) || group.label.toLowerCase().includes(term)) {
-        return true;
+  private rowMatchesFilters(row: AggregateEditRow): boolean {
+    const sap = String(row.sapCode ?? "").toLowerCase();
+    const part = String(row.partNumber ?? "").toLowerCase();
+    const reel = String(row.reelId ?? "").toLowerCase();
+
+    if (this.filterSmartTerm) {
+      const t = this.filterSmartTerm;
+      if (!sap.includes(t) && !part.includes(t) && !reel.includes(t)) {
+        return false;
       }
     }
-    return group.rows.some((row) =>
-      String(row.partNumber ?? "")
-        .toLowerCase()
-        .includes(term),
-    );
+    if (this.filterSapTerm && !sap.includes(this.filterSapTerm)) {
+      return false;
+    }
+    if (this.filterPartTerm && !part.includes(this.filterPartTerm)) {
+      return false;
+    }
+    if (this.filterReelTerm && !reel.includes(this.filterReelTerm)) {
+      return false;
+    }
+    return true;
   }
 
-  private groupMatchesReelSearch(
-    group: ScanAggregateGroup,
-    term: string,
-  ): boolean {
-    return group.rows.some((row) =>
-      String(row.reelId ?? "")
-        .toLowerCase()
-        .includes(term),
-    );
+  private collectFieldSuggestions(key: string): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    this.groups.forEach((group) => {
+      group.rows.forEach((row) => {
+        const val = String(row[key] ?? "").trim();
+        if (val && !seen.has(val)) {
+          seen.add(val);
+          out.push(val);
+        }
+      });
+    });
+    return out.slice(0, 40);
+  }
+
+  private getMostCommonValue(key: string): string {
+    const counts = new Map<string, number>();
+    this.groups.forEach((group) => {
+      group.rows.forEach((row) => {
+        const val = String(row[key] ?? "").trim();
+        if (!val) {
+          return;
+        }
+        counts.set(val, (counts.get(val) ?? 0) + 1);
+      });
+    });
+    let best = "";
+    let bestCount = 0;
+    counts.forEach((count, val) => {
+      if (count > bestCount) {
+        best = val;
+        bestCount = count;
+      }
+    });
+    return best;
   }
 
   private executeSave(payload: CreateVendorTemDetailPayload[]): void {
