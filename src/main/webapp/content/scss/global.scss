@@ -382,3 +382,65 @@ angular-cli removes postcss-rtl processed inline css, processed rules must be ad
 }
 
 /* jhipster-needle-scss-add-main JHipster will add new css style */
+
+/* Hỗ trợ bỏ giới hạn max-width mặc định của Material dialog (~560px) */
+.cdk-overlay-pane.scan-dialog-panel--desktop {
+  .mat-mdc-dialog-container {
+    --mdc-dialog-container-max-width: 1400px;
+    max-width: 1400px !important;
+  }
+
+  .mat-mdc-dialog-surface,
+  .mdc-dialog__surface {
+    max-width: 1400px !important;
+  }
+}
+
+.cdk-overlay-pane.scan-dialog-panel--mobile {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+
+  .mat-mdc-dialog-container {
+    --mdc-dialog-container-max-width: 100vw;
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  .mat-mdc-dialog-surface,
+  .mdc-dialog__surface {
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* Dialog chi tiết reel (Tổng hợp) — full màn */
+.cdk-overlay-pane.scan-aggregate-reel-panel-desktop,
+.cdk-overlay-pane.scan-aggregate-reel-panel-mobile {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+
+  .mat-mdc-dialog-container {
+    --mdc-dialog-container-max-width: 100vw;
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .mat-mdc-dialog-surface,
+  .mdc-dialog__surface {
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+  }
+}
