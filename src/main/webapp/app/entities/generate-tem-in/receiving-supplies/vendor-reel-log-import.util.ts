@@ -208,7 +208,7 @@ function parseLogLine(
   } else {
     // Mẫu CSV mới:
     // A) Document1_010 (≤21 cột):
-    // [0]=date,[1]=box,[2]=part,[9]=contract,[10]=stt,[11]=qtyVậtTư (không dùng),
+    // [0]=date,[1]=box,[2]=part,[9]=contract,[10]=stt,[11]=qtyVậtTư,
     // [12]=mfg,[13]=lot,[14]=sapCode,[15]=qtyTem,[16]=item,[17]=po
     // B) label_template_01_011 (≥22 cột):
     // [0]=date,[1]=box,[2]=part,[8]=stt,[13]=mfg,[14]=lot,[16]=po,[17]=part,
@@ -230,9 +230,9 @@ function parseLogLine(
       // Cột [14] là mã SAP thật trong file Document1_010 (vd: 00012836 / 00012837),
       // không dùng để cắt từ PartNumber (parts[2] = 00012836_V1).
       sapCode = deriveSapCode((parts[14] ?? "").trim(), partNumber);
-      // [15]=số lượng tem (vd: 500); [11]=số lượng vật tư (vd: 600) — không dùng làm SL import.
-      quantity = parsePositiveInt(parts[15] ?? "0");
-      temQuantity = quantity;
+      // [11]=SL vật tư (số lượng nhập); [15]=SL tem (số tem cần in).
+      quantity = parsePositiveInt(parts[11] ?? "0");
+      temQuantity = parsePositiveInt(parts[15] ?? "0");
       itemName = (parts[16] ?? "").trim();
       poNumber = (parts[17] ?? "").trim();
     }
@@ -447,7 +447,13 @@ export function parseMauImportReelFromMatrix(
   if (colSap < 0) {
     colSap = findCol("mã sap", "ma sap", "sapcode");
   }
-  const colQtyTem = findCol("sl tem", "số lượng tem", "quantity");
+  const colQtyVatTu = findCol(
+    "sl vật tư",
+    "sl vat tu",
+    "số lượng vật tư",
+    "so luong vat tu",
+  );
+  const colQtyTem = findCol("sl tem", "số lượng tem", "so luong tem");
   const colItem = findCol("tên sp", "ten sp", "itemname", "item");
   const colPo = findColExact("po") >= 0 ? findColExact("po") : findCol("po");
 
@@ -479,7 +485,9 @@ export function parseMauImportReelFromMatrix(
     const lotNumber = parseYyyyMmDd(readCell(i, colLot)) || mfgDate;
     const sapRaw = readCell(i, colSap);
     const sapCode = deriveSapCode(sapRaw, partNumber);
-    const quantity = parsePositiveInt(readCell(i, colQtyTem));
+    // SL vật tư = số lượng nhập; SL tem = số tem in (không dùng làm SL vật tư).
+    const quantity = parsePositiveInt(readCell(i, colQtyVatTu));
+    const temQuantity = parsePositiveInt(readCell(i, colQtyTem));
     const itemName = readCell(i, colItem);
     const poNumber = readCell(i, colPo);
     const contractNo = readCell(i, colContract);
@@ -501,7 +509,7 @@ export function parseMauImportReelFromMatrix(
       mfgDate,
       lotNumber,
       sapCode,
-      temQuantity: quantity > 0 ? quantity : 1,
+      temQuantity: temQuantity > 0 ? temQuantity : 1,
       itemName,
       poNumber,
       madeIn: "",
