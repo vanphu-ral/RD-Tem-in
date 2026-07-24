@@ -877,18 +877,38 @@ export class ScanItemDialogComponent
         }
 
         const orderPo = (this.data?.poCode ?? "").trim();
+        let rowsToImport = parsed.rows;
+        const poSkipWarnings: string[] = [];
+
+        // Có PO trên đơn → chỉ loại dòng lệch PO; dòng đúng vẫn import.
+        // Không có PO → giữ nguyên toàn bộ (như hiện tại).
         if (orderPo) {
-          const poMismatch = parsed.rows.find((row) => {
+          const matched: typeof parsed.rows = [];
+          const mismatched: typeof parsed.rows = [];
+          parsed.rows.forEach((row) => {
             const filePo = (row.poNumber ?? "").trim();
-            return !filePo || filePo !== orderPo;
+            if (filePo && filePo === orderPo) {
+              matched.push(row);
+            } else {
+              mismatched.push(row);
+            }
           });
-          if (poMismatch) {
-            const filePo = (poMismatch.poNumber ?? "").trim() || "(trống)";
+
+          if (mismatched.length) {
+            poSkipWarnings.push(
+              `Đã loại ${mismatched.length} mã lệch PO đơn (${orderPo}).`,
+            );
+          }
+
+          if (!matched.length) {
             this.setImportError(
-              `Import thất bại: mã PO trong file (${filePo}) không trùng PO đơn (${orderPo}).`,
+              poSkipWarnings[0] ||
+                `Không có mã nào trùng PO đơn (${orderPo}) để import.`,
             );
             return;
           }
+
+          rowsToImport = matched;
         }
 
         this.resolveSapCodeByPartFromPo(
@@ -896,15 +916,20 @@ export class ScanItemDialogComponent
         ).subscribe({
           next: (partToSap) => {
             const previewRows = this.buildReelImportPreviewRows(
-              parsed.rows,
+              rowsToImport,
               partToSap,
             );
             if (!previewRows.length) {
-              this.setImportError("Không dựng được dữ liệu import từ file.");
+              this.setImportError(
+                poSkipWarnings[0] || "Không dựng được dữ liệu import từ file.",
+              );
               return;
             }
 
-            this.applyImportPreviewRows(previewRows, parsed.errors);
+            this.applyImportPreviewRows(previewRows, [
+              ...poSkipWarnings,
+              ...parsed.errors,
+            ]);
           },
           error: () => {
             this.setImportError(
@@ -1116,9 +1141,23 @@ export class ScanItemDialogComponent
           return;
         }
 
-        this.setImportSuccess(
-          `Đã import ${successItems.length}/${payloads.length} ReelID${skipHint}${parseHint}`,
-        );
+        const successMsg = `Đã import ${successItems.length}/${payloads.length} ReelID${skipHint}${parseHint}`;
+        // Có mã bị loại (lệch PO / khác) → toast cảnh báo để dễ thấy số lượng & mã loại.
+        if (parseWarnings.length || skipReasons.length) {
+          this.isImportingReel = false;
+          this.importErrorMessage = "";
+          this.importSuccessMessage = successMsg;
+          this.lastScannedCode = successMsg;
+          this.notificationService.warning(
+            parseWarnings[0]
+              ? `${successMsg.split(" · ")[0]}. ${parseWarnings[0]}`
+              : successMsg,
+          );
+          this.cdr.markForCheck();
+          return;
+        }
+
+        this.setImportSuccess(successMsg);
       },
       error: () => {
         this.setImportError("Import ReelID thất bại.");
