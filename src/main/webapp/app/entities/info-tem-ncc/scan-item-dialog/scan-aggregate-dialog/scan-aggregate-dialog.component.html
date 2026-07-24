@@ -10,68 +10,21 @@
           <h2>Tổng hợp vật tư</h2>
           <p class="subtitle">
             {{ totalReelCount }} reel · SL {{ totalQty | number }}
-            <ng-container *ngIf="data.poCode">
-              · PO {{ data.poCode }}</ng-container
+            <ng-container *ngIf="headerPoCode">
+              · PO {{ headerPoCode }}</ng-container
             >
             <ng-container *ngIf="data.newItemCount">
               · {{ data.newItemCount }} mới</ng-container
             >
             <ng-container *ngIf="hasActiveGroupFilter">
               · đang hiện {{ visibleRowCount }} dòng /
-              {{ visibleGroupCount }} nhóm</ng-container
+              {{ visibleGroupCount }} vật tư</ng-container
             >
           </p>
         </div>
       </div>
 
-      <div class="header-filters">
-        <div class="filter-field smart-search">
-          <mat-icon class="filter-icon">search</mat-icon>
-          <input
-            type="text"
-            class="filter-input"
-            [(ngModel)]="smartSearch"
-            (ngModelChange)="scheduleFilterUpdate()"
-            placeholder="Tìm SAP / Part / ReelID..."
-            aria-label="Tìm kiếm thông minh"
-          />
-          <button
-            *ngIf="smartSearch"
-            type="button"
-            class="filter-clear"
-            (click)="smartSearch = ''; scheduleFilterUpdate()"
-            mat-icon-button
-            aria-label="Xóa tìm kiếm"
-          >
-            <mat-icon>close</mat-icon>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="filter-toggle-btn"
-          mat-stroked-button
-          (click)="toggleAdvancedFilters()"
-          [class.active]="showAdvancedFilters"
-        >
-          <mat-icon>{{
-            showAdvancedFilters ? "expand_less" : "tune"
-          }}</mat-icon>
-          Bộ lọc
-        </button>
-
-        <button
-          *ngIf="hasActiveGroupFilter"
-          type="button"
-          class="filter-reset-btn"
-          mat-stroked-button
-          (click)="clearGroupFilters()"
-        >
-          Xóa lọc
-        </button>
-      </div>
-
-      <div class="advanced-filters" *ngIf="showAdvancedFilters">
+      <div class="header-filters" *ngIf="!isMobileView">
         <div class="filter-field">
           <mat-icon class="filter-icon">search</mat-icon>
           <input
@@ -80,7 +33,6 @@
             [(ngModel)]="searchSapCode"
             (ngModelChange)="scheduleFilterUpdate()"
             placeholder="Tìm mã SAP..."
-            aria-label="Tìm mã SAP"
           />
           <button
             *ngIf="searchSapCode"
@@ -88,7 +40,6 @@
             class="filter-clear"
             (click)="searchSapCode = ''; scheduleFilterUpdate()"
             mat-icon-button
-            aria-label="Xóa tìm SAP"
           >
             <mat-icon>close</mat-icon>
           </button>
@@ -101,7 +52,6 @@
             [(ngModel)]="searchPartNumber"
             (ngModelChange)="scheduleFilterUpdate()"
             placeholder="Tìm mã Part..."
-            aria-label="Tìm mã Part"
           />
           <button
             *ngIf="searchPartNumber"
@@ -109,7 +59,6 @@
             class="filter-clear"
             (click)="searchPartNumber = ''; scheduleFilterUpdate()"
             mat-icon-button
-            aria-label="Xóa tìm Part"
           >
             <mat-icon>close</mat-icon>
           </button>
@@ -122,7 +71,6 @@
             [(ngModel)]="searchReelId"
             (ngModelChange)="scheduleFilterUpdate()"
             placeholder="Tìm ReelID..."
-            aria-label="Tìm ReelID"
           />
           <button
             *ngIf="searchReelId"
@@ -130,12 +78,97 @@
             class="filter-clear"
             (click)="searchReelId = ''; scheduleFilterUpdate()"
             mat-icon-button
-            aria-label="Xóa tìm ReelID"
           >
             <mat-icon>close</mat-icon>
           </button>
         </div>
+        <button
+          *ngIf="hasActiveGroupFilter"
+          type="button"
+          class="filter-reset-btn"
+          mat-stroked-button
+          (click)="clearGroupFilters()"
+        >
+          Xóa lọc
+        </button>
       </div>
+
+      <ng-container *ngIf="isMobileView">
+        <div class="header-filters">
+          <div class="filter-field smart-search">
+            <mat-icon class="filter-icon">search</mat-icon>
+            <input
+              type="text"
+              class="filter-input"
+              [(ngModel)]="smartSearch"
+              (ngModelChange)="scheduleFilterUpdate()"
+              placeholder="Tìm SAP / Part / ReelID..."
+            />
+            <button
+              *ngIf="smartSearch"
+              type="button"
+              class="filter-clear"
+              (click)="smartSearch = ''; scheduleFilterUpdate()"
+              mat-icon-button
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <button
+            type="button"
+            class="filter-toggle-btn"
+            mat-stroked-button
+            (click)="toggleAdvancedFilters()"
+            [class.active]="showAdvancedFilters"
+          >
+            <mat-icon>{{
+              showAdvancedFilters ? "expand_less" : "tune"
+            }}</mat-icon>
+            Bộ lọc
+          </button>
+          <button
+            *ngIf="hasActiveGroupFilter"
+            type="button"
+            class="filter-reset-btn"
+            mat-stroked-button
+            (click)="clearGroupFilters()"
+          >
+            Xóa lọc
+          </button>
+        </div>
+        <div class="advanced-filters" *ngIf="showAdvancedFilters">
+          <div class="filter-field">
+            <mat-icon class="filter-icon">search</mat-icon>
+            <input
+              type="text"
+              class="filter-input"
+              [(ngModel)]="searchSapCode"
+              (ngModelChange)="scheduleFilterUpdate()"
+              placeholder="Tìm mã SAP..."
+            />
+          </div>
+          <div class="filter-field">
+            <mat-icon class="filter-icon">search</mat-icon>
+            <input
+              type="text"
+              class="filter-input"
+              [(ngModel)]="searchPartNumber"
+              (ngModelChange)="scheduleFilterUpdate()"
+              placeholder="Tìm mã Part..."
+            />
+          </div>
+          <div class="filter-field">
+            <mat-icon class="filter-icon">search</mat-icon>
+            <input
+              type="text"
+              class="filter-input"
+              [(ngModel)]="searchReelId"
+              (ngModelChange)="scheduleFilterUpdate()"
+              placeholder="Tìm ReelID..."
+            />
+          </div>
+        </div>
+      </ng-container>
     </div>
     <button
       mat-icon-button
@@ -149,9 +182,8 @@
 
   <div class="import-preview-body">
     <div class="hint-banner hint-info" *ngIf="isLargeList">
-      Danh sách lớn ({{ totalReelCount }} reel) — các nhóm được thu gọn mặc
-      định. Mỗi nhóm hiển thị tối đa {{ groupPageSize }} dòng/trang. Dùng bộ lọc
-      để tìm nhanh.
+      Danh sách lớn — các vật tư thu gọn mặc định. Mở lô rồi bấm icon
+      <mat-icon class="hint-inline-ico">visibility</mat-icon> để xem từng reel.
     </div>
 
     <div
@@ -163,720 +195,653 @@
         label
       }}</span>
       <span class="hint-text"
-        >— dùng <strong>Điền nhanh toàn bộ</strong> hoặc
-        <strong>Áp dụng nhóm</strong>.</span
+        >— điền <strong>Vị trí / Mã kho / MFG / HSD</strong> ở hàng vật tư (áp
+        cả nhánh), hoặc sửa riêng từng lô.</span
       >
     </div>
     <ng-template #hintOk>
       <div class="hint-banner hint-ok">
-        Đủ thông tin hoàn thiện cơ bản. Có thể chỉnh sửa từng dòng hoặc dùng
-        công cụ điền hàng loạt.
+        Đủ thông tin cơ bản. Sửa cascade ở vật tư/lô; xem từng reel bằng icon
+        <mat-icon class="hint-inline-ico">visibility</mat-icon>.
       </div>
     </ng-template>
 
-    <div class="batch-toolbar">
-      <button
-        type="button"
-        mat-flat-button
-        color="accent"
-        class="batch-btn"
-        (click)="fillAllMissingQuick()"
-      >
-        <mat-icon>bolt</mat-icon>
-        Điền nhanh toàn bộ
-      </button>
-    </div>
-
-    <!-- Datalist gợi ý chung (mobile + desktop) -->
-    <datalist id="agg-dl-hsd">
-      <option *ngFor="let v of expirationSuggestions" [value]="v"></option>
-    </datalist>
-    <datalist id="agg-dl-location">
-      <option *ngFor="let v of locationSuggestions" [value]="v"></option>
-    </datalist>
-    <datalist id="agg-dl-storage">
-      <option *ngFor="let v of storageSuggestions" [value]="v"></option>
-    </datalist>
-
-    <!-- ========== MOBILE VIEW ========== -->
-    <div
-      class="mobile-layout"
-      *ngIf="isMobileView && groups.length; else desktopOrEmpty"
-    >
-      <ng-container *ngIf="visibleGroups.length; else noFilterResultMobile">
-        <div
-          class="m-group"
-          *ngFor="let group of visibleGroups; trackBy: trackByGroup"
-        >
-          <div class="m-group-header">
-            <button
-              type="button"
-              class="m-expand-circle"
-              (click)="toggleExpand(group)"
-              [attr.aria-label]="
-                group.expanded ? 'Thu gọn nhóm' : 'Mở rộng nhóm'
-              "
-            >
-              <mat-icon>{{
-                group.expanded ? "expand_less" : "expand_more"
-              }}</mat-icon>
-            </button>
-            <div class="m-group-main" (click)="toggleExpand(group)">
-              <div class="m-sap">{{ getGroupSapCode(group) }}</div>
-              <div class="m-group-meta">
-                <span class="m-chip"
-                  >{{ getFilteredGroupRows(group).length }} thùng</span
-                >
-                <span class="m-chip"
-                  >SL {{ getGroupTotalQty(group) | number }}</span
-                >
-                <span class="m-chip" *ngIf="getGroupPo(group)"
-                  >PO {{ getGroupPo(group) }}</span
-                >
-              </div>
-              <div class="m-item-name" *ngIf="getGroupItemName(group)">
-                {{ getGroupItemName(group) }}
-              </div>
-              <div
-                class="m-missing"
-                *ngIf="getGroupMissingFields(group).length"
+    <ng-container *ngIf="materials.length; else emptyState">
+      <!-- ========== DESKTOP: tree table ========== -->
+      <div class="tree-desktop table-scroll" *ngIf="!isMobileView">
+        <ng-container *ngIf="visibleMaterials.length; else noFilter">
+          <table class="tree-table">
+            <thead>
+              <tr>
+                <th class="col-expand"></th>
+                <th class="col-sap">Mã SAP / Lô</th>
+                <th class="col-part">Part / PO</th>
+                <th class="col-name">Tên SP / Vendor</th>
+                <th class="col-num" title="Tổng số lượng">Tổng số lượng</th>
+                <th class="col-num" title="Số lượng tem">Số lượng tem</th>
+                <th class="col-num" title="Số lượng lot">Số lượng lot</th>
+                <th class="col-date">
+                  MFG <mat-icon class="cascade-ico">arrow_downward</mat-icon>
+                </th>
+                <th class="col-date">
+                  HSD *
+                  <mat-icon class="cascade-ico">arrow_downward</mat-icon>
+                </th>
+                <th class="col-loc">
+                  Vị trí <mat-icon class="cascade-ico">arrow_downward</mat-icon>
+                </th>
+                <th class="col-whs">
+                  Mã kho <mat-icon class="cascade-ico">arrow_downward</mat-icon>
+                </th>
+                <th class="col-status">Trạng thái</th>
+                <th class="col-action"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container
+                *ngFor="let m of visibleMaterials; trackBy: trackByMaterial"
               >
-                <span
-                  class="warning-badge"
-                  *ngFor="let f of getGroupMissingFields(group)"
-                  >{{ f.label }}</span
-                >
-              </div>
-            </div>
-            <button
-              type="button"
-              mat-stroked-button
-              class="m-apply-group-btn"
-              (click)="applyGroupBatch(group); $event.stopPropagation()"
-            >
-              Áp dụng nhóm
-            </button>
-          </div>
-
-          <div class="m-group-body" *ngIf="group.expanded">
-            <div class="m-group-batch">
-              <div class="m-batch-title">Điền theo nhóm</div>
-              <div class="m-batch-grid">
-                <label class="m-field is-required">
-                  <span class="m-label">HSD *</span>
-                  <input
-                    type="date"
-                    class="m-input"
-                    [class.is-missing]="
-                      isGroupHeaderMissing(group, 'expirationDate')
-                    "
-                    [ngModel]="
-                      toDateInputValue(group.headerValues['expirationDate'])
-                    "
-                    (ngModelChange)="
-                      onHeaderDateChange(group, 'expirationDate', $event)
-                    "
-                    [attr.list]="'agg-dl-hsd'"
-                  />
-                </label>
-                <label class="m-field is-required">
-                  <span class="m-label">Vị trí *</span>
-                  <input
-                    type="text"
-                    class="m-input"
-                    [class.is-missing]="
-                      isGroupHeaderMissing(group, 'locationOverride')
-                    "
-                    [ngModel]="group.headerValues['locationOverride']"
-                    (ngModelChange)="
-                      onHeaderValueChange(group, 'locationOverride', $event)
-                    "
-                    list="agg-dl-location"
-                    placeholder="Chọn / gõ vị trí"
-                    autocomplete="off"
-                  />
-                </label>
-                <label class="m-field is-required">
-                  <span class="m-label">Mã kho *</span>
-                  <input
-                    type="text"
-                    class="m-input"
-                    [class.is-missing]="
-                      isGroupHeaderMissing(group, 'storageUnit')
-                    "
-                    [ngModel]="group.headerValues['storageUnit']"
-                    (ngModelChange)="
-                      onHeaderValueChange(group, 'storageUnit', $event)
-                    "
-                    list="agg-dl-storage"
-                    placeholder="Chọn / gõ mã kho"
-                    autocomplete="off"
-                  />
-                </label>
-                <label class="m-field">
-                  <span class="m-label">Số lô</span>
-                  <input
-                    type="text"
-                    class="m-input"
-                    [ngModel]="group.headerValues['lotNumber']"
-                    (ngModelChange)="
-                      onHeaderValueChange(group, 'lotNumber', $event)
-                    "
-                    placeholder="Áp dụng cả nhóm"
-                  />
-                </label>
-              </div>
-              <label class="auto-fill-check m-autofill">
-                <mat-checkbox
-                  [checked]="group.autoFillDefaults"
-                  (change)="onAutoFillToggle(group, $event.checked)"
-                  color="primary"
-                ></mat-checkbox>
-                <span>Tự điền mặc định (UD1–4, MSL)</span>
-              </label>
-            </div>
-
-            <div
-              class="group-pagination m-pagination"
-              *ngIf="getFilteredGroupRows(group).length > groupPageSize"
-            >
-              <button
-                mat-icon-button
-                type="button"
-                (click)="prevGroupPage(group)"
-                [disabled]="getGroupPageIndex(group) === 0"
-                aria-label="Trang trước"
-              >
-                <mat-icon>chevron_left</mat-icon>
-              </button>
-              <span class="page-label">
-                Trang {{ getGroupPageIndex(group) + 1 }} /
-                {{ getGroupPageCount(group) }}
-              </span>
-              <button
-                mat-icon-button
-                type="button"
-                (click)="nextGroupPage(group)"
-                [disabled]="
-                  getGroupPageIndex(group) >= getGroupPageCount(group) - 1
-                "
-                aria-label="Trang sau"
-              >
-                <mat-icon>chevron_right</mat-icon>
-              </button>
-            </div>
-
-            <div
-              class="m-reel"
-              *ngFor="let row of getGroupPageRows(group); trackBy: trackByRow"
-            >
-              <div class="m-reel-head">
-                <span class="m-reel-idx">{{
-                  getRowDisplayIndex(group, row)
-                }}</span>
-                <div class="m-reel-title">
-                  <span class="m-reel-id">{{ row.reelId }}</span>
-                  <span class="m-reel-lot" *ngIf="row.lotNumber"
-                    >Lô {{ row.lotNumber }}</span
-                  >
-                </div>
-              </div>
-
-              <div class="m-field-grid">
-                <label
-                  class="m-field"
-                  *ngFor="let col of mobileFields"
-                  [class.is-required]="isMobileRequiredKey(col.key)"
-                  [class.is-readonly]="!col.editable"
-                >
-                  <span class="m-label"
-                    >{{ col.label
-                    }}<span class="req-star" *ngIf="col.required">
-                      *</span
-                    ></span
-                  >
-
-                  <ng-container *ngIf="col.editable; else mReadOnly">
-                    <ng-container *ngIf="isDateColumn(col.key); else mText">
-                      <input
-                        class="m-input"
-                        [class.is-missing]="isFieldMissing(row, col.key)"
-                        type="date"
-                        [ngModel]="toDateInputValue(row[col.key])"
-                        (ngModelChange)="onRowDateChange(row, col.key, $event)"
-                        [attr.list]="getDatalistId(col.key) || null"
-                      />
-                    </ng-container>
-                    <ng-template #mText>
-                      <input
-                        class="m-input"
-                        [class.is-missing]="isFieldMissing(row, col.key)"
-                        [type]="
-                          col.key === 'initialQuantity' ? 'number' : 'text'
-                        "
-                        [min]="col.key === 'initialQuantity' ? 0 : null"
-                        [(ngModel)]="row[col.key]"
-                        (ngModelChange)="onCellChange(group, row, col.key)"
-                        [attr.list]="getDatalistId(col.key) || null"
-                        autocomplete="off"
-                      />
-                    </ng-template>
-                  </ng-container>
-                  <ng-template #mReadOnly>
-                    <span class="m-readonly">{{ row[col.key] || "—" }}</span>
-                  </ng-template>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </ng-container>
-      <ng-template #noFilterResultMobile>
-        <div class="empty-state filter-empty">
-          Không có nhóm khớp bộ lọc.
-          <button
-            type="button"
-            mat-stroked-button
-            class="filter-empty-btn"
-            (click)="clearGroupFilters()"
-          >
-            Xóa lọc
-          </button>
-        </div>
-      </ng-template>
-    </div>
-
-    <ng-template #desktopOrEmpty>
-      <!-- ========== DESKTOP VIEW ========== -->
-      <div
-        class="desktop-layout table-scroll"
-        *ngIf="groups.length; else emptyState"
-      >
-        <table
-          class="preview-table"
-          *ngIf="visibleGroups.length; else noFilterResult"
-        >
-          <colgroup>
-            <col *ngFor="let col of columns" [style.width]="col.width" />
-          </colgroup>
-          <thead>
-            <tr class="col-header">
-              <th *ngFor="let col of columns" [title]="col.label">
-                {{ col.label }}
-                <span class="req-star" *ngIf="col.required">*</span>
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <ng-container
-              *ngFor="let group of visibleGroups; trackBy: trackByGroup"
-            >
-              <tr class="group-meta-row">
-                <td [attr.colspan]="columns.length">
-                  <div class="group-meta">
-                    <div class="group-meta-left">
-                      <button
-                        mat-icon-button
-                        type="button"
-                        class="btn-expand"
-                        (click)="toggleExpand(group)"
-                        [attr.aria-label]="
-                          group.expanded ? 'Thu gọn nhóm' : 'Mở rộng nhóm'
-                        "
-                      >
-                        <mat-icon>{{
-                          group.expanded ? "expand_less" : "expand_more"
-                        }}</mat-icon>
-                      </button>
-                      <span class="group-label">{{ group.label }}</span>
-                      <span class="reel-count"
-                        >{{ getFilteredGroupRows(group).length }} reel</span
-                      >
-                      <span
-                        class="missing-wrap"
-                        *ngIf="getGroupMissingFields(group).length"
-                      >
-                        Còn thiếu:
-                        <span
-                          class="warning-badge"
-                          *ngFor="let f of getGroupMissingFields(group)"
-                        >
-                          {{ f.label }}
-                        </span>
-                      </span>
-                    </div>
+                <!-- Lớp 1: Vật tư -->
+                <tr class="l1-tr">
+                  <td class="col-expand">
                     <button
                       type="button"
-                      mat-stroked-button
-                      class="apply-group-btn"
-                      (click)="applyGroupBatch(group)"
+                      class="btn-expand"
+                      mat-icon-button
+                      (click)="toggleExpand(m)"
+                      [attr.aria-label]="m.expanded ? 'Thu gọn' : 'Mở rộng'"
                     >
-                      Áp dụng nhóm
+                      <mat-icon>{{
+                        m.expanded ? "expand_less" : "expand_more"
+                      }}</mat-icon>
                     </button>
-                    <label class="auto-fill-check">
-                      <mat-checkbox
-                        [checked]="group.autoFillDefaults"
-                        (change)="onAutoFillToggle(group, $event.checked)"
-                        color="primary"
-                      ></mat-checkbox>
-                      <span>Tự điền mặc định (userData1–4, MSL)</span>
-                    </label>
-                    <div
-                      class="group-pagination"
-                      *ngIf="
-                        group.expanded &&
-                        getFilteredGroupRows(group).length > groupPageSize
+                  </td>
+                  <td class="col-sap">
+                    <strong>{{ m.sapCode || "—" }}</strong>
+                  </td>
+                  <td class="col-part">{{ m.partNumber || "—" }}</td>
+                  <td class="col-name" [title]="m.itemName">
+                    {{ m.itemName || "—" }}
+                  </td>
+                  <td class="col-num">{{ materialQty(m) | number }}</td>
+                  <td class="col-num">{{ materialReelCount(m) }}</td>
+                  <td class="col-num">{{ m.lots.length }}</td>
+                  <td class="col-date">
+                    <input
+                      class="cascade-input"
+                      type="date"
+                      [ngModel]="
+                        toDateInputValue(
+                          displayCascadeValue(
+                            getMaterialRows(m),
+                            'manufacturingDate'
+                          )
+                        )
+                      "
+                      (ngModelChange)="
+                        onMaterialDateChange(m, 'manufacturingDate', $event)
+                      "
+                      [title]="
+                        cascadePlaceholder(
+                          getMaterialRows(m),
+                          'manufacturingDate'
+                        ) || 'MFG'
+                      "
+                    />
+                  </td>
+                  <td class="col-date">
+                    <input
+                      class="cascade-input"
+                      type="date"
+                      [ngModel]="
+                        toDateInputValue(
+                          displayCascadeValue(
+                            getMaterialRows(m),
+                            'expirationDate'
+                          )
+                        )
+                      "
+                      (ngModelChange)="
+                        onMaterialDateChange(m, 'expirationDate', $event)
+                      "
+                      [title]="
+                        cascadePlaceholder(
+                          getMaterialRows(m),
+                          'expirationDate'
+                        ) || 'HSD'
+                      "
+                    />
+                  </td>
+                  <td class="col-loc">
+                    <input
+                      class="cascade-input"
+                      [class.is-mixed]="
+                        isCascadeMixed(getMaterialRows(m), 'locationOverride')
+                      "
+                      [ngModel]="
+                        displayCascadeValue(
+                          getMaterialRows(m),
+                          'locationOverride'
+                        )
+                      "
+                      (ngModelChange)="
+                        onMaterialFieldChange(m, 'locationOverride', $event)
+                      "
+                      [placeholder]="
+                        cascadePlaceholder(
+                          getMaterialRows(m),
+                          'locationOverride'
+                        ) || 'Chọn vị trí...'
+                      "
+                      [matAutocomplete]="autoMatLoc"
+                      #matLocTrigger="matAutocompleteTrigger"
+                      (input)="
+                        onLocationSearch(
+                          $any($event.target).value,
+                          matLocTrigger
+                        )
+                      "
+                      (focus)="
+                        onLocationSearch(
+                          $any($event.target).value,
+                          matLocTrigger
+                        )
+                      "
+                    />
+                    <mat-autocomplete
+                      #autoMatLoc="matAutocomplete"
+                      (optionSelected)="
+                        onMaterialLocationSelected(m, $event.option.value)
                       "
                     >
-                      <button
-                        mat-icon-button
-                        type="button"
-                        (click)="prevGroupPage(group)"
-                        [disabled]="getGroupPageIndex(group) === 0"
-                        aria-label="Trang trước"
+                      <mat-option
+                        *ngFor="let w of filteredLocationOptions"
+                        [value]="w.locationFullName"
                       >
-                        <mat-icon>chevron_left</mat-icon>
-                      </button>
-                      <span class="page-label">
-                        Trang {{ getGroupPageIndex(group) + 1 }} /
-                        {{ getGroupPageCount(group) }}
-                        ({{ getFilteredGroupRows(group).length }} reel)
-                      </span>
-                      <button
-                        mat-icon-button
-                        type="button"
-                        (click)="nextGroupPage(group)"
-                        [disabled]="
-                          getGroupPageIndex(group) >=
-                          getGroupPageCount(group) - 1
-                        "
-                        aria-label="Trang sau"
+                        {{ w.locationFullName || w.locationName }}
+                      </mat-option>
+                      <mat-option *ngIf="showLocationNoResults()" disabled
+                        >Không có kết quả</mat-option
                       >
-                        <mat-icon>chevron_right</mat-icon>
-                      </button>
+                    </mat-autocomplete>
+                  </td>
+                  <td class="col-whs">
+                    <input
+                      class="cascade-input"
+                      [ngModel]="
+                        displayCascadeValue(getMaterialRows(m), 'storageUnit')
+                      "
+                      (ngModelChange)="
+                        onMaterialFieldChange(m, 'storageUnit', $event)
+                      "
+                      [placeholder]="
+                        cascadePlaceholder(getMaterialRows(m), 'storageUnit') ||
+                        'Mã kho...'
+                      "
+                      [matAutocomplete]="autoMatWhs"
+                      (input)="onSapWarehouseSearch($any($event.target).value)"
+                      (focus)="
+                        onSapWarehouseSearch(
+                          displayCascadeValue(getMaterialRows(m), 'storageUnit')
+                        )
+                      "
+                    />
+                    <mat-autocomplete
+                      #autoMatWhs="matAutocomplete"
+                      [displayWith]="displaySapWarehouse"
+                      (optionSelected)="
+                        onMaterialWarehouseSelected(m, $event.option.value)
+                      "
+                    >
+                      <mat-option
+                        *ngFor="let whs of filteredSapWarehouseList"
+                        [value]="whs.whsCode"
+                      >
+                        {{ whs.whsCode }} - {{ whs.whsName }}
+                      </mat-option>
+                    </mat-autocomplete>
+                  </td>
+                  <td class="col-status">
+                    <div class="status-cell">
+                      <div class="status-badges">
+                        <ng-container
+                          *ngIf="materialMissingLabels(m).length; else matOk"
+                        >
+                          <span
+                            class="warning-badge"
+                            *ngFor="let label of materialMissingLabels(m)"
+                            >{{ label }}</span
+                          >
+                        </ng-container>
+                        <ng-template #matOk>
+                          <span class="status-badge ok">Đủ</span>
+                        </ng-template>
+                      </div>
+                      <label class="auto-fill-check">
+                        <mat-checkbox
+                          [checked]="m.autoFillDefaults"
+                          (change)="onAutoFillToggle(m, $event.checked)"
+                          color="primary"
+                        ></mat-checkbox>
+                        <span class="auto-fill-label">Tự điền UD/MSL</span>
+                      </label>
                     </div>
-                  </div>
-                </td>
-              </tr>
-
-              <ng-container *ngIf="group.expanded">
-                <tr class="group-header-inputs">
-                  <td *ngFor="let col of columns">
-                    <ng-container *ngIf="col.headerEditable; else emptyHeader">
-                      <ng-container
-                        *ngIf="
-                          col.key === 'locationOverride';
-                          else headerWhsOrNormal
-                        "
-                      >
-                        <input
-                          class="header-input"
-                          [class.is-missing]="
-                            isGroupHeaderMissing(group, 'locationOverride')
-                          "
-                          [ngModel]="group.headerValues[col.key]"
-                          (ngModelChange)="
-                            onHeaderValueChange(group, col.key, $event)
-                          "
-                          [matAutocomplete]="autoHeaderLocation"
-                          #headerLocTrigger="matAutocompleteTrigger"
-                          list="agg-dl-location"
-                          (input)="
-                            onLocationSearch(
-                              $any($event.target).value,
-                              headerLocTrigger
-                            )
-                          "
-                          (focus)="
-                            onLocationSearch(
-                              $any($event.target).value,
-                              headerLocTrigger
-                            )
-                          "
-                          placeholder="Chọn vị trí..."
-                          title="Vị trí"
-                        />
-                        <mat-autocomplete
-                          #autoHeaderLocation="matAutocomplete"
-                          class="import-location-ac"
-                          panelWidth="200px"
-                          (optionSelected)="
-                            onHeaderLocationSelected(group, $event.option.value)
-                          "
-                        >
-                          <mat-option
-                            *ngFor="let w of filteredLocationOptions"
-                            [value]="w.locationFullName"
-                          >
-                            {{ w.locationFullName || w.locationName }}
-                          </mat-option>
-                          <mat-option
-                            *ngIf="showLocationNoResults()"
-                            disabled
-                            [value]="lastLocationSearchTerm"
-                          >
-                            Không có kết quả
-                          </mat-option>
-                        </mat-autocomplete>
-                      </ng-container>
-
-                      <ng-template #headerWhsOrNormal>
-                        <ng-container
-                          *ngIf="col.key === 'storageUnit'; else headerNormal"
-                        >
-                          <input
-                            class="header-input"
-                            [class.is-missing]="
-                              isGroupHeaderMissing(group, 'storageUnit')
-                            "
-                            [ngModel]="group.headerValues[col.key]"
-                            (ngModelChange)="
-                              onHeaderValueChange(group, col.key, $event)
-                            "
-                            [matAutocomplete]="autoHeaderWhs"
-                            list="agg-dl-storage"
-                            (input)="
-                              onSapWarehouseSearch($any($event.target).value)
-                            "
-                            (focus)="
-                              onSapWarehouseSearch(
-                                group.headerValues[col.key] || ''
-                              )
-                            "
-                            placeholder="Mã kho SAP..."
-                            title="Mã kho SAP"
-                          />
-                          <mat-autocomplete
-                            #autoHeaderWhs="matAutocomplete"
-                            [displayWith]="displaySapWarehouse"
-                            (optionSelected)="
-                              onHeaderSapWarehouseSelected(
-                                group,
-                                $event.option.value
-                              )
-                            "
-                          >
-                            <mat-option
-                              *ngFor="let whs of filteredSapWarehouseList"
-                              [value]="whs.whsCode"
-                            >
-                              {{ whs.whsCode }} - {{ whs.whsName }}
-                            </mat-option>
-                          </mat-autocomplete>
-                        </ng-container>
-
-                        <ng-template #headerNormal>
-                          <ng-container
-                            *ngIf="isDateColumn(col.key); else headerText"
-                          >
-                            <input
-                              class="header-input date-input"
-                              [class.is-missing]="
-                                col.required &&
-                                isGroupHeaderMissing(group, col.key)
-                              "
-                              type="date"
-                              [ngModel]="
-                                toDateInputValue(group.headerValues[col.key])
-                              "
-                              (ngModelChange)="
-                                onHeaderDateChange(group, col.key, $event)
-                              "
-                              [attr.list]="getDatalistId(col.key) || null"
-                              [title]="group.headerValues[col.key] || col.label"
-                            />
-                          </ng-container>
-                          <ng-template #headerText>
-                            <input
-                              class="header-input"
-                              [type]="
-                                col.key === 'initialQuantity'
-                                  ? 'number'
-                                  : 'text'
-                              "
-                              [min]="col.key === 'initialQuantity' ? 0 : null"
-                              [ngModel]="group.headerValues[col.key]"
-                              (ngModelChange)="
-                                onHeaderValueChange(group, col.key, $event)
-                              "
-                              [placeholder]="col.label"
-                              [title]="col.label"
-                            />
-                          </ng-template>
-                        </ng-template>
-                      </ng-template>
-                    </ng-container>
-                    <ng-template #emptyHeader>
-                      <span class="header-empty">—</span>
-                    </ng-template>
                   </td>
+                  <td class="col-action"></td>
                 </tr>
 
-                <tr
-                  class="data-row"
-                  *ngFor="
-                    let row of getGroupPageRows(group);
-                    trackBy: trackByRow
-                  "
-                >
-                  <td *ngFor="let col of columns">
-                    <ng-container *ngIf="col.editable; else readOnlyCell">
+                <!-- Lớp 2: Lô -->
+                <ng-container *ngIf="m.expanded">
+                  <tr
+                    class="l2-tr"
+                    *ngFor="let lot of getVisibleLots(m); trackBy: trackByLot"
+                    [class.highlighted]="lot.highlighted"
+                  >
+                    <td class="col-expand"></td>
+                    <td class="col-sap l2-indent">
+                      <span class="lot-label"
+                        >Lô {{ lot.lotNumber || "—" }}</span
+                      >
+                    </td>
+                    <td class="col-part">
                       <ng-container
-                        *ngIf="
-                          col.key === 'locationOverride';
-                          else rowWhsOrNormal
+                        *ngIf="!singlePoMode && lot.poCode; else dashPo"
+                      >
+                        {{ lot.poCode }}
+                      </ng-container>
+                      <ng-template #dashPo>—</ng-template>
+                    </td>
+                    <td class="col-name" [title]="lot.vendor">
+                      {{ lot.vendor || "—" }}
+                    </td>
+                    <td class="col-num">{{ lotQty(lot) | number }}</td>
+                    <td class="col-num">{{ lot.rows.length }}</td>
+                    <td class="col-num cell-muted">—</td>
+                    <td class="col-date">
+                      <input
+                        class="cascade-input"
+                        type="date"
+                        [ngModel]="
+                          toDateInputValue(
+                            displayCascadeValue(lot.rows, 'manufacturingDate')
+                          )
+                        "
+                        (ngModelChange)="
+                          onLotDateChange(lot, 'manufacturingDate', $event)
+                        "
+                        [title]="
+                          cascadePlaceholder(lot.rows, 'manufacturingDate') ||
+                          'MFG'
+                        "
+                      />
+                    </td>
+                    <td class="col-date">
+                      <input
+                        class="cascade-input"
+                        type="date"
+                        [ngModel]="
+                          toDateInputValue(
+                            displayCascadeValue(lot.rows, 'expirationDate')
+                          )
+                        "
+                        (ngModelChange)="
+                          onLotDateChange(lot, 'expirationDate', $event)
+                        "
+                        [title]="
+                          cascadePlaceholder(lot.rows, 'expirationDate') ||
+                          'HSD'
+                        "
+                      />
+                    </td>
+                    <td class="col-loc">
+                      <input
+                        class="cascade-input"
+                        [ngModel]="
+                          displayCascadeValue(lot.rows, 'locationOverride')
+                        "
+                        (ngModelChange)="
+                          onLotFieldChange(lot, 'locationOverride', $event)
+                        "
+                        [placeholder]="
+                          cascadePlaceholder(lot.rows, 'locationOverride') ||
+                          'Chọn vị trí...'
+                        "
+                        [matAutocomplete]="autoLotLoc"
+                        #lotLocTrigger="matAutocompleteTrigger"
+                        (input)="
+                          onLocationSearch(
+                            $any($event.target).value,
+                            lotLocTrigger
+                          )
+                        "
+                        (focus)="
+                          onLocationSearch(
+                            $any($event.target).value,
+                            lotLocTrigger
+                          )
+                        "
+                      />
+                      <mat-autocomplete
+                        #autoLotLoc="matAutocomplete"
+                        (optionSelected)="
+                          onLotLocationSelected(lot, $event.option.value)
                         "
                       >
-                        <input
-                          class="cell-input"
-                          [class.is-missing]="isFieldMissing(row, col.key)"
-                          [(ngModel)]="row.locationOverride"
-                          (ngModelChange)="onCellChange(group, row, col.key)"
-                          [matAutocomplete]="autoRowLocation"
-                          #rowLocTrigger="matAutocompleteTrigger"
-                          list="agg-dl-location"
-                          (input)="
-                            onLocationSearch(
-                              $any($event.target).value,
-                              rowLocTrigger
-                            )
-                          "
-                          (focus)="
-                            onLocationSearch(
-                              $any($event.target).value,
-                              rowLocTrigger
-                            )
-                          "
-                          [title]="row.locationOverride"
-                        />
-                        <mat-autocomplete
-                          #autoRowLocation="matAutocomplete"
-                          class="import-location-ac"
-                          panelWidth="200px"
-                          (optionSelected)="
-                            onRowLocationSelected(row, $event.option.value)
-                          "
+                        <mat-option
+                          *ngFor="let w of filteredLocationOptions"
+                          [value]="w.locationFullName"
                         >
-                          <mat-option
-                            *ngFor="let w of filteredLocationOptions"
-                            [value]="w.locationFullName"
-                          >
-                            {{ w.locationFullName || w.locationName }}
-                          </mat-option>
-                          <mat-option
-                            *ngIf="showLocationNoResults()"
-                            disabled
-                            [value]="lastLocationSearchTerm"
-                          >
-                            Không có kết quả
-                          </mat-option>
-                        </mat-autocomplete>
-                      </ng-container>
-
-                      <ng-template #rowWhsOrNormal>
-                        <ng-container
-                          *ngIf="col.key === 'storageUnit'; else rowNormal"
+                          {{ w.locationFullName || w.locationName }}
+                        </mat-option>
+                      </mat-autocomplete>
+                    </td>
+                    <td class="col-whs">
+                      <input
+                        class="cascade-input"
+                        [ngModel]="displayCascadeValue(lot.rows, 'storageUnit')"
+                        (ngModelChange)="
+                          onLotFieldChange(lot, 'storageUnit', $event)
+                        "
+                        [placeholder]="
+                          cascadePlaceholder(lot.rows, 'storageUnit') ||
+                          'Mã kho...'
+                        "
+                        [matAutocomplete]="autoLotWhs"
+                        (input)="
+                          onSapWarehouseSearch($any($event.target).value)
+                        "
+                        (focus)="
+                          onSapWarehouseSearch(
+                            displayCascadeValue(lot.rows, 'storageUnit')
+                          )
+                        "
+                      />
+                      <mat-autocomplete
+                        #autoLotWhs="matAutocomplete"
+                        [displayWith]="displaySapWarehouse"
+                        (optionSelected)="
+                          onLotWarehouseSelected(lot, $event.option.value)
+                        "
+                      >
+                        <mat-option
+                          *ngFor="let whs of filteredSapWarehouseList"
+                          [value]="whs.whsCode"
                         >
-                          <input
-                            class="cell-input"
-                            [class.is-missing]="isFieldMissing(row, col.key)"
-                            [(ngModel)]="row.storageUnit"
-                            (ngModelChange)="onCellChange(group, row, col.key)"
-                            [matAutocomplete]="autoRowWhs"
-                            list="agg-dl-storage"
-                            (input)="
-                              onSapWarehouseSearch($any($event.target).value)
-                            "
-                            (focus)="
-                              onSapWarehouseSearch(row.storageUnit || '')
-                            "
-                            [title]="row.storageUnit"
-                          />
-                          <mat-autocomplete
-                            #autoRowWhs="matAutocomplete"
-                            [displayWith]="displaySapWarehouse"
-                            (optionSelected)="
-                              onRowSapWarehouseSelected(
-                                row,
-                                $event.option.value
-                              )
-                            "
-                          >
-                            <mat-option
-                              *ngFor="let whs of filteredSapWarehouseList"
-                              [value]="whs.whsCode"
-                            >
-                              {{ whs.whsCode }} - {{ whs.whsName }}
-                            </mat-option>
-                          </mat-autocomplete>
-                        </ng-container>
-
-                        <ng-template #rowNormal>
+                          {{ whs.whsCode }} - {{ whs.whsName }}
+                        </mat-option>
+                      </mat-autocomplete>
+                    </td>
+                    <td class="col-status">
+                      <div class="status-cell">
+                        <div class="status-badges">
                           <ng-container
-                            *ngIf="isDateColumn(col.key); else rowText"
+                            *ngIf="lotMissingLabels(lot).length; else lotOk"
                           >
-                            <input
-                              class="cell-input date-input"
-                              [class.is-missing]="isFieldMissing(row, col.key)"
-                              type="date"
-                              [ngModel]="toDateInputValue(row[col.key])"
-                              (ngModelChange)="
-                                onRowDateChange(row, col.key, $event)
-                              "
-                              [attr.list]="getDatalistId(col.key) || null"
-                              [title]="row[col.key] || col.label"
-                            />
+                            <span
+                              class="warning-badge"
+                              *ngFor="let label of lotMissingLabels(lot)"
+                              >{{ label }}</span
+                            >
                           </ng-container>
-                          <ng-template #rowText>
-                            <input
-                              class="cell-input"
-                              [class.is-missing]="isFieldMissing(row, col.key)"
-                              [type]="
-                                col.key === 'initialQuantity'
-                                  ? 'number'
-                                  : 'text'
-                              "
-                              [min]="col.key === 'initialQuantity' ? 0 : null"
-                              [(ngModel)]="row[col.key]"
-                              (ngModelChange)="
-                                onCellChange(group, row, col.key)
-                              "
-                              [title]="row[col.key]"
-                            />
+                          <ng-template #lotOk>
+                            <span class="status-badge ok">Đủ</span>
                           </ng-template>
-                        </ng-template>
-                      </ng-template>
-                    </ng-container>
-                    <ng-template #readOnlyCell>
-                      <span class="cell-text" [title]="row[col.key]">{{
-                        row[col.key]
-                      }}</span>
-                    </ng-template>
-                  </td>
-                </tr>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="col-action">
+                      <button
+                        type="button"
+                        mat-icon-button
+                        class="btn-visibility"
+                        (click)="openReelDialog(m, lot)"
+                        [matTooltip]="
+                          'Xem ' + getFilteredLotRows(m, lot).length + ' reel'
+                        "
+                        aria-label="Xem chi tiết reel"
+                      >
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                </ng-container>
               </ng-container>
-            </ng-container>
-          </tbody>
-        </table>
-        <ng-template #noFilterResult>
-          <div class="empty-state filter-empty">
-            Không có nhóm khớp bộ lọc.
-            <button
-              type="button"
-              mat-stroked-button
-              class="filter-empty-btn"
-              (click)="clearGroupFilters()"
-            >
-              Xóa lọc
-            </button>
-          </div>
-        </ng-template>
+            </tbody>
+          </table>
+        </ng-container>
       </div>
 
-      <ng-template #emptyState>
-        <div class="empty-state">Không có dữ liệu để tổng hợp.</div>
-      </ng-template>
+      <!-- ========== MOBILE: cards ========== -->
+      <div class="tree-mobile" *ngIf="isMobileView">
+        <ng-container *ngIf="visibleMaterials.length; else noFilter">
+          <div
+            class="m-card"
+            *ngFor="let m of visibleMaterials; trackBy: trackByMaterial"
+          >
+            <div class="m-l1">
+              <div class="m-l1-top">
+                <div>
+                  <div class="m-sap">{{ m.sapCode || "—" }}</div>
+                  <div class="m-part">
+                    {{ m.partNumber || "—" }}
+                    <span *ngIf="m.itemName"> · {{ m.itemName }}</span>
+                  </div>
+                  <div class="m-meta">
+                    {{ materialQty(m) | number }} sp ·
+                    {{ materialReelCount(m) }} tem · {{ m.lots.length }} lô
+                  </div>
+                </div>
+                <span class="status-badge" [class.ok]="!isMaterialMissing(m)">{{
+                  isMaterialMissing(m)
+                    ? "Thiếu " + materialMissingCount(m)
+                    : "Đủ"
+                }}</span>
+              </div>
+              <div class="m-cascade">
+                <label>
+                  <span>MFG</span>
+                  <input
+                    class="cascade-input"
+                    type="date"
+                    [ngModel]="
+                      toDateInputValue(
+                        displayCascadeValue(
+                          getMaterialRows(m),
+                          'manufacturingDate'
+                        )
+                      )
+                    "
+                    (ngModelChange)="
+                      onMaterialDateChange(m, 'manufacturingDate', $event)
+                    "
+                  />
+                </label>
+                <label>
+                  <span>HSD *</span>
+                  <input
+                    class="cascade-input"
+                    type="date"
+                    [ngModel]="
+                      toDateInputValue(
+                        displayCascadeValue(
+                          getMaterialRows(m),
+                          'expirationDate'
+                        )
+                      )
+                    "
+                    (ngModelChange)="
+                      onMaterialDateChange(m, 'expirationDate', $event)
+                    "
+                  />
+                </label>
+                <label>
+                  <span>Vị trí</span>
+                  <input
+                    class="cascade-input"
+                    [ngModel]="
+                      displayCascadeValue(
+                        getMaterialRows(m),
+                        'locationOverride'
+                      )
+                    "
+                    (ngModelChange)="
+                      onMaterialFieldChange(m, 'locationOverride', $event)
+                    "
+                    [placeholder]="
+                      cascadePlaceholder(
+                        getMaterialRows(m),
+                        'locationOverride'
+                      ) || 'Chọn vị trí'
+                    "
+                    [matAutocomplete]="autoMatLocM"
+                    #matLocM="matAutocompleteTrigger"
+                    (input)="
+                      onLocationSearch($any($event.target).value, matLocM)
+                    "
+                    (focus)="
+                      onLocationSearch($any($event.target).value, matLocM)
+                    "
+                  />
+                  <mat-autocomplete
+                    #autoMatLocM="matAutocomplete"
+                    (optionSelected)="
+                      onMaterialLocationSelected(m, $event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="let w of filteredLocationOptions"
+                      [value]="w.locationFullName"
+                    >
+                      {{ w.locationFullName || w.locationName }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </label>
+                <label>
+                  <span>Mã kho</span>
+                  <input
+                    class="cascade-input"
+                    [ngModel]="
+                      displayCascadeValue(getMaterialRows(m), 'storageUnit')
+                    "
+                    (ngModelChange)="
+                      onMaterialFieldChange(m, 'storageUnit', $event)
+                    "
+                    [placeholder]="
+                      cascadePlaceholder(getMaterialRows(m), 'storageUnit') ||
+                      'Chọn mã kho'
+                    "
+                    [matAutocomplete]="autoMatWhsM"
+                    (input)="onSapWarehouseSearch($any($event.target).value)"
+                    (focus)="
+                      onSapWarehouseSearch(
+                        displayCascadeValue(getMaterialRows(m), 'storageUnit')
+                      )
+                    "
+                  />
+                  <mat-autocomplete
+                    #autoMatWhsM="matAutocomplete"
+                    [displayWith]="displaySapWarehouse"
+                    (optionSelected)="
+                      onMaterialWarehouseSelected(m, $event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="let whs of filteredSapWarehouseList"
+                      [value]="whs.whsCode"
+                    >
+                      {{ whs.whsCode }} - {{ whs.whsName }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </label>
+              </div>
+              <button
+                type="button"
+                class="m-toggle-lots"
+                (click)="toggleExpand(m)"
+              >
+                {{ m.lots.length }} lô hàng
+                <mat-icon>{{
+                  m.expanded ? "expand_less" : "expand_more"
+                }}</mat-icon>
+              </button>
+            </div>
+
+            <div class="m-lots" *ngIf="m.expanded">
+              <div
+                class="m-lot"
+                *ngFor="let lot of getVisibleLots(m); trackBy: trackByLot"
+                [class.highlighted]="lot.highlighted"
+              >
+                <div class="m-lot-title">
+                  Lô {{ lot.lotNumber || "—" }}
+                  <ng-container *ngIf="!singlePoMode && lot.poCode">
+                    · PO {{ lot.poCode }}
+                  </ng-container>
+                </div>
+                <div class="m-lot-meta">
+                  <span *ngIf="lot.vendor">{{ lot.vendor }} · </span>
+                  {{ lotQty(lot) | number }} sp · {{ lot.rows.length }} tem
+                </div>
+                <label class="rd-field">
+                  <span>MFG</span>
+                  <input
+                    type="date"
+                    class="cascade-input"
+                    [ngModel]="
+                      toDateInputValue(
+                        displayCascadeValue(lot.rows, 'manufacturingDate')
+                      )
+                    "
+                    (ngModelChange)="
+                      onLotDateChange(lot, 'manufacturingDate', $event)
+                    "
+                  />
+                </label>
+                <label class="rd-field">
+                  <span>HSD *</span>
+                  <input
+                    type="date"
+                    class="cascade-input"
+                    [ngModel]="
+                      toDateInputValue(
+                        displayCascadeValue(lot.rows, 'expirationDate')
+                      )
+                    "
+                    (ngModelChange)="
+                      onLotDateChange(lot, 'expirationDate', $event)
+                    "
+                  />
+                </label>
+                <div class="m-inherit-note">
+                  Vị trí / Mã kho: kế thừa từ vật tư (sửa ở trên hoặc trong chi
+                  tiết reel)
+                </div>
+                <button
+                  type="button"
+                  mat-stroked-button
+                  class="btn-reel-detail full"
+                  (click)="openReelDialog(m, lot)"
+                >
+                  Xem {{ getFilteredLotRows(m, lot).length }} reel
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </ng-container>
+
+    <ng-template #noFilter>
+      <div class="empty-state filter-empty">
+        Không có nhóm khớp bộ lọc.
+        <button type="button" mat-stroked-button (click)="clearGroupFilters()">
+          Xóa lọc
+        </button>
+      </div>
+    </ng-template>
+    <ng-template #emptyState>
+      <div class="empty-state">Không có dữ liệu để tổng hợp.</div>
     </ng-template>
   </div>
 

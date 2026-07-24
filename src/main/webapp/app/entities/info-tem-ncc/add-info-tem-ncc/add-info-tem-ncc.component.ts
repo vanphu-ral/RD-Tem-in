@@ -442,12 +442,15 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
 
     const existingItems = this.collectExistingScannedItems();
 
+    const isMobileScan = window.innerWidth <= 600;
     const dialogRef = this.dialog.open(ScanItemDialogComponent, {
-      width: "96vw",
-      maxWidth: "1400px",
-      height: "92vh",
-      maxHeight: "92vh",
-      panelClass: "scan-dialog-panel",
+      width: isMobileScan ? "100vw" : "96vw",
+      maxWidth: isMobileScan ? "100vw" : "1400px",
+      height: isMobileScan ? "100vh" : "92vh",
+      maxHeight: isMobileScan ? "100dvh" : "92vh",
+      panelClass: isMobileScan
+        ? ["scan-dialog-panel", "scan-dialog-panel--mobile"]
+        : "scan-dialog-panel",
       autoFocus: false,
       data: {
         mappingConfig: this.activeMappingConfig,

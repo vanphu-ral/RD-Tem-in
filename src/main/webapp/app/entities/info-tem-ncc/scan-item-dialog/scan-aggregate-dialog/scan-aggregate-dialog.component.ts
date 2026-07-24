@@ -27,27 +27,32 @@ import { Subscription, catchError, forkJoin, map, of } from "rxjs";
 import { ScannedItem } from "../scan-item-dialog.component";
 import {
   AggregateEditRow,
-  SCAN_AGGREGATE_COLUMNS,
   SCAN_ITEM_MISSING_FIELDS,
-  ScanItemColumnDef,
   DEFAULT_MSL,
   DEFAULT_USERDATA,
   applyEditRowToScannedItem,
   buildDefaultUserData4,
   buildVendorTemBatchUpdatePayload,
   fromDateInputValue as fromDateInputValueUtil,
-  scannedItemToEditRow,
   toDateInputValue as toDateInputValueUtil,
 } from "../../shared/scan-item-columns.util";
+import {
+  AggregateLotGroup,
+  AggregateMaterialGroup,
+  buildAggregateTree,
+  flattenTreeRows,
+  isFieldMixed,
+  isSinglePoMode,
+  materialRows,
+  sumQty,
+  uniformFieldValue,
+  writeFieldToRows,
+} from "../../shared/aggregate-tree.util";
+import {
+  ScanAggregateReelDialogComponent,
+  ScanAggregateReelDialogData,
+} from "./scan-aggregate-reel-dialog.component";
 
-/** Trường bắt buộc highlight trên mobile. */
-const MOBILE_REQUIRED_KEYS = [
-  "expirationDate",
-  "locationOverride",
-  "storageUnit",
-] as const;
-
-/** Breakpoint xem card mobile (máy tính bảng dọc / điện thoại). */
 const MOBILE_BREAKPOINT = "(max-width: 960px)";
 
 export interface ScanAggregateDialogData {
@@ -60,16 +65,6 @@ export interface ScanAggregateDialogData {
   currentUser?: string;
 }
 
-export interface ScanAggregateGroup {
-  key: string;
-  label: string;
-  groupBy: "sap" | "part";
-  rows: AggregateEditRow[];
-  headerValues: Record<string, string>;
-  autoFillDefaults: boolean;
-  expanded: boolean;
-}
-
 @Component({
   selector: "jhi-scan-aggregate-dialog",
   templateUrl: "./scan-aggregate-dialog.component.html",
@@ -77,22 +72,14 @@ export interface ScanAggregateGroup {
 })
 export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   readonly largeListThreshold = 80;
-  readonly groupPageSize = 40;
-  readonly mobileRequiredKeys = MOBILE_REQUIRED_KEYS;
 
-  columns: ScanItemColumnDef[] = SCAN_AGGREGATE_COLUMNS;
-  /** Cột hiển thị trong lưới 2 cột mobile (bỏ itemName — nằm ở header nhóm). */
-  mobileFields: ScanItemColumnDef[] = SCAN_AGGREGATE_COLUMNS.filter(
-    (c) => c.key !== "itemName",
-  );
-  groups: ScanAggregateGroup[] = [];
+  materials: AggregateMaterialGroup[] = [];
   sourceById = new Map<string, ScannedItem>();
+  singlePoMode = true;
 
-  /** Tìm kiếm thông minh (SAP / Part / ReelID). */
   smartSearch = "";
   filterSmartTerm = "";
   showAdvancedFilters = false;
-
   searchSapCode = "";
   searchPartNumber = "";
   searchReelId = "";
@@ -101,6 +88,7 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   filterReelTerm = "";
 
   isMobileView = false;
+  isSaving = false;
 
   filteredLocationOptions: WarehouseLocation[] = [];
   lastLocationSearchTerm = "";
@@ -109,14 +97,12 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   sapWarehouseList: SapOwhsDto[] = [];
   filteredSapWarehouseList: SapOwhsDto[] = [];
   isLoadingSapWarehouses = false;
-  isSaving = false;
 
   private locationSearchSeq = 0;
   private locationSearchTimer: ReturnType<typeof setTimeout> | null = null;
   private filterDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private activeLocationTrigger: MatAutocompleteTrigger | null = null;
   private initialSnapshot = new Map<string, string>();
-  private groupPageIndex = new Map<string, number>();
   private breakpointSub: Subscription | null = null;
 
   constructor(
@@ -137,7 +123,7 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     (this.data.items ?? []).forEach((item) => {
       this.sourceById.set(item.id, { ...item });
     });
-    this.groups = this.buildGroups(this.data.items ?? []);
+    this.rebuildTree();
     this.enrichProductNames();
     void this.receivingService.initWarehouses();
     this.loadSapWarehouses();
@@ -152,26 +138,15 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.locationSearchTimer) {
       clearTimeout(this.locationSearchTimer);
-      this.locationSearchTimer = null;
     }
     if (this.filterDebounceTimer) {
       clearTimeout(this.filterDebounceTimer);
-      this.filterDebounceTimer = null;
     }
     this.breakpointSub?.unsubscribe();
-    this.breakpointSub = null;
   }
 
   get isLargeList(): boolean {
     return this.totalReelCount > this.largeListThreshold;
-  }
-
-  get hasChanges(): boolean {
-    return this.groups.some((group) =>
-      group.rows.some(
-        (row) => this.initialSnapshot.get(row.id) !== this.serializeRow(row),
-      ),
-    );
   }
 
   get totalReelCount(): number {
@@ -179,28 +154,34 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
   }
 
   get totalQty(): number {
-    return (this.data.items ?? []).reduce(
-      (sum, item) => sum + (Number(item.initialQuantity) || 0),
-      0,
+    return sumQty(flattenTreeRows(this.materials));
+  }
+
+  get headerPoCode(): string {
+    return String(this.data.poCode ?? "").trim();
+  }
+
+  get hasChanges(): boolean {
+    return flattenTreeRows(this.materials).some(
+      (row) => this.initialSnapshot.get(row.id) !== this.serializeRow(row),
     );
   }
 
-  get visibleGroups(): ScanAggregateGroup[] {
+  get visibleMaterials(): AggregateMaterialGroup[] {
     if (!this.hasAnyFilterTerm()) {
-      return this.groups;
+      return this.materials;
     }
-    return this.groups.filter(
-      (group) => this.getFilteredGroupRows(group).length > 0,
-    );
+    return this.materials.filter((m) => this.getVisibleLots(m).length > 0);
   }
 
   get visibleGroupCount(): number {
-    return this.visibleGroups.length;
+    return this.visibleMaterials.length;
   }
 
   get visibleRowCount(): number {
-    return this.visibleGroups.reduce(
-      (sum, g) => sum + this.getFilteredGroupRows(g).length,
+    return this.visibleMaterials.reduce(
+      (sum, m) =>
+        sum + this.getVisibleLots(m).reduce((s, lot) => s + lot.rows.length, 0),
       0,
     );
   }
@@ -216,31 +197,14 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
 
   get globalMissingLabels(): string[] {
     const labels = new Set<string>();
-    this.visibleGroups.forEach((g) => {
-      this.getGroupMissingFields(g).forEach((f) => labels.add(f.label));
+    flattenTreeRows(this.visibleMaterials).forEach((row) => {
+      SCAN_ITEM_MISSING_FIELDS.forEach((f) => {
+        if (!String(row[f.key] ?? "").trim()) {
+          labels.add(f.label);
+        }
+      });
     });
     return Array.from(labels);
-  }
-
-  /** Gợi ý datalist — HSD đã có trong danh sách. */
-  get expirationSuggestions(): string[] {
-    return this.collectFieldSuggestions("expirationDate");
-  }
-
-  /** Gợi ý datalist — vị trí. */
-  get locationSuggestions(): string[] {
-    const fromRows = this.collectFieldSuggestions("locationOverride");
-    const fromSearch = this.filteredLocationOptions
-      .map((w) => (w.locationName || w.locationFullName || "").trim())
-      .filter(Boolean);
-    return Array.from(new Set([...fromRows, ...fromSearch])).slice(0, 40);
-  }
-
-  /** Gợi ý datalist — mã kho. */
-  get storageSuggestions(): string[] {
-    const fromRows = this.collectFieldSuggestions("storageUnit");
-    const fromWhs = this.sapWarehouseList.map((w) => w.whsCode).filter(Boolean);
-    return Array.from(new Set([...fromRows, ...fromWhs])).slice(0, 40);
   }
 
   clearGroupFilters(): void {
@@ -252,7 +216,7 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     this.filterSapTerm = "";
     this.filterPartTerm = "";
     this.filterReelTerm = "";
-    this.resetGroupPages();
+    this.clearLotHighlights();
     this.cdr.markForCheck();
   }
 
@@ -269,267 +233,205 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
       this.filterSapTerm = this.searchSapCode.trim().toLowerCase();
       this.filterPartTerm = this.searchPartNumber.trim().toLowerCase();
       this.filterReelTerm = this.searchReelId.trim().toLowerCase();
-      this.resetGroupPages();
+      this.applyReelIdExpandHighlight();
       this.cdr.markForCheck();
     }, 250);
   }
 
-  /** Lọc dòng trong nhóm theo bộ lọc đang active. */
-  getFilteredGroupRows(group: ScanAggregateGroup): AggregateEditRow[] {
+  getVisibleLots(material: AggregateMaterialGroup): AggregateLotGroup[] {
     if (!this.hasAnyFilterTerm()) {
-      return group.rows;
+      return material.lots;
     }
-    return group.rows.filter((row) => this.rowMatchesFilters(row));
-  }
-
-  getGroupPageRows(group: ScanAggregateGroup): AggregateEditRow[] {
-    if (!group.expanded) {
-      return [];
-    }
-    const rows = this.getFilteredGroupRows(group);
-    const page = this.groupPageIndex.get(group.key) ?? 0;
-    const start = page * this.groupPageSize;
-    return rows.slice(start, start + this.groupPageSize);
-  }
-
-  getGroupPageIndex(group: ScanAggregateGroup): number {
-    return this.groupPageIndex.get(group.key) ?? 0;
-  }
-
-  getGroupPageCount(group: ScanAggregateGroup): number {
-    return Math.max(
-      1,
-      Math.ceil(this.getFilteredGroupRows(group).length / this.groupPageSize),
+    return material.lots.filter((lot) =>
+      lot.rows.some((row) => this.rowMatchesFilters(row, material)),
     );
   }
 
-  prevGroupPage(group: ScanAggregateGroup): void {
-    const current = this.getGroupPageIndex(group);
-    if (current > 0) {
-      this.groupPageIndex.set(group.key, current - 1);
-      this.cdr.markForCheck();
+  getFilteredLotRows(
+    material: AggregateMaterialGroup,
+    lot: AggregateLotGroup,
+  ): AggregateEditRow[] {
+    if (!this.hasAnyFilterTerm()) {
+      return lot.rows;
+    }
+    return lot.rows.filter((row) => this.rowMatchesFilters(row, material));
+  }
+
+  materialQty(material: AggregateMaterialGroup): number {
+    return sumQty(materialRows(material));
+  }
+
+  materialReelCount(material: AggregateMaterialGroup): number {
+    return materialRows(material).length;
+  }
+
+  getMaterialRows(material: AggregateMaterialGroup): AggregateEditRow[] {
+    return materialRows(material);
+  }
+
+  lotQty(lot: AggregateLotGroup): number {
+    return sumQty(lot.rows);
+  }
+
+  toggleExpand(material: AggregateMaterialGroup): void {
+    material.expanded = !material.expanded;
+  }
+
+  displayCascadeValue(rows: AggregateEditRow[], field: string): string {
+    if (isFieldMixed(rows, field)) {
+      return "";
+    }
+    return uniformFieldValue(rows, field) ?? "";
+  }
+
+  isCascadeMixed(rows: AggregateEditRow[], field: string): boolean {
+    return isFieldMixed(rows, field);
+  }
+
+  cascadePlaceholder(rows: AggregateEditRow[], field: string): string {
+    return isFieldMixed(rows, field) ? "Nhiều giá trị" : "";
+  }
+
+  isMaterialMissing(material: AggregateMaterialGroup): boolean {
+    return materialRows(material).some((row) =>
+      SCAN_ITEM_MISSING_FIELDS.some((f) => !String(row[f.key] ?? "").trim()),
+    );
+  }
+
+  materialMissingCount(material: AggregateMaterialGroup): number {
+    return materialRows(material).filter((row) =>
+      SCAN_ITEM_MISSING_FIELDS.some((f) => !String(row[f.key] ?? "").trim()),
+    ).length;
+  }
+
+  materialMissingLabels(material: AggregateMaterialGroup): string[] {
+    const labels = new Set<string>();
+    materialRows(material).forEach((row) => {
+      SCAN_ITEM_MISSING_FIELDS.forEach((f) => {
+        if (!String(row[f.key] ?? "").trim()) {
+          labels.add(f.label);
+        }
+      });
+    });
+    return Array.from(labels);
+  }
+
+  lotMissingLabels(lot: AggregateLotGroup): string[] {
+    const labels = new Set<string>();
+    lot.rows.forEach((row) => {
+      SCAN_ITEM_MISSING_FIELDS.forEach((f) => {
+        if (!String(row[f.key] ?? "").trim()) {
+          labels.add(f.label);
+        }
+      });
+    });
+    return Array.from(labels);
+  }
+
+  onMaterialFieldChange(
+    material: AggregateMaterialGroup,
+    field: string,
+    value: string,
+  ): void {
+    const trimmed = (value ?? "").trim();
+    if (!trimmed && this.cascadePlaceholder(materialRows(material), field)) {
+      return;
+    }
+    writeFieldToRows(materialRows(material), field, value);
+    if (field === "manufacturingDate") {
+      materialRows(material).forEach((row) => {
+        row.userData4 = buildDefaultUserData4(row);
+      });
     }
   }
 
-  nextGroupPage(group: ScanAggregateGroup): void {
-    const current = this.getGroupPageIndex(group);
-    const maxPage = this.getGroupPageCount(group) - 1;
-    if (current < maxPage) {
-      this.groupPageIndex.set(group.key, current + 1);
-      this.cdr.markForCheck();
+  onMaterialDateChange(
+    material: AggregateMaterialGroup,
+    field: string,
+    dateInput: string,
+  ): void {
+    this.onMaterialFieldChange(
+      material,
+      field,
+      fromDateInputValueUtil(dateInput),
+    );
+  }
+
+  onLotFieldChange(lot: AggregateLotGroup, field: string, value: string): void {
+    const trimmed = (value ?? "").trim();
+    if (!trimmed && this.cascadePlaceholder(lot.rows, field)) {
+      return;
+    }
+    writeFieldToRows(lot.rows, field, value);
+    if (field === "manufacturingDate") {
+      lot.rows.forEach((row) => {
+        row.userData4 = buildDefaultUserData4(row);
+      });
     }
   }
 
-  getGroupMissingFields(
-    group: ScanAggregateGroup,
-  ): { key: string; label: string }[] {
-    return SCAN_ITEM_MISSING_FIELDS.filter((field) =>
-      group.rows.some((row) => !String(row[field.key] ?? "").trim()),
-    ).map((field) => ({ key: field.key, label: field.label }));
+  onLotDateChange(
+    lot: AggregateLotGroup,
+    field: string,
+    dateInput: string,
+  ): void {
+    this.onLotFieldChange(lot, field, fromDateInputValueUtil(dateInput));
   }
 
-  isFieldMissing(row: AggregateEditRow, key: string): boolean {
-    if (!SCAN_ITEM_MISSING_FIELDS.some((f) => f.key === key)) {
-      return false;
+  onAutoFillToggle(material: AggregateMaterialGroup, checked: boolean): void {
+    material.autoFillDefaults = checked;
+    const rows = materialRows(material);
+    if (checked) {
+      rows.forEach((row) => this.applyDefaultFields(row));
+    } else {
+      rows.forEach((row) => this.clearDefaultFields(row));
     }
-    return !String(row[key] ?? "").trim();
-  }
-
-  /** Header nhóm thiếu giá trị trong khi còn dòng thiếu field đó. */
-  isGroupHeaderMissing(group: ScanAggregateGroup, key: string): boolean {
-    if (String(group.headerValues[key] ?? "").trim()) {
-      return false;
-    }
-    return this.getGroupMissingFields(group).some((f) => f.key === key);
-  }
-
-  isMobileRequiredKey(key: string): boolean {
-    return (MOBILE_REQUIRED_KEYS as readonly string[]).includes(key);
-  }
-
-  isDateColumn(key: string): boolean {
-    return key === "manufacturingDate" || key === "expirationDate";
   }
 
   toDateInputValue(value: string | number | null | undefined): string {
-    const text = value == null ? "" : String(value);
-    return toDateInputValueUtil(text);
+    return toDateInputValueUtil(value == null ? "" : String(value));
   }
 
-  fromDateInputValue(value: string | null | undefined): string {
-    return fromDateInputValueUtil(value);
-  }
-
-  getGroupSapCode(group: ScanAggregateGroup): string {
-    if (group.groupBy === "sap") {
-      return group.key.replace(/^sap:/i, "");
-    }
-    const first = group.rows.find((r) => String(r.sapCode ?? "").trim());
-    return String(first?.sapCode ?? "").trim() || "—";
-  }
-
-  getGroupTotalQty(group: ScanAggregateGroup): number {
-    return this.getFilteredGroupRows(group).reduce(
-      (sum, row) => sum + (Number(row.initialQuantity) || 0),
-      0,
-    );
-  }
-
-  getGroupItemName(group: ScanAggregateGroup): string {
-    const named = group.rows.find((r) => String(r.itemName ?? "").trim());
-    return String(named?.itemName ?? "").trim();
-  }
-
-  getGroupPo(group: ScanAggregateGroup): string {
-    const withPo = group.rows.find((r) => String(r.userData5 ?? "").trim());
-    return (
-      String(withPo?.userData5 ?? "").trim() ||
-      String(this.data.poCode ?? "").trim()
-    );
-  }
-
-  getRowDisplayIndex(group: ScanAggregateGroup, row: AggregateEditRow): number {
-    const idx = this.getFilteredGroupRows(group).findIndex(
-      (r) => r.id === row.id,
-    );
-    return idx >= 0 ? idx + 1 : 0;
-  }
-
-  getDatalistId(key: string): string {
-    if (key === "expirationDate") {
-      return "agg-dl-hsd";
-    }
-    if (key === "locationOverride") {
-      return "agg-dl-location";
-    }
-    if (key === "storageUnit") {
-      return "agg-dl-storage";
-    }
-    return "";
-  }
-
-  /** Áp dụng giá trị header nhóm + mặc định UD/MSL cho cả nhóm. */
-  applyGroupBatch(group: ScanAggregateGroup): void {
-    Object.entries(group.headerValues).forEach(([key, value]) => {
-      const trimmed = String(value ?? "").trim();
-      if (!trimmed) {
-        return;
-      }
-      this.onHeaderValueChange(group, key, String(value));
+  openReelDialog(
+    material: AggregateMaterialGroup,
+    lot: AggregateLotGroup,
+  ): void {
+    const rows = this.getFilteredLotRows(material, lot);
+    const data: ScanAggregateReelDialogData = {
+      rows,
+      sapCode: material.sapCode,
+      partNumber: material.partNumber,
+      itemName: material.itemName,
+      lotNumber: lot.lotNumber,
+      poCode: lot.poCode || this.headerPoCode,
+      vendor: lot.vendor,
+      msl: material.msl,
+      isMobile: this.isMobileView,
+    };
+    const ref = this.dialog.open(ScanAggregateReelDialogComponent, {
+      width: this.isMobileView ? "100vw" : "95vw",
+      maxWidth: this.isMobileView ? "100vw" : "1400px",
+      height: this.isMobileView ? "100vh" : "85vh",
+      maxHeight: this.isMobileView ? "100vh" : "90vh",
+      panelClass: this.isMobileView
+        ? "scan-aggregate-reel-panel-mobile"
+        : "scan-aggregate-reel-panel",
+      autoFocus: false,
+      data,
     });
-    group.rows.forEach((row) => this.applyDefaultFields(row));
-    group.autoFillDefaults = true;
-    this.notificationService.success(
-      `Đã áp dụng nhóm cho ${group.rows.length} reel.`,
-    );
-    this.cdr.markForCheck();
-  }
-
-  /**
-   * Điền nhanh toàn bộ: lấy giá trị phổ biến nhất cho HSD / Vị trí / Mã kho,
-   * rồi điền vào các ô còn trống + mặc định UD/MSL.
-   */
-  fillAllMissingQuick(): void {
-    let filled = 0;
-    MOBILE_REQUIRED_KEYS.forEach((key) => {
-      const common = this.getMostCommonValue(key);
-      if (!common) {
+    ref.afterClosed().subscribe((updated: AggregateEditRow[] | null) => {
+      if (!updated?.length) {
         return;
       }
-      this.groups.forEach((group) => {
-        if (!String(group.headerValues[key] ?? "").trim()) {
-          group.headerValues[key] = common;
-        }
-        group.rows.forEach((row) => {
-          if (!String(row[key] ?? "").trim()) {
-            row[key] = common;
-            filled += 1;
-          }
-        });
+      const byId = new Map(updated.map((r) => [r.id, r]));
+      lot.rows = lot.rows.map((row) => {
+        const next = byId.get(row.id);
+        return next ? { ...next } : row;
       });
+      // Nếu sửa số lô trong dialog → rebuild cây
+      this.rebuildTreePreservingEdits();
+      this.cdr.markForCheck();
     });
-    this.groups.forEach((group) => {
-      group.rows.forEach((row) => this.applyDefaultFields(row));
-      group.autoFillDefaults = true;
-    });
-    if (filled > 0) {
-      this.notificationService.success(
-        `Đã điền nhanh ${filled} ô thiếu (HSD / Vị trí / Mã kho) + mặc định UD/MSL.`,
-      );
-    } else {
-      this.notificationService.success(
-        "Đã áp dụng mặc định UD/MSL. Không còn ô HSD/Vị trí/Mã kho trống để copy.",
-      );
-    }
-    this.cdr.markForCheck();
-  }
-
-  toggleExpand(group: ScanAggregateGroup): void {
-    group.expanded = !group.expanded;
-  }
-
-  onHeaderValueChange(
-    group: ScanAggregateGroup,
-    key: string,
-    value: string,
-  ): void {
-    group.headerValues[key] = value;
-    const trimmed = (value ?? "").trim();
-    if (trimmed === "") {
-      return;
-    }
-    group.rows.forEach((row) => {
-      if (key === "initialQuantity") {
-        const n = Number(value);
-        row.initialQuantity = Number.isFinite(n) ? n : 0;
-      } else {
-        row[key] = value;
-      }
-    });
-  }
-
-  onHeaderDateChange(
-    group: ScanAggregateGroup,
-    key: string,
-    dateInputValue: string,
-  ): void {
-    this.onHeaderValueChange(
-      group,
-      key,
-      this.fromDateInputValue(dateInputValue),
-    );
-  }
-
-  onAutoFillToggle(group: ScanAggregateGroup, checked: boolean): void {
-    group.autoFillDefaults = checked;
-    if (checked) {
-      group.rows.forEach((row) => this.applyDefaultFields(row));
-    } else {
-      group.rows.forEach((row) => this.clearDefaultFields(row));
-    }
-  }
-
-  onCellChange(
-    group: ScanAggregateGroup,
-    row: AggregateEditRow,
-    key: string,
-  ): void {
-    if (key === "initialQuantity") {
-      const n = Number(row.initialQuantity);
-      if (Number.isFinite(n) && n < 0) {
-        row.initialQuantity = 0;
-      }
-    }
-    void group;
-    void row;
-  }
-
-  onRowDateChange(
-    row: AggregateEditRow,
-    key: string,
-    dateInputValue: string,
-  ): void {
-    row[key] = this.fromDateInputValue(dateInputValue);
   }
 
   onCancel(): void {
@@ -540,30 +442,26 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     if (!this.hasChanges || this.isSaving) {
       return;
     }
-
-    const invalidRow = this.groups
-      .flatMap((g) => g.rows)
-      .find((row) => Number(row.initialQuantity) < 0);
+    const allRows = flattenTreeRows(this.materials);
+    const invalidRow = allRows.find((row) => Number(row.initialQuantity) < 0);
     if (invalidRow) {
       this.notificationService.warning(
         "Không được nhập số âm cho trường Số lượng.",
       );
       return;
     }
-
-    const changedRows = this.getChangedRows();
-    const rowsToSave = changedRows.filter((row) => {
-      const source = this.sourceById.get(row.id);
-      return Boolean(source?.dbId);
-    });
-
+    const changedRows = allRows.filter(
+      (row) => this.initialSnapshot.get(row.id) !== this.serializeRow(row),
+    );
+    const rowsToSave = changedRows.filter((row) =>
+      Boolean(this.sourceById.get(row.id)?.dbId),
+    );
     if (!rowsToSave.length) {
       this.notificationService.warning(
         "Không có vật tư đã lưu để cập nhật. Chỉnh sửa dòng đã có trên hệ thống.",
       );
       return;
     }
-
     const payload = rowsToSave.map((row) => this.buildUpdatePayload(row));
     const confirmRef = this.dialog.open(DialogContentExampleDialogComponent, {
       width: "420px",
@@ -583,14 +481,15 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     });
   }
 
-  trackByGroup(_: number, group: ScanAggregateGroup): string {
-    return group.key;
+  trackByMaterial(_: number, m: AggregateMaterialGroup): string {
+    return m.key;
   }
 
-  trackByRow(_: number, row: AggregateEditRow): string {
-    return row.id;
+  trackByLot(_: number, lot: AggregateLotGroup): string {
+    return lot.key;
   }
 
+  // ---- location / warehouse ----
   onLocationSearch(
     keyword: string,
     trigger?: MatAutocompleteTrigger | null,
@@ -627,9 +526,9 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
           this.locationSearchSettled = true;
           this.cdr.detectChanges();
           setTimeout(() => {
-            const panelTrigger = this.activeLocationTrigger;
-            if (panelTrigger && !panelTrigger.panelOpen) {
-              panelTrigger.openPanel();
+            const t = this.activeLocationTrigger;
+            if (t && !t.panelOpen) {
+              t.openPanel();
             }
           });
         })
@@ -655,25 +554,20 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     );
   }
 
-  onHeaderLocationSelected(
-    group: ScanAggregateGroup,
+  onMaterialLocationSelected(
+    material: AggregateMaterialGroup,
     selected: string | WarehouseLocation,
   ): void {
     const name = this.resolveLocationName(selected);
-    group.headerValues["locationOverride"] = name;
-    if (!name) {
-      return;
-    }
-    group.rows.forEach((row) => {
-      row.locationOverride = name;
-    });
+    writeFieldToRows(materialRows(material), "locationOverride", name);
   }
 
-  onRowLocationSelected(
-    row: AggregateEditRow,
+  onLotLocationSelected(
+    lot: AggregateLotGroup,
     selected: string | WarehouseLocation,
   ): void {
-    row.locationOverride = this.resolveLocationName(selected);
+    const name = this.resolveLocationName(selected);
+    writeFieldToRows(lot.rows, "locationOverride", name);
   }
 
   onSapWarehouseSearch(keyword: string): void {
@@ -699,19 +593,53 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     return whs ? `${whs.whsCode} - ${whs.whsName}` : code;
   };
 
-  onHeaderSapWarehouseSelected(group: ScanAggregateGroup, code: string): void {
-    const normalized = (code ?? "").trim();
-    group.headerValues["storageUnit"] = normalized;
-    if (!normalized) {
-      return;
-    }
-    group.rows.forEach((row) => {
-      row.storageUnit = normalized;
-    });
+  onMaterialWarehouseSelected(
+    material: AggregateMaterialGroup,
+    code: string,
+  ): void {
+    writeFieldToRows(
+      materialRows(material),
+      "storageUnit",
+      (code ?? "").trim(),
+    );
   }
 
-  onRowSapWarehouseSelected(row: AggregateEditRow, code: string): void {
-    row.storageUnit = (code ?? "").trim();
+  onLotWarehouseSelected(lot: AggregateLotGroup, code: string): void {
+    writeFieldToRows(lot.rows, "storageUnit", (code ?? "").trim());
+  }
+
+  private rebuildTree(): void {
+    this.materials = buildAggregateTree(this.data.items ?? [], {
+      collapseByDefault:
+        (this.data.items?.length ?? 0) > this.largeListThreshold,
+      dialogPoCode: this.data.poCode,
+    });
+    this.singlePoMode = isSinglePoMode(this.materials, this.data.poCode);
+    this.captureSnapshot();
+  }
+
+  /** Rebuild cây từ rows đang edit (sau khi đổi số lô trong dialog reel). */
+  private rebuildTreePreservingEdits(): void {
+    const edited = flattenTreeRows(this.materials);
+    const expandedKeys = new Set(
+      this.materials.filter((m) => m.expanded).map((m) => m.key),
+    );
+    const asItems: ScannedItem[] = edited.map((row) => {
+      const source = this.sourceById.get(row.id) ?? ({} as ScannedItem);
+      return applyEditRowToScannedItem(row, {
+        ...source,
+        id: row.id,
+        reelId: row.reelId,
+      } as ScannedItem);
+    });
+    this.materials = buildAggregateTree(asItems, {
+      collapseByDefault: false,
+      dialogPoCode: this.data.poCode,
+    });
+    this.materials.forEach((m) => {
+      m.expanded = expandedKeys.has(m.key);
+    });
+    this.singlePoMode = isSinglePoMode(this.materials, this.data.poCode);
   }
 
   private hasAnyFilterTerm(): boolean {
@@ -723,9 +651,14 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     );
   }
 
-  private rowMatchesFilters(row: AggregateEditRow): boolean {
-    const sap = String(row.sapCode ?? "").toLowerCase();
-    const part = String(row.partNumber ?? "").toLowerCase();
+  private rowMatchesFilters(
+    row: AggregateEditRow,
+    material: AggregateMaterialGroup,
+  ): boolean {
+    const sap = String(row.sapCode || material.sapCode || "").toLowerCase();
+    const part = String(
+      row.partNumber || material.partNumber || "",
+    ).toLowerCase();
     const reel = String(row.reelId ?? "").toLowerCase();
 
     if (this.filterSmartTerm) {
@@ -746,115 +679,32 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  private collectFieldSuggestions(key: string): string[] {
-    const seen = new Set<string>();
-    const out: string[] = [];
-    this.groups.forEach((group) => {
-      group.rows.forEach((row) => {
-        const val = String(row[key] ?? "").trim();
-        if (val && !seen.has(val)) {
-          seen.add(val);
-          out.push(val);
-        }
-      });
-    });
-    return out.slice(0, 40);
-  }
-
-  private getMostCommonValue(key: string): string {
-    const counts = new Map<string, number>();
-    this.groups.forEach((group) => {
-      group.rows.forEach((row) => {
-        const val = String(row[key] ?? "").trim();
-        if (!val) {
-          return;
-        }
-        counts.set(val, (counts.get(val) ?? 0) + 1);
-      });
-    });
-    let best = "";
-    let bestCount = 0;
-    counts.forEach((count, val) => {
-      if (count > bestCount) {
-        best = val;
-        bestCount = count;
-      }
-    });
-    return best;
-  }
-
-  private executeSave(payload: CreateVendorTemDetailPayload[]): void {
-    this.isSaving = true;
-    this.managerTemNccService.batchUpdateVendorTemDetails(payload).subscribe({
-      next: () => {
-        this.isSaving = false;
-        this.notificationService.success(
-          `Cập nhật thành công ${payload.length} vật tư.`,
+  private applyReelIdExpandHighlight(): void {
+    this.clearLotHighlights();
+    if (!this.filterReelTerm) {
+      return;
+    }
+    this.materials.forEach((m) => {
+      m.lots.forEach((lot) => {
+        const hit = lot.rows.some((r) =>
+          String(r.reelId ?? "")
+            .toLowerCase()
+            .includes(this.filterReelTerm),
         );
-        const items = this.buildScannedItemsFromGroups();
-        items.forEach((item) => {
-          this.sourceById.set(item.id, { ...item });
-        });
-        this.captureSnapshot();
-        this.dialogRef.close({ confirmed: true, items });
-      },
-      error: (err) => {
-        this.isSaving = false;
-        const detail =
-          err?.error?.message ??
-          err?.error?.detail ??
-          err?.message ??
-          "Không thể kết nối máy chủ.";
-        this.notificationService.error(`Cập nhật vật tư thất bại: ${detail}`);
-        this.cdr.markForCheck();
-      },
+        if (hit) {
+          lot.highlighted = true;
+          m.expanded = true;
+        }
+      });
     });
   }
 
-  private buildGroups(items: ScannedItem[]): ScanAggregateGroup[] {
-    const collapseByDefault = items.length > this.largeListThreshold;
-    const groupMap = new Map<string, ScanAggregateGroup>();
-    items.forEach((item) => {
-      const editRow = scannedItemToEditRow(item);
-      const sap = (editRow.sapCode ?? "").trim();
-      const part = (editRow.partNumber ?? "").trim();
-      const groupBy: "sap" | "part" = sap ? "sap" : "part";
-      const rawKey = sap || part || `unknown-${item.id}`;
-      const key = `${groupBy}:${rawKey}`;
-
-      let group = groupMap.get(key);
-      if (!group) {
-        group = {
-          key,
-          label:
-            groupBy === "sap"
-              ? `Mã SAP: ${rawKey}`
-              : `Mã PartNumber: ${rawKey}`,
-          groupBy,
-          rows: [],
-          headerValues: this.emptyHeaderValues(),
-          autoFillDefaults: false,
-          expanded: !collapseByDefault,
-        };
-        groupMap.set(key, group);
-      }
-      group.rows.push(editRow);
+  private clearLotHighlights(): void {
+    this.materials.forEach((m) => {
+      m.lots.forEach((lot) => {
+        lot.highlighted = false;
+      });
     });
-    return Array.from(groupMap.values());
-  }
-
-  private resetGroupPages(): void {
-    this.groupPageIndex.clear();
-  }
-
-  private emptyHeaderValues(): Record<string, string> {
-    const values: Record<string, string> = {};
-    this.columns.forEach((col) => {
-      if (col.headerEditable) {
-        values[col.key] = "";
-      }
-    });
-    return values;
   }
 
   private applyDefaultFields(row: AggregateEditRow): void {
@@ -896,11 +746,36 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  private buildScannedItemsFromGroups(): ScannedItem[] {
-    const editedById = new Map<string, AggregateEditRow>();
-    this.groups.forEach((group) => {
-      group.rows.forEach((row) => editedById.set(row.id, row));
+  private executeSave(payload: CreateVendorTemDetailPayload[]): void {
+    this.isSaving = true;
+    this.managerTemNccService.batchUpdateVendorTemDetails(payload).subscribe({
+      next: () => {
+        this.isSaving = false;
+        this.notificationService.success(
+          `Cập nhật thành công ${payload.length} vật tư.`,
+        );
+        const items = this.buildScannedItemsFromTree();
+        items.forEach((item) => this.sourceById.set(item.id, { ...item }));
+        this.captureSnapshot();
+        this.dialogRef.close({ confirmed: true, items });
+      },
+      error: (err) => {
+        this.isSaving = false;
+        const detail =
+          err?.error?.message ??
+          err?.error?.detail ??
+          err?.message ??
+          "Không thể kết nối máy chủ.";
+        this.notificationService.error(`Cập nhật vật tư thất bại: ${detail}`);
+        this.cdr.markForCheck();
+      },
     });
+  }
+
+  private buildScannedItemsFromTree(): ScannedItem[] {
+    const editedById = new Map(
+      flattenTreeRows(this.materials).map((r) => [r.id, r]),
+    );
     return (this.data.items ?? []).map((item) => {
       const edited = editedById.get(item.id);
       if (!edited) {
@@ -948,8 +823,8 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
     const nameBySap = this.data.productNameBySap ?? {};
     const nameByPoDetailId = this.data.productNameByPoDetailId ?? {};
 
-    this.groups.forEach((group) => {
-      group.rows.forEach((row) => {
+    this.materials.forEach((m) => {
+      materialRows(m).forEach((row) => {
         if (String(row.itemName ?? "").trim()) {
           return;
         }
@@ -962,11 +837,19 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
           row.itemName = nameByPoDetailId[poDetailId];
         }
       });
+      if (!m.itemName) {
+        const named = materialRows(m).find((r) =>
+          String(r.itemName ?? "").trim(),
+        );
+        if (named) {
+          m.itemName = String(named.itemName).trim();
+        }
+      }
     });
 
     const sapCodes = new Set<string>();
-    this.groups.forEach((group) => {
-      group.rows.forEach((row) => {
+    this.materials.forEach((m) => {
+      materialRows(m).forEach((row) => {
         if (String(row.itemName ?? "").trim()) {
           return;
         }
@@ -994,17 +877,24 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
         const apiNames = new Map(
           results.filter((r) => r.name).map((r) => [r.code, r.name]),
         );
-        this.groups.forEach((group) => {
-          group.rows.forEach((row) => {
+        this.materials.forEach((m) => {
+          materialRows(m).forEach((row) => {
             if (String(row.itemName ?? "").trim()) {
               return;
             }
-            const sap = (row.sapCode ?? "").trim();
-            const name = apiNames.get(sap);
+            const name = apiNames.get((row.sapCode ?? "").trim());
             if (name) {
               row.itemName = name;
             }
           });
+          if (!m.itemName) {
+            const named = materialRows(m).find((r) =>
+              String(r.itemName ?? "").trim(),
+            );
+            if (named) {
+              m.itemName = String(named.itemName).trim();
+            }
+          }
         });
         this.captureSnapshot();
         this.cdr.markForCheck();
@@ -1018,28 +908,14 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
 
   private captureSnapshot(): void {
     this.initialSnapshot.clear();
-    this.groups.forEach((group) => {
-      group.rows.forEach((row) => {
-        this.initialSnapshot.set(row.id, this.serializeRow(row));
-      });
+    flattenTreeRows(this.materials).forEach((row) => {
+      this.initialSnapshot.set(row.id, this.serializeRow(row));
     });
   }
 
   private serializeRow(row: AggregateEditRow): string {
     const { id: _id, ...rest } = row;
     return JSON.stringify(rest);
-  }
-
-  private getChangedRows(): AggregateEditRow[] {
-    const changed: AggregateEditRow[] = [];
-    this.groups.forEach((group) => {
-      group.rows.forEach((row) => {
-        if (this.initialSnapshot.get(row.id) !== this.serializeRow(row)) {
-          changed.push(row);
-        }
-      });
-    });
-    return changed;
   }
 
   private buildUpdatePayload(

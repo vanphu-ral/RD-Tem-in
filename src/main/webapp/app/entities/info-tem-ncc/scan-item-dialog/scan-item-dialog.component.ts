@@ -19,7 +19,15 @@ import {
   CreateVendorTemDetailPayload,
   ManagerTemNccService,
 } from "app/entities/list-material/services/info-tem-ncc.service";
+import { NotificationService } from "app/entities/list-material/services/notification.service";
+import { DialogContentExampleDialogComponent } from "../list/confirm-dialog/confirm-dialog.component";
 import { AccountService } from "app/core/auth/account.service";
+import {
+  AggregateEditRow,
+  SCAN_ITEM_LIST_COLUMNS,
+  buildVendorTemBatchUpdatePayload,
+  getScanItemFieldValue,
+} from "../shared/scan-item-columns.util";
 import {
   Observable,
   catchError,
@@ -33,12 +41,23 @@ import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 import {
+  parseVendorDocument010ExcelArrayBuffer,
   parseVendorFullQrExcelArrayBuffer,
+  parseVendorImportCsvTableContent,
   parseVendorReelLogContent,
+  parseMauImportReelCsvContent,
+  parseMauImportReelExcelArrayBuffer,
+  isDocument010HeaderLine,
+  isMauImportReelHeaderLine,
+  isVendorImportTableHeaderLine,
   toVendorImportedReelEntry,
   VendorReelLogImportRow,
   VendorReelLogParseResult,
 } from "app/entities/generate-tem-in/receiving-supplies/vendor-reel-log-import.util";
+import {
+  downloadVendorImportSampleCsv,
+  downloadVendorImportSampleExcel,
+} from "../shared/import-sample.util";
 import {
   isVendorQrFieldMapped,
   parseVendorQrByMappingConfig,
@@ -46,10 +65,6 @@ import {
 import { ReceivingSuppliesService } from "app/entities/generate-tem-in/service/receiving-supplies.service";
 import { ReelImportPreviewRow } from "../add-info-tem-ncc/import-reel-preview-dialog/import-reel-preview-dialog.component";
 import { ScanAggregateDialogComponent } from "./scan-aggregate-dialog/scan-aggregate-dialog.component";
-import {
-  SCAN_ITEM_LIST_COLUMNS,
-  getScanItemFieldValue,
-} from "../shared/scan-item-columns.util";
 
 export type ScanImportTab = "scan" | "import";
 
@@ -171,6 +186,13 @@ export class ScanItemDialogComponent
   /** Cột hiển thị danh sách scan/import. */
   displayColumns = SCAN_ITEM_LIST_COLUMNS;
 
+  /** Mobile card: bỏ ReelID (đã ở header) và SL (ô chỉnh riêng). */
+  get mobileCardColumns(): typeof SCAN_ITEM_LIST_COLUMNS {
+    return this.displayColumns.filter(
+      (col) => col.key !== "initialQuantity" && col.key !== "reelId",
+    );
+  }
+
   lotColumns = SCAN_ITEM_LIST_COLUMNS.map((col) => ({
     key: col.key,
     label: col.label,
@@ -180,6 +202,7 @@ export class ScanItemDialogComponent
   failedItems: ScannedItem[] = [];
   warehouseOptions: CachedWarehouse[] = [];
   filteredWarehouseOptions: CachedWarehouse[] = [];
+  isSavingQty = false;
   isLoadingWarehouses = false;
   private rawQueue: string[] = [];
   private processingQueue = false;
@@ -191,12 +214,15 @@ export class ScanItemDialogComponent
   /** SL theo mã SAP từ sap-po-info (por1Quantity). Không có PO → map rỗng, không cảnh báo. */
   private poQtyBySapCode = new Map<string, number>();
   private hasPoQuantityCheck = false;
+  /** SL đã lưu lần cuối (theo item.id) — dùng phát hiện sửa để bật nút Lưu. */
+  private qtySnapshot = new Map<string, number>();
 
   constructor(
     private dialogRef: MatDialogRef<ScanItemDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ScanDialogData | null,
     private dialog: MatDialog,
     private managerTemNccService: ManagerTemNccService,
+    private notificationService: NotificationService,
     private accountService: AccountService,
     private warehouseCacheService: WarehouseCacheService,
     private receivingSuppliesService: ReceivingSuppliesService,
@@ -206,6 +232,7 @@ export class ScanItemDialogComponent
   ngOnInit(): void {
     this.dialogRef.disableClose = true;
     this.updateIsMobile();
+    this.syncDialogViewport();
     window.addEventListener("resize", this.onWindowResize);
     this.pageSize = this.isMobile ? 5 : 10;
     this.warehouse = this.data?.warehouse ?? "";
@@ -272,6 +299,66 @@ export class ScanItemDialogComponent
   onPage(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
+  }
+
+  onQuantityChange(item: ScannedItem, value: string | number): void {
+    const n = Number(value);
+    item.initialQuantity = Number.isFinite(n) && n >= 0 ? n : 0;
+    this.updateStats();
+    this.scheduleCacheFlush();
+    this.cdr.markForCheck();
+  }
+
+  get quantityDirtyItems(): ScannedItem[] {
+    return this.scannedList.filter((item) => {
+      if (item.dbId == null || !item.id) {
+        return false;
+      }
+      if (!this.qtySnapshot.has(item.id)) {
+        return false;
+      }
+      return (
+        (Number(item.initialQuantity) || 0) !== this.qtySnapshot.get(item.id)
+      );
+    });
+  }
+
+  get hasQuantityChanges(): boolean {
+    return this.quantityDirtyItems.length > 0;
+  }
+
+  get quantityDirtyCount(): number {
+    return this.quantityDirtyItems.length;
+  }
+
+  onSaveQuantities(): void {
+    if (this.isSavingQty || !this.hasQuantityChanges) {
+      return;
+    }
+    const dirty = this.quantityDirtyItems;
+    const invalid = dirty.find((item) => Number(item.initialQuantity) < 0);
+    if (invalid) {
+      this.notificationService.warning(
+        "Không được nhập số âm cho trường Số lượng.",
+      );
+      return;
+    }
+    const confirmRef = this.dialog.open(DialogContentExampleDialogComponent, {
+      width: "420px",
+      autoFocus: false,
+      data: {
+        title: "Xác nhận cập nhật",
+        message: `Bạn có chắc muốn cập nhật số lượng cho ${dirty.length} vật tư đã chỉnh sửa?`,
+        confirmText: "Cập nhật",
+        cancelText: "Hủy",
+      },
+    });
+    confirmRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      this.executeQuantitySave(dirty);
+    });
   }
 
   openListDialog(): void {
@@ -377,29 +464,6 @@ export class ScanItemDialogComponent
     });
   }
 
-  clearAll(): void {
-    // Chỉ xóa mã mới trong phiên — giữ vật tư đã có trên đơn.
-    this.scannedList = this.scannedList.filter(
-      (item) =>
-        (item.fromOrder ?? false) || this.preloadedReelIds.has(item.reelId),
-    );
-    this.failedItems = [];
-    this.lastScannedCode = "";
-    this.errorMessage = "";
-    this.importErrorMessage = "";
-    this.pageIndex = 0;
-    if (this.cacheFlushTimer) {
-      clearTimeout(this.cacheFlushTimer);
-      this.cacheFlushTimer = null;
-    }
-    sessionStorage.removeItem(this.cacheKey);
-    this.updateStats();
-    this.cdr.markForCheck();
-    if (this.activeTab === "scan") {
-      this.focusInput();
-    }
-  }
-
   onConfirm(): void {
     if (!this.scannedList.length) {
       return;
@@ -458,6 +522,7 @@ export class ScanItemDialogComponent
   }
   removeItem(id: string): void {
     this.scannedList = this.scannedList.filter((item) => item.id !== id);
+    this.qtySnapshot.delete(id);
     this.updateStats();
     this.saveToCache();
     this.cdr.markForCheck();
@@ -501,6 +566,18 @@ export class ScanItemDialogComponent
     }
   }
 
+  downloadImportSampleCsv(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    downloadVendorImportSampleCsv();
+  }
+
+  downloadImportSampleExcel(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    downloadVendorImportSampleExcel();
+  }
+
   onImportDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
@@ -536,8 +613,21 @@ export class ScanItemDialogComponent
     this.isMobile = window.innerWidth <= 600;
   }
 
+  private syncDialogViewport(): void {
+    const mobile = window.innerWidth <= 600;
+    if (mobile) {
+      this.dialogRef.updateSize("100vw", "100vh");
+      this.dialogRef.addPanelClass("scan-dialog-panel--mobile");
+    } else {
+      this.dialogRef.updateSize("96vw", "92vh");
+      this.dialogRef.removePanelClass("scan-dialog-panel--mobile");
+    }
+  }
+
   private readonly onWindowResize = (): void => {
     this.updateIsMobile();
+    this.syncDialogViewport();
+    this.cdr.markForCheck();
   };
 
   private handleImportFile(file: File): void {
@@ -557,19 +647,66 @@ export class ScanItemDialogComponent
       try {
         let parsed: VendorReelLogParseResult;
         if (isExcel) {
-          parsed = parseVendorFullQrExcelArrayBuffer(
+          const mau = parseMauImportReelExcelArrayBuffer(
             reader.result as ArrayBuffer,
             this.data?.poCode ?? "",
             poSapCodes,
             { requireSap: false },
           );
+          if (mau.rows.length) {
+            parsed = mau;
+          } else {
+            const doc010 = parseVendorDocument010ExcelArrayBuffer(
+              reader.result as ArrayBuffer,
+              this.data?.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+            parsed = doc010.rows.length
+              ? doc010
+              : parseVendorFullQrExcelArrayBuffer(
+                  reader.result as ArrayBuffer,
+                  this.data?.poCode ?? "",
+                  poSapCodes,
+                  { requireSap: false },
+                );
+          }
         } else {
-          parsed = parseVendorReelLogContent(
-            String(reader.result ?? ""),
-            this.data?.poCode ?? "",
-            poSapCodes,
-            { requireSap: false },
-          );
+          const content = String(reader.result ?? "");
+          const firstLine =
+            content
+              .replace(/\r\n/g, "\n")
+              .split("\n")
+              .find((line) => line.trim()) ?? "";
+          if (isMauImportReelHeaderLine(firstLine)) {
+            parsed = parseMauImportReelCsvContent(
+              content,
+              this.data?.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+          } else if (isDocument010HeaderLine(firstLine)) {
+            parsed = parseVendorReelLogContent(
+              content,
+              this.data?.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+          } else if (isVendorImportTableHeaderLine(firstLine)) {
+            parsed = parseVendorImportCsvTableContent(
+              content,
+              this.data?.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+          } else {
+            parsed = parseVendorReelLogContent(
+              content,
+              this.data?.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+          }
         }
 
         if (!parsed.rows.length) {
@@ -578,6 +715,20 @@ export class ScanItemDialogComponent
             parsed.errors[0] ?? "File không có dòng ReelID hợp lệ.";
           this.cdr.markForCheck();
           return;
+        }
+
+        const orderPo = (this.data?.poCode ?? "").trim();
+        if (orderPo) {
+          const poMismatch = parsed.rows.find(
+            (row) => (row.poNumber ?? "").trim() !== orderPo,
+          );
+          if (poMismatch) {
+            this.isImportingReel = false;
+            const filePo = (poMismatch.poNumber ?? "").trim() || "(trống)";
+            this.importErrorMessage = `Import thất bại: mã PO trong file (${filePo}) không trùng PO đơn (${orderPo}).`;
+            this.cdr.markForCheck();
+            return;
+          }
         }
 
         this.resolveSapCodeByPartFromPo(
@@ -752,6 +903,7 @@ export class ScanItemDialogComponent
             }) as ScannedItem,
         );
         this.prependScannedItems(importedItems);
+        this.captureQtySnapshots(importedItems);
         this.isImportingReel = false;
         this.importErrorMessage = "";
         this.lastScannedCode = `Đã import ${successItems.length}/${payloads.length} ReelID`;
@@ -1119,7 +1271,7 @@ export class ScanItemDialogComponent
       shelfTime: "",
       spMaterialName: isVendorQrFieldMapped(mappingConfig, "spMaterialName")
         ? (fieldMap["spMaterialName"] ?? "").trim()
-        : (matchedRow?.materialName ?? "").trim(),
+        : "",
       warningLimit: "",
       maximumLimit: "",
       comments: "",
@@ -1177,7 +1329,6 @@ export class ScanItemDialogComponent
         this.cacheKey,
         JSON.stringify({
           scannedList: this.scannedList.filter((i) => !i.fromOrder),
-          failedItems: this.failedItems,
           lastScannedCode: this.lastScannedCode,
         }),
       );
@@ -1195,9 +1346,11 @@ export class ScanItemDialogComponent
         if (idx !== -1) {
           // Mutate trực tiếp thay vì map() tạo array mới
           this.scannedList[idx] = { ...this.scannedList[idx], dbId: res?.id };
+          // Snapshot theo SL đã POST — nếu user sửa trong lúc chờ API thì nút Lưu sẽ bật.
+          this.qtySnapshot.set(tempId, Number(payload.initialQuantity) || 0);
         }
         this.saveToCache();
-        // Không cần markForCheck vì dbId không hiển thị trực tiếp trên UI
+        this.cdr.markForCheck();
       },
       error: () => {
         const failed = this.scannedList.find((i) => i.id === tempId);
@@ -1206,6 +1359,7 @@ export class ScanItemDialogComponent
             this.existingReelIds.delete(failed.reelId);
           }
           this.failedItems.unshift(failed);
+          this.qtySnapshot.delete(tempId);
         }
         this.scannedList = this.scannedList.filter((i) => i.id !== tempId);
         this.saveToCache();
@@ -1224,7 +1378,6 @@ export class ScanItemDialogComponent
         this.cacheKey,
         JSON.stringify({
           scannedList: this.scannedList.filter((i) => !i.fromOrder),
-          failedItems: this.failedItems,
           lastScannedCode: this.lastScannedCode,
         }),
       );
@@ -1255,8 +1408,10 @@ export class ScanItemDialogComponent
       });
       // Cache (mã chưa tổng hợp) đưa lên đầu, giữ vật tư đã có trên đơn phía sau.
       this.scannedList = [...toAdd, ...this.scannedList];
-      this.failedItems = cached.failedItems ?? [];
+      // failedItems chỉ giữ trong phiên dialog — không khôi phục từ cache
+      this.failedItems = [];
       this.lastScannedCode = cached.lastScannedCode ?? "";
+      this.captureQtySnapshots(toAdd);
     } catch {
       //code
     }
@@ -1280,6 +1435,7 @@ export class ScanItemDialogComponent
         this.preloadedReelIds.add(item.reelId);
       }
     });
+    this.captureQtySnapshots(existing);
   }
 
   /** Lấy por1Quantity từ sap-po-info theo mã PO; không có PO → bỏ qua cảnh báo. */
@@ -1410,8 +1566,86 @@ export class ScanItemDialogComponent
     this.scannedList = this.scannedList.map(
       (item) => byId.get(item.id) ?? item,
     );
+    this.captureQtySnapshots(items);
     this.updateStats();
     this.saveToCache();
     this.cdr.markForCheck();
+  }
+
+  private executeQuantitySave(items: ScannedItem[]): void {
+    const importTxId = this.data?.importVendorTemTransactionsId ?? 0;
+    const payload = items.map((item) =>
+      this.buildQuantityUpdatePayload(item, importTxId),
+    );
+    this.isSavingQty = true;
+    this.cdr.markForCheck();
+    this.managerTemNccService.batchUpdateVendorTemDetails(payload).subscribe({
+      next: () => {
+        this.isSavingQty = false;
+        this.captureQtySnapshots(items);
+        this.notificationService.success(
+          `Cập nhật thành công số lượng ${payload.length} vật tư.`,
+        );
+        this.data?.onItemsUpdated?.(this.scannedList);
+        this.saveToCache();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.isSavingQty = false;
+        const detail =
+          err?.error?.message ??
+          err?.error?.detail ??
+          err?.message ??
+          "Không thể kết nối máy chủ.";
+        this.notificationService.error(`Cập nhật số lượng thất bại: ${detail}`);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private buildQuantityUpdatePayload(
+    item: ScannedItem,
+    importVendorTemTransactionsId: number,
+  ): CreateVendorTemDetailPayload {
+    const row: AggregateEditRow = {
+      id: item.id,
+      reelId: item.reelId ?? "",
+      partNumber: item.partNumber ?? "",
+      initialQuantity: item.initialQuantity,
+      manufacturingDate: item.manufacturingDate ?? "",
+      lotNumber: item.lot ?? "",
+      itemName: item.spMaterialName ?? "",
+      expirationDate: item.expirationDate ?? "",
+      locationOverride: item.locationOverride ?? "",
+      storageUnit: item.storageUnit ?? "",
+      sapCode: item.sapCode ?? "",
+      vendor: item.vendor ?? "",
+      userData1: item.userData1 ?? "",
+      userData2: item.userData2 ?? "",
+      userData3: item.userData3 ?? "",
+      userData4: item.userData4 ?? "",
+      userData5: item.userData5 ?? "",
+      msl: item.msdLevel ?? "",
+    };
+    return buildVendorTemBatchUpdatePayload(item.dbId!, row, {
+      vendor: item.vendor ?? "",
+      vendorQrCode: item.vendorQrCode ?? "",
+      status: item.status ?? "NEW",
+      createdBy: item.createdBy ?? "",
+      createdAt: item.createdAt ?? new Date().toISOString(),
+      poDetailId: item.poDetailId,
+      importVendorTemTransactionsId:
+        item.importVendorTemTransactionsId || importVendorTemTransactionsId,
+      currentUser: this.currentUser,
+    });
+  }
+
+  private captureQtySnapshots(items?: ScannedItem[]): void {
+    (items ?? this.scannedList).forEach((item) => {
+      if (item.dbId == null || !item.id) {
+        return;
+      }
+      this.qtySnapshot.set(item.id, Number(item.initialQuantity) || 0);
+    });
   }
 }

@@ -1,0 +1,313 @@
+<div class="reel-detail-dialog" [class.is-mobile]="data.isMobile">
+  <div class="rd-header">
+    <div class="rd-title-block">
+      <h2>Chi tiết reel</h2>
+      <p class="rd-sub">{{ headerLine1 }}</p>
+      <p class="rd-sub muted">{{ headerLine2 }}</p>
+    </div>
+    <button
+      mat-icon-button
+      type="button"
+      (click)="onCancel()"
+      aria-label="Đóng"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="rd-toolbar">
+    <span class="rd-count">{{ rows.length }} reel</span>
+    <button
+      type="button"
+      mat-stroked-button
+      (click)="applyFirstToAll()"
+      [disabled]="rows.length < 2"
+    >
+      Áp dụng dòng đầu cho tất cả
+    </button>
+  </div>
+
+  <div class="rd-body">
+    <!-- Desktop table -->
+    <div class="rd-table-wrap" *ngIf="!data.isMobile">
+      <table class="rd-table">
+        <thead>
+          <tr>
+            <th>ReelID</th>
+            <th>SL</th>
+            <th>Số lô</th>
+            <th>MFG</th>
+            <th>HSD *</th>
+            <th>Vị trí *</th>
+            <th>Mã kho *</th>
+            <th>MSL</th>
+            <th>UD1</th>
+            <th>UD2</th>
+            <th>UD3</th>
+            <th>UD4</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td>
+              <span class="cell-ro">{{ row.reelId }}</span>
+            </td>
+            <td>
+              <input
+                class="cell-input"
+                type="number"
+                min="0"
+                [(ngModel)]="row.initialQuantity"
+                (ngModelChange)="onCellChange(row, 'initialQuantity')"
+              />
+            </td>
+            <td>
+              <input
+                class="cell-input"
+                [(ngModel)]="row.lotNumber"
+                (ngModelChange)="onCellChange(row, 'lotNumber')"
+              />
+            </td>
+            <td>
+              <input
+                class="cell-input"
+                type="date"
+                [ngModel]="toDateInputValue(row.manufacturingDate)"
+                (ngModelChange)="
+                  onRowDateChange(row, 'manufacturingDate', $event)
+                "
+              />
+            </td>
+            <td>
+              <input
+                class="cell-input"
+                [class.is-missing]="isMissing(row, 'expirationDate')"
+                type="date"
+                [ngModel]="toDateInputValue(row.expirationDate)"
+                (ngModelChange)="onRowDateChange(row, 'expirationDate', $event)"
+              />
+            </td>
+            <td>
+              <input
+                class="cell-input"
+                [class.is-missing]="isMissing(row, 'locationOverride')"
+                [(ngModel)]="row.locationOverride"
+                [matAutocomplete]="autoLoc"
+                #locTrigger="matAutocompleteTrigger"
+                (input)="
+                  onLocationSearch($any($event.target).value, locTrigger)
+                "
+                (focus)="
+                  onLocationSearch($any($event.target).value, locTrigger)
+                "
+              />
+              <mat-autocomplete
+                #autoLoc="matAutocomplete"
+                (optionSelected)="
+                  onRowLocationSelected(row, $event.option.value)
+                "
+              >
+                <mat-option
+                  *ngFor="let w of filteredLocationOptions"
+                  [value]="w.locationFullName"
+                >
+                  {{ w.locationFullName || w.locationName }}
+                </mat-option>
+                <mat-option *ngIf="showLocationNoResults()" disabled>
+                  Không có kết quả
+                </mat-option>
+              </mat-autocomplete>
+            </td>
+            <td>
+              <input
+                class="cell-input"
+                [class.is-missing]="isMissing(row, 'storageUnit')"
+                [(ngModel)]="row.storageUnit"
+                [matAutocomplete]="autoWhs"
+                (input)="onSapWarehouseSearch($any($event.target).value)"
+                (focus)="onSapWarehouseSearch(row.storageUnit || '')"
+              />
+              <mat-autocomplete
+                #autoWhs="matAutocomplete"
+                [displayWith]="displaySapWarehouse"
+                (optionSelected)="
+                  onRowSapWarehouseSelected(row, $event.option.value)
+                "
+              >
+                <mat-option
+                  *ngFor="let whs of filteredSapWarehouseList"
+                  [value]="whs.whsCode"
+                >
+                  {{ whs.whsCode }} - {{ whs.whsName }}
+                </mat-option>
+              </mat-autocomplete>
+            </td>
+            <td>
+              <input
+                class="cell-input"
+                [(ngModel)]="row.msl"
+                (ngModelChange)="onCellChange(row, 'msl')"
+              />
+            </td>
+            <td>
+              <input class="cell-input" [(ngModel)]="row.userData1" />
+            </td>
+            <td>
+              <input class="cell-input" [(ngModel)]="row.userData2" />
+            </td>
+            <td>
+              <input class="cell-input" [(ngModel)]="row.userData3" />
+            </td>
+            <td>
+              <span class="cell-ro" [title]="row.userData4">{{
+                row.userData4 || "—"
+              }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile accordion -->
+    <div class="rd-mobile-list" *ngIf="data.isMobile">
+      <div class="rd-m-card" *ngFor="let row of rows; trackBy: trackByRow">
+        <button type="button" class="rd-m-head" (click)="toggleRow(row)">
+          <span class="rd-m-id">{{ row.reelId }}</span>
+          <span class="rd-m-meta"
+            >SL {{ row.initialQuantity }}
+            <span
+              class="rd-status"
+              [class.ok]="
+                !isMissing(row, 'expirationDate') &&
+                !isMissing(row, 'locationOverride') &&
+                !isMissing(row, 'storageUnit')
+              "
+              >{{
+                isMissing(row, "expirationDate") ||
+                isMissing(row, "locationOverride") ||
+                isMissing(row, "storageUnit")
+                  ? "Thiếu"
+                  : "Đủ"
+              }}</span
+            ></span
+          >
+          <mat-icon>{{
+            isExpanded(row) ? "expand_less" : "expand_more"
+          }}</mat-icon>
+        </button>
+        <div class="rd-m-body" *ngIf="isExpanded(row)">
+          <label class="rd-field">
+            <span>SL</span>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="row.initialQuantity"
+              (ngModelChange)="onCellChange(row, 'initialQuantity')"
+            />
+          </label>
+          <label class="rd-field">
+            <span>Số lô</span>
+            <input [(ngModel)]="row.lotNumber" />
+          </label>
+          <label class="rd-field">
+            <span>MFG</span>
+            <input
+              type="date"
+              [ngModel]="toDateInputValue(row.manufacturingDate)"
+              (ngModelChange)="
+                onRowDateChange(row, 'manufacturingDate', $event)
+              "
+            />
+          </label>
+          <label class="rd-field req">
+            <span>HSD *</span>
+            <input
+              type="date"
+              [class.is-missing]="isMissing(row, 'expirationDate')"
+              [ngModel]="toDateInputValue(row.expirationDate)"
+              (ngModelChange)="onRowDateChange(row, 'expirationDate', $event)"
+            />
+          </label>
+          <label class="rd-field req">
+            <span>Vị trí *</span>
+            <input
+              [class.is-missing]="isMissing(row, 'locationOverride')"
+              [(ngModel)]="row.locationOverride"
+              [matAutocomplete]="autoLocM"
+              #locTriggerM="matAutocompleteTrigger"
+              (input)="onLocationSearch($any($event.target).value, locTriggerM)"
+              (focus)="onLocationSearch($any($event.target).value, locTriggerM)"
+            />
+            <mat-autocomplete
+              #autoLocM="matAutocomplete"
+              (optionSelected)="onRowLocationSelected(row, $event.option.value)"
+            >
+              <mat-option
+                *ngFor="let w of filteredLocationOptions"
+                [value]="w.locationFullName"
+              >
+                {{ w.locationFullName || w.locationName }}
+              </mat-option>
+            </mat-autocomplete>
+          </label>
+          <label class="rd-field req">
+            <span>Mã kho *</span>
+            <input
+              [class.is-missing]="isMissing(row, 'storageUnit')"
+              [(ngModel)]="row.storageUnit"
+              [matAutocomplete]="autoWhsM"
+              (input)="onSapWarehouseSearch($any($event.target).value)"
+              (focus)="onSapWarehouseSearch(row.storageUnit || '')"
+            />
+            <mat-autocomplete
+              #autoWhsM="matAutocomplete"
+              [displayWith]="displaySapWarehouse"
+              (optionSelected)="
+                onRowSapWarehouseSelected(row, $event.option.value)
+              "
+            >
+              <mat-option
+                *ngFor="let whs of filteredSapWarehouseList"
+                [value]="whs.whsCode"
+              >
+                {{ whs.whsCode }} - {{ whs.whsName }}
+              </mat-option>
+            </mat-autocomplete>
+          </label>
+          <label class="rd-field">
+            <span>MSL</span>
+            <input [(ngModel)]="row.msl" />
+          </label>
+          <label class="rd-field">
+            <span>UD1</span>
+            <input [(ngModel)]="row.userData1" />
+          </label>
+          <label class="rd-field">
+            <span>UD2</span>
+            <input [(ngModel)]="row.userData2" />
+          </label>
+          <label class="rd-field">
+            <span>UD3</span>
+            <input [(ngModel)]="row.userData3" />
+          </label>
+          <div class="rd-field">
+            <span>UD4</span>
+            <span class="cell-ro">{{ row.userData4 || "—" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rd-footer">
+    <button mat-stroked-button type="button" (click)="onCancel()">Hủy</button>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="onConfirm()"
+    >
+      Xong
+    </button>
+  </div>
+</div>

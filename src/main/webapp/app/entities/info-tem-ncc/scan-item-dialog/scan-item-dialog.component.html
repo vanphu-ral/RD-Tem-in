@@ -1,4 +1,4 @@
-<div class="scan-dialog-wrapper">
+<div class="scan-dialog-wrapper" [class.is-mobile]="isMobile">
   <div class="dialog-header">
     <div class="header-left">
       <div class="header-icon-wrap">
@@ -7,7 +7,7 @@
       <div class="header-text">
         <h2 class="dialog-title">Thêm vật tư</h2>
         <p class="dialog-subtitle">
-          Scan hoặc import ReelID để thêm vào danh sách
+          Scan hoặc import ReelID · danh sách cập nhật ngay bên dưới
         </p>
       </div>
     </div>
@@ -21,241 +21,313 @@
     </button>
   </div>
 
-  <div class="mode-tabs">
-    <button
-      type="button"
-      class="mode-tab"
-      [class.active]="activeTab === 'scan'"
-      (click)="setActiveTab('scan')"
-    >
-      <mat-icon>qr_code_scanner</mat-icon>
-      Scan vật tư
-    </button>
-    <button
-      type="button"
-      class="mode-tab"
-      [class.active]="activeTab === 'import'"
-      (click)="setActiveTab('import')"
-    >
-      <mat-icon>upload_file</mat-icon>
-      Import ReelID
-    </button>
-  </div>
+  <div class="scan-workspace">
+    <div class="scan-controls">
+      <div class="mode-tabs">
+        <button
+          type="button"
+          class="mode-tab"
+          [class.active]="activeTab === 'scan'"
+          (click)="setActiveTab('scan')"
+        >
+          <mat-icon>qr_code_scanner</mat-icon>
+          Scan
+        </button>
+        <button
+          type="button"
+          class="mode-tab"
+          [class.active]="activeTab === 'import'"
+          (click)="setActiveTab('import')"
+        >
+          <mat-icon>upload_file</mat-icon>
+          Import
+        </button>
+      </div>
 
-  <!-- ========== TAB SCAN ========== -->
-  <div class="scan-input-section" *ngIf="activeTab === 'scan'">
-    <label class="section-label">Nhập mã scan</label>
-    <div class="input-row">
-      <mat-form-field appearance="outline" class="scan-field">
+      <!-- ========== TAB SCAN ========== -->
+      <div class="scan-input-section" *ngIf="activeTab === 'scan'">
+        <div class="input-row">
+          <mat-form-field
+            appearance="outline"
+            class="scan-field"
+            subscriptSizing="dynamic"
+          >
+            <mat-label>Nhập mã scan</mat-label>
+            <input
+              #scanInputRef
+              matInput
+              (keydown)="onKeyDown($event)"
+              (focus)="onInputFocus()"
+              (blur)="onInputBlur()"
+              placeholder="Đưa máy scan vào đây hoặc gõ mã..."
+              autocomplete="off"
+              inputmode="none"
+            />
+            <span
+              matSuffix
+              class="scan-status-badge"
+              [class.active]="isInputFocused"
+            >
+              <span class="badge-dot"></span>
+              {{ isInputFocused ? "Đang scan" : "Chờ" }}
+            </span>
+          </mat-form-field>
+        </div>
+
+        <div class="error-bar" *ngIf="errorMessage">
+          <mat-icon>warning</mat-icon>
+          <span>{{ errorMessage }}</span>
+        </div>
+        <div class="success-bar" *ngIf="lastScannedCode && !errorMessage">
+          <mat-icon>check_circle</mat-icon>
+          <span
+            >Đã thêm: <strong>{{ lastScannedCode }}</strong></span
+          >
+        </div>
+      </div>
+
+      <!-- ========== TAB IMPORT ========== -->
+      <div class="import-input-section" *ngIf="activeTab === 'import'">
         <input
-          #scanInputRef
-          matInput
-          (keydown)="onKeyDown($event)"
-          (focus)="onInputFocus()"
-          (blur)="onInputBlur()"
-          placeholder="Đưa máy scan vào đây hoặc gõ mã..."
-          autocomplete="off"
-          inputmode="none"
+          #reelImportInput
+          type="file"
+          accept=".txt,.csv,.log,.xlsx,.xls,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          hidden
+          (change)="onImportFileSelected($event)"
         />
-        <span
-          matSuffix
-          class="scan-status-badge"
-          [class.active]="isInputFocused"
+        <div
+          class="import-dropzone"
+          [class.is-dragging]="isImportDragging"
+          [class.is-busy]="isImportingReel"
+          (click)="!isImportingReel && openImportFilePicker()"
+          (dragover)="onImportDragOver($event)"
+          (dragleave)="onImportDragLeave($event)"
+          (drop)="onImportDrop($event)"
         >
-          <span class="badge-dot"></span>
-          {{ isInputFocused ? "Đang scan" : "Chờ scan" }}
-        </span>
-      </mat-form-field>
-    </div>
-
-    <div class="error-bar" *ngIf="errorMessage">
-      <mat-icon>warning</mat-icon>
-      <span>{{ errorMessage }}</span>
-    </div>
-    <div class="success-bar" *ngIf="lastScannedCode && !errorMessage">
-      <mat-icon>check_circle</mat-icon>
-      <span
-        >Đã thêm: <strong>{{ lastScannedCode }}</strong></span
-      >
-    </div>
-  </div>
-
-  <!-- ========== TAB IMPORT ========== -->
-  <div class="import-input-section" *ngIf="activeTab === 'import'">
-    <input
-      #reelImportInput
-      type="file"
-      accept=".txt,.csv,.log,.xlsx,.xls,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-      hidden
-      (change)="onImportFileSelected($event)"
-    />
-    <div
-      class="import-dropzone"
-      [class.is-dragging]="isImportDragging"
-      [class.is-busy]="isImportingReel"
-      (click)="!isImportingReel && openImportFilePicker()"
-      (dragover)="onImportDragOver($event)"
-      (dragleave)="onImportDragLeave($event)"
-      (drop)="onImportDrop($event)"
-    >
-      <mat-spinner *ngIf="isImportingReel" diameter="28"></mat-spinner>
-      <ng-container *ngIf="!isImportingReel">
-        <mat-icon class="drop-icon">cloud_upload</mat-icon>
-        <p class="drop-title">
-          Kéo thả file .csv / .txt vào đây hoặc click chọn
-        </p>
-        <p class="drop-hint">Hỗ trợ .txt, .csv, .log, .xlsx, .xls</p>
-      </ng-container>
-      <p class="drop-busy" *ngIf="isImportingReel">Đang đọc file import...</p>
-    </div>
-    <div class="error-bar" *ngIf="importErrorMessage">
-      <mat-icon>warning</mat-icon>
-      <span>{{ importErrorMessage }}</span>
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-cell">
-      <span class="stat-label">Số lượng mã</span>
-      <span class="stat-value v-blue">{{ totalCount }}</span>
-    </div>
-    <div class="stat-cell">
-      <span class="stat-label">Tổng số lượng</span>
-      <span class="stat-value v-green">{{ totalScannedQty | number }}</span>
-    </div>
-    <div class="stat-cell">
-      <span class="stat-label">Vật tư</span>
-      <span class="stat-value v-default">{{ uniquePartCount }}</span>
-    </div>
-  </div>
-
-  <div
-    class="scan-status-snack"
-    *ngIf="scanStatusSummary.type"
-    [class.snack-ok]="scanStatusSummary.type === 'ok'"
-    [class.snack-over]="scanStatusSummary.type === 'over'"
-    [class.snack-under]="scanStatusSummary.type === 'under'"
-  >
-    <mat-icon>
-      {{
-        scanStatusSummary.type === "ok"
-          ? "check_circle"
-          : scanStatusSummary.type === "over"
-            ? "warning"
-            : "info"
-      }}
-    </mat-icon>
-    <span>{{ scanStatusSummary.message }}</span>
-  </div>
-
-  <!-- Danh sách -->
-  <div class="list-section">
-    <div class="list-section-header">
-      <span class="list-title"
-        >Danh sách
-        <ng-container *ngIf="existingOrderCount">
-          ({{ existingOrderCount }} đã có trên đơn
-          <ng-container *ngIf="newItemCount">
-            · {{ newItemCount }} mới</ng-container
-          >)</ng-container
-        >
-        <ng-container *ngIf="!existingOrderCount"
-          >({{ totalCount }})</ng-container
-        ></span
-      >
-      <button
-        mat-button
-        type="button"
-        color="warn"
-        *ngIf="scannedList.length"
-        (click)="clearAll()"
-      >
-        Xóa mã mới
-      </button>
-    </div>
-
-    <div class="empty-list" *ngIf="!scannedList.length">
-      <mat-icon>inventory_2</mat-icon>
-      <p>Chưa có mã nào. Scan hoặc import để thêm vào danh sách.</p>
-    </div>
-
-    <!-- Desktop table -->
-    <div class="table-scroll-wrapper" *ngIf="scannedList.length && !isMobile">
-      <table class="scan-table">
-        <thead>
-          <tr>
-            <th class="col-stt">#</th>
-            <th *ngFor="let col of displayColumns">{{ col.label }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            *ngFor="let item of pagedItems; let i = index"
-            [class.row-from-order]="isExistingOnOrder(item)"
+          <mat-spinner *ngIf="isImportingReel" diameter="24"></mat-spinner>
+          <ng-container *ngIf="!isImportingReel">
+            <mat-icon class="drop-icon">cloud_upload</mat-icon>
+            <div class="drop-text">
+              <p class="drop-title">Kéo thả hoặc chọn file import</p>
+              <p class="drop-hint">.txt, .csv, .log, .xlsx, .xls</p>
+            </div>
+          </ng-container>
+          <p class="drop-busy" *ngIf="isImportingReel">Đang đọc file...</p>
+        </div>
+        <div class="import-sample-links">
+          <span class="sample-label">Tải file mẫu:</span>
+          <a
+            href="#"
+            class="sample-link"
+            (click)="downloadImportSampleCsv($event)"
+            >CSV (.csv)</a
           >
-            <td class="col-stt">{{ pageIndex * pageSize + i + 1 }}</td>
-            <td *ngFor="let col of displayColumns">
-              <span class="cell-text" [title]="getDisplayValue(item, col.key)">
-                {{ getDisplayValue(item, col.key) }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+          <span class="sample-sep">·</span>
+          <a
+            href="#"
+            class="sample-link"
+            (click)="downloadImportSampleExcel($event)"
+            >Excel (.xlsx)</a
+          >
+        </div>
+        <div class="error-bar" *ngIf="importErrorMessage">
+          <mat-icon>warning</mat-icon>
+          <span>{{ importErrorMessage }}</span>
+        </div>
+      </div>
 
-    <!-- Mobile cards -->
-    <div class="mobile-card-list" *ngIf="scannedList.length && isMobile">
+      <!-- Stats compact -->
+      <div class="stats-bar">
+        <div class="stat-pill">
+          <span class="stat-label">Mã</span>
+          <span class="stat-value v-blue">{{ totalCount }}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Tổng SL</span>
+          <span class="stat-value v-green">{{ totalScannedQty | number }}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Vật tư</span>
+          <span class="stat-value v-default">{{ uniquePartCount }}</span>
+        </div>
+      </div>
+
       <div
-        class="item-card"
-        *ngFor="let item of pagedItems; let i = index"
-        [class.card-from-order]="isExistingOnOrder(item)"
+        class="scan-status-snack"
+        *ngIf="scanStatusSummary.type"
+        [class.snack-ok]="scanStatusSummary.type === 'ok'"
+        [class.snack-over]="scanStatusSummary.type === 'over'"
+        [class.snack-under]="scanStatusSummary.type === 'under'"
       >
-        <div class="card-top">
-          <span class="card-index">#{{ pageIndex * pageSize + i + 1 }}</span>
-          <span class="order-badge" *ngIf="isExistingOnOrder(item)"
-            >Đã có trên đơn</span
-          >
-        </div>
-        <div class="card-row" *ngFor="let col of displayColumns">
-          <span class="card-label">{{ col.label }}</span>
-          <span class="card-value" [title]="getDisplayValue(item, col.key)">
-            {{ getDisplayValue(item, col.key) }}
-          </span>
-        </div>
+        <mat-icon>
+          {{
+            scanStatusSummary.type === "ok"
+              ? "check_circle"
+              : scanStatusSummary.type === "over"
+                ? "warning"
+                : "info"
+          }}
+        </mat-icon>
+        <span>{{ scanStatusSummary.message }}</span>
       </div>
     </div>
 
-    <mat-paginator
-      *ngIf="scannedList.length > pageSize"
-      [length]="scannedList.length"
-      [pageSize]="pageSize"
-      [pageIndex]="pageIndex"
-      [pageSizeOptions]="pageSizeOptions"
-      (page)="onPage($event)"
-      showFirstLastButtons
-    >
-    </mat-paginator>
+    <!-- Danh sách — vùng chính -->
+    <div class="list-section">
+      <div class="list-section-header">
+        <span class="list-title"
+          >Danh sách
+          <ng-container *ngIf="existingOrderCount">
+            ({{ existingOrderCount }} đã có trên đơn
+            <ng-container *ngIf="newItemCount">
+              · {{ newItemCount }} mới</ng-container
+            >)</ng-container
+          >
+          <ng-container *ngIf="!existingOrderCount"
+            >({{ totalCount }})</ng-container
+          ></span
+        >
+      </div>
 
-    <div class="failed-hint" *ngIf="errorCount > 0">
-      <mat-icon>error_outline</mat-icon>
-      {{ errorCount }} mã lưu thất bại
+      <div class="empty-list" *ngIf="!scannedList.length">
+        <mat-icon>inventory_2</mat-icon>
+        <p>Chưa có mã nào. Scan hoặc import để thêm vào danh sách.</p>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="table-scroll-wrapper" *ngIf="scannedList.length && !isMobile">
+        <table class="scan-table">
+          <thead>
+            <tr>
+              <th class="col-stt">#</th>
+              <th *ngFor="let col of displayColumns">{{ col.label }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let item of pagedItems; let i = index"
+              [class.row-from-order]="isExistingOnOrder(item)"
+              [class.row-newest]="
+                pageIndex === 0 && i === 0 && !isExistingOnOrder(item)
+              "
+            >
+              <td class="col-stt">{{ pageIndex * pageSize + i + 1 }}</td>
+              <td *ngFor="let col of displayColumns">
+                <ng-container
+                  *ngIf="col.key === 'initialQuantity'; else readOnlyCell"
+                >
+                  <input
+                    class="qty-input-table"
+                    type="number"
+                    min="0"
+                    [ngModel]="item.initialQuantity"
+                    (ngModelChange)="onQuantityChange(item, $event)"
+                    [title]="'Số lượng'"
+                  />
+                </ng-container>
+                <ng-template #readOnlyCell>
+                  <span
+                    class="cell-text"
+                    [title]="getDisplayValue(item, col.key)"
+                  >
+                    {{ getDisplayValue(item, col.key) }}
+                  </span>
+                </ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards: lưới 2 cột + SL riêng -->
+      <div class="mobile-card-list" *ngIf="scannedList.length && isMobile">
+        <div
+          class="item-card"
+          *ngFor="let item of pagedItems; let i = index"
+          [class.card-from-order]="isExistingOnOrder(item)"
+          [class.card-newest]="
+            pageIndex === 0 && i === 0 && !isExistingOnOrder(item)
+          "
+        >
+          <div class="card-top">
+            <span class="card-index">#{{ pageIndex * pageSize + i + 1 }}</span>
+            <span class="card-reel" [title]="item.reelId">{{
+              item.reelId || "—"
+            }}</span>
+            <span class="order-badge" *ngIf="isExistingOnOrder(item)"
+              >Đã có trên đơn</span
+            >
+          </div>
+
+          <div class="card-grid">
+            <div class="card-field" *ngFor="let col of mobileCardColumns">
+              <span class="card-label">{{ col.label }}</span>
+              <span
+                class="card-value"
+                [title]="getDisplayValue(item, col.key)"
+                >{{ getDisplayValue(item, col.key) || "—" }}</span
+              >
+            </div>
+          </div>
+
+          <div class="card-qty">
+            <label class="qty-label" [attr.for]="'qty-' + item.id"
+              >Số lượng</label
+            >
+            <input
+              class="qty-input"
+              type="number"
+              min="0"
+              [id]="'qty-' + item.id"
+              [ngModel]="item.initialQuantity"
+              (ngModelChange)="onQuantityChange(item, $event)"
+              inputmode="numeric"
+            />
+          </div>
+        </div>
+      </div>
+
+      <mat-paginator
+        *ngIf="scannedList.length > pageSize"
+        [length]="scannedList.length"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        [pageSizeOptions]="pageSizeOptions"
+        (page)="onPage($event)"
+        showFirstLastButtons
+      >
+      </mat-paginator>
+
+      <div class="qty-save-bar" *ngIf="scannedList.length">
+        <span class="qty-save-hint" *ngIf="hasQuantityChanges">
+          {{ quantityDirtyCount }} dòng đã sửa SL
+        </span>
+        <span class="qty-save-hint muted" *ngIf="!hasQuantityChanges">
+          Sửa SL trên danh sách rồi lưu tại đây
+        </span>
+        <button
+          mat-stroked-button
+          color="primary"
+          type="button"
+          class="qty-save-btn"
+          (click)="onSaveQuantities()"
+          [disabled]="!hasQuantityChanges || isSavingQty"
+        >
+          <mat-icon>save</mat-icon>
+          {{ isSavingQty ? "Đang lưu..." : "Lưu SL" }}
+        </button>
+      </div>
+
+      <div class="failed-hint" *ngIf="errorCount > 0">
+        <mat-icon>error_outline</mat-icon>
+        {{ errorCount }} mã lưu thất bại
+      </div>
     </div>
   </div>
 
   <div class="dialog-footer">
     <div class="footer-actions">
       <button mat-stroked-button type="button" (click)="onCancel()">Hủy</button>
-      <!-- <button
-        mat-stroked-button
-        color="primary"
-        type="button"
-        (click)="onFinish()"
-        [disabled]="totalCount === 0"
-      >
-        Hoàn tất
-      </button> -->
       <button
         mat-raised-button
         color="primary"
