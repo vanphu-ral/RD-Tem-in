@@ -146,6 +146,8 @@ export interface ScanDialogData {
   onItemsUpdated?: (items: ScannedItem[]) => void;
 }
 
+type ScanDialogParentItem = ScanDialogData["parentItems"][number];
+
 @Component({
   selector: "jhi-scan-dialog",
   templateUrl: "./scan-item-dialog.component.html",
@@ -163,6 +165,7 @@ export class ScanItemDialogComponent
   scannedList: ScannedItem[] = [];
   errorMessage = "";
   importErrorMessage = "";
+  importSuccessMessage = "";
   isInputFocused = false;
   lastScannedCode = "";
   duplicateHighlightId: string | null = null;
@@ -287,6 +290,7 @@ export class ScanItemDialogComponent
     this.activeTab = tab;
     this.errorMessage = "";
     this.importErrorMessage = "";
+    this.importSuccessMessage = "";
     if (tab === "scan") {
       setTimeout(() => this.focusInput(), 120);
     }
@@ -468,6 +472,15 @@ export class ScanItemDialogComponent
     if (!this.scannedList.length) {
       return;
     }
+    // Loại mã không thuộc PO trước khi mở tổng hợp.
+    this.purgeOffOrderItems(true);
+    if (!this.scannedList.length) {
+      this.notificationService.warning(
+        "Không còn mã nào thuộc PO đơn hàng để tổng hợp.",
+      );
+      return;
+    }
+
     const newItems = this.scannedList.filter(
       (item) => !item.fromOrder && !this.preloadedReelIds.has(item.reelId),
     );
@@ -515,7 +528,9 @@ export class ScanItemDialogComponent
           return;
         }
         this.mergeScannedItems(result.items);
-        this.data?.onItemsUpdated?.(result.items);
+        this.data?.onItemsUpdated?.(
+          result.items.filter((item) => this.isOnCurrentOrder(item)),
+        );
         this.cdr.markForCheck();
       },
     );
@@ -529,34 +544,20 @@ export class ScanItemDialogComponent
   }
 
   onCancel(): void {
-    this.dialogRef.close(null);
+    this.closeWithSyncedItems();
   }
 
   onFinish(): void {
-    const itemsToApply = this.scannedList.filter(
-      (item) => !item.fromOrder && !this.preloadedReelIds.has(item.reelId),
-    );
-    if (this.cacheFlushTimer) {
-      clearTimeout(this.cacheFlushTimer);
-      this.cacheFlushTimer = null;
-    }
-    sessionStorage.removeItem(this.cacheKey);
-    this.dialogRef.close({
-      items: itemsToApply,
-      warehouse: this.warehouse,
-      approver: this.approver,
-    });
+    this.closeWithSyncedItems();
   }
 
   openImportFilePicker(): void {
     if (!this.data?.importVendorTemTransactionsId) {
-      this.importErrorMessage =
-        "Chưa có transaction — vui lòng Apply đơn trước.";
+      this.setImportError("Chưa có transaction — vui lòng Apply đơn trước.");
       return;
     }
     if (!this.data?.mappingConfig) {
-      this.importErrorMessage =
-        "Vui lòng chọn kịch bản nhập TEM trước khi import.";
+      this.setImportError("Vui lòng chọn kịch bản nhập TEM trước khi import.");
       return;
     }
     const input = this.reelImportInputRef?.nativeElement;
@@ -609,6 +610,31 @@ export class ScanItemDialogComponent
     }
   }
 
+  /** Đóng dialog và trả vật tư mới về add-info để gộp vào bảng ngay. */
+  private closeWithSyncedItems(): void {
+    this.purgeOffOrderItems(false);
+    const itemsToApply = this.scannedList.filter(
+      (item) =>
+        !item.fromOrder &&
+        !this.preloadedReelIds.has(item.reelId) &&
+        this.isOnCurrentOrder(item),
+    );
+    if (this.cacheFlushTimer) {
+      clearTimeout(this.cacheFlushTimer);
+      this.cacheFlushTimer = null;
+    }
+    sessionStorage.removeItem(this.cacheKey);
+    // Đồng bộ lần cuối trước khi đóng (idempotent phía parent).
+    if (itemsToApply.length) {
+      this.data?.onItemsUpdated?.(itemsToApply);
+    }
+    this.dialogRef.close({
+      items: itemsToApply,
+      warehouse: this.warehouse,
+      approver: this.approver,
+    });
+  }
+
   private updateIsMobile(): void {
     this.isMobile = window.innerWidth <= 600;
   }
@@ -617,10 +643,12 @@ export class ScanItemDialogComponent
     const mobile = window.innerWidth <= 600;
     if (mobile) {
       this.dialogRef.updateSize("100vw", "100vh");
+      this.dialogRef.removePanelClass("scan-dialog-panel--desktop");
       this.dialogRef.addPanelClass("scan-dialog-panel--mobile");
     } else {
-      this.dialogRef.updateSize("96vw", "92vh");
+      this.dialogRef.updateSize("90vw", "92vh");
       this.dialogRef.removePanelClass("scan-dialog-panel--mobile");
+      this.dialogRef.addPanelClass("scan-dialog-panel--desktop");
     }
   }
 
@@ -630,14 +658,144 @@ export class ScanItemDialogComponent
     this.cdr.markForCheck();
   };
 
+  private setImportError(
+    message: string,
+    toast: "error" | "warning" = "error",
+  ): void {
+    this.isImportingReel = false;
+    this.importErrorMessage = message;
+    this.importSuccessMessage = "";
+    if (toast === "warning") {
+      this.notificationService.warning(message);
+    } else {
+      this.notificationService.error(message);
+    }
+    this.cdr.markForCheck();
+  }
+
+  private setImportSuccess(message: string): void {
+    this.isImportingReel = false;
+    this.importErrorMessage = "";
+    this.importSuccessMessage = message;
+    this.lastScannedCode = message;
+    this.notificationService.success(message);
+    this.cdr.markForCheck();
+  }
+
+  private isMauImportHeaderMissing(errors: string[]): boolean {
+    return errors.some((e) =>
+      e.toLowerCase().includes("không tìm thấy header mau-import-reel"),
+    );
+  }
+
+  private normalizeSapCode(code: string): string {
+    const t = (code ?? "").trim().toLowerCase();
+    if (!t) {
+      return "";
+    }
+    return t.replace(/^0+/, "") || "0";
+  }
+
+  private findParentRowForImport(
+    partNumber: string,
+    sapCode: string,
+  ): ScanDialogParentItem | undefined {
+    const parentItems = this.data?.parentItems ?? [];
+    const part = (partNumber ?? "").trim().toLowerCase();
+    if (part) {
+      const byPart = parentItems.find(
+        (r) => (r.partNumber ?? "").trim().toLowerCase() === part,
+      );
+      if (byPart) {
+        return byPart;
+      }
+    }
+    const sap = this.normalizeSapCode(sapCode);
+    if (!sap) {
+      return undefined;
+    }
+    return parentItems.find((r) => {
+      const parentSap = this.normalizeSapCode(r.sapCode ?? "");
+      return !!parentSap && parentSap === sap;
+    });
+  }
+
+  /** Mã thuộc đơn hiện tại (khớp poDetailId / Part / SAP trên PO). */
+  private isOnCurrentOrder(item: {
+    poDetailId?: number | null;
+    partNumber?: string;
+    sapCode?: string;
+  }): boolean {
+    const parents = this.data?.parentItems ?? [];
+    if (!parents.length) {
+      return true;
+    }
+    const poDetailId = Number(item.poDetailId);
+    if (Number.isFinite(poDetailId) && poDetailId > 0) {
+      if (parents.some((p) => Number(p.id) === poDetailId)) {
+        return true;
+      }
+    }
+    return !!this.findParentRowForImport(
+      item.partNumber ?? "",
+      item.sapCode ?? "",
+    );
+  }
+
+  /** Chỉ giữ mã thuộc PO; trả về số mã đã loại. */
+  private purgeOffOrderItems(announce = false): number {
+    const parents = this.data?.parentItems ?? [];
+    if (!parents.length) {
+      return 0;
+    }
+    const before = this.scannedList.length;
+    const kept: ScannedItem[] = [];
+    const removedReelIds: string[] = [];
+    this.scannedList.forEach((item) => {
+      if (this.isOnCurrentOrder(item)) {
+        kept.push(item);
+      } else {
+        const reelId = (item.reelId ?? "").trim();
+        if (reelId) {
+          removedReelIds.push(reelId);
+          this.existingReelIds.delete(reelId);
+        }
+        if (item.id) {
+          this.qtySnapshot.delete(item.id);
+        }
+      }
+    });
+    const removed = before - kept.length;
+    if (removed > 0) {
+      this.scannedList = kept;
+      this.updateStats();
+      this.saveToCache();
+      if (announce) {
+        this.notificationService.warning(
+          `Đã bỏ qua ${removed} mã không thuộc PO đơn hàng${
+            removedReelIds[0] ? ` (vd: ${removedReelIds[0]})` : ""
+          }.`,
+        );
+      }
+      this.cdr.markForCheck();
+    }
+    return removed;
+  }
+
   private handleImportFile(file: File): void {
     if (!this.data?.mappingConfig) {
-      this.importErrorMessage =
-        "Vui lòng chọn kịch bản nhập TEM trước khi import.";
+      this.setImportError("Vui lòng chọn kịch bản nhập TEM trước khi import.");
+      return;
+    }
+    if (!this.data?.importVendorTemTransactionsId) {
+      this.setImportError(
+        "Chưa có phiên nhập TEM để lưu. Vui lòng mở lại màn hình thêm TEM.",
+      );
       return;
     }
     this.isImportingReel = true;
     this.importErrorMessage = "";
+    this.importSuccessMessage = "";
     const poSapCodes = (this.data?.parentItems ?? [])
       .map((row) => (row.sapCode ?? "").trim())
       .filter(Boolean);
@@ -653,7 +811,8 @@ export class ScanItemDialogComponent
             poSapCodes,
             { requireSap: false },
           );
-          if (mau.rows.length) {
+          // Đã nhận diện mau-import-reel → không fallback parser khác (tránh nuốt lỗi).
+          if (mau.rows.length || !this.isMauImportHeaderMissing(mau.errors)) {
             parsed = mau;
           } else {
             const doc010 = parseVendorDocument010ExcelArrayBuffer(
@@ -710,23 +869,24 @@ export class ScanItemDialogComponent
         }
 
         if (!parsed.rows.length) {
-          this.isImportingReel = false;
-          this.importErrorMessage =
-            parsed.errors[0] ?? "File không có dòng ReelID hợp lệ.";
-          this.cdr.markForCheck();
+          this.setImportError(
+            parsed.errors.slice(0, 3).join(" · ") ||
+              "File không có dòng ReelID hợp lệ.",
+          );
           return;
         }
 
         const orderPo = (this.data?.poCode ?? "").trim();
         if (orderPo) {
-          const poMismatch = parsed.rows.find(
-            (row) => (row.poNumber ?? "").trim() !== orderPo,
-          );
+          const poMismatch = parsed.rows.find((row) => {
+            const filePo = (row.poNumber ?? "").trim();
+            return !filePo || filePo !== orderPo;
+          });
           if (poMismatch) {
-            this.isImportingReel = false;
             const filePo = (poMismatch.poNumber ?? "").trim() || "(trống)";
-            this.importErrorMessage = `Import thất bại: mã PO trong file (${filePo}) không trùng PO đơn (${orderPo}).`;
-            this.cdr.markForCheck();
+            this.setImportError(
+              `Import thất bại: mã PO trong file (${filePo}) không trùng PO đơn (${orderPo}).`,
+            );
             return;
           }
         }
@@ -740,36 +900,24 @@ export class ScanItemDialogComponent
               partToSap,
             );
             if (!previewRows.length) {
-              this.isImportingReel = false;
-              this.importErrorMessage =
-                "Không dựng được dữ liệu import từ file.";
-              this.cdr.markForCheck();
+              this.setImportError("Không dựng được dữ liệu import từ file.");
               return;
             }
 
-            if (parsed.errors.length) {
-              this.importErrorMessage = parsed.errors.slice(0, 3).join(" · ");
-            }
-
-            this.applyImportPreviewRows(previewRows);
+            this.applyImportPreviewRows(previewRows, parsed.errors);
           },
           error: () => {
-            this.isImportingReel = false;
-            this.importErrorMessage =
-              "Không lấy được thông tin SAP từ PO để import.";
-            this.cdr.markForCheck();
+            this.setImportError(
+              "Không lấy được thông tin SAP từ PO để import.",
+            );
           },
         });
       } catch {
-        this.isImportingReel = false;
-        this.importErrorMessage = "Không đọc được file import ReelID.";
-        this.cdr.markForCheck();
+        this.setImportError("Không đọc được file import ReelID.");
       }
     };
     reader.onerror = () => {
-      this.isImportingReel = false;
-      this.importErrorMessage = "Đọc file thất bại.";
-      this.cdr.markForCheck();
+      this.setImportError("Đọc file thất bại.");
     };
 
     if (isExcel) {
@@ -779,8 +927,14 @@ export class ScanItemDialogComponent
     }
   }
 
-  private applyImportPreviewRows(rows: ReelImportPreviewRow[]): void {
+  private applyImportPreviewRows(
+    rows: ReelImportPreviewRow[],
+    parseWarnings: string[] = [],
+  ): void {
     if (!this.data?.importVendorTemTransactionsId) {
+      this.setImportError(
+        "Chưa có phiên nhập TEM để lưu. Vui lòng mở lại màn hình thêm TEM.",
+      );
       return;
     }
     this.isImportingReel = true;
@@ -790,34 +944,40 @@ export class ScanItemDialogComponent
       tempId: string;
       payload: CreateVendorTemDetailPayload;
     }> = [];
+    const skipReasons: string[] = [];
 
     for (const row of rows) {
       const reelId = (row.reelId ?? "").trim();
       const partNumber = (row.partNumber ?? "").trim();
+      const fileSap = (row.sapCode ?? "").trim();
       if (!reelId) {
+        skipReasons.push(
+          `Dòng ${row.lineNo}: thiếu ReelID (cần Ngày + STT thùng + Part Number).`,
+        );
         continue;
       }
       if (
         this.scannedList.some((i) => i.reelId === reelId) ||
         this.existingReelIds.has(reelId)
       ) {
+        skipReasons.push(`Dòng ${row.lineNo}: ReelID ${reelId} đã tồn tại.`);
         continue;
       }
 
-      const rowSap = (row.sapCode ?? "").trim().toLowerCase();
-      const matchedRow = parentItems.find((r) => {
-        const parentSap = (r.sapCode ?? "").trim().toLowerCase();
-        if (rowSap && parentSap && rowSap === parentSap) {
-          return true;
-        }
-        return (
-          !!partNumber &&
-          (r.partNumber ?? "").trim().toLowerCase() === partNumber.toLowerCase()
+      const matchedRow = this.findParentRowForImport(partNumber, fileSap);
+      // Có danh sách PO → bắt buộc khớp Part/SAP; không lưu mã ngoài đơn.
+      if (parentItems.length > 0 && !matchedRow) {
+        skipReasons.push(
+          `Dòng ${row.lineNo}: Part (${partNumber || "—"}) / SAP (${fileSap || "—"}) không thuộc PO đơn hàng.`,
         );
-      });
-      if (parentItems.length && (partNumber || rowSap) && !matchedRow) {
         continue;
       }
+
+      // Ưu tiên SAP của dòng PO khi khớp Part; tránh gửi SAP mẫu/sai làm API reject im lặng.
+      const resolvedSap =
+        (matchedRow?.sapCode ?? "").trim() ||
+        fileSap ||
+        (partNumber.split("_")[0] ?? "").trim();
 
       const manufacturingDate = (row.manufacturingDate ?? "").trim();
       const lot =
@@ -854,7 +1014,7 @@ export class ScanItemDialogComponent
         manufacturingDate,
         expirationDate: (row.expirationDate ?? "").trim(),
         partClass: "",
-        sapCode: (row.sapCode ?? "").trim(),
+        sapCode: resolvedSap,
         vendorQrCode: (row.vendorQrCode ?? "").trim(),
         status: matchedRow ? "NEW" : "DRAFT",
         createdBy: this.currentUser,
@@ -869,23 +1029,37 @@ export class ScanItemDialogComponent
     }
 
     if (!payloads.length) {
-      this.isImportingReel = false;
-      this.importErrorMessage = "Không có dòng hợp lệ để import.";
-      this.cdr.markForCheck();
+      const detail =
+        skipReasons.slice(0, 3).join(" · ") ||
+        parseWarnings.slice(0, 3).join(" · ") ||
+        "Không có dòng hợp lệ để import.";
+      this.setImportError(detail);
       return;
     }
 
     forkJoin(
       payloads.map(({ tempId, payload }) =>
         this.managerTemNccService.createVendorTemDetails(payload).pipe(
-          map((res) => ({ ok: true as const, tempId, payload, res })),
-          catchError(() => {
+          map((res) => ({
+            ok: true as const,
+            tempId,
+            payload,
+            res,
+            errorDetail: "",
+          })),
+          catchError((err) => {
             this.existingReelIds.delete(payload.reelId);
+            const errorDetail =
+              err?.error?.message ??
+              err?.error?.detail ??
+              err?.message ??
+              "Lỗi máy chủ";
             return of({
               ok: false as const,
               tempId,
               payload,
               res: null,
+              errorDetail: String(errorDetail),
             });
           }),
         ),
@@ -893,6 +1067,7 @@ export class ScanItemDialogComponent
     ).subscribe({
       next: (results) => {
         const successItems = results.filter((r) => r.ok);
+        const failedItems = results.filter((r) => !r.ok);
         // Import: giữ thứ tự file, block mới lên đầu danh sách.
         const importedItems: ScannedItem[] = successItems.map(
           ({ payload, res }) =>
@@ -904,18 +1079,49 @@ export class ScanItemDialogComponent
         );
         this.prependScannedItems(importedItems);
         this.captureQtySnapshots(importedItems);
-        this.isImportingReel = false;
-        this.importErrorMessage = "";
-        this.lastScannedCode = `Đã import ${successItems.length}/${payloads.length} ReelID`;
         this.pageIndex = 0;
         this.updateStats();
         this.saveToCache();
-        this.cdr.markForCheck();
+
+        const skipHint =
+          skipReasons.length > 0
+            ? ` · Bỏ qua ${skipReasons.length} dòng: ${skipReasons[0]}`
+            : "";
+        const parseHint =
+          parseWarnings.length > 0
+            ? ` · Cảnh báo file: ${parseWarnings[0]}`
+            : "";
+
+        if (!successItems.length) {
+          const apiHint =
+            failedItems[0]?.errorDetail || "API từ chối lưu ReelID.";
+          this.setImportError(
+            `Import thất bại (0/${payloads.length}). ${apiHint}${skipHint}`,
+          );
+          return;
+        }
+
+        // Đồng bộ ngay vào bảng Danh sách vật tư (parent) — chỉ mã thuộc PO.
+        this.data?.onItemsUpdated?.(
+          importedItems.filter((item) => this.isOnCurrentOrder(item)),
+        );
+
+        if (failedItems.length) {
+          const apiHint = failedItems[0]?.errorDetail || "";
+          this.isImportingReel = false;
+          this.importSuccessMessage = "";
+          this.importErrorMessage = `Import một phần: ${successItems.length}/${payloads.length} thành công. Lỗi: ${apiHint}${skipHint}${parseHint}`;
+          this.notificationService.warning(this.importErrorMessage);
+          this.cdr.markForCheck();
+          return;
+        }
+
+        this.setImportSuccess(
+          `Đã import ${successItems.length}/${payloads.length} ReelID${skipHint}${parseHint}`,
+        );
       },
       error: () => {
-        this.isImportingReel = false;
-        this.importErrorMessage = "Import ReelID thất bại.";
-        this.cdr.markForCheck();
+        this.setImportError("Import ReelID thất bại.");
       },
     });
   }
@@ -1174,24 +1380,22 @@ export class ScanItemDialogComponent
     }
 
     const scannedPartNumber = (fieldMap["partNumber"] ?? "").trim();
-    const matchedRow = this.data.parentItems.find(
-      (r) =>
-        (r.partNumber ?? "").trim().toLowerCase() ===
-        scannedPartNumber.toLowerCase(),
+    const scannedSap = (fieldMap["sapCode"] ?? "").trim();
+    const matchedRow = this.findParentRowForImport(
+      scannedPartNumber,
+      scannedSap,
     );
 
-    const isOrphan = !matchedRow;
-
-    // Nếu có parentItems (có PO) mà không tìm thấy part → báo lỗi, không lưu
-    if (
-      !matchedRow &&
-      scannedPartNumber !== "" &&
-      (this.data.parentItems ?? []).length > 0
-    ) {
-      this.errorMessage = `Không tìm thấy Part Number "${scannedPartNumber}" trong đơn hàng.`;
+    // Có PO trên đơn → chỉ nhận mã khớp Part/SAP đơn hàng.
+    if ((this.data.parentItems ?? []).length > 0 && !matchedRow) {
+      this.errorMessage = scannedPartNumber
+        ? `Không tìm thấy Part Number "${scannedPartNumber}" trong đơn hàng.`
+        : "Mã không thuộc PO đơn hàng (thiếu/sai Part Number).";
       this.cdr.markForCheck();
       return;
     }
+
+    const isOrphan = !matchedRow;
 
     const reelIdToCheck = (fieldMap["reelId"] ?? "").trim();
 
@@ -1348,6 +1552,7 @@ export class ScanItemDialogComponent
           this.scannedList[idx] = { ...this.scannedList[idx], dbId: res?.id };
           // Snapshot theo SL đã POST — nếu user sửa trong lúc chờ API thì nút Lưu sẽ bật.
           this.qtySnapshot.set(tempId, Number(payload.initialQuantity) || 0);
+          this.data?.onItemsUpdated?.([this.scannedList[idx]]);
         }
         this.saveToCache();
         this.cdr.markForCheck();

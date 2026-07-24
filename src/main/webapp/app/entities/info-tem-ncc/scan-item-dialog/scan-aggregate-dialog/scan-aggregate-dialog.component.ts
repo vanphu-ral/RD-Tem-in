@@ -409,13 +409,13 @@ export class ScanAggregateDialogComponent implements OnInit, OnDestroy {
       isMobile: this.isMobileView,
     };
     const ref = this.dialog.open(ScanAggregateReelDialogComponent, {
-      width: this.isMobileView ? "100vw" : "95vw",
-      maxWidth: this.isMobileView ? "100vw" : "1400px",
-      height: this.isMobileView ? "100vh" : "85vh",
-      maxHeight: this.isMobileView ? "100vh" : "90vh",
+      width: "100vw",
+      maxWidth: "100vw",
+      height: "100vh",
+      maxHeight: "100dvh",
       panelClass: this.isMobileView
-        ? "scan-aggregate-reel-panel-mobile"
-        : "scan-aggregate-reel-panel",
+        ? ["scan-aggregate-reel-panel", "scan-aggregate-reel-panel-mobile"]
+        : ["scan-aggregate-reel-panel", "scan-aggregate-reel-panel-desktop"],
       autoFocus: false,
       data,
     });

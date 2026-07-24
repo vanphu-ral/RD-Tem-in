@@ -1,14 +1,37 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .scan-dialog-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
-  max-width: 100%;
-  max-height: 92vh;
-  overflow: hidden;
   box-sizing: border-box;
   background: #fff;
   border-radius: 12px;
+  overflow: hidden;
+
+  // Desktop: khung cố định — kể cả khi danh sách trống (không co theo nội dung)
+  &:not(.is-mobile) {
+    width: 90vw;
+    min-width: min(90vw, 1400px);
+    max-width: 1400px;
+    height: 92vh;
+    min-height: 92vh;
+    max-height: 92vh;
+  }
+
+  // Mobile: full màn
+  &.is-mobile {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
 }
 
 // ==================== HEADER ====================
@@ -374,7 +397,7 @@
 
 .list-section {
   flex: 1 1 auto;
-  min-height: 180px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   padding: 4px 14px 0;
@@ -774,7 +797,7 @@ mat-paginator {
 // ==================== MOBILE ====================
 
 @media (max-width: 600px) {
-  .scan-dialog-wrapper {
+  .scan-dialog-wrapper.is-mobile {
     max-height: 100vh;
     max-height: 100dvh;
     height: 100%;
@@ -1100,7 +1123,6 @@ mat-paginator {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    max-width: 100% !important;
     box-sizing: border-box !important;
   }
 
@@ -1109,9 +1131,6 @@ mat-paginator {
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
-    height: 100% !important;
-    max-width: 100% !important;
-    width: 100% !important;
     box-sizing: border-box !important;
   }
 
@@ -1121,7 +1140,6 @@ mat-paginator {
     flex-direction: column;
     height: 100%;
     width: 100%;
-    max-width: 100%;
     min-height: 0;
     min-width: 0;
     overflow: hidden;
@@ -1129,27 +1147,21 @@ mat-paginator {
   }
 }
 
-::ng-deep .scan-dialog-panel--mobile {
-  width: 100vw !important;
-  max-width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  max-height: 100vh !important;
-  max-height: 100dvh !important;
-  margin: 0 !important;
+/* Kích thước chính nằm ở global.scss (.cdk-overlay-pane.scan-dialog-panel--*) */
+::ng-deep .scan-dialog-panel--desktop {
+  .mat-mdc-dialog-container {
+    --mdc-dialog-container-max-width: 1400px;
+  }
+}
 
+::ng-deep .scan-dialog-panel--mobile {
   .mat-mdc-dialog-container,
   .mat-dialog-container {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
     border-radius: 0 !important;
   }
 
   .mat-mdc-dialog-surface,
   .mdc-dialog__surface {
     border-radius: 0 !important;
-    max-height: 100% !important;
   }
 }

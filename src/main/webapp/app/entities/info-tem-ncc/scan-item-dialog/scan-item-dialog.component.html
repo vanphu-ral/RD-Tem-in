@@ -109,7 +109,10 @@
             <mat-icon class="drop-icon">cloud_upload</mat-icon>
             <div class="drop-text">
               <p class="drop-title">Kéo thả hoặc chọn file import</p>
-              <p class="drop-hint">.txt, .csv, .log, .xlsx, .xls</p>
+              <p class="drop-hint">
+                .txt, .csv, .log, .xlsx, .xls — điền Part/PO/SAP thật của đơn
+                (số trong ngoặc header chỉ là ví dụ)
+              </p>
             </div>
           </ng-container>
           <p class="drop-busy" *ngIf="isImportingReel">Đang đọc file...</p>
@@ -133,6 +136,13 @@
         <div class="error-bar" *ngIf="importErrorMessage">
           <mat-icon>warning</mat-icon>
           <span>{{ importErrorMessage }}</span>
+        </div>
+        <div
+          class="success-bar"
+          *ngIf="importSuccessMessage && !importErrorMessage"
+        >
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ importSuccessMessage }}</span>
         </div>
       </div>
 
@@ -327,7 +337,9 @@
 
   <div class="dialog-footer">
     <div class="footer-actions">
-      <button mat-stroked-button type="button" (click)="onCancel()">Hủy</button>
+      <button mat-stroked-button type="button" (click)="onCancel()">
+        Đóng
+      </button>
       <button
         mat-raised-button
         color="primary"

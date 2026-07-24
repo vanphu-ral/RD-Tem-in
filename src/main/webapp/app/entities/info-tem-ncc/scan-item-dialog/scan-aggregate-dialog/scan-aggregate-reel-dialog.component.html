@@ -33,7 +33,7 @@
       <table class="rd-table">
         <thead>
           <tr>
-            <th>ReelID</th>
+            <th class="col-reel">ReelID</th>
             <th>SL</th>
             <th>Số lô</th>
             <th>MFG</th>
@@ -49,8 +49,10 @@
         </thead>
         <tbody>
           <tr *ngFor="let row of rows; trackBy: trackByRow">
-            <td>
-              <span class="cell-ro">{{ row.reelId }}</span>
+            <td class="col-reel">
+              <span class="cell-ro cell-reel" [title]="row.reelId">{{
+                row.reelId
+              }}</span>
             </td>
             <td>
               <input

@@ -444,14 +444,15 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
 
     const isMobileScan = window.innerWidth <= 600;
     const dialogRef = this.dialog.open(ScanItemDialogComponent, {
-      width: isMobileScan ? "100vw" : "96vw",
+      width: isMobileScan ? "100vw" : "90vw",
       maxWidth: isMobileScan ? "100vw" : "1400px",
       height: isMobileScan ? "100vh" : "92vh",
       maxHeight: isMobileScan ? "100dvh" : "92vh",
       panelClass: isMobileScan
         ? ["scan-dialog-panel", "scan-dialog-panel--mobile"]
-        : "scan-dialog-panel",
+        : ["scan-dialog-panel", "scan-dialog-panel--desktop"],
       autoFocus: false,
+      disableClose: true,
       data: {
         mappingConfig: this.activeMappingConfig,
         arrivalDate: this.orderInfo.arrivalDate,
@@ -481,98 +482,10 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           return;
         }
 
-        result.items.forEach((s: ScannedItem) => {
-          if (s.reelId) {
-            this.scannedReelIds.add(s.reelId);
-          }
-        });
-
         this.orderInfo.warehouse = result.warehouse;
         this.orderInfo.approver = result.approver;
-
-        const scannedItems: ScannedItem[] = result.items;
-        const matchedItems = scannedItems.filter((s) => !!s.poDetailId);
-        const orphanItems = scannedItems.filter((s) => !s.poDetailId);
-
-        this.dataSource.data = this.dataSource.data.map((row) => {
-          const relatedScans = matchedItems.filter(
-            (s) => s.poDetailId === row.id,
-          );
-          if (relatedScans.length === 0) {
-            return row;
-          }
-
-          const addedQty = relatedScans.reduce(
-            (sum, s) => sum + (Number(s.initialQuantity) || 0),
-            0,
-          );
-
-          const newLots: LotItem[] = relatedScans.map((s) => ({
-            vendorTemDetailId: s.dbId ?? 0,
-            lotNumber: s.lot,
-            reelId: s.reelId,
-            partNumber: s.partNumber,
-            vendor: s.vendor,
-            boxCount: 1,
-            totalQty: s.initialQuantity,
-            initialQuantity: s.initialQuantity,
-            userData1: s.userData1,
-            userData2: s.userData2,
-            userData3: s.userData3,
-            userData4: s.userData4,
-            userData5: s.userData5,
-            msl: s.msdLevel,
-            storageUnit: s.storageUnit,
-            manufacturingDate: s.manufacturingDate,
-            expirationDate: s.expirationDate,
-            sapCode: s.sapCode,
-            vendorQrCode: s.vendorQrCode,
-            status: s.status,
-            createdBy: s.createdBy,
-            createdAt: s.createdAt,
-            poDetailId: s.poDetailId,
-            importVendorTemTransactionsId: s.importVendorTemTransactionsId,
-            details: [],
-          }));
-          return {
-            ...row,
-            boxScan: row.boxScan + relatedScans.length,
-            totalQuantity: row.totalQuantity + addedQty,
-            lots: [...row.lots, ...newLots],
-          };
-        });
-
-        if (orphanItems.length) {
-          const orphanLots: LotItem[] = orphanItems.map((s) => ({
-            vendorTemDetailId: s.dbId ?? 0,
-            lotNumber: s.lot,
-            reelId: s.reelId,
-            partNumber: s.partNumber,
-            vendor: s.vendor,
-            boxCount: 1,
-            totalQty: s.initialQuantity,
-            initialQuantity: s.initialQuantity,
-            userData1: s.userData1,
-            userData2: s.userData2,
-            userData3: s.userData3,
-            userData4: s.userData4,
-            userData5: s.userData5,
-            msl: s.msdLevel,
-            storageUnit: s.storageUnit,
-            manufacturingDate: s.manufacturingDate,
-            expirationDate: s.expirationDate,
-            sapCode: s.sapCode,
-            vendorQrCode: s.vendorQrCode,
-            status: s.status,
-            createdBy: s.createdBy,
-            createdAt: s.createdAt,
-            poDetailId: s.poDetailId,
-            importVendorTemTransactionsId: s.importVendorTemTransactionsId,
-            details: [],
-          }));
-          this.draftLots = [...orphanLots, ...this.draftLots];
-        }
-
+        // Đồng bộ lại (idempotent) — phòng trường hợp đóng trước khi callback realtime kịp chạy.
+        this.syncLotsFromScannedItems(result.items ?? []);
         this.cdr.detectChanges();
       },
     );
@@ -2630,60 +2543,185 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /** Cập nhật lot trên đơn ngay sau khi lưu trong dialog tổng hợp (không cần F5). */
+  /** Cập nhật / thêm lot trên đơn sau scan-import (không cần F5). */
   private syncLotsFromScannedItems(items: ScannedItem[]): void {
     if (!items?.length) {
       return;
     }
-    const byDbId = new Map<number, ScannedItem>();
-    const byReelId = new Map<string, ScannedItem>();
-    items.forEach((item) => {
+
+    const toLot = (s: ScannedItem): LotItem => ({
+      vendorTemDetailId: s.dbId ?? 0,
+      lotNumber: s.lot,
+      reelId: s.reelId,
+      partNumber: s.partNumber,
+      vendor: s.vendor,
+      boxCount: 1,
+      totalQty: s.initialQuantity,
+      initialQuantity: s.initialQuantity,
+      userData1: s.userData1,
+      userData2: s.userData2,
+      userData3: s.userData3,
+      userData4: s.userData4,
+      userData5: s.userData5,
+      msl: s.msdLevel,
+      storageUnit: s.storageUnit,
+      locationOverride: s.locationOverride,
+      manufacturingDate: s.manufacturingDate,
+      expirationDate: s.expirationDate,
+      sapCode: s.sapCode,
+      vendorQrCode: s.vendorQrCode,
+      status: s.status,
+      createdBy: s.createdBy,
+      createdAt: s.createdAt,
+      poDetailId: s.poDetailId,
+      importVendorTemTransactionsId: s.importVendorTemTransactionsId,
+      details: [],
+    });
+
+    const patchLotFields = (lot: LotItem, match: ScannedItem): LotItem => ({
+      ...lot,
+      vendorTemDetailId: match.dbId ?? lot.vendorTemDetailId,
+      lotNumber: match.lot,
+      reelId: match.reelId,
+      partNumber: match.partNumber,
+      vendor: match.vendor,
+      initialQuantity: match.initialQuantity,
+      totalQty: match.initialQuantity,
+      userData1: match.userData1,
+      userData2: match.userData2,
+      userData3: match.userData3,
+      userData4: match.userData4,
+      userData5: match.userData5,
+      msl: match.msdLevel,
+      storageUnit: match.storageUnit,
+      locationOverride: match.locationOverride,
+      expirationDate: match.expirationDate,
+      manufacturingDate: match.manufacturingDate,
+      sapCode: match.sapCode,
+      vendorQrCode: match.vendorQrCode,
+      status: match.status,
+      poDetailId: match.poDetailId ?? lot.poDetailId,
+    });
+
+    const findExistingLot = (
+      lots: LotItem[],
+      item: ScannedItem,
+    ): LotItem | undefined => {
       if (item.dbId) {
-        byDbId.set(item.dbId, item);
+        const byId = lots.find((l) => l.vendorTemDetailId === item.dbId);
+        if (byId) {
+          return byId;
+        }
       }
       const reelId = (item.reelId ?? "").trim();
+      if (!reelId) {
+        return undefined;
+      }
+      return lots.find((l) => (l.reelId ?? "").trim() === reelId);
+    };
+
+    const resolveParentId = (item: ScannedItem): number | null => {
+      const rawId = Number(item.poDetailId);
+      if (Number.isFinite(rawId) && rawId > 0) {
+        if (this.dataSource.data.some((p) => Number(p.id) === rawId)) {
+          return rawId;
+        }
+      }
+      const part = (item.partNumber ?? "").trim().toLowerCase();
+      if (part) {
+        const byPart = this.dataSource.data.find(
+          (p) => (p.partNumber ?? "").trim().toLowerCase() === part,
+        );
+        if (byPart) {
+          return byPart.id;
+        }
+      }
+      const sap =
+        (item.sapCode ?? "").trim().toLowerCase().replace(/^0+/, "") || "";
+      if (sap) {
+        const bySap = this.dataSource.data.find((p) => {
+          const ps =
+            (p.sapCode ?? "").trim().toLowerCase().replace(/^0+/, "") || "";
+          return !!ps && ps === sap;
+        });
+        if (bySap) {
+          return bySap.id;
+        }
+      }
+      return null;
+    };
+
+    const parents = this.dataSource.data.map((row) => ({
+      ...row,
+      lots: [...(row.lots ?? [])],
+    }));
+    const draftLots = [...(this.draftLots ?? [])];
+    const orphanToAdd: LotItem[] = [];
+
+    items.forEach((item) => {
+      const reelId = (item.reelId ?? "").trim();
       if (reelId) {
-        byReelId.set(reelId, item);
+        this.scannedReelIds.add(reelId);
+      }
+
+      const parentId = resolveParentId(item);
+      if (parentId != null) {
+        const parent = parents.find((p) => Number(p.id) === Number(parentId));
+        if (!parent) {
+          return;
+        }
+        const existing = findExistingLot(parent.lots, item);
+        if (existing) {
+          Object.assign(existing, patchLotFields(existing, item));
+          existing.poDetailId = parentId;
+        } else {
+          // Có thể đang nằm trong draft — gỡ khỏi draft trước khi thêm vào parent.
+          const draftIdx = draftLots.findIndex((l) => {
+            if (item.dbId && l.vendorTemDetailId === item.dbId) {
+              return true;
+            }
+            return !!reelId && (l.reelId ?? "").trim() === reelId;
+          });
+          if (draftIdx >= 0) {
+            draftLots.splice(draftIdx, 1);
+          }
+          const lot = toLot({ ...item, poDetailId: parentId });
+          parent.lots.push(lot);
+        }
+        return;
+      }
+
+      // Không thuộc dòng PO nào → bỏ qua (không đưa vào draft / tổng hợp).
+      if (parents.length > 0) {
+        if (reelId) {
+          this.scannedReelIds.delete(reelId);
+        }
+        return;
+      }
+
+      // Không có PO trên đơn: giữ draft
+      const existingDraft = findExistingLot(draftLots, item);
+      if (existingDraft) {
+        Object.assign(existingDraft, patchLotFields(existingDraft, item));
+      } else if (!findExistingLot(orphanToAdd, item)) {
+        orphanToAdd.push(toLot(item));
       }
     });
 
-    const patchLot = (lot: LotItem): LotItem => {
-      const matchById = lot.vendorTemDetailId
-        ? byDbId.get(lot.vendorTemDetailId)
-        : undefined;
-      const match = matchById ?? byReelId.get((lot.reelId ?? "").trim());
-      if (!match) {
-        return lot;
-      }
+    this.dataSource.data = parents.map((row) => {
+      const lots = row.lots ?? [];
+      const totalQuantity = lots.reduce(
+        (sum, l) => sum + (Number(l.initialQuantity) || 0),
+        0,
+      );
       return {
-        ...lot,
-        lotNumber: match.lot,
-        reelId: match.reelId,
-        partNumber: match.partNumber,
-        vendor: match.vendor,
-        initialQuantity: match.initialQuantity,
-        totalQty: match.initialQuantity,
-        userData1: match.userData1,
-        userData2: match.userData2,
-        userData3: match.userData3,
-        userData4: match.userData4,
-        userData5: match.userData5,
-        msl: match.msdLevel,
-        storageUnit: match.storageUnit,
-        locationOverride: match.locationOverride,
-        expirationDate: match.expirationDate,
-        manufacturingDate: match.manufacturingDate,
-        sapCode: match.sapCode,
-        vendorQrCode: match.vendorQrCode,
-        status: match.status,
+        ...row,
+        lots,
+        boxScan: lots.length,
+        totalQuantity,
       };
-    };
-
-    this.dataSource.data = this.dataSource.data.map((row) => ({
-      ...row,
-      lots: (row.lots ?? []).map(patchLot),
-    }));
-    this.draftLots = (this.draftLots ?? []).map(patchLot);
+    });
+    this.draftLots = [...orphanToAdd, ...draftLots];
     this.dataSource.data = [...this.dataSource.data];
     this.cdr.markForCheck();
   }

@@ -442,7 +442,11 @@ export function parseMauImportReelFromMatrix(
   const colContract = findCol("contract", "số hđ", "so hd");
   const colMfg = findCol("mfg", "mfgdate");
   const colLot = findCol("số lô", "so lo", "lot");
-  const colSap = findCol("mã sap", "ma sap", "sapcode", "sap");
+  // Ưu tiên khớp đúng tên cột SAP — tránh alias "sap" khớp nhầm.
+  let colSap = findColExact("mã sap", "ma sap", "sapcode", "sap");
+  if (colSap < 0) {
+    colSap = findCol("mã sap", "ma sap", "sapcode");
+  }
   const colQtyTem = findCol("sl tem", "số lượng tem", "quantity");
   const colItem = findCol("tên sp", "ten sp", "itemname", "item");
   const colPo = findColExact("po") >= 0 ? findColExact("po") : findCol("po");
