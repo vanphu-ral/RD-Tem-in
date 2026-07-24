@@ -89,8 +89,8 @@ public class VendorTemDetail implements Serializable {
     @Column(name = "shelf_time", length = 20)
     private String shelfTime;
 
-    @Size(max = 20)
-    @Column(name = "sp_material_name", length = 20)
+    @Size(max = 255)
+    @Column(name = "sp_material_name", length = 255)
     private String spMaterialName;
 
     @Size(max = 20)

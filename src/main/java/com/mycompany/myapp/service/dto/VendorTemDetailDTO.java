@@ -62,7 +62,7 @@ public class VendorTemDetailDTO implements Serializable {
     @Size(max = 20)
     private String shelfTime;
 
-    @Size(max = 20)
+    @Size(max = 255)
     private String spMaterialName;
 
     @Size(max = 20)
