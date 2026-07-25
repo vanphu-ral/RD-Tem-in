@@ -151,6 +151,13 @@
             hidden
             (change)="onVendorReelImportFileSelected($event)"
           />
+          <input
+            #listContImportInput
+            type="file"
+            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            hidden
+            (change)="onListContImportFileSelected($event)"
+          />
           <button
             mat-stroked-button
             type="button"
@@ -172,6 +179,19 @@
             >
               <mat-icon>upload_file</mat-icon>
               <span>Import ReelID</span>
+            </button>
+            <button
+              mat-menu-item
+              type="button"
+              (click)="openListContImportFilePicker(listContImportInput)"
+              [disabled]="isParsingListContImport"
+            >
+              <mat-icon>upload_file</mat-icon>
+              <span>{{
+                isParsingListContImport
+                  ? "Đang import List Cont..."
+                  : "Import List Cont"
+              }}</span>
             </button>
             <button
               mat-menu-item
@@ -729,6 +749,7 @@
                 <tr
                   class="lot-row"
                   [class.lot-row-locked]="!isLotEditable(lot)"
+                  [class.lot-row-unsaved]="isUnsavedLot(lot)"
                   *ngFor="let lot of row.lots; trackBy: trackByLotKey"
                 >
                   <td class="cell-stt"></td>
@@ -746,6 +767,12 @@
                         >subdirectory_arrow_right</mat-icon
                       >
                       <span *ngIf="lot.lotLabel">{{ lot.lotLabel }}</span>
+                      <span
+                        class="lot-unsaved-badge"
+                        *ngIf="isUnsavedLot(lot)"
+                        title="Lô chưa lưu"
+                        >Mới</span
+                      >
                     </div>
                   </td>
                   <!-- Tạm ẩn cột trạng thái đối chiếu PO (chưa lưu DB)

@@ -586,6 +586,30 @@
         cursor: not-allowed;
       }
     }
+
+    &.lot-row-unsaved:not(.lot-row-locked) {
+      background: #ecfdf5;
+      box-shadow: inset 3px 0 0 #2c91c4;
+
+      td {
+        background: #a2dae2;
+      }
+    }
+  }
+
+  .lot-unsaved-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #047857;
+    background: #a7f3d0;
+    line-height: 1.4;
+    white-space: nowrap;
   }
 
   .td-input {

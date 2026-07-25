@@ -89,6 +89,10 @@ import {
   reconcilePoSelectPartsFromImport,
 } from "./part-number-pl-import.util";
 import {
+  ListContImportGroup,
+  parseListContImportFile,
+} from "./list-cont-import.util";
+import {
   parseVendorReelLogContent,
   toVendorImportedReelEntry,
   VendorImportedReelEntry,
@@ -399,6 +403,7 @@ export class ReceivingSuppliesComponent
   isParsingVendorReelImport = false;
   vendorReelImportRows: VendorReelLogImportRow[] = [];
   vendorReelImportErrors: string[] = [];
+  isParsingListContImport = false;
 
   isGeneratingVendorTem = false;
 
@@ -1852,6 +1857,66 @@ export class ReceivingSuppliesComponent
     input.click();
   }
 
+  openListContImportFilePicker(input: HTMLInputElement): void {
+    input.click();
+  }
+
+  onListContImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) {
+      return;
+    }
+    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+      this.showSnackbar(
+        "Vui lòng chọn file Excel (.xlsx / .xls) List Cont.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+
+    this.isParsingListContImport = true;
+    this.cdr.markForCheck();
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const buffer = reader.result as ArrayBuffer;
+        const parsed = parseListContImportFile(buffer);
+        if (!parsed.groups.length) {
+          this.isParsingListContImport = false;
+          this.showSnackbar(
+            parsed.errors[0] ??
+              "File không có mã RDCode hợp lệ kèm Số pallet cần / Số vật tư / pallet.",
+            "Đóng",
+            5000,
+            "warning",
+          );
+          this.cdr.markForCheck();
+          return;
+        }
+        this.applyListContImportGroups(parsed.groups, parsed.errors);
+      } catch {
+        this.isParsingListContImport = false;
+        this.showSnackbar(
+          "Không đọc được file Import List Cont.",
+          "Đóng",
+          4000,
+          "error",
+        );
+        this.cdr.markForCheck();
+      }
+    };
+    reader.onerror = () => {
+      this.isParsingListContImport = false;
+      this.showSnackbar("Đọc file thất bại.", "Đóng", 4000, "error");
+      this.cdr.markForCheck();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
   onVendorReelImportFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -2914,7 +2979,10 @@ export class ReceivingSuppliesComponent
     }
     this.cdr.markForCheck();
   }
-
+  /** Lô chưa persist DB (chưa có productId) — highlight trên bảng. */
+  isUnsavedLot(lot: ReceivingLotRow): boolean {
+    return lot.productId == null;
+  }
   private parseOitmPartNumbersFromRaw(
     value: string | null | undefined,
   ): string[] {
@@ -3306,11 +3374,6 @@ export class ReceivingSuppliesComponent
         ? "02"
         : "01";
     return `${this.formatYyMmDd(today)}${this.formatYyMmDd(arrival)}${suffix}`;
-  }
-
-  /** Lô chưa persist DB (chưa có productId). */
-  private isUnsavedLot(lot: ReceivingLotRow): boolean {
-    return lot.productId == null;
   }
 
   /** Đơn mới hoặc lô chưa lưu — bulk chỉ áp dụng cho đối tượng này khi sửa đơn đã lưu. */
@@ -3781,6 +3844,226 @@ export class ReceivingSuppliesComponent
     this.bulkSapCodesInput = "";
     this.refreshTableView();
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Import List Cont: không bắt buộc PO.
+   * - Mã chưa có trên bảng → thêm SAP + điền SỐ TEM / SỐ LƯỢNG.
+   * - Mã đã có → thêm lô mới trên mã đó và điền SỐ TEM / SỐ LƯỢNG.
+   */
+  private applyListContImportGroups(
+    groups: ListContImportGroup[],
+    parseWarnings: string[] = [],
+  ): void {
+    const existingGroups = groups.filter((g) =>
+      this.isSapCodeOnTable(g.sapCode),
+    );
+    const newGroups = groups.filter((g) => !this.isSapCodeOnTable(g.sapCode));
+
+    const finishWithMessage = (
+      addedSap: number,
+      updatedExisting: number,
+      missing: string[],
+    ): void => {
+      this.isParsingListContImport = false;
+      this.applyTableFilter();
+      this.syncSelectedSapCodesFromTable();
+      this.refreshTableView();
+
+      const parts: string[] = [];
+      if (addedSap > 0) {
+        parts.push(`Đã thêm ${addedSap} mã mới`);
+      }
+      if (updatedExisting > 0) {
+        parts.push(`đã bổ sung lô cho ${updatedExisting} mã đã có trên bảng`);
+      }
+      if (missing.length) {
+        parts.push(
+          `${missing.length} mã không có trong hệ thống: ${missing.join(", ")}`,
+        );
+      }
+      if (parseWarnings.length) {
+        parts.push(parseWarnings[0]);
+      }
+      if (!parts.length) {
+        parts.push("Không có thay đổi từ file List Cont.");
+      }
+
+      this.showSnackbar(
+        parts.join(" · "),
+        "Đóng",
+        missing.length ? 7000 : 5000,
+        missing.length ? "warning" : "success",
+      );
+      this.cdr.markForCheck();
+    };
+
+    // Mã đã có: thêm lô mới ngay (không cần gọi OITM).
+    let updatedExisting = 0;
+    existingGroups.forEach((group) => {
+      const parent = this.dataSource.data.find(
+        (row) =>
+          this.normalizeSapCode(row.sapCode) ===
+          this.normalizeSapCode(group.sapCode),
+      );
+      if (!parent) {
+        return;
+      }
+      const before = parent.lots.length;
+      this.appendListContLotsToParent(parent, group);
+      if (parent.lots.length > before) {
+        updatedExisting += 1;
+      }
+    });
+
+    if (!newGroups.length) {
+      finishWithMessage(0, updatedExisting, []);
+      return;
+    }
+
+    forkJoin(
+      newGroups.map((group) =>
+        this.receivingService.getSapOitmBySapCode(group.sapCode).pipe(
+          map((data) => ({ group, data })),
+          catchError(() => of({ group, data: null as SapOitmDto | null })),
+        ),
+      ),
+    )
+      .pipe(take(1))
+      .subscribe({
+        next: (results) => {
+          const missing = results
+            .filter((r) => !r.data)
+            .map((r) => r.group.sapCode);
+          const valid = results.filter(
+            (r): r is { group: ListContImportGroup; data: SapOitmDto } =>
+              Boolean(r.data),
+          );
+
+          let addedSap = 0;
+          valid.forEach(({ group, data }) => {
+            if (this.isSapCodeOnTable(group.sapCode)) {
+              // Race: đã có trong lúc chờ API → thêm lô như mã existing.
+              const parent = this.dataSource.data.find(
+                (row) =>
+                  this.normalizeSapCode(row.sapCode) ===
+                  this.normalizeSapCode(group.sapCode),
+              );
+              if (parent) {
+                this.appendListContLotsToParent(parent, group);
+                updatedExisting += 1;
+              }
+              return;
+            }
+            this.appendSapRowToTable(group.sapCode, data);
+            const parent = this.dataSource.data.find(
+              (row) =>
+                this.normalizeSapCode(row.sapCode) ===
+                this.normalizeSapCode(group.sapCode),
+            );
+            if (parent) {
+              if (group.itemName && !(parent.itemName ?? "").trim()) {
+                parent.itemName = group.itemName;
+              }
+              // Mã mới: điền vào lô mặc định + thêm lô nếu file có nhiều dòng.
+              this.fillListContLotsOnNewParent(parent, group);
+              addedSap += 1;
+            }
+          });
+
+          finishWithMessage(addedSap, updatedExisting, missing);
+        },
+        error: () => {
+          this.isParsingListContImport = false;
+          this.showSnackbar(
+            "Import List Cont thất bại khi kiểm tra mã SAP.",
+            "Đóng",
+            5000,
+            "error",
+          );
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /** Mã đã có trên bảng: luôn thêm lô mới theo từng dòng file. */
+  private appendListContLotsToParent(
+    parent: ReceivingMaterialRow,
+    group: ListContImportGroup,
+  ): void {
+    const lines = group.lines.filter(
+      (line) => line.palletCount > 0 || line.qtyPerPallet > 0,
+    );
+    if (!lines.length) {
+      return;
+    }
+
+    lines.forEach((line, index) => {
+      const lot = this.buildDefaultLotRow(
+        parent,
+        parent.location,
+        `${parent.id}-listcont-${Date.now()}-${index}`,
+        "",
+        null,
+      );
+      lot.temQuantity = line.palletCount > 0 ? line.palletCount : 1;
+      lot.quantity = line.qtyPerPallet > 0 ? line.qtyPerPallet : 0;
+      parent.lots = [...parent.lots, lot];
+    });
+
+    parent.expanded = true;
+    parent.lotNumber = `${parent.lots.length} lô`;
+    this.syncParentQuantityFromLots(parent);
+    this.markParentReconcilePending(parent);
+  }
+
+  /** Mã mới: điền lô mặc định + thêm lô nếu file có nhiều dòng cùng RDCode. */
+  private fillListContLotsOnNewParent(
+    parent: ReceivingMaterialRow,
+    group: ListContImportGroup,
+  ): void {
+    const lines = group.lines.filter(
+      (line) => line.palletCount > 0 || line.qtyPerPallet > 0,
+    );
+    if (!lines.length) {
+      return;
+    }
+
+    const [first, ...rest] = lines;
+    let firstLot = parent.lots[0];
+    if (!firstLot) {
+      firstLot = this.buildDefaultLotRow(
+        parent,
+        parent.location,
+        `${parent.id}-listcont-0-${Date.now()}`,
+        "",
+        null,
+      );
+      parent.lots = [firstLot];
+    }
+    if (this.isLotEditable(firstLot)) {
+      firstLot.temQuantity = first.palletCount > 0 ? first.palletCount : 1;
+      firstLot.quantity = first.qtyPerPallet > 0 ? first.qtyPerPallet : 0;
+    }
+
+    rest.forEach((line, index) => {
+      const lot = this.buildDefaultLotRow(
+        parent,
+        parent.location,
+        `${parent.id}-listcont-${index + 1}-${Date.now()}`,
+        "",
+        null,
+      );
+      lot.temQuantity = line.palletCount > 0 ? line.palletCount : 1;
+      lot.quantity = line.qtyPerPallet > 0 ? line.qtyPerPallet : 0;
+      parent.lots = [...parent.lots, lot];
+    });
+
+    parent.lots = [...parent.lots];
+    parent.expanded = true;
+    parent.lotNumber = `${parent.lots.length} lô`;
+    this.syncParentQuantityFromLots(parent);
+    this.markParentReconcilePending(parent);
   }
 
   private isSapCodeOnTable(sapCode: string): boolean {
