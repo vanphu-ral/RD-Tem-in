@@ -1434,7 +1434,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         userData4: String(lot.userData4 ?? "").trim(),
         userData5: String(lot.userData5 ?? "").trim(),
         initialQuantity: Number(lot.initialQuantity) || null,
-        storageUnit: String(lot.storageUnit ?? "").trim(),
+        // PanaCIM StorageUnit = Vị trí (locationOverride), không phải mã kho.
+        storageUnit: String(lot.locationOverride ?? "").trim(),
         expirationDate: lot.expirationDate ?? null,
         manufacturingDate: lot.manufacturingDate ?? null,
         sapCode: String(lot.sapCode || parent.sapCode || "").trim(),
