@@ -14,7 +14,10 @@ import { HttpClient } from "@angular/common/http";
 import { MatTableDataSource } from "@angular/material/table";
 import {
   catchError,
+  concatMap,
   forkJoin,
+  from,
+  last,
   map,
   Observable,
   of,
@@ -2516,7 +2519,14 @@ export class ReceivingSuppliesComponent
         this.poReconcileResult = result;
         this.poReconcilePassed = result.matched;
         this.poReconcilePartialPassed = Boolean(result.partialMatched);
-        this.matchedSapCodesForApply = result.matchedSapCodes ?? [];
+        // Chỉ lấy mã thực sự passed từ rowResults — nguồn đúng để áp dụng.
+        const passedFromRows = (result.rowResults ?? [])
+          .filter((r) => r.passed === true)
+          .map((r) => r.sapCode.trim())
+          .filter(Boolean);
+        this.matchedSapCodesForApply = passedFromRows.length
+          ? passedFromRows
+          : (result.matchedSapCodes ?? []).filter(Boolean);
         if (this.matchedSapCodesForApply.length) {
           this.verifiedPoNumber = po;
         }
@@ -2540,18 +2550,24 @@ export class ReceivingSuppliesComponent
       return;
     }
     const po = this.verifiedPoNumber.trim();
-    const matchedSet = new Set(this.matchedSapCodesForApply);
-    const sourceRequestId = this.editingRequestId;
-    const isPartialApply = this.dataSource.data.some(
-      (row) =>
-        row.sapCode.trim() &&
-        row.lots.length > 0 &&
-        !matchedSet.has(row.sapCode.trim()),
+    const matchedSet = this.toNormalizedSapCodeSet(
+      this.matchedSapCodesForApply,
     );
+    const sourceRequestId = this.editingRequestId;
+    const isPartialApply =
+      this.poReconcilePartialPassed ||
+      this.hasFailedReconcileMaterials() ||
+      this.dataSource.data.some(
+        (row) =>
+          row.sapCode.trim() &&
+          row.lots.length > 0 &&
+          !this.isSapCodeInSet(row.sapCode, matchedSet),
+      );
+    // Chỉ gán PO thật cho mã đã pass — mã chưa pass giữ nguyên trên đơn nháp.
     this.applyPoToMatchedChildLots(po, matchedSet);
 
     const appliedLots = this.dataSource.data
-      .filter((r) => matchedSet.has(r.sapCode.trim()))
+      .filter((r) => this.isSapCodeInSet(r.sapCode, matchedSet))
       .reduce((sum, r) => sum + r.lots.length, 0);
 
     this.markReconcilePassedForSapCodes(matchedSet);
@@ -2575,6 +2591,7 @@ export class ReceivingSuppliesComponent
         po,
         matchedSet,
         sourceRequestId,
+        { isPartialApply },
       ).subscribe({
         next: (targetRequestId) => {
           const finalizeRelocate = (): void => {
@@ -2589,7 +2606,7 @@ export class ReceivingSuppliesComponent
                 ? ` Vật tư chưa pass vẫn ở đơn PO nháp #${sourceRequestId}.`
                 : "";
             this.showSnackbar(
-              `Đã áp dụng PO ${po} cho ${this.matchedSapCodesForApply.length} mã pass (${appliedLots} dòng lô) và chuyển sang đơn #${targetRequestId}.${partialNote}`,
+              `Đã áp dụng PO ${po} cho ${matchedSet.size} mã pass (${appliedLots} dòng lô) và chuyển sang đơn #${targetRequestId}.${partialNote}`,
               "Đóng",
               6000,
               "success",
@@ -4557,7 +4574,7 @@ export class ReceivingSuppliesComponent
   ): void {
     this.dataSource.data = this.dataSource.data.map((row) => {
       const sap = row.sapCode.trim();
-      if (!sap || !matchedSapCodes.has(sap)) {
+      if (!sap || !this.isSapCodeInSet(sap, matchedSapCodes)) {
         return row;
       }
       return {
@@ -6859,7 +6876,7 @@ export class ReceivingSuppliesComponent
       return;
     }
     this.dataSource.data = this.dataSource.data.map((row) =>
-      sapCodes.has(row.sapCode)
+      this.isSapCodeInSet(row.sapCode, sapCodes)
         ? { ...row, reconcileStatus: "passed" as ReconcileStatus }
         : row,
     );
@@ -7601,12 +7618,24 @@ export class ReceivingSuppliesComponent
     this.refreshTableView();
   }
 
-  /** Sau đối chiếu PO: chuyển vật tư pass sang đơn có sẵn hoặc tạo đơn mới. */
+  /** Sau đối chiếu PO: chỉ chuyển vật tư đã pass sang đơn PO đích. */
   private relocateReconciledMaterialsToTargetOrder(
     po: string,
     matchedSapCodes: Set<string>,
     sourceRequestId?: number | null,
+    options?: { isPartialApply?: boolean },
   ): Observable<number> {
+    const isPartialApply =
+      options?.isPartialApply === true ||
+      this.hasFailedReconcileMaterials() ||
+      !this.areAllTableMaterialsMatched(matchedSapCodes);
+
+    // Snapshot chỉ các lô thuộc mã đã pass — không đụng mã fail.
+    const productUpdates = this.collectMatchedProductMoveUpdates(
+      matchedSapCodes,
+      po,
+    );
+
     return this.findExistingRequestByPo(po, sourceRequestId).pipe(
       switchMap((existing) => {
         if (existing?.id) {
@@ -7619,19 +7648,106 @@ export class ReceivingSuppliesComponent
                 ),
             );
           }
-          return this.moveMatchedProductsToRequest(
+          return this.moveProductUpdatesToRequest(
             targetId,
+            productUpdates,
             matchedSapCodes,
             po,
             sourceRequestId,
           ).pipe(map(() => targetId));
         }
+
+        // Chỉ khi PASS HẾT mới đổi PO ngay trên đơn nháp.
+        // Partial → luôn tách đơn mới / chỉ chuyển mã pass, mã fail ở lại nháp.
+        if (
+          sourceRequestId &&
+          !isPartialApply &&
+          this.areAllTableMaterialsMatched(matchedSapCodes)
+        ) {
+          return this.convertCurrentDraftRequestToRealPo(
+            sourceRequestId,
+            po,
+            productUpdates,
+            matchedSapCodes,
+          );
+        }
+
         return this.createOrderForReconciledPo(
           po,
           matchedSapCodes,
+          productUpdates,
           sourceRequestId,
         );
       }),
+    );
+  }
+
+  /** Có ít nhất 1 mã trên bảng bị đối chiếu fail. */
+  private hasFailedReconcileMaterials(): boolean {
+    const rows = this.poReconcileResult?.rowResults ?? [];
+    if (rows.some((r) => r.passed === false)) {
+      return true;
+    }
+    return Boolean(this.poReconcilePartialPassed);
+  }
+
+  /** true khi mọi hàng cha có lô đều nằm trong tập mã đã pass. */
+  private areAllTableMaterialsMatched(matchedSapCodes: Set<string>): boolean {
+    const parents = this.dataSource.data.filter(
+      (row) => row.sapCode.trim() && row.lots.length > 0,
+    );
+    if (!parents.length || !matchedSapCodes.size) {
+      return false;
+    }
+    return parents.every((row) =>
+      this.isSapCodeInSet(row.sapCode, matchedSapCodes),
+    );
+  }
+
+  /** Đổi đơn nháp hiện tại thành đơn PO thật — không tạo product mới, không mất tem. */
+  private convertCurrentDraftRequestToRealPo(
+    requestId: number,
+    po: string,
+    productUpdates: Array<{ productId: number; item: ExcelImportData }>,
+    matchedSapCodes: Set<string>,
+  ): Observable<number> {
+    const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
+    const sync$ = productUpdates.length
+      ? this.syncProductUpdatesSequential(requestId, productUpdates)
+      : of(undefined);
+
+    return sync$.pipe(
+      switchMap(() =>
+        this.createUnsavedMatchedProductsOnRequest(
+          requestId,
+          matchedSapCodes,
+          po,
+        ),
+      ),
+      switchMap(() =>
+        this.generateTemInService
+          .updateRequest(requestId, {
+            vendor: this.vendorCode,
+            vendorName: this.vendorName,
+            userData5: po,
+            status: "Bản nháp",
+            WhsCode: orderWhsCode || undefined,
+          })
+          .pipe(
+            map((res) => {
+              if (!res.success) {
+                throw new Error(
+                  res.message ??
+                    `Không cập nhật được header đơn #${requestId}.`,
+                );
+              }
+              return requestId;
+            }),
+          ),
+      ),
+      switchMap((id) =>
+        this.refreshRequestProductCountsFromDb(id).pipe(map(() => id)),
+      ),
     );
   }
 
@@ -7666,46 +7782,156 @@ export class ReceivingSuppliesComponent
       );
   }
 
-  private moveMatchedProductsToRequest(
-    targetRequestId: number,
+  /**
+   * Thu thập TẤT CẢ lô đã lưu (có productId) thuộc mã đã pass — dùng snapshot trước khi gọi API.
+   */
+  private collectMatchedProductMoveUpdates(
     matchedSapCodes: Set<string>,
     po: string,
-    sourceRequestId?: number | null,
-  ): Observable<void> {
+  ): Array<{ productId: number; item: ExcelImportData }> {
     const updates: Array<{ productId: number; item: ExcelImportData }> = [];
+    const seenIds = new Set<number>();
     for (const parent of this.dataSource.data) {
-      const sap = parent.sapCode.trim();
-      if (!sap || !matchedSapCodes.has(sap)) {
+      if (!this.isSapCodeInSet(parent.sapCode, matchedSapCodes)) {
         continue;
       }
       for (const lot of parent.lots) {
         if (!lot.productId) {
           continue;
         }
+        const productId = Number(lot.productId);
+        if (
+          Number.isNaN(productId) ||
+          productId <= 0 ||
+          seenIds.has(productId)
+        ) {
+          continue;
+        }
+        seenIds.add(productId);
         const item = this.buildExcelItemForLot(parent, lot);
         item.userData5 = po;
-        updates.push({ productId: lot.productId, item });
+        updates.push({ productId, item });
       }
     }
+    return updates;
+  }
+
+  /** Cập nhật product tuần tự — tránh race khi đổi requestCreateTemId hàng loạt. */
+  private syncProductUpdatesSequential(
+    targetRequestId: number,
+    updates: Array<{ productId: number; item: ExcelImportData }>,
+  ): Observable<void> {
     if (!updates.length) {
+      return of(undefined);
+    }
+    return from(updates).pipe(
+      concatMap(({ productId, item }) =>
+        this.receivingService.syncSavedProductsForGenerate(targetRequestId, [
+          { productId, item },
+        ]),
+      ),
+      last(),
+      map(() => undefined),
+    );
+  }
+
+  private moveProductUpdatesToRequest(
+    targetRequestId: number,
+    productUpdates: Array<{ productId: number; item: ExcelImportData }>,
+    matchedSapCodes: Set<string>,
+    po: string,
+    sourceRequestId?: number | null,
+  ): Observable<void> {
+    const unsavedCount = this.countUnsavedMatchedLots(matchedSapCodes);
+    if (!productUpdates.length && !unsavedCount) {
       return throwError(
-        () => new Error("Không có sản phẩm đã lưu để chuyển sang đơn PO đích."),
+        () =>
+          new Error(
+            "Không có sản phẩm đã lưu để chuyển sang đơn PO đích. Vui lòng lưu đơn trước.",
+          ),
       );
     }
-    const effectiveSourceId = sourceRequestId ?? this.editingRequestId;
-    return this.receivingService
-      .syncSavedProductsForGenerate(targetRequestId, updates)
-      .pipe(
+
+    if (!productUpdates.length) {
+      return this.createUnsavedMatchedProductsOnRequest(
+        targetRequestId,
+        matchedSapCodes,
+        po,
+      ).pipe(
         switchMap(() => {
           const requestIds = [targetRequestId];
-          if (effectiveSourceId && effectiveSourceId !== targetRequestId) {
-            requestIds.push(effectiveSourceId);
+          if (sourceRequestId && sourceRequestId !== targetRequestId) {
+            requestIds.push(sourceRequestId);
           }
           return forkJoin(
             requestIds.map((id) => this.refreshRequestProductCountsFromDb(id)),
           ).pipe(map(() => undefined));
         }),
       );
+    }
+
+    const expectedIds = new Set(productUpdates.map((u) => u.productId));
+    const effectiveSourceId = sourceRequestId ?? this.editingRequestId;
+
+    return this.syncProductUpdatesSequential(
+      targetRequestId,
+      productUpdates,
+    ).pipe(
+      switchMap(() =>
+        this.createUnsavedMatchedProductsOnRequest(
+          targetRequestId,
+          matchedSapCodes,
+          po,
+        ),
+      ),
+      switchMap(() =>
+        this.receivingService.getProductsByRequestId(targetRequestId).pipe(
+          take(1),
+          switchMap((onTarget) => {
+            const onTargetIds = new Set(
+              onTarget.map((p) => Number(p.id)).filter((id) => id > 0),
+            );
+            const missing = [...expectedIds].filter(
+              (id) => !onTargetIds.has(id),
+            );
+            if (missing.length) {
+              return throwError(
+                () =>
+                  new Error(
+                    `Chỉ chuyển được ${expectedIds.size - missing.length}/${expectedIds.size} lô sang đơn #${targetRequestId}. Thiếu product: ${missing.join(", ")}.`,
+                  ),
+              );
+            }
+            return of(undefined);
+          }),
+        ),
+      ),
+      switchMap(() => {
+        const requestIds = [targetRequestId];
+        if (effectiveSourceId && effectiveSourceId !== targetRequestId) {
+          requestIds.push(effectiveSourceId);
+        }
+        return forkJoin(
+          requestIds.map((id) => this.refreshRequestProductCountsFromDb(id)),
+        ).pipe(map(() => undefined));
+      }),
+    );
+  }
+
+  /** @deprecated Dùng moveProductUpdatesToRequest với snapshot. */
+  private moveMatchedProductsToRequest(
+    targetRequestId: number,
+    matchedSapCodes: Set<string>,
+    po: string,
+    sourceRequestId?: number | null,
+  ): Observable<void> {
+    return this.moveProductUpdatesToRequest(
+      targetRequestId,
+      this.collectMatchedProductMoveUpdates(matchedSapCodes, po),
+      matchedSapCodes,
+      po,
+      sourceRequestId,
+    );
   }
 
   /** Giữ header PO nháp cho đơn nguồn sau khi tách vật tư pass sang đơn PO thật. */
@@ -7764,6 +7990,7 @@ export class ReceivingSuppliesComponent
   private createOrderForReconciledPo(
     po: string,
     matchedSapCodes: Set<string>,
+    productUpdates: Array<{ productId: number; item: ExcelImportData }>,
     sourceRequestId?: number | null,
   ): Observable<number> {
     const products = this.buildMatchedProductsForPoApply(matchedSapCodes, po);
@@ -7772,7 +7999,6 @@ export class ReceivingSuppliesComponent
         () => new Error("Không có vật tư đối chiếu để tạo đơn mới."),
       );
     }
-    const oldProductIds = this.collectMatchedProductIds(matchedSapCodes);
     const vendor = this.vendorCode.trim();
     const vendorName = this.vendorName.trim();
     const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
@@ -7783,7 +8009,7 @@ export class ReceivingSuppliesComponent
     );
 
     // Chưa có product đã lưu → tạo đơn + product mới bình thường (chưa có tem để giữ).
-    if (!oldProductIds.length) {
+    if (!productUpdates.length) {
       return this.receivingService
         .createRequestAndProducts(
           vendor,
@@ -7808,7 +8034,7 @@ export class ReceivingSuppliesComponent
     }
 
     // Đã có product (có thể đã tạo tem): tạo đơn shell bằng 1 product tạm,
-    // chuyển product cũ (giữ nguyên id + InfoTemDetail) sang đơn mới,
+    // chuyển TOÀN BỘ product cũ (giữ nguyên id + InfoTemDetail) sang đơn mới,
     // rồi xóa product tạm — không xóa product cũ (tránh mất tem).
     const seedProducts = [products[0]];
     return this.receivingService
@@ -7825,25 +8051,25 @@ export class ReceivingSuppliesComponent
           const seedProductIds = (createdProducts ?? [])
             .map((p) => Number(p.id))
             .filter((id) => !Number.isNaN(id) && id > 0);
-          return this.moveMatchedProductsToRequest(
+          const movedIdSet = new Set(productUpdates.map((u) => u.productId));
+          // Không bao giờ xóa product đang chuyển (trùng id cực hiếm nhưng an toàn).
+          const seedsToDelete = seedProductIds.filter(
+            (id) => !movedIdSet.has(id),
+          );
+
+          return this.moveProductUpdatesToRequest(
             requestId,
+            productUpdates,
             matchedSapCodes,
             po,
             sourceRequestId,
           ).pipe(
-            switchMap(() =>
-              this.createUnsavedMatchedProductsOnRequest(
-                requestId,
-                matchedSapCodes,
-                po,
-              ),
-            ),
             switchMap(() => {
-              if (!seedProductIds.length) {
+              if (!seedsToDelete.length) {
                 return of(requestId);
               }
               return forkJoin(
-                seedProductIds.map((productId) =>
+                seedsToDelete.map((productId) =>
                   this.generateTemInService.deleteReqById(productId).pipe(
                     map((res) => {
                       if (!res.success) {
@@ -7865,7 +8091,7 @@ export class ReceivingSuppliesComponent
             requestId,
             sourceRequestId,
             po,
-            oldProductIds.length +
+            productUpdates.length +
               this.countUnsavedMatchedLots(matchedSapCodes),
             totalQty,
             orderWhsCode,
@@ -7882,8 +8108,7 @@ export class ReceivingSuppliesComponent
   ): Observable<void> {
     const items: ExcelImportData[] = [];
     for (const parent of this.dataSource.data) {
-      const sap = parent.sapCode.trim();
-      if (!sap || !matchedSapCodes.has(sap)) {
+      if (!this.isSapCodeInSet(parent.sapCode, matchedSapCodes)) {
         continue;
       }
       for (const lot of parent.lots) {
@@ -7906,8 +8131,7 @@ export class ReceivingSuppliesComponent
   private countUnsavedMatchedLots(matchedSapCodes: Set<string>): number {
     let count = 0;
     for (const parent of this.dataSource.data) {
-      const sap = parent.sapCode.trim();
-      if (!sap || !matchedSapCodes.has(sap)) {
+      if (!this.isSapCodeInSet(parent.sapCode, matchedSapCodes)) {
         continue;
       }
       count += parent.lots.filter((lot) => !lot.productId).length;
@@ -7950,8 +8174,7 @@ export class ReceivingSuppliesComponent
   ): ExcelImportData[] {
     const products: ExcelImportData[] = [];
     for (const parent of this.dataSource.data) {
-      const sap = parent.sapCode.trim();
-      if (!sap || !matchedSapCodes.has(sap)) {
+      if (!this.isSapCodeInSet(parent.sapCode, matchedSapCodes)) {
         continue;
       }
       for (const lot of parent.lots) {
@@ -7964,18 +8187,37 @@ export class ReceivingSuppliesComponent
   }
 
   private collectMatchedProductIds(matchedSapCodes: Set<string>): number[] {
-    const ids: number[] = [];
-    for (const parent of this.dataSource.data) {
-      const sap = parent.sapCode.trim();
-      if (!sap || !matchedSapCodes.has(sap)) {
-        continue;
-      }
-      for (const lot of parent.lots) {
-        if (lot.productId) {
-          ids.push(lot.productId);
-        }
+    return this.collectMatchedProductMoveUpdates(matchedSapCodes, "").map(
+      (u) => u.productId,
+    );
+  }
+
+  private toNormalizedSapCodeSet(codes: Iterable<string>): Set<string> {
+    return new Set(
+      [...codes]
+        .map((code) => this.normalizeSapCode(code))
+        .filter((code) => Boolean(code)),
+    );
+  }
+
+  /** Khớp mã SAP kể cả khi Set chứa mã gốc hoặc đã bỏ leading zero. */
+  private isSapCodeInSet(sapCode: string, sapSet: Set<string>): boolean {
+    const trimmed = sapCode.trim();
+    if (!trimmed || !sapSet.size) {
+      return false;
+    }
+    if (sapSet.has(trimmed)) {
+      return true;
+    }
+    const normalized = this.normalizeSapCode(trimmed);
+    if (sapSet.has(normalized)) {
+      return true;
+    }
+    for (const code of sapSet) {
+      if (this.normalizeSapCode(code) === normalized) {
+        return true;
       }
     }
-    return ids;
+    return false;
   }
 }
