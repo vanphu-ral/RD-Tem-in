@@ -7,6 +7,8 @@ export interface ListContImportLine {
   palletCount: number;
   /** Số vật tư / pallet → SỐ LƯỢNG */
   qtyPerPallet: number;
+  /** Mã kho SAP (cột Mã Kho) — optional. */
+  warehouseCode: string;
   sheetName: string;
   lineNo: number;
 }
@@ -66,6 +68,21 @@ function isQtyPerPalletHeader(key: string): boolean {
   );
 }
 
+function isWarehouseHeader(key: string): boolean {
+  const compact = compactHeader(key);
+  return (
+    compact === "mãkho" ||
+    compact === "makho" ||
+    compact === "mãkhosap" ||
+    compact === "makhosap" ||
+    compact === "whscode" ||
+    compact === "whs" ||
+    compact === "warehouse" ||
+    key.includes("mã kho") ||
+    key.includes("ma kho")
+  );
+}
+
 function cellToText(value: unknown): string {
   if (value == null) {
     return "";
@@ -91,6 +108,22 @@ function normalizeRdCode(raw: string): string {
   return trimmed;
 }
 
+/** Chuẩn hóa mã kho từ Excel (vd. "01 - Kho A" → "01", số 1 → "01"). */
+function normalizeWarehouseFromCell(raw: string): string {
+  let trimmed = raw.trim();
+  if (!trimmed) {
+    return "";
+  }
+  const dashIdx = trimmed.indexOf(" - ");
+  if (dashIdx > 0) {
+    trimmed = trimmed.substring(0, dashIdx).trim();
+  }
+  if (/^\d+$/.test(trimmed) && trimmed.length < 2) {
+    return trimmed.padStart(2, "0");
+  }
+  return trimmed;
+}
+
 function parsePositiveNumber(raw: string): number {
   const n = Number(String(raw).replace(/,/g, "").trim());
   if (!Number.isFinite(n) || n < 0) {
@@ -105,6 +138,7 @@ function findHeaderRow(matrix: unknown[][]): {
   rdNameIdx: number;
   palletIdx: number;
   qtyPerPalletIdx: number;
+  warehouseIdx: number;
 } | null {
   for (let r = 0; r < Math.min(matrix.length, 40); r++) {
     const row = matrix[r] ?? [];
@@ -112,6 +146,7 @@ function findHeaderRow(matrix: unknown[][]): {
     let rdNameIdx = -1;
     let palletIdx = -1;
     let qtyPerPalletIdx = -1;
+    let warehouseIdx = -1;
     row.forEach((cell, idx) => {
       const key = normalizeHeaderKey(cell);
       if (!key) {
@@ -129,6 +164,9 @@ function findHeaderRow(matrix: unknown[][]): {
       if (qtyPerPalletIdx < 0 && isQtyPerPalletHeader(key)) {
         qtyPerPalletIdx = idx;
       }
+      if (warehouseIdx < 0 && isWarehouseHeader(key)) {
+        warehouseIdx = idx;
+      }
     });
     if (rdCodeIdx >= 0 && palletIdx >= 0 && qtyPerPalletIdx >= 0) {
       return {
@@ -137,6 +175,7 @@ function findHeaderRow(matrix: unknown[][]): {
         rdNameIdx,
         palletIdx,
         qtyPerPalletIdx,
+        warehouseIdx,
       };
     }
   }
@@ -176,11 +215,16 @@ function parseSheet(
     const qtyPerPallet = parsePositiveNumber(
       cellToText(row[header.qtyPerPalletIdx]),
     );
+    const warehouseCode =
+      header.warehouseIdx >= 0
+        ? normalizeWarehouseFromCell(cellToText(row[header.warehouseIdx]))
+        : "";
     lines.push({
       sapCode,
       itemName,
       palletCount,
       qtyPerPallet,
+      warehouseCode,
       sheetName,
       lineNo: i + 1,
     });
@@ -197,6 +241,7 @@ function normalizeSapKey(code: string): string {
 /**
  * Đọc file List Cont — chỉ sheet đầu.
  * Gom theo RDCode; mỗi dòng file là một line (có thể thành nhiều lô).
+ * Cột Mã Kho (optional) → điền mã kho SAP theo từng dòng.
  */
 export function parseListContImportFile(
   buffer: ArrayBuffer,

@@ -131,6 +131,8 @@ export interface ReceivingLotRow {
   sapWarehouse: string;
   /** true khi user tự chọn vị trí ở lớp con — không ghi đè khi đổi vị trí cha. */
   locationOverridden: boolean;
+  /** true khi user tự chọn kho SAP ở lớp con — không ghi đè khi đổi kho cha. */
+  sapWarehouseOverridden?: boolean;
   lotNumber: string;
   quantity: number | null;
   temQuantity: number | null;
@@ -689,6 +691,56 @@ export class ReceivingSuppliesComponent
     const loc = this.resolveWarehouseLocation(selected);
     lot.location = loc?.locationName ?? this.normalizeLocationValue(selected);
     lot.locationOverridden = lot.location !== row.location;
+  }
+
+  onParentSapWarehouseInput(row: ReceivingMaterialRow, value: string): void {
+    row.sapWarehouse = this.normalizeWarehouseCode(value) || value.trim();
+  }
+
+  onParentSapWarehouseSelected(
+    row: ReceivingMaterialRow,
+    selected: string,
+  ): void {
+    const previous = this.normalizeWarehouseCode(row.sapWarehouse);
+    const code = this.normalizeWarehouseCode(selected) || selected.trim();
+    row.sapWarehouse = code;
+    this.syncParentSapWarehouseToLots(row, previous);
+  }
+
+  onParentSapWarehouseBlur(row: ReceivingMaterialRow): void {
+    row.sapWarehouse =
+      this.normalizeWarehouseCode(row.sapWarehouse) || row.sapWarehouse.trim();
+    this.syncParentSapWarehouseToLots(row);
+  }
+
+  onLotSapWarehouseInput(
+    row: ReceivingMaterialRow,
+    lot: ReceivingLotRow,
+    value: string,
+  ): void {
+    if (!this.isLotEditable(lot)) {
+      return;
+    }
+    const code = this.normalizeWarehouseCode(value) || value.trim();
+    lot.sapWarehouse = code;
+    lot.sapWarehouseOverridden =
+      this.normalizeWarehouseCode(lot.sapWarehouse) !==
+      this.normalizeWarehouseCode(row.sapWarehouse);
+  }
+
+  onLotSapWarehouseSelected(
+    row: ReceivingMaterialRow,
+    lot: ReceivingLotRow,
+    selected: string,
+  ): void {
+    if (!this.isLotEditable(lot)) {
+      return;
+    }
+    const code = this.normalizeWarehouseCode(selected) || selected.trim();
+    lot.sapWarehouse = code;
+    lot.sapWarehouseOverridden =
+      this.normalizeWarehouseCode(lot.sapWarehouse) !==
+      this.normalizeWarehouseCode(row.sapWarehouse);
   }
 
   fetchPoInfo(): void {
@@ -1513,6 +1565,39 @@ export class ReceivingSuppliesComponent
     this.refreshTableView();
   }
 
+  hasActiveTableFilter(): boolean {
+    return (
+      Boolean(this.filterSapCode.trim()) ||
+      Boolean(this.filterItemName.trim()) ||
+      Boolean(this.filterPartNumber.trim())
+    );
+  }
+
+  hasTableFilterNoResults(): boolean {
+    return (
+      this.hasActiveTableFilter() &&
+      this.dataSource.data.length > 0 &&
+      this.visiblePageRows.length === 0
+    );
+  }
+
+  getTableFilterEmptyMessage(): string {
+    const parts: string[] = [];
+    if (this.filterSapCode.trim()) {
+      parts.push("MÃ SAP");
+    }
+    if (this.filterItemName.trim()) {
+      parts.push("TÊN VẬT TƯ");
+    }
+    if (this.filterPartNumber.trim()) {
+      parts.push("PARTNUMBER");
+    }
+    if (!parts.length) {
+      return "Không có kết quả trong đơn";
+    }
+    return `${parts.join(" / ")} không có trong đơn`;
+  }
+
   onSapWarehouseSearch(keyword: string): void {
     if (!this.sapWarehouseList.length && !this.isLoadingSapWarehouses) {
       this.loadSapWarehouses(keyword);
@@ -2236,6 +2321,10 @@ export class ReceivingSuppliesComponent
     if (this.lotIsSapSent(lot)) {
       return false;
     }
+    // Phải lưu đơn + đã tạo tem mới cho gửi SAP.
+    if (lot.productId == null || !this.lotHasTem(lot)) {
+      return false;
+    }
     return this.lotHasValidPo(lot);
   }
 
@@ -2247,6 +2336,13 @@ export class ReceivingSuppliesComponent
     return this.dataSource.data.some((parent) =>
       parent.lots.some((lot) => this.canSendSapLot(parent, lot)),
     );
+  }
+
+  canSendSapSelected(): boolean {
+    if (this.isSendingSap) {
+      return false;
+    }
+    return this.getSelectedSendableSapEntries().length > 0;
   }
 
   getSapLotButtonLabel(lot: ReceivingLotRow): string {
@@ -2268,7 +2364,7 @@ export class ReceivingSuppliesComponent
         );
     if (!entries.length) {
       this.showSnackbar(
-        "Không có lô nào đủ điều kiện gửi SAP (cần gán PO hợp lệ trên lô).",
+        "Không có lô nào đủ điều kiện gửi SAP (cần đã lưu đơn, tạo tem, có PO hợp lệ và chưa gửi).",
         "Đóng",
         5000,
         "warning",
@@ -2287,16 +2383,51 @@ export class ReceivingSuppliesComponent
     });
   }
 
-  onSendSapLot(parent: ReceivingMaterialRow, lot: ReceivingLotRow): void {
-    if (!this.canSendSapLot(parent, lot)) {
+  /** Gửi SAP tất cả lô đang checkbox (menu Tuỳ chọn). */
+  onSendSapSelected(): void {
+    if (this.isSendingSap) {
+      return;
+    }
+    if (!this.hasAnySelectedExportLot()) {
       this.showSnackbar(
-        this.lotIsSapSent(lot)
-          ? "Lô này đã gửi SAP."
-          : 'Lô chưa có PO hợp lệ (userData5 trống hoặc "-").',
+        "Vui lòng tích chọn vật tư cần gửi SAP.",
         "Đóng",
         4000,
         "warning",
       );
+      return;
+    }
+    const entries = this.getSelectedSendableSapEntries();
+    if (!entries.length) {
+      this.showSnackbar(
+        "Các vật tư đã chọn không đủ điều kiện gửi SAP (cần đã lưu đơn, tạo tem, có PO hợp lệ và chưa gửi).",
+        "Đóng",
+        5000,
+        "warning",
+      );
+      return;
+    }
+    this.confirmAction(
+      `Gửi ${entries.length} lô đã chọn lên SAP?`,
+      "Gửi SAP",
+    ).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      this.executeSendSap(entries);
+    });
+  }
+
+  onSendSapLot(parent: ReceivingMaterialRow, lot: ReceivingLotRow): void {
+    if (!this.canSendSapLot(parent, lot)) {
+      let message = 'Lô chưa có PO hợp lệ (userData5 trống hoặc "-").';
+      if (this.lotIsSapSent(lot)) {
+        message = "Lô này đã gửi SAP.";
+      } else if (lot.productId == null || !this.lotHasTem(lot)) {
+        message =
+          "Lô chưa tạo tem. Vui lòng lưu đơn và tạo mã/tem trước khi gửi SAP.";
+      }
+      this.showSnackbar(message, "Đóng", 4000, "warning");
       return;
     }
     const label = lot.lotNumber || parent.sapCode;
@@ -2810,6 +2941,64 @@ export class ReceivingSuppliesComponent
     );
   }
 
+  canSendPanacimSelected(): boolean {
+    if (this.isSendingPanacim) {
+      return false;
+    }
+    return this.getSelectedSendablePanacimEntries().length > 0;
+  }
+
+  /** Gửi PanaCIM tất cả lô đang checkbox (menu Tuỳ chọn). */
+  onSendPanacimSelected(): void {
+    if (this.isSendingPanacim) {
+      return;
+    }
+    if (!this.hasAnySelectedExportLot()) {
+      this.showSnackbar(
+        "Vui lòng tích chọn vật tư cần gửi PanaCIM.",
+        "Đóng",
+        4000,
+        "warning",
+      );
+      return;
+    }
+    const entries = this.getSelectedSendablePanacimEntries();
+    if (!entries.length) {
+      this.showSnackbar(
+        "Các vật tư đã chọn không đủ điều kiện gửi PanaCIM (cần đã tạo tem và chưa gửi).",
+        "Đóng",
+        5000,
+        "warning",
+      );
+      return;
+    }
+    this.confirmAction(
+      `Gửi dữ liệu tem của ${entries.length} lô đã chọn đến PanaCIM?`,
+      "Gửi PanaCIM",
+    ).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      const rows = entries.flatMap(({ parent, lot }) =>
+        this.getTemRowsForLot(parent, lot),
+      );
+      if (!rows.length) {
+        this.showSnackbar(
+          "Chưa có mã tem. Vui lòng tạo mã trước.",
+          "Đóng",
+          3000,
+          "warning",
+        );
+        return;
+      }
+      const productIds = [
+        ...new Set(entries.map(({ lot }) => Number(lot.productId))),
+      ];
+      const fileName = `CSV_UP_Panacim_selected_${new Date().toISOString().split("T")[0]}.csv`;
+      this.uploadTemRowsToPanacim(rows, fileName, productIds);
+    });
+  }
+
   onSendPanacimLot(parent: ReceivingMaterialRow, lot: ReceivingLotRow): void {
     if (!this.canSendPanacimLot(parent, lot)) {
       return;
@@ -3266,6 +3455,7 @@ export class ReceivingSuppliesComponent
       const lots = parent.lots.map((lot) => ({
         ...lot,
         sapWarehouse: normalized,
+        sapWarehouseOverridden: false,
       }));
       return { ...parent, sapWarehouse: normalized, lots };
     });
@@ -3422,25 +3612,23 @@ export class ReceivingSuppliesComponent
     this.applyPoQuantityByLineNumFromMap();
   }
 
-  /** SL theo PO từ sap-po-info theo por1LineNum đã lưu trên dòng cha. */
+  /** SL theo PO: cộng tất cả dòng PO cùng mã SAP (1 hàng cha có thể gồm nhiều lô/line). */
   private applyPoQuantityByLineNumFromMap(): void {
     if (!this.dataSource.data.length) {
       return;
     }
     this.dataSource.data = this.dataSource.data.map((parent) => {
-      const lineNum = this.resolveParentPor1LineNum(parent);
-      if (!lineNum) {
-        return parent;
-      }
       const sap = parent.sapCode.trim();
-      const lineKey = `${sap}|L${lineNum}`;
-      const exactKey = Object.keys(this.poQuantityByLineKey).find((k) =>
-        k.startsWith(`${lineKey}|`),
-      );
-      if (!exactKey) {
+      if (!sap) {
         return parent;
       }
-      const qty = Math.round(this.poQuantityByLineKey[exactKey]);
+      const matching = Object.entries(this.poQuantityByLineKey).filter(([k]) =>
+        k.startsWith(`${sap}|`),
+      );
+      if (!matching.length) {
+        return parent;
+      }
+      const qty = Math.round(matching.reduce((sum, [, v]) => sum + v, 0));
       if (qty === parent.quantityByPo) {
         return parent;
       }
@@ -3457,13 +3645,17 @@ export class ReceivingSuppliesComponent
     return fromKey ?? "";
   }
 
+  /**
+   * Gộp hàng cha theo mã SAP (+ part). Vị trí / kho / line PO khác nhau
+   * vẫn là các lô con — không tách thành nhiều hàng cha.
+   */
   private resolveSavedProductGroupKey(product: SavedProductRow): string {
     const sap = product.sapCode?.trim() ?? "";
-    const lineNum = (product.por1LineNum ?? "").trim();
-    if (sap && lineNum) {
-      return `${sap}|L${lineNum}`;
+    if (!sap) {
+      return `product:${product.id}`;
     }
-    return `product:${product.id}`;
+    const part = (product.partNumber ?? "").trim().toLowerCase();
+    return part ? `${sap}|P:${part}` : sap;
   }
 
   private persistOrderChanges(
@@ -3722,17 +3914,41 @@ export class ReceivingSuppliesComponent
   }
 
   private refreshTableView(): void {
-    this.totalItems = this.dataSource.filteredData.length
-      ? this.dataSource.filteredData.length
-      : this.dataSource.data.length;
+    // Không fallback về full data khi filter không khớp — giữ bảng trống.
+    this.totalItems = this.dataSource.filteredData.length;
     this.updateVisiblePageRows();
     this.cdr.markForCheck();
   }
 
   private updateVisiblePageRows(): void {
-    this.visiblePageRows = this.dataSource.filteredData.length
-      ? this.dataSource.filteredData
-      : this.dataSource.data;
+    this.visiblePageRows = this.dataSource.filteredData;
+  }
+
+  private getSelectedSendableSapEntries(): Array<{
+    parent: ReceivingMaterialRow;
+    lot: ReceivingLotRow;
+  }> {
+    return this.dataSource.data.flatMap((parent) =>
+      (parent.lots ?? [])
+        .filter(
+          (lot) => this.isLotSelected(lot) && this.canSendSapLot(parent, lot),
+        )
+        .map((lot) => ({ parent, lot })),
+    );
+  }
+
+  private getSelectedSendablePanacimEntries(): Array<{
+    parent: ReceivingMaterialRow;
+    lot: ReceivingLotRow;
+  }> {
+    return this.dataSource.data.flatMap((parent) =>
+      (parent.lots ?? [])
+        .filter(
+          (lot) =>
+            this.isLotSelected(lot) && this.canSendPanacimLot(parent, lot),
+        )
+        .map((lot) => ({ parent, lot })),
+    );
   }
 
   private hasBulkLotFieldValues(): boolean {
@@ -4008,9 +4224,11 @@ export class ReceivingSuppliesComponent
       );
       lot.temQuantity = line.palletCount > 0 ? line.palletCount : 1;
       lot.quantity = line.qtyPerPallet > 0 ? line.qtyPerPallet : 0;
+      this.applyListContWarehouseToLot(parent, lot, line.warehouseCode);
       parent.lots = [...parent.lots, lot];
     });
 
+    this.syncParentWarehouseFromListContLots(parent);
     parent.expanded = true;
     parent.lotNumber = `${parent.lots.length} lô`;
     this.syncParentQuantityFromLots(parent);
@@ -4044,6 +4262,7 @@ export class ReceivingSuppliesComponent
     if (this.isLotEditable(firstLot)) {
       firstLot.temQuantity = first.palletCount > 0 ? first.palletCount : 1;
       firstLot.quantity = first.qtyPerPallet > 0 ? first.qtyPerPallet : 0;
+      this.applyListContWarehouseToLot(parent, firstLot, first.warehouseCode);
     }
 
     rest.forEach((line, index) => {
@@ -4056,14 +4275,62 @@ export class ReceivingSuppliesComponent
       );
       lot.temQuantity = line.palletCount > 0 ? line.palletCount : 1;
       lot.quantity = line.qtyPerPallet > 0 ? line.qtyPerPallet : 0;
+      this.applyListContWarehouseToLot(parent, lot, line.warehouseCode);
       parent.lots = [...parent.lots, lot];
     });
 
+    this.syncParentWarehouseFromListContLots(parent);
     parent.lots = [...parent.lots];
     parent.expanded = true;
     parent.lotNumber = `${parent.lots.length} lô`;
     this.syncParentQuantityFromLots(parent);
     this.markParentReconcilePending(parent);
+  }
+
+  /** Điền mã kho từ cột Mã Kho file List Cont vào lô. */
+  private applyListContWarehouseToLot(
+    parent: ReceivingMaterialRow,
+    lot: ReceivingLotRow,
+    warehouseRaw: string,
+  ): void {
+    const code =
+      this.normalizeWarehouseCode(warehouseRaw) || warehouseRaw.trim();
+    if (!code) {
+      return;
+    }
+    lot.sapWarehouse = code;
+    const parentWh = this.normalizeWarehouseCode(parent.sapWarehouse);
+    lot.sapWarehouseOverridden = Boolean(parentWh) && parentWh !== code;
+  }
+
+  /**
+   * Nếu hàng cha chưa có kho: lấy kho chung của các lô vừa import (khi cùng 1 mã).
+   * Nếu các lô khác kho nhau thì giữ kho cha trống/cũ, kho nằm ở từng lô.
+   */
+  private syncParentWarehouseFromListContLots(
+    parent: ReceivingMaterialRow,
+  ): void {
+    if (this.normalizeWarehouseCode(parent.sapWarehouse)) {
+      return;
+    }
+    const whCodes = [
+      ...new Set(
+        parent.lots
+          .map((lot) => this.normalizeWarehouseCode(lot.sapWarehouse))
+          .filter((code): code is string => Boolean(code)),
+      ),
+    ];
+    if (whCodes.length !== 1) {
+      return;
+    }
+    parent.sapWarehouse = whCodes[0];
+    parent.lots = parent.lots.map((lot) => {
+      const lotWh = this.normalizeWarehouseCode(lot.sapWarehouse);
+      if (lotWh === whCodes[0]) {
+        return { ...lot, sapWarehouseOverridden: false };
+      }
+      return lot;
+    });
   }
 
   private isSapCodeOnTable(sapCode: string): boolean {
@@ -4402,6 +4669,7 @@ export class ReceivingSuppliesComponent
       location,
       sapWarehouse: parent.sapWarehouse || this.sapWarehouseCode.trim(),
       locationOverridden: false,
+      sapWarehouseOverridden: false,
       lotNumber,
       quantity: qty,
       temQuantity: 1,
@@ -5076,6 +5344,40 @@ export class ReceivingSuppliesComponent
     this.refreshTableView();
   }
 
+  private syncParentSapWarehouseToLots(
+    row: ReceivingMaterialRow,
+    previousParentWarehouse?: string,
+  ): void {
+    const parentWh =
+      this.normalizeWarehouseCode(row.sapWarehouse) || row.sapWarehouse.trim();
+    const prevWh = this.normalizeWarehouseCode(previousParentWarehouse);
+    const syncedLots = row.lots.map((lot) => {
+      if (!this.isLotEditable(lot)) {
+        return lot;
+      }
+      const lotWh = this.normalizeWarehouseCode(lot.sapWarehouse);
+      const inheritsFromParent =
+        !lot.sapWarehouseOverridden ||
+        !lotWh ||
+        (previousParentWarehouse !== undefined && lotWh === prevWh);
+      if (!inheritsFromParent) {
+        return lot;
+      }
+      return {
+        ...lot,
+        sapWarehouse: parentWh,
+        sapWarehouseOverridden: false,
+      };
+    });
+
+    this.dataSource.data = this.dataSource.data.map((r) =>
+      r.id === row.id ? { ...r, sapWarehouse: parentWh, lots: syncedLots } : r,
+    );
+    row.lots = syncedLots;
+    row.sapWarehouse = parentWh;
+    this.refreshTableView();
+  }
+
   private initWarehouseCache(): void {
     this.receivingService.initWarehouses().then(() => {
       this.cdr.markForCheck();
@@ -5735,7 +6037,11 @@ export class ReceivingSuppliesComponent
       if (!whs) {
         return parent;
       }
-      const lots = parent.lots.map((lot) => ({ ...lot, sapWarehouse: whs }));
+      const lots = parent.lots.map((lot) => ({
+        ...lot,
+        sapWarehouse: whs,
+        sapWarehouseOverridden: false,
+      }));
       return { ...parent, sapWarehouse: whs, lots };
     });
     this.refreshTableView();
@@ -6813,6 +7119,7 @@ export class ReceivingSuppliesComponent
       location: parent.location,
       sapWarehouse: parent.sapWarehouse || this.sapWarehouseCode.trim(),
       locationOverridden: false,
+      sapWarehouseOverridden: false,
       lotNumber: first.lotNumber || first.mfgDate,
       quantity: first.quantity > 0 ? first.quantity : null,
       temQuantity: temCount,
@@ -7035,7 +7342,14 @@ export class ReceivingSuppliesComponent
     grouped.forEach((items) => {
       const first = items[0];
       const sapCode = first.sapCode?.trim() ?? "";
-      const por1LineNum = (first.por1LineNum ?? "").trim();
+      const lineNums = [
+        ...new Set(
+          items
+            .map((p) => (p.por1LineNum ?? "").trim())
+            .filter((v): v is string => Boolean(v)),
+        ),
+      ];
+      const por1LineNum = lineNums.length === 1 ? lineNums[0] : "";
       const poLineKey = por1LineNum
         ? `${sapCode}|L${por1LineNum}|Q${first.initialQuantity ?? 0}`
         : undefined;
@@ -7072,6 +7386,9 @@ export class ReceivingSuppliesComponent
             location: lotLocation,
             sapWarehouse: lotWhs,
             locationOverridden: lotLocation !== parentLocation,
+            sapWarehouseOverridden:
+              this.normalizeWarehouseCode(lotWhs) !==
+              this.normalizeWarehouseCode(parentWhs),
             lotNumber: p.lot ?? "",
             quantity: p.initialQuantity ?? null,
             temQuantity:
@@ -7465,58 +7782,166 @@ export class ReceivingSuppliesComponent
       0,
     );
 
+    // Chưa có product đã lưu → tạo đơn + product mới bình thường (chưa có tem để giữ).
+    if (!oldProductIds.length) {
+      return this.receivingService
+        .createRequestAndProducts(
+          vendor,
+          vendorName,
+          po,
+          this.currentUser,
+          products,
+          orderWhsCode,
+        )
+        .pipe(
+          switchMap(({ requestId }) =>
+            this.finalizeCreatedReconcileOrder(
+              requestId,
+              sourceRequestId,
+              po,
+              products.length,
+              totalQty,
+              orderWhsCode,
+            ),
+          ),
+        );
+    }
+
+    // Đã có product (có thể đã tạo tem): tạo đơn shell bằng 1 product tạm,
+    // chuyển product cũ (giữ nguyên id + InfoTemDetail) sang đơn mới,
+    // rồi xóa product tạm — không xóa product cũ (tránh mất tem).
+    const seedProducts = [products[0]];
     return this.receivingService
       .createRequestAndProducts(
         vendor,
         vendorName,
         po,
         this.currentUser,
-        products,
+        seedProducts,
         orderWhsCode,
       )
       .pipe(
-        switchMap(({ requestId }) => {
-          if (!oldProductIds.length) {
-            return of(requestId);
-          }
-          return forkJoin(
-            oldProductIds.map((productId) =>
-              this.generateTemInService.deleteReqById(productId).pipe(
-                map((res) => {
-                  if (!res.success) {
-                    throw new Error(
-                      res.message ??
-                        `Không xóa được sản phẩm #${productId} khỏi đơn cũ.`,
-                    );
-                  }
-                  return undefined;
-                }),
-              ),
-            ),
-          ).pipe(map(() => requestId));
-        }),
-        switchMap((requestId) => {
-          const refreshIds = [requestId];
-          if (sourceRequestId && sourceRequestId !== requestId) {
-            refreshIds.push(sourceRequestId);
-          }
-          return forkJoin(
-            refreshIds.map((id) => this.refreshRequestProductCountsFromDb(id)),
+        switchMap(({ requestId, products: createdProducts }) => {
+          const seedProductIds = (createdProducts ?? [])
+            .map((p) => Number(p.id))
+            .filter((id) => !Number.isNaN(id) && id > 0);
+          return this.moveMatchedProductsToRequest(
+            requestId,
+            matchedSapCodes,
+            po,
+            sourceRequestId,
           ).pipe(
             switchMap(() =>
-              this.generateTemInService
-                .updateRequest(requestId, {
-                  userData5: po,
-                  numberProduction: products.length,
-                  totalQuantity: totalQty,
-                  status: "Bản nháp",
-                  WhsCode: orderWhsCode || undefined,
-                })
-                .pipe(map(() => requestId)),
+              this.createUnsavedMatchedProductsOnRequest(
+                requestId,
+                matchedSapCodes,
+                po,
+              ),
             ),
+            switchMap(() => {
+              if (!seedProductIds.length) {
+                return of(requestId);
+              }
+              return forkJoin(
+                seedProductIds.map((productId) =>
+                  this.generateTemInService.deleteReqById(productId).pipe(
+                    map((res) => {
+                      if (!res.success) {
+                        throw new Error(
+                          res.message ??
+                            `Không xóa được sản phẩm tạm #${productId} trên đơn mới.`,
+                        );
+                      }
+                      return undefined;
+                    }),
+                  ),
+                ),
+              ).pipe(map(() => requestId));
+            }),
           );
         }),
+        switchMap((requestId) =>
+          this.finalizeCreatedReconcileOrder(
+            requestId,
+            sourceRequestId,
+            po,
+            oldProductIds.length +
+              this.countUnsavedMatchedLots(matchedSapCodes),
+            totalQty,
+            orderWhsCode,
+          ),
+        ),
       );
+  }
+
+  /** Lô matched chưa có productId → tạo mới trên đơn đích (không đụng tem cũ). */
+  private createUnsavedMatchedProductsOnRequest(
+    targetRequestId: number,
+    matchedSapCodes: Set<string>,
+    po: string,
+  ): Observable<void> {
+    const items: ExcelImportData[] = [];
+    for (const parent of this.dataSource.data) {
+      const sap = parent.sapCode.trim();
+      if (!sap || !matchedSapCodes.has(sap)) {
+        continue;
+      }
+      for (const lot of parent.lots) {
+        if (lot.productId) {
+          continue;
+        }
+        const item = this.buildExcelItemForLot(parent, lot);
+        item.userData5 = po;
+        items.push(item);
+      }
+    }
+    if (!items.length) {
+      return of(undefined);
+    }
+    return this.receivingService
+      .updateRequestProducts(targetRequestId, items)
+      .pipe(map(() => undefined));
+  }
+
+  private countUnsavedMatchedLots(matchedSapCodes: Set<string>): number {
+    let count = 0;
+    for (const parent of this.dataSource.data) {
+      const sap = parent.sapCode.trim();
+      if (!sap || !matchedSapCodes.has(sap)) {
+        continue;
+      }
+      count += parent.lots.filter((lot) => !lot.productId).length;
+    }
+    return count;
+  }
+
+  private finalizeCreatedReconcileOrder(
+    requestId: number,
+    sourceRequestId: number | null | undefined,
+    po: string,
+    numberProduction: number,
+    totalQty: number,
+    orderWhsCode: string,
+  ): Observable<number> {
+    const refreshIds = [requestId];
+    if (sourceRequestId && sourceRequestId !== requestId) {
+      refreshIds.push(sourceRequestId);
+    }
+    return forkJoin(
+      refreshIds.map((id) => this.refreshRequestProductCountsFromDb(id)),
+    ).pipe(
+      switchMap(() =>
+        this.generateTemInService
+          .updateRequest(requestId, {
+            userData5: po,
+            numberProduction,
+            totalQuantity: totalQty,
+            status: "Bản nháp",
+            WhsCode: orderWhsCode || undefined,
+          })
+          .pipe(map(() => requestId)),
+      ),
+    );
   }
 
   private buildMatchedProductsForPoApply(

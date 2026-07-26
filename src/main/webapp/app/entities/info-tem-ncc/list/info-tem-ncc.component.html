@@ -128,8 +128,11 @@
             <button
               mat-icon-button
               color="warn"
-              (click)="onDelete(row)"
-              matTooltip="Xóa"
+              (click)="onDelete(row); $event.stopPropagation()"
+              [disabled]="!canDeleteOrder(row)"
+              [matTooltip]="
+                canDeleteOrder(row) ? 'Xóa' : 'Không thể xóa: đã gửi PanaCIM'
+              "
             >
               <mat-icon>delete</mat-icon>
             </button>
@@ -511,8 +514,11 @@
             <button
               mat-icon-button
               color="warn"
-              (click)="onDelete(item)"
-              matTooltip="Xóa"
+              (click)="onDelete(item); $event.stopPropagation()"
+              [disabled]="!canDeleteOrder(item)"
+              [matTooltip]="
+                canDeleteOrder(item) ? 'Xóa' : 'Không thể xóa: đã gửi PanaCIM'
+              "
             >
               <mat-icon>delete</mat-icon>
             </button>

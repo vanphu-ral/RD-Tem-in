@@ -227,6 +227,26 @@
               <mat-icon>description</mat-icon>
               <span>Xuất CSV</span>
             </button>
+            <button
+              mat-menu-item
+              type="button"
+              (click)="onSendSapSelected()"
+              [disabled]="!canSendSapSelected() || isSendingSap"
+            >
+              <mat-icon>cloud_upload</mat-icon>
+              <span>{{ isSendingSap ? "Đang gửi SAP..." : "Gửi SAP" }}</span>
+            </button>
+            <button
+              mat-menu-item
+              type="button"
+              (click)="onSendPanacimSelected()"
+              [disabled]="!canSendPanacimSelected() || isSendingPanacim"
+            >
+              <mat-icon>send</mat-icon>
+              <span>{{
+                isSendingPanacim ? "Đang gửi PanaCIM..." : "Gửi PanaCIM"
+              }}</span>
+            </button>
           </mat-menu>
           <button
             mat-stroked-button
@@ -532,7 +552,37 @@
                   </mat-autocomplete>
                 </div>
               </th>
-              <th>MÃ KHO SAP</th>
+              <th>
+                <div class="header-filter">
+                  <span>MÃ KHO SAP</span>
+                  <input
+                    matInput
+                    class="header-filter-input header-location-input"
+                    [(ngModel)]="sapWarehouseCode"
+                    [matAutocomplete]="autoHeaderSapWarehouse"
+                    (input)="onSapWarehouseSearch($any($event.target).value)"
+                    (focus)="onSapWarehouseSearch(sapWarehouseCode)"
+                    (ngModelChange)="onHeaderSapWarehouseChange($event)"
+                    placeholder="Chọn mã kho..."
+                    (click)="$event.stopPropagation()"
+                    (keydown)="$event.stopPropagation()"
+                  />
+                  <mat-autocomplete
+                    #autoHeaderSapWarehouse="matAutocomplete"
+                    [displayWith]="displaySapWarehouse"
+                    (optionSelected)="
+                      onHeaderSapWarehouseSelected($event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="let whs of filteredSapWarehouseList"
+                      [value]="whs.whsCode"
+                    >
+                      {{ whs.whsCode }} - {{ whs.whsName }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </div>
+              </th>
               <th class="th-num">SL THEO PO</th>
               <th class="th-num">SỐ LƯỢNG</th>
               <th>LOT NUMBER</th>
@@ -670,7 +720,33 @@
                     </mat-option>
                   </mat-autocomplete>
                 </td>
-                <td class="cell-text">{{ row.sapWarehouse }}</td>
+                <td class="td-input">
+                  <input
+                    matInput
+                    class="grid-input grid-input-autocomplete"
+                    [(ngModel)]="row.sapWarehouse"
+                    [matAutocomplete]="autoParentSapWarehouse"
+                    (ngModelChange)="onParentSapWarehouseInput(row, $event)"
+                    (input)="onSapWarehouseSearch($any($event.target).value)"
+                    (focus)="onSapWarehouseSearch(row.sapWarehouse)"
+                    (blur)="onParentSapWarehouseBlur(row)"
+                    placeholder="Chọn mã kho..."
+                  />
+                  <mat-autocomplete
+                    #autoParentSapWarehouse="matAutocomplete"
+                    [displayWith]="displaySapWarehouse"
+                    (optionSelected)="
+                      onParentSapWarehouseSelected(row, $event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="let whs of filteredSapWarehouseList"
+                      [value]="whs.whsCode"
+                    >
+                      {{ whs.whsCode }} - {{ whs.whsName }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </td>
                 <td class="cell-text cell-num">
                   {{ row.quantityByPo || "—" }}
                 </td>
@@ -859,8 +935,36 @@
                       </mat-option>
                     </mat-autocomplete>
                   </td>
-                  <td class="cell-text">
-                    {{ lot.sapWarehouse || row.sapWarehouse }}
+                  <td class="td-input">
+                    <input
+                      matInput
+                      class="grid-input grid-input-autocomplete"
+                      [(ngModel)]="lot.sapWarehouse"
+                      [matAutocomplete]="autoLotSapWarehouse"
+                      (ngModelChange)="onLotSapWarehouseInput(row, lot, $event)"
+                      (input)="onSapWarehouseSearch($any($event.target).value)"
+                      (focus)="
+                        onSapWarehouseSearch(
+                          lot.sapWarehouse || row.sapWarehouse
+                        )
+                      "
+                      placeholder="Chọn mã kho..."
+                      [disabled]="!isLotEditable(lot)"
+                    />
+                    <mat-autocomplete
+                      #autoLotSapWarehouse="matAutocomplete"
+                      [displayWith]="displaySapWarehouse"
+                      (optionSelected)="
+                        onLotSapWarehouseSelected(row, lot, $event.option.value)
+                      "
+                    >
+                      <mat-option
+                        *ngFor="let whs of filteredSapWarehouseList"
+                        [value]="whs.whsCode"
+                      >
+                        {{ whs.whsCode }} - {{ whs.whsName }}
+                      </mat-option>
+                    </mat-autocomplete>
                   </td>
                   <td class="cell-text cell-num">
                     {{ getLotLineTotal(lot) || "—" }}
@@ -1005,6 +1109,13 @@
           Chưa có dữ liệu. Nhập mã PO (nếu có) và nhấn "Lấy thông tin", hoặc
           khai báo mã SAP và áp dụng bên trên.
         </div>
+        <div
+          class="empty-state filter-empty-state"
+          *ngIf="hasTableFilterNoResults()"
+        >
+          <mat-icon class="empty-icon">search_off</mat-icon>
+          <p class="empty-text">{{ getTableFilterEmptyMessage() }}</p>
+        </div>
       </div>
     </mat-card-content>
   </mat-card>
@@ -1035,7 +1146,7 @@
       >
         <button
           mat-raised-button
-          color="accent"
+          color="primary"
           (click)="onCreateVendorTem()"
           [disabled]="
             isGeneratingVendorTem ||
