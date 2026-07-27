@@ -7553,6 +7553,7 @@ export class ReceivingSuppliesComponent
    * Cập nhật header đơn đích sau chuyển PO — đếm số hàng từ DB,
    * không dùng bảng local (có thể còn vật tư chưa chuyển khi tách 1 phần).
    * Status theo coverage tem: đủ tem hết → Đã tạo mã QR, còn mã chưa tem → Bản nháp.
+   * Không ghi đè createdDate/entryDate (tránh đổi ngày tạo khi đối chiếu).
    */
   private finalizeRelocatedRequestHeader(requestId: number, po: string): void {
     const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
@@ -7565,11 +7566,7 @@ export class ReceivingSuppliesComponent
             vendorName: this.vendorName,
             userData5: po,
             createdBy: this.currentUser,
-            createdDate: new Date().toISOString().slice(0, 10),
             type: true,
-            entryDate: new Date(Date.now() + 86400000)
-              .toISOString()
-              .slice(0, 10),
             status,
             WhsCode: orderWhsCode || undefined,
           }),
@@ -8200,19 +8197,56 @@ export class ReceivingSuppliesComponent
     return forkJoin(
       refreshIds.map((id) => this.refreshRequestProductCountsFromDb(id)),
     ).pipe(
-      switchMap(() => this.resolveRequestStatusByTemCoverage(requestId)),
-      switchMap((status) =>
+      switchMap(() =>
+        forkJoin({
+          status: this.resolveRequestStatusByTemCoverage(requestId),
+          createdDate:
+            this.resolvePreservedCreatedDateFromSource(sourceRequestId),
+        }),
+      ),
+      switchMap(({ status, createdDate }) =>
         this.generateTemInService
           .updateRequest(requestId, {
             userData5: po,
             numberProduction,
             totalQuantity: totalQty,
             status,
+            ...(createdDate ? { createdDate } : {}),
             WhsCode: orderWhsCode || undefined,
           })
           .pipe(map(() => requestId)),
       ),
     );
+  }
+
+  /** Giữ ngày tạo đơn nguồn khi tách/tạo đơn PO mới (tránh đổi thành ngày đối chiếu). */
+  private resolvePreservedCreatedDateFromSource(
+    sourceRequestId?: number | null,
+  ): Observable<string | null> {
+    if (!sourceRequestId) {
+      return of(null);
+    }
+    return this.generateTemInService.getRequestById(sourceRequestId).pipe(
+      map((req) => this.normalizeRequestCreatedDate(req.createdDate)),
+      catchError(() => of(null)),
+    );
+  }
+
+  private normalizeRequestCreatedDate(
+    value: string | null | undefined,
+  ): string | null {
+    if (!value?.trim()) {
+      return null;
+    }
+    const raw = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+      return raw.slice(0, 10);
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+    return parsed.toISOString().slice(0, 10);
   }
 
   private buildMatchedProductsForPoApply(
