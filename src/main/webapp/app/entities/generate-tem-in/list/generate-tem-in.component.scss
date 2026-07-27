@@ -548,16 +548,31 @@
 }
 
 .no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   text-align: center;
   padding: 3rem 1rem;
-  color: #999;
+  color: #64748b;
 }
 
 .no-data mat-icon {
   font-size: 4rem;
   width: 4rem;
   height: 4rem;
-  color: #ccc;
+  color: #94a3b8;
+}
+
+.no-data p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.table-empty-state {
+  padding: 48px 20px;
 }
 
 /* Desktop View - Shown by default */

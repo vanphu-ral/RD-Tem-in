@@ -1052,30 +1052,21 @@ export class GenerateTemInService {
     });
   }
   /**
-   * Lọc userData5 / whsCode phía FE.
-   * GraphQL hiện chỉ nhận userData5 (LIKE trên BE) — khớp chính xác làm ở đây.
+   * Lọc whsCode phía FE (GraphQL chưa có arg whsCode).
+   * userData5 đã LIKE trên BE — không lọc exact lại ở đây (tránh mất tìm theo đoạn mã PO).
    */
   private applyClientSideRequestFilters(
     page: ListRequestCreateTemPage,
     params: GetRequestsQueryParams,
   ): ListRequestCreateTemPage {
-    let content = page.content;
-    const normalizedPo = (params.userData5 ?? "").trim();
-    if (normalizedPo) {
-      content = content.filter(
-        (item) => (item.userData5 ?? "").trim() === normalizedPo,
-      );
-    }
     const normalizedWhs = (params.whsCode ?? "").trim();
-    if (normalizedWhs) {
-      const term = normalizedWhs.toLowerCase();
-      content = content.filter((item) =>
-        (item.whsCode ?? "").trim().toLowerCase().includes(term),
-      );
-    }
-    if (!normalizedPo && !normalizedWhs) {
+    if (!normalizedWhs) {
       return page;
     }
+    const term = normalizedWhs.toLowerCase();
+    const content = page.content.filter((item) =>
+      (item.whsCode ?? "").trim().toLowerCase().includes(term),
+    );
     return {
       ...page,
       content,

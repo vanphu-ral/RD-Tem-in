@@ -50,7 +50,8 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
     "totalQuantity",
     "actions",
   ];
-  statusOptions = ["Đã tạo mã QR", "Bản nháp", "chưa có PO"];
+  // statusOptions = ["Đã tạo mã QR", "Bản nháp", "chưa có PO"];
+  statusOptions = ["Đã tạo mã QR", "Bản nháp"];
   filterValues = {
     status: "",
     vendor: "",
@@ -93,6 +94,29 @@ export class GenerateTemInComponent implements OnInit, AfterViewInit {
 
   get mobileDataSource(): TemMaterialItem[] {
     return this.dataSource.data ?? [];
+  }
+
+  get hasActiveFilters(): boolean {
+    return Boolean(
+      this.filterValues.status.trim() ||
+        this.filterValues.vendor.trim() ||
+        this.filterValues.vendorName.trim() ||
+        this.filterValues.userData5.trim() ||
+        this.filterValues.whsCode.trim() ||
+        this.filterValues.createdBy.trim() ||
+        this.filterValues.createdDate,
+    );
+  }
+
+  get showEmptyState(): boolean {
+    return !this.isLoading && (this.dataSource.data?.length ?? 0) === 0;
+  }
+
+  get emptyStateMessage(): string {
+    if (this.hasActiveFilters) {
+      return "Không có kết quả phù hợp với bộ lọc";
+    }
+    return "Không có dữ liệu";
   }
 
   applyFilter(): void {

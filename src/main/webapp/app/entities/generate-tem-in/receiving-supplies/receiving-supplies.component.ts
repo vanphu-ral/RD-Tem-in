@@ -7552,12 +7552,14 @@ export class ReceivingSuppliesComponent
   /**
    * Cập nhật header đơn đích sau chuyển PO — đếm số hàng từ DB,
    * không dùng bảng local (có thể còn vật tư chưa chuyển khi tách 1 phần).
+   * Status theo coverage tem: đủ tem hết → Đã tạo mã QR, còn mã chưa tem → Bản nháp.
    */
   private finalizeRelocatedRequestHeader(requestId: number, po: string): void {
     const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
     this.refreshRequestProductCountsFromDb(requestId)
       .pipe(
-        switchMap(() =>
+        switchMap(() => this.resolveRequestStatusByTemCoverage(requestId)),
+        switchMap((status) =>
           this.generateTemInService.updateRequest(requestId, {
             vendor: this.vendorCode,
             vendorName: this.vendorName,
@@ -7568,7 +7570,7 @@ export class ReceivingSuppliesComponent
             entryDate: new Date(Date.now() + 86400000)
               .toISOString()
               .slice(0, 10),
-            status: "Bản nháp",
+            status,
             WhsCode: orderWhsCode || undefined,
           }),
         ),
@@ -7584,6 +7586,44 @@ export class ReceivingSuppliesComponent
           console.error("[finalizeRelocatedRequestHeader] Lỗi:", err);
         },
       });
+  }
+
+  /**
+   * Status đơn theo tem thực tế trên DB:
+   * - Có product và mọi product đều có ít nhất 1 tem → "Đã tạo mã QR"
+   * - Còn bất kỳ product chưa tem (hoặc đơn trống) → "Bản nháp"
+   */
+  private computeRequestStatusFromProductsAndTems(
+    products: Array<{ id?: number | null }>,
+    tems: Array<{ productOfRequestId?: number | null }>,
+  ): string {
+    if (!products.length) {
+      return "Bản nháp";
+    }
+    const productIdsWithTem = new Set(
+      tems
+        .map((t) => Number(t.productOfRequestId))
+        .filter((id) => !Number.isNaN(id) && id > 0),
+    );
+    const allHaveTem = products.every((p) => {
+      const id = Number(p.id);
+      return !Number.isNaN(id) && id > 0 && productIdsWithTem.has(id);
+    });
+    return allHaveTem ? "Đã tạo mã QR" : "Bản nháp";
+  }
+
+  private resolveRequestStatusByTemCoverage(
+    requestId: number,
+  ): Observable<string> {
+    return forkJoin({
+      products: this.receivingService.getProductsByRequestId(requestId),
+      tems: this.generateTemInService.getTemDetailsByRequestId(requestId),
+    }).pipe(
+      map(({ products, tems }) =>
+        this.computeRequestStatusFromProductsAndTems(products, tems),
+      ),
+      catchError(() => of("Bản nháp")),
+    );
   }
 
   /**
@@ -7724,13 +7764,15 @@ export class ReceivingSuppliesComponent
           po,
         ),
       ),
-      switchMap(() =>
+      switchMap(() => this.refreshRequestProductCountsFromDb(requestId)),
+      switchMap(() => this.resolveRequestStatusByTemCoverage(requestId)),
+      switchMap((status) =>
         this.generateTemInService
           .updateRequest(requestId, {
             vendor: this.vendorCode,
             vendorName: this.vendorName,
             userData5: po,
-            status: "Bản nháp",
+            status,
             WhsCode: orderWhsCode || undefined,
           })
           .pipe(
@@ -7744,9 +7786,6 @@ export class ReceivingSuppliesComponent
               return requestId;
             }),
           ),
-      ),
-      switchMap((id) =>
-        this.refreshRequestProductCountsFromDb(id).pipe(map(() => id)),
       ),
     );
   }
@@ -7938,8 +7977,11 @@ export class ReceivingSuppliesComponent
   private refreshDraftRequestHeaderAfterPartialRelocate(
     sourceRequestId: number,
   ): Observable<void> {
-    return this.receivingService.getProductsByRequestId(sourceRequestId).pipe(
-      switchMap((products) => {
+    return forkJoin({
+      products: this.receivingService.getProductsByRequestId(sourceRequestId),
+      tems: this.generateTemInService.getTemDetailsByRequestId(sourceRequestId),
+    }).pipe(
+      switchMap(({ products, tems }) => {
         if (!products.length) {
           return of(undefined);
         }
@@ -7954,6 +7996,10 @@ export class ReceivingSuppliesComponent
           0,
         );
         const orderWhsCode = this.normalizeWarehouseCode(this.sapWarehouseCode);
+        const status = this.computeRequestStatusFromProductsAndTems(
+          products,
+          tems,
+        );
         return this.generateTemInService
           .updateRequest(sourceRequestId, {
             vendor: this.vendorCode,
@@ -7961,7 +8007,7 @@ export class ReceivingSuppliesComponent
             userData5: draftPo,
             numberProduction: products.length,
             totalQuantity: totalQty,
-            status: "Bản nháp",
+            status,
             WhsCode: orderWhsCode || undefined,
           })
           .pipe(map(() => undefined));
@@ -8154,13 +8200,14 @@ export class ReceivingSuppliesComponent
     return forkJoin(
       refreshIds.map((id) => this.refreshRequestProductCountsFromDb(id)),
     ).pipe(
-      switchMap(() =>
+      switchMap(() => this.resolveRequestStatusByTemCoverage(requestId)),
+      switchMap((status) =>
         this.generateTemInService
           .updateRequest(requestId, {
             userData5: po,
             numberProduction,
             totalQuantity: totalQty,
-            status: "Bản nháp",
+            status,
             WhsCode: orderWhsCode || undefined,
           })
           .pipe(map(() => requestId)),
