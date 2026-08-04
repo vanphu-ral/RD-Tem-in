@@ -9,12 +9,10 @@ export const MAU_IMPORT_REEL_HEADERS: string[] = [
   "STT thùng (0025)",
   "Part Number (00012836_V1)",
   "Contract (RD-JEI26-19092)",
-  "STT (1)",
   "SL vật tư (600)",
   "MFG (20260625)",
   "Số lô (20260625)",
   "Mã SAP (0001234)",
-  "SL tem (500)",
   "Tên SP (HB-58B)",
   "PO (42061)",
 ];

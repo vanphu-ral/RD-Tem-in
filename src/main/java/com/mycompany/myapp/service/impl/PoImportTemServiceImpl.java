@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -157,28 +158,47 @@ public class PoImportTemServiceImpl implements PoImportTemService {
                 "ImportVendorTemTransaction not found with id: {}",
                 transactionDTO.getId()
             );
-            return null;
+
+        // Không cho xóa đơn nếu đã có vật tư gửi PanaCIM thành công.
+        if (poImportTem.getImportVendorTemTransactions() != null) {
+            List<Long> transactionIds = poImportTem
+                .getImportVendorTemTransactions()
+                .stream()
+                .map(ImportVendorTemTransactions::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+            if (!transactionIds.isEmpty()) {
+                long panaSentCount =
+                    vendorTemDetailRepository.countByImportVendorTemTransactionsIdInAndPanaSendStatusTrue(
+                        transactionIds
+                    );
+                if (panaSentCount > 0) {
+                    throw new BadRequestAlertException(
+                        "Không thể xóa đơn: đã có vật tư gửi PanaCIM thành công.",
+                        "poImportTem",
+                        "panasentalready"
+                    );
+                }
+            }
         }
 
-        ImportVendorTemTransactions transaction = transactionOpt.get();
-        transaction.setPoNumber(transactionDTO.getPoNumber());
-        transaction.setVendorCode(transactionDTO.getVendorCode());
-        transaction.setVendorName(transactionDTO.getVendorName());
-        transaction.setStatus(transactionDTO.getStatus());
-        transaction.setUpdatedBy(transactionDTO.getUpdatedBy());
-        transaction.setUpdatedAt(transactionDTO.getUpdatedAt());
+        // Delete by IDs to avoid JPA entity state issues
+        if (poImportTem.getImportVendorTemTransactions() != null) {
+            for (ImportVendorTemTransactions transaction : poImportTem.getImportVendorTemTransactions()) {
+                Long transactionId = transaction.getId();
 
-        importVendorTemTransactionsRepository.save(transaction);
+                if (transaction.getPoDetails() != null) {
+                    for (PoDetail poDetail : transaction.getPoDetails()) {
+                        Long poDetailId = poDetail.getId();
 
-        if (transaction.getPoNumber() != null) {
-            sapPoInfoAggregateService
-                .getPoInfoByOporDocEntry(transaction.getPoNumber())
-                .getPoDetails()
-                .forEach(poDetail -> {
-                    PoDetail detail = new PoDetail();
-                    detail.setImportVendorTemTransactions(transaction);
-                    detail.setImportVendorTemTransactionsId(
-                        transaction.getId()
+                        // Delete all VendorTemDetail records for this PoDetail by ID
+                        vendorTemDetailRepository.deleteByPoDetailId(
+                            poDetailId
+                        );
+                    }
+                    // Delete all PoDetail records for this transaction by ID
+                    poDetailRepository.deleteByImportVendorTemTransactionsId(
+                        transactionId
                     );
                     poDetailRepository.save(detail);
                 });

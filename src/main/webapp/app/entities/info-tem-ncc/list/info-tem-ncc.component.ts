@@ -11,6 +11,7 @@ import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
+import { Observable, of, catchError, map } from "rxjs";
 
 import { DialogContentExampleDialogComponent } from "./confirm-dialog/confirm-dialog.component";
 import { AlertService } from "app/core/util/alert.service";
@@ -45,6 +46,8 @@ export interface TemNccItem {
   status: string;
   sessions?: SessionItem[];
   _raw?: PoImportTem;
+  /** true nếu đơn có ít nhất 1 vật tư đã gửi PanaCIM. */
+  hasPanaSent?: boolean;
 }
 
 export interface SessionItem {
@@ -313,33 +316,110 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   onDelete(item: TemNccItem): void {
-    const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
-      width: "400px",
-      data: {
-        title: "Xác nhận xóa",
-        message: "Bạn có chắc chắn muốn xóa bản ghi này?",
-        confirmText: "Xóa",
-        cancelText: "Hủy",
-      },
-    });
+    if (!this.canDeleteOrder(item)) {
+      this.notificationService.warning(
+        "Không thể xóa đơn: đã có vật tư gửi PanaCIM thành công.",
+      );
+      return;
+    }
 
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result === true) {
-        this.managerTemNccService.deleteTemPoImport(item.id).subscribe({
-          next: () => {
-            this.notificationService.success(
-              "Xóa đơn nhập nhà cung cấp thành công!",
-            );
-            this.loadData();
-            this.cdr.detectChanges();
-          },
-          error: () => {
-            this.notificationService.error(
-              "Xóa đơn nhập nhà cung cấp thất bại!",
-            );
-          },
-        });
+    this.checkOrderHasPanaSent(item).subscribe((hasPanaSent: boolean) => {
+      if (hasPanaSent) {
+        item.hasPanaSent = true;
+        this.notificationService.warning(
+          "Không thể xóa đơn: đã có vật tư gửi PanaCIM thành công.",
+        );
+        this.cdr.markForCheck();
+        return;
       }
+
+      const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
+        width: "400px",
+        data: {
+          title: "Xác nhận xóa",
+          message: "Bạn có chắc chắn muốn xóa bản ghi này?",
+          confirmText: "Xóa",
+          cancelText: "Hủy",
+        },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result === true) {
+          this.managerTemNccService.deleteTemPoImport(item.id).subscribe({
+            next: () => {
+              this.notificationService.success(
+                "Xóa đơn nhập nhà cung cấp thành công!",
+              );
+              this.loadData();
+              this.cdr.detectChanges();
+            },
+            error: (err) => {
+              const msg =
+                err?.error?.message ||
+                err?.error?.title ||
+                "Xóa đơn nhập nhà cung cấp thất bại!";
+              this.notificationService.error(msg);
+              // Backend chặn vì đã gửi PanaCIM → đánh dấu để disable nút xóa.
+              if (
+                String(msg).toLowerCase().includes("panacim") ||
+                err?.error?.errorKey === "panasentalready"
+              ) {
+                item.hasPanaSent = true;
+                this.cdr.markForCheck();
+              }
+            },
+          });
+        }
+      });
+    });
+  }
+
+  /** Đơn đã có ít nhất 1 vật tư gửi PanaCIM → không cho xóa. */
+  canDeleteOrder(item: TemNccItem): boolean {
+    return item.hasPanaSent !== true;
+  }
+
+  private checkOrderHasPanaSent(item: TemNccItem): Observable<boolean> {
+    if (this.orderHasPanaSentFlag(item)) {
+      return of(true);
+    }
+    const cached = this.detailCache.get(item.id);
+    if (cached) {
+      const hasSent = this.detailHasPanaSent(cached);
+      if (hasSent) {
+        item.hasPanaSent = true;
+      }
+      return of(hasSent);
+    }
+    return this.managerTemNccService.getPoImportTemDetail(item.id).pipe(
+      map((detail: PoImportTem) => {
+        this.detailCache.set(item.id, detail);
+        this.applyDetailToRow(item, detail);
+        return this.detailHasPanaSent(detail);
+      }),
+      // Không xác định được từ API → vẫn cho thử xóa; backend sẽ chặn nếu đã gửi.
+      catchError(() => of(false)),
+    );
+  }
+
+  private orderHasPanaSentFlag(item: TemNccItem): boolean {
+    return item.hasPanaSent === true;
+  }
+
+  private detailHasPanaSent(detail: PoImportTem): boolean {
+    const transactions = detail.importVendorTemTransactions ?? [];
+    return transactions.some((t) => {
+      const fromPo = (t.poDetails ?? []).some((d) =>
+        (d.vendorTemDetails ?? []).some((v) => v.panaSendStatus === true),
+      );
+      const fromOrphan = (t.noPoVendorTemDetails ?? []).some(
+        (v) => v.panaSendStatus === true,
+      );
+      return (
+        fromPo ||
+        fromOrphan ||
+        (t as { panaSendStatus?: boolean }).panaSendStatus === true
+      );
     });
   }
 
@@ -454,13 +534,23 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     const sessions = (detail.importVendorTemTransactions ?? []).map((t) =>
       this.mapToSessionItem(t),
     );
+    const hasPanaSent = this.detailHasPanaSent(detail);
     // cập nhật sessions vào row trong dataSource
     const idx = this.dataSource.data.findIndex((r) => r.id === row.id);
     if (idx >= 0) {
-      const updated = { ...this.dataSource.data[idx], sessions, _raw: detail };
+      const updated = {
+        ...this.dataSource.data[idx],
+        sessions,
+        _raw: detail,
+        hasPanaSent,
+      };
       const newData = [...this.dataSource.data];
       newData[idx] = updated;
       this.dataSource.data = newData;
+    } else {
+      row.sessions = sessions;
+      row._raw = detail;
+      row.hasPanaSent = hasPanaSent;
     }
   }
 

@@ -349,6 +349,11 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
+
+    <div class="no-data table-empty-state" *ngIf="showEmptyState">
+      <mat-icon>{{ hasActiveFilters ? "search_off" : "inbox" }}</mat-icon>
+      <p>{{ emptyStateMessage }}</p>
+    </div>
   </div>
 
   <!-- Mobile Card View -->
@@ -430,8 +435,8 @@
 
     <ng-template #noData>
       <div class="no-data">
-        <mat-icon>inbox</mat-icon>
-        <p>Không có dữ liệu</p>
+        <mat-icon>{{ hasActiveFilters ? "search_off" : "inbox" }}</mat-icon>
+        <p>{{ emptyStateMessage }}</p>
       </div>
     </ng-template>
   </div>

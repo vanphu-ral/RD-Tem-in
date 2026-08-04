@@ -29,4 +29,13 @@ public interface VendorTemDetailRepository
     > findByImportVendorTemTransactionsIdAndPoDetailIdIsNull(
         @Param("transactionId") Long transactionId
     );
+
+    @Query(
+        "SELECT COUNT(v) FROM VendorTemDetail v " +
+        "WHERE v.importVendorTemTransactionsId IN :transactionIds " +
+        "AND v.panaSendStatus = true"
+    )
+    long countByImportVendorTemTransactionsIdInAndPanaSendStatusTrue(
+        @Param("transactionIds") List<Long> transactionIds
+    );
 }
