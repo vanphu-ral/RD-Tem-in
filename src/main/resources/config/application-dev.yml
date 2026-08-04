@@ -94,6 +94,8 @@ partner2:
     url: jdbc:sqlserver://172.168.6.99:1433;database=WMSRAL;encrypt=true;trustServerCertificate=true;
     username: SA
     password: Led@R@ngDong
+    # username: technical
+    # password: 2022@tech
   hikari:
     poolName: Hikari
     auto-commit: false
@@ -178,7 +180,7 @@ partner6:
     # url: jdbc:sqlserver://localhost:1433;database=WorkZone;encrypt=true;trustServerCertificate=true;
     # username: sa
     # password: Led@R@ngDong123
-    url: jdbc:sqlserver://192.168.68.62:1433;database=WorkZone;encrypt=true;trustServerCertificate=true;
+    url: jdbc:sqlserver://192.168.68.62:1433;database=RawZone;encrypt=true;trustServerCertificate=true;
     username: technical
     password: QLHT-CNTT@2022
 
