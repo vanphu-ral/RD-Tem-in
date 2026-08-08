@@ -8,6 +8,7 @@ import {
 } from "app/entities/generate-tem-in/service/receiving-supplies.service";
 import {
   AggregateEditRow,
+  SCAN_ITEM_MISSING_FIELDS,
   buildDefaultUserData4,
   fromDateInputValue as fromDateInputValueUtil,
   toDateInputValue as toDateInputValueUtil,
@@ -258,6 +259,16 @@ export class ScanAggregateReelDialogComponent {
 
   isMissing(row: AggregateEditRow, key: string): boolean {
     return !String(row[key] ?? "").trim();
+  }
+
+  rowHasMissing(row: AggregateEditRow): boolean {
+    return SCAN_ITEM_MISSING_FIELDS.some((f) => this.isMissing(row, f.key));
+  }
+
+  rowMissingLabels(row: AggregateEditRow): string[] {
+    return SCAN_ITEM_MISSING_FIELDS.filter((f) =>
+      this.isMissing(row, f.key),
+    ).map((f) => f.label);
   }
 
   private resolveLocationName(selected: string | WarehouseLocation): string {

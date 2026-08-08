@@ -34,17 +34,17 @@
         <thead>
           <tr>
             <th class="col-reel">ReelID</th>
-            <th>SL</th>
+            <th>Số lượng</th>
             <th>Số lô</th>
             <th>MFG</th>
             <th>HSD *</th>
             <th>Vị trí *</th>
             <th>Mã kho *</th>
             <th>MSL</th>
-            <th>UD1</th>
-            <th>UD2</th>
-            <th>UD3</th>
-            <th>UD4</th>
+            <th>UserData1</th>
+            <th>UserData2</th>
+            <th>UserData3</th>
+            <th>UserData4</th>
           </tr>
         </thead>
         <tbody>
@@ -147,23 +147,39 @@
             <td>
               <input
                 class="cell-input"
+                [class.is-missing]="isMissing(row, 'msl')"
                 [(ngModel)]="row.msl"
                 (ngModelChange)="onCellChange(row, 'msl')"
               />
             </td>
             <td>
-              <input class="cell-input" [(ngModel)]="row.userData1" />
+              <input
+                class="cell-input"
+                [class.is-missing]="isMissing(row, 'userData1')"
+                [(ngModel)]="row.userData1"
+              />
             </td>
             <td>
-              <input class="cell-input" [(ngModel)]="row.userData2" />
+              <input
+                class="cell-input"
+                [class.is-missing]="isMissing(row, 'userData2')"
+                [(ngModel)]="row.userData2"
+              />
             </td>
             <td>
-              <input class="cell-input" [(ngModel)]="row.userData3" />
+              <input
+                class="cell-input"
+                [class.is-missing]="isMissing(row, 'userData3')"
+                [(ngModel)]="row.userData3"
+              />
             </td>
             <td>
-              <span class="cell-ro" [title]="row.userData4">{{
-                row.userData4 || "—"
-              }}</span>
+              <span
+                class="cell-ro"
+                [class.is-missing]="isMissing(row, 'userData4')"
+                [title]="row.userData4"
+                >{{ row.userData4 || "—" }}</span
+              >
             </td>
           </tr>
         </tbody>
@@ -176,22 +192,10 @@
         <button type="button" class="rd-m-head" (click)="toggleRow(row)">
           <span class="rd-m-id">{{ row.reelId }}</span>
           <span class="rd-m-meta"
-            >SL {{ row.initialQuantity }}
-            <span
-              class="rd-status"
-              [class.ok]="
-                !isMissing(row, 'expirationDate') &&
-                !isMissing(row, 'locationOverride') &&
-                !isMissing(row, 'storageUnit')
-              "
-              >{{
-                isMissing(row, "expirationDate") ||
-                isMissing(row, "locationOverride") ||
-                isMissing(row, "storageUnit")
-                  ? "Thiếu"
-                  : "Đủ"
-              }}</span
-            ></span
+            >Số lượng {{ row.initialQuantity }}
+            <span class="rd-status" [class.ok]="!rowHasMissing(row)">{{
+              rowHasMissing(row) ? "Thiếu" : "Đủ"
+            }}</span></span
           >
           <mat-icon>{{
             isExpanded(row) ? "expand_less" : "expand_more"
@@ -199,7 +203,7 @@
         </button>
         <div class="rd-m-body" *ngIf="isExpanded(row)">
           <label class="rd-field">
-            <span>SL</span>
+            <span>Số lượng</span>
             <input
               type="number"
               min="0"
@@ -278,23 +282,39 @@
           </label>
           <label class="rd-field">
             <span>MSL</span>
-            <input [(ngModel)]="row.msl" />
+            <input
+              [class.is-missing]="isMissing(row, 'msl')"
+              [(ngModel)]="row.msl"
+            />
           </label>
           <label class="rd-field">
-            <span>UD1</span>
-            <input [(ngModel)]="row.userData1" />
+            <span>UserData1</span>
+            <input
+              [class.is-missing]="isMissing(row, 'userData1')"
+              [(ngModel)]="row.userData1"
+            />
           </label>
           <label class="rd-field">
-            <span>UD2</span>
-            <input [(ngModel)]="row.userData2" />
+            <span>UserData2</span>
+            <input
+              [class.is-missing]="isMissing(row, 'userData2')"
+              [(ngModel)]="row.userData2"
+            />
           </label>
           <label class="rd-field">
-            <span>UD3</span>
-            <input [(ngModel)]="row.userData3" />
+            <span>UserData3</span>
+            <input
+              [class.is-missing]="isMissing(row, 'userData3')"
+              [(ngModel)]="row.userData3"
+            />
           </label>
           <div class="rd-field">
-            <span>UD4</span>
-            <span class="cell-ro">{{ row.userData4 || "—" }}</span>
+            <span>UserData4</span>
+            <span
+              class="cell-ro"
+              [class.is-missing]="isMissing(row, 'userData4')"
+              >{{ row.userData4 || "—" }}</span
+            >
           </div>
         </div>
       </div>

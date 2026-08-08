@@ -1176,7 +1176,10 @@ export class ScanItemDialogComponent
     const previewRows: ReelImportPreviewRow[] = [];
 
     rows.forEach((row, index) => {
-      const imported = toVendorImportedReelEntry(row);
+      const imported = toVendorImportedReelEntry(
+        row,
+        this.data?.vendorCode ?? "",
+      );
       const qrCode = imported.qrCode;
       const fieldMap = parseVendorQrByMappingConfig(
         qrCode,

@@ -7007,7 +7007,9 @@ export class ReceivingSuppliesComponent
     groups.forEach((items) => {
       const first = items[0];
       const sapCode = first.sapCode.trim();
-      const newEntries = items.map((item) => toVendorImportedReelEntry(item));
+      const newEntries = items.map((item) =>
+        toVendorImportedReelEntry(item, this.vendorCode),
+      );
 
       let parent = this.dataSource.data.find(
         (r) =>

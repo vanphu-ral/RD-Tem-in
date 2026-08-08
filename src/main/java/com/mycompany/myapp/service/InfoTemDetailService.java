@@ -231,7 +231,7 @@ public class InfoTemDetailService {
     /**
      * Tạo tem theo format NCC (CN4):
      * ReelID = yyyyMMdd + STT thùng (4 số) + PartNumber
-     * QR = ReelID#Partnumber#PO#ngày sx#Số lượng#số lô
+     * QR = ReelID#Partnumber#VendorCode#PO#ngày sx#Số lượng#số lô
      */
     @Transactional
     public GenerateTemResponse generateVendorTemForAllProducts(Long requestId) {
@@ -331,6 +331,9 @@ public class InfoTemDetailService {
                 String poNumber = product.getUserData5() != null
                     ? product.getUserData5().trim()
                     : "";
+                String vendorCode = product.getVendor() != null
+                    ? product.getVendor().trim()
+                    : "";
                 String mfgDate = product
                     .getManufacturingDate()
                     .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -347,6 +350,7 @@ public class InfoTemDetailService {
                         "#",
                         reelId,
                         partNumber,
+                        vendorCode,
                         poNumber,
                         mfgDate,
                         String.valueOf(initialQty),

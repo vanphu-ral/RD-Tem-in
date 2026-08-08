@@ -195,8 +195,9 @@
         label
       }}</span>
       <span class="hint-text"
-        >— điền <strong>Vị trí / Mã kho / MFG / HSD</strong> ở hàng vật tư (áp
-        cả nhánh), hoặc sửa riêng từng lô.</span
+        >— điền <strong>Vị trí / Mã kho / MFG / HSD / UserData / MSL</strong> ở
+        hàng vật tư (áp cả nhánh), hoặc sửa riêng từng lô. Dùng
+        <strong>Tự điền UD/MSL</strong> để điền mặc định.</span
       >
     </div>
     <ng-template #hintOk>
@@ -631,11 +632,30 @@
                     {{ materialReelCount(m) }} tem · {{ m.lots.length }} lô
                   </div>
                 </div>
-                <span class="status-badge" [class.ok]="!isMaterialMissing(m)">{{
-                  isMaterialMissing(m)
-                    ? "Thiếu " + materialMissingCount(m)
-                    : "Đủ"
-                }}</span>
+                <div class="m-status-block">
+                  <div class="status-badges">
+                    <ng-container
+                      *ngIf="materialMissingLabels(m).length; else matOkMobile"
+                    >
+                      <span
+                        class="warning-badge"
+                        *ngFor="let label of materialMissingLabels(m)"
+                        >{{ label }}</span
+                      >
+                    </ng-container>
+                    <ng-template #matOkMobile>
+                      <span class="status-badge ok">Đủ</span>
+                    </ng-template>
+                  </div>
+                  <label class="auto-fill-check">
+                    <mat-checkbox
+                      [checked]="m.autoFillDefaults"
+                      (change)="onAutoFillToggle(m, $event.checked)"
+                      color="primary"
+                    ></mat-checkbox>
+                    <span class="auto-fill-label">Tự điền UD/MSL</span>
+                  </label>
+                </div>
               </div>
               <div class="m-cascade">
                 <label>

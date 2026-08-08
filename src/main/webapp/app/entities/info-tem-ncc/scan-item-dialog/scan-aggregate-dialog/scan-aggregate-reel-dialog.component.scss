@@ -126,6 +126,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  &.is-missing {
+    border: 1px solid #f59e0b;
+    background: #fffbeb;
+    border-radius: 4px;
+    padding: 4px 6px;
+  }
 }
 
 .cell-reel {
