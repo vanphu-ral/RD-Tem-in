@@ -358,6 +358,59 @@
     align-items: flex-start;
   }
 
+  .m-status-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    max-width: 48%;
+    flex-shrink: 0;
+  }
+
+  .tree-mobile {
+    .status-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 3px;
+    }
+
+    .warning-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.2;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #fff7ed;
+      color: #c2410c;
+      border: 1px solid #fdba74;
+      white-space: nowrap;
+    }
+
+    .auto-fill-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      margin: 0;
+      font-weight: 400;
+      line-height: 1.2;
+      cursor: pointer;
+
+      ::ng-deep .mdc-checkbox,
+      ::ng-deep .mat-mdc-checkbox .mdc-checkbox {
+        --mdc-checkbox-state-layer-size: 32px;
+      }
+    }
+
+    .auto-fill-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      white-space: nowrap;
+    }
+  }
+
   .m-sap {
     font-size: 16px;
     font-weight: 700;

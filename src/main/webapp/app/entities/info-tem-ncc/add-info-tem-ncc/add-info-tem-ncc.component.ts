@@ -182,11 +182,11 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     // { key: "boxCount", label: "Số thùng", minWidth: 90 },
     // { key: "totalQty", label: "Tổng SL", minWidth: 90 },
     { key: "initialQuantity", label: "Quantity", minWidth: 100 },
-    { key: "userData1", label: "Userdata1", minWidth: 110 },
-    { key: "userData2", label: "Userdata2", minWidth: 110 },
-    { key: "userData3", label: "Userdata3", minWidth: 110 },
-    { key: "userData4", label: "Userdata4", minWidth: 110 },
-    { key: "userData5", label: "Userdata5", minWidth: 110 },
+    { key: "userData1", label: "UserData1", minWidth: 110 },
+    { key: "userData2", label: "UserData2", minWidth: 110 },
+    { key: "userData3", label: "UserData3", minWidth: 110 },
+    { key: "userData4", label: "UserData4", minWidth: 110 },
+    { key: "userData5", label: "UserData5", minWidth: 110 },
     { key: "msl", label: "MSL", minWidth: 80 },
     { key: "storageUnit", label: "StorageUnit", minWidth: 120 },
     { key: "manufacturingDate", label: "ManufacturingDate", minWidth: 150 },
@@ -1440,7 +1440,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         error: (error) => {
           this.isSendingPanacim = false;
           this.notificationService.error(
-            `Lỗi khi gửi: ${error.error?.message ?? error.message ?? "Không thể kết nối đến server"}`,
+            `Lỗi khi gửi: ${error.error?.message || error.message || "Không thể kết nối đến server"}`,
           );
           this.cdr.markForCheck();
         },
@@ -2005,7 +2005,10 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     const previewRows: ReelImportPreviewRow[] = [];
 
     rows.forEach((row, index) => {
-      const imported = toVendorImportedReelEntry(row);
+      const imported = toVendorImportedReelEntry(
+        row,
+        this.orderInfo.vendorCode ?? this.selectedScenario?.vendorCode ?? "",
+      );
       const qrCode = imported.qrCode;
       const fieldMap = parseVendorQrByMappingConfig(
         qrCode,
@@ -2039,11 +2042,19 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         cleanDate = String(dateSource);
       }
 
-      const matchedRow = parentItems.find(
-        (r) =>
-          (r.partNumber ?? "").trim().toLowerCase() ===
-          partNumber.toLowerCase(),
-      );
+      const matchedRow =
+        parentItems.find(
+          (r) =>
+            (r.partNumber ?? "").trim().toLowerCase() ===
+            partNumber.toLowerCase(),
+        ) ??
+        (partNumber
+          ? parentItems.find((r) => {
+              const parentSap = (r.sapCode ?? "").trim().toLowerCase();
+              const partNorm = partNumber.trim().toLowerCase();
+              return !!parentSap && parentSap === partNorm;
+            })
+          : undefined);
       // Ưu tiên mã SAP có sẵn trong file/QR; chỉ fallback map Part→SAP khi file thiếu SAP.
       const resolvedSap = this.firstNonEmpty(
         fieldMap["sapCode"],
@@ -2170,17 +2181,22 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         continue;
       }
 
-      const matchedRow = parentItems.find(
-        (r) =>
-          (r.partNumber ?? "").trim().toLowerCase() ===
-            partNumber.toLowerCase() ||
-          (!!(row.sapCode ?? "").trim() &&
-            (r.sapCode ?? "").trim().toLowerCase() ===
-              (row.sapCode ?? "").trim().toLowerCase()),
-      );
+      const matchedRow = parentItems.find((r) => {
+        const parentPart = (r.partNumber ?? "").trim().toLowerCase();
+        const parentSap = (r.sapCode ?? "").trim().toLowerCase();
+        const partNorm = partNumber.toLowerCase();
+        const rowSap = (row.sapCode ?? "").trim().toLowerCase();
+        if (partNorm && parentPart === partNorm) {
+          return true;
+        }
+        if (partNorm && parentSap && parentSap === partNorm) {
+          return true;
+        }
+        return !!(rowSap && parentSap && parentSap === rowSap);
+      });
       if (hasParents && partNumber && !matchedRow) {
         skipMessages.push(
-          `ReelID "${reelId}": Part Number "${partNumber}" không có trong đơn.`,
+          `ReelID "${reelId}": Part/SAP "${partNumber}" không có trong đơn.`,
         );
         continue;
       }
@@ -2666,13 +2682,19 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         if (byPart) {
           return byPart.id;
         }
+        // Part QR không khớp Part bảng → so nguyên với cột SAP.
+        const byPartVsSap = this.dataSource.data.find((p) => {
+          const ps = (p.sapCode ?? "").trim().toLowerCase();
+          return !!ps && ps === part;
+        });
+        if (byPartVsSap) {
+          return byPartVsSap.id;
+        }
       }
-      const sap =
-        (item.sapCode ?? "").trim().toLowerCase().replace(/^0+/, "") || "";
+      const sap = (item.sapCode ?? "").trim().toLowerCase();
       if (sap) {
         const bySap = this.dataSource.data.find((p) => {
-          const ps =
-            (p.sapCode ?? "").trim().toLowerCase().replace(/^0+/, "") || "";
+          const ps = (p.sapCode ?? "").trim().toLowerCase();
           return !!ps && ps === sap;
         });
         if (bySap) {

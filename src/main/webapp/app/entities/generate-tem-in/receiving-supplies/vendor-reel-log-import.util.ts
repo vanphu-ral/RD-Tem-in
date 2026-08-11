@@ -19,6 +19,10 @@ export interface VendorReelLogImportRow {
   poNumber: string;
   madeIn: string;
   contractNo: string;
+  /** QR gốc từ file (String QR / FULL QRCODE) — ưu tiên giữ nguyên khi tạo tem. */
+  sourceQrCode?: string;
+  /** Mã NCC từ cột VendorCode hoặc từ QR. */
+  vendorCode?: string;
   reconcileStatus: VendorReelImportReconcileStatus;
   reconcileMessage: string;
 }
@@ -41,7 +45,17 @@ export interface VendorImportedReelEntry {
 
 export function toVendorImportedReelEntry(
   row: VendorReelLogImportRow,
+  vendorCode = "",
 ): VendorImportedReelEntry {
+  const effectiveVendor =
+    (row.sourceQrCode
+      ? parseVendorQrCodeParts(row.sourceQrCode).vendorCode
+      : ""
+    ).trim() ||
+    (row.vendorCode ?? "").trim() ||
+    vendorCode.trim();
+
+  const sourceQr = (row.sourceQrCode ?? "").trim();
   return {
     reelId: row.reelId,
     partNumber: row.partNumber.trim(),
@@ -49,14 +63,17 @@ export function toVendorImportedReelEntry(
     mfgDate: row.mfgDate,
     quantity: row.quantity,
     lotNumber: row.lotNumber,
-    qrCode: buildVendorQrCode({
-      reelId: row.reelId,
-      partNumber: row.partNumber,
-      poOrContract: row.poNumber,
-      mfgDate: row.mfgDate,
-      quantity: row.quantity,
-      lotNumber: row.lotNumber,
-    }),
+    qrCode:
+      sourceQr ||
+      buildVendorQrCode({
+        reelId: row.reelId,
+        partNumber: row.partNumber,
+        vendorCode: effectiveVendor,
+        poOrContract: row.poNumber,
+        mfgDate: row.mfgDate,
+        quantity: row.quantity,
+        lotNumber: row.lotNumber,
+      }),
   };
 }
 
@@ -95,10 +112,14 @@ export function buildVendorReelId(
   return `${date}${stt}${part}`;
 }
 
-/** QR tem NCC: ReelID#Partnumber#PO#ngày sx#Số lượng#số lô. */
+/**
+ * QR tem NCC:
+ * ReelID#Partnumber#VendorCode#PO#ngày sx#Số lượng#số lô
+ */
 export function buildVendorQrCode(input: {
   reelId: string;
   partNumber: string;
+  vendorCode?: string;
   poOrContract: string;
   mfgDate: string;
   quantity: number;
@@ -107,11 +128,47 @@ export function buildVendorQrCode(input: {
   return [
     input.reelId.trim(),
     input.partNumber.trim(),
+    (input.vendorCode ?? "").trim(),
     input.poOrContract.trim(),
     input.mfgDate.trim(),
     String(input.quantity),
     input.lotNumber.trim(),
   ].join("#");
+}
+
+/** Parse QR NCC — hỗ trợ format mới (có vendor) và format cũ (6 phần). */
+export function parseVendorQrCodeParts(fullQr: string): {
+  reelId: string;
+  partNumber: string;
+  vendorCode: string;
+  poNumber: string;
+  mfgDate: string;
+  quantity: string;
+  lotNumber: string;
+} {
+  const parts = fullQr.split("#").map((p) => p.trim());
+  // Mới: ReelID#Part#Vendor#PO#mfg#qty#lot (>= 7)
+  if (parts.length >= 7) {
+    return {
+      reelId: parts[0] ?? "",
+      partNumber: parts[1] ?? "",
+      vendorCode: parts[2] ?? "",
+      poNumber: parts[3] ?? "",
+      mfgDate: parts[4] ?? "",
+      quantity: parts[5] ?? "",
+      lotNumber: parts[6] ?? "",
+    };
+  }
+  // Cũ: ReelID#Part#PO#mfg#qty#lot
+  return {
+    reelId: parts[0] ?? "",
+    partNumber: parts[1] ?? "",
+    vendorCode: "",
+    poNumber: parts[2] ?? "",
+    mfgDate: parts[3] ?? "",
+    quantity: parts[4] ?? "",
+    lotNumber: parts[5] ?? "",
+  };
 }
 
 function reconcileImportRow(
@@ -730,13 +787,17 @@ export function parseVendorDocument010ExcelArrayBuffer(
   return { rows, errors };
 }
 
-/** Dòng đầu có header bảng import (ReelID / Part / FULL QRCODE). */
+/** Dòng đầu có header bảng import (ReelID / Part / FULL QRCODE / String QR). */
 
 export function isVendorImportTableHeaderLine(line: string): boolean {
   const h = normalizeExcelHeader(line.replace(/[;,|\t]/g, " "));
   const hasReel = h.includes("reelid") || h.includes("reel id");
   const hasPart = h.includes("partnumber") || h.includes("part number");
-  const hasFullQr = h.includes("full qrcode") || h.includes("fullqrcode");
+  const hasFullQr =
+    h.includes("full qrcode") ||
+    h.includes("fullqrcode") ||
+    h.includes("string qr") ||
+    h.includes("stringqr");
   return hasFullQr || (hasReel && hasPart);
 }
 
@@ -749,6 +810,8 @@ function findImportHeaderRowIndex(
       return (
         h.includes("full qrcode") ||
         h === "fullqrcode" ||
+        h.includes("string qr") ||
+        h === "stringqr" ||
         h === "reelid" ||
         h === "reel id" ||
         h === "part number" ||
@@ -756,6 +819,38 @@ function findImportHeaderRowIndex(
       );
     }),
   );
+}
+
+/** Dòng hướng dẫn trong file labels export (row ngay dưới header). */
+function isLabelsInstructionRow(values: string[]): boolean {
+  const joined = values.join(" ").toLowerCase();
+  if (!joined.trim()) {
+    return true;
+  }
+  if (
+    joined.includes("export only") ||
+    joined.includes("auto row number") ||
+    joined.includes("formats:") ||
+    joined.includes("default pcs") ||
+    joined.includes("default kg") ||
+    joined.includes("* part number") ||
+    joined.includes("* mfd date") ||
+    joined.includes("* lot / batch") ||
+    joined.includes("* rd item code") ||
+    joined.includes("* quantity per label")
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function looksLikeVendorReelId(reelId: string): boolean {
+  const v = reelId.trim();
+  if (!v) {
+    return false;
+  }
+  // ReelID sinh: yyyyMMdd + STT + Part... hoặc có nhiều chữ số.
+  return /^\d{8}/.test(v) || (/\d/.test(v) && v.length >= 8);
 }
 
 function parseVendorImportMatrix(
@@ -776,7 +871,7 @@ function parseVendorImportMatrix(
     return {
       rows,
       errors: [
-        "Không tìm thấy dòng tiêu đề cột (ReelID / Part Number / FULL QRCODE). Tải file mẫu để xem đúng format.",
+        "Không tìm thấy dòng tiêu đề cột (ReelID / Part Number / FULL QRCODE / String QR). Tải file mẫu để xem đúng format.",
       ],
     };
   }
@@ -786,23 +881,64 @@ function parseVendorImportMatrix(
   );
   const findCol = (...aliases: string[]): number =>
     headers.findIndex((h) => aliases.some((a) => h === a || h.includes(a)));
+  const findColExact = (...names: string[]): number =>
+    headers.findIndex((h) => names.includes(h));
 
-  const colFullQr = findCol("full qrcode", "fullqrcode");
+  let colFullQr = findColExact(
+    "full qrcode",
+    "fullqrcode",
+    "string qr",
+    "stringqr",
+  );
+  if (colFullQr < 0) {
+    colFullQr = findCol("full qrcode", "fullqrcode", "string qr", "stringqr");
+  }
   const colReelId = findCol("reelid", "reel id");
   const colPart = findCol("partnumber", "part number");
-  const colPo = findCol("po", "userdata5");
+  let colPo = findColExact("po", "userdata5");
+  if (colPo < 0) {
+    colPo = headers.findIndex((h) => h === "po" || h.startsWith("po "));
+  }
+  const colVendor = findCol("vendorcode", "vendor code", "vendor");
   const colMfg = findCol("mfgdate", "mfg date", "manufacturing", "mfg");
-  const colQty = findCol(
+  let colQty = findColExact(
+    "quantityoflabel",
+    "quantity of label",
     "quantityofpackage",
     "initialquantity",
-    "số lượng",
-    "so luong",
-    "quantity",
-    "sl",
   );
+  if (colQty < 0) {
+    colQty = findCol(
+      "quantityoflabel",
+      "quantityofpackage",
+      "initialquantity",
+      "số lượng",
+      "so luong",
+      "quantity",
+      "sl",
+    );
+  }
   const colLot = findCol("lotnumber", "số lô", "so lo", "lot");
   const colItem = findCol("tên sp", "ten sp", "itemname", "item name");
-  const colSap = findCol("mã sap", "ma sap", "sapcode", "sap");
+  let colSap = findColExact(
+    "mã sap",
+    "ma sap",
+    "sapcode",
+    "sap",
+    "item code rd",
+    "itemcoderd",
+    "item code",
+  );
+  if (colSap < 0) {
+    colSap = findCol(
+      "mã sap",
+      "ma sap",
+      "sapcode",
+      "item code rd",
+      "item code",
+    );
+  }
+  const colContract = findCol("contract no", "contract", "số hđ", "so hd");
 
   for (let i = headerRowIndex + 1; i < matrix.length; i++) {
     const lineNo = i + 1;
@@ -817,6 +953,7 @@ function parseVendorImportMatrix(
     const reelIdCol = colReelId >= 0 ? cellToText(row[colReelId]) : "";
     const partCol = colPart >= 0 ? cellToText(row[colPart]) : "";
     const poCol = colPo >= 0 ? cellToText(row[colPo]) : "";
+    const vendorCol = colVendor >= 0 ? cellToText(row[colVendor]) : "";
     const mfgCol = parseYyyyMmDd(colMfg >= 0 ? cellToText(row[colMfg]) : "");
     const qtyCol = parsePositiveInt(
       colQty >= 0 ? cellToText(row[colQty]) : "0",
@@ -824,17 +961,36 @@ function parseVendorImportMatrix(
     const lotCol = colLot >= 0 ? cellToText(row[colLot]) : "";
     const itemName = colItem >= 0 ? cellToText(row[colItem]) : "";
     const sapFromCol = colSap >= 0 ? cellToText(row[colSap]) : "";
+    const contractNo = colContract >= 0 ? cellToText(row[colContract]) : "";
+
+    if (
+      isLabelsInstructionRow([
+        fullQr,
+        reelIdCol,
+        partCol,
+        poCol,
+        vendorCol,
+        itemName,
+        sapFromCol,
+      ])
+    ) {
+      continue;
+    }
 
     if (!fullQr) {
       if (!reelIdCol || !partCol) {
         errors.push(
-          `Dòng ${lineNo}: thiếu FULL QRCODE và không đủ ReelID/Part Number để dựng QR.`,
+          `Dòng ${lineNo}: thiếu String QR / FULL QRCODE và không đủ ReelID/Part Number để dựng QR.`,
         );
+        continue;
+      }
+      if (!looksLikeVendorReelId(reelIdCol)) {
         continue;
       }
       fullQr = buildVendorQrCode({
         reelId: reelIdCol,
         partNumber: partCol,
+        vendorCode: vendorCol,
         poOrContract: poCol,
         mfgDate: mfgCol,
         quantity: qtyCol,
@@ -842,16 +998,25 @@ function parseVendorImportMatrix(
       });
     }
 
-    const parts = fullQr.split("#").map((p) => p.trim());
-    const reelId = (parts[0] || reelIdCol).trim();
-    const partNumber = (parts[1] || partCol).trim();
-    const poNumber = (parts[2] || poCol).trim();
-    const mfgDate = parseYyyyMmDd(parts[3] || mfgCol);
-    const quantity = parsePositiveInt(parts[4] || String(qtyCol));
-    const lotNumber = (parts[5] || lotCol || mfgDate).trim();
+    if (!fullQr.includes("#")) {
+      // Không phải payload QR tem — bỏ qua (thường là dòng chú thích).
+      continue;
+    }
+
+    const parsedQr = parseVendorQrCodeParts(fullQr);
+    const reelId = (parsedQr.reelId || reelIdCol).trim();
+    const partNumber = (parsedQr.partNumber || partCol).trim();
+    const vendorCode = (parsedQr.vendorCode || vendorCol).trim();
+    const poNumber = (parsedQr.poNumber || poCol).trim();
+    const mfgDate = parseYyyyMmDd(parsedQr.mfgDate || mfgCol);
+    const quantity = parsePositiveInt(parsedQr.quantity || String(qtyCol));
+    const lotNumber = (parsedQr.lotNumber || lotCol || mfgDate).trim();
 
     if (!reelId || !partNumber) {
       errors.push(`Dòng ${lineNo}: thiếu ReelID/Part Number.`);
+      continue;
+    }
+    if (!looksLikeVendorReelId(reelId)) {
       continue;
     }
 
@@ -861,7 +1026,10 @@ function parseVendorImportMatrix(
       continue;
     }
 
-    const base = {
+    const base: Omit<
+      VendorReelLogImportRow,
+      "reconcileStatus" | "reconcileMessage"
+    > = {
       lineNo,
       reelId,
       boxStt: "",
@@ -874,7 +1042,9 @@ function parseVendorImportMatrix(
       itemName,
       poNumber,
       madeIn: "",
-      contractNo: "",
+      contractNo,
+      sourceQrCode: fullQr,
+      vendorCode,
     };
     const reconcile = reconcileImportRow(base, orderPo, poSapCodes);
     rows.push({
@@ -891,8 +1061,8 @@ function parseVendorImportMatrix(
 }
 
 /**
- * Parse mẫu Excel NCC có cột FULL QRCODE
- * (ReelID | Part Number | ... | FULL QRCODE) — khớp file mẫu tải về.
+ * Parse mẫu Excel NCC có cột FULL QRCODE / String QR
+ * (ReelID | Part Number | ... | FULL QRCODE) — gồm cả file labels_*.xlsx.
  */
 export function parseVendorFullQrExcelArrayBuffer(
   buffer: ArrayBuffer,
@@ -902,12 +1072,15 @@ export function parseVendorFullQrExcelArrayBuffer(
 ): VendorReelLogParseResult {
   try {
     const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) {
+    const preferred =
+      workbook.SheetNames.find(
+        (name) => name.trim().toLowerCase() === "labels",
+      ) ?? workbook.SheetNames[0];
+    if (!preferred) {
       return { rows: [], errors: ["File Excel không có sheet dữ liệu."] };
     }
 
-    const sheet = workbook.Sheets[sheetName];
+    const sheet = workbook.Sheets[preferred];
     const matrix = XLSX.utils.sheet_to_json<(string | number | Date | null)[]>(
       sheet,
       {

@@ -343,8 +343,9 @@ export function filterVendorNccLabelsByReelId(
 }
 
 export function getVendorNccPrintCss(paperSize: VendorNccPaperSize): string {
-  const pageWidth = paperSize === "A5" ? "148mm" : "210mm";
-  const pageHeight = paperSize === "A5" ? "210mm" : "297mm";
+  // In trực tiếp theo chiều ngang (landscape).
+  const pageWidth = paperSize === "A5" ? "210mm" : "297mm";
+  const pageHeight = paperSize === "A5" ? "148mm" : "210mm";
 
   return `
     @media print {
@@ -370,16 +371,42 @@ export function getVendorNccPrintCss(paperSize: VendorNccPaperSize): string {
       #vendorNccPrintClone .vendor-ncc-label-page {
         width: ${pageWidth} !important;
         height: ${pageHeight} !important;
+        min-height: ${pageHeight} !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
+        break-after: page !important;
+        break-inside: avoid !important;
         margin: 0 !important;
-        padding: 6mm !important;
+        padding: 5mm !important;
         box-sizing: border-box !important;
         background: #fff !important;
+        overflow: hidden !important;
       }
 
       #vendorNccPrintClone .vendor-ncc-label-page:last-child {
         page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+
+      #vendorNccPrintClone .label-sheet {
+        height: 100% !important;
+      }
+
+      #vendorNccPrintClone .qr-box {
+        min-height: 28mm !important;
+      }
+
+      #vendorNccPrintClone .code-box {
+        font-size: 20px !important;
+      }
+
+      #vendorNccPrintClone .label-table {
+        font-size: 13px !important;
+      }
+
+      #vendorNccPrintClone .label-table th,
+      #vendorNccPrintClone .label-table td {
+        padding: 3px 6px !important;
       }
     }
   `;
