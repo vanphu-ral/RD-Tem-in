@@ -688,14 +688,12 @@ export class ScanItemDialogComponent
     );
   }
 
-  private normalizeSapCode(code: string): string {
-    const t = (code ?? "").trim().toLowerCase();
-    if (!t) {
-      return "";
-    }
-    return t.replace(/^0+/, "") || "0";
-  }
-
+  /**
+   * Khớp dòng PO trên đơn với mã scan/import:
+   * 1) Part từ QR/kịch bản ↔ Part trên bảng
+   * 2) Không khớp → Part từ QR ↔ Mã SAP trên bảng (so nguyên, không bỏ 0 đầu)
+   * 3) Cuối cùng: SAP từ QR ↔ Mã SAP trên bảng (so nguyên)
+   */
   private findParentRowForImport(
     partNumber: string,
     sapCode: string,
@@ -709,13 +707,21 @@ export class ScanItemDialogComponent
       if (byPart) {
         return byPart;
       }
+      // Part QR không khớp Part bảng → đối chiếu nguyên giá trị Part QR với cột SAP.
+      const byPartVsSap = parentItems.find((r) => {
+        const parentSap = (r.sapCode ?? "").trim().toLowerCase();
+        return !!parentSap && parentSap === part;
+      });
+      if (byPartVsSap) {
+        return byPartVsSap;
+      }
     }
-    const sap = this.normalizeSapCode(sapCode);
+    const sap = (sapCode ?? "").trim().toLowerCase();
     if (!sap) {
       return undefined;
     }
     return parentItems.find((r) => {
-      const parentSap = this.normalizeSapCode(r.sapCode ?? "");
+      const parentSap = (r.sapCode ?? "").trim().toLowerCase();
       return !!parentSap && parentSap === sap;
     });
   }
