@@ -1,13 +1,25 @@
 package com.mycompany.myapp.service;
 
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2CreateOptions;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.share.DiskShare;
+import com.hierynomus.smbj.share.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.EnumSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -89,7 +101,6 @@ public class CsvUploadService {
      */
     private String uploadToSmbShareInternal(MultipartFile file, String fileName)
         throws IOException {
-        // \\LAPTOPCUAXUAN\Log_Printer\filename.csv
         String uncPath = String.format(
             "\\\\%s\\%s\\%s",
             smbHost,
@@ -98,54 +109,90 @@ public class CsvUploadService {
         );
 
         log.info("Uploading file to SMB share: {}", uncPath);
-        log.info("SMB Host: {}, Share: {}", smbHost, smbShare);
+        log.info(
+            "SMB Host: {}, Share: {}, User: {}",
+            smbHost,
+            smbShare,
+            smbUsername
+        );
+
+        SMBClient smbClient = new SMBClient();
+        Connection connection = null;
+        com.hierynomus.smbj.session.Session session = null;
+        DiskShare diskShare = null;
 
         try {
-            Path targetPath = Paths.get(uncPath);
+            connection = smbClient.connect(smbHost);
+            AuthenticationContext authContext = new AuthenticationContext(
+                smbUsername,
+                smbPassword.toCharArray(),
+                null
+            );
+            session = connection.authenticate(authContext);
+            diskShare = (DiskShare) session.connectShare(smbShare);
 
-            log.info("Target path: {}", targetPath.toString());
-
-            Path parentDir = targetPath.getParent();
-            if (parentDir != null) {
-                log.info("Parent directory: {}", parentDir.toString());
-                if (!Files.exists(parentDir)) {
-                    log.warn(
-                        "Parent directory does not exist, attempting to create: {}",
-                        parentDir
-                    );
-                    try {
-                        Files.createDirectories(parentDir);
-                    } catch (IOException e) {
-                        log.error(
-                            "Cannot create parent directory: {}",
-                            e.getMessage()
-                        );
-                    }
-                }
-            }
-
-            // Copy file to SMB share
-            try (InputStream inputStream = file.getInputStream()) {
-                Files.copy(
-                    inputStream,
-                    targetPath,
-                    StandardCopyOption.REPLACE_EXISTING
+            try (
+                InputStream inputStream = file.getInputStream();
+                File smbFile = diskShare.openFile(
+                    fileName,
+                    EnumSet.of(AccessMask.GENERIC_WRITE),
+                    EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                    EnumSet.of(
+                        SMB2ShareAccess.FILE_SHARE_READ,
+                        SMB2ShareAccess.FILE_SHARE_WRITE,
+                        SMB2ShareAccess.FILE_SHARE_DELETE
+                    ),
+                    SMB2CreateDisposition.FILE_OVERWRITE_IF,
+                    EnumSet.noneOf(SMB2CreateOptions.class)
                 );
+                OutputStream outputStream = smbFile.getOutputStream();
+            ) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+                outputStream.flush();
             }
 
             log.info("File uploaded successfully to: {}", uncPath);
             return uncPath;
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Failed to upload to SMB share: {}", e.getMessage(), e);
             log.error(
-                "Error details - Host: {}, Share: {}, File: {}",
+                "Error details - Host: {}, Share: {}, File: {}, User: {}",
                 smbHost,
                 smbShare,
-                fileName
+                fileName,
+                smbUsername
             );
-            // Fallback to local path if SMB fails
-            log.warn("Falling back to local path upload");
-            return uploadToLocalPath(file, fileName);
+            throw new IOException(
+                "Failed to upload file: " + e.getMessage(),
+                e
+            );
+        } finally {
+            if (diskShare != null) {
+                try {
+                    diskShare.close();
+                } catch (Exception e) {
+                    log.error("Error closing share", e);
+                }
+            }
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (Exception e) {
+                    log.error("Error closing session", e);
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (Exception e) {
+                    log.error("Error closing connection", e);
+                }
+            }
+            smbClient.close();
         }
     }
 
