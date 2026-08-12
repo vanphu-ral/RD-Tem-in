@@ -5,8 +5,9 @@
       <div>
         <h2>In tem nhà cung cấp</h2>
         <p>
-          Preview {{ displayLabels.length }}/{{ totalLabels }} tem · Khổ
-          {{ paperSize }}
+          Preview 1 tem · Tổng {{ totalLabels }} · Khổ {{ paperSize }} ({{
+            paperSizeHint
+          }})
         </p>
       </div>
     </div>
@@ -16,7 +17,7 @@
         class="btn-pdf"
         type="button"
         (click)="exportPdf()"
-        [disabled]="!displayLabels.length || isExportingPdf"
+        [disabled]="!totalLabels || isExportingPdf || isPreparingPrint"
       >
         <mat-icon>picture_as_pdf</mat-icon>
         Xuất PDF
@@ -26,10 +27,10 @@
         class="btn-print"
         type="button"
         (click)="printLabels()"
-        [disabled]="!displayLabels.length || isExportingPdf"
+        [disabled]="!totalLabels || isExportingPdf || isPreparingPrint"
       >
         <mat-icon>print</mat-icon>
-        In trực tiếp
+        {{ isPreparingPrint ? "Đang chuẩn bị in…" : "In trực tiếp" }}
       </button>
       <button mat-icon-button type="button" (click)="close()" aria-label="Đóng">
         <mat-icon>close</mat-icon>
@@ -48,115 +49,235 @@
       <h3>Tùy chọn in</h3>
 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Khổ giấy</mat-label>
+        <mat-label>Khổ tem</mat-label>
         <mat-select
           [ngModel]="paperSize"
           (ngModelChange)="onPaperSizeChange($event)"
         >
-          <mat-option value="A5">A5 (mặc định)</mat-option>
-          <mat-option value="A4">A4</mat-option>
+          <mat-option value="40x100">40×100 mm</mat-option>
+          <mat-option value="100x100">100×100 mm</mat-option>
+          <mat-option value="A5">A5 ngang (210×148 mm)</mat-option>
         </mat-select>
       </mat-form-field>
 
       <mat-divider></mat-divider>
 
-      <!--
-      Tạm thời ẩn phần chọn icon theo yêu cầu.
-      Khi bật lại, bỏ comment block dưới:
-
-      <h3>Lưu ý vận chuyển</h3>
-      <p class="hint">Chọn tối đa 4 biểu tượng hiển thị trên tem.</p>
-      <div class="handling-icon-list">
-        ...
-      </div>
-      -->
+      <p class="hint">
+        Preview chỉ hiển thị <strong>1 tem</strong> để giảm tải giao diện. Dùng
+        mũi tên để xem tem khác. In / Xuất PDF vẫn xử lý toàn bộ
+        {{ totalLabels }} tem.
+      </p>
     </aside>
 
     <section class="preview-panel">
-      <div class="preview-scroll">
-        <div [id]="previewContainerId" class="preview-container">
+      <div class="preview-nav" *ngIf="totalLabels">
+        <button
+          mat-icon-button
+          type="button"
+          (click)="prevLabel()"
+          [disabled]="previewIndex <= 0 || isExportingPdf"
+          aria-label="Tem trước"
+        >
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <span class="preview-nav-label">{{ previewPositionLabel }}</span>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="nextLabel()"
+          [disabled]="previewIndex >= totalLabels - 1 || isExportingPdf"
+          aria-label="Tem sau"
+        >
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+
+      <div class="preview-scroll" #previewViewport>
+        <div
+          [id]="previewContainerId"
+          class="preview-container"
+          *ngIf="currentLabel && !printAllMode"
+        >
           <div
-            class="vendor-ncc-label-page"
-            [class.paper-a5]="paperSize === 'A5'"
-            [class.paper-a4]="paperSize === 'A4'"
-            *ngFor="let label of displayLabels; trackBy: trackByLabelId"
+            class="preview-stage"
+            [style.width.px]="previewStageWidthPx"
+            [style.height.px]="previewStageHeightPx"
           >
-            <div class="label-sheet">
-              <div class="label-header">
-                <div class="qr-box">
-                  <qrcode
-                    *ngIf="label.qrCode"
-                    [qrdata]="label.qrCode"
-                    [width]="120"
-                    [margin]="0"
-                    [errorCorrectionLevel]="'M'"
-                  ></qrcode>
-                </div>
-                <div class="header-codes">
-                  <div class="code-box">{{ label.sapCode }}</div>
-                  <div class="code-box">{{ label.partNumber }}</div>
-                </div>
-              </div>
-
-              <div class="label-body">
-                <table class="label-table">
-                  <tbody>
-                    <tr>
-                      <th>Quantity:</th>
-                      <td>{{ label.quantity }}</td>
-                      <td class="unit">PCS</td>
-                    </tr>
-                    <tr>
-                      <th>Gross/Net Weigh:</th>
-                      <td>{{ label.grossNetWeight }}</td>
-                      <td class="unit">KG</td>
-                    </tr>
-                    <tr>
-                      <th>Meas:</th>
-                      <td>{{ label.meas }}</td>
-                      <td class="unit">cm</td>
-                    </tr>
-                    <tr>
-                      <th>PO No:</th>
-                      <td colspan="2">{{ label.poNo }}</td>
-                    </tr>
-                    <tr>
-                      <th>Contract No:</th>
-                      <td colspan="2">{{ label.contractNo }}</td>
-                    </tr>
-                    <tr>
-                      <th>Invoice no:</th>
-                      <td colspan="2">{{ label.invoiceNo }}</td>
-                    </tr>
-                    <tr>
-                      <th>Batch no:</th>
-                      <td colspan="2">{{ label.batchNo }}</td>
-                    </tr>
-                    <tr>
-                      <th>MFG Date:</th>
-                      <td colspan="2">{{ label.mfgDate }}</td>
-                    </tr>
-                    <tr>
-                      <th>Box No:</th>
-                      <td colspan="2">{{ label.boxNo }}</td>
-                    </tr>
-                    <tr>
-                      <th>Made by:</th>
-                      <td colspan="2">{{ label.madeIn }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <!-- Tạm thời ẩn icon trên tem theo yêu cầu -->
-              </div>
+            <div
+              class="preview-scale-inner"
+              [style.transform]="'scale(' + previewScale + ')'"
+            >
+              <ng-container
+                *ngTemplateOutlet="
+                  labelTpl;
+                  context: { $implicit: currentLabel }
+                "
+              ></ng-container>
             </div>
           </div>
         </div>
 
-        <div class="empty-preview" *ngIf="!displayLabels.length">
+        <div class="empty-preview" *ngIf="!totalLabels">
           Không có tem để in.
         </div>
       </div>
     </section>
   </div>
+
+  <div
+    *ngIf="printAllMode"
+    [id]="printAllContainerId"
+    class="print-all-container"
+    aria-hidden="true"
+  >
+    <ng-container *ngFor="let label of allLabels; trackBy: trackByLabelId">
+      <ng-container
+        *ngTemplateOutlet="labelTpl; context: { $implicit: label }"
+      ></ng-container>
+    </ng-container>
+  </div>
 </div>
+
+<ng-template #labelTpl let-label>
+  <!-- ===== 40×100-v2 strip ===== -->
+  <div
+    class="vendor-ncc-label-page label-card layout-strip-v2 size-40x100-v2"
+    *ngIf="isStripLayout"
+  >
+    <div class="label-qr">
+      <div class="qr-slot">
+        <qrcode
+          *ngIf="label.qrCode"
+          [qrdata]="label.qrCode"
+          [width]="qrWidth"
+          [margin]="0"
+          [errorCorrectionLevel]="'M'"
+        ></qrcode>
+      </div>
+    </div>
+    <div class="label-info">
+      <div class="product-name">{{ label.vendorItemName }}</div>
+      <div class="field">
+        <span class="key">Mã part:</span><span>{{ label.partNumber }}</span>
+      </div>
+      <div class="field">
+        <span class="key">Số lượng:</span
+        ><span>{{ label.quantity }} PCS</span>
+      </div>
+      <div class="field">
+        <span class="key">Khối lượng:</span
+        ><span
+          >{{ label.weight
+          }}<ng-container *ngIf="label.weight">&nbsp;KG</ng-container></span
+        >
+      </div>
+      <div class="field">
+        <span class="key">Hóa đơn:</span><span>{{ label.invoiceNo }}</span>
+      </div>
+      <div class="field">
+        <span class="key">Số thùng:</span><span>{{ label.boxNo }}</span>
+      </div>
+      <div class="field">
+        <span class="key">Nhà cung cấp:</span
+        ><span>{{ label.vendorName }}</span>
+      </div>
+      <div class="field">
+        <span class="key">Xuất xứ:</span><span>{{ label.madeIn }}</span>
+      </div>
+    </div>
+    <div class="label-icons">
+      <div class="label-icons-extra">
+        <div class="field">
+          <span class="key">Màu sắc:</span> <span>{{ label.color }}</span>
+        </div>
+        <div class="field">
+          <span class="key">Người vận hành:</span>
+          <span>{{ label.operator }}</span>
+        </div>
+      </div>
+      <img [src]="shippingIconsSrc" alt="Handling icons" />
+    </div>
+  </div>
+
+  <!-- ===== 100×100-v2 / a5-v2 sheet ===== -->
+  <div
+    class="vendor-ncc-label-page label-card layout-sheet-v2"
+    [class.size-100x100-v2]="paperSize === '100x100'"
+    [class.size-a5-v2]="paperSize === 'A5'"
+    *ngIf="!isStripLayout"
+  >
+    <div class="sheet-body sheet-body-full">
+      <table class="sheet-table sheet-full-table sheet-table-v2">
+        <colgroup>
+          <col class="sheet-col-label" />
+          <col class="sheet-col-value" />
+          <col class="sheet-col-label2" />
+          <col class="sheet-col-value2" />
+        </colgroup>
+        <tr class="sheet-header-row">
+          <td class="sheet-qr-cell">
+            <div class="qr-slot">
+              <qrcode
+                *ngIf="label.qrCode"
+                [qrdata]="label.qrCode"
+                [width]="qrWidth"
+                [margin]="0"
+                [errorCorrectionLevel]="'M'"
+              ></qrcode>
+            </div>
+          </td>
+          <td class="sheet-codes-cell" colspan="3">
+            <div class="sheet-code-row sheet-part-code">
+              {{ label.partNumber }}
+            </div>
+            <div class="sheet-code-row sheet-product-name">
+              {{ label.vendorItemName }}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="col-label">Số lượng:</td>
+          <td class="col-value" colspan="2">{{ label.quantity }}</td>
+          <td class="col-unit">PCS</td>
+        </tr>
+        <tr>
+          <td class="col-label">Khối lượng:</td>
+          <td class="col-value" colspan="2">{{ label.weight }}</td>
+          <td class="col-unit">KG</td>
+        </tr>
+        <tr>
+          <td class="col-label">Kích thước:</td>
+          <td class="col-value" colspan="2">{{ label.meas }}</td>
+          <td class="col-unit">cm</td>
+        </tr>
+        <tr>
+          <td class="col-label">Số PO:</td>
+          <td class="col-value">{{ label.poNo }}</td>
+          <td class="col-label">Số hóa đơn:</td>
+          <td class="col-value">{{ label.invoiceNo }}</td>
+        </tr>
+        <tr>
+          <td class="col-label">Màu sắc:</td>
+          <td class="col-value">{{ label.color }}</td>
+          <td class="col-label">Người vận hành:</td>
+          <td class="col-value">{{ label.operator }}</td>
+        </tr>
+        <tr>
+          <td class="col-label">Số thùng:</td>
+          <td class="col-value" colspan="3">{{ label.boxNo }}</td>
+        </tr>
+        <tr>
+          <td class="col-label">Nhà cung cấp:</td>
+          <td class="col-value" colspan="3">{{ label.vendorName }}</td>
+        </tr>
+        <tr>
+          <td class="col-label">Xuất xứ:</td>
+          <td class="col-value" colspan="3">{{ label.madeIn }}</td>
+        </tr>
+      </table>
+      <div class="sheet-icons">
+        <img [src]="shippingIconsSrc" alt="Handling icons" />
+      </div>
+    </div>
+  </div>
+</ng-template>

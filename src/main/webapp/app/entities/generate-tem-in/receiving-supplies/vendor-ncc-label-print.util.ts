@@ -3,7 +3,9 @@ import html2canvas from "html2canvas";
 import { VendorImportedReelEntry } from "./vendor-reel-log-import.util";
 import { VendorPrintSourceExportInput } from "./vendor-print-source-export.util";
 
-export type VendorNccPaperSize = "A5" | "A4";
+/** Khổ tem NCC: 40×100mm (ngang), 100×100mm, A5. */
+export type VendorNccPaperSize = "40x100" | "100x100" | "A5";
+
 export type VendorNccHandlingIconId =
   | "handle_with_care"
   | "this_side_up"
@@ -22,16 +24,24 @@ export interface VendorNccLabelData {
   qrCode: string;
   sapCode: string;
   partNumber: string;
-  quantity: number;
-  grossNetWeight: string;
+  /** Tên vật tư / Vendor item name */
+  vendorItemName: string;
+  quantity: number | string;
+  /** Weight — Gross/Net Weigh */
+  weight: string;
   meas: string;
   poNo: string;
-  contractNo: string;
   invoiceNo: string;
+  boxNo: string;
+  vendorName: string;
+  madeIn: string;
+  color: string;
+  operator: string;
+  /** Giữ field cũ để tương thích chỗ khác nếu còn dùng */
+  grossNetWeight: string;
+  contractNo: string;
   batchNo: string;
   mfgDate: string;
-  boxNo: string;
-  madeIn: string;
 }
 
 export interface VendorNccTemDetailInput {
@@ -71,17 +81,41 @@ export const DEFAULT_VENDOR_NCC_HANDLING_ICONS: VendorNccHandlingIconId[] = [
   "keep_dry",
 ];
 
+export const VENDOR_NCC_SHIPPING_ICONS_SRC =
+  "/content/images/shipping-icons.png";
+
 const PAPER_SIZE_STORAGE_KEY = "vendor-ncc-print-paper-size";
 
 export function loadVendorNccPaperSizePreference(): VendorNccPaperSize {
   const stored = localStorage.getItem(PAPER_SIZE_STORAGE_KEY);
-  return stored === "A4" ? "A4" : "A5";
+  if (stored === "40x100" || stored === "100x100" || stored === "A5") {
+    return stored;
+  }
+  // Migrate cũ A4 → A5
+  return "A5";
 }
 
 export function saveVendorNccPaperSizePreference(
   size: VendorNccPaperSize,
 ): void {
   localStorage.setItem(PAPER_SIZE_STORAGE_KEY, size);
+}
+
+export function getVendorNccPaperDimensions(paperSize: VendorNccPaperSize): {
+  widthMm: number;
+  heightMm: number;
+  orientation: "landscape" | "portrait";
+} {
+  switch (paperSize) {
+    case "40x100":
+      return { widthMm: 100, heightMm: 40, orientation: "landscape" };
+    case "100x100":
+      return { widthMm: 100, heightMm: 100, orientation: "portrait" };
+    case "A5":
+    default:
+      // A5 ngang (landscape)
+      return { widthMm: 210, heightMm: 148, orientation: "landscape" };
+  }
 }
 
 function normalizeDigits(value: string | null | undefined): string {
@@ -120,14 +154,26 @@ function toLabelFromSource(
   overrides: Partial<VendorNccLabelData> & { id: string },
 ): VendorNccLabelData {
   const po = (overrides.poNo ?? source.po).trim();
+  const weight = (
+    overrides.weight ??
+    overrides.grossNetWeight ??
+    source.grossNetWeight ??
+    ""
+  ).trim();
   return {
     id: overrides.id,
     reelId: overrides.reelId ?? "",
     qrCode: overrides.qrCode ?? "",
     sapCode: (overrides.sapCode ?? source.sapCode).trim(),
     partNumber: (overrides.partNumber ?? source.partNumber).trim(),
-    quantity: overrides.quantity ?? source.quantity ?? 0,
-    grossNetWeight: overrides.grossNetWeight ?? source.grossNetWeight ?? "",
+    vendorItemName: (
+      overrides.vendorItemName ??
+      source.productName ??
+      ""
+    ).trim(),
+    quantity: overrides.quantity ?? source.quantity ?? "",
+    weight,
+    grossNetWeight: weight,
     meas: overrides.meas ?? source.meas ?? "",
     poNo: po,
     contractNo:
@@ -136,7 +182,10 @@ function toLabelFromSource(
     batchNo: (overrides.batchNo ?? source.lotBatchNo).trim(),
     mfgDate: overrides.mfgDate ?? formatMfgDate(source.mfgDate),
     boxNo: overrides.boxNo ?? "1 of 1",
-    madeIn: (overrides.madeIn ?? source.madeIn ?? "China").trim(),
+    madeIn: (overrides.madeIn ?? source.madeIn ?? "").trim(),
+    vendorName: (overrides.vendorName ?? source.vendorName ?? "").trim(),
+    color: overrides.color ?? "",
+    operator: overrides.operator ?? "",
   };
 }
 
@@ -189,6 +238,7 @@ function buildFromTemDetails(
           ? input.sourceRows[sourceIndex]
           : ({
               sapCode: tem.sapCode,
+              productName: "",
               partNumber: tem.partNumber,
               quantity: tem.initialQuantity ?? 0,
               grossNetWeight: "",
@@ -198,7 +248,8 @@ function buildFromTemDetails(
               invoiceNo: "",
               lotBatchNo: tem.lot ?? "",
               mfgDate: tem.manufacturingDate ?? "",
-              madeIn: "China",
+              madeIn: "",
+              vendorName: "",
             } as VendorPrintSourceExportInput);
 
       labels.push(
@@ -208,7 +259,7 @@ function buildFromTemDetails(
           qrCode: tem.qrCode,
           sapCode: tem.sapCode,
           partNumber: tem.partNumber,
-          quantity: tem.initialQuantity ?? source.quantity ?? 0,
+          quantity: tem.initialQuantity ?? source.quantity ?? "",
           poNo: tem.userData5 ?? source.po,
           batchNo: tem.lot ?? source.lotBatchNo,
           mfgDate: formatMfgDate(tem.manufacturingDate ?? source.mfgDate),
@@ -240,6 +291,7 @@ function buildFromImportedReels(
           reelId: reel.reelId,
           qrCode: reel.qrCode,
           partNumber: reel.partNumber,
+          vendorItemName: source.productName,
           quantity: reel.quantity,
           poNo: reel.poNumber || source.po,
           batchNo: reel.lotNumber || source.lotBatchNo,
@@ -343,14 +395,12 @@ export function filterVendorNccLabelsByReelId(
 }
 
 export function getVendorNccPrintCss(paperSize: VendorNccPaperSize): string {
-  // In trực tiếp theo chiều ngang (landscape).
-  const pageWidth = paperSize === "A5" ? "210mm" : "297mm";
-  const pageHeight = paperSize === "A5" ? "148mm" : "210mm";
+  const { widthMm, heightMm } = getVendorNccPaperDimensions(paperSize);
 
   return `
     @media print {
       @page {
-        size: ${pageWidth} ${pageHeight};
+        size: ${widthMm}mm ${heightMm}mm;
         margin: 0;
       }
 
@@ -369,18 +419,20 @@ export function getVendorNccPrintCss(paperSize: VendorNccPaperSize): string {
       }
 
       #vendorNccPrintClone .vendor-ncc-label-page {
-        width: ${pageWidth} !important;
-        height: ${pageHeight} !important;
-        min-height: ${pageHeight} !important;
+        width: ${widthMm}mm !important;
+        height: ${heightMm}mm !important;
+        min-height: ${heightMm}mm !important;
+        max-height: ${heightMm}mm !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
         break-after: page !important;
         break-inside: avoid !important;
         margin: 0 !important;
-        padding: 5mm !important;
+        padding: 0 !important;
         box-sizing: border-box !important;
         background: #fff !important;
         overflow: hidden !important;
+        box-shadow: none !important;
       }
 
       #vendorNccPrintClone .vendor-ncc-label-page:last-child {
@@ -389,24 +441,13 @@ export function getVendorNccPrintCss(paperSize: VendorNccPaperSize): string {
       }
 
       #vendorNccPrintClone .label-sheet {
+        width: 100% !important;
         height: 100% !important;
       }
 
-      #vendorNccPrintClone .qr-box {
-        min-height: 28mm !important;
-      }
-
-      #vendorNccPrintClone .code-box {
-        font-size: 20px !important;
-      }
-
-      #vendorNccPrintClone .label-table {
-        font-size: 13px !important;
-      }
-
-      #vendorNccPrintClone .label-table th,
-      #vendorNccPrintClone .label-table td {
-        padding: 3px 6px !important;
+      #vendorNccPrintClone .shipping-icons-img {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
       }
     }
   `;
@@ -429,8 +470,8 @@ export function runVendorNccLabelPrint(
   const clonedCanvases = printContainer.querySelectorAll("canvas");
   originalCanvases.forEach((originalCanvas, index) => {
     const clonedCanvas = clonedCanvases[index] as HTMLCanvasElement;
-    const ctx = clonedCanvas.getContext("2d");
-    if (ctx) {
+    const ctx = clonedCanvas?.getContext("2d");
+    if (ctx && originalCanvas) {
       clonedCanvas.width = originalCanvas.width;
       clonedCanvas.height = originalCanvas.height;
       ctx.drawImage(originalCanvas, 0, 0);
@@ -458,6 +499,64 @@ export function runVendorNccLabelPrint(
   }, 400);
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Xuất PDF tuần tự: mỗi lần chỉ render 1 tem (giảm tải UI khi nhiều tem).
+ * `renderLabel` chuyển preview sang tem index i rồi chờ QR vẽ xong.
+ */
+export async function exportVendorNccLabelsToPdfSequential(
+  paperSize: VendorNccPaperSize,
+  totalLabels: number,
+  fileName: string,
+  renderLabel: (index: number) => Promise<HTMLElement | null>,
+  onProgress?: (percent: number) => void,
+): Promise<void> {
+  if (totalLabels <= 0) {
+    throw new Error("Không có tem để xuất PDF.");
+  }
+
+  const { widthMm, heightMm } = getVendorNccPaperDimensions(paperSize);
+  const pdf = new jsPDF({
+    orientation: widthMm >= heightMm ? "landscape" : "portrait",
+    unit: "mm",
+    format: [widthMm, heightMm],
+  });
+
+  for (let i = 0; i < totalLabels; i += 1) {
+    if (i > 0) {
+      pdf.addPage([widthMm, heightMm], widthMm >= heightMm ? "landscape" : "portrait");
+    }
+
+    const pageEl = await renderLabel(i);
+    if (!pageEl) {
+      throw new Error(`Không render được tem thứ ${i + 1}.`);
+    }
+
+    await delay(280);
+
+    const canvas = await html2canvas(pageEl, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#ffffff",
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.92);
+    const ratio = Math.min(widthMm / canvas.width, heightMm / canvas.height);
+    const pdfWidth = canvas.width * ratio;
+    const pdfImgHeight = canvas.height * ratio;
+    pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfImgHeight);
+    onProgress?.(Math.round(((i + 1) / totalLabels) * 100));
+    canvas.remove();
+  }
+
+  pdf.save(fileName);
+}
+
+/** @deprecated Dùng exportVendorNccLabelsToPdfSequential khi preview 1 tem. */
 export async function exportVendorNccLabelsToPdf(
   containerId: string,
   paperSize: VendorNccPaperSize,
@@ -477,14 +576,16 @@ export async function exportVendorNccLabelsToPdf(
     throw new Error("Không có tem để xuất PDF.");
   }
 
-  const isA5 = paperSize === "A5";
-  const pdf = new jsPDF("portrait", "mm", isA5 ? [148, 210] : [210, 297]);
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
+  const { widthMm, heightMm } = getVendorNccPaperDimensions(paperSize);
+  const pdf = new jsPDF({
+    orientation: widthMm >= heightMm ? "landscape" : "portrait",
+    unit: "mm",
+    format: [widthMm, heightMm],
+  });
 
   for (let i = 0; i < pages.length; i += 1) {
     if (i > 0) {
-      pdf.addPage(isA5 ? [148, 210] : [210, 297], "portrait");
+      pdf.addPage([widthMm, heightMm], widthMm >= heightMm ? "landscape" : "portrait");
     }
 
     const canvas = await html2canvas(pages[i], {
@@ -495,10 +596,7 @@ export async function exportVendorNccLabelsToPdf(
     });
 
     const imgData = canvas.toDataURL("image/jpeg", 0.92);
-    const ratio = Math.min(
-      pageWidth / canvas.width,
-      pageHeight / canvas.height,
-    );
+    const ratio = Math.min(widthMm / canvas.width, heightMm / canvas.height);
     const pdfWidth = canvas.width * ratio;
     const pdfImgHeight = canvas.height * ratio;
     pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfImgHeight);
