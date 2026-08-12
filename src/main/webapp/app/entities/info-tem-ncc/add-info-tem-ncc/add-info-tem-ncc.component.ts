@@ -396,12 +396,17 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     }
   }
 
-  displayScenario(scenario: TemScenarioResponse | null): string {
+  displayScenario = (
+    scenario: TemScenarioResponse | string | null,
+  ): string => {
     if (!scenario) {
       return "";
     }
+    if (typeof scenario === "string") {
+      return scenario;
+    }
     return `${scenario.vendorCode} - ${scenario.vendorName}`;
-  }
+  };
 
   onApply(): void {
     if (!this.selectedScenario) {

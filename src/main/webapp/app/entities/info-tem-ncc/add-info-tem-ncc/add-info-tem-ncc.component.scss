@@ -1237,3 +1237,112 @@ table {
     overflow: hidden;
   }
 }
+
+/* Panel kịch bản nhập TEM — rộng hơn input, hover + ngăn cách bản ghi */
+::ng-deep .scenario-autocomplete-panel.mat-mdc-autocomplete-panel {
+  min-width: 440px !important;
+  max-width: min(560px, 92vw);
+  padding: 4px 0;
+
+  .mat-mdc-option {
+    min-height: 52px;
+    height: auto;
+    line-height: 1.35;
+    padding: 8px 16px;
+    border-bottom: 1px solid #e8eaed;
+    white-space: normal;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover:not(.mdc-list-item--disabled),
+    &.mat-mdc-option-active {
+      background-color: #e8f1fb !important;
+    }
+
+    &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+      background-color: #dbeafe !important;
+    }
+  }
+
+  .scenario-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .scenario-vendor {
+    display: block;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .scenario-code {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: #64748b;
+    letter-spacing: 0.2px;
+  }
+}
+
+@media (max-width: 600px) {
+  ::ng-deep .scenario-autocomplete-panel.mat-mdc-autocomplete-panel {
+    min-width: min(440px, 92vw) !important;
+  }
+}
+
+/* Panel Kho nhập — rộng hơn input, hover + ngăn cách bản ghi */
+::ng-deep .warehouse-autocomplete-panel.mat-mdc-autocomplete-panel {
+  min-width: 440px !important;
+  max-width: min(560px, 92vw);
+  padding: 4px 0;
+
+  .mat-mdc-option {
+    min-height: 44px;
+    height: auto;
+    line-height: 1.35;
+    padding: 10px 16px;
+    border-bottom: 1px solid #e8eaed;
+    white-space: normal;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover:not(.mdc-list-item--disabled),
+    &.mat-mdc-option-active {
+      background-color: #e8f1fb !important;
+    }
+
+    &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+      background-color: #dbeafe !important;
+    }
+  }
+
+  .warehouse-option {
+    display: block;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 600px) {
+  ::ng-deep .warehouse-autocomplete-panel.mat-mdc-autocomplete-panel {
+    min-width: min(440px, 92vw) !important;
+  }
+}

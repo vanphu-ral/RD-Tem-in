@@ -83,6 +83,9 @@
           ></mat-spinner>
           <mat-autocomplete
             #autoScenario="matAutocomplete"
+            class="scenario-autocomplete-panel"
+            panelWidth="440px"
+            [displayWith]="displayScenario"
             (optionSelected)="onScenarioSelected($event.option.value)"
           >
             <mat-option *ngFor="let s of filteredScenarioOptions" [value]="s">
@@ -126,10 +129,13 @@
           </mat-autocomplete> -->
           <mat-autocomplete
             #autoWarehouse="matAutocomplete"
+            class="warehouse-autocomplete-panel"
+            panelWidth="440px"
+            [displayWith]="displayWarehouse"
             (optionSelected)="onWarehouseSelected($event.option.value)"
           >
             <mat-option *ngFor="let w of filteredWarehouseOptions" [value]="w">
-              {{ w.label }}
+              <div class="warehouse-option">{{ w.label }}</div>
             </mat-option>
             <mat-option *ngIf="filteredWarehouseOptions.length === 0" disabled>
               Không tìm thấy
