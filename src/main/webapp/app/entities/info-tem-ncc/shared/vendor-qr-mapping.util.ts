@@ -53,6 +53,17 @@ export function isVendorQrFieldMapped(
   );
 }
 
+/** Chuẩn hoá ngày về yyyyMMdd (bỏ `-` / ký tự khác). Ví dụ: 2026-08-09 → 20260809. */
+export function normalizeVendorDateToYyyyMmDd(
+  value: string | null | undefined,
+): string {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (digits.length >= 8) {
+    return digits.slice(0, 8);
+  }
+  return "";
+}
+
 /** Tách mã QR theo separator + fieldMappings của kịch bản tem đang chọn. */
 export function parseVendorQrByMappingConfig(
   rawCode: string,
@@ -67,7 +78,12 @@ export function parseVendorQrByMappingConfig(
   mappingConfig.fieldMappings
     .filter((fm) => fm.dataField && fm.dataField !== "Không lấy")
     .forEach((fm) => {
-      fieldMap[toVendorQrFieldKey(fm.dataField)] = parts[fm.position] ?? "";
+      const key = toVendorQrFieldKey(fm.dataField);
+      let value = parts[fm.position] ?? "";
+      if (key === "manufacturingDate" || key === "expirationDate") {
+        value = normalizeVendorDateToYyyyMmDd(value);
+      }
+      fieldMap[key] = value;
     });
   return fieldMap;
 }

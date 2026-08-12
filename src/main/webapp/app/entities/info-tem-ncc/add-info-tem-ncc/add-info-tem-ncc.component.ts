@@ -62,6 +62,7 @@ import {
 } from "app/entities/generate-tem-in/receiving-supplies/vendor-reel-log-import.util";
 import {
   isVendorQrFieldMapped,
+  normalizeVendorDateToYyyyMmDd,
   parseVendorQrByMappingConfig,
 } from "../shared/vendor-qr-mapping.util";
 import {
@@ -465,7 +466,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         approver: this.orderInfo.approver,
         importVendorTemTransactionsId: this.currentTransactionId,
         vendorCode:
-          this.selectedScenario?.vendorCode ?? this.orderInfo.vendorCode,
+          (this.orderInfo.vendorCode ?? "").trim() ||
+          (this.selectedScenario?.vendorCode ?? "").trim(),
         parentItems,
         existingReelIds: Array.from(this.scannedReelIds),
         existingItems,
@@ -2012,7 +2014,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     rows.forEach((row, index) => {
       const imported = toVendorImportedReelEntry(
         row,
-        this.orderInfo.vendorCode ?? this.selectedScenario?.vendorCode ?? "",
+        (this.orderInfo.vendorCode ?? "").trim() ||
+          (this.selectedScenario?.vendorCode ?? "").trim(),
       );
       const qrCode = imported.qrCode;
       const fieldMap = parseVendorQrByMappingConfig(
@@ -2025,9 +2028,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         fieldMap["partNumber"],
         imported.partNumber,
       );
-      const manufacturingDate = this.firstNonEmpty(
-        fieldMap["manufacturingDate"],
-        imported.mfgDate,
+      const manufacturingDate = normalizeVendorDateToYyyyMmDd(
+        this.firstNonEmpty(fieldMap["manufacturingDate"], imported.mfgDate),
       );
       const lotFromMapping = (fieldMap["lotNumber"] ?? "").trim();
       const qtyRaw = (fieldMap["initialQuantity"] ?? "").trim();
@@ -2037,14 +2039,11 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           ? qtyFromMapping
           : imported.quantity;
 
-      let cleanDate = "";
-      const dateSource =
-        manufacturingDate ||
-        (this.orderInfo.arrivalDate
-          ? this.datePipe.transform(this.orderInfo.arrivalDate, "yyyyMMdd")
-          : "");
-      if (dateSource && /^\d{8}$/.test(String(dateSource))) {
-        cleanDate = String(dateSource);
+      let cleanDate = manufacturingDate;
+      if (!cleanDate && this.orderInfo.arrivalDate) {
+        cleanDate = normalizeVendorDateToYyyyMmDd(
+          this.datePipe.transform(this.orderInfo.arrivalDate, "yyyyMMdd") ?? "",
+        );
       }
 
       const matchedRow =
@@ -2069,8 +2068,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       );
       const vendor = this.firstNonEmpty(
         fieldMap["vendor"],
-        this.selectedScenario?.vendorCode,
         this.orderInfo.vendorCode,
+        this.selectedScenario?.vendorCode,
       );
       const lotNumber = this.firstNonEmpty(
         lotFromMapping,
@@ -2115,7 +2114,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.activeMappingConfig,
         "expirationDate",
       )
-        ? (fieldMap["expirationDate"] ?? "").trim()
+        ? normalizeVendorDateToYyyyMmDd(fieldMap["expirationDate"])
         : "";
 
       previewRows.push({
@@ -2174,7 +2173,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     for (const row of rows) {
       const reelId = (row.reelId ?? "").trim();
       const partNumber = (row.partNumber ?? "").trim();
-      const manufacturingDate = (row.manufacturingDate ?? "").trim();
+      const manufacturingDate = normalizeVendorDateToYyyyMmDd(
+        row.manufacturingDate,
+      );
       const initialQuantity = Number(row.initialQuantity) || 0;
 
       if (!reelId) {
@@ -2244,7 +2245,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         subStorageUnit: "",
         locationOverride: (row.locationOverride ?? "").trim(),
         manufacturingDate,
-        expirationDate: (row.expirationDate ?? "").trim(),
+        expirationDate: normalizeVendorDateToYyyyMmDd(row.expirationDate),
         partClass: "",
         sapCode: (row.sapCode ?? "").trim(),
         vendorQrCode: (row.vendorQrCode ?? "").trim(),
@@ -2484,7 +2485,13 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     this.isLoadingPo = true;
     this.managerTemNccService.createPoImportTem(payload).subscribe({
       next: (res: CreatePoImportTemResponse) => {
-        const poDetails = res?.vendorTransaction?.poDetails ?? [];
+        const rawDetails =
+          res?.vendorTransaction?.poDetails ??
+          res?.vendorTransaction?.transaction?.poDetails ??
+          [];
+        const poDetails = Array.isArray(rawDetails)
+          ? rawDetails
+          : Object.values(rawDetails ?? {});
         const transaction = res?.vendorTransaction?.transaction;
         const poImportTemId = res?.poImportTem?.id;
 
@@ -2499,7 +2506,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           );
         }
 
-        const parentItems: ParentItem[] = poDetails.map((detail, idx) => ({
+        const parentItems: ParentItem[] = poDetails.map((detail: any, idx) => ({
           id: detail.id ?? idx,
           sapCode: detail.sapCode,
           materialName: detail.sapName,

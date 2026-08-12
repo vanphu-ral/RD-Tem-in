@@ -60,6 +60,7 @@ import {
 } from "../shared/import-sample.util";
 import {
   isVendorQrFieldMapped,
+  normalizeVendorDateToYyyyMmDd,
   parseVendorQrByMappingConfig,
 } from "../shared/vendor-qr-mapping.util";
 import { ReceivingSuppliesService } from "app/entities/generate-tem-in/service/receiving-supplies.service";
@@ -774,8 +775,8 @@ export class ScanItemDialogComponent
     const removed = before - kept.length;
     if (removed > 0) {
       this.scannedList = kept;
-      this.updateStats();
-      this.saveToCache();
+    this.updateStats();
+    this.saveToCache();
       if (announce) {
         this.notificationService.warning(
           `Đã bỏ qua ${removed} mã không thuộc PO đơn hàng${
@@ -783,7 +784,7 @@ export class ScanItemDialogComponent
           }.`,
         );
       }
-      this.cdr.markForCheck();
+    this.cdr.markForCheck();
     }
     return removed;
   }
@@ -1010,7 +1011,9 @@ export class ScanItemDialogComponent
         fileSap ||
         (partNumber.split("_")[0] ?? "").trim();
 
-      const manufacturingDate = (row.manufacturingDate ?? "").trim();
+      const manufacturingDate = normalizeVendorDateToYyyyMmDd(
+        row.manufacturingDate,
+      );
       const lot =
         (row.lotNumber ?? "").trim() ||
         (partNumber && manufacturingDate
@@ -1043,7 +1046,7 @@ export class ScanItemDialogComponent
         subStorageUnit: "",
         locationOverride: (row.locationOverride ?? "").trim(),
         manufacturingDate,
-        expirationDate: (row.expirationDate ?? "").trim(),
+        expirationDate: normalizeVendorDateToYyyyMmDd(row.expirationDate),
         partClass: "",
         sapCode: resolvedSap,
         vendorQrCode: (row.vendorQrCode ?? "").trim(),
@@ -1196,9 +1199,8 @@ export class ScanItemDialogComponent
         fieldMap["partNumber"],
         imported.partNumber,
       );
-      const manufacturingDate = this.firstNonEmpty(
-        fieldMap["manufacturingDate"],
-        imported.mfgDate,
+      const manufacturingDate = normalizeVendorDateToYyyyMmDd(
+        this.firstNonEmpty(fieldMap["manufacturingDate"], imported.mfgDate),
       );
       const qtyRaw = (fieldMap["initialQuantity"] ?? "").trim();
       const qtyFromMapping = Number(qtyRaw);
@@ -1245,7 +1247,7 @@ export class ScanItemDialogComponent
           this.data!.mappingConfig,
           "expirationDate",
         )
-          ? (fieldMap["expirationDate"] ?? "").trim()
+          ? normalizeVendorDateToYyyyMmDd(fieldMap["expirationDate"])
           : "",
         locationOverride: "",
         storageUnit: this.firstNonEmpty(fieldMap["storageUnit"]),
@@ -1387,8 +1389,8 @@ export class ScanItemDialogComponent
         this.isLoadingWarehouses = false;
       })
       .catch(() => {
-        this.isLoadingWarehouses = false;
-      });
+      this.isLoadingWarehouses = false;
+    });
   }
   private drainQueue(): void {
     if (this.processingQueue) {
@@ -1466,17 +1468,13 @@ export class ScanItemDialogComponent
       mappingConfig,
       "manufacturingDate",
     )
-      ? (fieldMap["manufacturingDate"] ?? "").trim()
+      ? normalizeVendorDateToYyyyMmDd(fieldMap["manufacturingDate"])
       : "";
-    let cleanDate = "";
-    if (manufacturingDate && /^\d{8}$/.test(manufacturingDate)) {
-      cleanDate = manufacturingDate;
-    } else if (
-      isVendorQrFieldMapped(mappingConfig, "manufacturingDate") &&
-      this.data?.arrivalDate &&
-      /^\d{8}$/.test(String(this.data.arrivalDate))
-    ) {
-      cleanDate = String(this.data.arrivalDate);
+    let cleanDate = manufacturingDate;
+    if (!cleanDate && isVendorQrFieldMapped(mappingConfig, "manufacturingDate")) {
+      cleanDate = normalizeVendorDateToYyyyMmDd(
+        this.data?.arrivalDate != null ? String(this.data.arrivalDate) : "",
+      );
     }
     const lotFromMapping = isVendorQrFieldMapped(mappingConfig, "lotNumber")
       ? (fieldMap["lotNumber"] ?? fieldMap["lot"] ?? "").trim()
@@ -1493,9 +1491,7 @@ export class ScanItemDialogComponent
     const payload: CreateVendorTemDetailPayload = {
       reelId: reelIdToCheck,
       partNumber: scannedPartNumber,
-      vendor: isVendorQrFieldMapped(mappingConfig, "vendor")
-        ? (fieldMap["vendor"] ?? "").trim()
-        : (this.data?.vendorCode ?? ""),
+      vendor: this.firstNonEmpty(fieldMap["vendor"], this.data?.vendorCode),
       lot: lotNumber,
       userData1: isVendorQrFieldMapped(mappingConfig, "userData1")
         ? (fieldMap["userData1"] ?? "").trim()
@@ -1537,7 +1533,7 @@ export class ScanItemDialogComponent
         : "",
       manufacturingDate,
       expirationDate: isVendorQrFieldMapped(mappingConfig, "expirationDate")
-        ? (fieldMap["expirationDate"] ?? "").trim()
+        ? normalizeVendorDateToYyyyMmDd(fieldMap["expirationDate"])
         : "",
       partClass: "",
       sapCode: matchedRow?.sapCode ?? "",
