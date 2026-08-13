@@ -346,7 +346,7 @@
                       <th>Ngày nhập</th>
                       <th>Kho</th>
                       <th>Trạng thái</th>
-                      <th class="col-num">Tổng SL</th>
+                      <th class="col-num">Tổng SL đã scan</th>
                       <th class="col-num">Mã Items</th>
                       <th class="col-note">Ghi chú</th>
                     </tr>
@@ -405,7 +405,7 @@
                           </span>
                         </td>
                         <td class="col-num green-val">
-                          {{ session.totalQty | number }}
+                          {{ session.totalScanQty | number }}
                         </td>
                         <td class="col-num">{{ session.itemCount }}</td>
                         <td class="col-note-cell" [title]="session.note">
@@ -605,9 +605,9 @@
               </div>
               <div class="mobile-session-stats">
                 <span class="mobile-stat">
-                  <span class="stat-label">TỔNG SL</span>
+                  <span class="stat-label">TỔNG SL ĐÃ SCAN</span>
                   <span class="stat-value green-val">{{
-                    session.totalQty | number
+                    session.totalScanQty | number
                   }}</span>
                 </span>
                 <span class="mobile-stat">

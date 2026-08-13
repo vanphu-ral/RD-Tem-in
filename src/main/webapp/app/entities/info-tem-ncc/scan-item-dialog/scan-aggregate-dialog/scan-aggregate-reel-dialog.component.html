@@ -45,6 +45,7 @@
             <th>UserData2</th>
             <th>UserData3</th>
             <th>UserData4</th>
+            <th>PO</th>
           </tr>
         </thead>
         <tbody>
@@ -181,6 +182,14 @@
                 >{{ row.userData4 || "—" }}</span
               >
             </td>
+            <td>
+              <input
+                class="cell-input"
+                [class.is-missing]="isMissing(row, 'userData5')"
+                [(ngModel)]="row.userData5"
+                (ngModelChange)="onCellChange(row, 'userData5')"
+              />
+            </td>
           </tr>
         </tbody>
       </table>
@@ -316,6 +325,14 @@
               >{{ row.userData4 || "—" }}</span
             >
           </div>
+          <label class="rd-field">
+            <span>UserData5</span>
+            <input
+              [class.is-missing]="isMissing(row, 'userData5')"
+              [(ngModel)]="row.userData5"
+              (ngModelChange)="onCellChange(row, 'userData5')"
+            />
+          </label>
         </div>
       </div>
     </div>

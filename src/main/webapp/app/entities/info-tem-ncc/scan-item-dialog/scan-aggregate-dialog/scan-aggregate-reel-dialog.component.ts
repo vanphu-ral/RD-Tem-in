@@ -56,7 +56,11 @@ export class ScanAggregateReelDialogComponent {
     private receivingService: ReceivingSuppliesService,
     private cdr: ChangeDetectorRef,
   ) {
-    this.rows = data.rows.map((r) => ({ ...r }));
+    const orderPo = String(data.poCode ?? "").trim();
+    this.rows = data.rows.map((r) => ({
+      ...r,
+      userData5: String(r.userData5 ?? "").trim() || orderPo,
+    }));
     if (!data.isMobile && this.rows.length <= 8) {
       this.rows.forEach((r) => this.expandedIds.add(r.id));
     }
@@ -137,6 +141,7 @@ export class ScanAggregateReelDialogComponent {
       "userData1",
       "userData2",
       "userData3",
+      "userData5",
     ] as const;
     this.rows.slice(1).forEach((row) => {
       keys.forEach((key) => {

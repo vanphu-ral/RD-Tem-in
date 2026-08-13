@@ -1057,39 +1057,47 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     if (this.isSendingSap) {
       return false;
     }
-    return this.getSelectedSendableLots(row, "sap").length > 0;
+    // Cho phép bấm để hiện thông báo thiếu thông tin; điều kiện gửi thật kiểm tra trong onSend*.
+    return (row.lots ?? []).length > 0;
   }
 
   canSendPanacimParent(row: ParentItem): boolean {
     if (this.isSendingPanacim) {
       return false;
     }
-    return this.getSelectedSendableLots(row, "panacim").length > 0;
+    return (row.lots ?? []).length > 0;
   }
 
   onSendSapParent(row: ParentItem): void {
     if (this.isSendingSap) {
       return;
     }
-    const selectedAny = (row.lots ?? []).some((_, i) =>
-      this.isLotSelected(row.id, i),
-    );
-    if (!selectedAny) {
+    const selectedLots = this.getSelectedLots(row);
+    if (!selectedLots.length) {
       this.notificationService.warning(
         "Vui lòng chọn (checkbox) vật tư cần gửi SAP.",
       );
       return;
     }
-    const lots = this.getSelectedSendableLots(row, "sap");
-    if (!lots.length) {
+    const candidates = selectedLots.filter(
+      (lot) => lot.sapSent !== true && Boolean((lot.reelId ?? "").trim()),
+    );
+    if (!candidates.length) {
       this.notificationService.warning(
-        "Các vật tư đã chọn không đủ điều kiện gửi SAP (cần PO hợp lệ trên Userdata5 và chưa gửi).",
+        "Các vật tư đã chọn không gửi được SAP (đã gửi hoặc thiếu ReelID).",
       );
       return;
     }
-    const missingMsg = this.buildMissingFieldsMessage(row, lots);
+    const missingMsg = this.buildMissingFieldsMessage(row, candidates);
     if (missingMsg) {
       this.showMissingFieldsDialog(missingMsg);
+      return;
+    }
+    const lots = candidates.filter((lot) => this.lotHasValidPo(lot));
+    if (!lots.length) {
+      this.notificationService.warning(
+        "Các vật tư đã chọn thiếu mã PO (UserData5).",
+      );
       return;
     }
     this.dialog
@@ -1115,23 +1123,26 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     if (this.isSendingPanacim) {
       return;
     }
-    const selectedAny = (row.lots ?? []).some((_, i) =>
-      this.isLotSelected(row.id, i),
-    );
-    if (!selectedAny) {
+    const selectedLots = this.getSelectedLots(row);
+    if (!selectedLots.length) {
       this.notificationService.warning(
         "Vui lòng chọn (checkbox) vật tư cần gửi PanaCIM.",
       );
       return;
     }
-    const lots = this.getSelectedSendableLots(row, "panacim");
-    if (!lots.length) {
+    const candidates = selectedLots.filter(
+      (lot) =>
+        lot.panaSendStatus !== true &&
+        Boolean((lot.reelId ?? "").trim()) &&
+        Boolean(lot.vendorTemDetailId),
+    );
+    if (!candidates.length) {
       this.notificationService.warning(
-        "Các vật tư đã chọn không đủ điều kiện gửi PanaCIM.",
+        "Các vật tư đã chọn không đủ điều kiện gửi PanaCIM (đã gửi, thiếu ReelID hoặc chưa lưu).",
       );
       return;
     }
-    const missingMsg = this.buildMissingFieldsMessage(row, lots);
+    const missingMsg = this.buildMissingFieldsMessage(row, candidates);
     if (missingMsg) {
       this.showMissingFieldsDialog(missingMsg);
       return;
@@ -1141,7 +1152,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         width: "420px",
         data: {
           title: "Xác nhận gửi PanaCIM",
-          message: `Bạn có chắc muốn gửi ${lots.length} vật tư đã chọn của mã SAP ${row.sapCode} đến PanaCIM?`,
+          message: `Bạn có chắc muốn gửi ${candidates.length} vật tư đã chọn của mã SAP ${row.sapCode} đến PanaCIM?`,
           confirmText: "Gửi PanaCIM",
           cancelText: "Hủy",
         },
@@ -1151,8 +1162,13 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         if (!confirmed) {
           return;
         }
-        this.executeSendPanacim(row, lots);
+        this.executeSendPanacim(row, candidates);
       });
+  }
+
+  /** Lô đang được tick checkbox (không lọc điều kiện gửi). */
+  private getSelectedLots(row: ParentItem): LotItem[] {
+    return (row.lots ?? []).filter((_, i) => this.isLotSelected(row.id, i));
   }
 
   /** Chỉ lấy lô đã checkbox + đủ điều kiện gửi. */
@@ -1160,14 +1176,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     row: ParentItem,
     mode: "sap" | "panacim",
   ): LotItem[] {
-    return (row.lots ?? []).filter((lot, i) => {
-      if (!this.isLotSelected(row.id, i)) {
-        return false;
-      }
-      return mode === "sap"
-        ? this.canSendSapLot(lot)
-        : this.canSendPanacimLot(lot);
-    });
+    return this.getSelectedLots(row).filter((lot) =>
+      mode === "sap" ? this.canSendSapLot(lot) : this.canSendPanacimLot(lot),
+    );
   }
 
   // ==================== PRIVATE ====================
@@ -1271,7 +1282,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       userData2: lot.userData2,
       userData3: lot.userData3,
       userData4: lot.userData4,
-      userData5: lot.userData5 || this.orderInfo.poCode,
+      userData5: this.getLotPoNumber(lot),
       msl: lot.msl,
     };
 

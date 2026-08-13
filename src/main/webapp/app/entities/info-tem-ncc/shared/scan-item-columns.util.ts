@@ -146,8 +146,8 @@ export const SCAN_AGGREGATE_COLUMNS: ScanItemColumnDef[] = [
     key: "userData5",
     label: "PO",
     width: "5%",
-    editable: false,
-    headerEditable: false,
+    editable: true,
+    headerEditable: true,
   },
   {
     key: "msl",

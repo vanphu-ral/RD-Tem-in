@@ -1029,7 +1029,8 @@ export class ScanItemDialogComponent
         userData2: (row.userData2 ?? "").trim(),
         userData3: (row.userData3 ?? "").trim(),
         userData4: (row.userData4 ?? "").trim(),
-        userData5: (row.userData5 ?? "").trim(),
+        userData5:
+          (row.userData5 ?? "").trim() || (this.data?.poCode ?? "").trim(),
         initialQuantity: Number(row.initialQuantity) || 0,
         msdLevel: (row.msl ?? "").trim(),
         msdInitialFloorTime: "",
@@ -1265,11 +1266,12 @@ export class ScanItemDialogComponent
         userData4: isVendorQrFieldMapped(this.data!.mappingConfig, "userData4")
           ? (fieldMap["userData4"] ?? "").trim()
           : "",
-        userData5: isVendorQrFieldMapped(this.data!.mappingConfig, "userData5")
-          ? (fieldMap["userData5"] ?? "").trim()
-          : isVendorQrFieldMapped(this.data!.mappingConfig, "poNumber")
-            ? this.firstNonEmpty(fieldMap["poNumber"], imported.poNumber)
-            : "",
+        userData5: this.firstNonEmpty(
+          fieldMap["userData5"],
+          fieldMap["poNumber"],
+          imported.poNumber,
+          this.data?.poCode,
+        ),
         msl: isVendorQrFieldMapped(this.data!.mappingConfig, "msl")
           ? (fieldMap["msl"] ?? "").trim()
           : "",
@@ -1505,9 +1507,11 @@ export class ScanItemDialogComponent
       userData4: isVendorQrFieldMapped(mappingConfig, "userData4")
         ? (fieldMap["userData4"] ?? "").trim()
         : "",
-      userData5: isVendorQrFieldMapped(mappingConfig, "userData5")
-        ? this.firstNonEmpty(fieldMap["userData5"], fieldMap["poNumber"])
-        : "",
+      userData5: this.firstNonEmpty(
+        fieldMap["userData5"],
+        fieldMap["poNumber"],
+        this.data?.poCode,
+      ),
       initialQuantity: parsedQty,
       msdLevel: isVendorQrFieldMapped(mappingConfig, "msl")
         ? (fieldMap["msl"] ?? fieldMap["msdLevel"] ?? "").trim()

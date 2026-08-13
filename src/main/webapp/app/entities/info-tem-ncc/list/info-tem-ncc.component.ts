@@ -497,13 +497,25 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       (sum, d) => sum + (d.vendorTemDetails?.length ?? 0),
       0,
     );
+    // Ưu tiên Formula BE; fallback cộng initialQuantity nếu API không trả field.
+    const totalScanQty =
+      t.totalScanQuantity ??
+      t.poDetails.reduce(
+        (sum, d) =>
+          sum +
+          (d.vendorTemDetails ?? []).reduce(
+            (s, v) => s + (v.initialQuantity ?? 0),
+            0,
+          ),
+        0,
+      );
     return {
       importDate: t.entryDate ?? t.createdAt,
       warehouse: t.storageUnit,
       warehouseType: "",
       status: t.status,
-      totalQty, // so luong trong don
-      totalScanQty: t.totalScanQuantity ?? 0, // so luong da scan thuc te
+      totalQty, // so luong trong don (poDetails.totalQuantity)
+      totalScanQty, // so luong da scan thuc te
       itemCount,
       transactionId: t.id,
       note: t.note ?? "",
