@@ -481,6 +481,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         poCode: this.orderInfo.poCode,
         onItemsUpdated: (items: ScannedItem[]) =>
           this.syncLotsFromScannedItems(items),
+        onItemsRemoved: (items: ScannedItem[]) =>
+          this.removeLotsFromScannedItems(items),
       },
     });
 
@@ -2676,6 +2678,39 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       seen.add(reelId);
       return true;
     });
+  }
+
+  /** Gỡ lot trên đơn sau khi xóa tem trong dialog scan. */
+  private removeLotsFromScannedItems(items: ScannedItem[]): void {
+    if (!items?.length) {
+      return;
+    }
+
+    const matchLot = (lot: LotItem, item: ScannedItem): boolean => {
+      if (item.dbId && lot.vendorTemDetailId === item.dbId) {
+        return true;
+      }
+      const reelId = (item.reelId ?? "").trim();
+      return !!reelId && (lot.reelId ?? "").trim() === reelId;
+    };
+
+    items.forEach((item) => {
+      const reelId = (item.reelId ?? "").trim();
+      if (reelId) {
+        this.scannedReelIds.delete(reelId);
+      }
+    });
+
+    this.dataSource.data = this.dataSource.data.map((parent) => ({
+      ...parent,
+      lots: (parent.lots ?? []).filter(
+        (lot) => !items.some((item) => matchLot(lot, item)),
+      ),
+    }));
+    this.draftLots = (this.draftLots ?? []).filter(
+      (lot) => !items.some((item) => matchLot(lot, item)),
+    );
+    this.cdr.markForCheck();
   }
 
   /** Cập nhật / thêm lot trên đơn sau scan-import (không cần F5). */

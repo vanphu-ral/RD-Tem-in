@@ -412,11 +412,27 @@
   margin-bottom: 6px;
   flex-shrink: 0;
   padding-top: 6px;
+  gap: 8px;
 
   .list-title {
     font-size: 12.5px;
     font-weight: 600;
     color: #3c4043;
+  }
+
+  .btn-delete-all {
+    flex-shrink: 0;
+    font-size: 12px;
+    line-height: 28px;
+    min-height: 32px;
+    padding: 0 10px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 2px;
+    }
   }
 }
 
@@ -479,6 +495,43 @@
   .col-stt {
     width: 36px;
     color: #80868b;
+  }
+
+  .col-actions,
+  .sticky-actions {
+    width: 56px;
+    min-width: 56px;
+    text-align: center;
+    position: sticky;
+    right: 0;
+    background: #fff;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.06);
+    z-index: 2;
+  }
+
+  th.sticky-actions {
+    background: #f8f9fa;
+    z-index: 3;
+  }
+
+  tr.row-from-order .sticky-actions {
+    background: #f8fafc;
+  }
+
+  tr.row-newest .sticky-actions {
+    background: #e8f5e9;
+  }
+
+  .btn-row-delete {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
   }
 
   .cell-text {
@@ -580,6 +633,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .btn-row-delete {
+      margin-left: auto;
+      flex-shrink: 0;
     }
   }
 

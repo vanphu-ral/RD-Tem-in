@@ -333,6 +333,11 @@ export class ManagerTemNccService {
     return this.http.put(`${this.baseUrl}/vendor-tem-details/batch`, payload);
   }
 
+  /** Xóa 1 tem đã scan theo id vendor-tem-detail. */
+  deleteVendorTemDetail(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/vendor-tem-details/${id}`);
+  }
+
   //gui phe duyet
   approveImportVendorTemTransaction(
     transactionId: number,

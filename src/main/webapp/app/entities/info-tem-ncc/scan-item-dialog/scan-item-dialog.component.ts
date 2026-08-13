@@ -145,6 +145,8 @@ export interface ScanDialogData {
   poCode?: string;
   /** Đồng bộ lot trên đơn sau khi cập nhật trong dialog tổng hợp. */
   onItemsUpdated?: (items: ScannedItem[]) => void;
+  /** Gỡ lot trên đơn sau khi xóa tem trong danh sách scan. */
+  onItemsRemoved?: (items: ScannedItem[]) => void;
 }
 
 type ScanDialogParentItem = ScanDialogData["parentItems"][number];
@@ -172,6 +174,7 @@ export class ScanItemDialogComponent
   duplicateHighlightId: string | null = null;
   isImportingReel = false;
   isImportDragging = false;
+  isDeletingItems = false;
 
   warehouse = "";
   approver = "";
@@ -537,11 +540,54 @@ export class ScanItemDialogComponent
     );
   }
   removeItem(id: string): void {
-    this.scannedList = this.scannedList.filter((item) => item.id !== id);
-    this.qtySnapshot.delete(id);
-    this.updateStats();
-    this.saveToCache();
-    this.cdr.markForCheck();
+    if (this.isDeletingItems) {
+      return;
+    }
+    const item = this.scannedList.find((i) => i.id === id);
+    if (!item) {
+      return;
+    }
+    this.dialog
+      .open(DialogContentExampleDialogComponent, {
+        width: "420px",
+        data: {
+          title: "Xác nhận xóa",
+          message: `Bạn có chắc muốn xóa tem ReelID "${item.reelId || "—"}"?`,
+          confirmText: "Xóa",
+          cancelText: "Hủy",
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.executeDeleteItems([item]);
+      });
+  }
+
+  removeAllItems(): void {
+    if (this.isDeletingItems || !this.scannedList.length) {
+      return;
+    }
+    const count = this.scannedList.length;
+    this.dialog
+      .open(DialogContentExampleDialogComponent, {
+        width: "420px",
+        data: {
+          title: "Xác nhận xóa tất cả",
+          message: `Bạn có chắc muốn xóa toàn bộ ${count} tem trong danh sách?`,
+          confirmText: "Xóa tất cả",
+          cancelText: "Hủy",
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.executeDeleteItems([...this.scannedList]);
+      });
   }
 
   onCancel(): void {
@@ -608,6 +654,99 @@ export class ScanItemDialogComponent
     input.value = "";
     if (file) {
       this.handleImportFile(file);
+    }
+  }
+
+  private executeDeleteItems(items: ScannedItem[]): void {
+    if (!items.length) {
+      return;
+    }
+    this.isDeletingItems = true;
+    const withDbId = items.filter((i) => Number(i.dbId) > 0);
+    const localOnly = items.filter((i) => !(Number(i.dbId) > 0));
+
+    const afterLocalCleanup = (deleted: ScannedItem[]): void => {
+      deleted.forEach((item) => this.removeItemFromLocalState(item));
+      if (deleted.length) {
+        this.data?.onItemsRemoved?.(deleted);
+      }
+      this.updateStats();
+      const maxPage = Math.max(
+        0,
+        Math.ceil(this.scannedList.length / this.pageSize) - 1,
+      );
+      if (this.pageIndex > maxPage) {
+        this.pageIndex = maxPage;
+      }
+      this.saveToCache();
+      this.isDeletingItems = false;
+      this.cdr.markForCheck();
+    };
+
+    if (!withDbId.length) {
+      afterLocalCleanup(localOnly);
+      this.notificationService.success(
+        localOnly.length === 1
+          ? "Đã xóa tem khỏi danh sách."
+          : `Đã xóa ${localOnly.length} tem khỏi danh sách.`,
+      );
+      return;
+    }
+
+    forkJoin(
+      withDbId.map((item) =>
+        this.managerTemNccService.deleteVendorTemDetail(item.dbId!).pipe(
+          map(() => ({ ok: true as const, item })),
+          catchError((err) =>
+            of({
+              ok: false as const,
+              item,
+              detail:
+                err?.error?.message ??
+                err?.error?.detail ??
+                err?.message ??
+                "Không thể xóa.",
+            }),
+          ),
+        ),
+      ),
+    ).subscribe({
+      next: (results) => {
+        const okItems = results.filter((r) => r.ok).map((r) => r.item);
+        const failCount = results.length - okItems.length;
+        const removed = [...okItems, ...localOnly];
+        afterLocalCleanup(removed);
+        if (failCount > 0 && okItems.length === 0) {
+          this.notificationService.error(
+            `Xóa thất bại (${failCount} tem). Vui lòng thử lại.`,
+          );
+        } else if (failCount > 0) {
+          this.notificationService.warning(
+            `Đã xóa ${removed.length} tem; ${failCount} tem xóa API thất bại.`,
+          );
+        } else {
+          this.notificationService.success(
+            removed.length === 1
+              ? "Đã xóa tem thành công."
+              : `Đã xóa ${removed.length} tem thành công.`,
+          );
+        }
+      },
+      error: () => {
+        this.isDeletingItems = false;
+        this.notificationService.error("Xóa tem thất bại.");
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private removeItemFromLocalState(item: ScannedItem): void {
+    const reelId = (item.reelId ?? "").trim();
+    this.scannedList = this.scannedList.filter((i) => i.id !== item.id);
+    this.qtySnapshot.delete(item.id);
+    if (reelId) {
+      this.existingReelIds.delete(reelId);
+      this.preloadedReelIds.delete(reelId);
     }
   }
 
