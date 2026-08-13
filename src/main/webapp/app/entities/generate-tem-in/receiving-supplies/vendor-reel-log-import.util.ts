@@ -504,12 +504,23 @@ export function parseMauImportReelFromMatrix(
   if (colSap < 0) {
     colSap = findCol("mã sap", "ma sap", "sapcode");
   }
-  const colQtyVatTu = findCol(
-    "sl vật tư",
-    "sl vat tu",
-    "số lượng vật tư",
-    "so luong vat tu",
-  );
+  const colQtyVatTu = (() => {
+    const exact = findColExact(
+      "sl vật tư",
+      "sl vat tu",
+      "số lượng vật tư",
+      "so luong vat tu",
+    );
+    if (exact >= 0) {
+      return exact;
+    }
+    return findCol(
+      "sl vật tư",
+      "sl vat tu",
+      "số lượng vật tư",
+      "so luong vat tu",
+    );
+  })();
   const colQtyTem = findCol("sl tem", "số lượng tem", "so luong tem");
   const colItem = findCol("tên sp", "ten sp", "itemname", "item");
   const colPo = findColExact("po") >= 0 ? findColExact("po") : findCol("po");
@@ -902,6 +913,10 @@ function parseVendorImportMatrix(
   const colVendor = findCol("vendorcode", "vendor code", "vendor");
   const colMfg = findCol("mfgdate", "mfg date", "manufacturing", "mfg");
   let colQty = findColExact(
+    "sl vật tư",
+    "sl vat tu",
+    "số lượng vật tư",
+    "so luong vat tu",
     "quantityoflabel",
     "quantity of label",
     "quantityofpackage",
@@ -909,15 +924,19 @@ function parseVendorImportMatrix(
   );
   if (colQty < 0) {
     colQty = findCol(
+      "sl vật tư",
+      "sl vat tu",
+      "số lượng vật tư",
+      "so luong vat tu",
       "quantityoflabel",
       "quantityofpackage",
       "initialquantity",
       "số lượng",
       "so luong",
       "quantity",
-      "sl",
     );
   }
+  // Không dùng alias ngắn "sl" — dễ khớp nhầm cột khác.
   const colLot = findCol("lotnumber", "số lô", "so lo", "lot");
   const colItem = findCol("tên sp", "ten sp", "itemname", "item name");
   let colSap = findColExact(

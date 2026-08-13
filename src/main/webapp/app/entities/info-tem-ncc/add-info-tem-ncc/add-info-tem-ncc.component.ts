@@ -54,7 +54,14 @@ import { CachedWarehouse } from "app/entities/list-material/services/warehouse-d
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 import { DialogContentExampleDialogComponent } from "../list/confirm-dialog/confirm-dialog.component";
 import {
+  isDocument010HeaderLine,
+  isMauImportReelHeaderLine,
+  isVendorImportTableHeaderLine,
+  parseMauImportReelCsvContent,
+  parseMauImportReelExcelArrayBuffer,
+  parseVendorDocument010ExcelArrayBuffer,
   parseVendorFullQrExcelArrayBuffer,
+  parseVendorImportCsvTableContent,
   parseVendorReelLogContent,
   toVendorImportedReelEntry,
   VendorReelLogImportRow,
@@ -537,19 +544,67 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       try {
         let parsed: VendorReelLogParseResult;
         if (isExcel) {
-          parsed = parseVendorFullQrExcelArrayBuffer(
+          const mau = parseMauImportReelExcelArrayBuffer(
             reader.result as ArrayBuffer,
             this.orderInfo.poCode ?? "",
             poSapCodes,
             { requireSap: false },
           );
+          // Đã nhận diện mau-import-reel → không fallback parser khác (tránh nuốt lỗi / lệch cột).
+          if (mau.rows.length || !this.isMauImportHeaderMissing(mau.errors)) {
+            parsed = mau;
+          } else {
+            const doc010 = parseVendorDocument010ExcelArrayBuffer(
+              reader.result as ArrayBuffer,
+              this.orderInfo.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+            parsed = doc010.rows.length
+              ? doc010
+              : parseVendorFullQrExcelArrayBuffer(
+                  reader.result as ArrayBuffer,
+                  this.orderInfo.poCode ?? "",
+                  poSapCodes,
+                  { requireSap: false },
+                );
+          }
         } else {
-          parsed = parseVendorReelLogContent(
-            String(reader.result ?? ""),
-            this.orderInfo.poCode ?? "",
-            poSapCodes,
-            { requireSap: false },
-          );
+          const content = String(reader.result ?? "");
+          const firstLine =
+            content
+              .replace(/\r\n/g, "\n")
+              .split("\n")
+              .find((line) => line.trim()) ?? "";
+          if (isMauImportReelHeaderLine(firstLine)) {
+            parsed = parseMauImportReelCsvContent(
+              content,
+              this.orderInfo.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+          } else if (isDocument010HeaderLine(firstLine)) {
+            parsed = parseVendorReelLogContent(
+              content,
+              this.orderInfo.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+          } else if (isVendorImportTableHeaderLine(firstLine)) {
+            parsed = parseVendorImportCsvTableContent(
+              content,
+              this.orderInfo.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+          } else {
+            parsed = parseVendorReelLogContent(
+              content,
+              this.orderInfo.poCode ?? "",
+              poSapCodes,
+              { requireSap: false },
+            );
+          }
         }
 
         if (!parsed.rows.length) {
@@ -2043,12 +2098,16 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.firstNonEmpty(fieldMap["manufacturingDate"], imported.mfgDate),
       );
       const lotFromMapping = (fieldMap["lotNumber"] ?? "").trim();
+      // Ưu tiên SL từ cột file (SL vật tư); chỉ fallback QR khi file không có SL.
+      const qtyFromFile = Number(imported.quantity);
       const qtyRaw = (fieldMap["initialQuantity"] ?? "").trim();
       const qtyFromMapping = Number(qtyRaw);
       const initialQuantity =
-        qtyRaw !== "" && Number.isFinite(qtyFromMapping)
-          ? qtyFromMapping
-          : imported.quantity;
+        Number.isFinite(qtyFromFile) && qtyFromFile > 0
+          ? qtyFromFile
+          : qtyRaw !== "" && Number.isFinite(qtyFromMapping) && qtyFromMapping > 0
+            ? qtyFromMapping
+            : 0;
 
       let cleanDate = manufacturingDate;
       if (!cleanDate && this.orderInfo.arrivalDate) {
@@ -2441,6 +2500,12 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       }
     }
     return "";
+  }
+
+  private isMauImportHeaderMissing(errors: string[]): boolean {
+    return errors.some((e) =>
+      e.toLowerCase().includes("không tìm thấy header mau-import-reel"),
+    );
   }
 
   private applyPoToExistingTransaction(): void {
