@@ -3,6 +3,8 @@ package com.mycompany.myapp.service.impl;
 import com.mycompany.myapp.domain.ImportVendorTemTransactions;
 import com.mycompany.myapp.domain.PoDetail;
 import com.mycompany.myapp.domain.PoImportTem;
+import com.mycompany.myapp.domain.partner4.SapOitm;
+import com.mycompany.myapp.repository.partner4.SapOitmRepository;
 import com.mycompany.myapp.repository.partner5.ImportVendorTemTransactionsRepository;
 import com.mycompany.myapp.repository.partner5.PoDetailRepository;
 import com.mycompany.myapp.repository.partner5.PoImportTemRepository;
@@ -10,11 +12,14 @@ import com.mycompany.myapp.service.PoImportTemService;
 import com.mycompany.myapp.service.SapPoInfoAggregateService;
 import com.mycompany.myapp.service.dto.ImportVendorTemTransactionsDTO;
 import com.mycompany.myapp.service.dto.ImportVendorTemTransactionsDetailDTO;
+import com.mycompany.myapp.service.dto.PoDetailDTO;
 import com.mycompany.myapp.service.dto.PoImportRequestDTO;
 import com.mycompany.myapp.service.dto.PoImportResponseDTO;
 import com.mycompany.myapp.service.dto.PoImportTemDTO;
 import com.mycompany.myapp.service.dto.PoImportTemDetailDTO;
+import com.mycompany.myapp.service.dto.PoInfoResponseDTO;
 import com.mycompany.myapp.service.mapper.ImportVendorTemTransactionsMapper;
+import com.mycompany.myapp.service.mapper.PoDetailMapper;
 import com.mycompany.myapp.service.mapper.PoImportTemMapper;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -47,13 +52,19 @@ public class PoImportTemServiceImpl implements PoImportTemService {
 
     private final SapPoInfoAggregateService sapPoInfoAggregateService;
 
+    private final PoDetailMapper poDetailMapper;
+
+    private final SapOitmRepository sapOitmRepository;
+
     public PoImportTemServiceImpl(
         PoImportTemRepository poImportTemRepository,
         PoImportTemMapper poImportTemMapper,
         ImportVendorTemTransactionsRepository importVendorTemTransactionsRepository,
         PoDetailRepository poDetailRepository,
         ImportVendorTemTransactionsMapper importVendorTemTransactionsMapper,
-        SapPoInfoAggregateService sapPoInfoAggregateService
+        SapPoInfoAggregateService sapPoInfoAggregateService,
+        PoDetailMapper poDetailMapper,
+        SapOitmRepository sapOitmRepository
     ) {
         this.poImportTemRepository = poImportTemRepository;
         this.poImportTemMapper = poImportTemMapper;
@@ -63,6 +74,8 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         this.importVendorTemTransactionsMapper =
             importVendorTemTransactionsMapper;
         this.sapPoInfoAggregateService = sapPoInfoAggregateService;
+        this.poDetailMapper = poDetailMapper;
+        this.sapOitmRepository = sapOitmRepository;
     }
 
     @Override
@@ -131,10 +144,87 @@ public class PoImportTemServiceImpl implements PoImportTemService {
         LOG.debug("Request to process PO Import : {}", request);
 
         if (request.getPoNumber() == null || request.getPoNumber().isEmpty()) {
-            return createNewPoImport(request);
+            return createNewPoImport(request, "CASE_1");
         }
 
-        return findExistingPoImport(request.getPoNumber());
+        String poNumber = request.getPoNumber();
+        String storageUnit = request.getStorageUnit();
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
+
+        List<PoImportTem> parents = poImportTemRepository.findByPoNumber(
+            poNumber
+        );
+        List<ImportVendorTemTransactions> transactions =
+            importVendorTemTransactionsRepository.findByPoNumber(poNumber);
+
+        Optional<ImportVendorTemTransactions> matchingTransactionOpt =
+            transactions
+                .stream()
+                .filter(t -> {
+                    if (t.getCreatedAt() == null) return false;
+                    LocalDate createdDate = t.getCreatedAt().toLocalDate();
+                    return (
+                        createdDate.equals(today) &&
+                        storageUnit != null &&
+                        storageUnit.equals(t.getStorageUnit())
+                    );
+                })
+                .findFirst();
+
+        if (matchingTransactionOpt.isPresent()) {
+            ImportVendorTemTransactions matchingTransaction =
+                matchingTransactionOpt.get();
+            PoImportTem parent = findParentForTransaction(
+                matchingTransaction,
+                parents
+            );
+            PoImportTemDTO poImportTemDTO = parent != null
+                ? poImportTemMapper.toDto(parent)
+                : null;
+            ImportVendorTemTransactionsDTO transactionDTO =
+                importVendorTemTransactionsMapper.toDto(matchingTransaction);
+
+            java.util.List<PoDetailDTO> poDetailDTOs =
+                java.util.Collections.emptyList();
+            if (
+                matchingTransaction.getPoDetails() != null &&
+                !matchingTransaction.getPoDetails().isEmpty()
+            ) {
+                poDetailDTOs = matchingTransaction
+                    .getPoDetails()
+                    .stream()
+                    .map(poDetailMapper::toDto)
+                    .collect(java.util.stream.Collectors.toList());
+            }
+
+            return new PoImportResponseDTO(
+                poImportTemDTO,
+                new ImportVendorTemTransactionsDetailDTO(
+                    transactionDTO,
+                    poDetailDTOs
+                ),
+                "CASE_2_EXISTING"
+            );
+        }
+
+        if (parents.isEmpty() && transactions.isEmpty()) {
+            return createNewFromSap(request, "CASE_2_CALL_SAP_CREATE_FULL");
+        }
+
+        if (!parents.isEmpty()) {
+            PoImportTem parent = parents
+                .stream()
+                .filter(p -> {
+                    if (p.getCreatedAt() == null) return false;
+                    return p.getCreatedAt().toLocalDate().equals(today);
+                })
+                .findFirst()
+                .orElse(parents.get(0));
+
+            return createChildTransaction(request, parent, "CASE_2_REUSE_PO");
+        }
+
+        return createNewFromSap(request, "CASE_2_CALL_SAP_CREATE_FULL");
     }
 
     @Override
@@ -169,36 +259,75 @@ public class PoImportTemServiceImpl implements PoImportTemService {
 
         importVendorTemTransactionsRepository.save(transaction);
 
-        if (transaction.getPoNumber() != null) {
-            sapPoInfoAggregateService
-                .getPoInfoByOporDocEntry(transaction.getPoNumber())
+        final ImportVendorTemTransactions savedTransaction = transaction;
+
+        java.util.List<PoDetailDTO> poDetailDTOs =
+            java.util.Collections.emptyList();
+        if (savedTransaction.getPoNumber() != null) {
+            java.util.List<PoDetail> savedDetails = sapPoInfoAggregateService
+                .getPoInfoByOporDocEntry(savedTransaction.getPoNumber())
                 .getPoDetails()
-                .forEach(poDetail -> {
+                .stream()
+                .map(poDetail -> {
                     PoDetail detail = new PoDetail();
-                    detail.setImportVendorTemTransactions(transaction);
+                    detail.setImportVendorTemTransactions(savedTransaction);
                     detail.setImportVendorTemTransactionsId(
-                        transaction.getId()
+                        savedTransaction.getId()
                     );
-                    poDetailRepository.save(detail);
-                });
+                    detail.setSapCode(poDetail.getPor1ItemCode());
+                    detail.setSapName(poDetail.getPor1Dscription());
+
+                    String partNumber = null;
+                    String itemCode = poDetail.getPor1ItemCode();
+                    if (itemCode != null && !itemCode.isEmpty()) {
+                        List<SapOitm> oitmList =
+                            sapOitmRepository.findByItemCode(itemCode);
+                        if (!oitmList.isEmpty()) {
+                            partNumber = oitmList.get(0).getuPartNumber();
+                        }
+                    }
+                    detail.setPartNumber(partNumber);
+
+                    try {
+                        detail.setTotalQuantity(
+                            poDetail.getPor1Quantity() != null
+                                ? Integer.parseInt(poDetail.getPor1Quantity())
+                                : null
+                        );
+                    } catch (NumberFormatException e) {
+                        detail.setTotalQuantity(null);
+                    }
+                    return poDetailRepository.save(detail);
+                })
+                .collect(java.util.stream.Collectors.toList());
+            poDetailDTOs = savedDetails
+                .stream()
+                .map(poDetailMapper::toDto)
+                .collect(java.util.stream.Collectors.toList());
         }
 
         ImportVendorTemTransactionsDTO updatedTransactionDTO =
-            importVendorTemTransactionsMapper.toDto(transaction);
+            importVendorTemTransactionsMapper.toDto(savedTransaction);
 
         PoImportTemDTO poImportTemDTO = poImportTemRepository
-            .findById(transaction.getPoImportTemId())
+            .findById(savedTransaction.getPoImportTemId())
             .map(poImportTemMapper::toDto)
             .orElse(null);
 
         return new PoImportResponseDTO(
             poImportTemDTO,
-            new ImportVendorTemTransactionsDetailDTO(updatedTransactionDTO),
+            new ImportVendorTemTransactionsDetailDTO(
+                updatedTransactionDTO,
+                poDetailDTOs
+            ),
             "UPDATE"
         );
     }
 
-    private PoImportResponseDTO createNewPoImport(PoImportRequestDTO request) {
+    private PoImportResponseDTO createNewPoImport(
+        PoImportRequestDTO request,
+        String caseType
+    ) {
         PoImportTem poImportTem = new PoImportTem();
         poImportTem.setVendorCode(request.getVendorCode());
         poImportTem.setVendorName(request.getVendorName());
@@ -239,56 +368,265 @@ public class PoImportTemServiceImpl implements PoImportTemService {
 
         return new PoImportResponseDTO(
             poImportTemDTO,
-            new ImportVendorTemTransactionsDetailDTO(transactionDTO),
-            "CASE_1"
+            new ImportVendorTemTransactionsDetailDTO(
+                transactionDTO,
+                java.util.Collections.emptyList()
+            ),
+            caseType
         );
     }
 
-    private PoImportResponseDTO findExistingPoImport(String poNumber) {
-        LocalDate today = LocalDate.now(ZoneId.systemDefault());
-        List<PoImportTem> existingRecords =
-            poImportTemRepository.findByPoNumber(poNumber);
+    private PoImportTem findParentForTransaction(
+        ImportVendorTemTransactions transaction,
+        List<PoImportTem> parents
+    ) {
+        Long parentId = transaction.getPoImportTemId();
+        if (parentId != null) {
+            Optional<PoImportTem> parentOpt = parents
+                .stream()
+                .filter(p -> parentId.equals(p.getId()))
+                .findFirst();
+            if (parentOpt.isPresent()) {
+                return parentOpt.get();
+            }
+            return poImportTemRepository.findById(parentId).orElse(null);
+        }
 
-        Optional<PoImportTem> todayRecordOpt = existingRecords
-            .stream()
-            .filter(record -> {
-                if (record.getCreatedAt() == null) return false;
-                LocalDate createdDate = record.getCreatedAt().toLocalDate();
-                return createdDate.equals(today);
-            })
-            .findFirst();
-
-        if (todayRecordOpt.isPresent()) {
-            PoImportTem poImportTem = todayRecordOpt.get();
-            PoImportTemDTO poImportTemDTO = poImportTemMapper.toDto(
-                poImportTem
-            );
-
-            List<ImportVendorTemTransactions> transactions =
-                importVendorTemTransactionsRepository.findByPoNumber(poNumber);
-
-            Optional<ImportVendorTemTransactions> todayTransactionOpt =
-                transactions
-                    .stream()
-                    .filter(t -> {
-                        if (t.getCreatedAt() == null) return false;
-                        LocalDate createdDate = t.getCreatedAt().toLocalDate();
-                        return createdDate.equals(today);
-                    })
-                    .findFirst();
-
-            ImportVendorTemTransactionsDTO transactionDTO = todayTransactionOpt
-                .map(importVendorTemTransactionsMapper::toDto)
-                .orElse(null);
-
-            return new PoImportResponseDTO(
-                poImportTemDTO,
-                new ImportVendorTemTransactionsDetailDTO(transactionDTO),
-                "CASE_2"
-            );
+        if (!parents.isEmpty()) {
+            LocalDate today = LocalDate.now(ZoneId.systemDefault());
+            return parents
+                .stream()
+                .filter(p -> {
+                    if (p.getCreatedAt() == null) return false;
+                    return p.getCreatedAt().toLocalDate().equals(today);
+                })
+                .findFirst()
+                .orElse(parents.get(0));
         }
 
         return null;
+    }
+
+    private PoImportResponseDTO createNewFromSap(
+        PoImportRequestDTO request,
+        String caseType
+    ) {
+        PoInfoResponseDTO sapInfo =
+            sapPoInfoAggregateService.getPoInfoByOporDocEntry(
+                request.getPoNumber()
+            );
+
+        if (
+            sapInfo.getPoInfo() == null &&
+            (sapInfo.getPoDetails() == null || sapInfo.getPoDetails().isEmpty())
+        ) {
+            throw new com.mycompany.myapp.web.rest.errors.BadRequestAlertException(
+                "PO not found in SAP",
+                "poImportTem",
+                "ponotfound"
+            );
+        }
+
+        PoImportTem poImportTem = new PoImportTem();
+        poImportTem.setPoNumber(request.getPoNumber());
+
+        if (sapInfo.getPoInfo() != null) {
+            PoInfoResponseDTO.PoInfoDTO poInfo = sapInfo.getPoInfo();
+            if (poInfo.getOporCardCode() != null) {
+                poImportTem.setVendorCode(poInfo.getOporCardCode());
+            }
+            if (poInfo.getOporCardName() != null) {
+                poImportTem.setVendorName(poInfo.getOporCardName());
+            }
+        }
+
+        if (request.getVendorCode() != null) {
+            poImportTem.setVendorCode(request.getVendorCode());
+        }
+        if (request.getVendorName() != null) {
+            poImportTem.setVendorName(request.getVendorName());
+        }
+        poImportTem.setEntryDate(request.getEntryDate());
+        poImportTem.setStatus(request.getStatus());
+        poImportTem.setPoComments(request.getNote());
+        poImportTem.setCreatedBy(request.getCreatedBy());
+        poImportTem.setCreatedAt(request.getCreatedAt());
+        poImportTem.setUpdatedBy(request.getUpdatedBy());
+        poImportTem.setUpdatedAt(request.getUpdatedAt());
+
+        poImportTem = poImportTemRepository.save(poImportTem);
+
+        ImportVendorTemTransactions transaction =
+            new ImportVendorTemTransactions();
+        transaction.setPoImportTem(poImportTem);
+        transaction.setPoImportTemId(poImportTem.getId());
+        transaction.setPoNumber(request.getPoNumber());
+        transaction.setVendorCode(poImportTem.getVendorCode());
+        transaction.setVendorName(poImportTem.getVendorName());
+        transaction.setEntryDate(request.getEntryDate());
+        transaction.setStorageUnit(request.getStorageUnit());
+        transaction.setTemIdentificationScenarioId(
+            request.getTemIdentificationScenarioId()
+        );
+        transaction.setMappingConfig(request.getMappingConfig());
+        transaction.setStatus(request.getStatus());
+        transaction.setNote(request.getNote());
+        transaction.setCreatedBy(request.getCreatedBy());
+        transaction.setCreatedAt(request.getCreatedAt());
+        transaction.setUpdatedBy(request.getUpdatedBy());
+        transaction.setUpdatedAt(request.getUpdatedAt());
+
+        transaction = importVendorTemTransactionsRepository.save(transaction);
+
+        final ImportVendorTemTransactions savedTransaction = transaction;
+
+        java.util.List<PoDetailDTO> poDetailDTOs =
+            java.util.Collections.emptyList();
+        if (
+            sapInfo.getPoDetails() != null && !sapInfo.getPoDetails().isEmpty()
+        ) {
+            java.util.List<PoDetail> savedDetails = new java.util.ArrayList<>();
+            for (PoInfoResponseDTO.PoDetailDTO poDetail : sapInfo.getPoDetails()) {
+                PoDetail detail = new PoDetail();
+                detail.setImportVendorTemTransactions(savedTransaction);
+                detail.setImportVendorTemTransactionsId(
+                    savedTransaction.getId()
+                );
+                detail.setSapCode(poDetail.getPor1ItemCode());
+                detail.setSapName(poDetail.getPor1Dscription());
+
+                String partNumber = null;
+                String itemCode = poDetail.getPor1ItemCode();
+                if (itemCode != null && !itemCode.isEmpty()) {
+                    List<SapOitm> oitmList = sapOitmRepository.findByItemCode(
+                        itemCode
+                    );
+                    if (!oitmList.isEmpty()) {
+                        partNumber = oitmList.get(0).getuPartNumber();
+                    }
+                }
+                detail.setPartNumber(partNumber);
+
+                try {
+                    detail.setTotalQuantity(
+                        poDetail.getPor1Quantity() != null
+                            ? Integer.parseInt(poDetail.getPor1Quantity())
+                            : null
+                    );
+                } catch (NumberFormatException e) {
+                    detail.setTotalQuantity(null);
+                }
+                savedDetails.add(poDetailRepository.save(detail));
+            }
+            poDetailDTOs = savedDetails
+                .stream()
+                .map(poDetailMapper::toDto)
+                .collect(java.util.stream.Collectors.toList());
+        }
+
+        PoImportTemDTO poImportTemDTO = poImportTemMapper.toDto(poImportTem);
+        ImportVendorTemTransactionsDTO transactionDTO =
+            importVendorTemTransactionsMapper.toDto(transaction);
+
+        return new PoImportResponseDTO(
+            poImportTemDTO,
+            new ImportVendorTemTransactionsDetailDTO(
+                transactionDTO,
+                poDetailDTOs
+            ),
+            caseType
+        );
+    }
+
+    private PoImportResponseDTO createChildTransaction(
+        PoImportRequestDTO request,
+        PoImportTem parent,
+        String caseType
+    ) {
+        ImportVendorTemTransactions transaction =
+            new ImportVendorTemTransactions();
+        transaction.setPoImportTem(parent);
+        transaction.setPoImportTemId(parent.getId());
+        transaction.setPoNumber(request.getPoNumber());
+        transaction.setVendorCode(parent.getVendorCode());
+        transaction.setVendorName(parent.getVendorName());
+        transaction.setEntryDate(request.getEntryDate());
+        transaction.setStorageUnit(request.getStorageUnit());
+        transaction.setTemIdentificationScenarioId(
+            request.getTemIdentificationScenarioId()
+        );
+        transaction.setMappingConfig(request.getMappingConfig());
+        transaction.setStatus(request.getStatus());
+        transaction.setNote(request.getNote());
+        transaction.setCreatedBy(request.getCreatedBy());
+        transaction.setCreatedAt(request.getCreatedAt());
+        transaction.setUpdatedBy(request.getUpdatedBy());
+        transaction.setUpdatedAt(request.getUpdatedAt());
+
+        transaction = importVendorTemTransactionsRepository.save(transaction);
+
+        final ImportVendorTemTransactions savedTransaction = transaction;
+
+        java.util.List<PoDetailDTO> poDetailDTOs =
+            java.util.Collections.emptyList();
+        PoInfoResponseDTO sapInfo =
+            sapPoInfoAggregateService.getPoInfoByOporDocEntry(
+                request.getPoNumber()
+            );
+        if (
+            sapInfo.getPoDetails() != null && !sapInfo.getPoDetails().isEmpty()
+        ) {
+            java.util.List<PoDetail> savedDetails = new java.util.ArrayList<>();
+            for (PoInfoResponseDTO.PoDetailDTO poDetail : sapInfo.getPoDetails()) {
+                PoDetail detail = new PoDetail();
+                detail.setImportVendorTemTransactions(savedTransaction);
+                detail.setImportVendorTemTransactionsId(
+                    savedTransaction.getId()
+                );
+                detail.setSapCode(poDetail.getPor1ItemCode());
+                detail.setSapName(poDetail.getPor1Dscription());
+
+                String partNumber = null;
+                String itemCode = poDetail.getPor1ItemCode();
+                if (itemCode != null && !itemCode.isEmpty()) {
+                    List<SapOitm> oitmList = sapOitmRepository.findByItemCode(
+                        itemCode
+                    );
+                    if (!oitmList.isEmpty()) {
+                        partNumber = oitmList.get(0).getuPartNumber();
+                    }
+                }
+                detail.setPartNumber(partNumber);
+
+                try {
+                    detail.setTotalQuantity(
+                        poDetail.getPor1Quantity() != null
+                            ? Integer.parseInt(poDetail.getPor1Quantity())
+                            : null
+                    );
+                } catch (NumberFormatException e) {
+                    detail.setTotalQuantity(null);
+                }
+                savedDetails.add(poDetailRepository.save(detail));
+            }
+            poDetailDTOs = savedDetails
+                .stream()
+                .map(poDetailMapper::toDto)
+                .collect(java.util.stream.Collectors.toList());
+        }
+
+        PoImportTemDTO poImportTemDTO = poImportTemMapper.toDto(parent);
+        ImportVendorTemTransactionsDTO transactionDTO =
+            importVendorTemTransactionsMapper.toDto(transaction);
+
+        return new PoImportResponseDTO(
+            poImportTemDTO,
+            new ImportVendorTemTransactionsDetailDTO(
+                transactionDTO,
+                poDetailDTOs
+            ),
+            caseType
+        );
     }
 
     private PoImportTemDetailDTO mapToDetailDTO(PoImportTem poImportTem) {

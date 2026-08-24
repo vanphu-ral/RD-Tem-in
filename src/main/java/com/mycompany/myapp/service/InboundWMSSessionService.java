@@ -101,4 +101,12 @@ public interface InboundWMSSessionService {
     List<InboundWMSSessionDTO> findGroupedSessionsByWorkOrderCode(
         String workOrderCode
     );
+
+    /**
+     * Submit warehouse entry approval for the session.
+     *
+     * @param sessionId the id of the inboundWMSSession.
+     */
+
+    void submitWarehouseEntryApprovalInternal(Long sessionId);
 }

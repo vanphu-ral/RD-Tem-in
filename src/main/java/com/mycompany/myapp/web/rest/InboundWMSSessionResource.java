@@ -306,6 +306,25 @@ public class InboundWMSSessionResource {
     }
 
     /**
+     * {@code POST  /inbound-wms-sessions/:id/submit-warehouse-entry-approval} :
+     * submit warehouse entry approval for the session.
+     *
+     * @param id the id of the inboundWMSSession.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)}.
+     */
+    @PostMapping("/{id}/submit-warehouse-entry-approval/internal")
+    public ResponseEntity<Void> submitWarehouseEntryApprovalInternal(
+        @PathVariable("id") Long id
+    ) {
+        LOG.debug(
+            "REST request to submit warehouse entry approval for session : {}",
+            id
+        );
+        inboundWMSSessionService.submitWarehouseEntryApprovalInternal(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * {@code DELETE  /inbound-wms-sessions/:id} : delete the "id"
      * inboundWMSSession.
      *

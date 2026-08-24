@@ -27,8 +27,8 @@ public class VendorTemDetail implements Serializable {
     @Column(name = "import_vendor_tem_transactions_id")
     private Long importVendorTemTransactionsId;
 
-    @Size(max = 30)
-    @Column(name = "reel_id", length = 30)
+    @Size(max = 50)
+    @Column(name = "reel_id", length = 50)
     private String reelId;
 
     @Size(max = 50)

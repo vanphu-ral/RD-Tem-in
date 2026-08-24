@@ -394,6 +394,14 @@ public class PoImportTemResource {
             poImportTemService.processImportVendorTemTransactionUpdate(
                 transactionDTO
             );
+        if (response == null) {
+            throw new BadRequestAlertException(
+                "ImportVendorTemTransaction not found with id: " +
+                transactionDTO.getId(),
+                ENTITY_NAME,
+                "transactionnotfound"
+            );
+        }
         return ResponseEntity.ok(response);
     }
 }

@@ -159,6 +159,7 @@ partner5:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/VENDOR_TEM_MNGT_DB
+    # url: jdbc:postgresql://192.168.68.77:5432/VENDOR_TEM_MNGT_DB
     username: postgres
     # username: admin
     password: admin123

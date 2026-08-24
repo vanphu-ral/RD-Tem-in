@@ -716,6 +716,216 @@ public class InboundWMSSessionServiceImpl
         }
     }
 
+    @Override
+    public void submitWarehouseEntryApprovalInternal(Long sessionId) {
+        LOG.debug(
+            "Request to submit warehouse entry approval for session : {}",
+            sessionId
+        );
+
+        Optional<InboundWMSSession> sessionOpt =
+            inboundWMSSessionRepository.findOneWithEagerRelationshipsById(
+                sessionId
+            );
+        if (!sessionOpt.isPresent()) {
+            throw new RuntimeException("Session not found");
+        }
+        InboundWMSSession session = sessionOpt.get();
+        Set<InboundWMSPallet> pallets = session.getInboundWMSPallets();
+
+        Map<Integer, List<InboundWMSPallet>> groupedPallets = new HashMap<>();
+        for (InboundWMSPallet pallet : pallets) {
+            Integer warehouseNoteInfoId = pallet.getWarehouseNoteInfoId();
+            groupedPallets
+                .computeIfAbsent(warehouseNoteInfoId, k -> new ArrayList<>())
+                .add(pallet);
+        }
+        List<QmsInboundDTO> QmsInboundBody = new ArrayList<>();
+
+        for (Map.Entry<
+            Integer,
+            List<InboundWMSPallet>
+        > entry : groupedPallets.entrySet()) {
+            Integer warehouseNoteInfoId = entry.getKey();
+            List<InboundWMSPallet> groupPallets = entry.getValue();
+
+            Optional<WarehouseNoteInfo> noteInfoOpt =
+                warehouseStampInfoRepository.findById(
+                    Long.valueOf(warehouseNoteInfoId)
+                );
+            if (!noteInfoOpt.isPresent()) {
+                LOG.warn(
+                    "WarehouseNoteInfo not found for id: {}",
+                    warehouseNoteInfoId
+                );
+                continue;
+            }
+            WarehouseNoteInfo noteInfo = noteInfoOpt.get();
+
+            // Build general_info
+            GeneralInfoDTO generalInfo = new GeneralInfoDTO();
+            generalInfo.setClientId(groupPallets.get(0).getSerialPallet()); // first pallet's serial as client_id
+            generalInfo.setInventoryCode(noteInfo.getSapCode());
+            generalInfo.setInventoryName(noteInfo.getSapName());
+            generalInfo.setWoCode(noteInfo.getWorkOrderCode());
+            generalInfo.setLotNumber(noteInfo.getLotNumber());
+            generalInfo.setNote(noteInfo.getComment());
+            generalInfo.setCreatedBy(noteInfo.getCreateBy());
+            generalInfo.setBranch(noteInfo.getBranch());
+            generalInfo.setProductionTeam(noteInfo.getGroupName());
+            generalInfo.setNumberOfPallets(groupPallets.size());
+            generalInfo.setDestinationWarehouse(
+                noteInfo.getDestinationWarehouse()
+            );
+            generalInfo.setPalletNoteCreationId(warehouseNoteInfoId);
+
+            int totalBoxes = 0;
+            int totalQuantity = 0;
+            List<PalletDTO> palletDTOs = new ArrayList<>();
+            for (InboundWMSPallet pallet : groupPallets) {
+                // Fetch PalletInforDetail
+                Optional<PalletInforDetail> detailOpt =
+                    palletInforDetailRepository.findBySerialPallet(
+                        pallet.getSerialPallet()
+                    );
+                if (!detailOpt.isPresent()) {
+                    LOG.warn(
+                        "PalletInforDetail not found for serial: {}",
+                        pallet.getSerialPallet()
+                    );
+                    continue;
+                }
+                PalletInforDetail detail = detailOpt.get();
+
+                PalletDTO palletDTO = new PalletDTO();
+                palletDTO.setSerialPallet(detail.getSerialPallet());
+                palletDTO.setQuantityPerBox(
+                    detail.getQuantityPerBox() != null
+                        ? detail.getQuantityPerBox()
+                        : 0
+                );
+                palletDTO.setNumBoxPerPallet(
+                    detail.getNumBoxPerPallet() != null
+                        ? detail.getNumBoxPerPallet()
+                        : 0
+                );
+                palletDTO.setTotalQuantity(
+                    (detail.getQuantityPerBox() != null
+                            ? detail.getQuantityPerBox()
+                            : 0) *
+                    (detail.getNumBoxPerPallet() != null
+                            ? detail.getNumBoxPerPallet()
+                            : 0)
+                );
+                palletDTO.setPoNumber(detail.getPoNumber());
+                palletDTO.setCustomerName(detail.getCustomerName());
+                palletDTO.setProductionDecisionNumber(detail.getQdsxNo());
+                palletDTO.setItemNoSku(detail.getItemNoSku());
+                palletDTO.setDateCode(detail.getDateCode());
+                palletDTO.setNote(detail.getNote());
+                palletDTO.setProductionDate(
+                    detail.getProductionDate() != null
+                        ? detail.getProductionDate().toString()
+                        : null
+                );
+
+                List<BoxDTO> boxDTOs = new ArrayList<>();
+                int palletQuantity = 0;
+
+                String listBoxJson = pallet.getListBox();
+
+                if (listBoxJson != null && !listBoxJson.isEmpty()) {
+                    try {
+                        boxDTOs = objectMapper.readValue(
+                            listBoxJson,
+                            new TypeReference<List<BoxDTO>>() {}
+                        );
+
+                        for (BoxDTO box : boxDTOs) {
+                            palletQuantity += (box.getQuantity() != null
+                                    ? box.getQuantity()
+                                    : 0);
+                        }
+                    } catch (Exception e) {
+                        LOG.error(
+                            "Lỗi parse JSON list_box cho pallet {}: {}",
+                            pallet.getSerialPallet(),
+                            e.getMessage()
+                        );
+                    }
+                }
+
+                // 3. GÁN DỮ LIỆU VÀO DTO
+                palletDTO.setListBox(boxDTOs);
+                palletDTO.setTotalQuantity(palletQuantity);
+                palletDTOs.add(palletDTO);
+
+                totalBoxes += boxDTOs.size();
+                totalQuantity += palletQuantity;
+            }
+
+            generalInfo.setNumberOfBox(totalBoxes);
+            generalInfo.setQuantity(totalQuantity);
+            generalInfo.setListPallet(palletDTOs);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("general_info", generalInfo);
+
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(
+                    requestBody,
+                    headers
+                );
+                restTemplate.postForObject(
+                    "http://192.168.20.101:9030/api/import-requirements/wms/internal",
+                    entity,
+                    String.class
+                );
+                LOG.info(
+                    "Successfully sent approval request: {}",
+                    warehouseNoteInfoId
+                );
+            } catch (Exception e) {
+                LOG.error(
+                    "Failed to send approval request: {}",
+                    warehouseNoteInfoId,
+                    e
+                );
+            }
+            QmsInboundDTO qmPaloadBody = new QmsInboundDTO();
+            qmPaloadBody.setNumberOfPallet(groupPallets.size());
+            qmPaloadBody.setNumberOfBox(totalBoxes);
+            qmPaloadBody.setQuantity(totalQuantity);
+            qmPaloadBody.setWorkOrder(noteInfo.getWorkOrderCode());
+            qmPaloadBody.setCreatedBy(generalInfo.getCreatedBy());
+
+            QmsInboundBody.add(qmPaloadBody);
+        }
+        try {
+            String qmsEndpoint =
+                "http://192.168.68.92/qms/api/pqc-sap-item-details/batch-update";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<List<QmsInboundDTO>> requestEntity = new HttpEntity<>(
+                QmsInboundBody,
+                headers
+            );
+
+            restTemplate.postForObject(
+                qmsEndpoint,
+                requestEntity,
+                String.class
+            );
+
+            LOG.info("Successfully sent summary to QMS endpoint");
+        } catch (Exception e) {
+            LOG.error("Failed to send to QMS", e);
+        }
+    }
+
     private void computeAggregates(InboundWMSSessionDTO dto, Long sessionId) {
         List<InboundWMSPallet> pallets =
             inboundWMSPalletRepository.findByInboundWMSSessionId(sessionId);

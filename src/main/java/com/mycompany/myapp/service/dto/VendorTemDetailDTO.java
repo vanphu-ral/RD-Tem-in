@@ -16,7 +16,7 @@ public class VendorTemDetailDTO implements Serializable {
 
     private Long id;
 
-    @Size(max = 30)
+    @Size(max = 50)
     private String reelId;
 
     @Size(max = 50)
