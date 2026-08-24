@@ -245,7 +245,8 @@ export class PlanningWorkOrderService {
 
   sendWmsApproval(payload: any): Observable<any> {
     return this.http.post<any>(
-      `${this.WMSUrl}/import-requirements/wms`,
+      // `${this.baseUrl}/import-requirements/wms/internal`,
+      `http://192.168.20.101:9030/api/import-requirements/wms/internal`,
       payload,
     );
   }

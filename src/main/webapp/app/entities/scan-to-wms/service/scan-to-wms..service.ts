@@ -152,7 +152,7 @@ export class ScanWMSService {
     sessionId: number,
   ): Observable<HttpResponse<any>> {
     return this.http.post<any>(
-      `${this.baseUrl}/inbound-wms-sessions/${sessionId}/submit-warehouse-entry-approval`,
+      `${this.baseUrl}/inbound-wms-sessions/${sessionId}/submit-warehouse-entry-approval/internal`,
       null,
       { observe: "response" },
     );
