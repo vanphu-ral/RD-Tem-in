@@ -270,6 +270,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly scanTimeoutDelay = 300;
   private readonly FILTER_CACHE_KEY = "listMaterialFilters";
   private skipNextFilterChange = false;
+  /** Bỏ qua fetch trùng khi đã fetch ngay trong updateRouteWithFilters */
+  private skipNextQueryFetch = false;
 
   // #endregion
 
@@ -312,7 +314,6 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.route.queryParams
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((params) => {
-        const initialParams = this.route.snapshot.queryParams;
         //Lấy param từ cache
         // const cachedParams = this.getCachedFilters();
         // const effectiveParams =
@@ -327,11 +328,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        this.mapParamsToFilters(initialParams);
-        this.pageIndex = (initialParams.page ?? 1) - 1;
-        this.pageSize = initialParams.pageSize ?? this.pageSize;
+        this.mapParamsToFilters(params);
+        this.pageIndex = (+params["page"] || 1) - 1;
+        this.pageSize = +params["pageSize"] || this.pageSize;
+
+        if (this.skipNextQueryFetch) {
+          this.skipNextQueryFetch = false;
+          this.cdr.markForCheck();
+          return;
+        }
+
         this.fetchPage({
-          ...initialParams,
+          ...params,
           page: this.pageIndex + 1,
           pageSize: this.pageSize,
         });
@@ -384,15 +392,16 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onFilterChange(col: string): void {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        ...this.searchTerms,
-        page: 1,
-        pageSize: this.pageSize,
-      },
-      queryParamsHandling: "merge",
-    });
+    // Giữ tương thích: đổi mode / áp dụng lại filter qua updateRouteWithFilters
+    const term = this.searchTerms[col];
+    if (!term?.value) {
+      return;
+    }
+    this.searchTerms[col] = {
+      value: term.value,
+      mode: this.filterModes[col] || term.mode || "contains",
+    };
+    this.updateRouteWithFilters(true);
   }
 
   // #endregion
@@ -429,6 +438,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       locationTypeId: "Location TypeId",
       locationTypeName: "Location TypeName",
       locationDescription: "Location Description",
+      rankAp: "Rank Ap",
+      rankQuang: "Rank Quang",
+      rankMau: "Rank Mau",
     };
     return columnNames[colDef] || colDef;
   }
@@ -447,8 +459,21 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
   setFilterMode(col: string, mode: string): void {
+    if (!this.supportsFilterMode(col)) {
+      return;
+    }
     this.filterModes[col] = mode;
-    this.onFilterChange(col);
+    const term = this.searchTerms[col];
+    if (term?.value != null && String(term.value).trim() !== "") {
+      this.searchTerms[col] = {
+        value: term.value,
+        mode,
+      };
+      // Cập nhật URL (...Mode=equals|contains) và gọi lại API ngay
+      this.updateRouteWithFilters(true);
+    } else {
+      this.cdr.markForCheck();
+    }
   }
   onFocusInput(): void {
     this.scanInput.nativeElement.blur();
@@ -524,7 +549,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       delete this.searchTerms[col];
       delete this.filterModes[col];
     }
-    this.filterChange$.next();
+    this.updateRouteWithFilters(true);
   }
 
   handlePageEvent(e: PageEvent): void {
@@ -821,29 +846,27 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public applyFilter(colDef: string, raw: string): void {
-    raw = raw.trim().toLowerCase();
-    const mode = this.filterModes[colDef] || "contains";
+    raw = raw.trim();
+    if (raw.toLowerCase() === "[object object]") {
+      raw = "";
+    }
+    const mode = this.supportsFilterMode(colDef)
+      ? this.filterModes[colDef] || "contains"
+      : "equals";
 
     if (raw) {
       this.searchTerms[colDef] = { mode, value: raw };
+      if (this.supportsFilterMode(colDef)) {
+        this.filterModes[colDef] = mode;
+      } else {
+        delete this.filterModes[colDef];
+      }
     } else {
       delete this.searchTerms[colDef];
       delete this.filterModes[colDef];
     }
 
-    const params: any = { page: 1, pageSize: this.pageSize };
-    Object.entries(this.searchTerms).forEach(([col, term]) => {
-      params[col] = term.value;
-      params[col + "Mode"] = term.mode;
-    });
-
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: params,
-      replaceUrl: true,
-    });
-
-    this.filterChange$.next();
+    this.updateRouteWithFilters(true);
   }
 
   isDateField(colDef: string): boolean {
@@ -859,6 +882,21 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Cột không hỗ trợ filter server-side (vd. itemName lấy từ API khác). */
   isColumnFilterable(colDef: string): boolean {
     return colDef !== "itemName";
+  }
+
+  /**
+   * Chỉ các cột text API hỗ trợ mode contains/equals mới hiện menu Có chứa / Bằng.
+   * Cột số / ngày / status select / cột khác: lọc được nhưng không đổi mode.
+   */
+  supportsFilterMode(colDef: string): boolean {
+    return [
+      "materialIdentifier",
+      "partNumber",
+      "lotNumber",
+      "userData4",
+      "userData5",
+      "locationName",
+    ].includes(colDef);
   }
   get hasFilter(): boolean {
     const queryParams = this.route.snapshot.queryParams;
@@ -885,31 +923,10 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   exportAllMaterialData(): void {
     this.isLoading = true;
 
+    const visibleCols = this.displayedColumns.filter((c) => c !== "select");
     const headers = [
       "STT",
-      "Material Indentifier",
-      "User Data 4",
-      "User Data 5",
-      "Lot Number",
-      "Material Trace ID",
-      "Inventory ID",
-      "Part ID",
-      "Part Number",
-      "Calculated Status",
-      "Tracking Type",
-      "Quantity",
-      "Available Quantity",
-      "Location Name",
-      "Parent Location ID",
-      "Last Location ID",
-      "Expiration Date",
-      "Received Date",
-      "Updated Date",
-      "Status",
-      "Updated By",
-      "Manufacturing Date",
-      "Material Type",
-      "Checkin Date",
+      ...visibleCols.map((col) => this.getColumnDisplayName(col)),
     ];
 
     // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -925,6 +942,16 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       "3": "Available",
       "6": "Consume",
       "19": "Expired",
+    };
+
+    const getCellValue = (row: any, col: string): any => {
+      if (col === "status") {
+        return statusMap[String(row.status)] || row.status || "";
+      }
+      if (this.isDateField(col) || col === "manufacturingDate") {
+        return formatDate(row[col]);
+      }
+      return row[col] ?? "";
     };
 
     const queryParams = this.route.snapshot.queryParams;
@@ -944,32 +971,13 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
           (a, b) => Number(b.availableQuantity) - Number(a.availableQuantity),
         );
 
-        const sheetData = sorted.map((row, i) => ({
-          STT: i + 1,
-          "Material Indentifier": row.materialIdentifier,
-          "User Data 4": row.userData4,
-          "User Data 5": row.userData5,
-          "Lot Number": row.lotNumber,
-          "Material Trace ID": row.materialTraceId,
-          "Inventory ID": row.inventoryId,
-          "Part ID": row.partId,
-          "Part Number": row.partNumber,
-          "Calculated Status": row.calculatedStatus,
-          "Tracking Type": row.trackingType,
-          Quantity: row.quantity,
-          "Available Quantity": row.availableQuantity,
-          "Location Name": row.locationName,
-          "Parent Location ID": row.parentLocationId,
-          "Last Location ID": row.lastLocationId,
-          "Expiration Date": formatDate(row.expirationDate),
-          "Received Date": formatDate(row.receivedDate),
-          "Updated Date": formatDate(row.updatedDate),
-          Status: statusMap[String(row.status)] || row.status,
-          "Updated By": row.updatedBy,
-          "Manufacturing Date": formatDate(row.manufacturingDate),
-          "Material Type": row.materialType,
-          "Checkin Date": formatDate(row.checkinDate),
-        }));
+        const sheetData = sorted.map((row, i) => {
+          const excelRow: Record<string, any> = { STT: i + 1 };
+          visibleCols.forEach((col) => {
+            excelRow[this.getColumnDisplayName(col)] = getCellValue(row, col);
+          });
+          return excelRow;
+        });
 
         const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(sheetData, {
           header: headers,
@@ -1054,13 +1062,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dateInputs = {};
 
     const cols = this.displayedColumns.filter((c) => c !== "select");
-    this.displayedColumns
-      .filter((c) => c !== "select")
-      .forEach((col) => {
-        this.inputValues[col] = this.searchTerms[col]?.value || "";
-      });
     cols.forEach((col) => {
-      const val = params[col];
+      const val = this.normalizeQueryFilterValue(params[col]);
       if (val != null && val !== "") {
         if (this.isDateField(col)) {
           const ms = parseInt(val, 10) * 1000;
@@ -1069,15 +1072,18 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
             "dd/MM/yyyy",
             this.locale,
           );
+          this.searchTerms[col] = { value: val, mode: "equals" };
         } else {
-          const mode = params[col + "Mode"] || "contains";
+          const mode =
+            this.normalizeQueryFilterValue(params[col + "Mode"]) || "contains";
           this.searchTerms[col] = { value: val, mode };
           this.filterModes[col] = mode;
         }
-      } else {
-        delete this.searchTerms[col];
-        delete this.filterModes[col];
       }
+    });
+
+    cols.forEach((col) => {
+      this.inputValues[col] = this.searchTerms[col]?.value || "";
     });
   }
 
@@ -1177,9 +1183,15 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     const params: any = { page: 1, pageSize: this.pageSize };
 
     Object.entries(this.searchTerms).forEach(([col, term]) => {
-      params[col] = term.value;
-      if (!this.isDateField(col)) {
-        params[col + "Mode"] = term.mode;
+      const value = term?.value;
+      if (value == null || value === "") {
+        return;
+      }
+      params[col] = value;
+      // Chỉ ghi *Mode lên URL cho cột hỗ trợ contains/equals
+      if (this.supportsFilterMode(col)) {
+        params[col + "Mode"] =
+          term.mode || this.filterModes[col] || "contains";
       }
     });
 
@@ -1189,10 +1201,29 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       replaceUrl: true,
     });
     if (triggerFetch) {
+      this.skipNextQueryFetch = true;
       this.fetchPage(params);
     }
     // console.log("Query params:", params);
     // this.cacheFilters(params);
+  }
+
+  private normalizeQueryFilterValue(raw: unknown): string {
+    if (raw == null) {
+      return "";
+    }
+    if (typeof raw === "object") {
+      const nested = (raw as { value?: unknown }).value;
+      if (nested == null) {
+        return "";
+      }
+      return String(nested).trim();
+    }
+    const normalized = String(raw).trim();
+    if (normalized.toLowerCase() === "[object object]") {
+      return "";
+    }
+    return normalized;
   }
 
   private cacheFilters(params: Params): void {

@@ -1002,29 +1002,45 @@ export class ListMaterialService {
     limit: number, // Số lượng item/trang
     filters?: {
       materialIdentifier?: string;
+      materialIdentifierMode?: string;
       status?: string;
+      statusMode?: string;
       partNumber?: string;
+      partNumberMode?: string;
       quantity?: number | null;
       availableQuantity?: number | null;
       lotNumber?: string;
+      lotNumberMode?: string;
       userData4?: string;
+      userData4Mode?: string;
       userData5?: string;
+      userData5Mode?: string;
       locationName?: string;
+      locationNameMode?: string;
       expirationDate?: string;
+      expirationDateMode?: string;
       updatedDate?: string;
     },
   ): Observable<ApiMaterialResponse> {
     const body = {
       materialIdentifier: filters?.materialIdentifier ?? "",
+      materialIdentifierMode: filters?.materialIdentifierMode ?? "contains",
       status: filters?.status ?? "",
+      statusMode: filters?.statusMode ?? "contains",
       partNumber: filters?.partNumber ?? "",
+      partNumberMode: filters?.partNumberMode ?? "contains",
       quantity: filters?.quantity ?? null,
       availableQuantity: filters?.availableQuantity ?? null,
       lotNumber: filters?.lotNumber ?? "",
+      lotNumberMode: filters?.lotNumberMode ?? "contains",
       userData4: filters?.userData4 ?? "",
+      userData4Mode: filters?.userData4Mode ?? "contains",
       userData5: filters?.userData5 ?? "",
+      userData5Mode: filters?.userData5Mode ?? "contains",
       locationName: filters?.locationName ?? "",
+      locationNameMode: filters?.locationNameMode ?? "contains",
       expirationDate: filters?.expirationDate ?? "",
+      expirationDateMode: filters?.expirationDateMode ?? "contains",
       updatedDate: filters?.updatedDate ?? "",
       pageNumber: pageIndex, //  pageIndex + 1
       itemPerPage: limit,

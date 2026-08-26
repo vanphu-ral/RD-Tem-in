@@ -368,56 +368,67 @@ public class InventoryService {
         int pageSize = request.getItemPerPage();
         int offset = (pageNumber - 1) * pageSize;
 
+        String materialIdentifierPattern = toLikePattern(
+            request.getMaterialIdentifier(),
+            request.getMaterialIdentifierMode()
+        );
+        String statusPattern = toLikePattern(
+            request.getStatus(),
+            request.getStatusMode()
+        );
+        String partNumberPattern = toLikePattern(
+            request.getPartNumber(),
+            request.getPartNumberMode()
+        );
+        String lotNumberPattern = toLikePattern(
+            request.getLotNumber(),
+            request.getLotNumberMode()
+        );
+        String userData4Pattern = toLikePattern(
+            request.getUserData4(),
+            request.getUserData4Mode()
+        );
+        String userData5Pattern = toLikePattern(
+            request.getUserData5(),
+            request.getUserData5Mode()
+        );
+        String locationNamePattern = toLikePattern(
+            request.getLocationName(),
+            request.getLocationNameMode()
+        );
+        String expirationDatePattern = toLikePattern(
+            request.getExpirationDate(),
+            request.getExpirationDateMode()
+        );
+
         List<InventoryResponse> inventories =
             inventoryRepository.getInventories(
-                "%" +
-                Optional.ofNullable(request.getMaterialIdentifier()).orElse(
-                    ""
-                ) +
-                "%",
-                "%" + Optional.ofNullable(request.getStatus()).orElse("") + "%",
-                "%" +
-                Optional.ofNullable(request.getPartNumber()).orElse("") +
-                "%",
+                materialIdentifierPattern,
+                statusPattern,
+                partNumberPattern,
                 request.getQuantity(),
                 request.getAvailableQuantity(),
-                "%" +
-                Optional.ofNullable(request.getLotNumber()).orElse("") +
-                "%",
-                "%" +
-                Optional.ofNullable(request.getUserData4()).orElse("") +
-                "%",
-                "%" +
-                Optional.ofNullable(request.getUserData5()).orElse("") +
-                "%",
-                "%" +
-                Optional.ofNullable(request.getLocationName()).orElse("") +
-                "%",
-                "%" +
-                Optional.ofNullable(request.getExpirationDate()).orElse("") +
-                "%",
+                lotNumberPattern,
+                userData4Pattern,
+                userData5Pattern,
+                locationNamePattern,
+                expirationDatePattern,
                 updatedDateEpoch,
                 offset,
                 pageSize
             );
 
         int totalItems = inventoryRepository.getTotalInventories(
-            "%" +
-            Optional.ofNullable(request.getMaterialIdentifier()).orElse("") +
-            "%",
-            "%" + Optional.ofNullable(request.getStatus()).orElse("") + "%",
-            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+            materialIdentifierPattern,
+            statusPattern,
+            partNumberPattern,
             request.getQuantity(),
             request.getAvailableQuantity(),
-            "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
-            "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",
-            "%" + Optional.ofNullable(request.getUserData5()).orElse("") + "%",
-            "%" +
-            Optional.ofNullable(request.getLocationName()).orElse("") +
-            "%",
-            "%" +
-            Optional.ofNullable(request.getExpirationDate()).orElse("") +
-            "%",
+            lotNumberPattern,
+            userData4Pattern,
+            userData5Pattern,
+            locationNamePattern,
+            expirationDatePattern,
             updatedDateEpoch
         );
 
@@ -448,24 +459,49 @@ public class InventoryService {
             })
             .orElse(null);
         return this.inventoryRepository.getTotalInventories(
-            "%" +
-            Optional.ofNullable(request.getMaterialIdentifier()).orElse("") +
-            "%",
-            "%" + Optional.ofNullable(request.getStatus()).orElse("") + "%",
-            "%" + Optional.ofNullable(request.getPartNumber()).orElse("") + "%",
+            toLikePattern(
+                request.getMaterialIdentifier(),
+                request.getMaterialIdentifierMode()
+            ),
+            toLikePattern(request.getStatus(), request.getStatusMode()),
+            toLikePattern(request.getPartNumber(), request.getPartNumberMode()),
             request.getQuantity(),
             request.getAvailableQuantity(),
-            "%" + Optional.ofNullable(request.getLotNumber()).orElse("") + "%",
-            "%" + Optional.ofNullable(request.getUserData4()).orElse("") + "%",
-            "%" + Optional.ofNullable(request.getUserData5()).orElse("") + "%",
-            "%" +
-            Optional.ofNullable(request.getLocationName()).orElse("") +
-            "%",
-            "%" +
-            Optional.ofNullable(request.getExpirationDate()).orElse("") +
-            "%",
+            toLikePattern(request.getLotNumber(), request.getLotNumberMode()),
+            toLikePattern(request.getUserData4(), request.getUserData4Mode()),
+            toLikePattern(request.getUserData5(), request.getUserData5Mode()),
+            toLikePattern(
+                request.getLocationName(),
+                request.getLocationNameMode()
+            ),
+            toLikePattern(
+                request.getExpirationDate(),
+                request.getExpirationDateMode()
+            ),
             updatedDate
         );
+    }
+
+    /**
+     * builds LIKE pattern: contains → %value%, equals → exact value (escape %/_).
+     * Blank filter keeps %% so "no filter" still matches all rows.
+     */
+    private String toLikePattern(String value, String mode) {
+        String v = Optional.ofNullable(value).orElse("").trim();
+        if (v.isEmpty()) {
+            return "%%";
+        }
+        if ("equals".equalsIgnoreCase(mode)) {
+            return escapeLikeLiteral(v);
+        }
+        return "%" + v + "%";
+    }
+
+    private String escapeLikeLiteral(String value) {
+        return value
+            .replace("[", "[[]")
+            .replace("%", "[%]")
+            .replace("_", "[_]");
     }
 
     @Transactional

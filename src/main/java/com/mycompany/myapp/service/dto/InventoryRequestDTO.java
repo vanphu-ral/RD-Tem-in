@@ -18,6 +18,16 @@ public class InventoryRequestDTO {
     private Integer itemPerPage;
     private Integer pageNumber;
 
+    /** contains (default) | equals — exact full-value match without wildcards */
+    private String materialIdentifierMode;
+    private String statusMode;
+    private String partNumberMode;
+    private String lotNumberMode;
+    private String userData4Mode;
+    private String userData5Mode;
+    private String locationNameMode;
+    private String expirationDateMode;
+
     public InventoryRequestDTO(
         String materialIdentifier,
         String status,
@@ -152,5 +162,69 @@ public class InventoryRequestDTO {
 
     public void setUpdatedDate(String updatedDate) {
         this.updatedDate = updatedDate;
+    }
+
+    public String getMaterialIdentifierMode() {
+        return materialIdentifierMode;
+    }
+
+    public void setMaterialIdentifierMode(String materialIdentifierMode) {
+        this.materialIdentifierMode = materialIdentifierMode;
+    }
+
+    public String getStatusMode() {
+        return statusMode;
+    }
+
+    public void setStatusMode(String statusMode) {
+        this.statusMode = statusMode;
+    }
+
+    public String getPartNumberMode() {
+        return partNumberMode;
+    }
+
+    public void setPartNumberMode(String partNumberMode) {
+        this.partNumberMode = partNumberMode;
+    }
+
+    public String getLotNumberMode() {
+        return lotNumberMode;
+    }
+
+    public void setLotNumberMode(String lotNumberMode) {
+        this.lotNumberMode = lotNumberMode;
+    }
+
+    public String getUserData4Mode() {
+        return userData4Mode;
+    }
+
+    public void setUserData4Mode(String userData4Mode) {
+        this.userData4Mode = userData4Mode;
+    }
+
+    public String getUserData5Mode() {
+        return userData5Mode;
+    }
+
+    public void setUserData5Mode(String userData5Mode) {
+        this.userData5Mode = userData5Mode;
+    }
+
+    public String getLocationNameMode() {
+        return locationNameMode;
+    }
+
+    public void setLocationNameMode(String locationNameMode) {
+        this.locationNameMode = locationNameMode;
+    }
+
+    public String getExpirationDateMode() {
+        return expirationDateMode;
+    }
+
+    public void setExpirationDateMode(String expirationDateMode) {
+        this.expirationDateMode = expirationDateMode;
     }
 }
