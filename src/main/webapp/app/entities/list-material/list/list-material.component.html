@@ -189,15 +189,12 @@
     [style.max-width]="tableMaxWidth"
     style="overflow-x: auto"
   >
-    <div class="overlay-spinner" *ngIf="isLoading || scanPending">
-      <!-- <mat-spinner diameter="50"></mat-spinner> -->
-      <div class="loader"></div>
-    </div>
     <table
       mat-table
       [dataSource]="dataSource"
       matSort
       class="mat-elevation-z8 bordered-table"
+      [class.table-loading]="isLoading || scanPending"
     >
       <ng-container matColumnDef="select">
         <th mat-header-cell *matHeaderCellDef style="background: #548ce8">
@@ -457,10 +454,37 @@
 
       <!-- ROW DEF -->
       <tr mat-header-row *matHeaderRowDef="displayedColumns" sticky></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        [hidden]="isLoading || scanPending"
+      ></tr>
     </table>
 
-    <ng-container *ngIf="dataSource.data.length === 0 && emptyMessage">
+    <!-- Skeleton chỉ trong vùng bảng, không che cả page -->
+    <div class="table-skeleton" *ngIf="isLoading || scanPending">
+      <div
+        class="skeleton-table-row"
+        *ngFor="let row of skeletonRows"
+        [style.gridTemplateColumns]="
+          'repeat(' + displayedColumns.length + ', minmax(96px, 1fr))'
+        "
+      >
+        <div
+          class="skeleton-block sk-cell"
+          *ngFor="let col of displayedColumns"
+        ></div>
+      </div>
+    </div>
+
+    <ng-container
+      *ngIf="
+        !isLoading &&
+        !scanPending &&
+        dataSource.data.length === 0 &&
+        emptyMessage
+      "
+    >
       <div class="empty-message-container">
         <fa-icon
           [icon]="faCircleExclamation"

@@ -245,9 +245,10 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   scanResult = "";
   scanError = "";
   filterApplied: boolean = false;
-  filterInputs!: QueryList<ElementRef<HTMLInputElement | HTMLSelectElement>>;
   dateInputs: Record<string, string> = {};
   public inputValues: Record<string, string> = {};
+  /** Số dòng skeleton lấp full height vùng bảng (~900px) */
+  readonly skeletonRows = Array.from({ length: 24 }, (_, i) => i + 1);
 
   // #endregion
 
@@ -257,6 +258,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild("menuTrigger") menuTrigger!: MatMenuTrigger;
   @ViewChild("scanInput") scanInput!: ElementRef<HTMLInputElement>;
   @ViewChildren("filterInput", { read: ElementRef })
+  filterInputs!: QueryList<ElementRef<HTMLInputElement | HTMLSelectElement>>;
   // #endregion
 
   // #region Private properties
