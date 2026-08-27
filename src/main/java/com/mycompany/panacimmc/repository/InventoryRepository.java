@@ -657,52 +657,91 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "LEFT JOIN InventoryMaterialTraceDetail d4 ON d4.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d4.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank ap'\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d5 ON d5.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d5.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank quang'\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d6 ON d6.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d6.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank mau'\n" +
-        "WHERE a.Inventory_MaterialIdentifier LIKE ?1\n" +
+        "WHERE (?1 IS NULL OR a.Inventory_MaterialIdentifier LIKE ?1)\n" +
         "AND a.Inventory_Status IN (3,6,19) AND a.Inventory_Quantity > 0\n" +
-        "AND a.Inventory_Status LIKE ?2\n" +
-        "AND a.Inventory_PartNumber LIKE ?3\n" +
-        "AND (?4 IS NULL OR a.Inventory_Quantity = ?4)\n" +
-        "AND (?5 IS NULL OR a.Inventory_AvailableQuantity = ?5)\n" +
-        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?6\n" +
-        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?7\n" +
-        "AND d3.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?8\n" +
-        "AND b.Location_FullName LIKE ?9\n" +
-        "AND (?10 IS NULL OR a.Inventory_ExpirationDate LIKE ?10)\n" +
-        "AND (?11 IS NULL OR a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400)" +
+        "AND (?2 IS NULL OR a.Inventory_Status LIKE ?2)\n" +
+        "AND (?3 IS NULL OR a.Inventory_PartNumber LIKE ?3)\n" +
+        "AND (?4 IS NULL OR CAST(a.Inventory_Quantity AS VARCHAR(50)) LIKE ?4)\n" +
+        "AND (?5 IS NULL OR CAST(a.Inventory_AvailableQuantity AS VARCHAR(50)) LIKE ?5)\n" +
+        "AND (?6 IS NULL OR ISNULL(d2.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?6)\n" +
+        "AND (?7 IS NULL OR ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?7)\n" +
+        "AND (?8 IS NULL OR ISNULL(d3.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?8)\n" +
+        "AND (?9 IS NULL OR ISNULL(b.Location_FullName, '') LIKE ?9)\n" +
+        "AND (?10 IS NULL OR CAST(ISNULL(a.Inventory_ExpirationDate, 0) AS VARCHAR(50)) LIKE ?10)\n" +
+        "AND (?11 IS NULL OR a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400)\n" +
+        "AND (?12 IS NULL OR ISNULL(a.Inventory_CalculatedStatus, '') LIKE ?12)\n" +
+        "AND (?13 IS NULL OR ISNULL(a.Inventory_TrackingType, '') LIKE ?13)\n" +
+        "AND (?14 IS NULL OR ISNULL(a.Inventory_UpdatedBy, '') LIKE ?14)\n" +
+        "AND (?15 IS NULL OR CAST(ISNULL(a.Inventory_ManufacturingDate, 0) AS VARCHAR(50)) LIKE ?15)\n" +
+        "AND (?16 IS NULL OR ISNULL(a.Inventory_MaterialType, '') LIKE ?16)\n" +
+        "AND (?17 IS NULL OR CAST(ISNULL(a.Inventory_CheckinDate, 0) AS VARCHAR(50)) LIKE ?17)\n" +
+        "AND (?18 IS NULL OR CAST(ISNULL(a.Inventory_ReceivedDate, 0) AS VARCHAR(50)) LIKE ?18)\n" +
+        "AND (?19 IS NULL OR ISNULL(d4.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?19)\n" +
+        "AND (?20 IS NULL OR ISNULL(d5.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?20)\n" +
+        "AND (?21 IS NULL OR ISNULL(d6.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?21)\n" +
+        "AND (?22 IS NULL OR ISNULL(a.Inventroy_MaterialName, '') LIKE ?22)\n" +
+        "AND (?23 IS NULL OR CAST(ISNULL(a.Inventory_UpdatedDate, 0) AS VARCHAR(50)) LIKE ?23)\n" +
         "ORDER BY a.Inventory_UpdatedDate DESC " +
-        "OFFSET ?12 ROWS FETCH NEXT ?13 ROWS ONLY",
+        "OFFSET ?24 ROWS FETCH NEXT ?25 ROWS ONLY",
         countQuery = "SELECT COUNT(*) FROM Inventory a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d1 ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d2 ON d2.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d2.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Lot'\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d3 ON d3.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d3.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 5'\n" +
-        "WHERE a.Inventory_MaterialIdentifier LIKE ?1\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d4 ON d4.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d4.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank ap'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d5 ON d5.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d5.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank quang'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d6 ON d6.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d6.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank mau'\n" +
+        "WHERE (?1 IS NULL OR a.Inventory_MaterialIdentifier LIKE ?1)\n" +
         "AND a.Inventory_Status IN (3,6,19) AND a.Inventory_Quantity > 0\n" +
-        "AND a.Inventory_Status LIKE ?2\n" +
-        "AND a.Inventory_PartNumber LIKE ?3\n" +
-        "AND (?4 IS NULL OR a.Inventory_Quantity = ?4)\n" +
-        "AND (?5 IS NULL OR a.Inventory_AvailableQuantity = ?5)\n" +
-        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?6\n" +
-        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?7\n" +
-        "AND d3.InventoryMaterialTraceDetail_MaterialTraceDataValue LIKE ?8\n" +
-        "AND b.Location_FullName LIKE ?9\n" +
-        "AND (?10 IS NULL OR a.Inventory_ExpirationDate LIKE ?10)\n" +
-        "AND (?11 IS NULL OR a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400)",
+        "AND (?2 IS NULL OR a.Inventory_Status LIKE ?2)\n" +
+        "AND (?3 IS NULL OR a.Inventory_PartNumber LIKE ?3)\n" +
+        "AND (?4 IS NULL OR CAST(a.Inventory_Quantity AS VARCHAR(50)) LIKE ?4)\n" +
+        "AND (?5 IS NULL OR CAST(a.Inventory_AvailableQuantity AS VARCHAR(50)) LIKE ?5)\n" +
+        "AND (?6 IS NULL OR ISNULL(d2.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?6)\n" +
+        "AND (?7 IS NULL OR ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?7)\n" +
+        "AND (?8 IS NULL OR ISNULL(d3.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?8)\n" +
+        "AND (?9 IS NULL OR ISNULL(b.Location_FullName, '') LIKE ?9)\n" +
+        "AND (?10 IS NULL OR CAST(ISNULL(a.Inventory_ExpirationDate, 0) AS VARCHAR(50)) LIKE ?10)\n" +
+        "AND (?11 IS NULL OR a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400)\n" +
+        "AND (?12 IS NULL OR ISNULL(a.Inventory_CalculatedStatus, '') LIKE ?12)\n" +
+        "AND (?13 IS NULL OR ISNULL(a.Inventory_TrackingType, '') LIKE ?13)\n" +
+        "AND (?14 IS NULL OR ISNULL(a.Inventory_UpdatedBy, '') LIKE ?14)\n" +
+        "AND (?15 IS NULL OR CAST(ISNULL(a.Inventory_ManufacturingDate, 0) AS VARCHAR(50)) LIKE ?15)\n" +
+        "AND (?16 IS NULL OR ISNULL(a.Inventory_MaterialType, '') LIKE ?16)\n" +
+        "AND (?17 IS NULL OR CAST(ISNULL(a.Inventory_CheckinDate, 0) AS VARCHAR(50)) LIKE ?17)\n" +
+        "AND (?18 IS NULL OR CAST(ISNULL(a.Inventory_ReceivedDate, 0) AS VARCHAR(50)) LIKE ?18)\n" +
+        "AND (?19 IS NULL OR ISNULL(d4.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?19)\n" +
+        "AND (?20 IS NULL OR ISNULL(d5.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?20)\n" +
+        "AND (?21 IS NULL OR ISNULL(d6.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') LIKE ?21)\n" +
+        "AND (?22 IS NULL OR ISNULL(a.Inventroy_MaterialName, '') LIKE ?22)\n" +
+        "AND (?23 IS NULL OR CAST(ISNULL(a.Inventory_UpdatedDate, 0) AS VARCHAR(50)) LIKE ?23)",
         nativeQuery = true
     )
     List<InventoryResponse> getInventories(
         String materialIdentifier,
         String status,
         String partNumber,
-        Integer quantity,
-        Integer availableQuantity,
+        String quantity,
+        String availableQuantity,
         String lotNumber,
         String userData4,
         String userData5,
         String locationName,
         String expirationDate,
-        String updatedDate,
+        String updatedDateRange,
+        String calculatedStatus,
+        String trackingType,
+        String updatedBy,
+        String manufacturingDate,
+        String materialType,
+        String checkinDate,
+        String receivedDate,
+        String rankAp,
+        String rankQuang,
+        String rankMau,
+        String materialName,
+        String updatedDateLike,
         Integer offset,
         Integer pageSize
     );
@@ -722,33 +761,60 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "  LEFT JOIN InventoryMaterialTraceDetail d3 \n" +
         "  ON d3.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id \n" +
         " AND d3.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 5'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d4 ON d4.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d4.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank ap'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d5 ON d5.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d5.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank quang'\n" +
+        "LEFT JOIN InventoryMaterialTraceDetail d6 ON d6.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id AND d6.InventoryMaterialTraceDetail_MaterialTraceDataName = 'Rank mau'\n" +
         "\n" +
-        "WHERE a.Inventory_MaterialIdentifier like ?1 " +
+        "WHERE (?1 IS NULL OR a.Inventory_MaterialIdentifier like ?1) " +
         "AND a.Inventory_Status in(3,6,19) and Inventory_Quantity >0 " +
-        "AND a.Inventory_Status like ?2 " +
-        "AND a.Inventory_PartNumber like ?3 " +
-        "AND ( ?4 IS NULL OR a.Inventory_Quantity = ?4 ) " +
-        "AND ( ?5 IS NULL OR a.Inventory_AvailableQuantity = ?5 ) " +
-        "AND d2.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?6 " +
-        "AND d1.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?7 " +
-        "AND d3.InventoryMaterialTraceDetail_MaterialTraceDataValue like ?8 " +
-        "AND b.Location_FullName like ?9 " +
-        "AND ( ?10 IS NULL OR a.Inventory_ExpirationDate like ?10 ) " +
-        "AND ( ?11 IS NULL OR a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400 )",
+        "AND (?2 IS NULL OR a.Inventory_Status like ?2) " +
+        "AND (?3 IS NULL OR a.Inventory_PartNumber like ?3) " +
+        "AND (?4 IS NULL OR CAST(a.Inventory_Quantity AS VARCHAR(50)) like ?4) " +
+        "AND (?5 IS NULL OR CAST(a.Inventory_AvailableQuantity AS VARCHAR(50)) like ?5) " +
+        "AND (?6 IS NULL OR ISNULL(d2.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') like ?6) " +
+        "AND (?7 IS NULL OR ISNULL(d1.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') like ?7) " +
+        "AND (?8 IS NULL OR ISNULL(d3.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') like ?8) " +
+        "AND (?9 IS NULL OR ISNULL(b.Location_FullName, '') like ?9) " +
+        "AND (?10 IS NULL OR CAST(ISNULL(a.Inventory_ExpirationDate, 0) AS VARCHAR(50)) like ?10) " +
+        "AND ( ?11 IS NULL OR a.Inventory_UpdatedDate >= CAST(?11 AS BIGINT) AND a.Inventory_UpdatedDate < CAST(?11 AS BIGINT) + 86400 ) " +
+        "AND (?12 IS NULL OR ISNULL(a.Inventory_CalculatedStatus, '') like ?12) " +
+        "AND (?13 IS NULL OR ISNULL(a.Inventory_TrackingType, '') like ?13) " +
+        "AND (?14 IS NULL OR ISNULL(a.Inventory_UpdatedBy, '') like ?14) " +
+        "AND (?15 IS NULL OR CAST(ISNULL(a.Inventory_ManufacturingDate, 0) AS VARCHAR(50)) like ?15) " +
+        "AND (?16 IS NULL OR ISNULL(a.Inventory_MaterialType, '') like ?16) " +
+        "AND (?17 IS NULL OR CAST(ISNULL(a.Inventory_CheckinDate, 0) AS VARCHAR(50)) like ?17) " +
+        "AND (?18 IS NULL OR CAST(ISNULL(a.Inventory_ReceivedDate, 0) AS VARCHAR(50)) like ?18) " +
+        "AND (?19 IS NULL OR ISNULL(d4.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') like ?19) " +
+        "AND (?20 IS NULL OR ISNULL(d5.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') like ?20) " +
+        "AND (?21 IS NULL OR ISNULL(d6.InventoryMaterialTraceDetail_MaterialTraceDataValue, '') like ?21) " +
+        "AND (?22 IS NULL OR ISNULL(a.Inventroy_MaterialName, '') like ?22) " +
+        "AND (?23 IS NULL OR CAST(ISNULL(a.Inventory_UpdatedDate, 0) AS VARCHAR(50)) like ?23)",
         nativeQuery = true
     )
     public Integer getTotalInventories(
         String materialIdentifier,
         String status,
         String partNumber,
-        Integer quantity,
-        Integer availableQuantity,
+        String quantity,
+        String availableQuantity,
         String lotNumber,
         String userData4,
         String userData5,
         String locationName,
         String expirationDate,
-        String updatedDate
+        String updatedDateRange,
+        String calculatedStatus,
+        String trackingType,
+        String updatedBy,
+        String manufacturingDate,
+        String materialType,
+        String checkinDate,
+        String receivedDate,
+        String rankAp,
+        String rankQuang,
+        String rankMau,
+        String materialName,
+        String updatedDateLike
     );
 
     @Query(

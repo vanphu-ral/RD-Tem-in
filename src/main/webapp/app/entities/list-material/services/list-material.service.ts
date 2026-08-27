@@ -89,7 +89,7 @@ export interface DataSumary {
 
 export interface ApiMaterialResponse {
   totalItems: number;
-  inventories: any[];
+  inventories: RawGraphQLMaterial[];
 }
 
 export interface updateHistoryData {
@@ -545,6 +545,13 @@ export class ListMaterialService {
   private _itemNameCache = new Map<string, string>();
   private _groupNameCache = new Map<string, string>();
 
+  /**
+   * Cache kết quả tìm kiếm list trong phiên (in-memory).
+   * Key = JSON body request đã chuẩn hóa; quay lại cùng filter/page → không gọi API.
+   */
+  private readonly searchResultCache = new Map<string, ApiMaterialResponse>();
+  private readonly SEARCH_CACHE_MAX_ENTRIES = 40;
+
   private _materialsDataFetchedOnce = false;
   private readonly defaultPageSize = 20;
 
@@ -680,6 +687,7 @@ export class ListMaterialService {
   /**
    * Gắn itemName cho danh sách vật tư trang hiện tại.
    * Chỉ gọi API cho mã chưa có trong cache; các mã trùng chỉ gọi 1 lần.
+   * Giới hạn concurrency để tránh bão request làm chậm trang.
    */
   enrichMaterialsWithItemNames(
     materials: RawGraphQLMaterial[],
@@ -688,9 +696,18 @@ export class ListMaterialService {
       return of([]);
     }
 
+    // Ưu tiên hiển thị materialName từ DB ngay nếu đã có
+    const withDbName = materials.map((m) => ({
+      ...m,
+      itemName:
+        m.itemName ??
+        (m as { materialName?: string }).materialName ??
+        "",
+    }));
+
     const itemCodes = [
       ...new Set(
-        materials
+        withDbName
           .map((m) => this.extractItemCodeFromUserData4(m.userData4))
           .filter((code): code is string => !!code),
       ),
@@ -701,24 +718,35 @@ export class ListMaterialService {
     );
 
     if (uncachedCodes.length === 0) {
-      return of(this.applyItemNamesToMaterials(materials));
+      return of(this.applyItemNamesToMaterials(withDbName));
     }
 
-    return forkJoin(
-      uncachedCodes.map((code) =>
-        this.getItemDataByItemCode(code).pipe(
-          map((data) => {
-            const name = data?.itemName ?? "";
-            this._itemNameCache.set(code, name);
-            return name;
-          }),
-          catchError(() => {
-            this._itemNameCache.set(code, "");
-            return of("");
-          }),
+    // Nạp cache theo lô nhỏ (tránh forkJoin hàng chục request cùng lúc)
+    const batchSize = 5;
+    let chain: Observable<unknown> = of(null);
+    for (let i = 0; i < uncachedCodes.length; i += batchSize) {
+      const batch = uncachedCodes.slice(i, i + batchSize);
+      chain = chain.pipe(
+        switchMap(() =>
+          forkJoin(
+            batch.map((code) =>
+              this.getItemDataByItemCode(code).pipe(
+                map((data) => {
+                  this._itemNameCache.set(code, data?.itemName ?? "");
+                  return true;
+                }),
+                catchError(() => {
+                  this._itemNameCache.set(code, "");
+                  return of(false);
+                }),
+              ),
+            ),
+          ),
         ),
-      ),
-    ).pipe(map(() => this.applyItemNamesToMaterials(materials)));
+      );
+    }
+
+    return chain.pipe(map(() => this.applyItemNamesToMaterials(withDbName)));
   }
 
   /** Gắn itemName cho dòng tổng hợp theo userData4 (view summary userData4). */
@@ -1000,69 +1028,110 @@ export class ListMaterialService {
   fetchMaterialsData(
     pageIndex: number,
     limit: number, // Số lượng item/trang
-    filters?: {
-      materialIdentifier?: string;
-      materialIdentifierMode?: string;
-      status?: string;
-      statusMode?: string;
-      partNumber?: string;
-      partNumberMode?: string;
-      quantity?: number | null;
-      availableQuantity?: number | null;
-      lotNumber?: string;
-      lotNumberMode?: string;
-      userData4?: string;
-      userData4Mode?: string;
-      userData5?: string;
-      userData5Mode?: string;
-      locationName?: string;
-      locationNameMode?: string;
-      expirationDate?: string;
-      expirationDateMode?: string;
-      updatedDate?: string;
-    },
+    filters?: Record<string, any>,
   ): Observable<ApiMaterialResponse> {
+    const f = filters ?? {};
+    const modeOf = (key: string, fallback = "contains"): string => {
+      const raw = f[`${key}Mode`];
+      return typeof raw === "string" && raw.trim() !== "" ? raw : fallback;
+    };
+
+    const toNullableNumber = (
+      value: number | string | null | undefined,
+    ): number | null => {
+      if (value == null || value === "") {
+        return null;
+      }
+      const n = typeof value === "number" ? value : Number(String(value).trim());
+      return Number.isFinite(n) ? n : null;
+    };
+
+    // itemName (UI) → materialName (DB Inventroy_MaterialName)
+    const materialName = f.materialName ?? f.itemName ?? "";
+    const materialNameMode = f.materialNameMode ?? f.itemNameMode ?? "contains";
+
     const body = {
-      materialIdentifier: filters?.materialIdentifier ?? "",
-      materialIdentifierMode: filters?.materialIdentifierMode ?? "contains",
-      status: filters?.status ?? "",
-      statusMode: filters?.statusMode ?? "contains",
-      partNumber: filters?.partNumber ?? "",
-      partNumberMode: filters?.partNumberMode ?? "contains",
-      quantity: filters?.quantity ?? null,
-      availableQuantity: filters?.availableQuantity ?? null,
-      lotNumber: filters?.lotNumber ?? "",
-      lotNumberMode: filters?.lotNumberMode ?? "contains",
-      userData4: filters?.userData4 ?? "",
-      userData4Mode: filters?.userData4Mode ?? "contains",
-      userData5: filters?.userData5 ?? "",
-      userData5Mode: filters?.userData5Mode ?? "contains",
-      locationName: filters?.locationName ?? "",
-      locationNameMode: filters?.locationNameMode ?? "contains",
-      expirationDate: filters?.expirationDate ?? "",
-      expirationDateMode: filters?.expirationDateMode ?? "contains",
-      updatedDate: filters?.updatedDate ?? "",
-      pageNumber: pageIndex, //  pageIndex + 1
+      materialIdentifier: f.materialIdentifier ?? "",
+      materialIdentifierMode: modeOf("materialIdentifier"),
+      status: f.status ?? "",
+      statusMode: modeOf("status", f.status ? "equals" : "contains"),
+      partNumber: f.partNumber ?? "",
+      partNumberMode: modeOf("partNumber"),
+      quantity: toNullableNumber(f.quantity),
+      quantityMode: modeOf("quantity"),
+      availableQuantity: toNullableNumber(f.availableQuantity),
+      availableQuantityMode: modeOf("availableQuantity"),
+      lotNumber: f.lotNumber ?? "",
+      lotNumberMode: modeOf("lotNumber"),
+      userData4: f.userData4 ?? "",
+      userData4Mode: modeOf("userData4"),
+      userData5: f.userData5 ?? "",
+      userData5Mode: modeOf("userData5"),
+      locationName: f.locationName ?? "",
+      locationNameMode: modeOf("locationName"),
+      expirationDate: f.expirationDate ?? "",
+      expirationDateMode: modeOf(
+        "expirationDate",
+        f.expirationDate ? "equals" : "contains",
+      ),
+      updatedDate: f.updatedDate ?? "",
+      updatedDateMode: modeOf(
+        "updatedDate",
+        f.updatedDate ? "equals" : "contains",
+      ),
+      calculatedStatus: f.calculatedStatus ?? "",
+      calculatedStatusMode: modeOf("calculatedStatus"),
+      trackingType: f.trackingType ?? "",
+      trackingTypeMode: modeOf("trackingType"),
+      updatedBy: f.updatedBy ?? "",
+      updatedByMode: modeOf("updatedBy"),
+      manufacturingDate: f.manufacturingDate ?? "",
+      manufacturingDateMode: modeOf(
+        "manufacturingDate",
+        f.manufacturingDate ? "equals" : "contains",
+      ),
+      materialType: f.materialType ?? "",
+      materialTypeMode: modeOf("materialType"),
+      checkinDate: f.checkinDate ?? "",
+      checkinDateMode: modeOf("checkinDate", f.checkinDate ? "equals" : "contains"),
+      receivedDate: f.receivedDate ?? "",
+      receivedDateMode: modeOf(
+        "receivedDate",
+        f.receivedDate ? "equals" : "contains",
+      ),
+      rankAp: f.rankAp ?? "",
+      rankApMode: modeOf("rankAp"),
+      rankQuang: f.rankQuang ?? "",
+      rankQuangMode: modeOf("rankQuang"),
+      rankMau: f.rankMau ?? "",
+      rankMauMode: modeOf("rankMau"),
+      materialName,
+      materialNameMode,
+      pageNumber: pageIndex,
       itemPerPage: limit,
     };
+
+    const cacheKey = this.buildSearchCacheKey(body);
+    const cached = this.searchResultCache.get(cacheKey);
+    if (cached) {
+      // LRU: đưa key lên cuối
+      this.searchResultCache.delete(cacheKey);
+      this.searchResultCache.set(cacheKey, cached);
+      const hit: ApiMaterialResponse = {
+        totalItems: cached.totalItems,
+        inventories: (cached.inventories ?? []).map(
+          (row): RawGraphQLMaterial => ({ ...row }),
+        ),
+      };
+      return of(hit).pipe(tap((response) => this.applyMaterialsResponse(response)));
+    }
 
     // console.log("Request Body:", JSON.stringify(body, null, 2));
 
     return this.http.post<ApiMaterialResponse>(this.apiMaterialUrl, body).pipe(
       tap((response) => {
-        this.cachePage(response.inventories);
-        this.updatePageData(response.inventories);
-        // console.log("API Response invent:", response);
-        if (response?.inventories) {
-          this._totalCount.next(response.totalItems);
-          this.refreshSelectedItems();
-          const mappedData = response.inventories
-            .filter((item) => !this._updatedInventoryIds.has(item.inventoryId))
-            .map((rawItem) =>
-              this.mapRawToMaterial(rawItem, this._selectedIds.value),
-            );
-          this._materialsData.next(mappedData);
-        }
+        this.putSearchResultCache(cacheKey, response);
+        this.applyMaterialsResponse(response);
       }),
       catchError((err) => {
         console.error("API Error:", err);
@@ -1071,6 +1140,11 @@ export class ListMaterialService {
         return of({ totalItems: 0, inventories: [] });
       }),
     );
+  }
+
+  /** Xóa cache kết quả tìm kiếm (Refresh / sau khi cập nhật dữ liệu). */
+  public clearSearchResultCache(): void {
+    this.searchResultCache.clear();
   }
 
   fetchAllInventoryUpdateRequests(
@@ -1631,6 +1705,7 @@ export class ListMaterialService {
           //   "MaterialService: Inventory update request successful. Refreshing materials data.",
           // );
 
+          this.clearSearchResultCache();
           this.fetchMaterialsData(
             1,
             this.defaultPageSize,
@@ -1701,6 +1776,7 @@ export class ListMaterialService {
         // console.log(
         //   "MaterialService: Approve inventory update successful. Refreshing materials data.",
         // );
+        this.clearSearchResultCache();
         this.fetchMaterialsData(1, this.defaultPageSize);
         this.fetchAllInventoryUpdateRequests();
       }),
@@ -1819,6 +1895,7 @@ export class ListMaterialService {
         // console.log(
         //   "MaterialService: Reject inventory update successful. Refreshing materials data.",
         // );
+        this.clearSearchResultCache();
         this.fetchMaterialsData(
           1,
           this.defaultPageSize,
@@ -1953,9 +2030,14 @@ export class ListMaterialService {
   ): RawGraphQLMaterial[] {
     return materials.map((m) => {
       const code = this.extractItemCodeFromUserData4(m.userData4);
+      const cached = code ? this._itemNameCache.get(code) : undefined;
       return {
         ...m,
-        itemName: code ? (this._itemNameCache.get(code) ?? "") : "",
+        itemName:
+          cached ??
+          m.itemName ??
+          (m as { materialName?: string }).materialName ??
+          "",
       };
     });
   }
@@ -1965,13 +2047,64 @@ export class ListMaterialService {
     selectedIds: string[],
   ): RawGraphQLMaterial {
     const locationName = raw.locationName || raw.locationFullName || "Unknown";
+    const materialName = (raw as { materialName?: string }).materialName;
 
     return {
       ...raw,
       checked: selectedIds.includes(raw.inventoryId),
       select_update: false,
       locationName,
+      // Hiện tên DB ngay; SAP name sẽ được enrich bổ sung sau
+      itemName: raw.itemName ?? materialName ?? "",
     };
+  }
+
+  private buildSearchCacheKey(body: Record<string, unknown>): string {
+    const keys = Object.keys(body).sort();
+    const normalized: Record<string, unknown> = {};
+    keys.forEach((k) => {
+      const v = body[k];
+      normalized[k] = v ?? null;
+    });
+    return JSON.stringify(normalized);
+  }
+
+  private putSearchResultCache(
+    key: string,
+    response: ApiMaterialResponse,
+  ): void {
+    const entry: ApiMaterialResponse = {
+      totalItems: response.totalItems,
+      inventories: (response.inventories ?? []).map(
+        (row): RawGraphQLMaterial => ({ ...row }),
+      ),
+    };
+    if (this.searchResultCache.has(key)) {
+      this.searchResultCache.delete(key);
+    }
+    this.searchResultCache.set(key, entry);
+    while (this.searchResultCache.size > this.SEARCH_CACHE_MAX_ENTRIES) {
+      const oldest = this.searchResultCache.keys().next().value;
+      if (oldest === undefined) {
+        break;
+      }
+      this.searchResultCache.delete(oldest);
+    }
+  }
+
+  private applyMaterialsResponse(response: ApiMaterialResponse): void {
+    this.cachePage(response.inventories);
+    this.updatePageData(response.inventories);
+    if (response?.inventories) {
+      this._totalCount.next(response.totalItems);
+      this.refreshSelectedItems();
+      const mappedData = response.inventories
+        .filter((item) => !this._updatedInventoryIds.has(item.inventoryId))
+        .map((rawItem) =>
+          this.mapRawToMaterial(rawItem, this._selectedIds.value),
+        );
+      this._materialsData.next(mappedData);
+    }
   }
 
   private saveExcelFile(buffer: any, fileName: string): void {

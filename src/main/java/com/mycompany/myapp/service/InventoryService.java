@@ -342,94 +342,67 @@ public class InventoryService {
     //        );
     //    }
     public Page<InventoryResponse> getInventories(InventoryRequestDTO request) {
-        String updatedDateEpoch = Optional.ofNullable(request.getUpdatedDate())
-            .filter(dateStr -> !dateStr.isBlank())
-            .map(dateStr -> {
-                try {
-                    if (dateStr.matches("\\d+")) {
-                        return dateStr;
-                    }
-                    LocalDate date = LocalDate.parse(
-                        dateStr,
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                    );
-                    return String.valueOf(
-                        date
-                            .atStartOfDay(ZoneId.systemDefault())
-                            .toEpochSecond()
-                    );
-                } catch (Exception e) {
-                    return null;
-                }
-            })
-            .orElse(null);
+        String updatedDateEpoch = parseEpochDay(request.getUpdatedDate());
 
         int pageNumber = request.getPageNumber();
         int pageSize = request.getItemPerPage();
         int offset = (pageNumber - 1) * pageSize;
 
-        String materialIdentifierPattern = toLikePattern(
-            request.getMaterialIdentifier(),
-            request.getMaterialIdentifierMode()
-        );
-        String statusPattern = toLikePattern(
-            request.getStatus(),
-            request.getStatusMode()
-        );
-        String partNumberPattern = toLikePattern(
-            request.getPartNumber(),
-            request.getPartNumberMode()
-        );
-        String lotNumberPattern = toLikePattern(
-            request.getLotNumber(),
-            request.getLotNumberMode()
-        );
-        String userData4Pattern = toLikePattern(
-            request.getUserData4(),
-            request.getUserData4Mode()
-        );
-        String userData5Pattern = toLikePattern(
-            request.getUserData5(),
-            request.getUserData5Mode()
-        );
-        String locationNamePattern = toLikePattern(
-            request.getLocationName(),
-            request.getLocationNameMode()
-        );
-        String expirationDatePattern = toLikePattern(
-            request.getExpirationDate(),
-            request.getExpirationDateMode()
-        );
+        InventoryFilterPatterns p = buildFilterPatterns(request, updatedDateEpoch);
 
         List<InventoryResponse> inventories =
             inventoryRepository.getInventories(
-                materialIdentifierPattern,
-                statusPattern,
-                partNumberPattern,
-                request.getQuantity(),
-                request.getAvailableQuantity(),
-                lotNumberPattern,
-                userData4Pattern,
-                userData5Pattern,
-                locationNamePattern,
-                expirationDatePattern,
-                updatedDateEpoch,
+                p.materialIdentifier,
+                p.status,
+                p.partNumber,
+                p.quantity,
+                p.availableQuantity,
+                p.lotNumber,
+                p.userData4,
+                p.userData5,
+                p.locationName,
+                p.expirationDate,
+                p.updatedDateRange,
+                p.calculatedStatus,
+                p.trackingType,
+                p.updatedBy,
+                p.manufacturingDate,
+                p.materialType,
+                p.checkinDate,
+                p.receivedDate,
+                p.rankAp,
+                p.rankQuang,
+                p.rankMau,
+                p.materialName,
+                p.updatedDateLike,
                 offset,
                 pageSize
             );
 
         int totalItems = inventoryRepository.getTotalInventories(
-            materialIdentifierPattern,
-            statusPattern,
-            partNumberPattern,
-            request.getQuantity(),
-            request.getAvailableQuantity(),
-            lotNumberPattern,
-            userData4Pattern,
-            userData5Pattern,
-            locationNamePattern,
-            expirationDatePattern,
-            updatedDateEpoch
+            p.materialIdentifier,
+            p.status,
+            p.partNumber,
+            p.quantity,
+            p.availableQuantity,
+            p.lotNumber,
+            p.userData4,
+            p.userData5,
+            p.locationName,
+            p.expirationDate,
+            p.updatedDateRange,
+            p.calculatedStatus,
+            p.trackingType,
+            p.updatedBy,
+            p.manufacturingDate,
+            p.materialType,
+            p.checkinDate,
+            p.receivedDate,
+            p.rankAp,
+            p.rankQuang,
+            p.rankMau,
+            p.materialName,
+            p.updatedDateLike
         );
 
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
@@ -437,15 +410,45 @@ public class InventoryService {
     }
 
     public Integer getTotalInventories(InventoryRequestDTO request) {
-        String updatedDate = Optional.ofNullable(request.getUpdatedDate())
-            .filter(dateStr -> !dateStr.isBlank())
-            .map(dateStr -> {
+        String updatedDateEpoch = parseEpochDay(request.getUpdatedDate());
+        InventoryFilterPatterns p = buildFilterPatterns(request, updatedDateEpoch);
+        return this.inventoryRepository.getTotalInventories(
+            p.materialIdentifier,
+            p.status,
+            p.partNumber,
+            p.quantity,
+            p.availableQuantity,
+            p.lotNumber,
+            p.userData4,
+            p.userData5,
+            p.locationName,
+            p.expirationDate,
+            p.updatedDateRange,
+            p.calculatedStatus,
+            p.trackingType,
+            p.updatedBy,
+            p.manufacturingDate,
+            p.materialType,
+            p.checkinDate,
+            p.receivedDate,
+            p.rankAp,
+            p.rankQuang,
+            p.rankMau,
+            p.materialName,
+            p.updatedDateLike
+        );
+    }
+
+    private String parseEpochDay(String dateStr) {
+        return Optional.ofNullable(dateStr)
+            .filter(s -> !s.isBlank())
+            .map(s -> {
                 try {
-                    if (dateStr.matches("\\d+")) {
-                        return dateStr;
+                    if (s.matches("\\d+")) {
+                        return s;
                     }
                     LocalDate date = LocalDate.parse(
-                        dateStr,
+                        s,
                         DateTimeFormatter.ofPattern("yyyy-MM-dd")
                     );
                     return String.valueOf(
@@ -458,38 +461,127 @@ public class InventoryService {
                 }
             })
             .orElse(null);
-        return this.inventoryRepository.getTotalInventories(
+    }
+
+    private InventoryFilterPatterns buildFilterPatterns(
+        InventoryRequestDTO request,
+        String updatedDateEpoch
+    ) {
+        InventoryFilterPatterns p = new InventoryFilterPatterns();
+        p.materialIdentifier =
             toLikePattern(
                 request.getMaterialIdentifier(),
                 request.getMaterialIdentifierMode()
-            ),
-            toLikePattern(request.getStatus(), request.getStatusMode()),
-            toLikePattern(request.getPartNumber(), request.getPartNumberMode()),
-            request.getQuantity(),
-            request.getAvailableQuantity(),
-            toLikePattern(request.getLotNumber(), request.getLotNumberMode()),
-            toLikePattern(request.getUserData4(), request.getUserData4Mode()),
-            toLikePattern(request.getUserData5(), request.getUserData5Mode()),
+            );
+        p.status =
+            toLikePattern(request.getStatus(), request.getStatusMode());
+        p.partNumber =
+            toLikePattern(
+                request.getPartNumber(),
+                request.getPartNumberMode()
+            );
+        p.quantity =
+            toLikePattern(
+                request.getQuantity() == null
+                    ? ""
+                    : String.valueOf(request.getQuantity()),
+                request.getQuantityMode()
+            );
+        p.availableQuantity =
+            toLikePattern(
+                request.getAvailableQuantity() == null
+                    ? ""
+                    : String.valueOf(request.getAvailableQuantity()),
+                request.getAvailableQuantityMode()
+            );
+        p.lotNumber =
+            toLikePattern(request.getLotNumber(), request.getLotNumberMode());
+        p.userData4 =
+            toLikePattern(request.getUserData4(), request.getUserData4Mode());
+        p.userData5 =
+            toLikePattern(request.getUserData5(), request.getUserData5Mode());
+        p.locationName =
             toLikePattern(
                 request.getLocationName(),
                 request.getLocationNameMode()
-            ),
+            );
+        p.expirationDate =
             toLikePattern(
                 request.getExpirationDate(),
                 request.getExpirationDateMode()
-            ),
-            updatedDate
-        );
+            );
+        p.calculatedStatus =
+            toLikePattern(
+                request.getCalculatedStatus(),
+                request.getCalculatedStatusMode()
+            );
+        p.trackingType =
+            toLikePattern(
+                request.getTrackingType(),
+                request.getTrackingTypeMode()
+            );
+        p.updatedBy =
+            toLikePattern(request.getUpdatedBy(), request.getUpdatedByMode());
+        p.manufacturingDate =
+            toLikePattern(
+                request.getManufacturingDate(),
+                request.getManufacturingDateMode()
+            );
+        p.materialType =
+            toLikePattern(
+                request.getMaterialType(),
+                request.getMaterialTypeMode()
+            );
+        p.checkinDate =
+            toLikePattern(
+                request.getCheckinDate(),
+                request.getCheckinDateMode()
+            );
+        p.receivedDate =
+            toLikePattern(
+                request.getReceivedDate(),
+                request.getReceivedDateMode()
+            );
+        p.rankAp =
+            toLikePattern(request.getRankAp(), request.getRankApMode());
+        p.rankQuang =
+            toLikePattern(request.getRankQuang(), request.getRankQuangMode());
+        p.rankMau =
+            toLikePattern(request.getRankMau(), request.getRankMauMode());
+        p.materialName =
+            toLikePattern(
+                request.getMaterialName(),
+                request.getMaterialNameMode()
+            );
+
+        // updatedDate: equals → lọc theo ngày; contains → LIKE trên epoch string
+        // Không filter → null (tránh CAST/LIKE %% làm chậm toàn bảng)
+        boolean updatedEquals = isEqualsMode(request.getUpdatedDateMode());
+        if (updatedDateEpoch == null || updatedDateEpoch.isBlank()) {
+            p.updatedDateRange = null;
+            p.updatedDateLike = null;
+        } else if (updatedEquals) {
+            p.updatedDateRange = updatedDateEpoch;
+            p.updatedDateLike = null;
+        } else {
+            p.updatedDateRange = null;
+            p.updatedDateLike = toLikePattern(updatedDateEpoch, "contains");
+        }
+        return p;
+    }
+
+    private boolean isEqualsMode(String mode) {
+        return mode == null || mode.isBlank() || "equals".equalsIgnoreCase(mode);
     }
 
     /**
-     * builds LIKE pattern: contains → %value%, equals → exact value (escape %/_).
-     * Blank filter keeps %% so "no filter" still matches all rows.
+     * builds LIKE pattern: contains → %value%, equals → exact value.
+     * Blank filter → null so SQL can skip with (? IS NULL OR ...).
      */
     private String toLikePattern(String value, String mode) {
         String v = Optional.ofNullable(value).orElse("").trim();
         if (v.isEmpty()) {
-            return "%%";
+            return null;
         }
         if ("equals".equalsIgnoreCase(mode)) {
             return escapeLikeLiteral(v);
@@ -502,6 +594,32 @@ public class InventoryService {
             .replace("[", "[[]")
             .replace("%", "[%]")
             .replace("_", "[_]");
+    }
+
+    private static final class InventoryFilterPatterns {
+        String materialIdentifier;
+        String status;
+        String partNumber;
+        String quantity;
+        String availableQuantity;
+        String lotNumber;
+        String userData4;
+        String userData5;
+        String locationName;
+        String expirationDate;
+        String updatedDateRange;
+        String calculatedStatus;
+        String trackingType;
+        String updatedBy;
+        String manufacturingDate;
+        String materialType;
+        String checkinDate;
+        String receivedDate;
+        String rankAp;
+        String rankQuang;
+        String rankMau;
+        String materialName;
+        String updatedDateLike;
     }
 
     @Transactional

@@ -237,6 +237,11 @@
               "
             >
               <span>{{ getColumnDisplayName("availableQuantity") }}</span>
+              <fa-icon
+                [matMenuTriggerFor]="filterMenu"
+                [icon]="faFilter"
+                style="color: white"
+              ></fa-icon>
             </div>
           </span>
 
@@ -251,14 +256,37 @@
                 matInput
                 enterKeyHint="search"
                 #inputAvailable
+                data-filter-col="availableQuantity"
                 [value]="searchTerms['availableQuantity']?.value || ''"
                 (keyup.enter)="
-                  applyFilter('availableQuantity', inputAvailable.value)
+                  applyAllHeaderFilters(
+                    'availableQuantity',
+                    inputAvailable.value
+                  )
                 "
-                placeholder="Search"
+                [placeholder]="
+                  'Search (' +
+                  (filterModes['availableQuantity'] || 'contains') +
+                  ')'
+                "
               />
             </mat-form-field>
           </div>
+
+          <mat-menu #filterMenu="matMenu">
+            <button
+              mat-menu-item
+              (click)="setFilterMode('availableQuantity', 'contains')"
+            >
+              Có chứa
+            </button>
+            <button
+              mat-menu-item
+              (click)="setFilterMode('availableQuantity', 'equals')"
+            >
+              Bằng
+            </button>
+          </mat-menu>
         </th>
 
         <td mat-cell *matCellDef="let row">
@@ -366,6 +394,7 @@
                         type="search"
                         enterKeyHint="search"
                         #locationInput
+                        data-filter-col="locationName"
                         [value]="searchTerms['locationName']?.value || ''"
                         (keydown.enter)="
                           onScanLocationEnter(locationInput.value)
@@ -390,8 +419,11 @@
                         matInput
                         #inputRef
                         enterKeyHint="search"
+                        [attr.data-filter-col]="col"
                         [value]="searchTerms[col]?.value || ''"
-                        (keydown.enter)="applyFilter(col, inputRef.value)"
+                        (keydown.enter)="
+                          applyAllHeaderFilters(col, inputRef.value)
+                        "
                         [placeholder]="
                           supportsFilterMode(col)
                             ? 'Search (' +
