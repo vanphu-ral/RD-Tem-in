@@ -62,6 +62,7 @@ import {
   isVendorQrFieldMapped,
   normalizeVendorDateToYyyyMmDd,
   parseVendorQrByMappingConfig,
+  VendorQrMappingConfig,
 } from "../shared/vendor-qr-mapping.util";
 import { ReceivingSuppliesService } from "app/entities/generate-tem-in/service/receiving-supplies.service";
 import { ReelImportPreviewRow } from "../add-info-tem-ncc/import-reel-preview-dialog/import-reel-preview-dialog.component";
@@ -119,14 +120,7 @@ export interface ScannedItem {
   fromOrder?: boolean;
 }
 export interface ScanDialogData {
-  mappingConfig: {
-    separator: string;
-    fieldMappings: {
-      position: number;
-      nccFieldDesc: string;
-      dataField: string;
-    }[];
-  } | null;
+  mappingConfig: VendorQrMappingConfig | null;
   arrivalDate?: string;
   warehouse?: string;
   approver?: string;
@@ -1490,36 +1484,6 @@ export class ScanItemDialogComponent
     );
   }
 
-  // map dataField từ API về camelCase key của ScannedItem
-  private toCamelKey(dataField: string): string {
-    const mapping: Record<string, string> = {
-      ReelID: "reelId",
-      PartNumber: "partNumber",
-      Lot: "lotNumber",
-      Vendor: "vendor",
-      InitialQuantity: "initialQuantity",
-      UserData1: "userData1",
-      UserData2: "userData2",
-      UserData3: "userData3",
-      UserData4: "userData4",
-      UserData5: "userData5",
-      MSDLevel: "msl",
-      StorageUnit: "storageUnit",
-      ManufacturingDate: "manufacturingDate",
-      ExpirationDate: "expirationDate",
-      QuantityOverride: "totalQty",
-
-      "Mã ReelID": "reelId",
-      "Mã Part number": "partNumber",
-      "SAP Code": "storageUnit",
-      "Initial quantity": "initialQuantity",
-      "Quantity Override": "totalQty",
-      "Storage Unit": "storageUnit",
-      "Lot Number": "lotNumber",
-    };
-    return mapping[dataField] ?? dataField;
-  }
-
   private loadWarehouseOptions(): void {
     this.isLoadingWarehouses = true;
     this.warehouseCacheService
@@ -1558,17 +1522,7 @@ export class ScanItemDialogComponent
     }
 
     const mappingConfig = this.data.mappingConfig;
-    const fieldMap: Record<string, string> = {};
-
-    if (mappingConfig) {
-      const separator = mappingConfig.separator ?? "|";
-      const parts = rawCode.split(separator);
-      mappingConfig.fieldMappings
-        .filter((fm) => fm.dataField && fm.dataField !== "Không lấy")
-        .forEach((fm) => {
-          fieldMap[this.toCamelKey(fm.dataField)] = parts[fm.position] ?? "";
-        });
-    }
+    const fieldMap = parseVendorQrByMappingConfig(rawCode, mappingConfig);
 
     const scannedPartNumber = (fieldMap["partNumber"] ?? "").trim();
     const scannedSap = (fieldMap["sapCode"] ?? "").trim();

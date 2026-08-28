@@ -51,6 +51,14 @@ export interface FieldMapping {
   position: number;
   nccFieldDesc: string;
   dataField: string;
+  /** Trường thứ hai tách ra từ chính chuỗi của dòng này. */
+  derivedDataField?: string | null;
+  /** Ký tự bắt đầu tách, đếm từ 1. */
+  derivedStartIndex?: number | null;
+  /** @deprecated Cấu hình cũ: dòng riêng cắt từ segment khác. */
+  sourcePosition?: number | null;
+  /** @deprecated Đi kèm sourcePosition. */
+  startIndex?: number | null;
 }
 
 const DATA_FIELDS = [
@@ -123,7 +131,9 @@ export class ConfigDialogComponent implements OnInit {
     if (this.data) {
       this.form = {
         ...this.data,
-        fieldMappings: [...(this.data.fieldMappings || [])],
+        fieldMappings: this.migrateLegacyDerivedRows(
+          this.data.fieldMappings || [],
+        ),
       };
     }
 
@@ -175,11 +185,35 @@ export class ConfigDialogComponent implements OnInit {
     this.updateUnmappedFields();
   }
 
+  hasDerived(row: FieldMapping): boolean {
+    return !!row.derivedDataField;
+  }
+
+  onToggleDerived(row: FieldMapping, checked: boolean): void {
+    if (checked) {
+      row.derivedStartIndex = 1;
+      row.derivedDataField = this.dataFields[0] ?? "";
+    } else {
+      row.derivedStartIndex = null;
+      row.derivedDataField = null;
+    }
+  }
+
   onCancel(): void {
     this.dialogRef.close(null);
   }
 
   onSave(): void {
+    const invalid = this.form.fieldMappings.find(
+      (f) => this.hasDerived(f) && Number(f.derivedStartIndex) < 1,
+    );
+    if (invalid) {
+      this.notificationService.error(
+        "Cấu hình tách chuỗi không hợp lệ: ký tự bắt đầu phải từ 1 trở lên.",
+      );
+      return;
+    }
+
     this.form.fieldCount = this.form.fieldMappings.length;
 
     const mappingConfig = JSON.stringify({
@@ -246,6 +280,37 @@ export class ConfigDialogComponent implements OnInit {
     this.filteredFieldOptions[index] = lower
       ? this.dataFields.filter((f) => f.toLowerCase().includes(lower))
       : [...this.dataFields];
+  }
+
+  /**
+   * Cấu hình cũ để trường cắt chuỗi thành một dòng riêng có số vị trí, khiến
+   * các vị trí phía sau bị lệch. Gộp nó vào dòng nguồn khi mở dialog.
+   */
+  private migrateLegacyDerivedRows(rows: FieldMapping[]): FieldMapping[] {
+    const result = rows.map((r) => ({ ...r }));
+    const legacy = result.filter(
+      (r) => r.sourcePosition !== undefined && r.sourcePosition !== null,
+    );
+    if (legacy.length === 0) {
+      return result;
+    }
+
+    legacy.forEach((row) => {
+      const source = result.find(
+        (r) =>
+          r !== row &&
+          r.position === row.sourcePosition &&
+          (r.sourcePosition === undefined || r.sourcePosition === null),
+      );
+      if (source) {
+        source.derivedDataField = row.dataField;
+        source.derivedStartIndex = row.startIndex ?? 1;
+      }
+      row.sourcePosition = null;
+      row.startIndex = null;
+    });
+
+    return result.filter((r) => !legacy.includes(r));
   }
 
   private loadMaterialAttributes(): void {

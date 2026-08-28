@@ -46,8 +46,34 @@
           <input
             matInput
             [(ngModel)]="orderInfo.vendorName"
-            placeholder="Nhập tên NCC..."
+            [matAutocomplete]="autoVendor"
+            (input)="onVendorSearch($any($event.target).value)"
+            (focus)="onVendorSearch(orderInfo.vendorName)"
+            placeholder="Tìm theo tên hoặc mã NCC..."
+            [disabled]="isLoadingVendors"
           />
+          <mat-spinner
+            matSuffix
+            diameter="16"
+            *ngIf="isLoadingVendors"
+          ></mat-spinner>
+          <mat-autocomplete
+            #autoVendor="matAutocomplete"
+            class="scenario-autocomplete-panel"
+            panelWidth="440px"
+            [displayWith]="displayVendor"
+            (optionSelected)="onVendorSelected($event.option.value)"
+          >
+            <mat-option *ngFor="let v of filteredVendorOptions" [value]="v">
+              <div class="scenario-option">
+                <span class="scenario-vendor">{{ v.cardName }}</span>
+                <span class="scenario-code">{{ v.cardCode }}</span>
+              </div>
+            </mat-option>
+            <mat-option *ngIf="filteredVendorOptions.length === 0" disabled>
+              Không tìm thấy
+            </mat-option>
+          </mat-autocomplete>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="small-form-field">

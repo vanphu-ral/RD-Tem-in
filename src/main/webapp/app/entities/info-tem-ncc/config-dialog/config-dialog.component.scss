@@ -198,7 +198,7 @@
 }
 .config-table-cols {
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 64px;
+  grid-template-columns: 80px 1fr 1fr 300px 64px;
   background: #f7f8fa;
   border-bottom: 1px solid #e0e0e0;
   padding: 10px 12px;
@@ -219,7 +219,7 @@
 
 .config-row {
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 64px;
+  grid-template-columns: 80px 1fr 1fr 300px 64px;
   align-items: center;
   padding: 6px 12px;
   gap: 8px;
@@ -245,6 +245,49 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.col-source {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 0;
+}
+.derive-toggle ::ng-deep .mdc-form-field > label {
+  font-size: 12px;
+  padding-left: 4px;
+}
+.derive-inputs {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: start;
+  gap: 8px;
+}
+.derive-field {
+  width: 100%;
+  font-size: 12px;
+
+  /* Bỏ vùng trống dành cho hint/error để hai ô thẳng hàng với các cột khác. */
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    height: 40px;
+  }
+
+  ::ng-deep .mat-mdc-form-field-infix {
+    min-height: 40px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+.derive-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #8a93a5;
+  font-style: italic;
 }
 
 .position-badge {

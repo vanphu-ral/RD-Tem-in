@@ -36,6 +36,7 @@ import {
   ManagerTemNccService,
   PoImportTem,
   PoImportTemPayload,
+  SapOcrd,
   TemScenarioResponse,
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import {
@@ -71,6 +72,7 @@ import {
   isVendorQrFieldMapped,
   normalizeVendorDateToYyyyMmDd,
   parseVendorQrByMappingConfig,
+  VendorQrMappingConfig,
 } from "../shared/vendor-qr-mapping.util";
 import {
   GoodsReceiptPoLine,
@@ -228,18 +230,15 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   totalItems = 0;
   isLoading = false;
 
+  vendorOptions: SapOcrd[] = [];
+  filteredVendorOptions: SapOcrd[] = [];
+  isLoadingVendors = false;
+
   scenarioOptions: TemScenarioResponse[] = [];
   filteredScenarioOptions: TemScenarioResponse[] = [];
   selectedScenario: TemScenarioResponse | null = null;
   isLoadingScenarios = false;
-  activeMappingConfig: {
-    separator: string;
-    fieldMappings: {
-      position: number;
-      nccFieldDesc: string;
-      dataField: string;
-    }[];
-  } | null = null;
+  activeMappingConfig: VendorQrMappingConfig | null = null;
 
   //select vat tu
   selectedLots = new Set<string>();
@@ -310,6 +309,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   private scannedReelIds = new Set<string>();
 
   private readonly SCENARIO_DISPLAY_LIMIT = 50;
+  private readonly VENDOR_DISPLAY_LIMIT = 50;
   constructor(
     private dialog: MatDialog,
     private alertService: AlertService,
@@ -335,6 +335,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.currentUser = account?.login ?? "unknown";
       });
     const idParam = this.route.snapshot.paramMap.get("id");
+    this.loadVendors();
     this.loadScenarios(() => {
       if (idParam) {
         this.loadDetailById(+idParam);
@@ -377,6 +378,30 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   isMobileExpanded(item: ParentItem): boolean {
     return this.expandedMobileRows.has(item.id);
   }
+
+  onVendorSearch(value: string): void {
+    const lower = (value ?? "").toLowerCase().trim();
+    const filtered = lower
+      ? this.vendorOptions.filter(
+          (v) =>
+            v.cardName.toLowerCase().includes(lower) ||
+            v.cardCode.toLowerCase().includes(lower),
+        )
+      : this.vendorOptions;
+    this.filteredVendorOptions = filtered.slice(0, this.VENDOR_DISPLAY_LIMIT);
+  }
+
+  onVendorSelected(vendor: SapOcrd): void {
+    this.orderInfo.vendorName = vendor.cardName;
+    this.orderInfo.vendorCode = vendor.cardCode;
+  }
+
+  displayVendor = (vendor: SapOcrd | string | null): string => {
+    if (!vendor) {
+      return "";
+    }
+    return typeof vendor === "string" ? vendor : vendor.cardName;
+  };
 
   onScenarioSearch(value: string): void {
     const lower = (value ?? "").toLowerCase().trim();
@@ -1660,6 +1685,21 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     );
   }
 
+  private loadVendors(): void {
+    this.isLoadingVendors = true;
+    this.managerTemNccService.getSapOcrds().subscribe({
+      next: (data) => {
+        this.vendorOptions = data;
+        this.filteredVendorOptions = data.slice(0, this.VENDOR_DISPLAY_LIMIT);
+        this.isLoadingVendors = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoadingVendors = false;
+      },
+    });
+  }
+
   private loadScenarios(onDone?: () => void): void {
     this.isLoadingScenarios = true;
     this.managerTemNccService.getTemIdentificationScenarios().subscribe({
@@ -1741,19 +1781,23 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             details: [] as [],
           }));
         }
-        if (transaction.mappingConfig) {
+        const matchedScenario = this.scenarioOptions.find(
+          (s) => s.id === transaction.temIdentificationScenarioId,
+        );
+        if (matchedScenario) {
+          this.selectedScenario = matchedScenario;
+          this.orderInfo.importScenario = `${matchedScenario.vendorCode} - ${matchedScenario.vendorName}`;
+        }
+
+        // Ưu tiên cấu hình mới nhất của kịch bản; snapshot trên giao dịch có thể
+        // được lưu trước khi kịch bản được chỉnh sửa.
+        const rawMappingConfig =
+          matchedScenario?.mappingConfig ?? transaction.mappingConfig;
+        if (rawMappingConfig) {
           try {
-            this.activeMappingConfig = JSON.parse(transaction.mappingConfig);
+            this.activeMappingConfig = JSON.parse(rawMappingConfig);
           } catch {
             //de trong
-          }
-
-          const matched = this.scenarioOptions.find(
-            (s) => s.id === transaction.temIdentificationScenarioId,
-          );
-          if (matched) {
-            this.selectedScenario = matched;
-            this.orderInfo.importScenario = `${matched.vendorCode} - ${matched.vendorName}`;
           }
         }
 

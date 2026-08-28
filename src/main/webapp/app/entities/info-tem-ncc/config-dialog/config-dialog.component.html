@@ -122,6 +122,7 @@
           <span class="col-header col-pos">Vị trí</span>
           <span class="col-header col-ncc">Mô tả trường NCC</span>
           <span class="col-header col-data">Trường dữ liệu</span>
+          <span class="col-header col-source">Nguồn dữ liệu</span>
           <span class="col-header col-action">Thao tác</span>
         </div>
 
@@ -190,6 +191,41 @@
                   </mat-option>
                 </mat-autocomplete>
               </mat-form-field>
+            </div>
+            <div class="col-source">
+              <mat-checkbox
+                color="primary"
+                class="derive-toggle"
+                [checked]="hasDerived(row)"
+                (change)="onToggleDerived(row, $event.checked)"
+              >
+                Tách thêm 1 trường từ chuỗi này
+              </mat-checkbox>
+
+              <div class="derive-inputs" *ngIf="hasDerived(row)">
+                <mat-form-field appearance="outline" class="derive-field">
+                  <mat-label>Từ ký tự thứ</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    min="1"
+                    [(ngModel)]="row.derivedStartIndex"
+                  />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="derive-field">
+                  <mat-label>Là trường</mat-label>
+                  <mat-select [(ngModel)]="row.derivedDataField">
+                    <mat-option *ngFor="let f of dataFields" [value]="f">
+                      {{ f }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <p class="derive-hint" *ngIf="hasDerived(row)">
+                Tính từ ký tự 1, lấy đến hết chuỗi; không chiếm vị trí trong QR.
+              </p>
             </div>
             <div class="col-action">
               <button

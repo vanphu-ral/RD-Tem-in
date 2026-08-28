@@ -55,6 +55,14 @@ export interface FieldMapping {
   position: number;
   nccFieldDesc: string;
   dataField: string;
+  /** Trường thứ hai tách ra từ chính chuỗi của dòng này. */
+  derivedDataField?: string | null;
+  /** Ký tự bắt đầu tách, đếm từ 1. */
+  derivedStartIndex?: number | null;
+  /** @deprecated Cấu hình cũ: dòng riêng cắt từ segment khác. */
+  sourcePosition?: number | null;
+  /** @deprecated Đi kèm sourcePosition. */
+  startIndex?: number | null;
 }
 
 const DATA_FIELDS = [
