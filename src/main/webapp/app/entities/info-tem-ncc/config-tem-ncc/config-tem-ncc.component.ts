@@ -138,8 +138,8 @@ export class ConfigTemNccComponent {
     const name = this.filters.vendorName.toLowerCase();
     this.filteredData = this.allData.filter(
       (v) =>
-        v.vendorCode.toLowerCase().includes(code) &&
-        v.vendorName.toLowerCase().includes(name),
+        (v.vendorCode ?? "").toLowerCase().includes(code) &&
+        (v.vendorName ?? "").toLowerCase().includes(name),
     );
     this.pageIndex = 0;
     this.updatePage();

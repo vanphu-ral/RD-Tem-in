@@ -570,8 +570,8 @@ export class ReceivingSuppliesComponent
     const filtered = lower
       ? this.vendorOptions.filter(
           (v) =>
-            v.cardName.toLowerCase().includes(lower) ||
-            v.cardCode.toLowerCase().includes(lower),
+            (v.cardName ?? "").toLowerCase().includes(lower) ||
+            (v.cardCode ?? "").toLowerCase().includes(lower),
         )
       : this.vendorOptions;
 

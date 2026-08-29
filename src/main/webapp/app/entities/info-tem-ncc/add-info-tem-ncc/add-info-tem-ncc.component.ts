@@ -384,8 +384,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     const filtered = lower
       ? this.vendorOptions.filter(
           (v) =>
-            v.cardName.toLowerCase().includes(lower) ||
-            v.cardCode.toLowerCase().includes(lower),
+            (v.cardName ?? "").toLowerCase().includes(lower) ||
+            (v.cardCode ?? "").toLowerCase().includes(lower),
         )
       : this.vendorOptions;
     this.filteredVendorOptions = filtered.slice(0, this.VENDOR_DISPLAY_LIMIT);
@@ -396,20 +396,13 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     this.orderInfo.vendorCode = vendor.cardCode;
   }
 
-  displayVendor = (vendor: SapOcrd | string | null): string => {
-    if (!vendor) {
-      return "";
-    }
-    return typeof vendor === "string" ? vendor : vendor.cardName;
-  };
-
   onScenarioSearch(value: string): void {
     const lower = (value ?? "").toLowerCase().trim();
     const filtered = lower
       ? this.scenarioOptions.filter(
           (s) =>
-            s.vendorName.toLowerCase().includes(lower) ||
-            s.vendorCode.toLowerCase().includes(lower),
+            (s.vendorName ?? "").toLowerCase().includes(lower) ||
+            (s.vendorCode ?? "").toLowerCase().includes(lower),
         )
       : this.scenarioOptions;
     this.filteredScenarioOptions = filtered.slice(
