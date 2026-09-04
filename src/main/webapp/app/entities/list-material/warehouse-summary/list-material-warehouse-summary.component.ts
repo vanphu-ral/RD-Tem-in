@@ -6,6 +6,7 @@ import {
   HostBinding,
   OnDestroy,
   OnInit,
+  ViewChild,
 } from "@angular/core";
 import { FormBuilder, FormGroup } from "@angular/forms";
 import { PageEvent } from "@angular/material/paginator";
@@ -90,8 +91,19 @@ export class ListMaterialWarehouseSummaryComponent
     return this.selectedTabIndex === 0 || this.selectedTabIndex === 1;
   }
 
-  @HostBinding("class.is-page-fullscreen")
   isPageFullscreen = false;
+
+  /** Panel đang fullscreen bằng Fullscreen API của trình duyệt. */
+  panelFullscreen: "map" | "detail" | "materials" | null = null;
+
+  @ViewChild("pageFullscreenRoot")
+  pageFullscreenRoot?: ElementRef<HTMLElement>;
+  @ViewChild("mapFullscreenPanel")
+  mapFullscreenPanel?: ElementRef<HTMLElement>;
+  @ViewChild("detailFullscreenPanel")
+  detailFullscreenPanel?: ElementRef<HTMLElement>;
+  @ViewChild("materialsFullscreenPanel")
+  materialsFullscreenPanel?: ElementRef<HTMLElement>;
 
   dataSource = new MatTableDataSource<WarehouseAreaSummaryRow>([]);
   locationMaterialsSource =
@@ -160,6 +172,10 @@ export class ListMaterialWarehouseSummaryComponent
   readonly skeletonMaterialRows = [1, 2, 3, 4, 5, 6, 7, 8];
   readonly skeletonMaterialCols = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
+  /** Snapshot list khu vực — dùng để khôi phục khi bỏ chọn location. */
+  private areaMaterialsBaseline: WarehouseAreaMaterialGroup[] = [];
+  private areaMaterialsBaselineTotalCount = 0;
+  private areaMaterialsBaselinePreviewLimited = false;
   private readonly fullscreenBodyClass = "warehouse-summary-fullscreen-active";
 
   private readonly destroy$ = new Subject<void>();
@@ -182,7 +198,10 @@ export class ListMaterialWarehouseSummaryComponent
     private router: Router,
     private cdr: ChangeDetectorRef,
     private hostElement: ElementRef<HTMLElement>,
-  ) {}
+  ) {
+    this.handleNativeFullscreenChange =
+      this.handleNativeFullscreenChange.bind(this);
+  }
 
   ngOnInit(): void {
     this.filterForm = this.fb.group({
@@ -204,16 +223,71 @@ export class ListMaterialWarehouseSummaryComponent
     this.initLocationSearch();
     this.initOverviewMaterialSearch();
     this.loadData();
+    document.addEventListener(
+      "fullscreenchange",
+      this.handleNativeFullscreenChange,
+    );
   }
 
   ngOnDestroy(): void {
-    this.setPageFullscreenState(false);
+    document.removeEventListener(
+      "fullscreenchange",
+      this.handleNativeFullscreenChange,
+    );
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined);
+    }
+    this.panelFullscreen = null;
+    this.isPageFullscreen = false;
+    document.body.classList.remove(this.fullscreenBodyClass);
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  togglePageFullscreen(): void {
-    this.setPageFullscreenState(!this.isPageFullscreen);
+  async togglePageFullscreen(): Promise<void> {
+    const target = this.pageFullscreenRoot?.nativeElement;
+    if (!target) {
+      return;
+    }
+
+    try {
+      if (document.fullscreenElement === target) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+      await target.requestFullscreen();
+    } catch (error) {
+      console.error("Không thể chuyển fullscreen trang:", error);
+    }
+  }
+
+  async togglePanelFullscreen(
+    panel: "map" | "detail" | "materials",
+  ): Promise<void> {
+    const target = this.getPanelFullscreenElement(panel);
+    if (!target) {
+      return;
+    }
+
+    try {
+      if (document.fullscreenElement === target) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+      await target.requestFullscreen();
+    } catch (error) {
+      console.error("Không thể chuyển fullscreen panel:", error);
+    }
+  }
+
+  isPanelFullscreen(panel: "map" | "detail" | "materials"): boolean {
+    return this.panelFullscreen === panel;
   }
 
   hasFloorPlanHighlightFocus(): boolean {
@@ -231,6 +305,8 @@ export class ListMaterialWarehouseSummaryComponent
     this.pageIndex = 0;
     this.selectedOverviewMaterialType = null;
     this.selectedOverviewArea = null;
+    // Thanh tìm kiếm tổng → bỏ mọi filter đang chọn ở sơ đồ/list bên dưới.
+    this.clearFloorPlanInteractionFilters();
     this.loadData();
   }
 
@@ -292,27 +368,37 @@ export class ListMaterialWarehouseSummaryComponent
   }
 
   onLocationSelect(location: WarehouseAreaLocation): void {
-    const locationChanged =
-      this.selectedLocation?.locationId !== location.locationId;
+    // Click lại cùng location → bỏ chọn, list phải quay về theo khu vực.
+    if (this.selectedLocation?.locationId === location.locationId) {
+      this.clearLocationSelection();
+      return;
+    }
+
     this.selectedLocation = location;
     this.selectedAreaMaterial = null;
     this.selectedMaterialGroupKey = null;
     this.selectedMaterialOccurrences = [];
     this.highlightedLocationIds = new Set([location.locationId]);
-    if (locationChanged) {
-      this.resetLocationMaterialTableState();
-    }
+    this.resetLocationMaterialTableState();
     this.loadLocationMaterials(location);
+    this.loadSidebarMaterialsForLocation(location);
     this.cdr.markForCheck();
   }
 
   onAreaMaterialGroupSelect(group: WarehouseAreaMaterialGroup): void {
+    // Click lại cùng vật tư → bỏ chọn, sơ đồ/chi tiết về trạng thái chưa chọn.
+    if (this.selectedMaterialGroupKey === group.groupKey) {
+      this.clearMaterialGroupSelection();
+      return;
+    }
+
     this.selectedMaterialGroupKey = group.groupKey;
     this.selectedAreaMaterial = this.buildRepresentativeMaterial(group);
     this.selectedLocation = null;
     this.locationMaterialsSource.data = [];
     this.locationMaterialsTotalCount = 0;
     this.resetLocationMaterialTableState();
+    this.restoreAreaMaterialsSidebar();
     this.loadMaterialOccurrences(this.selectedAreaMaterial);
     this.cdr.markForCheck();
   }
@@ -321,6 +407,10 @@ export class ListMaterialWarehouseSummaryComponent
     const term = (
       this.materialSearchForm.get("materialSearch")?.value ?? ""
     ).trim();
+    if (this.selectedLocation) {
+      this.loadSidebarMaterialsForLocation(this.selectedLocation, term);
+      return;
+    }
     this.loadAreaMaterials(term);
   }
 
@@ -345,6 +435,13 @@ export class ListMaterialWarehouseSummaryComponent
   }
 
   getMaterialGroupMeta(group: WarehouseAreaMaterialGroup): string {
+    if (this.selectedLocation) {
+      const locName =
+        this.selectedLocation.locationName ||
+        this.selectedLocation.locationFullName ||
+        "—";
+      return `${locName} · Tổng SL ${this.formatNumber(group.totalQuantity)} · ${this.formatNumber(group.materialIdentifierCount)} mã`;
+    }
     if (!group.locationSummaries.length) {
       return `Tổng SL ${this.formatNumber(group.totalQuantity)}`;
     }
@@ -407,6 +504,19 @@ export class ListMaterialWarehouseSummaryComponent
 
   isLocationSelected(location: WarehouseAreaLocation): boolean {
     return this.selectedLocation?.locationId === location.locationId;
+  }
+
+  /** Location hiển thị trên sơ đồ: khi chọn vật tư thì chỉ còn vị trí có mã đó. */
+  get visibleFloorPlanLocations(): WarehouseAreaLocation[] {
+    if (!this.selectedAreaMaterial) {
+      return this.floorPlanLocations;
+    }
+    if (!this.highlightedLocationIds.size) {
+      return [];
+    }
+    return this.floorPlanLocations.filter((location) =>
+      this.highlightedLocationIds.has(location.locationId),
+    );
   }
 
   isLocationHighlighted(location: WarehouseAreaLocation): boolean {
@@ -611,9 +721,53 @@ export class ListMaterialWarehouseSummaryComponent
     return materialType ?? "";
   }
 
-  private setPageFullscreenState(active: boolean): void {
-    this.isPageFullscreen = active;
-    document.body.classList.toggle(this.fullscreenBodyClass, active);
+  private handleNativeFullscreenChange(): void {
+    this.syncFullscreenFromDocument();
+  }
+
+  private getPanelFullscreenElement(
+    panel: "map" | "detail" | "materials",
+  ): HTMLElement | null {
+    switch (panel) {
+      case "map":
+        return this.mapFullscreenPanel?.nativeElement ?? null;
+      case "detail":
+        return this.detailFullscreenPanel?.nativeElement ?? null;
+      case "materials":
+        return this.materialsFullscreenPanel?.nativeElement ?? null;
+      default:
+        return null;
+    }
+  }
+
+  private syncFullscreenFromDocument(): void {
+    const active = document.fullscreenElement;
+    const pageRoot = this.pageFullscreenRoot?.nativeElement ?? null;
+
+    if (!active) {
+      this.isPageFullscreen = false;
+      this.panelFullscreen = null;
+    } else if (pageRoot && active === pageRoot) {
+      this.isPageFullscreen = true;
+      this.panelFullscreen = null;
+    } else if (active === this.mapFullscreenPanel?.nativeElement) {
+      this.isPageFullscreen = false;
+      this.panelFullscreen = "map";
+    } else if (active === this.detailFullscreenPanel?.nativeElement) {
+      this.isPageFullscreen = false;
+      this.panelFullscreen = "detail";
+    } else if (active === this.materialsFullscreenPanel?.nativeElement) {
+      this.isPageFullscreen = false;
+      this.panelFullscreen = "materials";
+    } else {
+      this.isPageFullscreen = false;
+      this.panelFullscreen = null;
+    }
+
+    document.body.classList.toggle(
+      this.fullscreenBodyClass,
+      this.isPageFullscreen || this.panelFullscreen != null,
+    );
     this.cdr.markForCheck();
   }
 
@@ -774,6 +928,7 @@ export class ListMaterialWarehouseSummaryComponent
           if (!this.selectedLocation) {
             this.locationMaterialsSource.data = [];
             this.highlightedLocationIds = new Set();
+            this.restoreAreaMaterialsSidebar();
           } else {
             this.highlightedLocationIds = new Set([
               this.selectedLocation.locationId,
@@ -790,6 +945,9 @@ export class ListMaterialWarehouseSummaryComponent
       this.groupedAreaMaterials = [];
       this.areaMaterialsTotalCount = 0;
       this.areaMaterialsPreviewLimited = false;
+      this.areaMaterialsBaseline = [];
+      this.areaMaterialsBaselineTotalCount = 0;
+      this.areaMaterialsBaselinePreviewLimited = false;
       return;
     }
 
@@ -818,9 +976,16 @@ export class ListMaterialWarehouseSummaryComponent
         }),
       )
       .subscribe((response) => {
-        this.groupedAreaMaterials = response.groups ?? [];
-        this.areaMaterialsTotalCount = response.totalCount ?? 0;
-        this.areaMaterialsPreviewLimited = response.previewLimited ?? false;
+        this.areaMaterialsBaseline = response.groups ?? [];
+        this.areaMaterialsBaselineTotalCount = response.totalCount ?? 0;
+        this.areaMaterialsBaselinePreviewLimited =
+          response.previewLimited ?? false;
+
+        if (this.selectedLocation) {
+          this.loadSidebarMaterialsForLocation(this.selectedLocation);
+        } else {
+          this.restoreAreaMaterialsSidebar();
+        }
 
         if (this.selectedMaterialGroupKey) {
           const refreshedGroup = this.groupedAreaMaterials.find(
@@ -833,11 +998,182 @@ export class ListMaterialWarehouseSummaryComponent
             this.selectedMaterialGroupKey = null;
             this.selectedAreaMaterial = null;
             this.selectedMaterialOccurrences = [];
-            this.highlightedLocationIds = new Set();
+            if (!this.selectedLocation) {
+              this.highlightedLocationIds = new Set();
+            }
           }
         }
         this.cdr.markForCheck();
       });
+  }
+
+  /** List phải theo khu vực (trạng thái mặc định / sau khi bỏ chọn location). */
+  private restoreAreaMaterialsSidebar(): void {
+    this.groupedAreaMaterials = [...this.areaMaterialsBaseline];
+    this.areaMaterialsTotalCount = this.areaMaterialsBaselineTotalCount;
+    this.areaMaterialsPreviewLimited = this.areaMaterialsBaselinePreviewLimited;
+  }
+
+  private clearLocationSelection(): void {
+    this.selectedLocation = null;
+    this.locationMaterialsSource.data = [];
+    this.locationMaterialsTotalCount = 0;
+    this.resetLocationMaterialTableState();
+    this.highlightedLocationIds = new Set();
+    this.restoreAreaMaterialsSidebar();
+    this.cdr.markForCheck();
+  }
+
+  private clearMaterialGroupSelection(): void {
+    this.selectedMaterialGroupKey = null;
+    this.selectedAreaMaterial = null;
+    this.selectedMaterialOccurrences = [];
+    this.highlightedLocationIds = new Set();
+    this.cdr.markForCheck();
+  }
+
+  /** Reset filter tương tác trên tab sơ đồ (location / vật tư / bảng dưới). */
+  private clearFloorPlanInteractionFilters(): void {
+    this.selectedLocation = null;
+    this.selectedAreaMaterial = null;
+    this.selectedMaterialGroupKey = null;
+    this.selectedMaterialOccurrences = [];
+    this.highlightedLocationIds = new Set();
+    this.locationMaterialsSource.data = [];
+    this.locationMaterialsTotalCount = 0;
+    this.resetLocationMaterialTableState();
+    this.locationSearchForm?.patchValue(
+      { locationSearch: "" },
+      { emitEvent: false },
+    );
+    this.materialSearchForm?.patchValue(
+      { materialSearch: "" },
+      { emitEvent: false },
+    );
+    this.restoreAreaMaterialsSidebar();
+
+    if (this.floorPlanContext) {
+      this.loadFloorPlan("");
+      this.loadAreaMaterials("");
+    }
+
+    if (this.panelFullscreen && document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined);
+    }
+
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * List phải khi chọn location: gộp tổng tồn theo mã SAP trong vị trí đó.
+   */
+  private loadSidebarMaterialsForLocation(
+    location: WarehouseAreaLocation,
+    materialSearch?: string,
+  ): void {
+    const locationKey = location.locationFullName || location.locationName;
+    if (!locationKey) {
+      this.groupedAreaMaterials = [];
+      this.areaMaterialsTotalCount = 0;
+      this.areaMaterialsPreviewLimited = false;
+      return;
+    }
+
+    const term = (
+      materialSearch ??
+      this.materialSearchForm.get("materialSearch")?.value ??
+      ""
+    ).trim();
+    const searchField =
+      (this.materialSearchForm.get("materialSearchField")
+        ?.value as WarehouseMaterialSearchField) ?? "sap";
+
+    this.isAreaMaterialsLoading = true;
+    this.cdr.markForCheck();
+
+    this.materialService
+      .fetchLocationInventoryMaterials(locationKey)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isAreaMaterialsLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe((rows) => {
+        // Có thể đã bỏ chọn location trong lúc request đang chạy.
+        if (this.selectedLocation?.locationId !== location.locationId) {
+          return;
+        }
+        let groups = this.buildGroupsFromLocationRows(rows ?? [], location);
+        if (term) {
+          const lower = term.toLowerCase();
+          groups = groups.filter((group) => {
+            if (searchField === "name") {
+              return (group.materialName ?? "").toLowerCase().includes(lower);
+            }
+            return (group.itemCode ?? "").toLowerCase().includes(lower);
+          });
+        }
+        this.groupedAreaMaterials = groups;
+        this.areaMaterialsTotalCount = groups.length;
+        this.areaMaterialsPreviewLimited = false;
+        this.cdr.markForCheck();
+      });
+  }
+
+  private buildGroupsFromLocationRows(
+    rows: WarehouseLocationInventoryRow[],
+    location: WarehouseAreaLocation,
+  ): WarehouseAreaMaterialGroup[] {
+    const grouped = new Map<string, WarehouseAreaMaterialGroup>();
+
+    for (const row of rows) {
+      const itemCode = (row.itemCode ?? "").trim();
+      if (!itemCode) {
+        continue;
+      }
+
+      let group = grouped.get(itemCode);
+      if (!group) {
+        group = {
+          groupKey: itemCode,
+          itemCode,
+          materialName: (row.materialName ?? "").trim(),
+          materialType: (row.materialType ?? "").trim(),
+          totalQuantity: 0,
+          materialIdentifierCount: 0,
+          locationSummaries: [
+            {
+              locationId: location.locationId,
+              locationName:
+                location.locationName || location.locationFullName || "",
+              quantity: 0,
+              materialIdentifierCount: 0,
+            },
+          ],
+        };
+        grouped.set(itemCode, group);
+      }
+
+      const qty = Number(row.quantity) || 0;
+      group.totalQuantity += qty;
+      group.materialIdentifierCount += 1;
+      group.locationSummaries[0].quantity = group.totalQuantity;
+      group.locationSummaries[0].materialIdentifierCount =
+        group.materialIdentifierCount;
+
+      if (!group.materialName && row.materialName) {
+        group.materialName = row.materialName.trim();
+      }
+      if (!group.materialType && row.materialType) {
+        group.materialType = row.materialType.trim();
+      }
+    }
+
+    return Array.from(grouped.values()).sort((a, b) =>
+      a.itemCode.localeCompare(b.itemCode, "vi"),
+    );
   }
 
   private buildRepresentativeMaterial(

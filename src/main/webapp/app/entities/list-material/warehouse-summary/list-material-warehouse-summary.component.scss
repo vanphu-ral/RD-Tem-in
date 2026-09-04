@@ -24,29 +24,43 @@
   );
   --ws-map-border: 2px dashed #475569;
   --ws-map-bg: #111827;
+  --ws-scrollbar-thumb: #334155;
+  --ws-scrollbar-thumb-hover: #64748b;
+  --ws-scrollbar-track: #0b1220;
+}
+
+@mixin ws-dark-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ws-scrollbar-thumb) var(--ws-scrollbar-track);
+
+  &::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--ws-scrollbar-thumb);
+    border-radius: 999px;
+
+    &:hover {
+      background: var(--ws-scrollbar-thumb-hover);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--ws-scrollbar-track);
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 :host.scrollable-tab-active {
   height: calc(100vh - 56px);
   overflow-x: hidden;
   overflow-y: auto;
-  @extend .thin-scrollbar;
-}
-
-:host.is-page-fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  width: 100vw;
-  height: 100vh !important;
-  overflow-x: hidden;
-  overflow-y: auto;
-  @extend .thin-scrollbar;
-}
-
-:host.is-page-fullscreen.scrollable-tab-active {
-  height: 100vh !important;
-  overflow-y: auto;
+  @include ws-dark-scrollbar;
 }
 
 .warehouse-summary-page {
@@ -60,6 +74,35 @@
   background: var(--ws-bg);
   color: var(--ws-text);
   gap: 12px;
+  @include ws-dark-scrollbar;
+
+  /* Áp dụng scrollbar dark cho mọi vùng cuộn bên trong trang */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ws-scrollbar-thumb) var(--ws-scrollbar-track);
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--ws-scrollbar-thumb);
+    border-radius: 999px;
+
+    &:hover {
+      background: var(--ws-scrollbar-thumb-hover);
+    }
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--ws-scrollbar-track);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 
   ::ng-deep input.mat-mdc-input-element::placeholder,
   ::ng-deep textarea.mat-mdc-input-element::placeholder {
@@ -77,11 +120,20 @@
   }
 }
 
-:host.is-page-fullscreen .warehouse-summary-page {
-  height: auto;
-  min-height: 100%;
-  overflow: visible;
+.warehouse-summary-page:fullscreen,
+.warehouse-summary-page:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 16px 20px 24px;
+  box-sizing: border-box;
+  background: var(--ws-bg);
+  @include ws-dark-scrollbar;
 }
 
 .btn-page-fullscreen {
@@ -119,6 +171,130 @@
 
 ::ng-deep body.warehouse-summary-fullscreen-active .cdk-overlay-container {
   z-index: 1400;
+}
+
+.panel-section-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex: 0 0 auto;
+
+  h3,
+  .panel-section-title {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ws-text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+.btn-panel-fullscreen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--ws-border-strong);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  color: var(--ws-text);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    background: var(--ws-bg-elevated);
+    border-color: var(--ws-accent);
+    transform: scale(1.04);
+  }
+
+  fa-icon {
+    font-size: 0.9rem;
+  }
+}
+
+/* Chỉ full đúng panel — dùng Fullscreen API của trình duyệt */
+.panel-fullscreen-host:fullscreen,
+.panel-fullscreen-host:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  background: var(--ws-bg-elevated);
+  padding: 16px;
+}
+
+.floor-plan-map-section.panel-fullscreen-host:fullscreen,
+.floor-plan-map-section.panel-fullscreen-host:-webkit-full-screen {
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.04), transparent 40%),
+    var(--ws-map-bg);
+  border: none;
+}
+
+.location-detail-panel.panel-fullscreen-host:fullscreen,
+.location-detail-panel.panel-fullscreen-host:-webkit-full-screen {
+  background: var(--ws-bg-panel);
+  border: none;
+
+  .location-detail-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+
+    @extend .thin-scrollbar;
+  }
+
+  .location-detail-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-content: start;
+  }
+
+  .detail-field-wide {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .occurrence-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    max-height: none;
+    flex: 1 1 auto;
+    overflow: auto;
+  }
+}
+
+@media (min-width: 1100px) {
+  .location-detail-panel.panel-fullscreen-host:fullscreen .occurrence-list,
+  .location-detail-panel.panel-fullscreen-host:-webkit-full-screen
+    .occurrence-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.location-materials-panel.panel-fullscreen-host:fullscreen,
+.location-materials-panel.panel-fullscreen-host:-webkit-full-screen {
+  background: var(--ws-bg-elevated);
+  border: none;
 }
 
 @keyframes skeleton-shimmer {
@@ -692,22 +868,7 @@
 }
 
 .thin-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #64748b transparent;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #64748b;
-    border-radius: 999px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  @include ws-dark-scrollbar;
 }
 
 .location-grid-scroll {
@@ -945,7 +1106,7 @@
   padding: 12px;
   min-height: 0;
 
-  h3 {
+  > h3 {
     margin: 0 0 10px;
     font-size: 0.82rem;
     font-weight: 700;
@@ -1208,21 +1369,45 @@
 }
 
 .occurrence-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 2px;
+
+  @extend .thin-scrollbar;
 }
 
 .occurrence-chip {
-  display: block;
-  font-size: 0.82rem;
-  line-height: 1.4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--ws-border);
+  background: rgba(15, 23, 42, 0.45);
+  font-size: 0.8rem;
+  line-height: 1.35;
   color: var(--ws-text-secondary);
   font-weight: 500;
 
   strong {
     color: var(--ws-text);
     font-weight: 700;
+  }
+
+  .occurrence-qty {
+    color: var(--ws-accent);
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 700px) {
+  .occurrence-list {
+    grid-template-columns: 1fr;
   }
 }
 

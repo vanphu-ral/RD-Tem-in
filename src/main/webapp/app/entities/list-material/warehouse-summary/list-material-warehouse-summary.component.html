@@ -1,4 +1,8 @@
-<div class="warehouse-summary-page" [class.is-page-loading]="isLoading">
+<div
+  #pageFullscreenRoot
+  class="warehouse-summary-page"
+  [class.is-page-loading]="isLoading"
+>
   <div
     class="page-skeleton"
     *ngIf="isLoading"
@@ -533,7 +537,11 @@
                   </div>
                 </div>
                 <span class="floor-plan-count"
-                  >{{ formatNumber(floorPlanLocationCount) }} vị trí</span
+                  >{{ formatNumber(visibleFloorPlanLocations.length) }} vị trí<span
+                    *ngIf="selectedAreaMaterial"
+                  >
+                    có vật tư</span
+                  ></span
                 >
               </div>
 
@@ -569,9 +577,34 @@
 
               <div class="floor-plan-body" *ngIf="!isFloorPlanLoading">
                 <div
-                  class="floor-plan-map-section map-section-bordered"
+                  #mapFullscreenPanel
+                  class="floor-plan-map-section map-section-bordered panel-fullscreen-host"
                   [class.has-highlight-focus]="hasFloorPlanHighlightFocus()"
                 >
+                  <div class="panel-section-toolbar">
+                    <span class="panel-section-title">Sơ đồ vị trí</span>
+                    <button
+                      type="button"
+                      class="btn-panel-fullscreen"
+                      (click)="togglePanelFullscreen('map')"
+                      [attr.aria-label]="
+                        isPanelFullscreen('map')
+                          ? 'Thoát toàn màn hình sơ đồ'
+                          : 'Toàn màn hình sơ đồ'
+                      "
+                      [attr.title]="
+                        isPanelFullscreen('map')
+                          ? 'Thoát toàn màn hình'
+                          : 'Toàn màn hình'
+                      "
+                    >
+                      <fa-icon
+                        [icon]="
+                          isPanelFullscreen('map') ? faCompress : faExpand
+                        "
+                      ></fa-icon>
+                    </button>
+                  </div>
                   <div class="legend-row" *ngIf="legendMaterialTypes.length">
                     <span class="legend-title">Chú thích chủng loại:</span>
                     <span
@@ -588,13 +621,13 @@
 
                   <div
                     class="location-grid-scroll"
-                    *ngIf="floorPlanLocations.length"
+                    *ngIf="visibleFloorPlanLocations.length"
                   >
                     <div class="location-grid">
                       <button
                         type="button"
                         class="location-card"
-                        *ngFor="let location of floorPlanLocations"
+                        *ngFor="let location of visibleFloorPlanLocations"
                         [class.location-card-selected]="
                           isLocationSelected(location)
                         "
@@ -649,9 +682,14 @@
 
                   <p
                     class="floor-plan-empty-msg"
-                    *ngIf="!floorPlanLocations.length"
+                    *ngIf="!visibleFloorPlanLocations.length"
                   >
-                    Không có vị trí phù hợp. Thử tìm kiếm tên location khác.
+                    <ng-container *ngIf="selectedAreaMaterial; else noLocationMatch">
+                      Không có vị trí chứa vật tư đang chọn.
+                    </ng-container>
+                    <ng-template #noLocationMatch>
+                      Không có vị trí phù hợp. Thử tìm kiếm tên location khác.
+                    </ng-template>
                   </p>
                 </div>
 
@@ -665,16 +703,22 @@
                           groupedAreaMaterials.length || areaMaterialsTotalCount
                         "
                       >
-                        {{
-                          areaMaterialsPreviewLimited
-                            ? "Hiển thị " +
-                              formatNumber(groupedAreaMaterials.length) +
-                              " / " +
-                              formatNumber(areaMaterialsTotalCount) +
-                              " mã"
-                            : formatNumber(groupedAreaMaterials.length) +
-                              " mã vật tư"
-                        }}
+                        <ng-container *ngIf="selectedLocation; else areaCount">
+                          {{ formatNumber(groupedAreaMaterials.length) }} mã tại
+                          vị trí
+                        </ng-container>
+                        <ng-template #areaCount>
+                          {{
+                            areaMaterialsPreviewLimited
+                              ? "Hiển thị " +
+                                formatNumber(groupedAreaMaterials.length) +
+                                " / " +
+                                formatNumber(areaMaterialsTotalCount) +
+                                " mã"
+                              : formatNumber(groupedAreaMaterials.length) +
+                                " mã vật tư"
+                          }}
+                        </ng-template>
                       </span>
                     </div>
                     <form
@@ -760,8 +804,34 @@
                     </p>
                   </div>
 
-                  <div class="location-detail-panel">
-                    <h3>Chi tiết vật tư / vị trí</h3>
+                  <div
+                    #detailFullscreenPanel
+                    class="location-detail-panel panel-fullscreen-host"
+                  >
+                    <div class="panel-section-toolbar">
+                      <h3>Chi tiết vật tư / vị trí</h3>
+                      <button
+                        type="button"
+                        class="btn-panel-fullscreen"
+                        (click)="togglePanelFullscreen('detail')"
+                        [attr.aria-label]="
+                          isPanelFullscreen('detail')
+                            ? 'Thoát toàn màn hình chi tiết'
+                            : 'Toàn màn hình chi tiết'
+                        "
+                        [attr.title]="
+                          isPanelFullscreen('detail')
+                            ? 'Thoát toàn màn hình'
+                            : 'Toàn màn hình'
+                        "
+                      >
+                        <fa-icon
+                          [icon]="
+                            isPanelFullscreen('detail') ? faCompress : faExpand
+                          "
+                        ></fa-icon>
+                      </button>
+                    </div>
                     <ng-container
                       *ngIf="
                         selectedAreaMaterial || selectedLocation;
@@ -836,7 +906,9 @@
                                   <strong>{{
                                     occ.locationName || occ.locationFullName
                                   }}</strong>
-                                  · SL {{ formatNumber(occ.quantity) }} ·
+                                  <span class="occurrence-qty"
+                                    >SL {{ formatNumber(occ.quantity) }}</span
+                                  >
                                   <span
                                     class="inventory-status"
                                     [ngClass]="
@@ -909,7 +981,10 @@
               </div>
             </section>
 
-            <section class="location-materials-panel">
+            <section
+              #materialsFullscreenPanel
+              class="location-materials-panel panel-fullscreen-host"
+            >
               <div class="table-panel-header">
                 <div class="table-title">
                   <fa-icon [icon]="faWarehouse"></fa-icon>
@@ -922,6 +997,27 @@
                     }}
                   </span>
                 </div>
+                <button
+                  type="button"
+                  class="btn-panel-fullscreen"
+                  (click)="togglePanelFullscreen('materials')"
+                  [attr.aria-label]="
+                    isPanelFullscreen('materials')
+                      ? 'Thoát toàn màn hình bảng vật tư'
+                      : 'Toàn màn hình bảng vật tư'
+                  "
+                  [attr.title]="
+                    isPanelFullscreen('materials')
+                      ? 'Thoát toàn màn hình'
+                      : 'Toàn màn hình'
+                  "
+                >
+                  <fa-icon
+                    [icon]="
+                      isPanelFullscreen('materials') ? faCompress : faExpand
+                    "
+                  ></fa-icon>
+                </button>
               </div>
 
               <div
