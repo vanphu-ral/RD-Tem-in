@@ -4,7 +4,7 @@ import Dexie, { Table } from "dexie";
  * Tăng số này rồi deploy FE khi dữ liệu Location trên DB đã đổi
  * (hoặc khi đổi cấu trúc cache) — mọi máy sẽ tự clear IndexedDB và tải lại.
  */
-export const WAREHOUSE_CACHE_VERSION = 2;
+export const WAREHOUSE_CACHE_VERSION = 3;
 
 export interface CachedWarehouse {
   locationId: number;
