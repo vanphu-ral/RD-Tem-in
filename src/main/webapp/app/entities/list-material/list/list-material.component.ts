@@ -202,7 +202,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
   dataSource = new MatTableDataSource<RawGraphQLMaterial>();
   length = 0;
-  pageSize = 50;
+  pageSize = 25;
   pageIndex = 0;
   pageSizeOptions = [15, 25, 50, 100, 150];
   hidePageSize = false;
@@ -849,10 +849,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
    * Enter trên 1 ô filter: lấy giá trị hiện tại của TẤT CẢ ô search trên header
    * rồi áp dụng cùng lúc (part + lot + ...), không chỉ cột vừa Enter.
    */
-  public applyAllHeaderFilters(
-    triggerCol?: string,
-    triggerRaw?: string,
-  ): void {
+  public applyAllHeaderFilters(triggerCol?: string, triggerRaw?: string): void {
     const inputs = this.host.nativeElement.querySelectorAll<HTMLInputElement>(
       "input[data-filter-col]",
     );
@@ -880,9 +877,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         value = "";
       }
       const mode =
-        this.filterModes[col] ||
-        this.searchTerms[col]?.mode ||
-        "contains";
+        this.filterModes[col] || this.searchTerms[col]?.mode || "contains";
 
       if (value) {
         this.searchTerms[col] = { mode, value };
