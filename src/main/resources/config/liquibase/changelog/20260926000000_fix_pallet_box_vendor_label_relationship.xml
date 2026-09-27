@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Fix the relationship between pallet_box_mapping and vendor_label_info.
+
+        Previously, vendor_label_info had a pallet_box_mapping_id column with a FK
+        to pallet_box_mapping.id (ManyToOne from VendorLabelInfo to PalletBoxMapping).
+
+        The correct relationship is the reverse: pallet_box_mapping.reel_id_box
+        (unique FK) references vendor_label_info.reel_id, making PalletBoxMapping
+        the child and VendorLabelInfo the parent.
+    -->
+    <changeSet id="20260926000000-1" author="jhipster">
+        <!-- 1. Drop the old FK constraint and column that pointed the wrong way -->
+        <dropForeignKeyConstraint
+            baseTableName="vendor_label_info"
+            constraintName="fk_vendor_label_info__pallet_box_mapping_id"
+            />
+        <dropColumn tableName="vendor_label_info" columnName="pallet_box_mapping_id"/>
+
+        <!-- 2. Add UNIQUE constraint on the parent's reel_id column -->
+        <addUniqueConstraint
+            tableName="vendor_label_info"
+            columnNames="reel_id"
+            constraintName="uk_vendor_label_info_reel_id"
+            />
+
+        <!-- 3. Add the FK on the child side: pallet_box_mapping.reel_id_box -> vendor_label_info.reel_id -->
+        <addForeignKeyConstraint
+            baseColumnNames="reel_id_box"
+            baseTableName="pallet_box_mapping"
+            constraintName="fk_pallet_box_vendor_label"
+            referencedColumnNames="reel_id"
+            referencedTableName="vendor_label_info"
+            />
+    </changeSet>
+</databaseChangeLog>

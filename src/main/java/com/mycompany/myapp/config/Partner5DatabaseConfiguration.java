@@ -9,7 +9,9 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -21,7 +23,23 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableJpaRepositories(
     transactionManagerRef = "partner5TransactionManager",
     entityManagerFactoryRef = "partner5EntityManagerFactory",
-    basePackages = "com.mycompany.myapp.repository.partner5"
+    basePackages = "com.mycompany.myapp.repository",
+    includeFilters = @ComponentScan.Filter(
+        type = FilterType.ASSIGNABLE_TYPE,
+        classes = {
+            com.mycompany.myapp.repository.PalletMngtRepository.class,
+            com.mycompany.myapp.repository.PalletBoxMappingRepository.class,
+            com.mycompany.myapp.repository.DeliveryNotificationRepository.class,
+            com.mycompany.myapp.repository.SapPor1R1Repository.class,
+            com.mycompany.myapp.repository.VendorLabelInfoRepository.class,
+            com.mycompany.myapp.repository.partner5.ImportVendorTemTransactionsRepository.class,
+            com.mycompany.myapp.repository.partner5.PoDetailRepository.class,
+            com.mycompany.myapp.repository.partner5.VendorTemDetailRepository.class,
+            com.mycompany.myapp.repository.partner5.TemIdentificationScenarioRepository.class,
+            com.mycompany.myapp.repository.partner5.RdMaterialAttributesRepository.class,
+            com.mycompany.myapp.repository.partner5.PoImportTemRepository.class,
+        }
+    )
 )
 public class Partner5DatabaseConfiguration {
 

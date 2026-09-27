@@ -1,0 +1,139 @@
+/*
+ JHipster JDL definitions for the warehouse and delivery domain.
+*/
+
+entity PalletMngt {
+  serialPallet String maxlength(30)
+  locationName String maxlength(50)
+  numberOfBox Integer
+  totalQuantity Integer
+  status String maxlength(50)
+  note String maxlength(255)
+  createAt Instant
+  createBy String maxlength(50)
+  updatedAt Instant
+  updatedBy String maxlength(50)
+}
+
+entity PalletBoxMapping {
+  serialPallet String maxlength(30)
+  reelIdBox String maxlength(50)
+  createAt Instant
+  createBy String maxlength(50)
+}
+
+entity DeliveryNotification {
+  deliveryNotificationCode String maxlength(50)
+  serialBox String maxlength(50)
+  invoiceNumber String maxlength(50)
+  contractCode String maxlength(50)
+  vendorName String maxlength(255)
+  contNo String maxlength(50)
+  entryDate Instant
+  numberOfPo Integer
+  status String maxlength(50)
+  createAt Instant
+  createBy String maxlength(50)
+  deletedAt Instant
+  deletedBy String maxlength(50)
+}
+
+entity SapPor1R1 {
+  lineNum String maxlength(255)
+  baseRef String maxlength(255)
+  baseEntry String maxlength(255)
+  baseLine String maxlength(255)
+  lineStatus String maxlength(255)
+  itemCode String maxlength(255)
+  dscription String maxlength(255)
+  quantity BigDecimal
+  shipDate Instant
+  price String maxlength(255)
+  currency String maxlength(255)
+  discPrcnt String maxlength(255)
+  totalSumSy String maxlength(255)
+  openSumSys String maxlength(255)
+  invntSttus String maxlength(255)
+  baseDocNum String maxlength(255)
+  uTenkythuat String maxlength(255)
+  uSo String maxlength(255)
+  uMCode String maxlength(255)
+  docEntry String maxlength(255)
+  totalFrgn Double
+  vatGroup String maxlength(255)
+  uomCode String maxlength(255)
+  unitMsr String maxlength(255)
+  lineVendor String maxlength(255)
+  trgetEntry String maxlength(255)
+  lineTotal BigDecimal
+  vatPrcnt BigDecimal
+  priceAfVat BigDecimal
+  whsCode String maxlength(255)
+}
+
+entity VendorLabelInfo {
+  reelId String maxlength(50)
+  partNumber String maxlength(50)
+  vendor String maxlength(20)
+  lot String maxlength(30)
+  userData1 String maxlength(20)
+  userData2 String maxlength(255)
+  userData3 String maxlength(100)
+  userData4 String maxlength(20)
+  userData5 String maxlength(20)
+  initialQuantity Integer
+  msdLevel String maxlength(20)
+  msdInitialFloorTime String maxlength(20)
+  msdBagSealDate String maxlength(20)
+  marketUsage String maxlength(20)
+  quantityOverride Integer
+  shelfTime String maxlength(20)
+  spMaterialName String maxlength(255)
+  warningLimit String maxlength(20)
+  maximumLimit String maxlength(20)
+  comments String maxlength(50)
+  warmupTime String maxlength(20)
+  storageUnit String maxlength(20)
+  subStorageUnit String maxlength(20)
+  locationOverride String maxlength(20)
+  expirationDate String maxlength(20)
+  manufacturingDate String maxlength(20)
+  partClass String maxlength(20)
+  sapCode String maxlength(20)
+  vendorQrCode TextBlob
+  status String maxlength(50)
+  createdBy String maxlength(20)
+  createdAt Instant
+  updatedBy String maxlength(20)
+  updatedAt Instant
+  vendorAdditionalData String maxlength(510)
+  panaSendStatus Boolean
+  sapSendStatus Boolean
+}
+
+// Relationships
+
+relationship ManyToOne {
+  // sap_por1_r1 -> delivery_notification
+  SapPor1R1{deliveryNotification} to DeliveryNotification
+
+  // vendor_label_info -> delivery_notification
+  VendorLabelInfo{deliveryNotification} to DeliveryNotification
+
+  // vendor_label_info -> sap_por1_r1
+  VendorLabelInfo{sapPor1} to SapPor1R1
+}
+
+relationship OneToOne {
+  // vendor_label_info <- pallet_box_mapping (pallet_box_mapping.reel_id_box FK -> vendor_label_info.reel_id)
+  PalletBoxMapping{vendorLabelInfo} to VendorLabelInfo
+
+  // pallet_box_mapping -> pallet_mngt
+  PalletBoxMapping{palletMngt} to PalletMngt
+}
+
+// JHipster configurations
+paginate DeliveryNotification with pagination
+service * with serviceClass
+dto * with mapstruct
+filter DeliveryNotification

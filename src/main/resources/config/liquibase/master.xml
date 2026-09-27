@@ -380,11 +380,20 @@
     <include file="config/liquibase/changelog/20260412035734_added_entity_InboundWMSBox.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260615_add_columns_product_in_po_status.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260707_add_por1_line_num_to_list_product_of_request.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260925051515_added_entity_PalletMngt.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260925051516_added_entity_PalletBoxMapping.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260925051517_added_entity_DeliveryNotification.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260925051518_added_entity_SapPor1R1.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260925051519_added_entity_VendorLabelInfo.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <include file="config/liquibase/changelog/20260309010238_added_entity_constraints_PoDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260309010239_added_entity_constraints_VendorTemDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260309010241_added_entity_constraints_RdMaterialAttributes.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260403033719_added_entity_constraints_InboundWMSPallet.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260925051516_added_entity_constraints_PalletBoxMapping.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260925051518_added_entity_constraints_SapPor1R1.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260925051519_added_entity_constraints_VendorLabelInfo.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260926000000_fix_pallet_box_vendor_label_relationship.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
 
 </databaseChangeLog>

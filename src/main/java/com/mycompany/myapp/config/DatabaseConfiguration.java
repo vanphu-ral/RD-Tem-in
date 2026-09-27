@@ -46,6 +46,11 @@ import tech.jhipster.config.JHipsterConstants;
             com.mycompany.myapp.repository.partner5
                 .RdMaterialAttributesRepository.class,
             com.mycompany.myapp.repository.partner5.PoImportTemRepository.class,
+            com.mycompany.myapp.repository.PalletMngtRepository.class,
+            com.mycompany.myapp.repository.PalletBoxMappingRepository.class,
+            com.mycompany.myapp.repository.DeliveryNotificationRepository.class,
+            com.mycompany.myapp.repository.SapPor1R1Repository.class,
+            com.mycompany.myapp.repository.VendorLabelInfoRepository.class,
         }
     )
 )

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Added the entity DeliveryNotification.
+    -->
+    <changeSet id="20260925051517-1" author="jhipster">
+        <createTable tableName="delivery_notification">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="delivery_notification_code" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <column name="serial_box" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <column name="invoice_number" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <column name="contract_code" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <column name="vendor_name" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="cont_no" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <column name="entry_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="number_of_po" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="status" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <column name="create_at" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="create_by" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <column name="deleted_at" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="deleted_by" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here -->
+        </createTable>
+        <dropDefaultValue tableName="delivery_notification" columnName="entry_date" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="delivery_notification" columnName="create_at" columnDataType="${datetimeType}"/>
+        <dropDefaultValue tableName="delivery_notification" columnName="deleted_at" columnDataType="${datetimeType}"/>
+    </changeSet>
+
+    <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here -->
+
+    <!--
+        Load sample data generated with Faker.js
+        - This data can be easily edited using a CSV editor (or even MS Excel) and
+          is located in the 'src/main/resources/config/liquibase/fake-data' directory
+        - By default this data is applied when running with the JHipster 'dev' profile.
+          This can be customized by adding or removing 'faker' in the 'spring.liquibase.contexts'
+          Spring Boot configuration key.
+    -->
+    <changeSet id="20260925051517-1-data" author="jhipster" context="faker">
+        <loadData
+                  file="config/liquibase/fake-data/delivery_notification.csv"
+                  separator=";"
+                  tableName="delivery_notification"
+                  usePreparedStatements="true">
+            <column name="id" type="numeric"/>
+            <column name="delivery_notification_code" type="string"/>
+            <column name="serial_box" type="string"/>
+            <column name="invoice_number" type="string"/>
+            <column name="contract_code" type="string"/>
+            <column name="vendor_name" type="string"/>
+            <column name="cont_no" type="string"/>
+            <column name="entry_date" type="date"/>
+            <column name="number_of_po" type="numeric"/>
+            <column name="status" type="string"/>
+            <column name="create_at" type="date"/>
+            <column name="create_by" type="string"/>
+            <column name="deleted_at" type="date"/>
+            <column name="deleted_by" type="string"/>
+            <!-- jhipster-needle-liquibase-add-loadcolumn - JHipster (and/or extensions) can add load columns here -->
+        </loadData>
+    </changeSet>
+</databaseChangeLog>

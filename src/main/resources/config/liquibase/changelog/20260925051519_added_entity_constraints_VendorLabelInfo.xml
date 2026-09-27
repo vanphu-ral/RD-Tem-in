@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+    <!--
+        Added the constraints for entity VendorLabelInfo.
+    -->
+    <changeSet id="20260925051519-2" author="jhipster">
+
+        <addForeignKeyConstraint baseColumnNames="delivery_notification_id"
+                                 baseTableName="vendor_label_info"
+                                 constraintName="fk_vendor_label_info__delivery_notification_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="delivery_notification"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="sap_por1_id"
+                                 baseTableName="vendor_label_info"
+                                 constraintName="fk_vendor_label_info__sap_por1_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="sap_por_1_r_1"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="pallet_box_mapping_id"
+                                 baseTableName="vendor_label_info"
+                                 constraintName="fk_vendor_label_info__pallet_box_mapping_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="pallet_box_mapping"
+                                 />
+    </changeSet>
+</databaseChangeLog>
