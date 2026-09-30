@@ -26,6 +26,8 @@ import { MatDialogActions } from "@angular/material/dialog";
 import { MatSpinner } from "@angular/material/progress-spinner";
 import { ListMaterialSumaryComponent } from "./sumary/list-material-sumary.component";
 import { MatRadioModule } from "@angular/material/radio";
+import { PalletMaterialComponent } from "./pallet-material/pallet-material.component";
+import { PalletMaterialMobileComponent } from "./pallet-material/mobile/pallet-material-mobile.component";
 // import { ApolloModule } from 'apollo-angular';
 // import { HttpClientModule } from '@angular/common/http';
 
@@ -60,6 +62,8 @@ import { MatRadioModule } from "@angular/material/radio";
   ],
 
   declarations: [
+    PalletMaterialComponent,
+    PalletMaterialMobileComponent,
     ListMaterialComponent,
     ListMaterialUpdateComponent,
     ListMaterialUpdateDialogComponent,

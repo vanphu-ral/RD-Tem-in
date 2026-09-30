@@ -1,0 +1,75 @@
+.create-pallet-dialog {
+  min-width: min(560px, 92vw);
+  max-width: 640px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 4px;
+  border-bottom: 1px solid #e5e7eb;
+
+  h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+}
+
+.dialog-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.code-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.4fr;
+  gap: 12px;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.req {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.default-row {
+  margin: 0 0 8px;
+
+  .hint {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.45;
+
+    code {
+      background: #f3f4f6;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  }
+}
+
+.note-field textarea {
+  resize: vertical;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 8px 16px 16px;
+}
+
+@media (max-width: 600px) {
+  .code-row {
+    grid-template-columns: 1fr;
+  }
+}

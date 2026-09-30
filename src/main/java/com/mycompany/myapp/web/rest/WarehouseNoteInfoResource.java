@@ -342,14 +342,14 @@ public class WarehouseNoteInfoResource {
         log.debug(
             "REST request to get a page of WarehouseNoteInfos with filters"
         );
-        // Sort by timeUpdate descending to show newly updated records first
+        // Sắp xếp theo thời điểm nhập mới nhất trước
         Pageable sortedPageable =
             org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 org.springframework.data.domain.Sort.by(
                     org.springframework.data.domain.Sort.Direction.DESC,
-                    "timeUpdate"
+                    "entryTime"
                 )
             );
         Page<WarehouseStampInfoDTO> page =

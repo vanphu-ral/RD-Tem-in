@@ -539,10 +539,16 @@ export class ReceivingSuppliesService {
 
   /** Danh sách kho SAP. */
   getSapWarehouses(): Observable<SapOwhsDto[]> {
-    return this.http.get<SapOwhsDto[]>(`${this.baseUrl}/owhs`).pipe(
-      map((rows) => (rows ?? []).filter((r) => Boolean(r.whsCode?.trim()))),
-      catchError(() => of([])),
-    );
+    return this.getSapWarehousesOrError().pipe(catchError(() => of([])));
+  }
+
+  /** Như getSapWarehouses nhưng không nuốt lỗi — nơi gọi tự retry / báo lỗi. */
+  getSapWarehousesOrError(): Observable<SapOwhsDto[]> {
+    return this.http
+      .get<SapOwhsDto[]>(`${this.baseUrl}/owhs`)
+      .pipe(
+        map((rows) => (rows ?? []).filter((r) => Boolean(r.whsCode?.trim()))),
+      );
   }
 
   /** Lấy sản phẩm đơn từ GraphQL (WhsCode, sapSendStatus). */

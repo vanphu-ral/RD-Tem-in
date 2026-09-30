@@ -506,6 +506,14 @@ export class ListMaterialWarehouseSummaryComponent
     return this.selectedLocation?.locationId === location.locationId;
   }
 
+  /** Thẻ kho trên sơ đồ: sau khi tìm, ẩn khu vực không còn tồn. */
+  get visibleOverviewAreas(): WarehouseOverviewArea[] {
+    if (!this.hasActiveSummaryFilter()) {
+      return this.overviewAreas;
+    }
+    return this.overviewAreas.filter((area) => Number(area.quantity) > 0);
+  }
+
   /** Location hiển thị trên sơ đồ: khi chọn vật tư thì chỉ còn vị trí có mã đó. */
   get visibleFloorPlanLocations(): WarehouseAreaLocation[] {
     if (!this.selectedAreaMaterial) {
@@ -1356,6 +1364,18 @@ export class ListMaterialWarehouseSummaryComponent
       (area) =>
         (area.areaName ?? "").toLowerCase().includes(term) ||
         (area.areaDescription ?? "").toLowerCase().includes(term),
+    );
+  }
+
+  private hasActiveSummaryFilter(): boolean {
+    const filters = this.filterForm.getRawValue();
+    const warehouseName = (filters.warehouseName ?? "").trim();
+    const warehouseAreaName = (filters.warehouseAreaName ?? "").trim();
+    const materialType = (filters.materialType ?? "").trim();
+    return (
+      warehouseName.length > 0 ||
+      warehouseAreaName.length > 0 ||
+      materialType.length > 0
     );
   }
 

@@ -43,7 +43,9 @@ export function downloadVendorImportSampleCsv(): void {
   triggerBlobDownload(blob, "mau-import-reel.csv");
 }
 
-export function downloadVendorImportSampleExcel(): void {
+export function downloadVendorImportSampleExcel(
+  fileName = "mau-import-reel.xlsx",
+): void {
   const headers = MAU_IMPORT_REEL_HEADERS;
   const sheet: XLSX.WorkSheet = {};
   const maxDataRows = 100;
@@ -69,5 +71,5 @@ export function downloadVendorImportSampleExcel(): void {
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, sheet, "Import");
-  XLSX.writeFile(workbook, "mau-import-reel.xlsx");
+  XLSX.writeFile(workbook, fileName);
 }

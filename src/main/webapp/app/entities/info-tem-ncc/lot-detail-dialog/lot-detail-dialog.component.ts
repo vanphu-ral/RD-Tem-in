@@ -14,6 +14,7 @@ import {
   ManagerTemNccService,
 } from "app/entities/list-material/services/info-tem-ncc.service";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
+import { buildDefaultUserData4 } from "../shared/scan-item-columns.util";
 
 // ==================== INTERFACES ====================
 
@@ -56,6 +57,8 @@ export interface LotDetailDialogData {
   partNumber: string;
   manufacturingDate: string;
   rows: LotDetailRow[];
+  /** Mã PO — dùng tự điền cột Mã PO (userData5). */
+  poCode?: string;
 }
 
 interface EditingCell {
@@ -72,40 +75,44 @@ interface EditingCell {
 })
 export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
   columns: ColumnDef[] = [
-    { key: "reelId", label: "ReelId", minWidth: 190, editable: true },
-    { key: "sapCode", label: "Mã SAP", minWidth: 120, editable: true },
-    { key: "sapName", label: "Tên hàng hóa", minWidth: 220, editable: false },
-    { key: "partNumber", label: "Part Number", minWidth: 140, editable: true },
-    { key: "lot", label: "Lot", minWidth: 100, editable: true },
-    { key: "vendor", label: "Vendor", minWidth: 110, editable: true },
+    { key: "reelId", label: "ReelId", minWidth: 0, editable: true },
+    { key: "sapCode", label: "Mã SAP", minWidth: 0, editable: true },
+    { key: "sapName", label: "Tên hàng hóa", minWidth: 0, editable: false },
+    { key: "partNumber", label: "Part Number", minWidth: 0, editable: true },
+    { key: "lot", label: "Lot", minWidth: 0, editable: true },
+    { key: "vendor", label: "Vendor", minWidth: 0, editable: true },
     {
       key: "initialQuantity",
       label: "Quantity",
-      minWidth: 100,
+      minWidth: 0,
       editable: true,
     },
-    { key: "userData1", label: "Userdata1", minWidth: 110, editable: true },
-    { key: "userData2", label: "Userdata2", minWidth: 110, editable: true },
-    { key: "userData3", label: "Userdata3", minWidth: 110, editable: true },
-    { key: "userData4", label: "Userdata4", minWidth: 110, editable: true },
-    { key: "userData5", label: "Userdata5", minWidth: 110, editable: true },
-    { key: "msl", label: "MSL", minWidth: 80, editable: true },
-    { key: "storageUnit", label: "StorageUnit", minWidth: 120, editable: true },
+    { key: "userData1", label: "Rank Áp", minWidth: 0, editable: true },
+    { key: "userData2", label: "Rank màu", minWidth: 0, editable: true },
+    { key: "userData3", label: "Rank Quang", minWidth: 0, editable: true },
+    { key: "userData4", label: "User Data 4", minWidth: 0, editable: true },
+    { key: "userData5", label: "Mã PO", minWidth: 0, editable: true },
+    { key: "msl", label: "MSL", minWidth: 0, editable: true },
+    { key: "storageUnit", label: "Kho", minWidth: 0, editable: true },
     {
       key: "manufacturingDate",
-      label: "ManufacturingDate",
-      minWidth: 150,
+      label: "NSX",
+      minWidth: 0,
       editable: true,
     },
     {
       key: "expirationDate",
-      label: "ExpirationDate",
-      minWidth: 150,
+      label: "HSD",
+      minWidth: 0,
       editable: true,
     },
   ];
 
   rows: LotDetailRow[] = [];
+
+  get colWidthPercent(): number {
+    return 100 / Math.max(1, this.columns.length);
+  }
 
   /** Holds bulk-apply values per column key */
   bulkValues: { [key: string]: any } = {};
@@ -126,7 +133,17 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
   ) {}
 
   ngOnInit(): void {
-    this.rows = this.data.rows.map((r) => ({ ...r }));
+    const poCode = (this.data.poCode ?? "").trim();
+    this.rows = this.data.rows.map((r) => {
+      const row = { ...r };
+      row.userData1 = (row.userData1 ?? "").trim() || "NO";
+      row.userData2 = (row.userData2 ?? "").trim() || "NO";
+      row.userData3 = (row.userData3 ?? "").trim() || "NO";
+      row.userData4 = (row.userData4 ?? "").trim() || this.buildUserData4(row);
+      row.userData5 = (row.userData5 ?? "").trim() || poCode;
+      row.msl = (row.msl ?? "").trim() || "1";
+      return row;
+    });
 
     this.columns.forEach((col) => (this.bulkValues[col.key] = ""));
   }
@@ -155,7 +172,13 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
       this.bulkValues[key] = 0;
       return;
     }
-    this.rows = this.rows.map((row) => ({ ...row, [key]: value }));
+    this.rows = this.rows.map((row) => {
+      const next = { ...row, [key]: value };
+      if (key === "sapCode" || key === "manufacturingDate") {
+        next.userData4 = this.buildUserData4(next);
+      }
+      return next;
+    });
   }
 
   // ==================== INLINE EDIT ====================
@@ -174,6 +197,15 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
     }
   }
   stopEdit(): void {
+    if (this.editingCell) {
+      const row = this.rows[this.editingCell.row];
+      if (
+        this.editingCell.col === "sapCode" ||
+        this.editingCell.col === "manufacturingDate"
+      ) {
+        row.userData4 = this.buildUserData4(row);
+      }
+    }
     this.editingCell = null;
     this.originalValue = null;
   }
@@ -266,5 +298,22 @@ export class LotDetailDialogComponent implements OnInit, AfterViewChecked {
 
   onClose(): void {
     this.dialogRef.close(null);
+  }
+  /** User Data 4 = Mã SAP + "-" + MFGDate (ddMMyyyy). */
+  private buildUserData4(row: {
+    sapCode?: string;
+    manufacturingDate?: string;
+  }): string {
+    const sap = (row.sapCode ?? "").trim();
+    const digits = String(row.manufacturingDate ?? "").replace(/\D/g, "");
+    let ymd = digits;
+    if (digits.length === 8 && Number(digits.slice(0, 4)) <= 1900) {
+      // ddMMyyyy -> yyyyMMdd
+      ymd = `${digits.slice(4, 8)}${digits.slice(2, 4)}${digits.slice(0, 2)}`;
+    }
+    return buildDefaultUserData4({
+      sapCode: sap,
+      manufacturingDate: ymd,
+    });
   }
 }

@@ -1,0 +1,639 @@
+<div class="container mat-elevation-z2">
+  <div class="header">
+    <h1>Quản lý Pallet</h1>
+    <div class="header-actions">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="onPrintPalletList()"
+      >
+        <mat-icon>print</mat-icon>
+        <span>In Pallet</span>
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="openCreateDialog()"
+      >
+        <mat-icon>add</mat-icon>
+        <span>Thêm mới</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile: filter card -->
+  <div class="mobile-filter-card">
+    <div class="mobile-filter-main">
+      <div class="mobile-search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="mobile-search-input"
+          [(ngModel)]="filterValues.serialPallet"
+          (ngModelChange)="applyFilter()"
+          placeholder="Mã pallet"
+        />
+        <button
+          *ngIf="filterValues.serialPallet"
+          mat-icon-button
+          type="button"
+          class="clear-btn"
+          (click)="clearFilter('serialPallet')"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <button
+        mat-stroked-button
+        type="button"
+        class="filter-toggle-btn"
+        [class.active]="filterExpanded || extraFilterActiveCount > 0"
+        (click)="toggleFilterPanel()"
+      >
+        <mat-icon>tune</mat-icon>
+        <span>Bộ lọc</span>
+        <span class="filter-badge" *ngIf="extraFilterActiveCount > 0">
+          {{ extraFilterActiveCount }}
+        </span>
+        <mat-icon class="chevron">{{
+          filterExpanded ? "expand_less" : "expand_more"
+        }}</mat-icon>
+      </button>
+    </div>
+
+    <div class="mobile-filter-extra" *ngIf="filterExpanded">
+      <div class="filter-grid">
+        <label class="filter-field">
+          <span>Vị trí</span>
+          <input
+            [(ngModel)]="filterValues.locationName"
+            (ngModelChange)="applyFilter()"
+            placeholder="Lọc..."
+          />
+        </label>
+        <label class="filter-field">
+          <span>Số thùng</span>
+          <input
+            [(ngModel)]="filterValues.numberOfBox"
+            (ngModelChange)="applyFilter()"
+            placeholder="Lọc..."
+          />
+        </label>
+        <label class="filter-field">
+          <span>Tổng số lượng</span>
+          <input
+            [(ngModel)]="filterValues.totalQuantity"
+            (ngModelChange)="applyFilter()"
+            placeholder="Lọc..."
+          />
+        </label>
+        <label class="filter-field">
+          <span>Ngày tạo</span>
+          <input
+            [(ngModel)]="filterValues.createAt"
+            (ngModelChange)="applyFilter()"
+            placeholder="Lọc..."
+          />
+        </label>
+        <label class="filter-field">
+          <span>Người tạo</span>
+          <input
+            [(ngModel)]="filterValues.createBy"
+            (ngModelChange)="applyFilter()"
+            placeholder="Lọc..."
+          />
+        </label>
+        <label class="filter-field">
+          <span>Trạng thái</span>
+          <input
+            [(ngModel)]="filterValues.status"
+            (ngModelChange)="applyFilter()"
+            placeholder="Lọc..."
+          />
+        </label>
+        <label class="filter-field">
+          <span>Ghi chú</span>
+          <input
+            [(ngModel)]="filterValues.note"
+            (ngModelChange)="applyFilter()"
+            placeholder="Lọc..."
+          />
+        </label>
+        <label class="filter-field">
+          <span>Người cập nhật</span>
+          <input
+            [(ngModel)]="filterValues.updatedBy"
+            (ngModelChange)="applyFilter()"
+            placeholder="Lọc..."
+          />
+        </label>
+      </div>
+      <div class="filter-extra-actions">
+        <button
+          mat-button
+          type="button"
+          color="warn"
+          (click)="clearAllFilters()"
+        >
+          Xóa bộ lọc
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop table -->
+  <div class="table-container desktop-view">
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      matSort
+      multiTemplateDataRows
+      class="main-table"
+    >
+      <ng-container matColumnDef="stt">
+        <th mat-header-cell *matHeaderCellDef class="col-stt">
+          <div class="th-wrap no-filter">STT</div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ getRowIndex(row) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="col-actions">
+          <div class="th-wrap no-filter">Thao tác</div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <div class="action-buttons">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Danh sách thùng"
+              (click)="toggleExpand(row, $event)"
+            >
+              <mat-icon>{{
+                isExpanded(row) ? "expand_less" : "expand_more"
+              }}</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="In"
+              (click)="onPrint(row); $event.stopPropagation()"
+            >
+              <mat-icon>print</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Xóa"
+              color="warn"
+              (click)="onDelete(row); $event.stopPropagation()"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="serialPallet">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="serialPallet">Mã pallet</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.serialPallet"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          {{ displayText(row.serialPallet) }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="locationName">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="locationName">Vị trí</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.locationName"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          {{ displayText(row.locationName) }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="numberOfBox">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="numberOfBox">Số lượng thùng</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.numberOfBox"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row" class="text-center">
+          {{ displayText(row.numberOfBox) }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="totalQuantity">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="totalQuantity">Tổng số lượng</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.totalQuantity"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row" class="text-center">
+          {{ displayText(row.totalQuantity) }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="createAt">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="createAt">Ngày tạo</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.createAt"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          {{ formatDateTime(row.createAt) }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="createBy">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="createBy">Người tạo</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.createBy"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ displayText(row.createBy) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="status">Trạng thái</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.status"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <span
+            class="status-badge"
+            [class.in-use]="isInUse(row.status)"
+            [class.unused]="isUnused(row.status)"
+          >
+            {{ statusLabel(row.status) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="note">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="note">Ghi chú</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.note"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ displayText(row.note) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="updatedAt">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="updatedAt">Ngày cập nhật</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.updatedAt"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          {{ formatDateTime(row.updatedAt) }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="updatedBy">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="updatedBy">Người cập nhật</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.updatedBy"
+              (ngModelChange)="applyFilter()"
+              placeholder="Lọc..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ displayText(row.updatedBy) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let row"
+          class="expanded-cell"
+          [attr.colspan]="displayedColumns.length"
+        >
+          <div
+            class="session-expand-wrapper"
+            [class.expanded]="isExpanded(row)"
+          >
+            <div class="session-panel" *ngIf="isExpanded(row)">
+              <div class="session-title">
+                <span
+                  >Danh sách thùng trong pallet
+                  {{ displayText(row.serialPallet) }}</span
+                >
+                <span
+                  class="count-badge"
+                  *ngIf="!isBoxLoading(row) && !hasBoxError(row)"
+                >
+                  {{ getBoxes(row).length }}
+                </span>
+              </div>
+
+              <p class="empty-boxes" *ngIf="isBoxLoading(row)">
+                Đang tải danh sách thùng...
+              </p>
+              <p
+                class="empty-boxes"
+                *ngIf="!isBoxLoading(row) && hasBoxError(row)"
+              >
+                Không tải được danh sách thùng.
+              </p>
+              <p
+                class="empty-boxes"
+                *ngIf="
+                  !isBoxLoading(row) &&
+                  !hasBoxError(row) &&
+                  getBoxes(row).length === 0
+                "
+              >
+                Pallet này chưa có thùng.
+              </p>
+
+              <table
+                class="detail-table"
+                *ngIf="
+                  !isBoxLoading(row) &&
+                  !hasBoxError(row) &&
+                  getBoxes(row).length > 0
+                "
+              >
+                <thead>
+                  <tr>
+                    <th>Reelid</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Part number</th>
+                    <th>Số lô</th>
+                    <th>Số lượng</th>
+                    <th>Ngày sản xuất</th>
+                    <th>Hạn sử dụng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let box of getBoxes(row)">
+                    <td>{{ displayText(box.reelId) }}</td>
+                    <td>{{ displayText(box.productName) }}</td>
+                    <td>{{ displayText(box.partNumber) }}</td>
+                    <td>{{ displayText(box.lotNumber) }}</td>
+                    <td>{{ displayText(box.quantity) }}</td>
+                    <td>{{ formatDateOnly(box.productionDate) }}</td>
+                    <td>{{ formatDateOnly(box.expiryDate) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        class="data-row"
+        [class.row-expanded]="isExpanded(row)"
+        (click)="toggleExpand(row)"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: expandedDetailColumns"
+        class="detail-row"
+      ></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td
+          class="mat-cell empty-boxes"
+          [attr.colspan]="displayedColumns.length"
+        >
+          {{
+            isLoading ? "Đang tải danh sách pallet..." : "Không có pallet nào"
+          }}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Mobile card list -->
+  <div class="mobile-view">
+    <ng-container *ngIf="mobileDataSource.length; else noMobileData">
+      <div
+        class="pallet-card"
+        *ngFor="let row of mobileDataSource"
+        [class.expanded]="isExpanded(row)"
+      >
+        <div class="pallet-card-head" (click)="toggleExpand(row)">
+          <div class="pallet-card-title">
+            <span class="pallet-stt">#{{ getRowIndex(row) }}</span>
+            <span class="pallet-code">{{ displayText(row.serialPallet) }}</span>
+          </div>
+          <div class="pallet-card-head-right">
+            <span
+              class="status-badge"
+              [class.in-use]="isInUse(row.status)"
+              [class.unused]="isUnused(row.status)"
+            >
+              {{ statusLabel(row.status) }}
+            </span>
+            <mat-icon class="expand-icon">{{
+              isExpanded(row) ? "expand_less" : "expand_more"
+            }}</mat-icon>
+          </div>
+        </div>
+
+        <div class="pallet-meta">
+          <div class="meta-chip">
+            <span class="meta-label">Vị trí</span>
+            <span class="meta-value">{{ displayText(row.locationName) }}</span>
+          </div>
+          <div class="meta-chip">
+            <span class="meta-label">Thùng</span>
+            <span class="meta-value">{{ displayText(row.numberOfBox) }}</span>
+          </div>
+          <div class="meta-chip">
+            <span class="meta-label">Số lượng</span>
+            <span class="meta-value">{{ displayText(row.totalQuantity) }}</span>
+          </div>
+          <div class="meta-chip">
+            <span class="meta-label">Người tạo</span>
+            <span class="meta-value">{{ displayText(row.createBy) }}</span>
+          </div>
+        </div>
+
+        <div class="pallet-card-actions">
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="onPrint(row); $event.stopPropagation()"
+          >
+            <mat-icon>print</mat-icon>
+            In
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            color="warn"
+            (click)="onDelete(row); $event.stopPropagation()"
+          >
+            <mat-icon>delete</mat-icon>
+            Xóa
+          </button>
+        </div>
+
+        <div class="pallet-extra">
+          <div class="info-row">
+            <span class="label">Ngày tạo</span>
+            <span class="value">{{ formatDateTime(row.createAt) }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Cập nhật</span>
+            <span class="value">
+              {{ formatDateTime(row.updatedAt) }} ·
+              {{ displayText(row.updatedBy) }}
+            </span>
+          </div>
+          <div class="info-row" *ngIf="row.note">
+            <span class="label">Ghi chú</span>
+            <span class="value">{{ row.note }}</span>
+          </div>
+        </div>
+
+        <div class="pallet-card-body" *ngIf="isExpanded(row)">
+          <div class="box-section-title">
+            <span
+              >Danh sách thùng trong pallet
+              {{ displayText(row.serialPallet) }}</span
+            >
+            <span
+              class="count-badge"
+              *ngIf="!isBoxLoading(row) && !hasBoxError(row)"
+            >
+              {{ getBoxes(row).length }}
+            </span>
+          </div>
+          <p class="empty-boxes" *ngIf="isBoxLoading(row)">
+            Đang tải danh sách thùng...
+          </p>
+          <p class="empty-boxes" *ngIf="!isBoxLoading(row) && hasBoxError(row)">
+            Không tải được danh sách thùng.
+          </p>
+          <p
+            class="empty-boxes"
+            *ngIf="
+              !isBoxLoading(row) &&
+              !hasBoxError(row) &&
+              getBoxes(row).length === 0
+            "
+          >
+            Pallet này chưa có thùng.
+          </p>
+          <div class="box-card" *ngFor="let box of getBoxes(row)">
+            <div class="box-card-title">{{ displayText(box.reelId) }}</div>
+            <div class="box-card-grid">
+              <div class="box-field">
+                <span class="box-label">SP</span>
+                <span>{{ displayText(box.productName) }}</span>
+              </div>
+              <div class="box-field">
+                <span class="box-label">PN</span>
+                <span>{{ displayText(box.partNumber) }}</span>
+              </div>
+              <div class="box-field">
+                <span class="box-label">Lô</span>
+                <span>{{ displayText(box.lotNumber) }}</span>
+              </div>
+              <div class="box-field">
+                <span class="box-label">SL</span>
+                <span>{{ displayText(box.quantity) }}</span>
+              </div>
+              <div class="box-field">
+                <span class="box-label">NSX</span>
+                <span>{{ formatDateOnly(box.productionDate) }}</span>
+              </div>
+              <div class="box-field">
+                <span class="box-label">HSD</span>
+                <span>{{ formatDateOnly(box.expiryDate) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-template #noMobileData>
+      <div class="no-data">
+        <mat-icon>inventory_2</mat-icon>
+        <p>
+          {{
+            isLoading ? "Đang tải danh sách pallet..." : "Không có pallet nào"
+          }}
+        </p>
+      </div>
+    </ng-template>
+  </div>
+
+  <mat-paginator
+    [pageSize]="pageSize"
+    [pageSizeOptions]="pageSizeOptions"
+    showFirstLastButtons
+  >
+  </mat-paginator>
+</div>

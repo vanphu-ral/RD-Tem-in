@@ -213,7 +213,7 @@
                 </div>
               </div>
               <span class="floor-plan-count"
-                >{{ formatNumber(overviewAreas.length) }} khu vực</span
+                >{{ formatNumber(visibleOverviewAreas.length) }} khu vực</span
               >
             </div>
 
@@ -237,13 +237,13 @@
 
                 <div
                   class="location-grid-scroll"
-                  *ngIf="overviewAreas.length; else overviewEmpty"
+                  *ngIf="visibleOverviewAreas.length; else overviewEmpty"
                 >
                   <div class="location-grid overview-grid">
                     <button
                       type="button"
                       class="location-card overview-area-card"
-                      *ngFor="let area of overviewAreas"
+                      *ngFor="let area of visibleOverviewAreas"
                       [class.location-card-selected]="
                         selectedOverviewArea?.areaCode === area.areaCode
                       "
@@ -537,11 +537,8 @@
                   </div>
                 </div>
                 <span class="floor-plan-count"
-                  >{{ formatNumber(visibleFloorPlanLocations.length) }} vị trí<span
-                    *ngIf="selectedAreaMaterial"
-                  >
-                    có vật tư</span
-                  ></span
+                  >{{ formatNumber(visibleFloorPlanLocations.length) }} vị
+                  trí<span *ngIf="selectedAreaMaterial"> có vật tư</span></span
                 >
               </div>
 
@@ -684,7 +681,9 @@
                     class="floor-plan-empty-msg"
                     *ngIf="!visibleFloorPlanLocations.length"
                   >
-                    <ng-container *ngIf="selectedAreaMaterial; else noLocationMatch">
+                    <ng-container
+                      *ngIf="selectedAreaMaterial; else noLocationMatch"
+                    >
                       Không có vị trí chứa vật tư đang chọn.
                     </ng-container>
                     <ng-template #noLocationMatch>
