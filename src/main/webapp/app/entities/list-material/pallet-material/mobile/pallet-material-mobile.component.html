@@ -1,0 +1,370 @@
+<div class="mp">
+  <!-- Header -->
+  <div class="mp-header">
+    <button
+      type="button"
+      class="mp-back"
+      (click)="onBack()"
+      aria-label="Quay lại"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <h1>{{ headerTitle }}</h1>
+  </div>
+
+  <!-- ================= DANH SÁCH PALLET ================= -->
+  <ng-container *ngIf="screen === 'list'">
+    <div class="mp-body">
+      <div class="mp-scan-row">
+        <div class="mp-input">
+          <mat-icon>qr_code_2</mat-icon>
+          <input
+            #mainInputRef
+            [(ngModel)]="palletInput"
+            (keydown.enter)="onApplyPallet()"
+            placeholder="Quét / nhập mã pallet"
+            autocomplete="off"
+          />
+        </div>
+        <button
+          type="button"
+          class="mp-apply"
+          [disabled]="isLoading"
+          (click)="onApplyPallet()"
+        >
+          Áp dụng
+        </button>
+      </div>
+
+      <div class="mp-section-head">
+        <span>Danh sách Pallet</span>
+        <button type="button" class="mp-link" (click)="onViewAll()">
+          Xem tất cả
+        </button>
+      </div>
+
+      <div class="mp-empty" *ngIf="isLoading">Đang tải...</div>
+      <div class="mp-empty" *ngIf="!isLoading && !cards.length">
+        Quét mã pallet để thêm vào danh sách.
+      </div>
+
+      <div
+        class="mp-pallet"
+        *ngFor="let c of cards; trackBy: trackCard"
+        [class.checked]="c.checked"
+        (click)="toggleCard(c)"
+      >
+        <mat-checkbox
+          color="primary"
+          [checked]="c.checked"
+          (click)="$event.stopPropagation()"
+          (change)="toggleCard(c)"
+        ></mat-checkbox>
+        <div class="mp-pallet-info">
+          <div class="mp-pallet-code">{{ c.serial }}</div>
+          <div class="mp-pallet-sub">
+            <ng-container *ngIf="materialCount(c) !== null"
+              >{{ materialCount(c) }} mã vật tư ·
+            </ng-container>
+            {{ boxCount(c) }} thùng · {{ totalQty(c) | number }} SL
+          </div>
+        </div>
+        <div class="mp-pallet-side">
+          <button
+            type="button"
+            class="mp-eye"
+            (click)="openDetail(c); $event.stopPropagation()"
+            aria-label="Xem chi tiết"
+          >
+            <mat-icon>visibility</mat-icon>
+          </button>
+          <span class="mp-loc">{{ location(c) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mp-footer">
+      <div class="mp-hint" *ngIf="!checkedCards.length">
+        Chọn pallet để thao tác
+      </div>
+      <div class="mp-grid" *ngIf="checkedCards.length === 1">
+        <button type="button" class="mp-btn" (click)="openBoxScan('add')">
+          Thêm thùng
+        </button>
+        <button type="button" class="mp-btn" (click)="openBoxScan('remove')">
+          Scan gỡ thùng
+        </button>
+        <button type="button" class="mp-btn" (click)="openBoxScan('export')">
+          Scan xuất hàng
+        </button>
+        <button type="button" class="mp-btn" (click)="openLocation()">
+          Chuyển vị trí
+        </button>
+        <button type="button" class="mp-btn" (click)="onRemoveAllBoxes()">
+          Gỡ tất cả thùng
+        </button>
+        <button type="button" class="mp-btn" (click)="onExportPallets()">
+          Xuất hàng
+        </button>
+      </div>
+      <div class="mp-grid" *ngIf="checkedCards.length > 1">
+        <button type="button" class="mp-btn" (click)="openLocation()">
+          Chuyển vị trí
+        </button>
+        <button type="button" class="mp-btn" (click)="onRemoveAllBoxes()">
+          Gỡ tất cả thùng
+        </button>
+        <button type="button" class="mp-btn" (click)="onExportPallets()">
+          Xuất hàng
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ================= CHI TIẾT PALLET ================= -->
+  <ng-container *ngIf="screen === 'detail' && current as c">
+    <div class="mp-body">
+      <div class="mp-card">
+        <div class="mp-pallet-code big">{{ c.serial }}</div>
+        <div class="mp-pallet-sub">
+          Số mã vật tư: {{ materialCount(c) ?? 0 }} · Tổng số lượng:
+          {{ totalQty(c) | number }} · Số thùng: {{ boxCount(c) }}
+        </div>
+        <span class="mp-chip">{{ location(c) }}</span>
+      </div>
+
+      <div class="mp-section-head">
+        <span>Thùng trong pallet</span>
+        <span class="mp-selected">Đã chọn {{ boxChecked.size }}</span>
+        <span class="mp-muted">{{ currentBoxes.length }} thùng</span>
+      </div>
+
+      <div class="mp-empty" *ngIf="!currentBoxes.length">
+        Pallet chưa có thùng nào.
+      </div>
+
+      <div
+        class="mp-box"
+        *ngFor="let b of currentBoxes"
+        [class.checked]="boxChecked.has(b.id)"
+        (click)="toggleBox(b)"
+      >
+        <mat-checkbox
+          color="primary"
+          [checked]="boxChecked.has(b.id)"
+          (click)="$event.stopPropagation()"
+          (change)="toggleBox(b)"
+        ></mat-checkbox>
+        <div class="mp-box-body">
+          <div class="mp-reel">{{ b.reelId }}</div>
+          <div class="mp-part">{{ b.partNumber || "—" }}</div>
+          <div class="mp-box-grid">
+            <span class="lbl">SỐ LƯỢNG</span
+            ><strong>{{ b.initialQuantity | number }}</strong>
+            <span class="lbl">SỐ LÔ</span><strong>{{ b.lot || "—" }}</strong>
+            <span class="lbl">VỊ TRÍ</span
+            ><strong>{{ b.subStorageUnit || "—" }}</strong>
+            <span class="lbl">STATUS</span
+            ><span class="mp-status">{{ boxStatus(b) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mp-footer">
+      <div class="mp-row3">
+        <button type="button" class="mp-btn" (click)="openBoxScan('add', c)">
+          Thêm thùng
+        </button>
+        <button type="button" class="mp-btn" (click)="onDetailExport()">
+          Xuất hàng
+        </button>
+        <button type="button" class="mp-btn danger" (click)="onDetailRemove()">
+          Gỡ thùng
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ================= SCAN THÙNG (thêm / gỡ / xuất) ================= -->
+  <ng-container *ngIf="screen === 'boxScan' && current as c">
+    <div class="mp-body">
+      <div class="mp-hero">
+        <div class="mp-hero-icon">
+          <mat-icon>{{
+            boxScanMode === "add" ? "add_box" : "backspace"
+          }}</mat-icon>
+        </div>
+        <h2>{{ boxScanHeading }}</h2>
+      </div>
+
+      <label class="mp-label">Mã thùng</label>
+      <div class="mp-input block">
+        <mat-icon>qr_code_2</mat-icon>
+        <input
+          #mainInputRef
+          [(ngModel)]="boxInput"
+          (keydown.enter)="onScanBox()"
+          placeholder="Quét mã thùng..."
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="mp-card kv">
+        <div>
+          <span>Pallet</span><strong>{{ c.serial }}</strong>
+        </div>
+        <div>
+          <span>Vị trí hiện tại</span><strong>{{ location(c) }}</strong>
+        </div>
+        <div>
+          <span>Tổng số thùng</span><strong>{{ boxCount(c) }}</strong>
+        </div>
+      </div>
+
+      <div class="mp-card">
+        <div class="mp-label">
+          Danh sách thùng đã scan ({{ scannedBoxes.length }})
+        </div>
+        <div class="mp-empty" *ngIf="!scannedBoxes.length">
+          Chưa scan thùng nào.
+        </div>
+        <div class="mp-box flat" *ngFor="let s of scannedBoxes">
+          <div class="mp-box-body">
+            <div class="mp-reel">{{ s.reelId }}</div>
+            <ng-container *ngIf="s.record as b; else newBox">
+              <div class="mp-part">{{ b.partNumber || "—" }}</div>
+              <div class="mp-box-grid">
+                <span class="lbl">SỐ LƯỢNG</span
+                ><strong>{{ b.initialQuantity | number }}</strong>
+                <span class="lbl">SỐ LÔ</span
+                ><strong>{{ b.lot || "—" }}</strong>
+                <span class="lbl">VỊ TRÍ</span
+                ><strong>{{ b.subStorageUnit || "—" }}</strong>
+                <span class="lbl">STATUS</span
+                ><span class="mp-status">{{ boxStatus(b) }}</span>
+              </div>
+            </ng-container>
+            <ng-template #newBox
+              ><div class="mp-part">
+                Thùng mới — chờ thêm vào pallet
+              </div></ng-template
+            >
+          </div>
+          <button
+            type="button"
+            class="mp-trash"
+            (click)="removeScanned(s)"
+            aria-label="Bỏ"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mp-footer">
+      <div class="mp-row2">
+        <button
+          type="button"
+          class="mp-btn outline"
+          (click)="onCancelBoxScan()"
+        >
+          Hủy
+        </button>
+        <button
+          type="button"
+          class="mp-btn"
+          [class.danger]="boxScanMode !== 'add'"
+          [disabled]="isSaving || !scannedBoxes.length"
+          (click)="onConfirmBoxScan()"
+        >
+          {{ isSaving ? "Đang xử lý..." : boxScanConfirmText }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ================= CHUYỂN VỊ TRÍ ================= -->
+  <ng-container *ngIf="screen === 'location'">
+    <div class="mp-body">
+      <div class="mp-hero">
+        <div class="mp-hero-icon plain"><mat-icon>open_with</mat-icon></div>
+        <h2>Chuyển pallet đến vị trí mới?</h2>
+      </div>
+
+      <label class="mp-label">Vị trí mới</label>
+      <div class="mp-input block">
+        <mat-icon>qr_code_2</mat-icon>
+        <input
+          #mainInputRef
+          [(ngModel)]="newLocation"
+          (ngModelChange)="onLocationInput($event)"
+          [matAutocomplete]="locAuto"
+          placeholder="Quét / chọn vị trí mới..."
+          autocomplete="off"
+        />
+        <mat-autocomplete #locAuto="matAutocomplete">
+          <mat-option
+            *ngFor="let w of locationOptions"
+            [value]="w.locationFullName"
+          >
+            {{ w.locationFullName || w.locationName }}
+          </mat-option>
+        </mat-autocomplete>
+      </div>
+
+      <div class="mp-card kv" *ngFor="let c of locationTargets">
+        <div>
+          <span>Pallet</span><strong>{{ c.serial }}</strong>
+        </div>
+        <div>
+          <span>Vị trí cũ</span><strong>{{ location(c) }}</strong>
+        </div>
+      </div>
+
+      <p class="mp-note">
+        <mat-icon>info</mat-icon>
+        Toàn bộ thùng trong pallet sẽ được cập nhật theo. Không cần scan lại
+        từng thùng.
+      </p>
+
+      <button
+        type="button"
+        class="mp-btn wide"
+        [disabled]="isSaving"
+        (click)="onConfirmLocation()"
+      >
+        {{ isSaving ? "Đang cập nhật..." : "Xác nhận chuyển vị trí" }}
+      </button>
+      <button
+        type="button"
+        class="mp-btn outline wide"
+        (click)="onRescanLocation()"
+      >
+        Quét lại vị trí
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- ================= MODAL XÁC NHẬN ================= -->
+  <div class="mp-overlay" *ngIf="confirmState as cs" (click)="closeConfirm()">
+    <div class="mp-modal" (click)="$event.stopPropagation()">
+      <h3>{{ cs.title }}</h3>
+      <p>{{ cs.message }}</p>
+      <div class="mp-row2">
+        <button type="button" class="mp-btn outline" (click)="closeConfirm()">
+          Hủy
+        </button>
+        <button
+          type="button"
+          class="mp-btn"
+          [class.danger]="cs.danger"
+          (click)="onConfirmModal()"
+        >
+          {{ cs.confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

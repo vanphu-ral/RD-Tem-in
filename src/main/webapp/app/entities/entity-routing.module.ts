@@ -171,6 +171,14 @@ import { RouterModule } from "@angular/router";
           ),
       },
       {
+        path: "pallet-management",
+        data: { pageTitle: "Quản lý pallet" },
+        loadChildren: () =>
+          import("./pallet-management/pallet-management.module").then(
+            (m) => m.PalletManagementModule,
+          ),
+      },
+      {
         path: "approve-tem-ncc",
         data: { pageTitle: "Phê duyệt TEM nhà cung cấp" },
         loadChildren: () =>

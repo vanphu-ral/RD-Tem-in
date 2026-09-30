@@ -1,0 +1,109 @@
+<div class="create-pallet-dialog">
+  <div class="dialog-header">
+    <h2>Thêm mới Pallet</h2>
+    <button
+      mat-icon-button
+      type="button"
+      (click)="onCancel()"
+      aria-label="Đóng"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-body">
+    <div class="code-row">
+      <mat-form-field appearance="outline" class="field-prefix">
+        <mat-label>Tiền tố</mat-label>
+        <input
+          matInput
+          [(ngModel)]="prefix"
+          [disabled]="useDefaultCode"
+          maxlength="10"
+        />
+        <span matTextSuffix class="req">*</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field-seq">
+        <mat-label>Số thứ tự</mat-label>
+        <input matInput [(ngModel)]="sequence" disabled />
+        <mat-spinner
+          matSuffix
+          diameter="16"
+          *ngIf="isLoadingSequence"
+        ></mat-spinner>
+        <span matTextSuffix class="req">*</span>
+        <mat-hint *ngIf="isLoadingSequence">Đang lấy STT...</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field-date">
+        <mat-label>Thời gian</mat-label>
+        <input
+          matInput
+          [matDatepicker]="picker"
+          [(ngModel)]="codeDate"
+          (ngModelChange)="recomputeSequence()"
+          [disabled]="useDefaultCode"
+        />
+        <mat-datepicker-toggle
+          matIconSuffix
+          [for]="picker"
+          [disabled]="useDefaultCode"
+        >
+        </mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        <span matTextSuffix class="req">*</span>
+      </mat-form-field>
+    </div>
+
+    <div class="default-row">
+      <mat-checkbox
+        color="primary"
+        [(ngModel)]="useDefaultCode"
+        (ngModelChange)="onDefaultToggle()"
+      >
+        Tạo mã mặc định
+      </mat-checkbox>
+      <p class="hint">
+        Bỏ tích để tự nhập tiền tố theo ý muốn. Quy tắc tạo mã:
+        <strong>Tiền tố + STT 5 số + ngày (DDMMYYYY)</strong>
+        — ví dụ <code>{{ previewCode }}</code>
+      </p>
+    </div>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Số lượng pallet</mat-label>
+      <input matInput type="number" min="1" [(ngModel)]="quantity" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full note-field">
+      <mat-label>Ghi chú</mat-label>
+      <textarea
+        matInput
+        rows="4"
+        [(ngModel)]="note"
+        placeholder="Nhập ghi chú cho pallet (nếu có)"
+      ></textarea>
+    </mat-form-field>
+  </div>
+
+  <div class="dialog-footer">
+    <button
+      mat-stroked-button
+      type="button"
+      (click)="onCancel()"
+      [disabled]="isSaving"
+    >
+      Hủy
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="onSave()"
+      [disabled]="quantity < 1 || isSaving || isLoadingSequence"
+    >
+      {{ isSaving ? "Đang lưu..." : "Lưu và in" }}
+    </button>
+  </div>
+</div>

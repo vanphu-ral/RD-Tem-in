@@ -64,6 +64,7 @@ export class HomeComponent implements OnInit {
         { title: "Nhập thông tin TEM NCC", link: "/info-tem-ncc" },
         { title: "Cấu hình TEM NCC", link: "/info-tem-ncc/config-tem-ncc" },
         { title: "Phê duyệt TEM NCC", link: "/approve-tem-ncc" },
+        { title: "Quản lý pallet", link: "/pallet-management" },
       ],
     },
     {

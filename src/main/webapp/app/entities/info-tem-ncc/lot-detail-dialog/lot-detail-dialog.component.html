@@ -16,10 +16,9 @@
       <!-- ===== HEADER ROW ===== -->
       <thead>
         <tr class="header-row">
-          <th *ngFor="let col of columns" [style.min-width.px]="col.minWidth">
+          <th *ngFor="let col of columns" [style.width.%]="colWidthPercent">
             <div class="th-content">
               <span>{{ col.label }}</span>
-              <mat-icon class="sort-icon">arrow_drop_down</mat-icon>
             </div>
           </th>
         </tr>

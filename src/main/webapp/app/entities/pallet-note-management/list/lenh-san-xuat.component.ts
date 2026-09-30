@@ -150,6 +150,7 @@ export class LenhSanXuatComponent implements OnInit {
   createByInput = ""; // giá trị hiển thị trong input
   createByTouched = false;
   isAdminTem = false;
+  showAllOrders = false;
 
   constructor(
     protected lenhSanXuatService: LenhSanXuatService,
@@ -414,6 +415,9 @@ export class LenhSanXuatComponent implements OnInit {
   onCreateByInput(): void {
     this.createByTouched = true;
     this.createBy = this.createByInput;
+    if (this.createByInput.trim()) {
+      this.showAllOrders = false;
+    }
   }
   // getLenhSanXuatList(): void {
   //   this.http.post<any>(this.resourceUrl, this.body).subscribe((res) => {
@@ -436,7 +440,7 @@ export class LenhSanXuatComponent implements OnInit {
         const content = Array.isArray(res)
           ? res
           : (res.content ?? res.items ?? res.data ?? []);
-        this.lenhSanXuats = content.map((item: any) => ({
+        const rows = content.map((item: any) => ({
           id: item.id,
           maLenhSanXuat: item.ma_lenh_san_xuat ?? item.maLenhSanXuat,
           sapCode: item.sap_code ?? item.sapCode,
@@ -455,6 +459,15 @@ export class LenhSanXuatComponent implements OnInit {
           comment: item.comment,
           branch: item.branch,
         }));
+        rows.sort(
+          (
+            a: { entryTime?: string | null },
+            b: { entryTime?: string | null },
+          ) =>
+            this.entryTimeMillis(b.entryTime) -
+            this.entryTimeMillis(a.entryTime),
+        );
+        this.lenhSanXuats = rows;
 
         // paging
         if (Array.isArray(res)) {
@@ -494,6 +507,14 @@ export class LenhSanXuatComponent implements OnInit {
     window.location.reload();
     this.createByInput = "";
     this.createByTouched = false;
+  }
+  viewAllOrders(): void {
+    this.showAllOrders = true;
+    this.createBy = "";
+    this.createByInput = "";
+    this.createByTouched = true;
+    this.pageNumber = 1;
+    this.getLenhSanXuatList();
   }
   trackId(_index: number, item: ILenhSanXuat): number {
     return item.id!;
@@ -680,13 +701,15 @@ export class LenhSanXuatComponent implements OnInit {
     addIf("workOrderCode", this.workOrderCode);
     addIf("version", this.version);
     addIf("storageCode", this.storageCode);
-    if (!this.isAdminTem) {
-      const effectiveCreateBy = this.createByTouched
-        ? (this.createByInput ?? "")
-        : (this.hiddenCreateBy ?? "");
-      addIf("createBy", effectiveCreateBy);
-    } else {
-      addIf("createBy", this.createBy);
+    if (!this.showAllOrders) {
+      if (!this.isAdminTem) {
+        const effectiveCreateBy = this.createByTouched
+          ? (this.createByInput ?? "")
+          : (this.hiddenCreateBy ?? "");
+        addIf("createBy", effectiveCreateBy);
+      } else {
+        addIf("createBy", this.createBy);
+      }
     }
     addIf("trangThai", this.trangThai);
     addIf("comment", (this as any).comment ?? "");
@@ -737,5 +760,13 @@ export class LenhSanXuatComponent implements OnInit {
     }
 
     this.getLenhSanXuatList();
+  }
+
+  private entryTimeMillis(value?: string | null): number {
+    if (!value) {
+      return 0;
+    }
+    const time = Date.parse(value);
+    return Number.isNaN(time) ? 0 : time;
   }
 }

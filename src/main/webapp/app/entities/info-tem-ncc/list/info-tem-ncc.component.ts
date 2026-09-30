@@ -5,16 +5,11 @@ import {
   ViewChild,
   ChangeDetectorRef,
 } from "@angular/core";
-import { DatePipe } from "@angular/common";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
-import { Observable, of, catchError, map } from "rxjs";
-
-import { DialogContentExampleDialogComponent } from "./confirm-dialog/confirm-dialog.component";
-import { AlertService } from "app/core/util/alert.service";
 import {
   animate,
   state,
@@ -22,34 +17,34 @@ import {
   transition,
   trigger,
 } from "@angular/animations";
-import { OrderSummaryDialogComponent } from "./order-summary-dialog/order-summary-dialog.component";
+
+import { DialogContentExampleDialogComponent } from "./confirm-dialog/confirm-dialog.component";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
+import { PoImportTem } from "app/entities/list-material/services/info-tem-ncc.service";
+import { ScanImportDialogComponent } from "../add-info-tem-ncc/scan-import-dialog/scan-import-dialog.component";
+import { ScanImportDialogData } from "../add-info-tem-ncc/scan-import-dialog/scan-import.models";
 import {
-  ImportVendorTemTransaction,
-  ManagerTemNccService,
-  PoImportTem,
-} from "app/entities/list-material/services/info-tem-ncc.service";
-import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
-import { StatusBadgeService } from "app/entities/list-material/services/status-badge.service";
+  SendSystemDialogComponent,
+  SendSystemDialogData,
+  SendSystemMaterial,
+} from "./send-system-dialog/send-system-dialog.component";
+import {
+  DeliveryNotificationDto,
+  InfoTemNccService,
+} from "../services/info-tem-ncc.service";
+import { PageEvent } from "@angular/material/paginator";
+import {
+  MiniPageState,
+  slicePage,
+} from "../shared/mini-pager/mini-pager.component";
+import {
+  DeliveryNotificationDetailDto,
+  SapPor1R1Dto,
+  toText,
+  VendorLabelInfoDto,
+} from "../services/info-tem-ncc.service";
 
-// ==================== INTERFACES ====================
-
-export interface TemNccItem {
-  id: number;
-  poCode: string;
-  vendorName: string;
-  arrivalDate: string; // ISO date string
-  createdDate: string; // ISO datetime string
-  createdBy: string;
-  warehouse: string;
-  poComments: string;
-  status: string;
-  sessions?: SessionItem[];
-  _raw?: PoImportTem;
-  /** true nếu đơn có ít nhất 1 vật tư đã gửi PanaCIM. */
-  hasPanaSent?: boolean;
-}
-
+/** Giữ export cũ cho OrderSummaryDialog / chỗ khác còn import. */
 export interface SessionItem {
   importDate: string;
   warehouse: string;
@@ -62,20 +57,85 @@ export interface SessionItem {
   note: string;
 }
 
-export interface FilterValues {
+export interface TemNccItem {
+  id: number;
   poCode: string;
   vendorName: string;
-  arrivalDateStr: string; // text filter "yyyy-MM-dd"
-  arrivalDate: Date | null;
-  createdDateStr: string; // text filter "yyyy-MM-dd"
-  createdDate: Date | null;
+  arrivalDate: string;
+  createdDate: string;
   createdBy: string;
   warehouse: string;
   poComments: string;
   status: string;
+  sessions?: SessionItem[];
+  _raw?: PoImportTem;
+  hasPanaSent?: boolean;
 }
 
-// ==================== COMPONENT ====================
+/** Cấp 3: vật tư trong PO */
+export interface MaterialItem {
+  id: number;
+  materialCode: string;
+  materialName: string;
+  partNumber: string;
+  warehouseCode: string;
+  lotQuantity: number;
+  poQuantity: number;
+  receivedQuantity: number;
+  palletCount: number;
+  boxCount: number;
+  importedBy: string;
+  /** 0–100 */
+  progress: number;
+  /** Thùng thật (vendorLabelInfoList của API detail) */
+  boxes: VendorLabelInfoDto[];
+}
+
+/** Cấp 2: PO trong đợt giao hàng */
+export interface PoItem {
+  /** Key duy nhất: `${deliveryId}-${docEntry}` */
+  id: string;
+  poCode: string;
+  warehouseKeeper: string;
+  vendorCode: string;
+  vendorName: string;
+  vehicleNumber: string;
+  invoiceNumber: string;
+  contractCode: string;
+  importDate: string;
+  importBatch: number | null;
+  materialTypeCount: number;
+  totalQuantity: number;
+  status: "IMPORTING" | "WAITING";
+  materials: MaterialItem[];
+}
+
+/** Cấp 1: Thông báo giao hàng */
+export interface DeliveryNoticeItem {
+  id: number;
+  deliveryNotice: string;
+  importDate: string;
+  invoiceNumber: string;
+  contractCode: string;
+  vendorName: string;
+  vehicleNumber: string;
+  poCount: number;
+  materialQuantity: number;
+  status: "INCOMPLETE" | "COMPLETED";
+  pos: PoItem[];
+}
+
+export interface FilterValues {
+  deliveryNotice: string;
+  importDate: string;
+  invoiceNumber: string;
+  contractCode: string;
+  vendorName: string;
+  vehicleNumber: string;
+  poCount: string;
+  materialQuantity: string;
+  status: string;
+}
 
 @Component({
   selector: "jhi-info-tem-ncc",
@@ -100,493 +160,715 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "stt",
     "actions",
-    "poCode",
+    "deliveryNotice",
+    "importDate",
+    "invoiceNumber",
+    "contractCode",
     "vendorName",
-    "arrivalDate",
-    "createdDate",
-    "createdBy",
-    // "warehouse",
-    // "status",
-    "poComments",
+    "vehicleNumber",
+    "poCount",
+    "materialQuantity",
+    "status",
   ];
-
-  dataSource = new MatTableDataSource<TemNccItem>([]);
-  pageSize = 20;
   isLoading = false;
+  totalItems = 0;
+  pageIndex = 0;
+
+  dataSource = new MatTableDataSource<DeliveryNoticeItem>([]);
+  pageSize = 20;
+  pageSizeOptions = [10, 20, 50];
+  /** Cỡ trang cho bảng lồng (lớp 2 PO, lớp 3 vật tư) */
+  readonly nestedPageSizeOptions = [5, 10, 20];
 
   filterValues: FilterValues = {
-    poCode: "",
+    deliveryNotice: "",
+    importDate: "",
+    invoiceNumber: "",
+    contractCode: "",
     vendorName: "",
-    arrivalDateStr: "",
-    arrivalDate: null,
-    createdDateStr: "",
-    createdDate: null,
-    createdBy: "",
-    warehouse: "",
-    poComments: "",
+    vehicleNumber: "",
+    poCount: "",
+    materialQuantity: "",
     status: "",
   };
-  loadingDetailIds = new Set<number>();
-
-  currentPage = 0;
-  totalItems: number = 0;
-  totalPages: number = 0;
-
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
-  readonly SERVER_PAGE_SIZE = 20;
-  readonly sessionPageSize = 5;
-  private isWarehouseLoaded = false;
-  private isFetchingWarehouses = false;
-  private detailCache = new Map<number, PoImportTem>();
-  private sessionPages = new Map<number, number>();
-  private expandedRows = new Set<number>();
-  private expandedSessions = new Set<string>();
-  private expandedMobileRows = new Set<number>();
+
+  /** Mobile: mở rộng bộ lọc */
+  mobileFilterExpanded = false;
+  /** Mobile: đơn cha đang xem chi tiết (null = list) */
+  selectedDelivery: DeliveryNoticeItem | null = null;
+
+  detailLoadingIds: Record<number, boolean> = {};
+  detailErrorIds: Record<number, boolean> = {};
+  private detailLoadedIds = new Set<number>();
+
+  /** Phân trang lớp 2 (PO theo đơn) và lớp 3 (vật tư theo PO) */
+  private poPageStates = new Map<number, MiniPageState>();
+  private materialPageStates = new Map<string, MiniPageState>();
+  /** Lọc lớp 3 theo từng PO */
+  private materialFilters = new Map<
+    string,
+    { code: string; name: string; part: string }
+  >();
+  /** PO đã gọi lấy part-numbers (chỉ gọi khi expand PO lần đầu) */
+  private partLoadedPoIds = new Set<string>();
+
+  private expandedDeliveryIds = new Set<number>();
+  private expandedPoIds = new Set<string>();
+  private readonly mobileBreakpoint = 768;
+
   constructor(
     private dialog: MatDialog,
-    private alertService: AlertService,
-    private datePipe: DatePipe,
     private cdr: ChangeDetectorRef,
-    private router: Router,
-    private managerTemNccService: ManagerTemNccService,
     private notificationService: NotificationService,
-    private warehouseCacheService: WarehouseCacheService,
-    public statusBadgeService: StatusBadgeService,
+    private router: Router,
+    private infoTemNccService: InfoTemNccService,
   ) {}
 
-  // ==================== LIFECYCLE ====================
-
   ngOnInit(): void {
+    this.dataSource.filterPredicate = this.buildFilterPredicate();
     this.loadData();
-    // void this.initWarehouseCache();
   }
-  onViewDetail(row: TemNccItem, session: SessionItem): void {
-    this.router.navigate(["/info-tem-ncc/info-tem-ncc-detail"], {
-      state: {
-        data: row._raw,
-        transactionId: session.transactionId,
-      },
-    });
-  }
-  onScanSession(row: TemNccItem, session: SessionItem): void {
-    this.router.navigate(["/info-tem-ncc/add-info-tem-ncc", row.id], {
-      state: { transactionId: session.transactionId },
-    });
-  }
-
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
-    this.dataSource.filterPredicate = this.buildFilterPredicate();
-
-    // lang nghe thay doi trang va size
-    this.paginator.page.subscribe((event) => {
-      this.pageSize = event.pageSize;
-      this.loadData(event.pageIndex, event.pageSize);
-    });
-
-    // KHONG gan paginator vao dataSource vi phan trang la server-side
-    // this.dataSource.paginator = this.paginator; <- xoa dong nay
   }
 
-  // ==================== FILTER ====================
-
-  applyFilter(): void {
-    this.dataSource.filterPredicate = this.buildFilterPredicate();
-    this.dataSource.filter = JSON.stringify(this.filterValues);
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
-  }
-  toggleRow(row: TemNccItem): void {
-    if (this.expandedRows.has(row.id)) {
-      this.expandedRows.delete(row.id);
-    } else {
-      this.expandedRows.add(row.id);
-      this.loadDetailIfNeeded(row);
-    }
-  }
-
-  isLoadingDetail(row: TemNccItem): boolean {
-    return this.loadingDetailIds.has(row.id);
-  }
-
-  isExpanded(row: TemNccItem): boolean {
-    return this.expandedRows.has(row.id);
-  }
-  toggleMobileRow(item: TemNccItem): void {
-    if (this.expandedMobileRows.has(item.id)) {
-      this.expandedMobileRows.delete(item.id);
-    } else {
-      this.expandedMobileRows.add(item.id);
-    }
-  }
-
-  isMobileExpanded(item: TemNccItem): boolean {
-    return this.expandedMobileRows.has(item.id);
-  }
-  // ==================== PAGINATION HELPER ====================
-
-  getRowIndex(row: TemNccItem): number {
-    const pageIndex = this.paginator?.pageIndex ?? 0;
-    const pageSize = this.paginator?.pageSize ?? this.pageSize;
-    const idxInPage = this.dataSource.data.findIndex((r) => r.id === row.id);
-    return pageIndex * pageSize + idxInPage + 1;
-  }
-
-  get mobileDataSource(): TemNccItem[] {
-    return this.dataSource.filteredData ?? this.dataSource.data ?? [];
-  }
-
-  getSessionPage(row: TemNccItem): number {
-    return this.sessionPages.get(row.id) ?? 0;
-  }
-
-  setSessionPage(row: TemNccItem, page: number): void {
-    this.sessionPages.set(row.id, page);
-  }
-
-  getSessionTotalPages(row: TemNccItem): number {
-    return Math.ceil((row.sessions?.length ?? 0) / this.sessionPageSize);
-  }
-
-  getPagedSessions(row: TemNccItem): SessionItem[] {
-    const page = this.getSessionPage(row);
-    const start = page * this.sessionPageSize;
-    return (row.sessions ?? []).slice(start, start + this.sessionPageSize);
-  }
-
-  getSessionIndex(row: TemNccItem, indexOnPage: number): number {
-    return this.getSessionPage(row) * this.sessionPageSize + indexOnPage + 1;
-  }
-
-  getSessionPageStart(row: TemNccItem): number {
-    return this.getSessionPage(row) * this.sessionPageSize + 1;
-  }
-
-  getSessionPageEnd(row: TemNccItem): number {
-    return Math.min(
-      (this.getSessionPage(row) + 1) * this.sessionPageSize,
-      row.sessions?.length ?? 0,
-    );
-  }
-
-  // ==================== ACTIONS ====================
-  onInfo(item: TemNccItem): void {
-    if (!item.sessions?.length && !this.loadingDetailIds.has(item.id)) {
-      this.loadingDetailIds.add(item.id);
-
-      const cached = this.detailCache.get(item.id);
-      if (cached) {
-        this.applyDetailToRow(item, cached);
-        this.openSummaryDialog(item);
-        return;
-      }
-
-      this.managerTemNccService.getPoImportTemDetail(item.id).subscribe({
-        next: (detail) => {
-          this.detailCache.set(item.id, detail);
-          this.applyDetailToRow(item, detail);
-          this.loadingDetailIds.delete(item.id);
-
-          // lay lai item moi nhat tu dataSource sau khi apply
-          const updated =
-            this.dataSource.data.find((r) => r.id === item.id) ?? item;
-          this.openSummaryDialog(updated);
+  loadData(): void {
+    this.isLoading = true;
+    this.infoTemNccService
+      .getDeliveryNotifications(this.pageIndex, this.pageSize)
+      .subscribe({
+        next: ({ items, total }) => {
+          this.dataSource.data = items.map((dto) => this.mapDelivery(dto));
+          this.totalItems = total;
+          this.isLoading = false;
+          this.expandedDeliveryIds.clear();
+          this.expandedPoIds = new Set<string>();
+          this.detailLoadedIds.clear();
+          this.poPageStates.clear();
+          this.materialPageStates.clear();
+          this.materialFilters.clear();
+          this.partLoadedPoIds.clear();
         },
         error: () => {
-          this.loadingDetailIds.delete(item.id);
-          this.notificationService.error("Không thể tải chi tiết đơn hàng.");
+          this.dataSource.data = [];
+          this.totalItems = 0;
+          this.isLoading = false;
+          this.notificationService.error(
+            "Không tải được danh sách thông báo giao hàng.",
+          );
         },
       });
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.loadData();
+  }
+
+  get isMobile(): boolean {
+    return (
+      typeof window !== "undefined" &&
+      window.innerWidth <= this.mobileBreakpoint
+    );
+  }
+
+  get mobileDeliveries(): DeliveryNoticeItem[] {
+    return this.dataSource.filteredData;
+  }
+
+  toggleMobileFilter(): void {
+    this.mobileFilterExpanded = !this.mobileFilterExpanded;
+  }
+
+  openMobileDetail(row: DeliveryNoticeItem): void {
+    this.selectedDelivery = row;
+    this.expandedPoIds = new Set<string>();
+    if (row.pos.length) {
+      this.expandedPoIds.add(row.pos[0].id);
+      this.loadPartNumbers(row.pos[0]);
+      return;
+    }
+    this.ensureDetail(row, true);
+  }
+
+  closeMobileDetail(): void {
+    this.selectedDelivery = null;
+  }
+
+  onMobileSearch(): void {
+    this.applyFilter();
+  }
+
+  onStartWarehouse(): void {
+    const delivery = this.selectedDelivery;
+    if (!delivery) {
+      void this.router.navigate(["/info-tem-ncc/add-info-tem-ncc"]);
       return;
     }
 
-    this.openSummaryDialog(item);
+    const isMobile =
+      typeof window !== "undefined" &&
+      window.innerWidth <= this.mobileBreakpoint;
+    const data: ScanImportDialogData = {
+      vehicleNumber: delivery.vehicleNumber,
+      contractCode: delivery.contractCode,
+      vendorCode: delivery.pos[0]?.vendorCode ?? "",
+      scenarioCode: delivery.pos[0]?.vendorCode ?? "",
+      warehouse: delivery.pos[0]?.warehouseKeeper,
+      poCode: delivery.pos[0]?.poCode,
+      deliveryNotificationId: delivery.id,
+      arrivalDate: delivery.importDate,
+      // id vật tư = sapPor1Id
+      parentItems: delivery.pos.flatMap((po) =>
+        po.materials.map((m) => ({
+          id: m.id,
+          partNumber: m.partNumber,
+          sapCode: m.materialCode,
+          orderQty: m.poQuantity,
+          materialName: m.materialName,
+          poCode: po.poCode,
+        })),
+      ),
+    };
+
+    this.dialog.open(ScanImportDialogComponent, {
+      width: isMobile ? "100vw" : "96vw",
+      maxWidth: isMobile ? "100vw" : "1400px",
+      height: isMobile ? "100vh" : "90vh",
+      maxHeight: isMobile ? "100dvh" : "92vh",
+      panelClass: isMobile
+        ? ["scan-import-dialog-panel", "scan-import-dialog-panel--mobile"]
+        : ["scan-import-dialog-panel"],
+      autoFocus: false,
+      disableClose: true,
+      data,
+    });
   }
-  onAdd(): void {
-    this.router.navigate(["./new"], { relativeTo: null });
-    // Adjust route to match your routing config, e.g.:
-    // this.router.navigate(['tem-ncc/new']);
-  }
 
-  onView(item: TemNccItem): void {
-    // Adjust route, e.g.:
-    this.router.navigate(["info-tem-ncc-detail"]);
-  }
-
-  onDelete(item: TemNccItem): void {
-    if (!this.canDeleteOrder(item)) {
-      this.notificationService.warning(
-        "Không thể xóa đơn: đã có vật tư gửi PanaCIM thành công.",
-      );
-      return;
-    }
-
-    this.checkOrderHasPanaSent(item).subscribe((hasPanaSent: boolean) => {
-      if (hasPanaSent) {
-        item.hasPanaSent = true;
-        this.notificationService.warning(
-          "Không thể xóa đơn: đã có vật tư gửi PanaCIM thành công.",
-        );
-        this.cdr.markForCheck();
-        return;
-      }
-
-      const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
-        width: "400px",
-        data: {
-          title: "Xác nhận xóa",
-          message: "Bạn có chắc chắn muốn xóa bản ghi này?",
-          confirmText: "Xóa",
-          cancelText: "Hủy",
-        },
-      });
-
-      dialogRef.afterClosed().subscribe((result) => {
-        if (result === true) {
-          this.managerTemNccService.deleteTemPoImport(item.id).subscribe({
-            next: () => {
-              this.notificationService.success(
-                "Xóa đơn nhập nhà cung cấp thành công!",
-              );
-              this.loadData();
-              this.cdr.detectChanges();
-            },
-            error: (err) => {
-              const msg =
-                err?.error?.message ||
-                err?.error?.title ||
-                "Xóa đơn nhập nhà cung cấp thất bại!";
-              this.notificationService.error(msg);
-              // Backend chặn vì đã gửi PanaCIM → đánh dấu để disable nút xóa.
-              if (
-                String(msg).toLowerCase().includes("panacim") ||
-                err?.error?.errorKey === "panasentalready"
-              ) {
-                item.hasPanaSent = true;
-                this.cdr.markForCheck();
-              }
-            },
-          });
+  onImportSystem(po: PoItem, event?: Event): void {
+    event?.stopPropagation();
+    const isMobile =
+      typeof window !== "undefined" &&
+      window.innerWidth <= this.mobileBreakpoint;
+    const data: SendSystemDialogData = {
+      poCode: po.poCode,
+      warehouseKeeper: po.warehouseKeeper,
+      vendorName: po.vendorName,
+      vehicleNumber: po.vehicleNumber,
+      materialCount: po.materials.length,
+      materials: this.buildSendSystemMaterials(po),
+    };
+    this.dialog
+      .open(SendSystemDialogComponent, {
+        width: isMobile ? "100vw" : "560px",
+        maxWidth: isMobile ? "100vw" : "96vw",
+        height: isMobile ? "100vh" : "90vh",
+        maxHeight: isMobile ? "100dvh" : "92vh",
+        panelClass: isMobile
+          ? ["send-system-dialog-panel", "send-system-dialog-panel--mobile"]
+          : ["send-system-dialog-panel"],
+        autoFocus: false,
+        disableClose: true,
+        data,
+      })
+      .afterClosed()
+      .subscribe((result: { changed?: boolean } | undefined) => {
+        // Đã gửi SAP / PanaCIM → tải lại chi tiết đơn để cập nhật trạng thái
+        const delivery = this.selectedDelivery;
+        if (result?.changed && delivery) {
+          this.detailLoadedIds.delete(delivery.id);
+          this.partLoadedPoIds.clear();
+          this.ensureDetail(delivery, true);
         }
       });
-    });
   }
 
-  /** Đơn đã có ít nhất 1 vật tư gửi PanaCIM → không cho xóa. */
-  canDeleteOrder(item: TemNccItem): boolean {
-    return item.hasPanaSent !== true;
+  mobileDeliveryStatus(status: DeliveryNoticeItem["status"]): string {
+    return status === "COMPLETED" ? "Đã hoàn thành" : "Chờ nhập";
   }
 
-  private checkOrderHasPanaSent(item: TemNccItem): Observable<boolean> {
-    if (this.orderHasPanaSentFlag(item)) {
-      return of(true);
+  /**
+   * Chưa nhận thùng nào → Chờ nhập; nhận chưa đủ SL PO → Đang nhập;
+   * đủ SL nhưng còn thùng chưa gửi SAP → Chưa gửi SAP; tất cả đã gửi → Đã gửi SAP.
+   */
+  mobilePoStatus(po: PoItem): string {
+    const total = this.poTotalQty(po);
+    const received = this.poReceivedQty(po);
+    if (received <= 0) {
+      return "Chờ nhập";
     }
-    const cached = this.detailCache.get(item.id);
-    if (cached) {
-      const hasSent = this.detailHasPanaSent(cached);
-      if (hasSent) {
-        item.hasPanaSent = true;
-      }
-      return of(hasSent);
+    if (received < total) {
+      return "Đang nhập";
     }
-    return this.managerTemNccService.getPoImportTemDetail(item.id).pipe(
-      map((detail: PoImportTem) => {
-        this.detailCache.set(item.id, detail);
-        this.applyDetailToRow(item, detail);
-        return this.detailHasPanaSent(detail);
-      }),
-      // Không xác định được từ API → vẫn cho thử xóa; backend sẽ chặn nếu đã gửi.
-      catchError(() => of(false)),
+    const boxes = po.materials.flatMap((m) => m.boxes);
+    return boxes.every((b) => this.isSapSent(b.sapSendStatus))
+      ? "Đã gửi SAP"
+      : "Chưa gửi SAP";
+  }
+
+  mobilePoStatusClass(po: PoItem): string {
+    const label = this.mobilePoStatus(po);
+    if (label === "Chờ nhập") {
+      return "waiting";
+    }
+    if (label === "Chưa gửi SAP") {
+      return "sap";
+    }
+    if (label === "Đã gửi SAP") {
+      return "done";
+    }
+    return "importing";
+  }
+
+  mobileMaterialStatus(m: MaterialItem): string {
+    if (m.progress >= 100) {
+      return "Đủ SL";
+    }
+    if (m.progress > 0) {
+      return "Đang nhập";
+    }
+    return "Chưa nhập";
+  }
+
+  mobileMaterialStatusClass(m: MaterialItem): string {
+    if (m.progress >= 100) {
+      return "done";
+    }
+    if (m.progress > 0) {
+      return "importing";
+    }
+    return "pending";
+  }
+
+  poReceivedQty(po: PoItem): number {
+    return po.materials.reduce((s, m) => s + (m.receivedQuantity || 0), 0);
+  }
+
+  poTotalQty(po: PoItem): number {
+    return po.materials.reduce((s, m) => s + (m.poQuantity || 0), 0);
+  }
+
+  poProgressPercent(po: PoItem): number {
+    const total = this.poTotalQty(po);
+    if (!total) {
+      return 0;
+    }
+    return Math.min(100, Math.round((this.poReceivedQty(po) / total) * 100));
+  }
+
+  formatDisplayDate(value: string): string {
+    const raw = (value ?? "").trim();
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+    if (iso) {
+      return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    }
+    return raw;
+  }
+
+  applyFilter(): void {
+    this.dataSource.filter = JSON.stringify(this.filterValues);
+  }
+
+  // ---------- Lớp 2: PO ----------
+  getPoPageState(row: DeliveryNoticeItem): MiniPageState {
+    let st = this.poPageStates.get(row.id);
+    if (!st) {
+      st = { pageIndex: 0, pageSize: this.nestedPageSizeOptions[0] };
+      this.poPageStates.set(row.id, st);
+    }
+    return st;
+  }
+
+  pagedPos(row: DeliveryNoticeItem): PoItem[] {
+    return slicePage(row.pos, this.getPoPageState(row));
+  }
+
+  onPoPage(row: DeliveryNoticeItem, pageState: MiniPageState): void {
+    this.poPageStates.set(row.id, pageState);
+  }
+
+  // ---------- Lớp 3: vật tư trong PO ----------
+  getMaterialFilter(po: PoItem): { code: string; name: string; part: string } {
+    let f = this.materialFilters.get(po.id);
+    if (!f) {
+      f = { code: "", name: "", part: "" };
+      this.materialFilters.set(po.id, f);
+    }
+    return f;
+  }
+
+  onMaterialFilterChange(po: PoItem): void {
+    const st = this.getMaterialPageState(po);
+    this.materialPageStates.set(po.id, { ...st, pageIndex: 0 });
+  }
+
+  filteredMaterials(po: PoItem): MaterialItem[] {
+    const f = this.getMaterialFilter(po);
+    const has = (value: string, term: string): boolean =>
+      !term.trim() ||
+      toText(value).toLowerCase().includes(term.trim().toLowerCase());
+    return po.materials.filter(
+      (m) =>
+        has(m.materialCode, f.code) &&
+        has(m.materialName, f.name) &&
+        has(m.partNumber, f.part),
     );
   }
 
-  private orderHasPanaSentFlag(item: TemNccItem): boolean {
-    return item.hasPanaSent === true;
+  getMaterialPageState(po: PoItem): MiniPageState {
+    let st = this.materialPageStates.get(po.id);
+    if (!st) {
+      st = { pageIndex: 0, pageSize: this.nestedPageSizeOptions[0] };
+      this.materialPageStates.set(po.id, st);
+    }
+    return st;
   }
 
-  private detailHasPanaSent(detail: PoImportTem): boolean {
-    const transactions = detail.importVendorTemTransactions ?? [];
-    return transactions.some((t) => {
-      const fromPo = (t.poDetails ?? []).some((d) =>
-        (d.vendorTemDetails ?? []).some((v) => v.panaSendStatus === true),
-      );
-      const fromOrphan = (t.noPoVendorTemDetails ?? []).some(
-        (v) => v.panaSendStatus === true,
-      );
-      return (
-        fromPo ||
-        fromOrphan ||
-        (t as { panaSendStatus?: boolean }).panaSendStatus === true
-      );
-    });
+  pagedMaterials(po: PoItem): MaterialItem[] {
+    return slicePage(this.filteredMaterials(po), this.getMaterialPageState(po));
   }
 
-  private loadData(page = 0, size = this.SERVER_PAGE_SIZE): void {
-    this.isLoading = true;
-    this.managerTemNccService.getPoImportTems(page, size).subscribe({
-      next: (response) => {
-        this.dataSource.data = response.datas.map((item: PoImportTem) =>
-          this.mapToTemNccItem(item),
-        );
-        this.totalItems = response.pagination.totalItems;
-        this.totalPages = response.pagination.totalPages;
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.notificationService.error("Không thể tải danh sách đơn hàng!");
-        this.isLoading = false;
-      },
-    });
+  onMaterialPage(po: PoItem, pageState: MiniPageState): void {
+    this.materialPageStates.set(po.id, pageState);
   }
 
-  private buildFilterPredicate() {
-    return (item: TemNccItem, filterJson: string): boolean => {
-      const f: FilterValues = JSON.parse(filterJson);
-
-      const match = (
-        field: string | null | undefined,
-        query: string,
-      ): boolean =>
-        !query || (field ?? "").toLowerCase().includes(query.toLowerCase());
-
-      return (
-        match(item.poCode, f.poCode) &&
-        match(item.vendorName, f.vendorName) &&
-        match(item.createdBy, f.createdBy) &&
-        // match(item.warehouse, f.warehouse) &&
-        match(item.status, f.status) &&
-        match(item.poComments, f.poComments) &&
-        match(
-          this.datePipe.transform(item.arrivalDate, "yyyy-MM-dd") ?? "",
-          f.arrivalDateStr,
-        ) &&
-        match(
-          this.datePipe.transform(item.createdDate, "yyyy-MM-dd") ?? "",
-          f.createdDateStr,
-        )
-      );
-    };
-  }
-  private mapToTemNccItem(item: PoImportTem): TemNccItem {
-    return {
-      id: item.id,
-      poCode: item.poNumber,
-      vendorName: item.vendorName,
-      arrivalDate: item.entryDate,
-      createdDate: item.createdAt,
-      createdBy: item.createdBy,
-      warehouse: item.storageUnit ?? "",
-      poComments: item.poComments,
-      status: item.status,
-      sessions: (item.importVendorTemTransactions ?? []).map((t) =>
-        this.mapToSessionItem(t),
-      ),
-      _raw: item,
-    };
+  /** STT liên tục qua các trang */
+  materialRowNo(po: PoItem, indexInPage: number): number {
+    const st = this.getMaterialPageState(po);
+    return st.pageIndex * st.pageSize + indexInPage + 1;
   }
 
-  private mapToSessionItem(t: ImportVendorTemTransaction): SessionItem {
-    const totalQty = t.poDetails.reduce(
-      (sum, d) => sum + (d.totalQuantity ?? 0),
-      0,
-    );
-    const itemCount = t.poDetails.reduce(
-      (sum, d) => sum + (d.vendorTemDetails?.length ?? 0),
-      0,
-    );
-    // Ưu tiên Formula BE; fallback cộng initialQuantity nếu API không trả field.
-    const totalScanQty =
-      t.totalScanQuantity ??
-      t.poDetails.reduce(
-        (sum, d) =>
-          sum +
-          (d.vendorTemDetails ?? []).reduce(
-            (s, v) => s + (v.initialQuantity ?? 0),
-            0,
-          ),
-        0,
-      );
-    return {
-      importDate: t.entryDate ?? t.createdAt,
-      warehouse: t.storageUnit,
-      warehouseType: "",
-      status: t.status,
-      totalQty, // so luong trong don (poDetails.totalQuantity)
-      totalScanQty, // so luong da scan thuc te
-      itemCount,
-      transactionId: t.id,
-      note: t.note ?? "",
-    };
+  getRowIndex(row: DeliveryNoticeItem): number {
+    const index = this.dataSource.filteredData.indexOf(row);
+    return this.pageIndex * this.pageSize + index + 1;
   }
 
-  private loadDetailIfNeeded(row: TemNccItem): void {
-    if (this.detailCache.has(row.id)) {
-      this.applyDetailToRow(row, this.detailCache.get(row.id)!);
+  toggleDelivery(row: DeliveryNoticeItem): void {
+    if (this.expandedDeliveryIds.has(row.id)) {
+      this.expandedDeliveryIds.delete(row.id);
       return;
     }
-
-    this.loadingDetailIds.add(row.id);
-    this.managerTemNccService.getPoImportTemDetail(row.id).subscribe({
-      next: (detail) => {
-        this.detailCache.set(row.id, detail);
-        this.applyDetailToRow(row, detail);
-        this.loadingDetailIds.delete(row.id);
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.loadingDetailIds.delete(row.id);
-        this.notificationService.error("Không thể tải chi tiết đơn hàng!");
-      },
-    });
+    this.expandedDeliveryIds.add(row.id);
+    this.ensureDetail(row);
   }
-  private applyDetailToRow(row: TemNccItem, detail: PoImportTem): void {
-    const sessions = (detail.importVendorTemTransactions ?? []).map((t) =>
-      this.mapToSessionItem(t),
-    );
-    const hasPanaSent = this.detailHasPanaSent(detail);
-    // cập nhật sessions vào row trong dataSource
-    const idx = this.dataSource.data.findIndex((r) => r.id === row.id);
-    if (idx >= 0) {
-      const updated = {
-        ...this.dataSource.data[idx],
-        sessions,
-        _raw: detail,
-        hasPanaSent,
-      };
-      const newData = [...this.dataSource.data];
-      newData[idx] = updated;
-      this.dataSource.data = newData;
+
+  isDetailLoading(row: DeliveryNoticeItem): boolean {
+    return !!this.detailLoadingIds[row.id];
+  }
+  hasDetailError(row: DeliveryNoticeItem): boolean {
+    return !!this.detailErrorIds[row.id];
+  }
+
+  displayText(v: string | number | null | undefined): string {
+    return v === null || v === undefined || v === "" ? "—" : String(v);
+  }
+
+  isDeliveryExpanded(row: DeliveryNoticeItem): boolean {
+    return this.expandedDeliveryIds.has(row.id);
+  }
+
+  togglePo(po: PoItem, event?: Event): void {
+    event?.stopPropagation();
+    if (this.expandedPoIds.has(po.id)) {
+      this.expandedPoIds.delete(po.id);
     } else {
-      row.sessions = sessions;
-      row._raw = detail;
-      row.hasPanaSent = hasPanaSent;
+      this.expandedPoIds.add(po.id);
+      this.loadPartNumbers(po);
     }
+    this.expandedPoIds = new Set(this.expandedPoIds);
   }
 
-  private async initWarehouseCache(): Promise<void> {
-    if (this.isWarehouseLoaded || this.isFetchingWarehouses) {
+  isPoExpanded(po: PoItem): boolean {
+    return this.expandedPoIds.has(po.id);
+  }
+
+  deliveryStatusLabel(status: DeliveryNoticeItem["status"]): string {
+    return status === "COMPLETED" ? "Đã hoàn thành" : "Chưa hoàn thành";
+  }
+
+  poStatusLabel(status: PoItem["status"]): string {
+    return status === "IMPORTING" ? "Đang nhập" : "Chờ nhập";
+  }
+
+  progressClass(progress: number): string {
+    if (progress >= 100) {
+      return "done";
+    }
+    if (progress > 0) {
+      return "partial";
+    }
+    return "empty";
+  }
+
+  onScan(row: DeliveryNoticeItem, event?: Event): void {
+    event?.stopPropagation();
+    this.notificationService.info(`In phiếu: ${row.deliveryNotice} (mock)`);
+  }
+
+  onDelete(row: DeliveryNoticeItem, event?: Event): void {
+    event?.stopPropagation();
+    const dialogRef = this.dialog.open(DialogContentExampleDialogComponent, {
+      width: "400px",
+      data: {
+        title: "Xác nhận xóa",
+        message: `Bạn có chắc chắn muốn xóa ${row.deliveryNotice}?`,
+        confirmText: "Xóa",
+        cancelText: "Hủy",
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result !== true) {
+        return;
+      }
+      this.dataSource.data = this.dataSource.data.filter(
+        (r) => r.id !== row.id,
+      );
+      this.expandedDeliveryIds.delete(row.id);
+      this.applyFilter();
+      this.notificationService.success("Đã xóa (mock).");
+      this.cdr.markForCheck();
+    });
+  }
+
+  private mapDelivery(dto: DeliveryNotificationDto): DeliveryNoticeItem {
+    const status = toText(dto.status).toUpperCase();
+    return {
+      id: dto.id,
+      deliveryNotice: dto.deliveryNotificationCode ?? "",
+      importDate: toText(dto.entryDate).slice(0, 10),
+      invoiceNumber: dto.invoiceNumber ?? "",
+      contractCode: dto.contractCode ?? "",
+      vendorName: dto.vendorName ?? "",
+      vehicleNumber: dto.contNo ?? "",
+      poCount: dto.numberOfPo ?? 0,
+      materialQuantity: 0, // API list chưa trả về
+      status: status === "COMPLETED" ? "COMPLETED" : "INCOMPLETE",
+      pos: [], // API list chưa trả về, cần load khi expand
+    };
+  }
+  private buildFilterPredicate() {
+    return (item: DeliveryNoticeItem, filterJson: string): boolean => {
+      let f: FilterValues;
+      try {
+        f = JSON.parse(filterJson || "{}");
+      } catch {
+        return true;
+      }
+
+      const includes = (value: string | number, query: string): boolean => {
+        const term = (query ?? "").trim().toLowerCase();
+        if (!term) {
+          return true;
+        }
+        return String(value ?? "")
+          .toLowerCase()
+          .includes(term);
+      };
+
+      const statusText = this.deliveryStatusLabel(item.status);
+      const mobileStatus = this.mobileDeliveryStatus(item.status);
+      const statusOk =
+        includes(statusText, f.status) || includes(mobileStatus, f.status);
+      return (
+        includes(item.deliveryNotice, f.deliveryNotice) &&
+        includes(item.importDate, f.importDate) &&
+        includes(item.invoiceNumber, f.invoiceNumber) &&
+        includes(item.contractCode, f.contractCode) &&
+        includes(item.vendorName, f.vendorName) &&
+        includes(item.vehicleNumber, f.vehicleNumber) &&
+        includes(item.poCount, f.poCount) &&
+        includes(item.materialQuantity, f.materialQuantity) &&
+        statusOk
+      );
+    };
+  }
+  /** Gọi API detail nếu chưa tải; gán kết quả vào row.pos */
+  private ensureDetail(row: DeliveryNoticeItem, expandFirstPo = false): void {
+    const id = row.id;
+    if (this.detailLoadedIds.has(id) || this.detailLoadingIds[id]) {
       return;
     }
-
-    this.isFetchingWarehouses = true;
-    try {
-      await this.warehouseCacheService.ensureSynced();
-      this.isWarehouseLoaded = true;
-    } catch {
-      console.warn("Khong the cache danh sach kho");
-    } finally {
-      this.isFetchingWarehouses = false;
-    }
-  }
-  private openSummaryDialog(item: TemNccItem): void {
-    this.dialog.open(OrderSummaryDialogComponent, {
-      width: "95vw",
-      maxWidth: "95vw",
-      data: { item },
-      panelClass: "summary-dialog-panel",
+    this.detailLoadingIds = { ...this.detailLoadingIds, [id]: true };
+    this.detailErrorIds = { ...this.detailErrorIds, [id]: false };
+    this.infoTemNccService.getDeliveryNotificationDetail(id).subscribe({
+      next: (detail) => {
+        const pos = this.mapPos(detail);
+        row.pos = pos;
+        row.poCount = pos.length;
+        row.materialQuantity = pos.reduce((s, p) => s + p.materialTypeCount, 0);
+        this.detailLoadedIds.add(id);
+        this.detailLoadingIds = { ...this.detailLoadingIds, [id]: false };
+        if (expandFirstPo && pos.length) {
+          this.expandedPoIds = new Set([pos[0].id]);
+          this.loadPartNumbers(pos[0]);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.detailLoadingIds = { ...this.detailLoadingIds, [id]: false };
+        this.detailErrorIds = { ...this.detailErrorIds, [id]: true };
+        this.notificationService.error(
+          "Không tải được chi tiết thông báo giao hàng.",
+        );
+      },
     });
+  }
+
+  /** Gom sapPor1R1List theo docEntry (mã PO) → mỗi PO chứa các dòng vật tư */
+  private mapPos(detail: DeliveryNotificationDetailDto): PoItem[] {
+    const groups = new Map<string, SapPor1R1Dto[]>();
+    for (const line of detail.sapPor1R1List ?? []) {
+      const key = toText(line.docEntry);
+      const list = groups.get(key);
+      if (list) {
+        list.push(line);
+      } else {
+        groups.set(key, [line]);
+      }
+    }
+
+    const pos: PoItem[] = [];
+    groups.forEach((lines, docEntry) => {
+      const materials = lines.map((l) => this.mapMaterial(l));
+      const totalQuantity = materials.reduce((s, m) => s + m.poQuantity, 0);
+      const received = materials.reduce((s, m) => s + m.receivedQuantity, 0);
+      pos.push({
+        id: `${detail.id}-${docEntry}`,
+        poCode: docEntry || "—",
+        warehouseKeeper: this.distinctJoin(lines.map((l) => l.whsCode)),
+        vendorCode: detail.vendorName ?? "",
+        vendorName: detail.vendorName ?? "",
+        vehicleNumber: detail.contNo ?? "",
+        invoiceNumber: detail.invoiceNumber ?? "",
+        contractCode: detail.contractCode ?? "",
+        importDate: toText(detail.entryDate).slice(0, 10),
+        importBatch: null,
+        materialTypeCount: new Set(lines.map((l) => l.itemCode ?? "")).size,
+        totalQuantity,
+        status: received > 0 ? "IMPORTING" : "WAITING",
+        materials,
+      });
+    });
+    return pos;
+  }
+
+  private mapMaterial(l: SapPor1R1Dto): MaterialItem {
+    const reels = l.vendorLabelInfoList ?? [];
+    const poQuantity = Number(l.quantity ?? 0);
+    const receivedQuantity = reels.reduce(
+      (s, r) => s + Number(r.initialQuantity ?? 0),
+      0,
+    );
+    const distinctCount = (values: unknown[]): number =>
+      new Set(values.map((v) => toText(v)).filter(Boolean)).size;
+    return {
+      id: l.id,
+      materialCode: l.itemCode ?? "",
+      materialName: l.dscription ?? "",
+      partNumber: "", // lấy từ API OITM theo mã SAP, xem loadPartNumbers()
+      warehouseCode: l.whsCode ?? "",
+      lotQuantity: distinctCount(reels.map((r) => r.lot)),
+      poQuantity,
+      receivedQuantity,
+      palletCount: distinctCount(reels.map((r) => r.serialPallet)),
+      // mỗi bản ghi vendorLabelInfo = 1 thùng
+      boxCount: reels.length,
+      importedBy: this.distinctJoin(reels.map((r) => r.createdBy)),
+      progress: poQuantity
+        ? Math.min(100, Math.round((receivedQuantity / poQuantity) * 100))
+        : 0,
+      boxes: reels,
+    };
+  }
+
+  /**
+   * Gọi khi expand PO (lớp vật tư): mỗi mã SAP khác nhau gọi API part-numbers 1 lần,
+   * gán cho các vật tư cùng mã. Service cache theo mã nên PO khác cùng mã không gọi lại.
+   */
+  private loadPartNumbers(po: PoItem): void {
+    if (this.partLoadedPoIds.has(po.id)) {
+      return;
+    }
+    this.partLoadedPoIds.add(po.id);
+    const bySapCode = new Map<string, MaterialItem[]>();
+    for (const m of po.materials) {
+      const code = toText(m.materialCode);
+      if (!code) {
+        continue;
+      }
+      const list = bySapCode.get(code);
+      if (list) {
+        list.push(m);
+      } else {
+        bySapCode.set(code, [m]);
+      }
+    }
+    bySapCode.forEach((materials, code) => {
+      this.infoTemNccService
+        .getPartNumbersBySapCode(code)
+        .subscribe((parts) => {
+          const partNumber = parts.join(", ");
+          for (const m of materials) {
+            m.partNumber = partNumber;
+          }
+          this.cdr.markForCheck();
+        });
+    });
+  }
+
+  private distinctJoin(values: unknown[]): string {
+    const set = new Set<string>();
+    for (const v of values) {
+      const t = toText(v);
+      if (t) {
+        set.add(t);
+      }
+    }
+    return Array.from(set).join(", ");
+  }
+  /** Vật tư của PO → danh sách thùng thật (1 dòng = 1 thùng: LOT, ReelID, SL, đã gửi SAP) */
+  private buildSendSystemMaterials(po: PoItem): SendSystemMaterial[] {
+    return po.materials.map((m, i) => {
+      let status: SendSystemMaterial["status"] = "waiting";
+      if (m.poQuantity > 0 && m.receivedQuantity >= m.poQuantity) {
+        status = "enough";
+      } else if (m.receivedQuantity > 0) {
+        status = "importing";
+      }
+      const lots: SendSystemMaterial["lots"] = m.boxes.map((b) => ({
+        id: `box-${b.id}`,
+        lotNumber: toText(b.lot) || "—",
+        reelId: toText(b.reelId),
+        quantity: Number(b.initialQuantity ?? 0),
+        sent: this.isSapSent(b.sapSendStatus),
+        panaSent: this.isSapSent(b.panaSendStatus),
+        selected: false,
+        record: b,
+      }));
+      return {
+        id: String(m.id),
+        materialName: m.materialName,
+        materialCode: m.materialCode,
+        partNumber: m.partNumber,
+        warehouseCode: m.warehouseCode,
+        receivedQty: m.receivedQuantity,
+        poQty: m.poQuantity,
+        boxCount: m.boxes.length,
+        status,
+        selected: false,
+        expanded: i === 0 && lots.length > 0,
+        lots,
+      };
+    });
+  }
+
+  /** sapSendStatus có thể là boolean / string / number */
+  private isSapSent(value: unknown): boolean {
+    const t = toText(value).toLowerCase();
+    return t !== "" && t !== "false" && t !== "0";
   }
 }

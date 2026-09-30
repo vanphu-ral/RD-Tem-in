@@ -38,13 +38,18 @@ import { ConfigDialogComponent } from "./config-dialog/config-dialog.component";
 import { InfoTemNccDetailComponent } from "./info-tem-ncc-detail/info-tem-ncc.-detail.component";
 import { AddInfoTemNccComponent } from "./add-info-tem-ncc/add-info-tem-ncc.component";
 import { ImportReelPreviewDialogComponent } from "./add-info-tem-ncc/import-reel-preview-dialog/import-reel-preview-dialog.component";
+import { MaterialSummaryDialogComponent } from "./add-info-tem-ncc/material-summary-dialog/material-summary-dialog.component";
+import { ScanImportDialogComponent } from "./add-info-tem-ncc/scan-import-dialog/scan-import-dialog.component";
 import { LotDetailDialogComponent } from "./lot-detail-dialog/lot-detail-dialog.component";
 import { ScanItemDialogComponent } from "./scan-item-dialog/scan-item-dialog.component";
 import { OrderSummaryDialogComponent } from "./list/order-summary-dialog/order-summary-dialog.component";
+import { SendSystemDialogComponent } from "./list/send-system-dialog/send-system-dialog.component";
 import { ScanListViewDialogComponent } from "./scan-item-dialog/scan-list-view-dialog/scan-list-view-dialog.component";
 import { ScanAggregateDialogComponent } from "./scan-item-dialog/scan-aggregate-dialog/scan-aggregate-dialog.component";
 import { ScanAggregateReelDialogComponent } from "./scan-item-dialog/scan-aggregate-dialog/scan-aggregate-reel-dialog.component";
 import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-detail-dialog/approve-lot-detail-dialog.component";
+import { PalletDialogsModule } from "../pallet-management/pallet-dialogs.module";
+import { MiniPagerComponent } from "./shared/mini-pager/mini-pager.component";
 @NgModule({
   imports: [
     // MatDialogModule,
@@ -80,6 +85,8 @@ import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-
     QRCodeComponent,
     MatDialogModule,
     MatExpansionModule,
+    PalletDialogsModule,
+    MiniPagerComponent,
   ],
 
   declarations: [
@@ -89,9 +96,12 @@ import { ApproveLotDetailDialogComponent } from "../approve-tem-ncc/approve-lot-
     InfoTemNccDetailComponent,
     AddInfoTemNccComponent,
     ImportReelPreviewDialogComponent,
+    MaterialSummaryDialogComponent,
+    ScanImportDialogComponent,
     LotDetailDialogComponent,
     ScanItemDialogComponent,
     OrderSummaryDialogComponent,
+    SendSystemDialogComponent,
     ScanListViewDialogComponent,
     ScanAggregateDialogComponent,
     ScanAggregateReelDialogComponent,

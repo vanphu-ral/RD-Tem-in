@@ -1,83 +1,19 @@
-<div class="container mat-elevation-z2">
-  <!-- Header -->
+<div class="container mat-elevation-z2 desktop-only">
   <div class="header">
     <h1>Nhập thông tin TEM từ NCC</h1>
     <div>
-      <button
+      <!-- <button
         mat-raised-button
         color="primary"
         [routerLink]="['add-info-tem-ncc']"
       >
         <mat-icon>add</mat-icon>
         <span class="button-text">Thêm mới</span>
-      </button>
+      </button> -->
     </div>
   </div>
 
-  <!-- Mobile Filters -->
-  <div class="mobile-filters">
-    <mat-expansion-panel>
-      <mat-expansion-panel-header>
-        <mat-panel-title>
-          <mat-icon>filter_list</mat-icon>
-          <span>Bộ lọc</span>
-        </mat-panel-title>
-      </mat-expansion-panel-header>
-      <div class="filter-group">
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>PO</mat-label>
-          <input
-            matInput
-            [(ngModel)]="filterValues.poCode"
-            (ngModelChange)="applyFilter()"
-          />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Nhà cung cấp</mat-label>
-          <input
-            matInput
-            [(ngModel)]="filterValues.vendorName"
-            (ngModelChange)="applyFilter()"
-          />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Người tạo</mat-label>
-          <input
-            matInput
-            [(ngModel)]="filterValues.createdBy"
-            (ngModelChange)="applyFilter()"
-          />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Kho nhập</mat-label>
-          <input
-            matInput
-            [(ngModel)]="filterValues.warehouse"
-            (ngModelChange)="applyFilter()"
-          />
-        </mat-form-field>
-        <!-- <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Trạng thái</mat-label>
-          <mat-select
-            [(ngModel)]="filterValues.status"
-            (ngModelChange)="applyFilter()"
-          >
-            <mat-option value="">Tất cả</mat-option>
-            <mat-option value="NEW">Mới</mat-option>
-            <mat-option value="PENDING">Chờ duyệt</mat-option>
-            <mat-option value="APPROVE">Đã duyệt</mat-option>
-            <mat-option value="REJECT">Từ chối</mat-option>
-          </mat-select>
-        </mat-form-field> -->
-      </div>
-    </mat-expansion-panel>
-  </div>
-
-  <!-- Desktop Table -->
-  <div class="table-container desktop-view">
-    <div class="loading-overlay" *ngIf="isLoading">
-      <mat-spinner diameter="40"></mat-spinner>
-    </div>
+  <div class="table-container">
     <table
       mat-table
       [dataSource]="dataSource"
@@ -90,9 +26,7 @@
         <th mat-header-cell *matHeaderCellDef class="col-stt">
           <div class="th-wrap no-filter">STT</div>
         </th>
-        <td mat-cell *matCellDef="let row">
-          {{ getRowIndex(row) }}
-        </td>
+        <td mat-cell *matCellDef="let row">{{ getRowIndex(row) }}</td>
       </ng-container>
 
       <!-- Actions -->
@@ -104,35 +38,31 @@
           <div class="action-buttons">
             <button
               mat-icon-button
-              (click)="toggleRow(row); $event.stopPropagation()"
-              [matTooltip]="isExpanded(row) ? 'Thu gọn' : 'Xem đợt nhập'"
+              type="button"
+              (click)="toggleDelivery(row); $event.stopPropagation()"
+              [matTooltip]="
+                isDeliveryExpanded(row) ? 'Thu gọn' : 'Xem chi tiết PO'
+              "
             >
               <mat-icon>{{
-                isExpanded(row) ? "expand_less" : "expand_more"
+                isDeliveryExpanded(row) ? "expand_less" : "expand_more"
               }}</mat-icon>
             </button>
-            <!-- <button
-              mat-icon-button
-              [routerLink]="['/info-tem-ncc/add-info-tem-ncc', row.id]"
-              matTooltip="Scan"
-            >
-              <mat-icon class="icon-view">qr_code</mat-icon>
-            </button> -->
             <button
               mat-icon-button
-              (click)="onInfo(row); $event.stopPropagation()"
-              matTooltip="Tổng hợp"
+              type="button"
+              matTooltip="Scan"
+              [routerLink]="['add-info-tem-ncc', row.id]"
+              (click)="$event.stopPropagation()"
             >
-              <mat-icon class="icon-info">info_outline</mat-icon>
+              <mat-icon>qr_code_2</mat-icon>
             </button>
             <button
               mat-icon-button
+              type="button"
               color="warn"
-              (click)="onDelete(row); $event.stopPropagation()"
-              [disabled]="!canDeleteOrder(row)"
-              [matTooltip]="
-                canDeleteOrder(row) ? 'Xóa' : 'Không thể xóa: đã gửi PanaCIM'
-              "
+              matTooltip="Xóa"
+              (click)="onDelete(row, $event)"
             >
               <mat-icon>delete</mat-icon>
             </button>
@@ -140,177 +70,165 @@
         </td>
       </ng-container>
 
-      <!-- PO -->
-      <ng-container matColumnDef="poCode">
-        <th mat-header-cell *matHeaderCellDef class="col-po">
+      <!-- Thông báo giao hàng -->
+      <ng-container matColumnDef="deliveryNotice">
+        <th mat-header-cell *matHeaderCellDef>
           <div class="th-wrap">
-            <span mat-sort-header>PO</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
-                [(ngModel)]="filterValues.poCode"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-              />
-            </div>
+            <span mat-sort-header="deliveryNotice">Thông báo giao hàng</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.deliveryNotice"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
           </div>
         </th>
-        <td mat-cell *matCellDef="let row">{{ row.poCode }}</td>
+        <td mat-cell *matCellDef="let row">{{ row.deliveryNotice }}</td>
       </ng-container>
 
-      <!-- Vendor Name -->
+      <!-- Ngày nhập -->
+      <ng-container matColumnDef="importDate">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="importDate">Ngày nhập</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.importDate"
+              (ngModelChange)="applyFilter()"
+              placeholder="yyyy-MM-dd"
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ row.importDate }}</td>
+      </ng-container>
+
+      <!-- Số hóa đơn -->
+      <ng-container matColumnDef="invoiceNumber">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="invoiceNumber">Số hóa đơn</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.invoiceNumber"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ row.invoiceNumber }}</td>
+      </ng-container>
+
+      <!-- Mã hợp đồng -->
+      <ng-container matColumnDef="contractCode">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="contractCode">Mã hợp đồng</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.contractCode"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ row.contractCode }}</td>
+      </ng-container>
+
+      <!-- Nhà cung cấp -->
       <ng-container matColumnDef="vendorName">
-        <th mat-header-cell *matHeaderCellDef class="col-vendor">
+        <th mat-header-cell *matHeaderCellDef>
           <div class="th-wrap">
-            <span mat-sort-header>Nhà cung cấp</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
-                [(ngModel)]="filterValues.vendorName"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-              />
-            </div>
+            <span mat-sort-header="vendorName">Nhà cung cấp</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.vendorName"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
           </div>
         </th>
-        <td mat-cell *matCellDef="let row">{{ row.vendorName }}</td>
-      </ng-container>
-
-      <!-- Arrival Date -->
-      <ng-container matColumnDef="arrivalDate">
-        <th mat-header-cell *matHeaderCellDef class="col-date">
-          <div class="th-wrap">
-            <span mat-sort-header>Ngày về</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
-                [(ngModel)]="filterValues.arrivalDateStr"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-                placeholder="yyyy-MM-dd"
-              />
-            </div>
-          </div>
-        </th>
-        <td mat-cell *matCellDef="let row">
-          {{ row.arrivalDate | date: "yyyy-MM-dd" }}
+        <td mat-cell *matCellDef="let row" class="col-vendor">
+          {{ row.vendorName }}
         </td>
       </ng-container>
 
-      <!-- Created Date -->
-      <ng-container matColumnDef="createdDate">
-        <th mat-header-cell *matHeaderCellDef class="col-datetime">
+      <!-- Số xe -->
+      <ng-container matColumnDef="vehicleNumber">
+        <th mat-header-cell *matHeaderCellDef>
           <div class="th-wrap">
-            <span mat-sort-header>Ngày tạo</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
-                [(ngModel)]="filterValues.createdDateStr"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-                placeholder="yyyy-MM-dd"
-              />
-            </div>
+            <span mat-sort-header="vehicleNumber">Số xe</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.vehicleNumber"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
           </div>
         </th>
-        <td mat-cell *matCellDef="let row">
-          {{ row.createdDate | date: "yyyy-MM-dd HH:mm:ss" }}
+        <td mat-cell *matCellDef="let row">{{ row.vehicleNumber }}</td>
+      </ng-container>
+
+      <!-- Số lượng PO -->
+      <ng-container matColumnDef="poCount">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="poCount">Số lượng PO</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.poCount"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row" class="text-center">
+          {{ row.poCount }}
         </td>
       </ng-container>
 
-      <!-- Created By -->
-      <ng-container matColumnDef="createdBy">
-        <th mat-header-cell *matHeaderCellDef class="col-user">
+      <!-- Số lượng vật tư -->
+      <ng-container matColumnDef="materialQuantity">
+        <th mat-header-cell *matHeaderCellDef>
           <div class="th-wrap">
-            <span mat-sort-header>Người tạo</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
-                [(ngModel)]="filterValues.createdBy"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-              />
-            </div>
+            <span mat-sort-header="materialQuantity">Số lượng vật tư</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.materialQuantity"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
           </div>
         </th>
-        <td mat-cell *matCellDef="let row">{{ row.createdBy }}</td>
-      </ng-container>
-      <ng-container matColumnDef="poComments">
-        <th mat-header-cell *matHeaderCellDef class="col-comments">
-          <div class="th-wrap">
-            <span mat-sort-header>Ghi chú</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
-                [(ngModel)]="filterValues.poComments"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-              />
-            </div>
-          </div>
-        </th>
-        <td mat-cell *matCellDef="let row" class="col-comments-cell">
-          {{ row.poComments }}
+        <td mat-cell *matCellDef="let row" class="text-center">
+          {{ row.materialQuantity }}
         </td>
       </ng-container>
 
-      <!-- Warehouse -->
-      <!-- <ng-container matColumnDef="warehouse">
-        <th mat-header-cell *matHeaderCellDef class="col-warehouse">
+      <!-- Trạng thái -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>
           <div class="th-wrap">
-            <span mat-sort-header>Kho nhập</span>
-            <div class="filter-input-wrap" (click)="$event.stopPropagation()">
-              <mat-icon class="search-icon">search</mat-icon>
-              <input
-                class="inline-filter"
-                [(ngModel)]="filterValues.warehouse"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-              />
-            </div>
-          </div>
-        </th>
-        <td mat-cell *matCellDef="let row">{{ row.warehouse }}</td>
-      </ng-container> -->
-
-      <!-- Status -->
-      <!-- <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef class="col-status">
-          <div class="th-wrap">
-            <span mat-sort-header>Trạng thái</span>
-            <div
-              class="filter-input-wrap"
-              (click)="$event.stopPropagation()"
-              style="padding: 2px 4px"
-            >
-              <select
-                class="inline-filter-select"
-                [(ngModel)]="filterValues.status"
-                (ngModelChange)="applyFilter()"
-                (keydown)="$event.stopPropagation()"
-              >
-                <option value="">Tất cả</option>
-                <option value="NEW">Mới</option>
-                <option value="PENDING">Chờ duyệt</option>
-                <option value="APPROVE">Đã duyệt</option>
-                <option value="REJECT">Từ chối</option>
-              </select>
-            </div>
+            <span mat-sort-header="status">Trạng thái</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.status"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
           </div>
         </th>
         <td mat-cell *matCellDef="let row">
-          <span [ngStyle]="statusBadgeService.getStyle(row.status)">
-            {{ statusBadgeService.getLabel(row.status) }}
+          <span
+            class="status-badge"
+            [class.incomplete]="row.status === 'INCOMPLETE'"
+            [class.completed]="row.status === 'COMPLETED'"
+          >
+            {{ deliveryStatusLabel(row.status) }}
           </span>
         </td>
-      </ng-container> -->
+      </ng-container>
 
+      <!-- Expanded L2 + L3 -->
       <ng-container matColumnDef="expandedDetail">
         <td
           mat-cell
@@ -319,140 +237,241 @@
           class="expanded-cell"
         >
           <div
-            class="session-expand-wrapper"
-            [@detailExpand]="isExpanded(row) ? 'expanded' : 'collapsed'"
+            class="expand-wrapper"
+            [@detailExpand]="isDeliveryExpanded(row) ? 'expanded' : 'collapsed'"
           >
-            <div class="session-loading" *ngIf="isLoadingDetail(row)">
-              <mat-spinner diameter="24"></mat-spinner>
-              <span>Đang tải...</span>
-            </div>
-            <ng-container *ngIf="!isLoadingDetail(row)">
-              <!-- Sub-table header label -->
-              <div class="session-header-label">
-                <mat-icon class="session-label-icon">reorder</mat-icon>
-                <span>DANH SÁCH CÁC LẦN NHẬP (SESSIONS)</span>
-                <span class="session-count-badge">{{
-                  row.sessions?.length ?? 0
-                }}</span>
+            <div class="po-panel" *ngIf="isDeliveryExpanded(row)">
+              <div class="panel-title po-title">
+                Chi tiết PO trong đợt giao hàng
               </div>
 
-              <!-- Scrollable table wrapper -->
-              <div class="session-table-scroll">
-                <table class="session-table">
-                  <thead>
-                    <tr>
-                      <th class="col-stt-s">STT</th>
-                      <th class="col-stt-s">Thao tác</th>
-                      <th>Ngày nhập</th>
-                      <th>Kho</th>
-                      <th>Trạng thái</th>
-                      <th class="col-num">Tổng SL đã scan</th>
-                      <th class="col-num">Mã Items</th>
-                      <th class="col-note">Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <ng-container
-                      *ngIf="
-                        row.sessions && row.sessions.length > 0;
-                        else noSession
-                      "
+              <table class="nested-table po-table">
+                <thead>
+                  <tr>
+                    <th class="col-actions-sm">Thao tác</th>
+                    <th>Mã PO/Mã PO SAP</th>
+                    <th>Thủ kho</th>
+                    <th>Mã nhà cung cấp</th>
+                    <th>Nhà cung cấp</th>
+                    <th>Số xe</th>
+                    <th>Số hóa đơn</th>
+                    <th>Mã hợp đồng</th>
+                    <th>Ngày nhập</th>
+                    <th>Đợt nhập</th>
+                    <th>Số mã vật tư</th>
+                    <th>Tổng SL</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngIf="isDetailLoading(row)">
+                    <td colspan="13" class="text-center">
+                      Đang tải dữ liệu...
+                    </td>
+                  </tr>
+                  <tr *ngIf="!isDetailLoading(row) && hasDetailError(row)">
+                    <td colspan="13" class="text-center">
+                      Không tải được chi tiết thông báo giao hàng.
+                    </td>
+                  </tr>
+                  <tr
+                    *ngIf="
+                      !isDetailLoading(row) &&
+                      !hasDetailError(row) &&
+                      !row.pos.length
+                    "
+                  >
+                    <td colspan="13" class="text-center">Không có PO.</td>
+                  </tr>
+                  <ng-container *ngFor="let po of pagedPos(row)">
+                    <tr
+                      class="po-row"
+                      [class.po-expanded]="isPoExpanded(po)"
+                      (click)="togglePo(po, $event)"
                     >
-                      <tr
-                        *ngFor="
-                          let session of getPagedSessions(row);
-                          let si = index
-                        "
-                        class="session-tr"
+                      <td
+                        class="col-actions-sm"
+                        (click)="$event.stopPropagation()"
                       >
-                        <td class="col-stt-s">
-                          {{ getSessionIndex(row, si) }}
-                        </td>
-                        <td class="col-stt-s">
-                          <!-- <button
-                            mat-icon-button
-                            [routerLink]="['/info-tem-ncc/info-tem-ncc-detail, row.id']"
-                            matTooltip="Chi tiết"
-                          >
-                            <mat-icon class="icon-view">visibility</mat-icon>
-                          </button> -->
-                          <!-- <button
-                            mat-icon-button
-                            (click)="onViewDetail(row, session)"
-                            matTooltip="Chi tiết"
-                          >
-                            <mat-icon class="icon-view">visibility</mat-icon>
-                          </button> -->
-                          <button
-                            mat-icon-button
-                            (click)="onScanSession(row, session)"
-                            matTooltip="Scan đợt này"
-                          >
-                            <mat-icon class="icon-view">qr_code</mat-icon>
-                          </button>
-                        </td>
-                        <td>
-                          {{ session.importDate | date: "dd/MM/yyyy HH:mm" }}
-                        </td>
-                        <td>{{ session.warehouse }}</td>
-                        <td>
-                          <span
-                            [ngStyle]="
-                              statusBadgeService.getStyle(session.status)
-                            "
-                          >
-                            {{ statusBadgeService.getLabel(session.status) }}
-                          </span>
-                        </td>
-                        <td class="col-num green-val">
-                          {{ session.totalScanQty | number }}
-                        </td>
-                        <td class="col-num">{{ session.itemCount }}</td>
-                        <td class="col-note-cell" [title]="session.note">
-                          {{ session.note }}
-                        </td>
-                      </tr>
-                    </ng-container>
-                    <ng-template #noSession>
-                      <tr>
-                        <td colspan="6" class="no-session">Không có dữ liệu</td>
-                      </tr>
-                    </ng-template>
-                  </tbody>
-                </table>
-              </div>
+                        <button
+                          mat-icon-button
+                          type="button"
+                          (click)="togglePo(po, $event)"
+                        >
+                          <mat-icon>{{
+                            isPoExpanded(po) ? "expand_less" : "expand_more"
+                          }}</mat-icon>
+                        </button>
+                      </td>
+                      <td>{{ po.poCode }}</td>
+                      <td>{{ po.warehouseKeeper }}</td>
+                      <td>{{ po.vendorCode }}</td>
+                      <td class="col-vendor">{{ po.vendorName }}</td>
+                      <td>{{ po.vehicleNumber }}</td>
+                      <td>{{ po.invoiceNumber }}</td>
+                      <td>{{ po.contractCode }}</td>
+                      <td>{{ po.importDate }}</td>
+                      <td class="text-center">
+                        {{ displayText(po.importBatch) }}
+                      </td>
+                      <td class="text-center">{{ po.materialTypeCount }}</td>
+                      <td class="text-center">{{ po.totalQuantity }}</td>
+                      <td>
+                        <span
+                          class="status-badge"
+                          [class.importing]="po.status === 'IMPORTING'"
+                          [class.waiting]="po.status === 'WAITING'"
+                        >
+                          {{ poStatusLabel(po.status) }}
+                        </span>
+                      </td>
+                    </tr>
 
-              <!-- Mini paginator -->
-              <div
-                class="session-paginator"
-                *ngIf="row.sessions && row.sessions.length > sessionPageSize"
-              >
-                <span class="pag-info">
-                  {{ getSessionPageStart(row) }}–{{ getSessionPageEnd(row) }} /
-                  {{ row.sessions.length }}
-                </span>
-                <button
-                  mat-icon-button
-                  [disabled]="getSessionPage(row) === 0"
-                  (click)="setSessionPage(row, getSessionPage(row) - 1)"
-                >
-                  <mat-icon>chevron_left</mat-icon>
-                </button>
-                <span class="pag-page"
-                  >{{ getSessionPage(row) + 1 }} /
-                  {{ getSessionTotalPages(row) }}</span
-                >
-                <button
-                  mat-icon-button
-                  [disabled]="
-                    getSessionPage(row) >= getSessionTotalPages(row) - 1
-                  "
-                  (click)="setSessionPage(row, getSessionPage(row) + 1)"
-                >
-                  <mat-icon>chevron_right</mat-icon>
-                </button>
-              </div>
-            </ng-container>
+                    <tr class="material-expand-row" *ngIf="isPoExpanded(po)">
+                      <td [attr.colspan]="13" class="material-expand-cell">
+                        <div class="material-panel">
+                          <div class="material-title">
+                            Chi tiết vật tư trong PO
+                            <strong>{{ po.poCode }}</strong>
+                          </div>
+
+                          <div class="material-table-wrap">
+                            <table class="material-table">
+                              <thead>
+                                <tr>
+                                  <th class="col-stt">STT</th>
+                                  <th>
+                                    <div class="th-filter">
+                                      <span>Mã vật tư</span>
+                                      <input
+                                        class="nested-filter"
+                                        [(ngModel)]="getMaterialFilter(po).code"
+                                        (ngModelChange)="
+                                          onMaterialFilterChange(po)
+                                        "
+                                        (click)="$event.stopPropagation()"
+                                        placeholder="Lọc..."
+                                      />
+                                    </div>
+                                  </th>
+                                  <th>
+                                    <div class="th-filter">
+                                      <span>Tên vật tư</span>
+                                      <input
+                                        class="nested-filter"
+                                        [(ngModel)]="getMaterialFilter(po).name"
+                                        (ngModelChange)="
+                                          onMaterialFilterChange(po)
+                                        "
+                                        (click)="$event.stopPropagation()"
+                                        placeholder="Lọc..."
+                                      />
+                                    </div>
+                                  </th>
+                                  <th>
+                                    <div class="th-filter">
+                                      <span>Partnumber</span>
+                                      <input
+                                        class="nested-filter"
+                                        [(ngModel)]="getMaterialFilter(po).part"
+                                        (ngModelChange)="
+                                          onMaterialFilterChange(po)
+                                        "
+                                        (click)="$event.stopPropagation()"
+                                        placeholder="Lọc..."
+                                      />
+                                    </div>
+                                  </th>
+                                  <th>Mã kho</th>
+                                  <th>Số lượng lô</th>
+                                  <th>Số lượng theo PO</th>
+                                  <th>Số lượng đã nhận</th>
+                                  <th>Số pallet</th>
+                                  <th>Số thùng</th>
+                                  <th>Người nhập</th>
+                                  <th>Tiến độ</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr *ngIf="!filteredMaterials(po).length">
+                                  <td colspan="12" class="text-center">
+                                    {{
+                                      po.materials.length
+                                        ? "Không có vật tư phù hợp."
+                                        : "Không có vật tư."
+                                    }}
+                                  </td>
+                                </tr>
+                                <tr
+                                  *ngFor="
+                                    let m of pagedMaterials(po);
+                                    let mi = index
+                                  "
+                                >
+                                  <td class="text-center">
+                                    {{ materialRowNo(po, mi) }}
+                                  </td>
+                                  <td>{{ m.materialCode }}</td>
+                                  <td>{{ m.materialName }}</td>
+                                  <td>{{ displayText(m.partNumber) }}</td>
+                                  <td class="text-center">
+                                    {{ m.warehouseCode }}
+                                  </td>
+                                  <td class="text-center">
+                                    {{ m.lotQuantity }}
+                                  </td>
+                                  <td class="text-center">
+                                    {{ m.poQuantity }}
+                                  </td>
+                                  <td class="text-center">
+                                    {{ m.receivedQuantity }}
+                                  </td>
+                                  <td class="text-center">
+                                    {{ m.palletCount }}
+                                  </td>
+                                  <td class="text-center">
+                                    {{ m.boxCount }}
+                                  </td>
+                                  <td>{{ m.importedBy || "—" }}</td>
+                                  <td class="col-progress">
+                                    <div class="progress-wrap">
+                                      <div class="progress-track">
+                                        <div
+                                          class="progress-fill"
+                                          [ngClass]="progressClass(m.progress)"
+                                          [style.width.%]="m.progress"
+                                        ></div>
+                                      </div>
+                                      <span class="progress-text"
+                                        >{{ m.progress }}%</span
+                                      >
+                                    </div>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          <jhi-mini-pager
+                            [total]="filteredMaterials(po).length"
+                            [pageIndex]="getMaterialPageState(po).pageIndex"
+                            [pageSize]="getMaterialPageState(po).pageSize"
+                            [pageSizeOptions]="nestedPageSizeOptions"
+                            (pageChange)="onMaterialPage(po, $event)"
+                          ></jhi-mini-pager>
+                        </div>
+                      </td>
+                    </tr>
+                  </ng-container>
+                </tbody>
+              </table>
+              <jhi-mini-pager
+                [total]="row.pos.length"
+                [pageIndex]="getPoPageState(row).pageIndex"
+                [pageSize]="getPoPageState(row).pageSize"
+                [pageSizeOptions]="nestedPageSizeOptions"
+                (pageChange)="onPoPage(row, $event)"
+              ></jhi-mini-pager>
+            </div>
           </div>
         </td>
       </ng-container>
@@ -462,216 +481,247 @@
         mat-row
         *matRowDef="let row; columns: displayedColumns"
         class="data-row"
+        [class.row-expanded]="isDeliveryExpanded(row)"
+        (click)="toggleDelivery(row)"
       ></tr>
       <tr
         mat-row
         *matRowDef="let row; columns: ['expandedDetail']"
         class="detail-row"
       ></tr>
-
-      <tr class="mat-row" *matNoDataRow>
-        <td [attr.colspan]="displayedColumns.length">
-          <div class="no-data">
-            <mat-icon>inbox</mat-icon>
-            <p>Không có dữ liệu</p>
-          </div>
-        </td>
-      </tr>
     </table>
   </div>
 
-  <!-- Mobile Cards -->
-  <div class="mobile-view">
-    <ng-container *ngIf="mobileDataSource.length > 0; else noDataMobile">
-      <mat-card *ngFor="let item of mobileDataSource" class="mobile-card">
-        <!-- Card Header: STT + Status + Actions -->
-        <div class="mobile-card-header">
-          <div class="mobile-card-header-left">
-            <span class="stt-badge">{{ getRowIndex(item) }}</span>
-            <span
-              class="mobile-status-text"
-              [ngStyle]="statusBadgeService.getStyle(item.status)"
-            >
-              {{ statusBadgeService.getLabel(item.status) }}
-            </span>
-          </div>
-          <div class="mobile-card-actions">
-            <button
-              mat-icon-button
-              (click)="toggleRow(item); $event.stopPropagation()"
-            >
-              <mat-icon>{{
-                isExpanded(item) ? "expand_less" : "expand_more"
-              }}</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              (click)="onInfo(item); $event.stopPropagation()"
-              matTooltip="Tổng hợp"
-            >
-              <mat-icon class="icon-info">info_outline</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="onDelete(item); $event.stopPropagation()"
-              [disabled]="!canDeleteOrder(item)"
-              [matTooltip]="
-                canDeleteOrder(item) ? 'Xóa' : 'Không thể xóa: đã gửi PanaCIM'
-              "
-            >
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        </div>
+  <mat-paginator
+    [pageSize]="pageSize"
+    [pageSizeOptions]="pageSizeOptions"
+    showFirstLastButtons
+  >
+  </mat-paginator>
+</div>
 
-        <!-- Card Content -->
-        <mat-card-content class="mobile-card-content">
-          <div class="info-row">
-            <span class="label">PO:</span
-            ><span class="value">{{ item.poCode }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Nhà cung cấp:</span
-            ><span class="value">{{ item.vendorName }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Ngày về:</span
-            ><span class="value">{{
-              item.arrivalDate | date: "yyyy-MM-dd"
-            }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Ngày tạo:</span
-            ><span class="value">{{
-              item.createdDate | date: "yyyy-MM-dd HH:mm:ss"
-            }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Người tạo:</span
-            ><span class="value">{{ item.createdBy }}</span>
-          </div>
-          <!-- <div class="info-row">
-            <span class="label">Kho nhập:</span
-            ><span class="value">{{ item.warehouse }}</span>
-          </div> -->
-        </mat-card-content>
-
-        <!-- Expand: Sessions -->
-        <div class="mobile-sessions" *ngIf="isExpanded(item)">
-          <div class="mobile-session-label">
-            DANH SÁCH LẦN NHẬP
-            <span class="session-count-badge">{{
-              item.sessions?.length ?? 0
-            }}</span>
-          </div>
-
-          <ng-container
-            *ngIf="
-              item.sessions && item.sessions.length > 0;
-              else noSessionMobile
-            "
-          >
-            <div
-              *ngFor="let session of getPagedSessions(item); let si = index"
-              class="mobile-session-item"
-            >
-              <div class="mobile-session-row">
-                <span class="mobile-session-index">{{
-                  getSessionIndex(item, si)
-                }}</span>
-                <div class="mobile-session-info">
-                  <div class="mobile-session-date">
-                    {{ session.importDate | date: "dd/MM/yyyy HH:mm" }}
-                  </div>
-                  <div class="mobile-session-meta">
-                    {{ session.warehouse }} · {{ session.status }}
-                  </div>
-                </div>
-                <button
-                  mat-icon-button
-                  [routerLink]="['/info-tem-ncc/info-tem-ncc-detail']"
-                  matTooltip="Chi tiết"
-                >
-                  <mat-icon class="icon-view">visibility</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  (click)="onScanSession(item, session)"
-                  matTooltip="Scan đợt này"
-                >
-                  <mat-icon class="icon-view">qr_code</mat-icon>
-                </button>
-              </div>
-              <div class="mobile-session-stats">
-                <span class="mobile-stat">
-                  <span class="stat-label">TỔNG SL ĐÃ SCAN</span>
-                  <span class="stat-value green-val">{{
-                    session.totalScanQty | number
-                  }}</span>
-                </span>
-                <span class="mobile-stat">
-                  <span class="stat-label">MÃ ITEMS</span>
-                  <span class="stat-value">{{ session.itemCount }}</span>
-                </span>
-                <span class="mobile-stat" *ngIf="session.note">
-                  <span class="stat-label">GHI CHÚ</span>
-                  <span class="stat-value">{{ session.note }}</span>
-                </span>
-              </div>
-            </div>
-
-            <!-- Mini paginator mobile -->
-            <div
-              class="session-paginator"
-              *ngIf="item.sessions.length > sessionPageSize"
-            >
-              <span class="pag-info"
-                >{{ getSessionPageStart(item) }}–{{ getSessionPageEnd(item) }} /
-                {{ item.sessions.length }}</span
-              >
-              <button
-                mat-icon-button
-                [disabled]="getSessionPage(item) === 0"
-                (click)="setSessionPage(item, getSessionPage(item) - 1)"
-              >
-                <mat-icon>chevron_left</mat-icon>
-              </button>
-              <span class="pag-page"
-                >{{ getSessionPage(item) + 1 }} /
-                {{ getSessionTotalPages(item) }}</span
-              >
-              <button
-                mat-icon-button
-                [disabled]="
-                  getSessionPage(item) >= getSessionTotalPages(item) - 1
-                "
-                (click)="setSessionPage(item, getSessionPage(item) + 1)"
-              >
-                <mat-icon>chevron_right</mat-icon>
-              </button>
-            </div>
-          </ng-container>
-
-          <ng-template #noSessionMobile>
-            <div class="no-session">Không có dữ liệu</div>
-          </ng-template>
-        </div>
-      </mat-card>
-    </ng-container>
-    <ng-template #noDataMobile>
-      <div class="no-data">
-        <mat-icon>inbox</mat-icon>
-        <p>Không có dữ liệu</p>
-      </div>
-    </ng-template>
+<!-- ===================== MOBILE LIST ===================== -->
+<div class="mobile-shell mobile-only" *ngIf="!selectedDelivery">
+  <div class="mobile-header">
+    <button type="button" class="mobile-back" routerLink="/">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <div class="mobile-header-text">
+      <h1>Nhập TEM từ NCC</h1>
+      <p>Tìm đơn theo chuyến xe</p>
+    </div>
   </div>
 
-  <mat-divider class="my-3"></mat-divider>
-  <mat-paginator
-    [length]="totalItems"
-    [pageSize]="pageSize"
-    [pageSizeOptions]="[10, 20, 50, 100]"
-    showFirstLastButtons
-  ></mat-paginator>
+  <div class="mobile-body">
+    <div class="mobile-filter-card">
+      <div class="filter-top-row">
+        <div class="filter-field flex-1">
+          <label>Số xe</label>
+          <input
+            [(ngModel)]="filterValues.vehicleNumber"
+            placeholder="VD: 25A-102-1924"
+          />
+        </div>
+        <button
+          type="button"
+          class="btn-filter-toggle"
+          [class.active]="mobileFilterExpanded"
+          (click)="toggleMobileFilter()"
+        >
+          <mat-icon>tune</mat-icon>
+          Lọc
+        </button>
+      </div>
+
+      <div class="filter-extra" *ngIf="mobileFilterExpanded">
+        <div class="filter-field">
+          <label>Mã hợp đồng</label>
+          <input
+            [(ngModel)]="filterValues.contractCode"
+            placeholder="VD: RD/001"
+          />
+        </div>
+        <div class="filter-field">
+          <label>Số hóa đơn</label>
+          <input
+            [(ngModel)]="filterValues.invoiceNumber"
+            placeholder="VD: 26YDM201"
+          />
+        </div>
+        <div class="filter-field">
+          <label>Nhà cung cấp</label>
+          <input
+            [(ngModel)]="filterValues.vendorName"
+            placeholder="VD: Cty TNHH Trần Thành"
+          />
+        </div>
+        <div class="filter-field">
+          <label>Ngày nhập</label>
+          <input
+            [(ngModel)]="filterValues.importDate"
+            placeholder="yyyy-MM-dd"
+          />
+        </div>
+        <div class="filter-field">
+          <label>Trạng thái</label>
+          <input [(ngModel)]="filterValues.status" placeholder="VD: Chờ nhập" />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn-search-orange"
+        (click)="onMobileSearch()"
+      >
+        <mat-icon>search</mat-icon>
+        Tìm đơn hàng
+      </button>
+    </div>
+
+    <div class="mobile-card-list">
+      <button
+        type="button"
+        class="delivery-card"
+        *ngFor="let row of mobileDeliveries"
+        (click)="openMobileDetail(row)"
+      >
+        <div class="delivery-card-top">
+          <div class="delivery-meta">
+            <mat-icon class="truck-icon">local_shipping</mat-icon>
+            <span class="plate">{{ row.vehicleNumber }}</span>
+            <span class="dot">·</span>
+            <span class="po-count">{{ row.poCount }} PO</span>
+          </div>
+          <span
+            class="status-pill"
+            [class.waiting]="row.status === 'INCOMPLETE'"
+            [class.done]="row.status === 'COMPLETED'"
+          >
+            {{ mobileDeliveryStatus(row.status) }}
+          </span>
+        </div>
+        <div class="delivery-code">
+          Mã giao hàng:
+          <strong>{{ row.deliveryNotice }}</strong>
+        </div>
+        <div class="delivery-vendor">{{ row.vendorName }}</div>
+        <div class="delivery-date">{{ formatDisplayDate(row.importDate) }}</div>
+      </button>
+
+      <div class="mobile-empty" *ngIf="!mobileDeliveries.length">
+        Không tìm thấy đơn hàng phù hợp.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MOBILE DETAIL ===================== -->
+<div class="mobile-shell mobile-only" *ngIf="selectedDelivery as d">
+  <div class="mobile-header">
+    <button type="button" class="mobile-back" (click)="closeMobileDetail()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <div class="mobile-header-text">
+      <h1>Số xe {{ d.vehicleNumber }}</h1>
+      <p>Hợp đồng {{ d.contractCode }}</p>
+    </div>
+  </div>
+
+  <div class="mobile-body detail-body">
+    <div class="po-count-label">{{ d.pos.length }} đơn PO phù hợp</div>
+
+    <div class="po-card" *ngFor="let po of d.pos">
+      <div class="po-card-head" (click)="togglePo(po)">
+        <div class="po-card-main">
+          <div class="po-title-row">
+            <span class="po-code">PO {{ po.poCode }}</span>
+            <span class="warehouse-tag">Kho {{ po.warehouseKeeper }}</span>
+          </div>
+          <div class="po-vendor">{{ po.vendorName }}</div>
+          <div class="po-meta">
+            <mat-icon>local_shipping</mat-icon>
+            <span>{{ po.vehicleNumber }}</span>
+            <span class="dot">·</span>
+            <span>{{ po.materialTypeCount }} vật tư</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-import-sys"
+          (click)="onImportSystem(po, $event)"
+        >
+          <mat-icon>send</mat-icon>
+          Nhập hệ thống
+        </button>
+        <button type="button" class="po-expand-btn" tabindex="-1">
+          <mat-icon>{{
+            isPoExpanded(po) ? "expand_less" : "expand_more"
+          }}</mat-icon>
+        </button>
+      </div>
+
+      <div class="po-progress-row">
+        <div class="po-progress-left">
+          <span class="progress-label">Đã nhập</span>
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              [style.width.%]="poProgressPercent(po)"
+            ></div>
+          </div>
+          <span class="progress-text">
+            {{ poReceivedQty(po) | number }} / {{ poTotalQty(po) | number }}
+          </span>
+        </div>
+        <span class="status-pill" [ngClass]="mobilePoStatusClass(po)">
+          {{ mobilePoStatus(po) }}
+        </span>
+      </div>
+
+      <div class="po-materials" *ngIf="isPoExpanded(po)">
+        <div class="materials-title">
+          Danh sách vật tư trong PO
+          <span class="count-badge">{{ po.materials.length }}</span>
+        </div>
+        <div class="material-item" *ngFor="let m of po.materials">
+          <div class="material-icon">
+            <mat-icon>inventory_2</mat-icon>
+          </div>
+          <div class="material-info">
+            <div class="material-name">{{ m.materialName }}</div>
+            <div class="material-sub">
+              {{ m.materialCode }} · {{ m.partNumber }}
+            </div>
+            <div class="material-progress">
+              <div class="progress-track sm">
+                <div class="progress-fill" [style.width.%]="m.progress"></div>
+              </div>
+              <span
+                >{{ m.receivedQuantity | number }}/{{
+                  m.poQuantity | number
+                }}</span
+              >
+            </div>
+          </div>
+          <span class="status-pill sm" [ngClass]="mobileMaterialStatusClass(m)">
+            {{ mobileMaterialStatus(m) }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-footer">
+    <button
+      type="button"
+      class="btn-search-orange"
+      (click)="onStartWarehouse()"
+    >
+      <mat-icon>qr_code_scanner</mat-icon>
+      Bắt đầu nhập kho
+    </button>
+    <p class="footer-hint">
+      Hệ thống tự nhận diện mã vật tư theo từng mã thùng quét được
+    </p>
+  </div>
 </div>

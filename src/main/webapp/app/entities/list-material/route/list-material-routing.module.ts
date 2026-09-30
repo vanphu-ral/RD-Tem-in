@@ -5,6 +5,7 @@ import { UserRouteAccessService } from "app/core/auth/user-route-access.service"
 import { ListMaterialComponent } from "../list/list-material.component";
 import { ListMaterialUpdateComponent } from "../update/list-material-update.component";
 import { ListMaterialSumaryComponent } from "../sumary/list-material-sumary.component";
+import { PalletMaterialComponent } from "../pallet-material/pallet-material.component";
 
 const listMaterialRoute: Routes = [
   {
@@ -23,6 +24,12 @@ const listMaterialRoute: Routes = [
   {
     path: "update-list",
     component: ListMaterialUpdateComponent,
+    canActivate: [UserRouteAccessService],
+  },
+  {
+    path: "pallet-material",
+    component: PalletMaterialComponent,
+    data: { pageTitle: "Quản lý vật tư theo pallet" },
     canActivate: [UserRouteAccessService],
   },
   // {

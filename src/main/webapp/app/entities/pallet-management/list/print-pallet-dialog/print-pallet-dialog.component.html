@@ -1,0 +1,209 @@
+<div class="print-pallet-dialog">
+  <div class="dialog-header">
+    <div class="title-wrap">
+      <mat-icon>print</mat-icon>
+      <div>
+        <h2>In tem Pallet</h2>
+        <p class="subtitle">
+          Chọn khổ giấy và pallet cần in — hỗ trợ in nhiều pallet cùng lúc
+        </p>
+      </div>
+    </div>
+    <button
+      mat-icon-button
+      type="button"
+      (click)="onCancel()"
+      aria-label="Đóng"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-body">
+    <aside class="left-panel">
+      <div class="section-title">Kích thước tem</div>
+      <div class="size-cards">
+        <button
+          type="button"
+          class="size-card"
+          [class.selected]="labelSize === '100x100'"
+          (click)="selectSize('100x100')"
+        >
+          <mat-icon class="check" *ngIf="labelSize === '100x100'"
+            >check_circle</mat-icon
+          >
+          <div class="size-icon square">
+            <mat-icon>qr_code_2</mat-icon>
+          </div>
+          <div class="size-text">
+            <strong>100×100 mm</strong>
+            <span>QR Code</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          class="size-card"
+          [class.selected]="labelSize === '40x100'"
+          (click)="selectSize('40x100')"
+        >
+          <mat-icon class="check" *ngIf="labelSize === '40x100'"
+            >check_circle</mat-icon
+          >
+          <div class="size-icon square">
+            <mat-icon>barcode_reader</mat-icon>
+          </div>
+          <div class="size-text">
+            <strong>40×100 mm</strong>
+            <span>Barcode</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="per-row" *ngIf="showLabelsPerRow">
+        <div class="section-title">Số tem mỗi hàng</div>
+        <div class="stepper">
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="decreasePerRow()"
+            [disabled]="labelsPerRow <= 1"
+          >
+            −
+          </button>
+          <input matInput type="number" [ngModel]="labelsPerRow" readonly />
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="increasePerRow()"
+            [disabled]="labelsPerRow >= 2"
+          >
+            +
+          </button>
+        </div>
+        <p class="hint">
+          Khổ 100×100: tối đa 2 tem / hàng (phù hợp khổ giấy A4).
+        </p>
+      </div>
+
+      <div class="preview-block">
+        <div class="section-title">Xem trước tem</div>
+        <div
+          class="preview-box"
+          [class.qr]="isQrMode"
+          [class.barcode]="!isQrMode"
+        >
+          <ng-container *ngIf="isQrMode; else barcodePreviewTpl">
+            <qrcode
+              [qrdata]="previewCode"
+              [width]="140"
+              [errorCorrectionLevel]="'M'"
+              [margin]="1"
+            ></qrcode>
+            <div class="preview-code">{{ previewCode }}</div>
+          </ng-container>
+          <ng-template #barcodePreviewTpl>
+            <svg #barcodePreview class="barcode-svg"></svg>
+            <div class="preview-code">{{ previewCode }}</div>
+          </ng-template>
+        </div>
+        <p class="hint">
+          {{ isQrMode ? "QR code" : "Barcode" }} được tạo từ mã pallet.
+        </p>
+      </div>
+    </aside>
+
+    <section class="right-panel">
+      <div class="table-toolbar">
+        <div class="section-title">Chọn pallet cần in</div>
+        <div class="selection-meta">
+          <span>Đã chọn {{ selectedCount }}/{{ pallets.length }} pallet</span>
+          <button
+            type="button"
+            class="link-btn"
+            (click)="deselectAll()"
+            [disabled]="!selectedCount"
+          >
+            Bỏ chọn tất cả
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-check">
+                <mat-checkbox
+                  color="primary"
+                  [checked]="allSelected"
+                  [indeterminate]="selectedCount > 0 && !allSelected"
+                  (change)="toggleAll($event.checked)"
+                ></mat-checkbox>
+              </th>
+              <th class="col-idx">#</th>
+              <th>Mã pallet</th>
+              <th>Người tạo</th>
+              <th>Ngày tạo</th>
+              <th>Trạng thái</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of pallets; let i = index">
+              <td class="col-check">
+                <mat-checkbox
+                  color="primary"
+                  [checked]="isSelected(p.id)"
+                  (change)="toggleOne(p.id, $event.checked)"
+                ></mat-checkbox>
+              </td>
+              <td class="col-idx">{{ i + 1 }}</td>
+              <td class="mono">{{ p.serialPallet }}</td>
+              <td>{{ p.createBy ? p.createBy : "—" }}</td>
+              <td>{{ formatCreatedAt(p.createAt) }}</td>
+              <td>
+                <span
+                  class="status-badge"
+                  [class.in-use]="isInUse(p.status)"
+                  [class.unused]="isUnused(p.status)"
+                >
+                  {{ statusLabel(p.status) }}
+                </span>
+              </td>
+              <td>{{ p.note || "" }}</td>
+            </tr>
+            <tr *ngIf="!pallets.length">
+              <td colspan="7" class="empty">Không có pallet để in.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="dialog-footer">
+    <p class="footer-hint">* Tem được xếp theo thứ tự chọn ở trên</p>
+    <div class="footer-actions">
+      <button mat-stroked-button type="button" (click)="onCancel()">Hủy</button>
+      <button
+        mat-stroked-button
+        color="primary"
+        type="button"
+        (click)="onExportPdf()"
+        [disabled]="!selectedCount || isPrinting"
+      >
+        Xuất PDF
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="onPrint()"
+        [disabled]="!selectedCount || isPrinting"
+      >
+        In ({{ selectedCount }})
+      </button>
+    </div>
+  </div>
+</div>

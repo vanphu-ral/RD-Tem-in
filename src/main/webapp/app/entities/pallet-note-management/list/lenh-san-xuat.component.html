@@ -22,6 +22,15 @@
           <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
           <span>Refresh List</span>
         </button>
+        <button
+          *ngIf="isAdminTem"
+          class="btn btn-info me-2"
+          (click)="viewAllOrders()"
+          [disabled]="isLoading || showAllOrders"
+        >
+          <fa-icon icon="list"></fa-icon>
+          <span>Xem tất cả lệnh</span>
+        </button>
       </div>
     </h2>
 

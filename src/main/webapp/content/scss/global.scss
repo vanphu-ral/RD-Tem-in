@@ -150,6 +150,50 @@ Generic styles
     color: rgba(255, 255, 255, 0.8) !important;
   }
 }
+
+/* Modal lựa chọn (info-tem-ncc/shared/choice-dialog) */
+.choice-dialog-panel .mat-mdc-dialog-surface {
+  border-radius: 16px !important;
+}
+
+/* Snackbar trên mobile: dưới thanh trạng thái, rộng gần full, nút đóng to dễ bấm */
+.mat-mdc-snack-bar-container.snack-mobile {
+  margin: calc(env(safe-area-inset-top, 0px) + 8px) 8px 0 !important;
+  max-width: calc(100vw - 16px) !important;
+  min-width: calc(100vw - 16px) !important;
+
+  .mdc-snackbar__surface {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100%;
+    padding-right: 4px !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25) !important;
+  }
+
+  .mdc-snackbar__label {
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 12px 8px 12px 14px !important;
+  }
+
+  .mdc-snackbar__actions {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
+
+  .mat-mdc-snack-bar-action {
+    min-width: 44px !important;
+    width: 44px;
+    height: 44px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-size: 20px !important;
+    font-weight: 700;
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.18) !important;
+  }
+}
 /* Error highlight on input fields */
 // .ng-valid[required],
 // .ng-valid.required {

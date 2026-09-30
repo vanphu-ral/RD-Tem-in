@@ -1,0 +1,319 @@
+<jhi-pallet-material-mobile *ngIf="isMobile"></jhi-pallet-material-mobile>
+
+<div class="pm-page" *ngIf="!isMobile">
+  <!-- Header -->
+  <div class="pm-header">
+    <div class="pm-title">
+      <button
+        type="button"
+        class="pm-back"
+        routerLink="/list-material/update-list"
+        title="Quay lại"
+      >
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div>
+        <h1>Quản lý vật tư</h1>
+        <p>Quản lý thùng vật tư đang được chứa trong pallet</p>
+      </div>
+    </div>
+    <button type="button" class="pm-btn primary" (click)="openScan('pallet')">
+      <mat-icon>add</mat-icon>
+      Scan mã pallet
+    </button>
+  </div>
+
+  <div class="pm-body">
+    <!-- ===== Danh sách pallet ===== -->
+    <aside class="pm-side">
+      <div class="pm-side-head">
+        <div class="pm-side-title">
+          <span>Pallet</span>
+          <span class="pm-count">{{
+            filteredPallets.length | number: "2.0-0"
+          }}</span>
+        </div>
+        <div class="pm-search">
+          <mat-icon>search</mat-icon>
+          <input
+            #palletSearchRef
+            [(ngModel)]="palletSearch"
+            (keydown.enter)="onPalletSearchEnter()"
+            placeholder="Scan mã pallet..."
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <div class="pm-pallet-list">
+        <div class="pm-empty" *ngIf="isLoadingPallets">Đang tải...</div>
+        <div
+          class="pm-empty"
+          *ngIf="!isLoadingPallets && !filteredPallets.length"
+        >
+          Không có pallet.
+        </div>
+        <button
+          type="button"
+          class="pm-pallet-card"
+          *ngFor="let p of filteredPallets; trackBy: trackPallet"
+          [class.active]="p.serialPallet === selectedSerial"
+          (click)="onSelectPallet(p)"
+        >
+          <div class="pc-code">{{ p.serialPallet }}</div>
+          <div class="pc-row">
+            <span
+              ><strong>{{ p.numberOfBox ?? 0 }}</strong> thùng</span
+            >
+            <span
+              >Tổng SL:
+              <strong>{{ p.totalQuantity ?? 0 | number }}</strong></span
+            >
+          </div>
+          <span class="pc-loc" *ngIf="p.locationName">
+            <mat-icon>place</mat-icon>{{ p.locationName }}
+          </span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== Chi tiết pallet ===== -->
+    <section class="pm-main">
+      <div class="pm-empty big" *ngIf="!selectedSerial">
+        Chọn hoặc quét một pallet.
+      </div>
+
+      <ng-container *ngIf="selectedSerial">
+        <div class="pm-main-head">
+          <div>
+            <h2>{{ selectedSerial }}</h2>
+            <div class="pm-meta">
+              <span
+                ><mat-icon class="red">place</mat-icon
+                >{{ palletLocation }}</span
+              >
+              <span
+                ><mat-icon class="brown">inventory_2</mat-icon
+                ><strong>{{ activeRows.length }} thùng</strong></span
+              >
+              <span
+                >Tổng số lượng: <strong>{{ activeQty | number }}</strong></span
+              >
+              <span>Cập nhật: {{ formatDateTime(detail?.updatedAt) }}</span>
+            </div>
+          </div>
+          <div class="pm-actions">
+            <button type="button" class="pm-btn primary" (click)="onExport()">
+              Xuất hàng
+            </button>
+            <button
+              type="button"
+              class="pm-btn primary"
+              [class.on]="scanMode === 'location'"
+              (click)="openScan('location')"
+            >
+              Cập nhật vị trí
+            </button>
+            <button
+              type="button"
+              class="pm-btn primary"
+              [class.on]="scanMode === 'add'"
+              (click)="openScan('add')"
+            >
+              <mat-icon>add</mat-icon>Scan thêm thùng
+            </button>
+            <button
+              type="button"
+              class="pm-btn warn-outline"
+              [class.on]="scanMode === 'remove'"
+              (click)="openScan('remove')"
+            >
+              <span class="dot"></span>Scan thùng để gỡ
+            </button>
+          </div>
+        </div>
+
+        <!-- Thanh scan theo chế độ -->
+        <div class="pm-scan" *ngIf="scanMode" [attr.data-mode]="scanMode">
+          <span class="pm-scan-title">{{ scanTitle }}</span>
+          <div class="pm-scan-input">
+            <mat-icon>qr_code_scanner</mat-icon>
+            <input
+              #scanInputRef
+              [(ngModel)]="scanValue"
+              (ngModelChange)="onScanInput($event)"
+              (keydown.enter)="onScanEnter()"
+              [placeholder]="scanPlaceholder"
+              [matAutocomplete]="locAuto"
+              [matAutocompleteDisabled]="scanMode !== 'location'"
+              autocomplete="off"
+            />
+            <mat-autocomplete
+              #locAuto="matAutocomplete"
+              (optionSelected)="onLocationPicked($event.option.value)"
+            >
+              <mat-option
+                *ngFor="let w of locationOptions"
+                [value]="w.locationFullName"
+              >
+                {{ w.locationFullName || w.locationName }}
+              </mat-option>
+            </mat-autocomplete>
+          </div>
+          <button
+            type="button"
+            class="pm-scan-close"
+            (click)="closeScan()"
+            title="Đóng"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="pm-toolbar">
+          <span
+            >Đã chọn: <strong>{{ selectedRows.length }} thùng</strong></span
+          >
+          <span class="pm-changes" *ngIf="hasChanges"
+            >Chưa lưu: {{ changeSummary }}</span
+          >
+          <div class="pm-toolbar-actions">
+            <button
+              type="button"
+              class="pm-btn danger-outline"
+              [disabled]="!selectedRows.length"
+              (click)="stageRemoveSelected()"
+            >
+              Gỡ thùng đã chọn
+            </button>
+            <button
+              type="button"
+              class="pm-btn danger"
+              [disabled]="!activeRows.length"
+              (click)="stageRemoveAll()"
+            >
+              Gỡ tất cả thùng
+            </button>
+          </div>
+        </div>
+
+        <div class="pm-table-wrap">
+          <table class="pm-table">
+            <thead>
+              <tr>
+                <th class="col-check">
+                  <mat-checkbox
+                    color="primary"
+                    [checked]="allSelected"
+                    [indeterminate]="someSelected"
+                    [disabled]="!activeRows.length"
+                    (change)="toggleAll($event.checked)"
+                  ></mat-checkbox>
+                </th>
+                <th>Reel ID</th>
+                <th>Part Number</th>
+                <th>Quantity</th>
+                <th>Vị trí</th>
+                <th>Số lô</th>
+                <th>Trạng thái</th>
+                <th class="col-act"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="isLoadingDetail">
+                <td colspan="8" class="pm-empty">Đang tải...</td>
+              </tr>
+              <tr *ngIf="!isLoadingDetail && !rows.length">
+                <td colspan="8" class="pm-empty">Pallet chưa có thùng nào.</td>
+              </tr>
+              <ng-container *ngIf="!isLoadingDetail">
+                <tr
+                  *ngFor="let r of rows; trackBy: trackRow"
+                  [class.selected]="r.selected"
+                  [class.removing]="r.pendingRemove"
+                  [class.adding]="r.pendingAdd"
+                >
+                  <td class="col-check">
+                    <mat-checkbox
+                      color="primary"
+                      [(ngModel)]="r.selected"
+                      [disabled]="r.pendingRemove"
+                    ></mat-checkbox>
+                  </td>
+                  <td class="reel">{{ r.reelId }}</td>
+                  <td>{{ r.partNumber }}</td>
+                  <td class="qty">
+                    {{ r.pendingAdd ? "—" : (r.quantity | number) }}
+                  </td>
+                  <td>
+                    <ng-container *ngIf="r.newLocation !== null; else oldLoc">
+                      <span class="loc-old">{{ r.location || "—" }}</span>
+                      <mat-icon class="loc-arrow">arrow_forward</mat-icon>
+                      <span class="loc-new">{{ r.newLocation }}</span>
+                    </ng-container>
+                    <ng-template #oldLoc>{{ r.location || "—" }}</ng-template>
+                  </td>
+                  <td>{{ r.lot }}</td>
+                  <td>
+                    <span class="st-badge removing" *ngIf="r.pendingRemove"
+                      >Chờ gỡ</span
+                    >
+                    <span
+                      class="st-badge adding"
+                      *ngIf="!r.pendingRemove && r.pendingAdd"
+                      >Chờ thêm</span
+                    >
+                    <span
+                      class="st-badge"
+                      *ngIf="!r.pendingRemove && !r.pendingAdd"
+                      >{{ r.status }}</span
+                    >
+                  </td>
+                  <td class="col-act">
+                    <button
+                      *ngIf="!r.pendingRemove"
+                      type="button"
+                      class="row-btn remove"
+                      title="Gỡ thùng"
+                      (click)="stageRemove(r)"
+                    >
+                      <mat-icon>close</mat-icon>
+                    </button>
+                    <button
+                      *ngIf="r.pendingRemove"
+                      type="button"
+                      class="row-btn undo"
+                      title="Hoàn tác"
+                      (click)="undoRemove(r)"
+                    >
+                      <mat-icon>undo</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pm-footer">
+          <button
+            type="button"
+            class="pm-btn outline"
+            [disabled]="!hasChanges || isSaving"
+            (click)="onCancel()"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            class="pm-btn primary"
+            [disabled]="!hasChanges || isSaving"
+            (click)="onConfirm()"
+          >
+            {{ isSaving ? "Đang cập nhật..." : "Xác nhận cập nhật" }}
+          </button>
+        </div>
+      </ng-container>
+    </section>
+  </div>
+</div>
