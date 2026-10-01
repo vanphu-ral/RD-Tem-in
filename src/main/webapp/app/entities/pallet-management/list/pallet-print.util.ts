@@ -1,4 +1,5 @@
 import JsBarcode from "jsbarcode";
+import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import { PalletItem, PalletLabelSize } from "./pallet-management.model";
 
@@ -194,4 +195,117 @@ export async function printPalletLabels(
   );
 
   window.print();
+}
+
+/** Ảnh barcode kèm kích thước gốc (để giữ tỉ lệ khi đặt vào PDF) */
+function toBarcodeImage(text: string): { url: string; w: number; h: number } {
+  const canvas = document.createElement("canvas");
+  JsBarcode(canvas, text, {
+    format: "CODE128",
+    lineColor: "#000",
+    width: 2,
+    height: 70,
+    displayValue: false,
+    margin: 6,
+  });
+  return {
+    url: canvas.toDataURL("image/png"),
+    w: canvas.width,
+    h: canvas.height,
+  };
+}
+
+/**
+ * Xuất tem pallet ra file PDF (A4, lề 8mm, khoảng cách 4mm — cùng bố cục với bản in)
+ * và tải xuống luôn, không mở hộp thoại in.
+ */
+export async function exportPalletLabelsPdf(
+  options: PalletPrintOptions,
+  fileName = `tem-pallet-${new Date().toISOString().slice(0, 10)}.pdf`,
+): Promise<void> {
+  const { pallets, labelSize, labelsPerRow } = options;
+  if (!pallets.length) {
+    return;
+  }
+  const isQr = labelSize === "100x100";
+  const perRow = isQr ? Math.min(2, Math.max(1, labelsPerRow)) : 1;
+
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 8;
+  const gap = 4;
+  const usableW = pageW - margin * 2;
+  const labelW = Math.min(100, (usableW - (perRow - 1) * gap) / perRow);
+  const labelH = isQr ? labelW : 40;
+  const pad = 3;
+  const textH = 6;
+
+  let x = margin;
+  let y = margin;
+  let col = 0;
+
+  for (const pallet of pallets) {
+    const code = pallet.serialPallet ?? "";
+    if (y + labelH > pageH - margin) {
+      doc.addPage();
+      y = margin;
+      x = margin;
+      col = 0;
+    }
+
+    doc.setDrawColor(34, 34, 34);
+    doc.setLineWidth(0.3);
+    doc.rect(x, y, labelW, labelH);
+
+    const boxW = labelW - pad * 2;
+    const boxH = labelH - pad * 2 - textH;
+    if (isQr) {
+      const url = await toQrDataUrl(code);
+      const size = Math.min(boxW, boxH, 72);
+      doc.addImage(
+        url,
+        "PNG",
+        x + (labelW - size) / 2,
+        y + pad + (boxH - size) / 2,
+        size,
+        size,
+      );
+    } else {
+      const img = toBarcodeImage(code);
+      const ratio = img.w / img.h;
+      let w = boxW;
+      let h = w / ratio;
+      if (h > Math.min(boxH, 22)) {
+        h = Math.min(boxH, 22);
+        w = h * ratio;
+      }
+      doc.addImage(
+        img.url,
+        "PNG",
+        x + (labelW - w) / 2,
+        y + pad + (boxH - h) / 2,
+        w,
+        h,
+      );
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(isQr ? 11 : 12);
+    doc.text(code, x + labelW / 2, y + labelH - pad - 1.5, {
+      align: "center",
+      maxWidth: boxW,
+    });
+
+    col++;
+    if (col >= perRow) {
+      col = 0;
+      x = margin;
+      y += labelH + gap;
+    } else {
+      x += labelW + gap;
+    }
+  }
+
+  doc.save(fileName);
 }

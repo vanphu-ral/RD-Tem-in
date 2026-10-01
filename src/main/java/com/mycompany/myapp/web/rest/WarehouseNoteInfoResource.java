@@ -342,14 +342,16 @@ public class WarehouseNoteInfoResource {
         log.debug(
             "REST request to get a page of WarehouseNoteInfos with filters"
         );
-        // Sắp xếp theo thời điểm nhập mới nhất trước
+        // Mới nhất trước theo thời gian cập nhật (entryTime thường null), trùng thì id giảm dần
         Pageable sortedPageable =
             org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 org.springframework.data.domain.Sort.by(
-                    org.springframework.data.domain.Sort.Direction.DESC,
-                    "entryTime"
+                    org.springframework.data.domain.Sort.Order.desc(
+                        "timeUpdate"
+                    ),
+                    org.springframework.data.domain.Sort.Order.desc("id")
                 )
             );
         Page<WarehouseStampInfoDTO> page =

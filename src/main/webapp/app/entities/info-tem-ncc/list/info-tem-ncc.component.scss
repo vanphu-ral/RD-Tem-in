@@ -983,3 +983,64 @@ mat-paginator {
     border-color: #2563eb;
   }
 }
+
+/* Ô lọc ngày: nhập tay hoặc bấm icon lịch để chọn */
+.date-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  > input:first-child {
+    width: 100%;
+    padding-right: 26px !important;
+    box-sizing: border-box;
+  }
+
+  .picker-anchor {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 1px !important;
+    height: 1px;
+    padding: 0 !important;
+    border: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.date-filter-btn {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+}
+
+/* Ô lọc trạng thái dạng chọn */
+select.col-filter,
+select.status-filter {
+  cursor: pointer;
+  background: #fff;
+}

@@ -107,6 +107,11 @@ export class PoImportDialogComponent implements OnInit {
   filterName = "";
   filterPart = "";
 
+  /** Ô kho ở header cột Mã kho SAP — chọn để áp cho vật tư đã tích / sẽ tích */
+  headerWarehouse = "";
+  /** Mã kho header đang áp dụng (rỗng = không áp) */
+  headerWarehouseCode = "";
+
   /** Kho SAP cho autocomplete cột Mã kho SAP */
   warehouses: WarehouseOption[] = [];
   isLoadingWarehouses = false;
@@ -369,9 +374,40 @@ export class PoImportDialogComponent implements OnInit {
     }
   }
 
+  /** Chọn kho ở header → áp cho vật tư đang tích; vật tư tích sau cũng nhận kho này */
+  applyWarehouseToSelected(code: string): void {
+    const whs = toText(code);
+    if (!whs) {
+      return;
+    }
+    this.headerWarehouseCode = whs;
+    for (const po of this.loadedPos) {
+      for (const r of po.rows) {
+        if (r.selected && !r.onTable) {
+          r.whsCode = whs;
+        }
+      }
+    }
+  }
+
+  /** Xóa ô kho header → thôi áp kho cho vật tư tích sau */
+  onHeaderWarehouseInput(value: string): void {
+    if (!toText(value)) {
+      this.headerWarehouseCode = "";
+    }
+  }
+
+  /** Tích 1 vật tư → nếu header đã chọn kho thì áp luôn */
+  onRowCheck(r: PoImportRow, checked: boolean): void {
+    r.selected = checked;
+    if (checked && this.headerWarehouseCode && !r.onTable) {
+      r.whsCode = this.headerWarehouseCode;
+    }
+  }
+
   toggleAllVisible(checked: boolean): void {
     for (const r of this.selectableVisible) {
-      r.selected = checked;
+      this.onRowCheck(r, checked);
     }
   }
 

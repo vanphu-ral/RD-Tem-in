@@ -459,13 +459,15 @@ export class LenhSanXuatComponent implements OnInit {
           comment: item.comment,
           branch: item.branch,
         }));
+        // Mới nhất trước theo time_update (entry_time thường null), trùng thì id giảm dần
         rows.sort(
           (
-            a: { entryTime?: string | null },
-            b: { entryTime?: string | null },
+            a: { timeUpdate?: string | null; id?: number },
+            b: { timeUpdate?: string | null; id?: number },
           ) =>
-            this.entryTimeMillis(b.entryTime) -
-            this.entryTimeMillis(a.entryTime),
+            this.entryTimeMillis(b.timeUpdate) -
+              this.entryTimeMillis(a.timeUpdate) ||
+            Number(b.id ?? 0) - Number(a.id ?? 0),
         );
         this.lenhSanXuats = rows;
 

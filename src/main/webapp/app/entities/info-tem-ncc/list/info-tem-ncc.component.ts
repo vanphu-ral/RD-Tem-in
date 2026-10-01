@@ -479,6 +479,17 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     return raw;
   }
 
+  /** Chọn ngày ở ô lọc → điền dd/MM/yyyy (lọc chứa theo ngày hiển thị) */
+  onFilterDatePicked(key: keyof FilterValues, value: Date | null): void {
+    if (!value) {
+      return;
+    }
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    this.filterValues[key] =
+      `${pad(value.getDate())}/${pad(value.getMonth() + 1)}/${value.getFullYear()}`;
+    this.applyFilter();
+  }
+
   applyFilter(): void {
     this.dataSource.filter = JSON.stringify(this.filterValues);
   }
@@ -789,8 +800,8 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         id: `${detail.id}-${docEntry}`,
         poCode: docEntry || "—",
         warehouseKeeper: this.distinctJoin(lines.map((l) => l.whsCode)),
-        vendorCode: detail.vendorName ?? "",
-        vendorName: detail.vendorName ?? "",
+        vendorCode: toText(detail.vendorCode) || toText(detail.vendorName),
+        vendorName: toText(detail.vendorName),
         vehicleNumber: detail.contNo ?? "",
         invoiceNumber: detail.invoiceNumber ?? "",
         contractCode: detail.contractCode ?? "",

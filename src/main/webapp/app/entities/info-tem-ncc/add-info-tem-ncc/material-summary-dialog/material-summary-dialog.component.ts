@@ -46,6 +46,8 @@ export interface SummaryLotRow extends ExpiryControls {
   warehouseCode: string;
   lastUpdated: string;
   boxes: SummaryBoxRow[];
+  /** Mã PO (chế độ vật tư chưa có PO) */
+  po: string;
 }
 
 export interface SummaryBoxRow extends ExpiryControls {
@@ -62,6 +64,8 @@ export interface SummaryBoxRow extends ExpiryControls {
   userData3: string;
   userData4: string;
   msl: string;
+  /** Mã PO (chế độ vật tư chưa có PO) */
+  po: string;
   /** Bản ghi thùng gốc từ API */
   record?: VendorLabelInfoDto;
 }
@@ -80,13 +84,32 @@ export interface SummarySapRow extends ExpiryControls {
   warehouseCode: string;
   lastUpdated: string;
   lots: SummaryLotRow[];
+  /** Mã PO (chế độ vật tư chưa có PO) */
+  po: string;
+}
+
+/** Dòng vật tư của đơn (sapPor1R1) — để gán thùng chưa có PO vào đúng dòng PO */
+export interface UnassignedPoLine {
+  id: number;
+  poCode: string;
+  sapCode: string;
+  partNumber: string;
 }
 
 export interface MaterialSummaryDialogData {
   po: AddPoItem;
   vendorCode?: string;
   transactionId?: number;
+  /** Có → chế độ "Vật tư chưa có PO": thêm cột PO để bổ sung */
+  unassigned?: { poLines: UnassignedPoLine[] };
 }
+
+type EditableField =
+  | "manufacturingDate"
+  | "expirationDate"
+  | "location"
+  | "warehouseCode"
+  | "po";
 
 @Component({
   selector: "jhi-material-summary-dialog",
@@ -213,6 +236,35 @@ export class MaterialSummaryDialogComponent implements OnInit {
 
   get poCode(): string {
     return this.data.po?.poCode ?? "";
+  }
+
+  /** Chế độ bổ sung PO cho vật tư chưa có PO */
+  get isUnassigned(): boolean {
+    return !!this.data.unassigned;
+  }
+
+  /** Gợi ý PO: các PO của đơn có mã vật tư này đứng trước, lọc theo nội dung ô */
+  poOptionsFor(sapCode: string, term: string): string[] {
+    const lines = this.data.unassigned?.poLines ?? [];
+    const code = toText(sapCode).toLowerCase();
+    const withItem = lines
+      .filter((l) => toText(l.sapCode).toLowerCase() === code)
+      .map((l) => l.poCode);
+    const all = lines.map((l) => l.poCode);
+    const t = toText(term).toLowerCase();
+    return [
+      ...new Set([...withItem, ...all].map((p) => toText(p)).filter(Boolean)),
+    ].filter((p) => !t || p.toLowerCase().includes(t));
+  }
+
+  onSapPoSelected(sap: SummarySapRow, value: string): void {
+    sap.po = toText(value);
+    this.onSapFieldEnter(sap, "po");
+  }
+
+  onLotPoSelected(sap: SummarySapRow, lot: SummaryLotRow, value: string): void {
+    lot.po = toText(value);
+    this.onLotFieldEnter(sap, lot, "po");
   }
 
   get sapCount(): number {
@@ -388,14 +440,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
     }
   }
 
-  onSapFieldEnter(
-    sap: SummarySapRow,
-    field:
-      | "manufacturingDate"
-      | "expirationDate"
-      | "location"
-      | "warehouseCode",
-  ): void {
+  onSapFieldEnter(sap: SummarySapRow, field: EditableField): void {
     const value = (sap[field] ?? "").trim();
     sap.lots.forEach((lot) => {
       lot[field] = value;
@@ -432,11 +477,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
   onLotFieldEnter(
     sap: SummarySapRow,
     lot: SummaryLotRow,
-    field:
-      | "manufacturingDate"
-      | "expirationDate"
-      | "location"
-      | "warehouseCode",
+    field: EditableField,
   ): void {
     const value = (lot[field] ?? "").trim();
     lot.boxes.forEach((b) => {
@@ -569,7 +610,16 @@ export class MaterialSummaryDialogComponent implements OnInit {
         );
         return;
       }
-      this.notificationService.success(`Cập nhật thành công ${ok} thùng.`);
+      const unmatched = this.isUnassigned
+        ? payloads.filter((p) => toText(p.userData5) && !p.sapPor1Id).length
+        : 0;
+      if (unmatched) {
+        this.notificationService.warning(
+          `Cập nhật ${ok} thùng; ${unmatched} thùng có PO không chứa mã vật tư đó nên vẫn ở "Vật tư chưa có PO".`,
+        );
+      } else {
+        this.notificationService.success(`Cập nhật thành công ${ok} thùng.`);
+      }
       this.dialogRef.close({ updated: ok });
     });
   }
@@ -609,6 +659,13 @@ export class MaterialSummaryDialogComponent implements OnInit {
       msdLevel: orNull(box.msl),
       palletBoxMapping: undefined,
     };
+    if (this.isUnassigned) {
+      // PO bổ sung → userData5 + gán vào dòng PO của đơn có cùng mã vật tư
+      const po = toText(box.po);
+      payload.userData5 = orNull(po);
+      payload.sapPor1Id =
+        this.resolvePoLineId(po, rec) ?? rec.sapPor1Id ?? null;
+    }
     const keys: Array<keyof VendorLabelInfoDto> = [
       "manufacturingDate",
       "expirationDate",
@@ -619,9 +676,35 @@ export class MaterialSummaryDialogComponent implements OnInit {
       "userData3",
       "userData4",
       "msdLevel",
+      "userData5",
+      "sapPor1Id",
     ];
     const changed = keys.some((k) => toText(payload[k]) !== toText(rec[k]));
     return changed ? payload : null;
+  }
+
+  /** Dòng PO của đơn: đúng PO + cùng mã SAP (hoặc part) với thùng */
+  private resolvePoLineId(po: string, rec: VendorLabelInfoDto): number | null {
+    if (!po) {
+      return null;
+    }
+    const lines = (this.data.unassigned?.poLines ?? []).filter(
+      (l) => toText(l.poCode).toLowerCase() === po.toLowerCase(),
+    );
+    const sap = toText(rec.sapCode).toLowerCase();
+    const part = toText(rec.partNumber).toLowerCase();
+    const line =
+      lines.find((l) => sap && toText(l.sapCode).toLowerCase() === sap) ??
+      lines.find(
+        (l) =>
+          part &&
+          toText(l.partNumber)
+            .toLowerCase()
+            .split(",")
+            .map((p) => p.trim())
+            .includes(part),
+      );
+    return line ? line.id : null;
   }
 
   /** dd/MM/yyyy (hiển thị) → yyyyMMdd (định dạng đang lưu khi scan) */
@@ -702,6 +785,8 @@ export class MaterialSummaryDialogComponent implements OnInit {
         return "Vị trí";
       case "warehouseCode":
         return "Mã kho";
+      case "po":
+        return "PO";
       default:
         return field;
     }
@@ -821,6 +906,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
           warehouseCode: this.commonValue(boxes.map((b) => b.warehouseCode)),
           lastUpdated: this.latestUpdate(lot.boxes ?? []),
           boxes,
+          po: this.commonValue(boxes.map((b) => b.po)),
           expiryMode: "month" as ExpiryMode,
           expiryOffset: null,
           mfgDate: this.parseDisplayDate(lotMfg),
@@ -844,6 +930,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
           (m.lots ?? []).flatMap((l) => l.boxes ?? []),
         ),
         lots,
+        po: this.commonValue(lots.map((l) => l.po)),
         expiryMode: "month" as ExpiryMode,
         expiryOffset: null,
         mfgDate: this.parseDisplayDate(mfg),
@@ -871,6 +958,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
       expiryMode: "month",
       expiryOffset: null,
       mfgDate: this.parseDisplayDate(mfg),
+      po: toText(b.userData5),
       record: b,
     };
   }

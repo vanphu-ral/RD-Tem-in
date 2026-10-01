@@ -90,11 +90,30 @@
         </label>
         <label class="filter-field">
           <span>Ngày tạo</span>
-          <input
-            [(ngModel)]="filterValues.createAt"
-            (ngModelChange)="applyFilter()"
-            placeholder="Lọc..."
-          />
+          <div class="date-filter">
+            <input
+              class=""
+              [(ngModel)]="filterValues.createAt"
+              (ngModelChange)="applyFilter()"
+              placeholder="dd/MM/yyyy"
+            />
+            <input
+              class="picker-anchor"
+              [matDatepicker]="pkCreateAtM"
+              (dateChange)="onFilterDatePicked('createAt', $event.value)"
+              tabindex="-1"
+              aria-hidden="true"
+            />
+            <mat-datepicker #pkCreateAtM></mat-datepicker>
+            <button
+              type="button"
+              class="date-filter-btn"
+              aria-label="Chọn ngày"
+              (click)="pkCreateAtM.open(); $event.stopPropagation()"
+            >
+              <mat-icon>calendar_today</mat-icon>
+            </button>
+          </div>
         </label>
         <label class="filter-field">
           <span>Người tạo</span>
@@ -106,11 +125,15 @@
         </label>
         <label class="filter-field">
           <span>Trạng thái</span>
-          <input
+          <select
+            class="status-filter"
             [(ngModel)]="filterValues.status"
             (ngModelChange)="applyFilter()"
-            placeholder="Lọc..."
-          />
+          >
+            <option value="">Tất cả</option>
+            <option value="Chưa sử dụng">Chưa sử dụng</option>
+            <option value="Đang sử dụng">Đang sử dụng</option>
+          </select>
         </label>
         <label class="filter-field">
           <span>Ghi chú</span>
@@ -267,12 +290,30 @@
         <th mat-header-cell *matHeaderCellDef>
           <div class="th-wrap">
             <span mat-sort-header="createAt">Ngày tạo</span>
-            <input
-              class="col-filter"
-              [(ngModel)]="filterValues.createAt"
-              (ngModelChange)="applyFilter()"
-              placeholder="Lọc..."
-            />
+            <div class="date-filter">
+              <input
+                class="col-filter"
+                [(ngModel)]="filterValues.createAt"
+                (ngModelChange)="applyFilter()"
+                placeholder="dd/MM/yyyy"
+              />
+              <input
+                class="picker-anchor"
+                [matDatepicker]="pkCreateAt"
+                (dateChange)="onFilterDatePicked('createAt', $event.value)"
+                tabindex="-1"
+                aria-hidden="true"
+              />
+              <mat-datepicker #pkCreateAt></mat-datepicker>
+              <button
+                type="button"
+                class="date-filter-btn"
+                aria-label="Chọn ngày"
+                (click)="pkCreateAt.open(); $event.stopPropagation()"
+              >
+                <mat-icon>calendar_today</mat-icon>
+              </button>
+            </div>
           </div>
         </th>
         <td mat-cell *matCellDef="let row">
@@ -299,12 +340,15 @@
         <th mat-header-cell *matHeaderCellDef>
           <div class="th-wrap">
             <span mat-sort-header="status">Trạng thái</span>
-            <input
+            <select
               class="col-filter"
               [(ngModel)]="filterValues.status"
               (ngModelChange)="applyFilter()"
-              placeholder="Lọc..."
-            />
+            >
+              <option value="">Tất cả</option>
+              <option value="Chưa sử dụng">Chưa sử dụng</option>
+              <option value="Đang sử dụng">Đang sử dụng</option>
+            </select>
           </div>
         </th>
         <td mat-cell *matCellDef="let row">
@@ -337,12 +381,30 @@
         <th mat-header-cell *matHeaderCellDef>
           <div class="th-wrap">
             <span mat-sort-header="updatedAt">Ngày cập nhật</span>
-            <input
-              class="col-filter"
-              [(ngModel)]="filterValues.updatedAt"
-              (ngModelChange)="applyFilter()"
-              placeholder="Lọc..."
-            />
+            <div class="date-filter">
+              <input
+                class="col-filter"
+                [(ngModel)]="filterValues.updatedAt"
+                (ngModelChange)="applyFilter()"
+                placeholder="dd/MM/yyyy"
+              />
+              <input
+                class="picker-anchor"
+                [matDatepicker]="pkUpdatedAt"
+                (dateChange)="onFilterDatePicked('updatedAt', $event.value)"
+                tabindex="-1"
+                aria-hidden="true"
+              />
+              <mat-datepicker #pkUpdatedAt></mat-datepicker>
+              <button
+                type="button"
+                class="date-filter-btn"
+                aria-label="Chọn ngày"
+                (click)="pkUpdatedAt.open(); $event.stopPropagation()"
+              >
+                <mat-icon>calendar_today</mat-icon>
+              </button>
+            </div>
           </div>
         </th>
         <td mat-cell *matCellDef="let row">

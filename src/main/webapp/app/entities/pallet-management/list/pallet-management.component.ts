@@ -146,6 +146,17 @@ export class PalletManagementComponent implements OnInit {
     return index + 1;
   }
 
+  /** Chọn ngày ở ô lọc → điền dd/MM/yyyy (lọc chứa theo ngày hiển thị) */
+  onFilterDatePicked(key: string, value: Date | null): void {
+    if (!value) {
+      return;
+    }
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    this.filterValues[key] =
+      `${pad(value.getDate())}/${pad(value.getMonth() + 1)}/${value.getFullYear()}`;
+    this.applyFilter();
+  }
+
   applyFilter(): void {
     this.dataSource.filter = JSON.stringify(this.filterValues);
     this.dataSource.paginator?.firstPage();
@@ -295,8 +306,9 @@ export class PalletManagementComponent implements OnInit {
     this.applyFilter();
   }
 
+  /** In từ 1 dòng → dialog In chỉ có đúng pallet đó */
   onPrint(row: PalletItem): void {
-    this.openPrintDialog([row.id]);
+    this.openPrintDialog([row.id], [row]);
   }
 
   private loadBoxes(serial: string): void {

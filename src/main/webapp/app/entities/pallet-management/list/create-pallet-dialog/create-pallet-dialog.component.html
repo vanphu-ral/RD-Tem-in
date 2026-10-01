@@ -88,13 +88,16 @@
   </div>
 
   <div class="dialog-footer">
+    <span class="saved-hint" *ngIf="savedPallets.length">
+      Đã lưu {{ savedPallets.length }} pallet
+    </span>
     <button
       mat-stroked-button
       type="button"
       (click)="onCancel()"
       [disabled]="isSaving"
     >
-      Hủy
+      {{ savedPallets.length ? "Đóng" : "Hủy" }}
     </button>
     <button
       mat-raised-button
@@ -103,7 +106,18 @@
       (click)="onSave()"
       [disabled]="quantity < 1 || isSaving || isLoadingSequence"
     >
-      {{ isSaving ? "Đang lưu..." : "Lưu và in" }}
+      <mat-icon>save</mat-icon>
+      {{ isSaving ? "Đang lưu..." : "Lưu" }}
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="onPrint()"
+      [disabled]="isSaving || isOpeningPrint"
+    >
+      <mat-icon>print</mat-icon>
+      {{ isOpeningPrint ? "Đang mở..." : "In" }}
     </button>
   </div>
 </div>

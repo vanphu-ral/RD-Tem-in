@@ -18,6 +18,8 @@ export interface DeliveryNotificationDto {
   deliveryNotificationCode: string | null;
   invoiceNumber: string | null;
   contractCode: string | null;
+  /** Mã NCC — chỉ có khi backend đã thêm cột vendor_code */
+  vendorCode?: string | null;
   vendorName: string | null;
   contNo: string | null;
   entryDate: string | null;
@@ -69,6 +71,9 @@ export interface CreateDeliveryNotificationPayload {
   deliveryNotificationCode: string;
   invoiceNumber: string;
   contractCode: string;
+  /** Mã NCC (cardCode) — backend cần cột vendor_code để lưu */
+  vendorCode: string;
+  /** Tên NCC (cardName) */
   vendorName: string;
   contNo: string;
   entryDate: string;

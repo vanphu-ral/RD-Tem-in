@@ -419,3 +419,53 @@ mat-paginator {
     padding-left: 12px;
   }
 }
+
+/* Tiêu đề bảng + chip "Vật tư chưa có PO" */
+.list-title {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.unassigned-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: default;
+
+  &.has-items {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    color: #b45309;
+    cursor: pointer;
+
+    &:hover {
+      background: #fef3c7;
+    }
+
+    .chip-badge {
+      background: #f59e0b;
+      color: #fff;
+    }
+  }
+}
+
+.chip-badge {
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #4b5563;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}

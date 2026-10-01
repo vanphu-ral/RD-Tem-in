@@ -240,6 +240,8 @@ export class ScanImportDialogComponent
   private usedReelIds = new Set<string>();
   /** Bản ghi thùng đầy đủ theo id dòng — dùng cho PUT / DELETE */
   private boxRecords = new Map<string, VendorLabelInfoDto>();
+  /** SL đã nhận theo dòng PO (sapPor1Id) — để phân bổ thùng khi nhiều PO cùng vật tư */
+  private receivedByParent = new Map<number, number>();
   /** Bản ghi pallet-mngt theo mã (để PUT trạng thái), key = serialPallet */
   private palletRecords = new Map<string, PalletRecord>();
   /** Bản ghi thùng cho màn Chi tiết thông tin (key = id bản ghi) */
@@ -1139,11 +1141,13 @@ export class ScanImportDialogComponent
 
     const scannedPartNumber = toText(fieldMap["partNumber"]);
     const scannedSap = toText(fieldMap["sapCode"]);
-    const matchedRow = this.findParentRow(scannedPartNumber, scannedSap);
+    // Mọi dòng vật tư khớp Part/SAP (có thể nhiều PO cùng mã vật tư)
+    const candidates = this.findParentCandidates(scannedPartNumber, scannedSap);
 
     // Không khớp vật tư/PO nào trong đơn → vẫn lưu (sapPor1Id = null),
     // hiện ở "Vật tư chưa có PO" để gán PO sau
-    const noPoMatched = (this.data.parentItems ?? []).length > 0 && !matchedRow;
+    const noPoMatched =
+      (this.data.parentItems ?? []).length > 0 && !candidates.length;
 
     const reelId = toText(fieldMap["reelId"]);
     if (!reelId) {
@@ -1165,6 +1169,12 @@ export class ScanImportDialogComponent
       );
       return;
     }
+    // QR có PO → đúng PO đó; không có → PO thêm trước còn thiếu SL, đủ rồi mới sang PO sau
+    const qrPo = this.firstNonEmpty(
+      fieldMap["userData5"],
+      fieldMap["poNumber"],
+    );
+    const matchedRow = this.pickParentForBox(candidates, qrPo, reelId);
 
     let manufacturingDate = mapped("manufacturingDate")
       ? normalizeVendorDateToYyyyMmDd(fieldMap["manufacturingDate"])
@@ -1256,6 +1266,7 @@ export class ScanImportDialogComponent
           .pipe(map((res): VendorLabelInfoDto | undefined => res ?? undefined));
 
     this.usedReelIds.add(reelId);
+    this.addReceived(matchedRow?.id ?? null, quantity);
     this.savingCount++;
     save$.subscribe({
       next: (saved) => {
@@ -1285,6 +1296,7 @@ export class ScanImportDialogComponent
       error: () => {
         this.savingCount--;
         this.usedReelIds.delete(reelId);
+        this.addReceived(matchedRow?.id ?? null, -quantity);
         this.notificationService.error(`Lưu thùng "${reelId}" thất bại.`);
         this.cdr.markForCheck();
       },
@@ -1594,11 +1606,16 @@ export class ScanImportDialogComponent
       next: (records) => {
         const standalone: ScanBoxRow[] = [];
         const pallets = new Map<string, ScanBoxRow[]>();
+        this.receivedByParent.clear();
         for (const rec of records) {
           const reelId = toText(rec.reelId);
           if (reelId) {
             this.usedReelIds.add(reelId);
           }
+          this.addReceived(
+            rec.sapPor1Id ?? null,
+            Number(rec.initialQuantity ?? 0),
+          );
           const row = this.toBoxRow(rec, this.formatTime(rec.createdAt));
           const serial = toText(
             rec.serialPallet ?? rec.palletBoxMapping?.serialPallet,
@@ -1777,6 +1794,10 @@ export class ScanImportDialogComponent
     }
     return this.infoTemNccService.deleteVendorLabelInfo(record.id).pipe(
       map(() => {
+        this.addReceived(
+          record.sapPor1Id ?? null,
+          -Number(record.initialQuantity ?? 0),
+        );
         this.boxRecords.delete(box.id);
         this.usedReelIds.delete(toText(box.reelId));
         return true;
@@ -1809,6 +1830,11 @@ export class ScanImportDialogComponent
       hsd: toText(rec.expirationDate),
       location: toText(rec.subStorageUnit),
       sapCode: toText(rec.sapCode),
+      poCode:
+        toText(
+          (this.data.parentItems ?? []).find((p) => p.id === rec.sapPor1Id)
+            ?.poCode,
+        ) || toText(rec.userData5),
     };
   }
 
@@ -1893,30 +1919,78 @@ export class ScanImportDialogComponent
    * Tìm dòng vật tư trong đơn: Part QR ↔ Part (OITM) → Part QR ↔ mã SAP → SAP QR ↔ mã SAP.
    * Giống findParentRowForImport của scan-item-dialog.
    */
-  private findParentRow(
+  private findParentCandidates(
     partNumber: string,
     sapCode: string,
-  ): ParentItem | undefined {
+  ): ParentItem[] {
     const parents: ParentItem[] = this.data.parentItems ?? [];
     const norm = (v: unknown): string => toText(v).toLowerCase();
     const part = norm(partNumber);
+    let found: ParentItem[] = [];
     if (part) {
-      const byPart = parents.find((r) => this.partsOf(r).includes(part));
-      if (byPart) {
-        return byPart;
-      }
-      const byPartVsSap = parents.find(
-        (r) => !!norm(r.sapCode) && norm(r.sapCode) === part,
-      );
-      if (byPartVsSap) {
-        return byPartVsSap;
+      found = parents.filter((r) => this.partsOf(r).includes(part));
+      if (!found.length) {
+        found = parents.filter(
+          (r) => !!norm(r.sapCode) && norm(r.sapCode) === part,
+        );
       }
     }
     const sap = norm(sapCode);
-    if (!sap) {
+    if (!found.length && sap) {
+      found = parents.filter(
+        (r) => !!norm(r.sapCode) && norm(r.sapCode) === sap,
+      );
+    }
+    // Dòng PO thêm vào đơn trước (id nhỏ hơn) đứng trước
+    return [...found].sort((a, b) => a.id - b.id);
+  }
+
+  /**
+   * Phân bổ thùng cho 1 dòng PO khi nhiều PO cùng mã vật tư:
+   *  - QR có PO và khớp 1 ứng viên → dùng đúng PO đó
+   *  - không → PO thêm trước còn thiếu SL (đã nhận < SL theo PO); đủ hết → PO cuối (vượt SL)
+   */
+  private pickParentForBox(
+    candidates: ParentItem[],
+    qrPo: string,
+    reelId: string,
+  ): ParentItem | undefined {
+    if (!candidates.length) {
       return undefined;
     }
-    return parents.find((r) => !!norm(r.sapCode) && norm(r.sapCode) === sap);
+    const po = toText(qrPo).toLowerCase();
+    if (po) {
+      const byPo = candidates.find(
+        (c) => toText(c.poCode).toLowerCase() === po,
+      );
+      if (byPo) {
+        return byPo;
+      }
+    }
+    const open = candidates.find(
+      (c) => (this.receivedByParent.get(c.id) ?? 0) < Number(c.orderQty ?? 0),
+    );
+    if (open) {
+      return open;
+    }
+    const last = candidates[candidates.length - 1];
+    if (candidates.length > 1 || Number(last.orderQty ?? 0) > 0) {
+      this.notificationService.warning(
+        `Thùng "${reelId}": các PO của vật tư này đã nhận đủ SL — thêm vào PO ${toText(last.poCode) || "cuối"} (vượt SL PO).`,
+      );
+    }
+    return last;
+  }
+
+  /** Cộng / trừ SL đã nhận của 1 dòng PO */
+  private addReceived(parentId: number | null, qty: number): void {
+    if (parentId === null || !qty) {
+      return;
+    }
+    this.receivedByParent.set(
+      parentId,
+      Math.max(0, (this.receivedByParent.get(parentId) ?? 0) + qty),
+    );
   }
 
   /** Tất cả part number (lowercase) của 1 vật tư: từ trang cha + từ API OITM */

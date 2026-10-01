@@ -1,8 +1,14 @@
 <div class="summary-dialog">
   <div class="dialog-header">
     <div class="title-block">
-      <h2>Tổng hợp vật tư</h2>
-      <p class="subtitle">{{ sapCount }} mã SAP · PO {{ poCode }}</p>
+      <h2>{{ isUnassigned ? "Vật tư chưa có PO" : "Tổng hợp vật tư" }}</h2>
+      <p class="subtitle" *ngIf="!isUnassigned">
+        {{ sapCount }} mã SAP · PO {{ poCode }}
+      </p>
+      <p class="subtitle" *ngIf="isUnassigned">
+        {{ sapCount }} mã SAP · nhập / chọn PO ở cột "PO" (Enter ở hàng SAP / lô
+        để áp xuống các thùng bên dưới)
+      </p>
     </div>
     <button
       mat-icon-button
@@ -51,6 +57,7 @@
           <col class="w-num" />
           <col class="w-num" />
           <col class="w-num" />
+          <col class="w-po" *ngIf="isUnassigned" />
           <col class="w-mfg" />
           <col class="w-hsd" />
           <col class="w-loc" />
@@ -67,6 +74,7 @@
             <th>Tổng SL</th>
             <th>SL tem</th>
             <th>Số lô</th>
+            <th *ngIf="isUnassigned">PO</th>
             <th>MFG</th>
             <th>HSD*</th>
             <th>Vị trí</th>
@@ -93,6 +101,29 @@
               <td class="num">{{ sap.totalQty | number }}</td>
               <td class="num">{{ sap.labelCount }}</td>
               <td class="num">{{ sap.lotCount }}</td>
+              <td *ngIf="isUnassigned">
+                <input
+                  #sapPoInput
+                  class="cell-input po-input"
+                  [(ngModel)]="sap.po"
+                  [matAutocomplete]="sapPoAuto"
+                  placeholder="Nhập PO"
+                  (keydown.enter)="onSapFieldEnter(sap, 'po')"
+                />
+                <mat-autocomplete
+                  #sapPoAuto="matAutocomplete"
+                  (optionSelected)="onSapPoSelected(sap, $event.option.value)"
+                >
+                  <mat-option
+                    *ngFor="
+                      let p of poOptionsFor(sap.sapCode, sapPoInput.value)
+                    "
+                    [value]="p"
+                  >
+                    PO {{ p }}
+                  </mat-option>
+                </mat-autocomplete>
+              </td>
               <td class="col-mfg">
                 <div class="mfg-cell">
                   <input
@@ -217,7 +248,7 @@
             </tr>
 
             <tr *ngIf="isSapExpanded(sap)" class="meta-row">
-              <td colspan="13">
+              <td [attr.colspan]="isUnassigned ? 14 : 13">
                 <div class="lot-meta">
                   <span
                     >Danh sách lô:
@@ -243,6 +274,7 @@
               <td>Số loại VT</td>
               <td>Số thùng</td>
               <td>SL VT</td>
+              <td *ngIf="isUnassigned">PO</td>
               <td>MFG</td>
               <td>HSD*</td>
               <td>Vị trí</td>
@@ -261,6 +293,31 @@
                 <td class="num">{{ lot.materialTypeCount }}</td>
                 <td class="num">{{ lot.boxCount }}</td>
                 <td class="num">{{ lot.quantity | number }}</td>
+                <td *ngIf="isUnassigned">
+                  <input
+                    #lotPoInput
+                    class="cell-input po-input"
+                    [(ngModel)]="lot.po"
+                    [matAutocomplete]="lotPoAuto"
+                    placeholder="Nhập PO"
+                    (keydown.enter)="onLotFieldEnter(sap, lot, 'po')"
+                  />
+                  <mat-autocomplete
+                    #lotPoAuto="matAutocomplete"
+                    (optionSelected)="
+                      onLotPoSelected(sap, lot, $event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="
+                        let p of poOptionsFor(sap.sapCode, lotPoInput.value)
+                      "
+                      [value]="p"
+                    >
+                      PO {{ p }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </td>
                 <td class="col-mfg">
                   <div class="mfg-cell">
                     <input

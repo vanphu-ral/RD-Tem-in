@@ -189,6 +189,7 @@
           <thead>
             <tr>
               <th class="col-idx">#</th>
+              <th>Mã PO</th>
               <th>Lot</th>
               <th>ReelId</th>
               <th>Part Number</th>
@@ -203,6 +204,7 @@
           <tbody>
             <tr *ngFor="let row of boxRows; let i = index; trackBy: trackBox">
               <td class="col-idx">{{ i + 1 }}</td>
+              <td>{{ row.poCode || "—" }}</td>
               <td>{{ row.lot }}</td>
               <td>{{ row.reelId }}</td>
               <td>{{ row.partNumber }}</td>
@@ -229,7 +231,7 @@
               </td>
             </tr>
             <tr *ngIf="!boxRows.length">
-              <td colspan="11" class="empty-cell">Chưa có thùng nào.</td>
+              <td colspan="12" class="empty-cell">Chưa có thùng nào.</td>
             </tr>
           </tbody>
         </table>
@@ -312,6 +314,7 @@
                       <thead>
                         <tr>
                           <th>#</th>
+                          <th>Mã PO</th>
                           <th>Lot</th>
                           <th>ReelId</th>
                           <th>Part Number</th>
@@ -332,6 +335,7 @@
                           "
                         >
                           <td>{{ bi + 1 }}</td>
+                          <td>{{ box.poCode || "—" }}</td>
                           <td>{{ box.lot }}</td>
                           <td>{{ box.reelId }}</td>
                           <td>{{ box.partNumber }}</td>

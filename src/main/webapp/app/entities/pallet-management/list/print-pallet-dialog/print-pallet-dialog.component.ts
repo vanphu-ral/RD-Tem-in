@@ -13,7 +13,7 @@ import {
   PalletLabelSize,
   PrintPalletDialogData,
 } from "../pallet-management.model";
-import { printPalletLabels } from "../pallet-print.util";
+import { exportPalletLabelsPdf, printPalletLabels } from "../pallet-print.util";
 
 @Component({
   selector: "jhi-print-pallet-dialog",
@@ -163,9 +163,29 @@ export class PrintPalletDialogComponent implements OnInit, AfterViewInit {
     this.dialogRef.close();
   }
 
+  /** Xuất PDF: tạo file .pdf và tải xuống luôn (không mở hộp thoại in) */
   async onExportPdf(): Promise<void> {
-    // Tạm dùng cửa sổ in trình duyệt (user có thể chọn "Save as PDF").
-    await this.printSelected();
+    if (!this.selectedCount || this.isPrinting) {
+      return;
+    }
+    const selected = this.pallets.filter((p) => this.selectedIds.has(p.id));
+    const fileName =
+      selected.length === 1
+        ? `tem-pallet-${selected[0].serialPallet}.pdf`
+        : `tem-pallet-${selected.length}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    this.isPrinting = true;
+    try {
+      await exportPalletLabelsPdf(
+        {
+          pallets: selected,
+          labelSize: this.labelSize,
+          labelsPerRow: this.showLabelsPerRow ? this.labelsPerRow : 1,
+        },
+        fileName,
+      );
+    } finally {
+      this.isPrinting = false;
+    }
   }
 
   async onPrint(): Promise<void> {

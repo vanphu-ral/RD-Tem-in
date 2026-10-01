@@ -169,7 +169,25 @@
   <!-- Bảng danh sách vật tư 3 cấp -->
   <mat-card class="list-card">
     <mat-card-header>
-      <mat-card-title>Danh sách vật tư</mat-card-title>
+      <mat-card-title class="list-title">
+        <span>Danh sách vật tư</span>
+        <button
+          *ngIf="deliveryId !== null"
+          type="button"
+          class="unassigned-chip"
+          [class.has-items]="unassignedMaterialCount > 0"
+          [disabled]="!unassignedMaterialCount"
+          (click)="onOpenUnassigned()"
+          [matTooltip]="
+            unassignedMaterialCount
+              ? 'Thùng đã scan nhưng chưa xác định PO — bấm để bổ sung PO'
+              : 'Không có vật tư chưa có PO'
+          "
+        >
+          Vật tư chưa có PO
+          <span class="chip-badge">{{ unassignedMaterialCount }}</span>
+        </button>
+      </mat-card-title>
     </mat-card-header>
     <mat-card-content>
       <div class="text-center" *ngIf="isLoadingDetail">Đang tải dữ liệu...</div>
@@ -216,7 +234,7 @@
           <ng-container matColumnDef="warehouseKeeper">
             <th mat-header-cell *matHeaderCellDef>
               <div class="th-wrap">
-                <span mat-sort-header="warehouseKeeper">Thủ kho</span>
+                <span mat-sort-header="warehouseKeeper">Mã kho</span>
                 <input
                   class="col-filter"
                   [(ngModel)]="poFilter.warehouseKeeper"

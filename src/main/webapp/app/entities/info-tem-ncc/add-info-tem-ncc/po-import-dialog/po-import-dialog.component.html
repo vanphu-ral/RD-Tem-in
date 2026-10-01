@@ -172,7 +172,31 @@
               </th>
               <th></th>
               <th></th>
-              <th></th>
+              <th>
+                <input
+                  #headerWhsInput
+                  [(ngModel)]="headerWarehouse"
+                  (ngModelChange)="onHeaderWarehouseInput($event)"
+                  [matAutocomplete]="acHeaderWhs"
+                  [placeholder]="'Kho cho vật tư đã chọn'"
+                  title="Chọn kho để áp cho tất cả vật tư đang tích"
+                />
+                <mat-autocomplete
+                  #acHeaderWhs="matAutocomplete"
+                  [displayWith]="displayWarehouse"
+                  panelWidth="300px"
+                  (optionSelected)="
+                    applyWarehouseToSelected($event.option.value)
+                  "
+                >
+                  <mat-option
+                    *ngFor="let w of warehouseOptionsFor(headerWhsInput.value)"
+                    [value]="w.whsCode"
+                  >
+                    {{ w.whsCode }} - {{ w.whsName }}
+                  </mat-option>
+                </mat-autocomplete>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -187,7 +211,8 @@
               <td class="col-check">
                 <mat-checkbox
                   color="primary"
-                  [(ngModel)]="r.selected"
+                  [ngModel]="r.selected"
+                  (ngModelChange)="onRowCheck(r, $event)"
                   [disabled]="r.onTable"
                 ></mat-checkbox>
               </td>

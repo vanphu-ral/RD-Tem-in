@@ -17,6 +17,8 @@ export interface ScanBoxRow {
   location: string;
   /** id bản ghi vendor-label-info sau khi lưu thành công */
   dbId?: number;
+  /** Mã PO của thùng (theo dòng PO đã phân bổ / userData5) */
+  poCode?: string;
   sapCode?: string;
 }
 

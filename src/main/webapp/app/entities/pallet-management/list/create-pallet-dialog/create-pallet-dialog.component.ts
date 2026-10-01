@@ -1,5 +1,10 @@
 import { Component, Inject, OnInit } from "@angular/core";
-import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogRef,
+} from "@angular/material/dialog";
+import { PrintPalletDialogComponent } from "../print-pallet-dialog/print-pallet-dialog.component";
 import { Observable, forkJoin, take } from "rxjs";
 import { AccountService } from "app/core/auth/account.service";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
@@ -9,6 +14,7 @@ import {
   CreatePalletDialogResult,
   PalletItem,
   PalletMngtCreatePayload,
+  PrintPalletDialogData,
 } from "../pallet-management.model";
 
 export interface CreatePalletDialogData {
@@ -30,12 +36,18 @@ export class CreatePalletDialogComponent implements OnInit {
   quantity = 1;
   note = "";
   isSaving = false;
+  /** Đang tải danh sách pallet để mở dialog In */
+  isOpeningPrint = false;
+  /** Pallet đã lưu trong lần mở dialog này — nút In dùng danh sách này */
+  savedPallets: PalletItem[] = [];
   /** Đang lấy danh sách pallet để tính STT tiếp theo */
   isLoadingSequence = false;
   /** Đã lấy được STT từ danh sách pallet — chưa có thì không cho lưu */
   sequenceReady = false;
 
   private createBy = "unknown";
+  /** STT đầu của lần lưu đầu tiên (trả về trang ngoài) */
+  private lastSequenceStart: number | null = null;
   /** Mã pallet đã tồn tại — chặn tạo trùng */
   private existingCodes = new Set<string>();
   /** STT lớn nhất theo ngày trong mã (key = DDMMYYYY) */
@@ -50,6 +62,7 @@ export class CreatePalletDialogComponent implements OnInit {
     private palletMngtService: PalletMngtService,
     private accountService: AccountService,
     private notificationService: NotificationService,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -99,7 +112,34 @@ export class CreatePalletDialogComponent implements OnInit {
     if (this.isSaving) {
       return;
     }
-    this.dialogRef.close(null);
+    // Đã lưu pallet → trả kết quả để trang ngoài tải lại danh sách (không in)
+    this.dialogRef.close(this.buildResult(false));
+  }
+
+  /**
+   * In: mở dialog In ngay trên dialog này.
+   * Đã lưu pallet → chỉ các pallet vừa lưu; chưa lưu → toàn bộ pallet (như nút In ở ngoài).
+   */
+  onPrint(): void {
+    if (this.isSaving || this.isOpeningPrint) {
+      return;
+    }
+    if (this.savedPallets.length) {
+      this.openPrintDialog([]);
+      return;
+    }
+    this.isOpeningPrint = true;
+    this.palletMngtService.getAll().subscribe({
+      next: (rows) => {
+        this.isOpeningPrint = false;
+        this.openPrintDialog(rows ?? []);
+      },
+      error: () => {
+        this.isOpeningPrint = false;
+        // Không tải được danh sách → vẫn in được các pallet vừa lưu
+        this.openPrintDialog([]);
+      },
+    });
   }
 
   onSave(): void {
@@ -170,18 +210,57 @@ export class CreatePalletDialogComponent implements OnInit {
       next: (rows) => {
         this.isSaving = false;
         const created = this.withDistinctIds(rows);
-        this.dialogRef.close({
-          created,
-          quantity: count,
-          sequenceStart,
-          saveAndPrint: true,
-        });
+        this.savedPallets = [...this.savedPallets, ...created];
+        this.lastSequenceStart = this.lastSequenceStart ?? sequenceStart;
+        this.notificationService.success(
+          `Lưu thành công ${created.length} pallet: ${created
+            .slice(0, 3)
+            .map((p) => p.serialPallet)
+            .join(", ")}${created.length > 3 ? "..." : ""}.`,
+        );
+        // Lấy lại STT để lần lưu tiếp không trùng mã
+        this.loadNextSequence();
       },
       error: () => {
         this.isSaving = false;
-        this.notificationService.error("Không tạo được pallet.");
+        this.notificationService.error("Lưu pallet thất bại.");
       },
     });
+  }
+
+  private openPrintDialog(all: PalletItem[]): void {
+    const savedIds = new Set(this.savedPallets.map((p) => p.id));
+    const pallets = [
+      ...this.savedPallets,
+      ...all.filter((p) => !savedIds.has(p.id)),
+    ];
+    if (!pallets.length) {
+      this.notificationService.warning("Chưa có pallet nào để in.");
+      return;
+    }
+    this.dialog.open(PrintPalletDialogComponent, {
+      width: "980px",
+      maxWidth: "96vw",
+      maxHeight: "92vh",
+      disableClose: true,
+      panelClass: "print-pallet-dialog-panel",
+      data: {
+        pallets,
+        preselectedIds: this.savedPallets.map((p) => p.id),
+      } as PrintPalletDialogData,
+    });
+  }
+
+  private buildResult(print: boolean): CreatePalletDialogResult | null {
+    if (!this.savedPallets.length) {
+      return null;
+    }
+    return {
+      created: this.savedPallets,
+      quantity: this.savedPallets.length,
+      sequenceStart: this.lastSequenceStart ?? 1,
+      saveAndPrint: print,
+    };
   }
 
   /** Lấy danh sách pallet → ghi nhận STT lớn nhất của từng ngày → tính STT */

@@ -254,10 +254,16 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   isSendingSap = false;
   isSendingPanacim = false;
   isSavingOrder = false;
+  /** Số mã vật tư có thùng chưa xác định PO (sapPor1Id rỗng / không thuộc đơn) */
+  unassignedMaterialCount = 0;
   /** PO đã gọi lấy part-numbers (chỉ gọi khi expand PO lần đầu) */
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   private partLoadedPoIds = new Set<number>();
+  /** Thùng đã scan nhưng chưa thuộc dòng PO nào của đơn */
+  private unassignedBoxes: VendorLabelInfoDto[] = [];
+  /** NCC lưu trong đơn (đơn cũ: vendorName chứa mã; đơn mới: tên, có thể kèm vendorCode) */
+  private rawOrderVendor: { code: string; name: string } | null = null;
   /** Bản ghi đơn đang mở (từ API detail) — giữ các trường không sửa trên form khi PUT */
   private loadedOrder: DeliveryNotificationDto | null = null;
   /** Phân trang: vật tư theo PO (key = id PO), lô theo vật tư (key = id vật tư) */
@@ -333,7 +339,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         deliveryNotificationCode: code,
         invoiceNumber: (this.orderInfo.invoiceNumber ?? "").trim(),
         contractCode: (this.orderInfo.contractCode ?? "").trim(),
-        vendorName: vendor,
+        vendorCode: this.orderVendorCode(),
+        vendorName: this.orderVendorName(),
         contNo: (this.orderInfo.contNo ?? "").trim(),
         entryDate:
           arrival instanceof Date && !isNaN(arrival.getTime())
@@ -629,9 +636,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
 
         this.nextPalletSequence =
           result.sequenceStart + Math.max(1, result.quantity);
-        this.notificationService.success(
-          `Đã tạo ${result.created.length} pallet.`,
-        );
 
         if (result.saveAndPrint) {
           this.openPrintPalletDialog(result.created);
@@ -886,6 +890,87 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       // });
     });
   }
+  /** Mở Tổng hợp vật tư cho các thùng chưa có PO → bổ sung PO → thùng chuyển vào PO tương ứng */
+  onOpenUnassigned(): void {
+    if (!this.unassignedBoxes.length) {
+      return;
+    }
+    // Gom thùng theo mã SAP → mỗi mã 1 "vật tư" (dựng như dòng PO giả để dùng lại mapMaterial)
+    const bySap = new Map<string, VendorLabelInfoDto[]>();
+    for (const b of this.unassignedBoxes) {
+      const key = toText(b.sapCode) || toText(b.partNumber) || "—";
+      bySap.set(key, [...(bySap.get(key) ?? []), b]);
+    }
+    let seq = 0;
+    const materials: AddMaterialItem[] = [];
+    bySap.forEach((boxes, sapCode) => {
+      seq -= 1;
+      const m = this.mapMaterial({
+        id: seq,
+        lineNum: null,
+        itemCode: sapCode,
+        dscription: "",
+        quantity: 0,
+        whsCode: null,
+        unitMsr: null,
+        price: null,
+        currency: null,
+        docEntry: null,
+        vendorLabelInfoList: boxes,
+      });
+      m.partNumber = this.distinctJoin(boxes.map((b) => b.partNumber));
+      materials.push(m);
+    });
+    const pseudoPo: AddPoItem = {
+      id: -1,
+      poCode: "Chưa có PO",
+      warehouseKeeper: "",
+      vendorCode: this.orderInfo.vendorCode,
+      vendorName: this.orderInfo.vendorName,
+      vehicleNumber: this.orderInfo.contNo,
+      invoiceNumber: this.orderInfo.invoiceNumber,
+      contractCode: this.orderInfo.contractCode,
+      importDate: "",
+      importBatch: null,
+      materialTypeCount: materials.length,
+      totalQuantity: 0,
+      status: "WAITING",
+      materials,
+    };
+    const poLines = this.dataSource.data.flatMap((po) =>
+      po.materials
+        .filter((m) => m.id > 0)
+        .map((m) => ({
+          id: m.id,
+          poCode: po.poCode,
+          sapCode: m.materialCode,
+          partNumber: m.partNumber,
+        })),
+    );
+    this.dialog
+      .open(MaterialSummaryDialogComponent, {
+        width: "98vw",
+        maxWidth: "98vw",
+        height: "92vh",
+        maxHeight: "92vh",
+        panelClass: "material-summary-dialog-panel",
+        autoFocus: false,
+        disableClose: true,
+        data: {
+          po: pseudoPo,
+          vendorCode: this.orderInfo.vendorCode,
+          transactionId: this.mockTransactionId,
+          unassigned: { poLines },
+        } as MaterialSummaryDialogData,
+      })
+      .afterClosed()
+      .subscribe((result: { updated?: number } | null | undefined) => {
+        if (result?.updated && this.deliveryId !== null) {
+          this.loadDetail(this.deliveryId);
+        }
+      });
+  }
+
   onEditInfo(row: AddPoItem, event?: Event): void {
     event?.stopPropagation();
     this.dialog
@@ -1001,6 +1086,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     this.managerTemNccService.getSapOcrds().subscribe({
       next: (data) => {
         this.vendorOptions = data;
+        this.applyOrderVendor();
         this.filteredVendorOptions = data.slice(0, this.VENDOR_DISPLAY_LIMIT);
         this.isLoadingVendors = false;
         this.cdr.markForCheck();
@@ -1167,7 +1253,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       deliveryNotificationCode: (this.orderInfo.deliveryNotice ?? "").trim(),
       invoiceNumber: (this.orderInfo.invoiceNumber ?? "").trim(),
       contractCode: (this.orderInfo.contractCode ?? "").trim(),
-      vendorName: vendor,
+      vendorCode: this.orderVendorCode(),
+      vendorName: this.orderVendorName(),
       contNo: (this.orderInfo.contNo ?? "").trim(),
       entryDate:
         arrival instanceof Date && !isNaN(arrival.getTime())
@@ -1194,6 +1281,85 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Mã NCC gửi đi: mã đã chọn; nếu ô mã đang chứa tên thì tra lại theo danh sách NCC */
+  private orderVendorCode(): string {
+    const value = toText(this.orderInfo.vendorCode);
+    const found =
+      this.findVendor(value) ?? this.findVendor(this.orderInfo.vendorName);
+    return toText(found?.cardCode) || value;
+  }
+
+  /** Tên NCC gửi đi: tên theo danh sách NCC SAP, không có thì tên đang hiển thị */
+  private orderVendorName(): string {
+    const found =
+      this.findVendor(this.orderInfo.vendorCode) ??
+      this.findVendor(this.orderInfo.vendorName);
+    return (
+      toText(found?.cardName) ||
+      toText(this.orderInfo.vendorName) ||
+      this.orderVendorCode()
+    );
+  }
+
+  /** Tìm NCC SAP theo mã hoặc theo tên (không phân biệt hoa thường) */
+  private findVendor(value: unknown): SapOcrd | undefined {
+    const v = toText(value).toLowerCase();
+    if (!v) {
+      return undefined;
+    }
+    return (
+      this.vendorOptions.find((o) => toText(o.cardCode).toLowerCase() === v) ??
+      this.vendorOptions.find((o) => toText(o.cardName).toLowerCase() === v)
+    );
+  }
+
+  /**
+   * Đổ NCC của đơn vào form + bảng PO: ưu tiên vendorCode; đơn cũ lưu mã trong vendorName,
+   * đơn mới lưu tên → tra danh sách NCC SAP để ra đúng cặp mã / tên.
+   */
+  private applyOrderVendor(): void {
+    const raw = this.rawOrderVendor;
+    if (!raw) {
+      return;
+    }
+    const found = this.findVendor(raw.code) ?? this.findVendor(raw.name);
+    this.orderInfo.vendorCode = toText(found?.cardCode) || raw.code || raw.name;
+    this.orderInfo.vendorName = toText(found?.cardName) || raw.name;
+    for (const po of this.dataSource.data) {
+      po.vendorCode = this.orderInfo.vendorCode;
+      po.vendorName = this.orderInfo.vendorName;
+    }
+    this.cdr.markForCheck();
+  }
+
+  /** Thùng của đơn không thuộc dòng PO nào (sapPor1Id rỗng hoặc ngoài đơn) */
+  private loadUnassignedBoxes(
+    deliveryId: number,
+    detail: DeliveryNotificationDetailDto,
+  ): void {
+    const lineIds = new Set((detail.sapPor1R1List ?? []).map((l) => l.id));
+    this.infoTemNccService.getVendorLabelInfosByDelivery(deliveryId).subscribe({
+      next: (boxes) => {
+        this.unassignedBoxes = boxes.filter(
+          (b) =>
+            b.sapPor1Id === null ||
+            b.sapPor1Id === undefined ||
+            !lineIds.has(b.sapPor1Id),
+        );
+        this.unassignedMaterialCount = new Set(
+          this.unassignedBoxes.map(
+            (b) => toText(b.sapCode) || toText(b.partNumber),
+          ),
+        ).size;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.unassignedBoxes = [];
+        this.unassignedMaterialCount = 0;
+      },
+    });
+  }
+
   // ==================== DETAIL (API) ====================
 
   private loadDetail(id: number): void {
@@ -1202,8 +1368,11 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       next: (detail) => {
         this.loadedOrder = detail;
         this.orderInfo.deliveryNotice = detail.deliveryNotificationCode ?? "";
-        this.orderInfo.vendorCode = detail.vendorName ?? "";
-        this.orderInfo.vendorName = detail.vendorName ?? "";
+        this.rawOrderVendor = {
+          code: toText(detail.vendorCode),
+          name: toText(detail.vendorName),
+        };
+        this.applyOrderVendor();
         this.orderInfo.arrivalDate = detail.entryDate
           ? new Date(detail.entryDate)
           : null;
@@ -1217,6 +1386,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.materialPageStates.clear();
         this.lotPageStates.clear();
         this.dataSource.data = this.mapPos(detail);
+        this.loadUnassignedBoxes(id, detail);
         this.isLoadingDetail = false;
         this.cdr.markForCheck();
       },
@@ -1252,8 +1422,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         id: ++poSeq,
         poCode: docEntry || "—",
         warehouseKeeper: this.distinctJoin(lines.map((l) => l.whsCode)),
-        vendorCode: detail.vendorName ?? "",
-        vendorName: detail.vendorName ?? "",
+        vendorCode: this.orderInfo.vendorCode,
+        vendorName: this.orderInfo.vendorName,
         vehicleNumber: detail.contNo ?? "",
         invoiceNumber: detail.invoiceNumber ?? "",
         contractCode: detail.contractCode ?? "",
