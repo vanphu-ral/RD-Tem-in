@@ -2,14 +2,14 @@
   <div class="header">
     <h1>Nhập thông tin TEM từ NCC</h1>
     <div>
-      <!-- <button
+      <button
         mat-raised-button
         color="primary"
         [routerLink]="['add-info-tem-ncc']"
       >
         <mat-icon>add</mat-icon>
         <span class="button-text">Thêm mới</span>
-      </button> -->
+      </button>
     </div>
   </div>
 
@@ -95,11 +95,13 @@
               class="col-filter"
               [(ngModel)]="filterValues.importDate"
               (ngModelChange)="applyFilter()"
-              placeholder="yyyy-MM-dd"
+              placeholder="dd/MM/yyyy"
             />
           </div>
         </th>
-        <td mat-cell *matCellDef="let row">{{ row.importDate }}</td>
+        <td mat-cell *matCellDef="let row">
+          {{ formatDateTime(row.importDate) }}
+        </td>
       </ng-container>
 
       <!-- Số hóa đơn -->
@@ -310,7 +312,7 @@
                       <td>{{ po.vehicleNumber }}</td>
                       <td>{{ po.invoiceNumber }}</td>
                       <td>{{ po.contractCode }}</td>
-                      <td>{{ po.importDate }}</td>
+                      <td>{{ formatDateTime(po.importDate) }}</td>
                       <td class="text-center">
                         {{ displayText(po.importBatch) }}
                       </td>
@@ -559,7 +561,7 @@
           <label>Ngày nhập</label>
           <input
             [(ngModel)]="filterValues.importDate"
-            placeholder="yyyy-MM-dd"
+            placeholder="dd/MM/yyyy"
           />
         </div>
         <div class="filter-field">

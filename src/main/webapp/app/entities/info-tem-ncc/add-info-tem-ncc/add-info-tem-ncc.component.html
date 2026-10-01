@@ -91,6 +91,16 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="field">
+          <mat-label>Số xe</mat-label>
+          <input
+            matInput
+            [(ngModel)]="orderInfo.contNo"
+            placeholder="VD: 27C-12354"
+            autocomplete="off"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="field">
           <mat-label>Số hóa đơn</mat-label>
           <input matInput [(ngModel)]="orderInfo.invoiceNumber" />
         </mat-form-field>
@@ -100,58 +110,33 @@
           <input matInput [(ngModel)]="orderInfo.contractCode" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="field field-wide">
-          <mat-label>Kịch bản nhập TEM</mat-label>
-          <input
-            matInput
-            [(ngModel)]="orderInfo.importScenario"
-            [matAutocomplete]="autoScenario"
-            (input)="onScenarioSearch($any($event.target).value)"
-            (focus)="onScenarioSearch(orderInfo.importScenario)"
-            placeholder="Tìm theo tên hoặc mã NCC..."
-            [disabled]="isLoadingScenarios"
-          />
-          <mat-spinner
-            matSuffix
-            diameter="16"
-            *ngIf="isLoadingScenarios"
-          ></mat-spinner>
-          <mat-autocomplete
-            #autoScenario="matAutocomplete"
-            [displayWith]="displayScenario"
-            (optionSelected)="onScenarioSelected($event.option.value)"
-          >
-            <mat-option *ngFor="let s of filteredScenarioOptions" [value]="s">
-              <div class="option-row">
-                <span>{{ s.vendorName }}</span>
-                <span class="muted">{{ s.vendorCode }}</span>
-              </div>
-            </mat-option>
-          </mat-autocomplete>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="field">
-          <mat-label>Kho nhập</mat-label>
-          <input
-            matInput
-            [(ngModel)]="orderInfo.warehouse"
-            [matAutocomplete]="autoWarehouse"
-            (input)="onWarehouseSearch($any($event.target).value)"
-            (focus)="onWarehouseSearch(orderInfo.warehouse)"
-            placeholder="Tìm kho..."
-          />
-          <mat-autocomplete
-            #autoWarehouse="matAutocomplete"
-            [displayWith]="displayWarehouse"
-            (optionSelected)="onWarehouseSelected($event.option.value)"
-          >
-            <mat-option *ngFor="let w of filteredWarehouseOptions" [value]="w">
-              {{ w.label }}
-            </mat-option>
-          </mat-autocomplete>
-        </mat-form-field>
-
         <div class="header-actions">
+          <button
+            mat-raised-button
+            color="primary"
+            type="button"
+            [disabled]="isSavingOrder"
+            (click)="onSaveOrder()"
+          >
+            {{
+              isSavingOrder
+                ? deliveryId === null
+                  ? "Đang lưu..."
+                  : "Đang cập nhật..."
+                : deliveryId === null
+                  ? "Lưu"
+                  : "Cập nhật"
+            }}
+          </button>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            (click)="onImportPo()"
+          >
+            <mat-icon>playlist_add</mat-icon>
+            Nhập PO
+          </button>
           <button
             mat-stroked-button
             color="primary"
@@ -308,7 +293,9 @@
                 <span>Ngày nhập</span>
               </div>
             </th>
-            <td mat-cell *matCellDef="let row">{{ row.importDate }}</td>
+            <td mat-cell *matCellDef="let row">
+              {{ formatDateTime(row.importDate) }}
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="importBatch">

@@ -14,6 +14,7 @@ import {
   providedIn: "root",
 })
 export class PalletMngtService {
+  // private readonly url = `${environment.testApiUrl}/pallet-mngts`;
   private readonly url = `${environment.baseInTemApiUrl}/pallet-mngts`;
 
   constructor(private http: HttpClient) {}

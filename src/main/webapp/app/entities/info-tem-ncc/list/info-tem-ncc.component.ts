@@ -1,3 +1,5 @@
+import { AccountService } from "app/core/auth/account.service";
+import { take } from "rxjs";
 import {
   Component,
   OnInit,
@@ -123,6 +125,8 @@ export interface DeliveryNoticeItem {
   materialQuantity: number;
   status: "INCOMPLETE" | "COMPLETED";
   pos: PoItem[];
+  /** Bản ghi gốc từ API — dùng khi PUT (xóa mềm) */
+  raw: DeliveryNotificationDto;
 }
 
 export interface FilterValues {
@@ -224,6 +228,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     private notificationService: NotificationService,
     private router: Router,
     private infoTemNccService: InfoTemNccService,
+    private accountService: AccountService,
   ) {}
 
   ngOnInit(): void {
@@ -240,7 +245,13 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       .getDeliveryNotifications(this.pageIndex, this.pageSize)
       .subscribe({
         next: ({ items, total }) => {
-          this.dataSource.data = items.map((dto) => this.mapDelivery(dto));
+          // Sắp xếp lại phía FE phòng khi backend bỏ qua tham số sort
+          this.dataSource.data = [...items]
+            .sort(
+              (a, b) =>
+                this.createdTime(b) - this.createdTime(a) || b.id - a.id,
+            )
+            .map((dto) => this.mapDelivery(dto));
           this.totalItems = total;
           this.isLoading = false;
           this.expandedDeliveryIds.clear();
@@ -541,6 +552,20 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     return st.pageIndex * st.pageSize + indexInPage + 1;
   }
 
+  /** ISO → dd/MM/yyyy HH:mm (giờ địa phương); không parse được thì trả nguyên */
+  formatDateTime(value: string | null | undefined): string {
+    const raw = toText(value);
+    if (!raw) {
+      return "";
+    }
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) {
+      return raw;
+    }
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
   getRowIndex(row: DeliveryNoticeItem): number {
     const index = this.dataSource.filteredData.indexOf(row);
     return this.pageIndex * this.pageSize + index + 1;
@@ -624,14 +649,36 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       if (result !== true) {
         return;
       }
-      this.dataSource.data = this.dataSource.data.filter(
-        (r) => r.id !== row.id,
-      );
-      this.expandedDeliveryIds.delete(row.id);
-      this.applyFilter();
-      this.notificationService.success("Đã xóa (mock).");
-      this.cdr.markForCheck();
+      // Xóa mềm: PUT /delivery-notifications/{id} với deletedAt / deletedBy
+      this.accountService
+        .getAuthenticationState()
+        .pipe(take(1))
+        .subscribe((account) => {
+          const payload: DeliveryNotificationDto = {
+            ...row.raw,
+            deletedAt: new Date().toISOString(),
+            deletedBy: account?.login ?? "",
+          };
+          this.infoTemNccService.updateDeliveryNotification(payload).subscribe({
+            next: () => {
+              this.expandedDeliveryIds.delete(row.id);
+              this.notificationService.success(
+                `Đã xóa đơn ${row.deliveryNotice || row.id}.`,
+              );
+              this.loadData();
+            },
+            error: () => {
+              this.notificationService.error("Xóa đơn thất bại.");
+            },
+          });
+        });
     });
+  }
+
+  /** createdAt → ms (không có / sai định dạng → 0) */
+  private createdTime(dto: DeliveryNotificationDto): number {
+    const t = new Date(toText(dto.createdAt)).getTime();
+    return Number.isNaN(t) ? 0 : t;
   }
 
   private mapDelivery(dto: DeliveryNotificationDto): DeliveryNoticeItem {
@@ -639,7 +686,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     return {
       id: dto.id,
       deliveryNotice: dto.deliveryNotificationCode ?? "",
-      importDate: toText(dto.entryDate).slice(0, 10),
+      importDate: toText(dto.entryDate),
       invoiceNumber: dto.invoiceNumber ?? "",
       contractCode: dto.contractCode ?? "",
       vendorName: dto.vendorName ?? "",
@@ -648,6 +695,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       materialQuantity: 0, // API list chưa trả về
       status: status === "COMPLETED" ? "COMPLETED" : "INCOMPLETE",
       pos: [], // API list chưa trả về, cần load khi expand
+      raw: dto,
     };
   }
   private buildFilterPredicate() {
@@ -675,7 +723,8 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         includes(statusText, f.status) || includes(mobileStatus, f.status);
       return (
         includes(item.deliveryNotice, f.deliveryNotice) &&
-        includes(item.importDate, f.importDate) &&
+        (includes(item.importDate, f.importDate) ||
+          includes(this.formatDateTime(item.importDate), f.importDate)) &&
         includes(item.invoiceNumber, f.invoiceNumber) &&
         includes(item.contractCode, f.contractCode) &&
         includes(item.vendorName, f.vendorName) &&
@@ -745,7 +794,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         vehicleNumber: detail.contNo ?? "",
         invoiceNumber: detail.invoiceNumber ?? "",
         contractCode: detail.contractCode ?? "",
-        importDate: toText(detail.entryDate).slice(0, 10),
+        importDate: toText(detail.entryDate),
         importBatch: null,
         materialTypeCount: new Set(lines.map((l) => l.itemCode ?? "")).size,
         totalQuantity,

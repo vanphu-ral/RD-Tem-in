@@ -225,6 +225,7 @@ export interface CreateVendorTemDetailPayload {
   providedIn: "root",
 })
 export class ManagerTemNccService {
+  // private baseUrl = environment.testApiUrl;
   private baseUrl = environment.baseInTemApiUrl;
   private nhapKhoUrl = "http://192.168.10.99:3000/api";
 

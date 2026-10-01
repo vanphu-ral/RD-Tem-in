@@ -16,12 +16,14 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
-import { ActivatedRoute } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 import { Observable, take } from "rxjs";
 import { map } from "rxjs/operators";
 import {
   DeliveryNotificationDetailDto,
+  DeliveryNotificationDto,
   InfoTemNccService,
+  SapPor1BatchItem,
   SapPor1R1Dto,
   VendorLabelInfoDto,
   toText,
@@ -32,6 +34,11 @@ import {
   VendorLabelSendService,
 } from "../services/vendor-label-send.service";
 import { openSendConfirm } from "../shared/send-confirm-dialog/send-confirm-dialog.component";
+import {
+  PoImportDialogComponent,
+  PoImportDialogData,
+  PoImportSelection,
+} from "./po-import-dialog/po-import-dialog.component";
 import {
   MiniPageState,
   slicePage,
@@ -181,7 +188,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   ];
 
   orderInfo = {
-    deliveryNotice: "TB-2026-0715-01",
+    deliveryNotice: "",
     vendorCode: "",
     vendorName: "",
     arrivalDate: null as Date | null,
@@ -190,6 +197,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     importScenario: "",
     warehouse: "",
     approver: "",
+    /** Số xe (contNo) */
+    contNo: "",
   };
 
   poFilter: PoFilterValues = {
@@ -244,10 +253,13 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   isLoadingDetail = false;
   isSendingSap = false;
   isSendingPanacim = false;
+  isSavingOrder = false;
   /** PO đã gọi lấy part-numbers (chỉ gọi khi expand PO lần đầu) */
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   private partLoadedPoIds = new Set<number>();
+  /** Bản ghi đơn đang mở (từ API detail) — giữ các trường không sửa trên form khi PUT */
+  private loadedOrder: DeliveryNotificationDto | null = null;
   /** Phân trang: vật tư theo PO (key = id PO), lô theo vật tư (key = id vật tư) */
   private materialPageStates = new Map<number, MiniPageState>();
   private lotPageStates = new Map<number, MiniPageState>();
@@ -268,6 +280,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     private accountService: AccountService,
     private notificationService: NotificationService,
     private route: ActivatedRoute,
+    private router: Router,
     private infoTemNccService: InfoTemNccService,
     private vendorLabelSendService: VendorLabelSendService,
   ) {}
@@ -290,6 +303,67 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       this.deliveryId = idParam;
       this.loadDetail(idParam);
     }
+  }
+
+  /**
+   * Chưa có id → Lưu: POST /delivery-notifications → chuyển sang URL đơn vừa tạo.
+   * Đã có id → Cập nhật: PUT /delivery-notifications/{id}.
+   */
+  onSaveOrder(): void {
+    if (this.isSavingOrder) {
+      return;
+    }
+    if (this.deliveryId !== null) {
+      this.updateOrder(this.deliveryId);
+      return;
+    }
+    const code = (this.orderInfo.deliveryNotice ?? "").trim();
+    const vendor =
+      (this.orderInfo.vendorCode ?? "").trim() ||
+      (this.orderInfo.vendorName ?? "").trim();
+    if (!vendor) {
+      this.notificationService.warning("Vui lòng chọn Nhà cung cấp.");
+      return;
+    }
+    const now = new Date().toISOString();
+    const arrival = this.orderInfo.arrivalDate;
+    this.isSavingOrder = true;
+    this.infoTemNccService
+      .createDeliveryNotification({
+        deliveryNotificationCode: code,
+        invoiceNumber: (this.orderInfo.invoiceNumber ?? "").trim(),
+        contractCode: (this.orderInfo.contractCode ?? "").trim(),
+        vendorName: vendor,
+        contNo: (this.orderInfo.contNo ?? "").trim(),
+        entryDate:
+          arrival instanceof Date && !isNaN(arrival.getTime())
+            ? arrival.toISOString()
+            : now,
+        numberOfPo: 0,
+        status: "New",
+        createdBy: this.currentUser,
+        createdAt: now,
+      })
+      .subscribe({
+        next: (created) => {
+          this.isSavingOrder = false;
+          const id = Number(created?.id);
+          if (!id) {
+            this.notificationService.warning(
+              "Đã lưu nhưng không nhận được id đơn mới.",
+            );
+            return;
+          }
+          this.notificationService.success("Tạo mới đơn thành công.");
+          void this.router.navigate(["/info-tem-ncc/add-info-tem-ncc", id], {
+            replaceUrl: true,
+          });
+        },
+        error: () => {
+          this.isSavingOrder = false;
+          this.notificationService.error("Lưu đơn thất bại.");
+        },
+      });
   }
 
   ngAfterViewInit(): void {
@@ -565,23 +639,67 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       });
   }
 
-  onScan(): void {
-    if (!this.selectedScenario || !this.activeMappingConfig) {
-      this.notificationService.warning(
-        "Chưa chọn kịch bản nhập TEM — vẫn mở Scan/Import (nhận diện QR sẽ hạn chế).",
-      );
+  /** Nhập PO: chọn vật tư từ 1 hoặc nhiều PO → thêm vào bảng (trạng thái Chờ nhập) */
+  /** ISO → dd/MM/yyyy HH:mm (giờ địa phương); không parse được thì trả nguyên */
+  formatDateTime(value: string | null | undefined): string {
+    const raw = toText(value);
+    if (!raw) {
+      return "";
     }
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) {
+      return raw;
+    }
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 
+  onImportPo(): void {
+    if (this.deliveryId === null) {
+      this.notificationService.warning("Vui lòng Lưu đơn trước khi nhập PO.");
+      return;
+    }
+    const existingKeys = this.dataSource.data.flatMap((po) =>
+      po.materials.map((m) => `${po.poCode}|${m.materialCode}`),
+    );
+    this.dialog
+      .open<PoImportDialogComponent, PoImportDialogData, PoImportSelection[]>(
+        PoImportDialogComponent,
+        {
+          width: "98vw",
+          maxWidth: "98vw",
+          height: "94vh",
+          maxHeight: "94vh",
+          autoFocus: false,
+          disableClose: true,
+          data: {
+            existingKeys,
+            vendorCode: this.orderInfo.vendorCode,
+            vendorName: this.resolveOrderVendorName(),
+          },
+        },
+      )
+      .afterClosed()
+      .subscribe((selections) => {
+        if (selections?.length) {
+          this.saveImportedPos(selections);
+        }
+      });
+  }
+
+  onScan(): void {
     // id vật tư = sapPor1Id (khi vào từ chi tiết đơn)
     const parentItems = this.dataSource.data.flatMap((po) =>
-      po.materials.map((m) => ({
-        id: m.id,
-        partNumber: m.partNumber,
-        sapCode: m.materialCode,
-        orderQty: m.poQuantity,
-        materialName: m.materialName,
-        poCode: po.poCode,
-      })),
+      po.materials
+        .filter((m) => m.id > 0)
+        .map((m) => ({
+          id: m.id,
+          partNumber: m.partNumber,
+          sapCode: m.materialCode,
+          orderQty: m.poQuantity,
+          materialName: m.materialName,
+          poCode: po.poCode,
+        })),
     );
     const existingReelIds = this.dataSource.data.flatMap((po) =>
       po.materials.flatMap((m) =>
@@ -742,30 +860,30 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         return;
       }
       // TẠM TẮT gửi thật
-      // this.isSendingPanacim = true;
-      // this.vendorLabelSendService.sendPanacim(entries, row.poCode).subscribe({
-      //   next: (res) => {
-      //     this.isSendingPanacim = false;
-      //     this.notifySendResult(res.count, res.statusSaved, "PanaCIM");
-      //     this.reloadDetail();
-      //   },
-      //   error: (err: unknown) => {
-      //     this.isSendingPanacim = false;
-      //     this.notificationService.error(
-      //       resolveHttpErrorMessage(err, "Gửi PanaCIM thất bại."),
-      //     );
-      //   },
-      // });
-      const csv = this.vendorLabelSendService.buildPanacimCsv(
-        entries,
-        row.poCode,
-      );
-      this.openPayloadPreview({
-        title: "Payload gửi PanaCIM (xem trước — chưa gửi)",
-        endpoint: 'POST /api/csv-upload (multipart/form-data, field "file")',
-        note: `File: ${csv.fileName} · ${csv.rowCount} dòng (thùng)`,
-        content: csv.content.replace(/^\ufeff/, ""),
+      this.isSendingPanacim = true;
+      this.vendorLabelSendService.sendPanacim(entries, row.poCode).subscribe({
+        next: (res) => {
+          this.isSendingPanacim = false;
+          this.notifySendResult(res.count, res.statusSaved, "PanaCIM");
+          this.reloadDetail();
+        },
+        error: (err: unknown) => {
+          this.isSendingPanacim = false;
+          this.notificationService.error(
+            resolveHttpErrorMessage(err, "Gửi PanaCIM thất bại."),
+          );
+        },
       });
+      // const csv = this.vendorLabelSendService.buildPanacimCsv(
+      //   entries,
+      //   row.poCode,
+      // );
+      // this.openPayloadPreview({
+      //   title: "Payload gửi PanaCIM (xem trước — chưa gửi)",
+      //   endpoint: 'POST /api/csv-upload (multipart/form-data, field "file")',
+      //   note: `File: ${csv.fileName} · ${csv.rowCount} dòng (thùng)`,
+      //   content: csv.content.replace(/^\ufeff/, ""),
+      // });
     });
   }
   onEditInfo(row: AddPoItem, event?: Event): void {
@@ -822,39 +940,39 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         return;
       }
       // TẠM TẮT gửi thật
-      // this.isSendingSap = true;
-      // this.vendorLabelSendService.sendSap(entries).subscribe({
-      //   next: (res) => {
-      //     this.isSendingSap = false;
-      //     this.notifySendResult(res.count, res.statusSaved, "SAP");
-      //     this.reloadDetail();
-      //   },
-      //   error: (err: unknown) => {
-      //     this.isSendingSap = false;
-      //     this.notificationService.error(
-      //       resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
-      //     );
-      //   },
-      // });
-      // gửi test payload
       this.isSendingSap = true;
-      this.vendorLabelSendService.buildSapPayload(entries).subscribe({
-        next: (payload) => {
+      this.vendorLabelSendService.sendSap(entries).subscribe({
+        next: (res) => {
           this.isSendingSap = false;
-          this.openPayloadPreview({
-            title: "Payload gửi SAP (xem trước — chưa gửi)",
-            endpoint: "POST /api/post-goods-receipt-po",
-            note: `${payload.OPDN.length} dòng OPDN (thùng) · PO ${row.poCode}`,
-            content: JSON.stringify(payload, null, 2),
-          });
+          this.notifySendResult(res.count, res.statusSaved, "SAP");
+          this.reloadDetail();
         },
         error: (err: unknown) => {
           this.isSendingSap = false;
           this.notificationService.error(
-            resolveHttpErrorMessage(err, "Không dựng được payload SAP."),
+            resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
           );
         },
       });
+      // gửi test payload
+      // this.isSendingSap = true;
+      // this.vendorLabelSendService.buildSapPayload(entries).subscribe({
+      //   next: (payload) => {
+      //     this.isSendingSap = false;
+      //     this.openPayloadPreview({
+      //       title: "Payload gửi SAP (xem trước — chưa gửi)",
+      //       endpoint: "POST /api/post-goods-receipt-po",
+      //       note: `${payload.OPDN.length} dòng OPDN (thùng) · PO ${row.poCode}`,
+      //       content: JSON.stringify(payload, null, 2),
+      //     });
+      //   },
+      //   error: (err: unknown) => {
+      //     this.isSendingSap = false;
+      //     this.notificationService.error(
+      //       resolveHttpErrorMessage(err, "Không dựng được payload SAP."),
+      //     );
+      //   },
+      // });
     });
   }
 
@@ -989,12 +1107,100 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Lưu vật tư đã chọn: POST /sap-por-1-r-1-s/batch (mỗi vật tư 1 dòng PO, gắn deliveryNotificationId)
+   * → thành công thì tải lại chi tiết đơn để bảng hiện dữ liệu thật.
+   */
+  private saveImportedPos(selections: PoImportSelection[]): void {
+    const deliveryId = this.deliveryId;
+    if (deliveryId === null) {
+      return;
+    }
+    const items: SapPor1BatchItem[] = selections.flatMap((sel) =>
+      sel.rows.map((r) => ({
+        ...r.payload,
+        // Mã kho có thể đã sửa trong dialog
+        whsCode: toText(r.whsCode) || r.payload.whsCode,
+        deliveryNotificationId: deliveryId,
+      })),
+    );
+    if (!items.length) {
+      return;
+    }
+    this.isLoadingDetail = true;
+    this.infoTemNccService.createSapPor1Batch(items).subscribe({
+      next: () => {
+        this.notificationService.success(
+          `Đã thêm ${items.length} vật tư từ ${selections.length} PO vào đơn.`,
+        );
+        this.loadDetail(deliveryId);
+      },
+      error: () => {
+        this.isLoadingDetail = false;
+        this.notificationService.error("Lưu vật tư PO vào đơn thất bại.");
+      },
+    });
+  }
+
+  /** Tên NCC của đơn: theo danh sách NCC SAP (orderInfo.vendorName có thể chỉ là mã) */
+  private resolveOrderVendorName(): string {
+    const code = toText(this.orderInfo.vendorCode).toLowerCase();
+    const found = this.vendorOptions.find(
+      (v) => toText(v.cardCode).toLowerCase() === code,
+    );
+    const name = toText(found?.cardName) || toText(this.orderInfo.vendorName);
+    return name.toLowerCase() === code ? "" : name;
+  }
+
+  private updateOrder(id: number): void {
+    const vendor =
+      (this.orderInfo.vendorCode ?? "").trim() ||
+      (this.orderInfo.vendorName ?? "").trim();
+    if (!vendor) {
+      this.notificationService.warning("Vui lòng chọn Nhà cung cấp.");
+      return;
+    }
+    const base = this.loadedOrder;
+    const arrival = this.orderInfo.arrivalDate;
+    const payload: DeliveryNotificationDto = {
+      id,
+      deliveryNotificationCode: (this.orderInfo.deliveryNotice ?? "").trim(),
+      invoiceNumber: (this.orderInfo.invoiceNumber ?? "").trim(),
+      contractCode: (this.orderInfo.contractCode ?? "").trim(),
+      vendorName: vendor,
+      contNo: (this.orderInfo.contNo ?? "").trim(),
+      entryDate:
+        arrival instanceof Date && !isNaN(arrival.getTime())
+          ? arrival.toISOString()
+          : (base?.entryDate ?? null),
+      numberOfPo: base?.numberOfPo ?? null,
+      status: base?.status ?? "New",
+      deletedAt: base?.deletedAt ?? null,
+      deletedBy: base?.deletedBy ?? null,
+      createdBy: base?.createdBy ?? null,
+      createdAt: base?.createdAt ?? null,
+    };
+    this.isSavingOrder = true;
+    this.infoTemNccService.updateDeliveryNotification(payload).subscribe({
+      next: (saved) => {
+        this.isSavingOrder = false;
+        this.loadedOrder = { ...payload, ...(saved ?? {}) };
+        this.notificationService.success("Cập nhật đơn thành công.");
+      },
+      error: () => {
+        this.isSavingOrder = false;
+        this.notificationService.error("Cập nhật đơn thất bại.");
+      },
+    });
+  }
+
   // ==================== DETAIL (API) ====================
 
   private loadDetail(id: number): void {
     this.isLoadingDetail = true;
     this.infoTemNccService.getDeliveryNotificationDetail(id).subscribe({
       next: (detail) => {
+        this.loadedOrder = detail;
         this.orderInfo.deliveryNotice = detail.deliveryNotificationCode ?? "";
         this.orderInfo.vendorCode = detail.vendorName ?? "";
         this.orderInfo.vendorName = detail.vendorName ?? "";
@@ -1003,6 +1209,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           : null;
         this.orderInfo.invoiceNumber = detail.invoiceNumber ?? "";
         this.orderInfo.contractCode = detail.contractCode ?? "";
+        this.orderInfo.contNo = detail.contNo ?? "";
 
         this.expandedPoIds.clear();
         this.expandedMaterialIds.clear();
@@ -1050,7 +1257,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         vehicleNumber: detail.contNo ?? "",
         invoiceNumber: detail.invoiceNumber ?? "",
         contractCode: detail.contractCode ?? "",
-        importDate: toText(detail.entryDate).slice(0, 10),
+        importDate: toText(detail.entryDate),
         importBatch: null,
         materialTypeCount: new Set(lines.map((l) => l.itemCode ?? "")).size,
         totalQuantity: materials.reduce((s, m) => s + m.poQuantity, 0),

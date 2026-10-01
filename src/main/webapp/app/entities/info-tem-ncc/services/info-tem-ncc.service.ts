@@ -29,6 +29,55 @@ export interface DeliveryNotificationDto {
   createdAt: string | null;
 }
 
+/** 1 dòng PO lưu vào đơn — POST /sap-por-1-r-1-s/batch */
+export interface SapPor1BatchItem {
+  lineNum: string | null;
+  baseRef: string | null;
+  baseEntry: string | null;
+  baseLine: string | null;
+  lineStatus: string | null;
+  itemCode: string | null;
+  dscription: string | null;
+  quantity: number;
+  shipDate: string | null;
+  price: string | null;
+  currency: string | null;
+  discPrcnt: string | null;
+  totalSumSy: string | null;
+  openSumSys: string | null;
+  invntSttus: string | null;
+  baseDocNum: string | null;
+  getuTenkythuat: string | null;
+  getuSo: string | null;
+  getuMCode: string | null;
+  docEntry: string | null;
+  totalFrgn: number | null;
+  vatGroup: string | null;
+  uomCode: string | null;
+  unitMsr: string | null;
+  lineVendor: string | null;
+  trgetEntry: string | null;
+  lineTotal: number | null;
+  vatPrcnt: number | null;
+  priceAfVat: number | null;
+  whsCode: string | null;
+  deliveryNotificationId: number;
+}
+
+/** Payload POST /delivery-notifications */
+export interface CreateDeliveryNotificationPayload {
+  deliveryNotificationCode: string;
+  invoiceNumber: string;
+  contractCode: string;
+  vendorName: string;
+  contNo: string;
+  entryDate: string;
+  numberOfPo: number;
+  status: string;
+  createdBy: string;
+  createdAt: string;
+}
+
 export interface DeliveryNotificationPage {
   items: DeliveryNotificationDto[];
   total: number;
@@ -157,6 +206,7 @@ export interface DeliveryNotificationDetailDto extends DeliveryNotificationDto {
   providedIn: "root",
 })
 export class InfoTemNccService {
+  // private readonly url = `${environment.testApiUrl}`;
   private readonly url = `${environment.baseInTemApiUrl}`;
   private readonly urlTI = `${environment.baseInTemApiUrl}`;
   /** Cache part number theo mã SAP — mỗi mã chỉ gọi API 1 lần */
@@ -168,7 +218,12 @@ export class InfoTemNccService {
     page: number,
     size: number,
   ): Observable<DeliveryNotificationPage> {
-    const params = new HttpParams().set("page", page).set("size", size);
+    // Mặc định đơn mới nhất lên đầu (sort theo createdAt giảm dần, id phụ)
+    const params = new HttpParams()
+      .set("page", page)
+      .set("size", size)
+      .append("sort", "createdAt,desc")
+      .append("sort", "id,desc");
     return this.http
       .get<DeliveryNotificationDto[]>(`${this.url}/delivery-notifications`, {
         params,
@@ -185,6 +240,33 @@ export class InfoTemNccService {
           };
         }),
       );
+  }
+
+  /** POST /sap-por-1-r-1-s/batch — lưu các dòng vật tư PO vào đơn */
+  createSapPor1Batch(items: SapPor1BatchItem[]): Observable<boolean> {
+    return this.http
+      .post<unknown>(`${this.url}/sap-por-1-r-1-s/batch`, items)
+      .pipe(map((): boolean => true));
+  }
+
+  /** PUT /delivery-notifications/{id} — cập nhật đơn (kể cả xóa mềm: deletedAt / deletedBy) */
+  updateDeliveryNotification(
+    payload: DeliveryNotificationDto,
+  ): Observable<DeliveryNotificationDto> {
+    return this.http.put<DeliveryNotificationDto>(
+      `${this.url}/delivery-notifications/${payload.id}`,
+      payload,
+    );
+  }
+
+  /** POST /delivery-notifications — tạo mới đơn (thông báo giao hàng) */
+  createDeliveryNotification(
+    payload: CreateDeliveryNotificationPayload,
+  ): Observable<DeliveryNotificationDto> {
+    return this.http.post<DeliveryNotificationDto>(
+      `${this.url}/delivery-notifications`,
+      payload,
+    );
   }
 
   getDeliveryNotificationDetail(

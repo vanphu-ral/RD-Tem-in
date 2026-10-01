@@ -62,6 +62,7 @@ export interface PalletMngtPut {
 
 @Injectable({ providedIn: "root" })
 export class PalletMaterialService {
+  // private readonly url = `${environment.testApiUrl}`;
   private readonly url = `${environment.baseInTemApiUrl}`;
 
   constructor(private http: HttpClient) {}

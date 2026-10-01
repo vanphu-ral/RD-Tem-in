@@ -1,0 +1,265 @@
+<div class="pi">
+  <div class="pi-header">
+    <div class="pi-title">
+      <mat-icon>inventory_2</mat-icon>
+      <div>
+        <h2>Nhập PO</h2>
+        <p>Nhập mã PO, tích chọn vật tư cần nhập. Có thể nhập nhiều PO.</p>
+      </div>
+    </div>
+    <button mat-icon-button type="button" (click)="onClose()" aria-label="Đóng">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="pi-body">
+    <div class="pi-po-row">
+      <div class="pi-input">
+        <mat-icon>search</mat-icon>
+        <input
+          #poInputRef
+          [(ngModel)]="poInput"
+          (keydown.enter)="onFetchPo()"
+          placeholder="Nhập mã PO rồi Enter..."
+          autocomplete="off"
+          cdkFocusInitial
+        />
+      </div>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        [disabled]="isFetching || !poInput.trim()"
+        (click)="onFetchPo()"
+      >
+        <mat-spinner diameter="18" *ngIf="isFetching"></mat-spinner>
+        <span *ngIf="!isFetching">Lấy thông tin</span>
+      </button>
+    </div>
+
+    <!-- Các PO đã tải -->
+    <div class="pi-chips" *ngIf="loadedPos.length">
+      <button
+        type="button"
+        class="pi-chip"
+        *ngFor="let p of loadedPos"
+        [class.active]="p.poCode === activePoCode"
+        [class.mismatch]="p.vendorMismatch"
+        (click)="selectPo(p)"
+      >
+        <mat-icon class="pi-chip-warn" *ngIf="p.vendorMismatch"
+          >warning</mat-icon
+        >
+        PO {{ p.poCode }}
+        <span class="pi-chip-count" *ngIf="selectedCount(p)">{{
+          selectedCount(p)
+        }}</span>
+        <mat-icon class="pi-chip-x" (click)="removePo(p, $event)"
+          >close</mat-icon
+        >
+      </button>
+    </div>
+
+    <div class="pi-empty" *ngIf="!loadedPos.length">
+      Chưa có PO. Nhập mã PO và nhấn "Lấy thông tin".
+    </div>
+
+    <ng-container *ngIf="activePo as po">
+      <p class="pi-sub">
+        PO <strong>{{ po.poCode }}</strong>
+        <span *ngIf="po.vendorName || po.vendorCode">
+          · NCC: <strong>{{ po.vendorName || po.vendorCode }}</strong>
+        </span>
+        · {{ po.rows.length }} vật tư
+      </p>
+      <div class="pi-vendor-warn" *ngIf="po.vendorMismatch">
+        <div class="vw-head">
+          <mat-icon>warning</mat-icon>
+          <strong>PO này không cùng nhà cung cấp với đơn</strong>
+        </div>
+        <div class="vw-compare">
+          <div class="vw-box">
+            <span class="vw-label">Nhà cung cấp của đơn</span>
+            <span class="vw-name">{{
+              orderVendorName || orderVendorCode
+            }}</span>
+            <span class="vw-code" *ngIf="orderVendorName"
+              >Mã: {{ orderVendorCode }}</span
+            >
+          </div>
+          <mat-icon class="vw-vs">compare_arrows</mat-icon>
+          <div class="vw-box po">
+            <span class="vw-label">Nhà cung cấp của PO {{ po.poCode }}</span>
+            <span class="vw-name">{{
+              po.vendorName || po.vendorCode || "Không rõ"
+            }}</span>
+            <span class="vw-code" *ngIf="po.vendorName && po.vendorCode"
+              >Mã: {{ po.vendorCode }}</span
+            >
+          </div>
+        </div>
+        <p class="vw-hint">
+          Vật tư của PO này có thể không thuộc đơn hàng. Hãy kiểm tra lại trước
+          khi chọn.
+        </p>
+      </div>
+
+      <div class="pi-table-wrap">
+        <table class="pi-table">
+          <thead>
+            <tr>
+              <th class="col-check">
+                <mat-checkbox
+                  color="primary"
+                  [checked]="allVisibleChecked"
+                  [indeterminate]="someVisibleChecked"
+                  [disabled]="!selectableVisible.length"
+                  (change)="toggleAllVisible($event.checked)"
+                ></mat-checkbox>
+              </th>
+              <th class="col-stt">STT</th>
+              <th>Mã SAP</th>
+              <th>Tên vật tư</th>
+              <th>Part number</th>
+              <th class="num">SL theo PO</th>
+              <th>ĐVT</th>
+              <th>Mã kho SAP</th>
+            </tr>
+            <tr class="pi-filter-row">
+              <th></th>
+              <th></th>
+              <th>
+                <input
+                  [(ngModel)]="filterSap"
+                  [matAutocomplete]="acSap"
+                  placeholder="Lọc mã SAP"
+                />
+                <mat-autocomplete #acSap="matAutocomplete">
+                  <mat-option
+                    *ngFor="let v of filterOptions('sap')"
+                    [value]="v"
+                    >{{ v }}</mat-option
+                  >
+                </mat-autocomplete>
+              </th>
+              <th>
+                <input
+                  [(ngModel)]="filterName"
+                  [matAutocomplete]="acName"
+                  placeholder="Lọc tên vật tư"
+                />
+                <mat-autocomplete #acName="matAutocomplete" panelWidth="360px">
+                  <mat-option
+                    *ngFor="let v of filterOptions('name')"
+                    [value]="v"
+                    >{{ v }}</mat-option
+                  >
+                </mat-autocomplete>
+              </th>
+              <th>
+                <input
+                  [(ngModel)]="filterPart"
+                  [matAutocomplete]="acPart"
+                  placeholder="Lọc Part"
+                />
+                <mat-autocomplete #acPart="matAutocomplete">
+                  <mat-option
+                    *ngFor="let v of filterOptions('part')"
+                    [value]="v"
+                    >{{ v }}</mat-option
+                  >
+                </mat-autocomplete>
+              </th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="!visibleRows.length">
+              <td colspan="8" class="pi-empty">Không có vật tư phù hợp.</td>
+            </tr>
+            <tr
+              *ngFor="let r of visibleRows; let i = index; trackBy: trackRow"
+              [class.selected]="r.selected"
+              [class.on-table]="r.onTable"
+            >
+              <td class="col-check">
+                <mat-checkbox
+                  color="primary"
+                  [(ngModel)]="r.selected"
+                  [disabled]="r.onTable"
+                ></mat-checkbox>
+              </td>
+              <td class="col-stt">{{ i + 1 }}</td>
+              <td>
+                <strong>{{ r.sapCode || "—" }}</strong>
+                <span class="pi-badge" *ngIf="r.onTable">Đã có trên bảng</span>
+              </td>
+              <td class="col-name" [title]="r.itemName">
+                {{ r.itemName || "—" }}
+              </td>
+              <td class="col-edit">
+                <input
+                  class="cell-input"
+                  [(ngModel)]="r.partNumber"
+                  [matAutocomplete]="acRowPart"
+                  [disabled]="r.onTable"
+                  placeholder="Part number"
+                />
+                <mat-autocomplete #acRowPart="matAutocomplete">
+                  <mat-option *ngFor="let p of partOptionsFor(r)" [value]="p">{{
+                    p
+                  }}</mat-option>
+                </mat-autocomplete>
+              </td>
+              <td class="num">{{ r.quantity | number: "1.0-3" }}</td>
+              <td>{{ r.unit || "—" }}</td>
+              <td class="col-edit">
+                <input
+                  #whsInput
+                  class="cell-input"
+                  [(ngModel)]="r.whsCode"
+                  [matAutocomplete]="acRowWhs"
+                  [disabled]="r.onTable"
+                  [placeholder]="
+                    isLoadingWarehouses ? 'Đang tải kho...' : 'Mã kho SAP'
+                  "
+                />
+                <mat-autocomplete
+                  #acRowWhs="matAutocomplete"
+                  [displayWith]="displayWarehouse"
+                  panelWidth="300px"
+                >
+                  <mat-option
+                    *ngFor="let w of warehouseOptionsFor(whsInput.value)"
+                    [value]="w.whsCode"
+                  >
+                    {{ w.whsCode }} - {{ w.whsName }}
+                  </mat-option>
+                </mat-autocomplete>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+  </div>
+
+  <div class="pi-footer">
+    <span class="pi-summary">
+      Đã chọn <strong>{{ totalSelected }}</strong> vật tư từ
+      <strong>{{ selectedPoCount }}</strong> PO
+    </span>
+    <button mat-stroked-button type="button" (click)="onClose()">Hủy</button>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      [disabled]="!totalSelected"
+      (click)="onConfirm()"
+    >
+      Xác nhận
+    </button>
+  </div>
+</div>
