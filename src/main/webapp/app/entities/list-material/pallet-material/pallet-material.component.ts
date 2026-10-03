@@ -18,6 +18,9 @@ import {
   PalletMaterialService,
   PalletMngtDetail,
   PalletMngtRow,
+  PalletSummary,
+  sortPalletsWithBoxesFirst,
+  summarizePallet,
 } from "../services/pallet-material.service";
 import { DialogContentExampleDialogComponent } from "../confirm-dialog/confirm-dialog.component";
 
@@ -77,6 +80,8 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
 
   private currentUser = "";
   private locationSeq = 0;
+  /** Đổi mỗi lần tải lại danh sách — bỏ kết quả tính số lượng của lần tải cũ */
+  private summarySeq = 0;
 
   constructor(
     private palletService: PalletMaterialService,
@@ -506,11 +511,13 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     this.isLoadingPallets = true;
     this.palletService.getPallets().subscribe({
       next: (rows) => {
-        this.pallets = rows;
+        // Pallet đang có thùng (IN_USE) lên đầu
+        this.pallets = sortPalletsWithBoxesFirst(rows, (p) => p);
         this.isLoadingPallets = false;
-        if (!this.selectedSerial && rows.length) {
-          this.openPallet(rows[0].serialPallet);
+        if (!this.selectedSerial && this.pallets.length) {
+          this.openPallet(this.pallets[0].serialPallet);
         }
+        this.loadSummaries();
       },
       error: () => {
         this.isLoadingPallets = false;
@@ -526,6 +533,8 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       next: (detail) => {
         this.isLoadingDetail = false;
         this.detail = detail;
+        // Cập nhật luôn số thùng / tổng SL của thẻ pallet đang mở
+        this.applySummary(summarizePallet(serial, detail));
         this.rows = (detail?.vendorLabelInfoList ?? []).map((b) =>
           this.toRow(b),
         );
@@ -544,6 +553,48 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
         );
       },
     });
+  }
+
+  /**
+   * API danh sách không trả số thùng / tổng SL → tải chi tiết các pallet đang có thùng
+   * (IN_USE, chưa có số) để điền vào thẻ, xong thì sắp xếp lại.
+   */
+  private loadSummaries(): void {
+    const seq = ++this.summarySeq;
+    const serials = this.pallets
+      .filter(
+        (p) =>
+          String(p.status ?? "").toUpperCase() === "IN_USE" &&
+          (p.numberOfBox === null || p.totalQuantity === null),
+      )
+      .map((p) => p.serialPallet);
+    if (!serials.length) {
+      return;
+    }
+    this.palletService.loadPalletSummaries(serials).subscribe({
+      next: (summary) => {
+        if (seq === this.summarySeq) {
+          this.applySummary(summary);
+        }
+      },
+      complete: () => {
+        if (seq === this.summarySeq) {
+          this.pallets = sortPalletsWithBoxesFirst(this.pallets, (p) => p);
+          this.cdr.markForCheck();
+        }
+      },
+    });
+  }
+
+  /** Ghi số thùng / tổng SL vào thẻ pallet tương ứng */
+  private applySummary(summary: PalletSummary): void {
+    const row = this.pallets.find((p) => p.serialPallet === summary.serial);
+    if (!row) {
+      return;
+    }
+    row.numberOfBox = summary.numberOfBox;
+    row.totalQuantity = summary.totalQuantity;
+    this.cdr.markForCheck();
   }
 
   private scanPallet(code: string): void {

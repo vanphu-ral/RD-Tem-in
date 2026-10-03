@@ -11,12 +11,42 @@
     Danh sách vật tư ngày sản xuất: {{ data.manufacturingDate }}
   </p>
 
+  <!-- Lịch dùng chung cho các ô NSX / HSD -->
+  <input
+    class="picker-anchor"
+    [matDatepicker]="datePicker"
+    [(ngModel)]="pickerValue"
+    (dateChange)="onDatePicked($event.value)"
+    tabindex="-1"
+    aria-hidden="true"
+  />
+  <mat-datepicker #datePicker [startAt]="pickerStartAt"></mat-datepicker>
+
+  <!-- Gợi ý vị trí kho (IndexedDB) -->
+  <mat-autocomplete #bulkLocAuto="matAutocomplete">
+    <mat-option *ngFor="let loc of locationOptions" [value]="loc">
+      {{ loc }}
+    </mat-option>
+  </mat-autocomplete>
+  <mat-autocomplete
+    #cellLocAuto="matAutocomplete"
+    (optionSelected)="onCellLocationPicked($event.option.value)"
+  >
+    <mat-option *ngFor="let loc of locationOptions" [value]="loc">
+      {{ loc }}
+    </mat-option>
+  </mat-autocomplete>
+
   <div class="table-scroll-wrapper">
     <table class="edit-table">
+      <colgroup>
+        <col *ngFor="let col of columns" [style.width.%]="colWidth(col)" />
+      </colgroup>
+
       <!-- ===== HEADER ROW ===== -->
       <thead>
         <tr class="header-row">
-          <th *ngFor="let col of columns" [style.width.%]="colWidthPercent">
+          <th *ngFor="let col of columns">
             <div class="th-content">
               <span>{{ col.label }}</span>
             </div>
@@ -27,25 +57,51 @@
         <tr class="apply-row">
           <td *ngFor="let col of columns">
             <div class="apply-cell" *ngIf="col.editable; else emptyApply">
-              <!-- Input số: chặn âm -->
-              <ng-container
-                *ngIf="col.key === 'initialQuantity'; else textApplyInput"
-              >
+              <ng-container [ngSwitch]="col.type">
+                <!-- Số: chặn âm -->
                 <input
+                  *ngSwitchCase="'number'"
                   class="apply-input"
                   type="number"
                   min="0"
                   [(ngModel)]="bulkValues[col.key]"
                   (keydown.enter)="applyColumn(col.key)"
                 />
-              </ng-container>
-              <ng-template #textApplyInput>
+                <!-- Vị trí kho: gợi ý từ danh sách vị trí -->
                 <input
+                  *ngSwitchCase="'location'"
+                  class="apply-input"
+                  [(ngModel)]="bulkValues[col.key]"
+                  (ngModelChange)="onLocationSearch($event)"
+                  [matAutocomplete]="bulkLocAuto"
+                  (keydown.enter)="applyColumn(col.key)"
+                  placeholder="Tìm vị trí..."
+                  autocomplete="off"
+                />
+                <!-- Ngày: gõ dd/MM/yyyy hoặc chọn lịch -->
+                <ng-container *ngSwitchCase="'date'">
+                  <input
+                    class="apply-input"
+                    [(ngModel)]="bulkValues[col.key]"
+                    (keydown.enter)="applyColumn(col.key)"
+                    placeholder="dd/MM/yyyy"
+                  />
+                  <button
+                    type="button"
+                    class="date-btn"
+                    matTooltip="Chọn ngày cho cả cột"
+                    (click)="openDatePicker(-1, col.key, $event)"
+                  >
+                    <mat-icon>calendar_today</mat-icon>
+                  </button>
+                </ng-container>
+                <input
+                  *ngSwitchDefault
                   class="apply-input"
                   [(ngModel)]="bulkValues[col.key]"
                   (keydown.enter)="applyColumn(col.key)"
                 />
-              </ng-template>
+              </ng-container>
               <button
                 mat-icon-button
                 class="apply-icon-btn"
@@ -84,11 +140,10 @@
                 else displayMode
               "
             >
-              <!-- Input số: chặn âm -->
-              <ng-container
-                *ngIf="col.key === 'initialQuantity'; else textCellInput"
-              >
+              <ng-container [ngSwitch]="col.type">
+                <!-- Số: chặn âm -->
                 <input
+                  *ngSwitchCase="'number'"
                   #cellInput
                   class="cell-input"
                   type="number"
@@ -100,9 +155,24 @@
                   (keydown.escape)="cancelEdit(i, col.key)"
                   (keydown.tab)="moveEditNext(i, col.key, $any($event))"
                 />
-              </ng-container>
-              <ng-template #textCellInput>
+                <!-- Vị trí kho: chọn từ gợi ý (blur khi đang mở gợi ý thì chưa đóng ô) -->
                 <input
+                  *ngSwitchCase="'location'"
+                  #cellInput
+                  #locTrigger="matAutocompleteTrigger"
+                  class="cell-input"
+                  [(ngModel)]="row[col.key]"
+                  (ngModelChange)="onLocationSearch($event)"
+                  (focus)="onLocationSearch(row[col.key])"
+                  [matAutocomplete]="cellLocAuto"
+                  (blur)="!locTrigger.panelOpen && stopEdit()"
+                  (keydown.enter)="!locTrigger.activeOption && stopEdit()"
+                  (keydown.escape)="cancelEdit(i, col.key)"
+                  (keydown.tab)="moveEditNext(i, col.key, $any($event))"
+                  autocomplete="off"
+                />
+                <input
+                  *ngSwitchDefault
                   #cellInput
                   class="cell-input"
                   [(ngModel)]="row[col.key]"
@@ -111,12 +181,38 @@
                   (keydown.escape)="cancelEdit(i, col.key)"
                   (keydown.tab)="moveEditNext(i, col.key, $any($event))"
                 />
-              </ng-template>
+              </ng-container>
             </ng-container>
             <ng-template #displayMode>
-              <span class="cell-value" [title]="row[col.key]">{{
-                row[col.key]
-              }}</span>
+              <!-- Trạng thái gửi PanaCIM / SAP -->
+              <div
+                class="send-badges"
+                *ngIf="col.type === 'status'; else valueCell"
+              >
+                <span class="send-badge" [class.sent]="isPanaSent(row)">{{
+                  isPanaSent(row) ? "Đã gửi PanaCIM" : "Chưa gửi PanaCIM"
+                }}</span>
+                <span class="send-badge" [class.sent]="isSapSent(row)">{{
+                  isSapSent(row) ? "Đã gửi SAP" : "Chưa gửi SAP"
+                }}</span>
+              </div>
+              <ng-template #valueCell>
+                <div class="cell-display">
+                  <span class="cell-value" [title]="row[col.key] ?? ''">{{
+                    row[col.key]
+                  }}</span>
+                  <button
+                    *ngIf="col.type === 'date'"
+                    type="button"
+                    class="date-btn"
+                    matTooltip="Chọn ngày"
+                    (click)="openDatePicker(i, col.key, $event)"
+                    (dblclick)="$event.stopPropagation()"
+                  >
+                    <mat-icon>calendar_today</mat-icon>
+                  </button>
+                </div>
+              </ng-template>
             </ng-template>
           </td>
         </tr>
@@ -132,5 +228,13 @@
 </mat-dialog-content>
 
 <mat-dialog-actions class="dialog-actions">
-  <button mat-raised-button color="primary" (click)="onSave()">Lưu</button>
+  <span class="hint">Bấm đúp vào ô để sửa · Tab sang ô kế tiếp</span>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="isSaving"
+    (click)="onSave()"
+  >
+    {{ isSaving ? "Đang lưu..." : "Lưu" }}
+  </button>
 </mat-dialog-actions>

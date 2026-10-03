@@ -1,3 +1,5 @@
+import { Observable } from "rxjs";
+
 /** Tab chính: Scan | Import */
 export type ScanImportMode = "scan" | "import";
 
@@ -40,6 +42,8 @@ export interface ScanPalletRow {
 
 export interface ScanImportDialogData {
   poCode?: string;
+  /** Mã thông báo giao hàng — hiện trên tiêu đề dialog */
+  deliveryNotice?: string;
   vendorCode?: string;
   warehouse?: string;
   vehicleNumber?: string;
@@ -53,6 +57,8 @@ export interface ScanImportDialogData {
   arrivalDate?: string | Date | null;
   /** ReelID đã có trong đơn — chặn scan trùng */
   existingReelIds?: string[];
+  /** Màn Scan desktop: tải dữ liệu cả đơn cho panel Tổng hợp vật tư (OrderWorkspaceData) */
+  loadOrderPos?: () => Observable<unknown>;
   /** id = sapPor1Id của dòng vật tư trong đơn */
   parentItems?: Array<{
     id: number;

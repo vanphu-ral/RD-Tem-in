@@ -39,6 +39,7 @@ import { InfoTemNccDetailComponent } from "./info-tem-ncc-detail/info-tem-ncc.-d
 import { AddInfoTemNccComponent } from "./add-info-tem-ncc/add-info-tem-ncc.component";
 import { ImportReelPreviewDialogComponent } from "./add-info-tem-ncc/import-reel-preview-dialog/import-reel-preview-dialog.component";
 import { MaterialSummaryDialogComponent } from "./add-info-tem-ncc/material-summary-dialog/material-summary-dialog.component";
+import { OrderSummaryPanelComponent } from "./add-info-tem-ncc/order-summary-panel/order-summary-panel.component";
 import { ScanImportDialogComponent } from "./add-info-tem-ncc/scan-import-dialog/scan-import-dialog.component";
 import { LotDetailDialogComponent } from "./lot-detail-dialog/lot-detail-dialog.component";
 import { ScanItemDialogComponent } from "./scan-item-dialog/scan-item-dialog.component";
@@ -97,6 +98,7 @@ import { MiniPagerComponent } from "./shared/mini-pager/mini-pager.component";
     AddInfoTemNccComponent,
     ImportReelPreviewDialogComponent,
     MaterialSummaryDialogComponent,
+    OrderSummaryPanelComponent,
     ScanImportDialogComponent,
     LotDetailDialogComponent,
     ScanItemDialogComponent,

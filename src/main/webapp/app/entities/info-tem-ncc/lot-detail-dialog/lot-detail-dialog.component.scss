@@ -33,6 +33,7 @@
 // ==================== DIALOG CONTENT ====================
 
 .dialog-content {
+  position: relative;
   padding: 10px 12px 0 !important;
   max-height: none;
   height: calc(92vh - 120px);
@@ -172,8 +173,7 @@
   padding: 4px 3px;
   white-space: normal;
   word-break: break-word;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
   vertical-align: middle;
   height: auto;
   min-height: 32px;
@@ -200,12 +200,61 @@
   }
 }
 
+// Ô cho phép xuống dòng (ReelID, tên hàng dài)
+.cell-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+
 .cell-value {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   color: #111827;
+}
+
+// Nút mở lịch (NSX / HSD)
+.date-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #3d7bb9;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(61, 123, 185, 0.12);
+  }
+
+  mat-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+  }
+}
+
+// Ô ẩn gắn lịch dùng chung
+.picker-anchor {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 // ==================== CELL INPUT ====================
@@ -236,6 +285,15 @@
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+
+  .hint {
+    margin-right: auto;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
   padding: 10px 16px !important;
   border-top: 1px solid #e5e7eb;
   margin: 0 !important;
@@ -262,5 +320,33 @@
     flex-direction: column;
     max-height: 92vh !important;
     width: 100% !important;
+  }
+}
+
+// Trạng thái gửi PanaCIM / SAP
+.send-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.send-badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: #f3f4f6;
+  color: #6b7280;
+
+  &.sent {
+    background: #dcfce7;
+    color: #15803d;
   }
 }

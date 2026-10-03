@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  HostListener,
   Inject,
   OnDestroy,
   OnInit,
@@ -15,7 +16,9 @@ import {
 } from "@angular/material/dialog";
 import {
   ChoiceDialogData,
+  ChoiceDialogResult,
   openChoiceDialog,
+  openChoiceDialog3,
 } from "../../shared/choice-dialog/choice-dialog.component";
 import { PalletMngtService } from "app/entities/pallet-management/list/pallet-mngt.service";
 
@@ -35,13 +38,13 @@ interface PalletRecord {
   updatedBy: string;
 }
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
+import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 import { ManagerTemNccService } from "app/entities/list-material/services/info-tem-ncc.service";
 import {
   ReceivingSuppliesService,
-  SapOwhsDto,
   WarehouseLocation,
 } from "app/entities/generate-tem-in/service/receiving-supplies.service";
-import { forkJoin, Observable, of, retry, take, timer } from "rxjs";
+import { forkJoin, Observable, of, take } from "rxjs";
 import { catchError, map, switchMap } from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
@@ -52,6 +55,15 @@ import {
   parseVendorQrByMappingConfig,
   VendorQrMappingConfig,
 } from "../../shared/vendor-qr-mapping.util";
+import { boxLocation, locationFields } from "../../shared/box-location.util";
+import {
+  clearQueueReason,
+  QUEUE_REASON_HINTS,
+  QUEUE_REASON_LABELS,
+  QueueReason,
+  queueReasonCode,
+  queueReasonOf,
+} from "../../shared/queue-reason.util";
 import {
   CreateVendorLabelInfoPayload,
   PalletDetailDto,
@@ -76,6 +88,35 @@ interface ActivePalletSession {
   scanningBoxCount: number;
 }
 
+/** Vị trí (location) — danh sách lấy từ IndexedDB (local, tránh type-import) */
+interface ScanLocationOption {
+  locationName: string;
+  locationFullName: string;
+}
+
+/** 1 đoạn trong mẫu QR của kịch bản */
+interface QrFormatPart {
+  label: string;
+  ignored: boolean;
+  separator: string;
+  title: string;
+}
+
+/** Màn Scan desktop: mode của ô quét duy nhất */
+type WorkspaceScanMode = "pallet" | "box";
+
+/** Thùng vừa scan — báo panel Tổng hợp chuyển PO + nhấp sáng dòng (local, tránh type-import) */
+interface WorkspaceFollow {
+  poCode: string;
+  sapCode: string;
+  lot: string;
+  seq: number;
+}
+
+const WORKSPACE_LAYOUT_KEY = "scan-workspace-layout";
+const DEFAULT_TOP_PCT = 46;
+const DEFAULT_LEFT_PCT = 30;
+
 /** Mobile — Chi tiết thông tin (local types — tránh eslint any từ type-import) */
 type MobileInfoStep = "scan" | "pos" | "materials" | "lots";
 
@@ -86,7 +127,10 @@ interface MobileInfoBox {
   vendor: string;
   mfgDate: string;
   palletCode: string;
+  location: string;
   missingInfo: boolean;
+  /** Lý do nằm trong hàng chờ (thùng chưa có PO) — null nếu đã có PO */
+  queueReason: QueueReason | null;
   /** id vendor-label-info — dùng cho PUT */
   recordId: number;
 }
@@ -170,6 +214,8 @@ export class ScanImportDialogComponent
   implements OnInit, AfterViewInit, OnDestroy
 {
   @ViewChild("palletInputRef") palletInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild("wsRef") wsRef?: ElementRef<HTMLElement>;
+  @ViewChild("wsTopRef") wsTopRef?: ElementRef<HTMLElement>;
   @ViewChild("boxInputRef") boxInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild("locationInputRef")
   locationInputRef?: ElementRef<HTMLInputElement>;
@@ -179,6 +225,22 @@ export class ScanImportDialogComponent
   readonly data: ScanImportDialogData;
 
   mode: ScanImportMode = "scan";
+
+  // ===== Màn Scan desktop (3 vùng) =====
+  /** Mode ô quét: Pallet / Thùng / Vị trí */
+  scanMode: WorkspaceScanMode = "box";
+  scanValue = "";
+  /** % chiều cao vùng trên (scan + kết quả) */
+  topPct = DEFAULT_TOP_PCT;
+  /** % chiều rộng vùng chọn mode (bên trái) */
+  leftPct = DEFAULT_LEFT_PCT;
+  /** Phóng to vùng Tổng hợp (ẩn vùng scan) */
+  bottomMaximized = false;
+  /** Đổi → panel Tổng hợp tải lại */
+  summaryRefresh = 0;
+  followSignal: WorkspaceFollow | null = null;
+  /** Gợi ý cho ô quét vị trí (desktop + mobile) */
+  scanLocationOptions: ScanLocationOption[] = [];
   listTab: ScanListTab = "box";
 
   /** Kịch bản scan (editable trên mobile) — mặc định = mã vendor đơn */
@@ -216,21 +278,16 @@ export class ScanImportDialogComponent
   /** Date cho mat-datepicker của form LOT (ô nhập vẫn là chuỗi dd/MM/yyyy) */
   lotEditMfgPickerDate: Date | null = null;
   lotEditHsdPickerDate: Date | null = null;
-  /** true khi đang xem LOT từ chip "Vật tư chưa có PO" */
+  /** true khi đang xem LOT từ chip "Hàng chờ vật tư" */
   infoLotsFromUnassigned = false;
   readonly monthOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   readonly yearOptions = [1, 2, 3, 4, 5];
 
-  /** LOT form — vị trí / mã kho */
+  /** LOT form — vị trí (mã kho SAP chỉ hiển thị, theo whsCode của dòng PO) */
   filteredLocationOptions: WarehouseLocation[] = [];
   lastLocationSearchTerm = "";
   locationSearchPending = false;
   locationSearchSettled = false;
-  sapWarehouseList: SapOwhsDto[] = [];
-  filteredSapWarehouseList: SapOwhsDto[] = [];
-  isLoadingSapWarehouses = false;
-  /** Đã tải xong /owhs (thành công hoặc hết 3 lần thử) — không tự gọi lại */
-  sapWarehouseLoadDone = false;
 
   /** Số request lưu thùng đang chờ */
   savingCount = 0;
@@ -240,8 +297,18 @@ export class ScanImportDialogComponent
   private usedReelIds = new Set<string>();
   /** Bản ghi thùng đầy đủ theo id dòng — dùng cho PUT / DELETE */
   private boxRecords = new Map<string, VendorLabelInfoDto>();
+  /** Cache mẫu QR theo mappingConfig (tránh parse lại mỗi lần render) */
+  private qrFormatCache = new Map<string, QrFormatPart[]>();
+  /** Đang kéo thanh chia vùng */
+  private dragAxis: "h" | "v" | null = null;
+  private followSeq = 0;
   /** SL đã nhận theo dòng PO (sapPor1Id) — để phân bổ thùng khi nhiều PO cùng vật tư */
   private receivedByParent = new Map<number, number>();
+  /** Thùng đang POST (chưa có trong dữ liệu tải lại) — key = reelId */
+  private inFlightBoxes = new Map<
+    string,
+    { parentId: number | null; qty: number }
+  >();
   /** Bản ghi pallet-mngt theo mã (để PUT trạng thái), key = serialPallet */
   private palletRecords = new Map<string, PalletRecord>();
   /** Bản ghi thùng cho màn Chi tiết thông tin (key = id bản ghi) */
@@ -260,6 +327,7 @@ export class ScanImportDialogComponent
   private locationSearchSeq = 0;
   private locationSearchTimer: ReturnType<typeof setTimeout> | null = null;
   private activeLocationTrigger: MatAutocompleteTrigger | null = null;
+  private scanLocationSeq = 0;
 
   constructor(
     private dialogRef: MatDialogRef<
@@ -275,9 +343,11 @@ export class ScanImportDialogComponent
     private notificationService: NotificationService,
     private dialog: MatDialog,
     private palletMngtService: PalletMngtService,
+    private warehouseCache: WarehouseCacheService,
   ) {
     this.data = {
       poCode: data?.poCode,
+      deliveryNotice: data?.deliveryNotice,
       vendorCode: data?.vendorCode,
       warehouse: data?.warehouse,
       vehicleNumber: data?.vehicleNumber,
@@ -288,7 +358,9 @@ export class ScanImportDialogComponent
       deliveryNotificationId: data?.deliveryNotificationId ?? null,
       arrivalDate: data?.arrivalDate ?? null,
       existingReelIds: data?.existingReelIds ?? [],
+      loadOrderPos: data?.loadOrderPos,
     };
+    this.restoreLayout();
     this.scenarioCodeValue = this.resolveScenario();
     for (const reelId of this.data.existingReelIds ?? []) {
       const id = toText(reelId);
@@ -306,6 +378,7 @@ export class ScanImportDialogComponent
         this.currentUser = account?.login ?? "";
       });
     this.loadScenarios();
+    void this.warehouseCache.ensureSynced().catch(() => undefined);
     // Kho SAP (/owhs) chỉ tải khi mở form "Điền thông tin LOT" — xem openLotEdit()
     this.loadParentPartNumbers();
     this.loadExistingBoxes();
@@ -329,20 +402,14 @@ export class ScanImportDialogComponent
     );
   }
 
+  /** Tiêu đề: thông báo giao hàng của đơn */
   get headerTitle(): string {
-    const vehicle = this.data.vehicleNumber;
-    if (typeof vehicle === "string" && vehicle.length > 0) {
-      return `Số xe ${vehicle}`;
-    }
-    return "Quét vật tư";
+    return `Thông báo giao hàng: ${toText(this.data.deliveryNotice) || "—"}`;
   }
 
+  /** Phụ đề: số xe · hợp đồng của đơn */
   get headerSubtitle(): string {
-    const contract = this.data.contractCode;
-    if (typeof contract === "string" && contract.length > 0) {
-      return `Hợp đồng ${contract}`;
-    }
-    return "Scan hoặc Import - hỗ trợ cả mã Thùng và mã Pallet";
+    return `Số xe: ${toText(this.data.vehicleNumber) || "—"} · Hợp đồng: ${toText(this.data.contractCode) || "—"}`;
   }
 
   get scenarioCode(): string {
@@ -399,6 +466,33 @@ export class ScanImportDialogComponent
     return code ? this.palletRows.filter((p) => p.palletCode === code) : [];
   }
 
+  /** Có panel Tổng hợp (đơn đã lưu) */
+  get hasSummary(): boolean {
+    return !!this.data.loadOrderPos;
+  }
+
+  get scanModeLabel(): string {
+    return this.scanMode === "pallet" ? "SCAN PALLET" : "SCAN THÙNG";
+  }
+
+  get locationPlaceholder(): string {
+    return this.activePallet ? `Quét vị trí ...` : "Quét vị trí ...";
+  }
+
+  get scanPlaceholder(): string {
+    if (this.scanMode === "pallet") {
+      return "Quét mã Pallet...";
+    }
+    return this.activePallet
+      ? `Quét mã Thùng vào pallet ${this.activePallet.palletCode}...`
+      : "Quét mã Thùng (thùng lẻ)...";
+  }
+
+  /** Mọi thùng đã scan (thùng lẻ + thùng trong pallet) */
+  get allScannedBoxes(): ScanBoxRow[] {
+    return [...this.boxRows, ...this.palletRows.flatMap((p) => p.boxes)];
+  }
+
   get palletCount(): number {
     return this.palletRows.length;
   }
@@ -412,6 +506,161 @@ export class ScanImportDialogComponent
 
   setListTab(tab: ScanListTab): void {
     this.listTab = tab;
+  }
+
+  /** Chọn mode quét (bấm nút hoặc F1/F2/F3) → focus ô quét */
+  setScanMode(mode: WorkspaceScanMode): void {
+    this.scanMode = mode;
+    if (mode === "pallet") {
+      this.listTab = "pallet";
+    }
+    this.focusWorkspaceInput();
+  }
+
+  /**
+   * Enter ở ô quét desktop → chuyển cho đúng xử lý theo mode (logic scan giữ nguyên).
+   * Tự chuyển mode: quét pallet xong → Thùng; quét vị trí xong → Thùng.
+   */
+  onWorkspaceScanEnter(): void {
+    const value = this.scanValue.trim();
+    this.scanValue = "";
+    if (!value) {
+      return;
+    }
+    if (this.scanMode === "pallet") {
+      if (this.isCheckingPallet) {
+        return;
+      }
+      this.palletCode = value;
+      this.checkScannedPallet(value);
+      return;
+    }
+    this.submitBoxScan(value);
+    this.focusWorkspaceInput();
+  }
+
+  /**
+   * Enter ở ô vị trí (desktop): có pallet đang quét → áp cho các thùng của pallet đó;
+   * không → các thùng lẻ chưa có vị trí. Xong quay lại ô quét chính.
+   */
+  onWorkspaceLocationEnter(trigger?: MatAutocompleteTrigger): void {
+    // Đang chọn 1 dòng gợi ý bằng phím → để optionSelected xử lý
+    if (trigger?.panelOpen && trigger.activeOption) {
+      return;
+    }
+    trigger?.closePanel();
+    this.applyScannedLocation(this.locationCode, () =>
+      this.focusWorkspaceInput(),
+    );
+  }
+
+  /** Gõ / quét vào ô vị trí → gợi ý từ danh sách vị trí (IndexedDB) */
+  onScanLocationInput(value: string): void {
+    const term = toText(value);
+    const seq = ++this.scanLocationSeq;
+    if (!term) {
+      this.scanLocationOptions = [];
+      return;
+    }
+    void this.warehouseCache
+      .searchByName(term)
+      .then((list) => {
+        if (seq !== this.scanLocationSeq) {
+          return;
+        }
+        this.scanLocationOptions = list.map(
+          (w): ScanLocationOption => ({
+            locationName: toText(w.locationName),
+            locationFullName: toText(w.locationFullName),
+          }),
+        );
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        this.scanLocationOptions = [];
+      });
+  }
+
+  /** Chọn vị trí từ gợi ý → áp luôn */
+  onScanLocationPicked(value: string): void {
+    this.applyScannedLocation(value, () =>
+      this.isMobile ? this.focusMobileLocation() : this.focusWorkspaceInput(),
+    );
+  }
+
+  /** F1 Pallet · F2 Thùng (desktop) */
+  @HostListener("document:keydown", ["$event"])
+  onWorkspaceHotkey(event: KeyboardEvent): void {
+    if (this.isMobile) {
+      return;
+    }
+    const hotkeys: Record<string, WorkspaceScanMode> = {
+      F1: "pallet",
+      F2: "box",
+    };
+    const mode = hotkeys[event.key];
+    if (mode) {
+      event.preventDefault();
+      this.setScanMode(mode);
+    }
+  }
+
+  startDrag(axis: "h" | "v", event: MouseEvent): void {
+    event.preventDefault();
+    this.dragAxis = axis;
+    document.body.style.cursor = axis === "h" ? "row-resize" : "col-resize";
+  }
+
+  @HostListener("document:mousemove", ["$event"])
+  onDragMove(event: MouseEvent): void {
+    if (!this.dragAxis) {
+      return;
+    }
+    if (this.dragAxis === "h") {
+      const rect = this.wsRef?.nativeElement.getBoundingClientRect();
+      if (rect?.height) {
+        const pct = ((event.clientY - rect.top) / rect.height) * 100;
+        this.topPct = Math.min(80, Math.max(20, pct));
+      }
+      return;
+    }
+    const rect = this.wsTopRef?.nativeElement.getBoundingClientRect();
+    if (rect?.width) {
+      const pct = ((event.clientX - rect.left) / rect.width) * 100;
+      this.leftPct = Math.min(50, Math.max(18, pct));
+    }
+  }
+
+  @HostListener("document:mouseup")
+  onDragEnd(): void {
+    if (!this.dragAxis) {
+      return;
+    }
+    this.dragAxis = null;
+    document.body.style.cursor = "";
+    this.saveLayout();
+  }
+
+  /** Bấm đúp thanh chia → tỉ lệ mặc định */
+  resetSplit(axis: "h" | "v"): void {
+    if (axis === "h") {
+      this.topPct = DEFAULT_TOP_PCT;
+    } else {
+      this.leftPct = DEFAULT_LEFT_PCT;
+    }
+    this.saveLayout();
+  }
+
+  toggleBottomMaximized(): void {
+    this.bottomMaximized = !this.bottomMaximized;
+    if (!this.bottomMaximized) {
+      this.focusWorkspaceInput();
+    }
+  }
+
+  /** Lưu ở panel Tổng hợp → làm mới bảng kết quả scan (vị trí, mã kho...) */
+  onSummarySaved(): void {
+    this.reloadScannedBoxes();
   }
 
   isPalletExpanded(row: ScanPalletRow): boolean {
@@ -457,21 +706,15 @@ export class ScanImportDialogComponent
     }, 0);
   }
 
-  onLocationKeydown(event: KeyboardEvent): void {
-    if (event.key !== "Enter") {
+  /** Mobile: Enter ở ô vị trí */
+  onMobileLocationEnter(trigger?: MatAutocompleteTrigger): void {
+    if (trigger?.panelOpen && trigger.activeOption) {
       return;
     }
-    event.preventDefault();
-    const code = this.locationCode.trim();
-    if (!code) {
-      return;
-    }
-    // Chỉ xử lý khi user tự focus vào ô Vị trí — clear rồi giữ focus tại đây
-    this.submitLocationScan(code);
-    this.locationCode = "";
-    setTimeout(() => {
-      this.locationInputRef?.nativeElement?.focus();
-    }, 0);
+    trigger?.closePanel();
+    this.applyScannedLocation(this.locationCode, () =>
+      this.focusMobileLocation(),
+    );
   }
 
   /** Chuyển sang quét pallet khác */
@@ -669,7 +912,7 @@ export class ScanImportDialogComponent
     }
   }
 
-  /** Chip "Vật tư chưa có PO" → thẳng màn LOT */
+  /** Chip "Hàng chờ vật tư" → thẳng màn LOT */
   openUnassignedLots(): void {
     const mat = this.unassignedMaterial;
     if (!mat || !mat.lots.length) {
@@ -685,6 +928,57 @@ export class ScanImportDialogComponent
       this.expandedLotIds.add(mat.lots[0].id);
       this.expandedLotIds = new Set(this.expandedLotIds);
     }
+  }
+
+  /** Xóa thùng ở lớp LOT (Chi tiết thông tin) — DELETE + bỏ khỏi danh sách scan */
+  onDeleteInfoBox(box: MobileInfoBox): void {
+    const recordId = box.recordId;
+    this.confirmAction({
+      title: "Xóa thùng",
+      highlight: box.code,
+      message: "Thùng sẽ bị xóa khỏi đơn. Tiếp tục?",
+      confirmText: "Xóa",
+      cancelText: "Hủy",
+      tone: "danger",
+    }).subscribe((ok) => {
+      if (!ok) {
+        return;
+      }
+      const loose = this.boxRows.find((r) => r.dbId === recordId);
+      const pallet = this.palletRows.find((p) =>
+        p.boxes.some((b) => b.dbId === recordId),
+      );
+      const inPallet = pallet?.boxes.find((b) => b.dbId === recordId);
+      const row = loose ?? inPallet;
+      const request: Observable<boolean> = row
+        ? this.deleteBoxRecord(row)
+        : this.infoTemNccService.deleteVendorLabelInfo(recordId).pipe(
+            map((): boolean => {
+              this.usedReelIds.delete(toText(box.code));
+              return true;
+            }),
+            catchError(() => of(false)),
+          );
+      request.subscribe((done: boolean) => {
+        if (!done) {
+          this.notificationService.error(`Xóa thùng "${box.code}" thất bại.`);
+          return;
+        }
+        if (loose) {
+          this.boxRows = this.boxRows.filter((r) => r !== loose);
+        }
+        if (pallet && inPallet) {
+          this.removeBoxFromPalletLocal(pallet, inPallet);
+          if (!pallet.boxes.length) {
+            this.setPalletStatus(pallet.palletCode, "UNUSED");
+          }
+        }
+        this.notificationService.success(`Đã xóa thùng "${box.code}".`);
+        this.bumpSummary();
+        this.loadInfoData();
+        this.cdr.markForCheck();
+      });
+    });
   }
 
   toggleInfoLot(lot: MobileInfoLot): void {
@@ -725,10 +1019,6 @@ export class ScanImportDialogComponent
           : ""),
     };
     this.syncLotEditPickerDates();
-    // Lần đầu mở form LOT mới tải danh sách kho SAP (tối đa 3 lần, lỗi mới báo)
-    if (!this.sapWarehouseList.length) {
-      this.loadSapWarehouses(this.editingLot.warehouseCode);
-    }
   }
 
   closeLotEdit(): void {
@@ -794,76 +1084,37 @@ export class ScanImportDialogComponent
 
   /**
    * "Áp dụng tất cả thùng": ghi thông tin LOT vào mọi thùng trong LOT (chưa gửi API) —
-   * bấm "Cập nhật" mới PUT. Vào từ "Vật tư chưa có PO" thì chỉ các thùng chưa có PO đó.
+   * bấm "Cập nhật" mới PUT. Vào từ "Hàng chờ vật tư" thì chỉ các thùng chưa có PO đó.
    */
   applyLotEditToAllBoxes(): void {
     const edited = this.editingLot;
     if (!edited || this.isSavingLot) {
       return;
     }
-    const mfg = this.toApiDate(edited.mfgDate);
-    let hsd = this.toApiDate(edited.hsd);
-    if (edited.expiryOffset && mfg) {
-      hsd = this.addExpiry(mfg, edited.expiryMode, edited.expiryOffset);
+    const location = toText(edited.location);
+    if (!location) {
+      this.applyLotEdit(edited);
+      return;
     }
-    const poCode = toText(edited.po);
-    const orKeep = (value: unknown, original: unknown): unknown =>
-      toText(value) ? toText(value) : original;
-
-    const payloads: VendorLabelInfoDto[] = [];
-    for (const box of edited.boxes) {
-      const rec = this.infoRecords.get(box.recordId);
-      if (!rec?.id) {
-        continue;
-      }
-      // Thùng chưa có PO + đã nhập PO → gán vào dòng vật tư khớp PO + mã SAP/Part
-      let sapPor1Id = rec.sapPor1Id;
-      if (!sapPor1Id && poCode) {
-        sapPor1Id =
-          this.findParentByPo(
-            poCode,
-            toText(rec.sapCode),
-            toText(rec.partNumber),
-          )?.id ?? null;
-      }
-      payloads.push({
-        ...rec,
-        initialQuantity:
-          edited.quantity === null || edited.quantity === undefined
-            ? rec.initialQuantity
-            : Number(edited.quantity),
-        userData5: orKeep(poCode, rec.userData5) as string | null,
-        subStorageUnit: orKeep(edited.location, rec.subStorageUnit) as
-          | string
-          | null,
-        storageUnit: orKeep(edited.warehouseCode, rec.storageUnit) as
-          | string
-          | null,
-        manufacturingDate: orKeep(mfg, rec.manufacturingDate) as string | null,
-        expirationDate: orKeep(hsd, rec.expirationDate) as string | null,
-        userData4: orKeep(edited.userData4, rec.userData4) as string | null,
-        msdLevel: orKeep(edited.msl, rec.msdLevel) as string | null,
-        userData1: orKeep(edited.rankAp, rec.userData1) as string | null,
-        userData2: orKeep(edited.rankMau, rec.userData2) as string | null,
-        userData3: orKeep(edited.rankQuang, rec.userData3) as string | null,
-        sapPor1Id,
-        palletBoxMapping: undefined,
+    // Vị trí phải có trong danh sách vị trí
+    void this.lookupLocation(location)
+      .then((found) => {
+        if (this.editingLot !== edited) {
+          return;
+        }
+        if (!found) {
+          this.notificationService.error(
+            `Vị trí "${location}" không có trong danh sách vị trí.`,
+          );
+          return;
+        }
+        edited.location = found;
+        this.applyLotEdit(edited);
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        this.notificationService.error("Không kiểm tra được danh sách vị trí.");
       });
-    }
-    for (const payload of payloads) {
-      this.pendingInfoEdits.set(payload.id, payload);
-      this.infoRecords.set(payload.id, payload);
-    }
-    this.editingLot = null;
-    if (payloads.length) {
-      this.notificationService.info(
-        `Đã áp dụng cho ${payloads.length} thùng — bấm "Cập nhật" để lưu.`,
-      );
-    }
-    // Dựng lại màn từ dữ liệu đã áp dụng (số thùng, tổng SL, trạng thái đủ thông tin)
-    if (this.lastInfoDetail) {
-      this.buildInfoData(this.lastInfoDetail, this.lastInfoBoxes);
-    }
   }
 
   /** Nút "Cập nhật": PUT /vendor-label-infos/{id} cho mọi thùng đã áp dụng thay đổi */
@@ -930,8 +1181,29 @@ export class ScanImportDialogComponent
     return `${row.vendor} - ${row.lot} - ${date}`;
   }
 
+  queueReasonLabel(reason: QueueReason): string {
+    return QUEUE_REASON_LABELS[reason];
+  }
+
+  queueReasonHint(reason: QueueReason): string {
+    return QUEUE_REASON_HINTS[reason];
+  }
+
+  /** Số thùng theo lý do hàng chờ trong 1 LOT */
+  lotQueueReasons(
+    lot: MobileInfoLot,
+  ): Array<{ reason: QueueReason; count: number }> {
+    const counts = new Map<QueueReason, number>();
+    for (const b of lot.boxes) {
+      if (b.queueReason) {
+        counts.set(b.queueReason, (counts.get(b.queueReason) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()].map(([reason, count]) => ({ reason, count }));
+  }
+
   infoBoxMeta(box: MobileInfoBox): string {
-    return `Số lượng: ${box.quantity} - ${box.vendor} - - ${box.mfgDate} - ${box.palletCode}`;
+    return `Số lượng: ${box.quantity} - ${box.vendor} - ${box.mfgDate} - Pallet: ${box.palletCode} - Vị trí: ${box.location || "Chưa gán"}`;
   }
 
   formatMfg(value: string): string {
@@ -991,6 +1263,79 @@ export class ScanImportDialogComponent
     } catch {
       this.data.mappingConfig = null;
     }
+  }
+
+  /**
+   * Mẫu QR của kịch bản (mappingConfig): các đoạn theo position nối bằng separator,
+   * vd "Real ID#Part Number#Vendor#PO#MFG Date#Quantity#LOT". Đoạn "Không lấy" hiện mờ.
+   */
+  qrFormat(config: unknown): QrFormatPart[] {
+    const key =
+      typeof config === "string" ? config : JSON.stringify(config ?? null);
+    const cached = this.qrFormatCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    let parsed: unknown = config;
+    if (typeof config === "string") {
+      try {
+        parsed = JSON.parse(config);
+      } catch {
+        parsed = null;
+      }
+    }
+    const cfg = (parsed ?? {}) as {
+      separator?: unknown;
+      fieldMappings?: Array<{
+        position?: unknown;
+        nccFieldDesc?: unknown;
+        dataField?: unknown;
+      }>;
+    };
+    const separator = toText(cfg.separator) || "|";
+    const parts: QrFormatPart[] = (
+      Array.isArray(cfg.fieldMappings) ? cfg.fieldMappings : []
+    )
+      .slice()
+      .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))
+      .map((fm) => {
+        const dataField = toText(fm.dataField);
+        const label = toText(fm.nccFieldDesc) || dataField || "?";
+        const ignored = !dataField || dataField === "Không lấy";
+        return {
+          label,
+          ignored,
+          separator,
+          title: ignored ? `${label}: không lấy` : `${label} → ${dataField}`,
+        };
+      });
+    this.qrFormatCache.set(key, parts);
+    return parts;
+  }
+
+  /** Hiển thị kịch bản: "mã - tên" (giá trị lưu vẫn là mã) */
+  displayScenario = (code: string | null): string => {
+    const c = toText(code);
+    if (!c) {
+      return "";
+    }
+    const s = this.scenarioOptions.find((o) => o.vendorCode === c);
+    return s && s.vendorName ? `${s.vendorCode} - ${s.vendorName}` : c;
+  };
+
+  /** Vị trí của pallet: vị trí chung của các thùng; thùng khác nhau → "Nhiều vị trí" */
+  palletLocation(row: ScanPalletRow): string {
+    const locs = new Set(
+      row.boxes.map((b) => toText(b.location)).filter(Boolean),
+    );
+    if (locs.size === 1) {
+      return [...locs][0];
+    }
+    if (locs.size > 1) {
+      return "Nhiều vị trí";
+    }
+    const label = toText(row.locationLabel);
+    return label === "Chưa gán" ? "" : label;
   }
 
   onScenarioSelectedByCode(code: string): void {
@@ -1074,36 +1419,6 @@ export class ScanImportDialogComponent
     this.editingLot.location = this.resolveLocationName(selected);
   }
 
-  onLotWarehouseSearch(keyword: string): void {
-    // Chưa có danh sách kho → tải nền (không khóa ô nhập)
-    if (!this.sapWarehouseList.length && !this.isLoadingSapWarehouses) {
-      this.loadSapWarehouses(keyword);
-    }
-    const term = toText(keyword).toLowerCase();
-    this.filteredSapWarehouseList = term
-      ? this.sapWarehouseList.filter(
-          (whs) =>
-            toText(whs.whsCode).toLowerCase().includes(term) ||
-            toText(whs.whsName).toLowerCase().includes(term),
-        )
-      : [...this.sapWarehouseList];
-  }
-
-  displaySapWarehouse = (code: string | null): string => {
-    if (!code) {
-      return "";
-    }
-    const whs = this.sapWarehouseList.find((w) => w.whsCode === code);
-    return whs ? `${whs.whsCode} - ${whs.whsName}` : code;
-  };
-
-  onLotWarehouseSelected(code: string): void {
-    if (!this.editingLot) {
-      return;
-    }
-    this.editingLot.warehouseCode = (code ?? "").trim();
-  }
-
   /**
    * Xử lý mã thùng vừa quét — cùng logic tách chuỗi với scan-item-dialog cũ:
    * tách QR theo kịch bản → đối chiếu vật tư trong đơn → POST vendor-label-infos
@@ -1145,7 +1460,7 @@ export class ScanImportDialogComponent
     const candidates = this.findParentCandidates(scannedPartNumber, scannedSap);
 
     // Không khớp vật tư/PO nào trong đơn → vẫn lưu (sapPor1Id = null),
-    // hiện ở "Vật tư chưa có PO" để gán PO sau
+    // hiện ở "Hàng chờ vật tư" để gán PO sau
     const noPoMatched =
       (this.data.parentItems ?? []).length > 0 && !candidates.length;
 
@@ -1169,12 +1484,32 @@ export class ScanImportDialogComponent
       );
       return;
     }
-    // QR có PO → đúng PO đó; không có → PO thêm trước còn thiếu SL, đủ rồi mới sang PO sau
+    // QR có PO → ưu tiên PO đó; không có → PO thêm trước còn đủ chỗ cho cả thùng.
+    // PO trên QR không khớp PO nào của vật tư này → "Hàng chờ vật tư" (Sai PO);
+    // mọi PO cùng vật tư đều không đủ chỗ → thùng dư, "Hàng chờ vật tư" (Thừa SL)
     const qrPo = this.firstNonEmpty(
       fieldMap["userData5"],
       fieldMap["poNumber"],
     );
-    const matchedRow = this.pickParentForBox(candidates, qrPo, reelId);
+    const samePo = (po: unknown): boolean =>
+      toText(po).toLowerCase() === qrPo.toLowerCase();
+    const qrPoMismatch =
+      !!qrPo &&
+      candidates.length > 0 &&
+      !candidates.some((c) => samePo(c.poCode));
+    const matchedRow = qrPoMismatch
+      ? undefined
+      : this.pickParentForBox(candidates, qrPo, quantity);
+    const overflowQueued =
+      candidates.length > 0 && !matchedRow && !qrPoMismatch;
+    let queueReason: QueueReason | null = null;
+    if (!matchedRow) {
+      queueReason = qrPoMismatch
+        ? "poMismatch"
+        : overflowQueued
+          ? "overflow"
+          : "noPo";
+    }
 
     let manufacturingDate = mapped("manufacturingDate")
       ? normalizeVendorDateToYyyyMmDd(fieldMap["manufacturingDate"])
@@ -1207,13 +1542,14 @@ export class ScanImportDialogComponent
       userData2: orNull(mapped("userData2")),
       userData3: orNull(mapped("userData3")),
       userData4: orNull(mapped("userData4")),
+      // Có dòng PO → mã PO của dòng đó; vào hàng chờ → chỉ giữ PO trên QR (nếu có)
       userData5: orNull(
-        this.firstNonEmpty(
-          fieldMap["userData5"],
-          fieldMap["poNumber"],
-          matchedRow?.poCode,
-          this.data.poCode,
-        ),
+        matchedRow
+          ? this.firstNonEmpty(matchedRow.poCode, qrPo)
+          : this.firstNonEmpty(
+              qrPo,
+              candidates.length || noPoMatched ? "" : this.data.poCode,
+            ),
       ),
       initialQuantity: quantity,
       msdLevel: orNull(mapped("msl", "msdLevel")),
@@ -1225,15 +1561,23 @@ export class ScanImportDialogComponent
       spMaterialName: orNull(mapped("spMaterialName")),
       warningLimit: null,
       maximumLimit: null,
-      comments: null,
+      // Vào hàng chờ → ghi lý do (thừa SL / thiếu PO) để hiện badge
+      comments: queueReason ? queueReasonCode(queueReason) : null,
       warmupTime: null,
-      storageUnit: orNull(mapped("storageUnit")),
+      // Vị trí kho gán sau (quét vị trí / form LOT); mã kho SAP = whsCode của dòng PO
+      storageUnit: null,
       subStorageUnit: null,
       locationOverride: orNull(mapped("locationOverride")),
       expirationDate: orNull(expirationDate),
       manufacturingDate: orNull(manufacturingDate),
       partClass: null,
-      sapCode: orNull(this.firstNonEmpty(matchedRow?.sapCode, scannedSap)),
+      sapCode: orNull(
+        this.firstNonEmpty(
+          matchedRow?.sapCode,
+          candidates[0]?.sapCode,
+          scannedSap,
+        ),
+      ),
       vendorQrCode: rawCode,
       status: null,
       createdBy: orNull(this.currentUser),
@@ -1247,6 +1591,45 @@ export class ScanImportDialogComponent
       sapPor1Id: matchedRow?.id ?? null,
     };
 
+    if (qrPoMismatch) {
+      const code = toText(candidates[0].sapCode) || scannedPartNumber;
+      const inOrder = (this.data.parentItems ?? []).some((p) =>
+        samePo(p.poCode),
+      );
+      this.notificationService.warning(
+        inOrder
+          ? `Thùng "${reelId}": PO ${qrPo} trên tem không chứa vật tư ${code} — đã đưa vào "Hàng chờ vật tư".`
+          : `Thùng "${reelId}": PO ${qrPo} trên tem không có trong đơn — đã đưa vào "Hàng chờ vật tư".`,
+      );
+    } else if (overflowQueued) {
+      const code = toText(candidates[0].sapCode) || scannedPartNumber;
+      this.notificationService.warning(
+        `Thùng "${reelId}" (SL ${quantity}) vượt SL các PO của vật tư ${code} — đã đưa vào "Hàng chờ vật tư".`,
+      );
+    } else if (
+      matchedRow &&
+      qrPo &&
+      toText(matchedRow.poCode).toLowerCase() !== qrPo.toLowerCase() &&
+      candidates.some(
+        (c) => toText(c.poCode).toLowerCase() === qrPo.toLowerCase(),
+      )
+    ) {
+      this.notificationService.info(
+        `PO ${qrPo} đã đủ SL — thùng "${reelId}" được thêm vào PO ${toText(matchedRow.poCode)}.`,
+      );
+    }
+    this.usedReelIds.add(reelId);
+    this.saveScannedBox(payload, matchedRow, reelId, quantity, noPoMatched);
+  }
+
+  /** POST thùng (lẻ hoặc vào pallet đang quét) → lưu thành công mới hiện lên bảng */
+  private saveScannedBox(
+    payload: CreateVendorLabelInfoPayload,
+    matchedRow: ParentItem | undefined,
+    reelId: string,
+    quantity: number,
+    noPoMatched: boolean,
+  ): void {
     // Đang có pallet → POST /vendor-label-infos/pallet; không có → POST /vendor-label-infos
     const palletCode = this.activePallet?.palletCode ?? null;
     const save$: Observable<VendorLabelInfoDto | undefined> = palletCode
@@ -1265,12 +1648,16 @@ export class ScanImportDialogComponent
           .createVendorLabelInfo(payload)
           .pipe(map((res): VendorLabelInfoDto | undefined => res ?? undefined));
 
-    this.usedReelIds.add(reelId);
     this.addReceived(matchedRow?.id ?? null, quantity);
+    this.inFlightBoxes.set(reelId, {
+      parentId: matchedRow?.id ?? null,
+      qty: quantity,
+    });
     this.savingCount++;
     save$.subscribe({
       next: (saved) => {
         this.savingCount--;
+        this.inFlightBoxes.delete(reelId);
         // Backend không trả bản ghi → giữ payload đã gửi (không có id thì không PUT/DELETE được)
         const record: VendorLabelInfoDto = {
           ...payload,
@@ -1281,7 +1668,7 @@ export class ScanImportDialogComponent
         const row = this.toBoxRow(record, this.nowTime());
         if (noPoMatched) {
           this.notificationService.warning(
-            `Thùng "${reelId}" chưa xác định được PO — xem ở "Vật tư chưa có PO".`,
+            `Thùng "${reelId}" chưa xác định được PO — xem ở "Hàng chờ vật tư".`,
           );
         }
         if (palletCode) {
@@ -1291,10 +1678,19 @@ export class ScanImportDialogComponent
           this.boxRows = [row, ...this.boxRows];
           this.listTab = "box";
         }
+        // Panel Tổng hợp: tải lại + chuyển sang PO của thùng, nhấp sáng dòng
+        this.followSignal = {
+          poCode: toText(row.poCode),
+          sapCode: toText(record.sapCode) || toText(record.partNumber),
+          lot: toText(record.lot),
+          seq: ++this.followSeq,
+        };
+        this.bumpSummary();
         this.cdr.markForCheck();
       },
       error: () => {
         this.savingCount--;
+        this.inFlightBoxes.delete(reelId);
         this.usedReelIds.delete(reelId);
         this.addReceived(matchedRow?.id ?? null, -quantity);
         this.notificationService.error(`Lưu thùng "${reelId}" thất bại.`);
@@ -1307,7 +1703,7 @@ export class ScanImportDialogComponent
    * Quét mã pallet:
    *  - chưa có trong DS quản lý → popup [Quét mã khác] / [Xác nhận tạo pallet]
    *  - đã có, chưa có thùng → dùng luôn, focus ô thùng
-   *  - đã có thùng → popup [Quét mã pallet khác] / [Gỡ thùng khỏi pallet]
+   *  - đã có thùng → popup [Scan tiếp vào pallet] / [Gỡ thùng khỏi pallet] / [Quét mã khác]
    */
   private checkScannedPallet(code: string): void {
     this.isCheckingPallet = true;
@@ -1326,7 +1722,7 @@ export class ScanImportDialogComponent
           return;
         }
         this.setPalletStatus(code, "IN_USE");
-        this.askRemoveBoxesFromPallet(code, pallet);
+        this.askExistingPallet(code, pallet);
       },
       error: () => {
         this.isCheckingPallet = false;
@@ -1393,69 +1789,82 @@ export class ScanImportDialogComponent
     });
   }
 
-  private askRemoveBoxesFromPallet(
-    code: string,
-    pallet: PalletDetailDto,
-  ): void {
+  /**
+   * Pallet đã chứa thùng → chọn: [Scan tiếp vào pallet] / [Gỡ thùng khỏi pallet] / [Quét mã khác]
+   */
+  private askExistingPallet(code: string, pallet: PalletDetailDto): void {
     const boxes = pallet.vendorLabelInfoList ?? [];
-    this.confirmAction({
+    openChoiceDialog3(this.dialog, {
       title: "Pallet đã có thùng",
       highlight: code,
-      message: `Pallet đang chứa ${boxes.length} thùng. Gỡ hết thùng để quét lại, hoặc quét pallet khác.`,
-      confirmText: "Gỡ thùng",
-      cancelText: "Quét pallet khác",
+      message: `Pallet đang chứa ${boxes.length} thùng. Chọn thao tác:`,
+      confirmText: "Scan tiếp vào pallet",
+      extraText: "Gỡ thùng khỏi pallet",
+      cancelText: "Quét mã khác",
       tone: "warning",
-    }).subscribe((ok) => {
-      if (!ok) {
-        this.focusPalletInput();
+    }).subscribe((choice: ChoiceDialogResult) => {
+      if (choice === "confirm") {
+        this.activatePallet(code, toText(pallet.locationName));
         return;
       }
-      // id gỡ = palletBoxMapping.id của thùng (thiếu thì dùng palletBoxMappingId)
-      const mappingIds: number[] = [];
-      for (const b of boxes) {
-        const raw: unknown = b.palletBoxMapping?.id ?? b.palletBoxMappingId;
-        const id = Number(raw);
-        if (Number.isFinite(id) && id > 0) {
-          mappingIds.push(id);
-        }
+      if (choice === "extra") {
+        this.removeBoxesFromPallet(code, boxes);
+        return;
       }
-      if (!mappingIds.length) {
-        this.notificationService.warning(
-          "Không tìm thấy liên kết thùng–pallet để gỡ.",
+      this.focusPalletInput();
+    });
+  }
+
+  /** Gỡ toàn bộ thùng khỏi pallet (DELETE pallet-box-mapping) → pallet trống, quét tiếp */
+  private removeBoxesFromPallet(
+    code: string,
+    boxes: VendorLabelInfoDto[],
+  ): void {
+    // id gỡ = palletBoxMapping.id của thùng (thiếu thì dùng palletBoxMappingId)
+    const mappingIds: number[] = [];
+    for (const b of boxes) {
+      const raw: unknown = b.palletBoxMapping?.id ?? b.palletBoxMappingId;
+      const id = Number(raw);
+      if (Number.isFinite(id) && id > 0) {
+        mappingIds.push(id);
+      }
+    }
+    if (!mappingIds.length) {
+      this.notificationService.warning(
+        "Không tìm thấy liên kết thùng–pallet để gỡ.",
+      );
+      this.focusPalletInput(false);
+      return;
+    }
+    this.isCheckingPallet = true;
+    const deletes: Array<Observable<boolean>> = [];
+    for (const id of mappingIds) {
+      const request: Observable<boolean> = this.infoTemNccService
+        .deletePalletBoxMapping(id)
+        .pipe(
+          map((): boolean => true),
+          catchError(() => of(false)),
+        );
+      deletes.push(request);
+    }
+    forkJoin(deletes).subscribe((results: boolean[]) => {
+      this.isCheckingPallet = false;
+      const removed = results.filter(Boolean).length;
+      const failed = results.length - removed;
+      // Tải lại thùng của đơn: thùng đã gỡ trở thành thùng lẻ
+      this.reloadScannedBoxes();
+      if (failed) {
+        this.notificationService.error(
+          `Gỡ được ${removed}/${results.length} thùng, ${failed} thùng lỗi — pallet chưa trống.`,
         );
         this.focusPalletInput(false);
         return;
       }
-      this.isCheckingPallet = true;
-      const deletes: Array<Observable<boolean>> = [];
-      for (const id of mappingIds) {
-        const request: Observable<boolean> = this.infoTemNccService
-          .deletePalletBoxMapping(id)
-          .pipe(
-            map((): boolean => true),
-            catchError(() => of(false)),
-          );
-        deletes.push(request);
-      }
-      forkJoin(deletes).subscribe((results: boolean[]) => {
-        this.isCheckingPallet = false;
-        const removed = results.filter(Boolean).length;
-        const failed = results.length - removed;
-        // Tải lại thùng của đơn: thùng đã gỡ trở thành thùng lẻ
-        this.reloadScannedBoxes();
-        if (failed) {
-          this.notificationService.error(
-            `Gỡ được ${removed}/${results.length} thùng, ${failed} thùng lỗi — pallet chưa trống.`,
-          );
-          this.focusPalletInput(false);
-          return;
-        }
-        this.notificationService.success(
-          `Đã gỡ ${removed} thùng khỏi pallet "${code}".`,
-        );
-        this.setPalletStatus(code, "UNUSED");
-        this.activatePallet(code);
-      });
+      this.notificationService.success(
+        `Đã gỡ ${removed} thùng khỏi pallet "${code}".`,
+      );
+      this.setPalletStatus(code, "UNUSED");
+      this.activatePallet(code);
     });
   }
 
@@ -1540,8 +1949,53 @@ export class ScanImportDialogComponent
       });
   }
 
+  /** PUT /api/pallet-mngts/{id} cập nhật vị trí pallet (locationName) */
+  private setPalletLocation(code: string, location: string): void {
+    const record$: Observable<PalletRecord | null> = this.palletRecords.has(
+      code,
+    )
+      ? of(this.palletRecords.get(code) ?? null)
+      : this.infoTemNccService.getPalletBySerial(code).pipe(
+          map((pallet): PalletRecord | null => {
+            if (!pallet) {
+              return null;
+            }
+            this.rememberPallet(code, pallet);
+            return this.palletRecords.get(code) ?? null;
+          }),
+        );
+    record$
+      .pipe(
+        switchMap((rec: PalletRecord | null): Observable<boolean> => {
+          if (!rec?.id) {
+            return of(false);
+          }
+          const body: PalletRecord = {
+            ...rec,
+            locationName: location,
+            updatedAt: new Date().toISOString(),
+            updatedBy: this.currentUser,
+          };
+          return this.infoTemNccService.updatePalletMngt(body).pipe(
+            map((): boolean => {
+              this.palletRecords.set(code, body);
+              return true;
+            }),
+          );
+        }),
+        catchError(() => of(false)),
+      )
+      .subscribe((ok: boolean) => {
+        if (!ok) {
+          this.notificationService.warning(
+            `Không cập nhật được vị trí pallet "${code}".`,
+          );
+        }
+      });
+  }
+
   /** Đặt pallet đang quét, chỉ hiện pallet này ở tab Pallet, focus ô thùng */
-  private activatePallet(code: string): void {
+  private activatePallet(code: string, locationName = ""): void {
     let row = this.palletRows.find((p) => p.palletCode === code);
     if (!row) {
       row = {
@@ -1554,12 +2008,14 @@ export class ScanImportDialogComponent
         totalQty: 0,
         note: "",
         warehouseCode: "",
-        locationLabel: "Chưa gán",
+        locationLabel: locationName || "Chưa gán",
         usageLabel: "",
         statusLabel: "Chưa hoàn thành",
         boxes: [],
       };
       this.palletRows = [row, ...this.palletRows];
+    } else if (locationName) {
+      row.locationLabel = locationName;
     }
     this.expandedPalletIds = new Set([...this.expandedPalletIds, row.id]);
     this.activePallet = {
@@ -1569,11 +2025,14 @@ export class ScanImportDialogComponent
     this.palletCode = code;
     this.listTab = "pallet";
     this.boxCode = "";
+    // Màn desktop: quét pallet xong → tự sang mode Thùng
+    this.scanMode = "box";
     this.cdr.markForCheck();
+    // Mobile: ô thùng vừa được render lại (*ngIf theo mode) → đợi 1 nhịp mới focus
     setTimeout(() => {
       this.boxInputRef?.nativeElement?.focus();
       this.boxInputRef?.nativeElement?.select();
-    }, 0);
+    }, 50);
   }
 
   /** Focus ô pallet để quét mã khác (mặc định xóa mã đang có) */
@@ -1581,6 +2040,7 @@ export class ScanImportDialogComponent
     if (clear) {
       this.palletCode = "";
     }
+    this.scanMode = "pallet";
     this.cdr.markForCheck();
     setTimeout(() => {
       this.palletInputRef?.nativeElement?.focus();
@@ -1588,8 +2048,175 @@ export class ScanImportDialogComponent
     }, 50);
   }
 
+  /**
+   * Kiểm tra vị trí có trong danh sách (IndexedDB, khớp đúng tên / tên đầy đủ):
+   * có → áp (pallet đang quét hoặc thùng lẻ chưa có vị trí); không → báo snackbar.
+   */
+  private applyScannedLocation(raw: string, after: () => void): void {
+    const value = toText(raw);
+    this.locationCode = "";
+    this.scanLocationOptions = [];
+    if (!value) {
+      return;
+    }
+    void this.lookupLocation(value)
+      .then((found) => {
+        if (!found) {
+          this.notificationService.error(
+            `Vị trí "${value}" không có trong danh sách vị trí.`,
+          );
+          after();
+          this.cdr.markForCheck();
+          return;
+        }
+        // Có pallet đang quét → áp cho pallet đó; không → các thùng lẻ chưa có vị trí
+        this.listTab = this.activePallet ? "pallet" : "box";
+        this.submitLocationScan(found);
+        after();
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        this.notificationService.error("Không kiểm tra được danh sách vị trí.");
+        after();
+      });
+  }
+
+  private applyLotEdit(edited: MobileInfoLot): void {
+    const mfg = this.toApiDate(edited.mfgDate);
+    let hsd = this.toApiDate(edited.hsd);
+    if (edited.expiryOffset && mfg) {
+      hsd = this.addExpiry(mfg, edited.expiryMode, edited.expiryOffset);
+    }
+    const poCode = toText(edited.po);
+    const orKeep = (value: unknown, original: unknown): unknown =>
+      toText(value) ? toText(value) : original;
+
+    const payloads: VendorLabelInfoDto[] = [];
+    for (const box of edited.boxes) {
+      const rec = this.infoRecords.get(box.recordId);
+      if (!rec?.id) {
+        continue;
+      }
+      // Thùng chưa có PO + đã nhập PO → gán vào dòng vật tư khớp PO + mã SAP/Part
+      let sapPor1Id = rec.sapPor1Id;
+      if (!sapPor1Id && poCode) {
+        sapPor1Id =
+          this.findParentByPo(
+            poCode,
+            toText(rec.sapCode),
+            toText(rec.partNumber),
+          )?.id ?? null;
+      }
+      payloads.push({
+        ...rec,
+        initialQuantity:
+          edited.quantity === null || edited.quantity === undefined
+            ? rec.initialQuantity
+            : Number(edited.quantity),
+        userData5: orKeep(poCode, rec.userData5) as string | null,
+        ...locationFields(
+          orKeep(edited.location, boxLocation(rec)) as string | null,
+        ),
+        manufacturingDate: orKeep(mfg, rec.manufacturingDate) as string | null,
+        expirationDate: orKeep(hsd, rec.expirationDate) as string | null,
+        userData4: orKeep(edited.userData4, rec.userData4) as string | null,
+        msdLevel: orKeep(edited.msl, rec.msdLevel) as string | null,
+        userData1: orKeep(edited.rankAp, rec.userData1) as string | null,
+        userData2: orKeep(edited.rankMau, rec.userData2) as string | null,
+        userData3: orKeep(edited.rankQuang, rec.userData3) as string | null,
+        sapPor1Id,
+        // Đã gán PO → không còn trong hàng chờ
+        comments: sapPor1Id ? clearQueueReason(rec.comments) : rec.comments,
+        palletBoxMapping: undefined,
+      });
+    }
+    for (const payload of payloads) {
+      this.pendingInfoEdits.set(payload.id, payload);
+      this.infoRecords.set(payload.id, payload);
+    }
+    this.editingLot = null;
+    if (payloads.length) {
+      this.notificationService.info(
+        `Đã áp dụng cho ${payloads.length} thùng — bấm "Cập nhật" để lưu.`,
+      );
+    }
+    // Dựng lại màn từ dữ liệu đã áp dụng (số thùng, tổng SL, trạng thái đủ thông tin)
+    if (this.lastInfoDetail) {
+      this.buildInfoData(this.lastInfoDetail, this.lastInfoBoxes);
+    }
+  }
+
+  /** Vị trí có trong danh sách (IndexedDB, khớp đúng tên / tên đầy đủ) → tên đầy đủ; không → null */
+  private lookupLocation(value: string): Promise<string | null> {
+    const lower = value.toLowerCase();
+    return this.warehouseCache
+      .ensureSynced()
+      .then(() => this.warehouseCache.searchByName(value))
+      .then((list) => {
+        const found = list.find(
+          (w) =>
+            toText(w.locationFullName).toLowerCase() === lower ||
+            toText(w.locationName).toLowerCase() === lower,
+        );
+        return found
+          ? toText(found.locationFullName) || toText(found.locationName)
+          : null;
+      });
+  }
+
+  private focusMobileLocation(): void {
+    setTimeout(() => {
+      this.locationInputRef?.nativeElement?.focus();
+    }, 50);
+  }
+
+  /** Báo panel Tổng hợp tải lại */
+  private bumpSummary(): void {
+    this.summaryRefresh++;
+  }
+
+  /** Focus ô quét duy nhất của màn desktop (cùng element với các ref pallet/thùng/vị trí) */
+  private focusWorkspaceInput(): void {
+    setTimeout(() => {
+      const ref =
+        this.scanMode === "pallet" ? this.palletInputRef : this.boxInputRef;
+      ref?.nativeElement?.focus();
+    }, 50);
+  }
+
+  /** Kích thước các vùng đã chỉnh — nhớ trên máy người dùng */
+  private restoreLayout(): void {
+    try {
+      const raw = localStorage.getItem(WORKSPACE_LAYOUT_KEY);
+      if (!raw) {
+        return;
+      }
+      const v = JSON.parse(raw) as { topPct?: number; leftPct?: number };
+      if (typeof v.topPct === "number") {
+        this.topPct = Math.min(80, Math.max(20, v.topPct));
+      }
+      if (typeof v.leftPct === "number") {
+        this.leftPct = Math.min(50, Math.max(18, v.leftPct));
+      }
+    } catch {
+      // bỏ qua — dùng mặc định
+    }
+  }
+
+  private saveLayout(): void {
+    try {
+      localStorage.setItem(
+        WORKSPACE_LAYOUT_KEY,
+        JSON.stringify({ topPct: this.topPct, leftPct: this.leftPct }),
+      );
+    } catch {
+      // bỏ qua
+    }
+  }
+
   /** Làm mới danh sách thùng / pallet từ API (sau khi gỡ thùng khỏi pallet) */
   private reloadScannedBoxes(): void {
+    this.bumpSummary();
     this.boxRows = [];
     this.palletRows = [];
     this.boxRecords.clear();
@@ -1607,6 +2234,13 @@ export class ScanImportDialogComponent
         const standalone: ScanBoxRow[] = [];
         const pallets = new Map<string, ScanBoxRow[]>();
         this.receivedByParent.clear();
+        // Thùng đang lưu dở chưa có trong records → vẫn tính vào SL đã nhận
+        const loadedReels = new Set(records.map((r) => toText(r.reelId)));
+        this.inFlightBoxes.forEach((box, reel) => {
+          if (!loadedReels.has(reel)) {
+            this.addReceived(box.parentId, box.qty);
+          }
+        });
         for (const rec of records) {
           const reelId = toText(rec.reelId);
           if (reelId) {
@@ -1653,7 +2287,8 @@ export class ScanImportDialogComponent
 
   /**
    * Scan vị trí → gán cho các thùng chưa có vị trí (thuộc pallet đang quét, hoặc thùng lẻ
-   * nếu không quét pallet): PUT /vendor-label-infos/{id} từng thùng với subStorageUnit = vị trí.
+   * nếu không quét pallet): PUT /vendor-label-infos/{id} từng thùng với storageUnit = vị trí
+   * (subStorageUnit để trống).
    */
   private submitLocationScan(location: string): void {
     const onPalletTab = this.listTab === "pallet";
@@ -1700,6 +2335,10 @@ export class ScanImportDialogComponent
         if (pallet) {
           pallet.locationLabel = location;
         }
+        this.setPalletLocation(activeCode, location);
+      }
+      if (ok) {
+        this.bumpSummary();
       }
       this.cdr.markForCheck();
     };
@@ -1713,7 +2352,7 @@ export class ScanImportDialogComponent
       }
       const body: VendorLabelInfoDto = {
         ...record,
-        subStorageUnit: location,
+        ...locationFields(location),
         palletBoxMapping: undefined,
       };
       this.savingCount++;
@@ -1722,6 +2361,11 @@ export class ScanImportDialogComponent
           this.savingCount--;
           this.boxRecords.set(box.id, { ...body, ...(saved ?? {}) });
           box.location = location;
+          // Thùng đang có thay đổi chờ "Cập nhật" → giữ vị trí mới, không ghi đè bằng giá trị cũ
+          const pendingEdit = this.pendingInfoEdits.get(record.id);
+          if (pendingEdit) {
+            Object.assign(pendingEdit, locationFields(location));
+          }
           ok++;
           done();
         },
@@ -1778,6 +2422,7 @@ export class ScanImportDialogComponent
         if (done) {
           onDeleted();
           this.notificationService.success(`Đã xóa thùng "${box.reelId}".`);
+          this.bumpSummary();
         } else {
           this.notificationService.error(`Xóa thùng "${box.reelId}" thất bại.`);
         }
@@ -1828,7 +2473,7 @@ export class ScanImportDialogComponent
       quantity: Number(rec.initialQuantity ?? 0),
       mfgDate: toText(rec.manufacturingDate),
       hsd: toText(rec.expirationDate),
-      location: toText(rec.subStorageUnit),
+      location: boxLocation(rec),
       sapCode: toText(rec.sapCode),
       poCode:
         toText(
@@ -1941,45 +2586,41 @@ export class ScanImportDialogComponent
         (r) => !!norm(r.sapCode) && norm(r.sapCode) === sap,
       );
     }
+    // Cùng mã SAP ở các PO khác (part number có thể chỉ có ở 1 dòng) cũng là ứng viên
+    const sapCodes = new Set(found.map((r) => norm(r.sapCode)).filter(Boolean));
+    const all = parents.filter(
+      (r) => found.includes(r) || sapCodes.has(norm(r.sapCode)),
+    );
     // Dòng PO thêm vào đơn trước (id nhỏ hơn) đứng trước
-    return [...found].sort((a, b) => a.id - b.id);
+    return [...all].sort((a, b) => a.id - b.id);
   }
 
   /**
-   * Phân bổ thùng cho 1 dòng PO khi nhiều PO cùng mã vật tư:
-   *  - QR có PO và khớp 1 ứng viên → dùng đúng PO đó
-   *  - không → PO thêm trước còn thiếu SL (đã nhận < SL theo PO); đủ hết → PO cuối (vượt SL)
+   * Phân bổ thùng cho 1 dòng PO khi nhiều PO cùng mã vật tư — chỉ chọn PO còn đủ chỗ cho cả thùng:
+   *  - QR có PO, khớp 1 ứng viên và còn đủ chỗ → dùng đúng PO đó
+   *  - không → PO thêm trước còn đủ chỗ (dòng có SL theo PO = 0 coi như không giới hạn)
+   *  - không PO nào đủ chỗ → undefined (thùng dư → "Hàng chờ vật tư")
    */
   private pickParentForBox(
     candidates: ParentItem[],
     qrPo: string,
-    reelId: string,
+    quantity: number,
   ): ParentItem | undefined {
-    if (!candidates.length) {
-      return undefined;
-    }
+    const fits = (c: ParentItem): boolean => {
+      const orderQty = Number(c.orderQty ?? 0);
+      return (
+        orderQty <= 0 ||
+        (this.receivedByParent.get(c.id) ?? 0) + quantity <= orderQty
+      );
+    };
     const po = toText(qrPo).toLowerCase();
-    if (po) {
-      const byPo = candidates.find(
-        (c) => toText(c.poCode).toLowerCase() === po,
-      );
-      if (byPo) {
-        return byPo;
-      }
+    const byPo = po
+      ? candidates.find((c) => toText(c.poCode).toLowerCase() === po)
+      : undefined;
+    if (byPo && fits(byPo)) {
+      return byPo;
     }
-    const open = candidates.find(
-      (c) => (this.receivedByParent.get(c.id) ?? 0) < Number(c.orderQty ?? 0),
-    );
-    if (open) {
-      return open;
-    }
-    const last = candidates[candidates.length - 1];
-    if (candidates.length > 1 || Number(last.orderQty ?? 0) > 0) {
-      this.notificationService.warning(
-        `Thùng "${reelId}": các PO của vật tư này đã nhận đủ SL — thêm vào PO ${toText(last.poCode) || "cuối"} (vượt SL PO).`,
-      );
-    }
-    return last;
+    return candidates.find(fits);
   }
 
   /** Cộng / trừ SL đã nhận của 1 dòng PO */
@@ -2091,43 +2732,6 @@ export class ScanImportDialogComponent
         this.cdr.markForCheck();
       },
     });
-  }
-
-  /**
-   * /api/owhs: gọi tối đa 3 lần (lần đầu + 2 lần thử lại, cách nhau 3–5s).
-   * Vẫn lỗi → snackbar báo lỗi, không tự gọi lại nữa trong phiên dialog.
-   */
-  private loadSapWarehouses(keyword = ""): void {
-    if (this.isLoadingSapWarehouses || this.sapWarehouseLoadDone) {
-      return;
-    }
-    this.isLoadingSapWarehouses = true;
-    this.receivingService
-      .getSapWarehousesOrError()
-      .pipe(
-        retry({
-          count: 2,
-          delay: () => timer(3000 + Math.floor(Math.random() * 2000)),
-        }),
-      )
-      .subscribe({
-        next: (data) => {
-          this.sapWarehouseList = data ?? [];
-          this.isLoadingSapWarehouses = false;
-          this.sapWarehouseLoadDone = true;
-          // Lọc theo nội dung ô đang nhập (nếu form LOT đang mở) hoặc từ khóa ban đầu
-          this.onLotWarehouseSearch(this.editingLot?.warehouseCode ?? keyword);
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.isLoadingSapWarehouses = false;
-          this.sapWarehouseLoadDone = true;
-          this.notificationService.error(
-            "Không tải được thông tin kho — có thể nhập tay mã kho.",
-          );
-          this.cdr.markForCheck();
-        },
-      });
   }
 
   private resolveLocationName(selected: string | WarehouseLocation): string {
@@ -2266,7 +2870,7 @@ export class ScanImportDialogComponent
       ? this.buildInfoMaterial(
           "mat-unassigned",
           this.distinctText(orphans.map((b) => b.sapCode)),
-          "Vật tư chưa có PO",
+          "Hàng chờ vật tư",
           "",
           0,
           orphans,
@@ -2317,7 +2921,9 @@ export class ScanImportDialogComponent
         vendor: toText(b.vendor),
         mfgDate: this.toDisplayDate(b.manufacturingDate),
         palletCode: toText(b.serialPallet) || "—",
+        location: boxLocation(b),
         missingInfo: !this.isBoxComplete(b),
+        queueReason: queueReasonOf(b),
         recordId: b.id,
       }));
       const common = (pick: (b: VendorLabelInfoDto) => unknown): string => {
@@ -2336,8 +2942,9 @@ export class ScanImportDialogComponent
         boxes: infoBoxes,
         quantity: qtySet.size === 1 ? [...qtySet][0] : null,
         po: poCode || common((b) => b.userData5),
-        location: common((b) => b.subStorageUnit),
-        warehouseCode: common((b) => b.storageUnit),
+        location: common((b) => boxLocation(b)),
+        // Mã kho SAP = whsCode của dòng vật tư trong PO
+        warehouseCode: whsCode,
         mfgDate: this.toDisplayDate(common((b) => b.manufacturingDate)),
         userData4: common((b) => b.userData4),
         msl: common((b) => b.msdLevel),
@@ -2359,11 +2966,10 @@ export class ScanImportDialogComponent
       reelHint: partHint || "—",
       materialName,
       boxCount: boxes.length,
-      warehouseCode:
-        whsCode || this.distinctText(boxes.map((b) => b.storageUnit)) || "—",
+      warehouseCode: whsCode || "—",
       poQty,
       location:
-        this.distinctText(boxes.map((b) => b.subStorageUnit)) || "Chưa gán",
+        this.distinctText(boxes.map((b) => boxLocation(b))) || "Chưa gán",
       receivedQty: boxes.reduce(
         (s, b) => s + Number(b.initialQuantity ?? 0),
         0,
@@ -2374,13 +2980,12 @@ export class ScanImportDialogComponent
     };
   }
 
-  /** Đủ thông tin: MFG, HSD, vị trí, mã kho */
+  /** Đủ thông tin: MFG, HSD, vị trí kho (mã kho SAP theo dòng PO, không tính theo thùng) */
   private isBoxComplete(b: VendorLabelInfoDto): boolean {
     return !!(
       toText(b.manufacturingDate) &&
       toText(b.expirationDate) &&
-      toText(b.subStorageUnit) &&
-      toText(b.storageUnit)
+      boxLocation(b)
     );
   }
 

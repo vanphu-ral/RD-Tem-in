@@ -224,6 +224,29 @@
         </td>
       </ng-container>
 
+      <!-- Nguồn tạo -->
+      <ng-container matColumnDef="source">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="source">Nguồn tạo</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.source"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <span
+            class="status-badge source-badge"
+            [ngStyle]="sourceBadgeStyle(row.source)"
+          >
+            {{ sourceLabel(row.source) }}
+          </span>
+        </td>
+      </ng-container>
+
       <!-- Trạng thái -->
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>

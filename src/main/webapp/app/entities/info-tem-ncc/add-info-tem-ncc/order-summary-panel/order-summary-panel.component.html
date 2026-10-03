@@ -1,0 +1,83 @@
+<div class="osp">
+  <div class="osp-bar">
+    <span class="osp-title">
+      <mat-icon>inventory_2</mat-icon>
+      Tổng hợp vật tư
+    </span>
+
+    <div class="osp-cards">
+      <button
+        type="button"
+        class="osp-card"
+        *ngFor="let c of cards; trackBy: trackCard"
+        [class.active]="c.key === selectedKey"
+        (click)="selectPo(c.key)"
+      >
+        <span class="osp-card-top">
+          <strong>PO {{ c.poCode }}</strong>
+          <span
+            class="osp-dot"
+            *ngIf="c.incomplete"
+            title="Còn lô thiếu thông tin"
+          ></span>
+        </span>
+        <span class="osp-card-sub">
+          {{ c.materialCount }} vật tư · {{ c.boxCount }} thùng
+        </span>
+        <span class="osp-progress">
+          <span class="osp-track">
+            <span class="osp-fill" [style.width.%]="percent(c)"></span>
+          </span>
+          <span class="osp-frac"
+            >{{ c.received | number }}/{{ c.total | number }}</span
+          >
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="osp-card warn"
+        [class.active]="isUnassignedSelected"
+        [disabled]="!unassignedCount"
+        (click)="selectUnassigned()"
+      >
+        <span class="osp-card-top">
+          <strong>Hàng chờ vật tư</strong>
+          <span class="osp-badge">{{ unassignedCount }}</span>
+        </span>
+        <span class="osp-card-sub">
+          {{ unassignedCount ? "Bấm để bổ sung PO" : "Không có" }}
+        </span>
+      </button>
+
+      <span class="osp-empty" *ngIf="!cards.length && !isLoading">
+        Đơn chưa có PO — dùng "Nhập PO" ở trang đơn.
+      </span>
+    </div>
+
+    <label class="osp-follow" title="Tự chuyển sang PO của thùng vừa scan">
+      <mat-checkbox color="primary" [(ngModel)]="followScan"></mat-checkbox>
+      Tự theo PO vừa scan
+    </label>
+    <mat-spinner diameter="18" *ngIf="isLoading"></mat-spinner>
+  </div>
+
+  <div class="osp-body">
+    <jhi-material-summary-dialog
+      *ngIf="panelData; else noData"
+      [embedded]="true"
+      [panelData]="panelData"
+      [highlight]="highlight"
+      (saved)="onSummarySaved($event)"
+    ></jhi-material-summary-dialog>
+    <ng-template #noData>
+      <div class="osp-nodata">
+        {{
+          isLoading
+            ? "Đang tải dữ liệu..."
+            : "Chọn một PO để xem tổng hợp vật tư."
+        }}
+      </div>
+    </ng-template>
+  </div>
+</div>

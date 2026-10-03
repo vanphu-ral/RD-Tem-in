@@ -473,3 +473,93 @@
 .po-input {
   font-weight: 600;
 }
+
+/* ===== Chế độ nhúng trong màn Scan ===== */
+:host {
+  display: block;
+}
+
+.summary-dialog.embedded {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+/* Nhấp sáng dòng của thùng vừa scan */
+@keyframes summary-flash {
+  0%,
+  40% {
+    background: #fde68a;
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+tr.flash > td {
+  animation: summary-flash 2.5s ease-out;
+}
+
+/* Nhúng trong màn Scan: header lọc + footer cố định, chỉ bảng co lại / cuộn */
+.summary-dialog.embedded {
+  display: flex;
+  flex-direction: column;
+
+  .dialog-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-top: 8px;
+  }
+
+  .filter-row {
+    flex-shrink: 0;
+  }
+
+  .table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .dialog-footer {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 8px 16px;
+    background: #fff;
+    box-shadow: 0 -4px 10px rgba(15, 23, 42, 0.06);
+  }
+}
+
+/* Hàng chờ vật tư: lý do thùng nằm trong hàng chờ */
+.queue-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  vertical-align: middle;
+  white-space: nowrap;
+
+  &[data-reason="overflow"] {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  &[data-reason="noPo"] {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  &[data-reason="poMismatch"] {
+    background: #ede9fe;
+    color: #6d28d9;
+  }
+}
+
+/* Mã kho SAP: chỉ hiển thị (whsCode của dòng vật tư trong PO) */
+.whs-readonly {
+  color: #4b5563;
+}

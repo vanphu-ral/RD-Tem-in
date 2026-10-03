@@ -24,7 +24,11 @@ export interface DeliveryNotificationDto {
   contNo: string | null;
   entryDate: string | null;
   numberOfPo: number | null;
+  /** Số vật tư (dòng sapPor1R1) trong đơn */
+  numberOfItem?: number | null;
   status: string | null;
+  /** Nguồn tạo đơn: "system", "appSmart", ... */
+  source?: string | null;
   deletedAt: string | null;
   deletedBy: string | null;
   createdBy: string | null;
@@ -71,17 +75,22 @@ export interface CreateDeliveryNotificationPayload {
   deliveryNotificationCode: string;
   invoiceNumber: string;
   contractCode: string;
-  /** Mã NCC (cardCode) — backend cần cột vendor_code để lưu */
-  vendorCode: string;
-  /** Tên NCC (cardName) */
+  /** Tên NCC (cardName) — POST không gửi vendorCode (backend báo 400) */
   vendorName: string;
   contNo: string;
   entryDate: string;
   numberOfPo: number;
+  /** Số vật tư (dòng sapPor1R1) trong đơn */
+  numberOfItem: number;
   status: string;
+  /** Nguồn tạo đơn: "system" (web này), "appSmart", ... */
+  source: string;
   createdBy: string;
   createdAt: string;
 }
+
+/** Nguồn tạo của đơn tạo từ web này */
+export const DELIVERY_SOURCE_SYSTEM = "system";
 
 export interface DeliveryNotificationPage {
   items: DeliveryNotificationDto[];

@@ -21,365 +21,478 @@
       </button>
     </div>
 
-    <div class="dialog-content">
-      <div class="mode-pills">
-        <button
-          type="button"
-          class="mode-pill"
-          [class.active]="mode === 'scan'"
-          (click)="setMode('scan')"
-        >
-          <span class="pill-hash">#</span>
-          Scan
-        </button>
-        <button
-          type="button"
-          class="mode-pill"
-          [class.active]="mode === 'import'"
-          (click)="setMode('import')"
-        >
-          <mat-icon>format_list_bulleted</mat-icon>
-          Import
-        </button>
-      </div>
-
-      <ng-container *ngIf="mode === 'scan'">
-        <div class="session-block">
-          <div class="session-label">Phiên quét hiện tại</div>
-          <input
-            #palletInputRef
-            class="scan-field"
-            [(ngModel)]="palletCode"
-            (keydown)="onPalletKeydown($event)"
-            placeholder="Quét mã Pallet vào đây"
-            autocomplete="off"
-            inputmode="none"
-          />
-          <input
-            #boxInputRef
-            class="scan-field"
-            [(ngModel)]="boxCode"
-            (keydown)="onBoxKeydown($event)"
-            placeholder="Quét mã Thùng vào đây..."
-            autocomplete="off"
-            inputmode="none"
-          />
-          <input
-            #locationInputRef
-            class="scan-field"
-            [(ngModel)]="locationCode"
-            (keydown)="onLocationKeydown($event)"
-            placeholder="Quét mã vị trí vào đây"
-            autocomplete="off"
-            inputmode="none"
-          />
-        </div>
-
-        <ng-container *ngIf="activePallet; else scanSummaryBar">
-          <div class="scenario-tag">
-            <ng-container *ngTemplateOutlet="scenarioInputTpl"></ng-container>
-          </div>
-          <div class="active-pallet-card">
-            <div class="active-pallet-left">
-              <div class="active-pallet-icon">
-                <mat-icon>layers</mat-icon>
-              </div>
-              <div class="active-pallet-text">
-                <div class="active-pallet-code">
-                  {{ activePallet.palletCode }}
-                </div>
-                <div class="active-pallet-sub">
-                  {{ activePallet.scanningBoxCount }} thùng đang quét
-                </div>
-              </div>
-            </div>
+    <!-- ===== Màn Scan desktop: [Chọn mode | Kết quả scan] / Tổng hợp vật tư ===== -->
+    <div class="ws" #wsRef [class.dragging]="false">
+      <div
+        class="ws-top"
+        #wsTopRef
+        *ngIf="!bottomMaximized"
+        [style.height.%]="hasSummary ? topPct : 100"
+      >
+        <!-- ----- Trái: chọn mode quét ----- -->
+        <section class="ws-left" [style.width.%]="leftPct">
+          <div class="mode-pills">
             <button
               type="button"
-              class="btn-switch-pallet"
-              (click)="switchActivePallet()"
+              class="mode-pill"
+              [class.active]="mode === 'scan'"
+              (click)="setMode('scan')"
             >
-              Chuyển scan pallet khác
+              <span class="pill-hash">#</span>
+              Scan
+            </button>
+            <button
+              type="button"
+              class="mode-pill"
+              [class.active]="mode === 'import'"
+              (click)="setMode('import')"
+            >
+              <mat-icon>format_list_bulleted</mat-icon>
+              Import
             </button>
           </div>
-        </ng-container>
 
-        <ng-template #scanSummaryBar>
-          <div class="summary-bar">
-            <span class="scenario-text">
+          <ng-container *ngIf="mode === 'scan'">
+            <div class="ws-modes">
+              <button
+                type="button"
+                class="ws-mode"
+                data-mode="pallet"
+                [class.active]="scanMode === 'pallet'"
+                (click)="setScanMode('pallet')"
+              >
+                <mat-icon>layers</mat-icon>
+                <span>Pallet</span>
+                <kbd>F1</kbd>
+              </button>
+              <button
+                type="button"
+                class="ws-mode"
+                data-mode="box"
+                [class.active]="scanMode === 'box'"
+                (click)="setScanMode('box')"
+              >
+                <mat-icon>inventory_2</mat-icon>
+                <span>Thùng</span>
+                <kbd>F2</kbd>
+              </button>
+            </div>
+
+            <div class="ws-badge" [attr.data-mode]="scanMode">
+              <span class="ws-badge-dot"></span>
+              Mode: {{ scanModeLabel }}
+            </div>
+
+            <!-- Ô quét theo mode (giữ ref pallet/thùng để logic focus cũ dùng chung) -->
+            <input
+              #palletInputRef
+              #boxInputRef
+              class="ws-scan-input"
+              [attr.data-mode]="scanMode"
+              [(ngModel)]="scanValue"
+              (keydown.enter)="onWorkspaceScanEnter()"
+              [placeholder]="scanPlaceholder"
+              [disabled]="isCheckingPallet"
+              autocomplete="off"
+            />
+
+            <!-- Ô vị trí: áp cho pallet đang quét, hoặc các thùng lẻ chưa có vị trí -->
+            <input
+              #locationInputRef
+              #wsLocTrigger="matAutocompleteTrigger"
+              class="ws-scan-input"
+              [attr.data-mode]="scanMode"
+              [(ngModel)]="locationCode"
+              (ngModelChange)="onScanLocationInput($event)"
+              [matAutocomplete]="wsLocAuto"
+              (keydown.enter)="onWorkspaceLocationEnter(wsLocTrigger)"
+              [placeholder]="locationPlaceholder"
+              autocomplete="off"
+            />
+            <mat-autocomplete
+              #wsLocAuto="matAutocomplete"
+              (optionSelected)="onScanLocationPicked($event.option.value)"
+            >
+              <mat-option
+                *ngFor="let w of scanLocationOptions"
+                [value]="w.locationFullName || w.locationName"
+              >
+                {{ w.locationFullName || w.locationName }}
+              </mat-option>
+            </mat-autocomplete>
+
+            <div class="ws-context">
+              <ng-container *ngIf="activePallet; else noPallet">
+                <div class="active-pallet-card">
+                  <div class="active-pallet-left">
+                    <div class="active-pallet-icon">
+                      <mat-icon>layers</mat-icon>
+                    </div>
+                    <div class="active-pallet-text">
+                      <div class="active-pallet-code">
+                        {{ activePallet.palletCode }}
+                      </div>
+                      <div class="active-pallet-sub">
+                        {{ activePallet.scanningBoxCount }} thùng trong pallet
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn-switch-pallet"
+                    (click)="switchActivePallet()"
+                  >
+                    Chuyển pallet
+                  </button>
+                </div>
+              </ng-container>
+              <ng-template #noPallet>
+                <div class="ws-no-pallet">
+                  <mat-icon>info</mat-icon>
+                  Đang quét thùng lẻ (không theo pallet). Bấm
+                  <strong>Pallet (F1)</strong> để quét theo pallet.
+                </div>
+              </ng-template>
+            </div>
+
+            <div class="scenario-tag">
               <ng-container *ngTemplateOutlet="scenarioInputTpl"></ng-container>
-            </span>
-            <div class="summary-chips">
-              <span class="chip"
-                >Mã <strong>{{ codeCount }}</strong></span
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="mode === 'import'">
+            <input
+              #importFileInput
+              type="file"
+              hidden
+              accept=".csv,.txt,.xlsx,.xls"
+              (change)="onFileSelected($event)"
+            />
+            <div
+              class="drop-zone"
+              [class.dragging]="isDragging"
+              (click)="openImportFilePicker()"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+            >
+              <mat-icon class="drop-icon">cloud_upload</mat-icon>
+              <p class="drop-title">
+                Kéo thả file .csv / .txt vào đây hoặc click chọn
+              </p>
+              <p class="file-name" *ngIf="selectedFileName">
+                {{ selectedFileName }}
+              </p>
+            </div>
+            <div class="template-row">
+              <span>Tải file template TẠI ĐÂY</span>
+              <button
+                type="button"
+                class="template-link"
+                (click)="downloadTemplate()"
               >
-              <span class="chip"
-                >Tổng SL <strong>{{ totalQty }}</strong></span
-              >
-              <span class="chip"
-                >Vật tư <strong>{{ materialCount }}</strong></span
-              >
-              <span class="chip"
-                >Pallet <strong>{{ palletCount }}</strong></span
-              >
+                create_label_import_template.xlsx
+              </button>
+            </div>
+            <div class="scenario-tag">
+              <ng-container *ngTemplateOutlet="scenarioInputTpl"></ng-container>
+            </div>
+          </ng-container>
+        </section>
+
+        <div
+          class="ws-vsplit"
+          title="Kéo để chỉnh độ rộng · bấm đúp để về mặc định"
+          (mousedown)="startDrag('v', $event)"
+          (dblclick)="resetSplit('v')"
+        ></div>
+
+        <!-- ----- Phải: kết quả scan ----- -->
+        <section class="ws-right">
+          <div class="ws-kpis">
+            <div class="kpi" data-tone="indigo">
+              <span class="kpi-label">Mã vật tư</span>
+              <span class="kpi-value">{{ materialCount | number }}</span>
+            </div>
+            <div class="kpi" data-tone="purple">
+              <span class="kpi-label">Pallet</span>
+              <span class="kpi-value">{{ palletCount | number }}</span>
+            </div>
+            <div class="kpi" data-tone="green">
+              <span class="kpi-label">Tổng số lượng</span>
+              <span class="kpi-value">{{ totalQty | number }}</span>
+            </div>
+            <div class="kpi" data-tone="blue">
+              <span class="kpi-label">Thùng đã scan</span>
+              <span class="kpi-value">{{ codeCount | number }}</span>
             </div>
           </div>
-        </ng-template>
-      </ng-container>
 
-      <ng-container *ngIf="mode === 'import'">
-        <input
-          #importFileInput
-          type="file"
-          hidden
-          accept=".csv,.txt,.xlsx,.xls"
-          (change)="onFileSelected($event)"
-        />
-        <div
-          class="drop-zone"
-          [class.dragging]="isDragging"
-          (click)="openImportFilePicker()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)"
-        >
-          <mat-icon class="drop-icon">cloud_upload</mat-icon>
-          <p class="drop-title">
-            Kéo thả file .csv / .txt vào đây hoặc click chọn
-          </p>
-          <p class="file-name" *ngIf="selectedFileName">
-            {{ selectedFileName }}
-          </p>
-        </div>
-        <div class="template-row">
-          <span>Tải file template TẠI ĐÂY</span>
-          <button
-            type="button"
-            class="template-link"
-            (click)="downloadTemplate()"
-          >
-            create_label_import_template.xlsx
-          </button>
-        </div>
-        <div class="scenario-tag">
-          <ng-container *ngTemplateOutlet="scenarioInputTpl"></ng-container>
-        </div>
-      </ng-container>
+          <div class="ws-results">
+            <div class="list-tabs">
+              <button
+                type="button"
+                class="list-tab"
+                [class.active]="listTab === 'box'"
+                (click)="setListTab('box')"
+              >
+                Thùng ({{ boxRows.length }})
+              </button>
+              <button
+                type="button"
+                class="list-tab"
+                [class.active]="listTab === 'pallet'"
+                (click)="setListTab('pallet')"
+              >
+                Pallet ({{ palletRows.length }})
+              </button>
+            </div>
 
-      <div class="list-tabs">
-        <button
-          type="button"
-          class="list-tab"
-          [class.active]="listTab === 'box'"
-          (click)="setListTab('box')"
-        >
-          Thùng ({{ boxRows.length }})
-        </button>
-        <button
-          type="button"
-          class="list-tab"
-          [class.active]="listTab === 'pallet'"
-          (click)="setListTab('pallet')"
-        >
-          Pallet ({{ palletRows.length }})
-        </button>
-      </div>
+            <div class="table-wrap" *ngIf="listTab === 'box'">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-idx">#</th>
+                    <th>Mã PO</th>
+                    <th>Lot</th>
+                    <th>ReelId</th>
+                    <th>Part Number</th>
+                    <th>Vendor</th>
+                    <th>Quantity</th>
+                    <th>MFGDate</th>
+                    <th>HSD</th>
+                    <th>Vị trí</th>
+                    <th class="col-action">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    *ngFor="
+                      let row of boxRows;
+                      let i = index;
+                      trackBy: trackBox
+                    "
+                  >
+                    <td class="col-idx">{{ i + 1 }}</td>
+                    <td>{{ row.poCode || "—" }}</td>
+                    <td>{{ row.lot }}</td>
+                    <td>{{ row.reelId }}</td>
+                    <td>{{ row.partNumber }}</td>
+                    <td>{{ row.vendor }}</td>
+                    <td>{{ row.quantity | number }}</td>
+                    <td>{{ row.mfgDate }}</td>
+                    <td>{{ row.hsd }}</td>
+                    <td>{{ row.location || "—" }}</td>
+                    <td class="col-action">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="del-btn"
+                        (click)="removeBoxRow(row)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="!boxRows.length">
+                    <td colspan="12" class="empty-cell">Chưa có thùng nào.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-      <div class="table-wrap" *ngIf="listTab === 'box'">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th class="col-idx">#</th>
-              <th>Mã PO</th>
-              <th>Lot</th>
-              <th>ReelId</th>
-              <th>Part Number</th>
-              <th>Vendor</th>
-              <th>Quantity</th>
-              <th>MFGDate</th>
-              <th>HSD</th>
-              <th>Vị trí</th>
-              <th class="col-action">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of boxRows; let i = index; trackBy: trackBox">
-              <td class="col-idx">{{ i + 1 }}</td>
-              <td>{{ row.poCode || "—" }}</td>
-              <td>{{ row.lot }}</td>
-              <td>{{ row.reelId }}</td>
-              <td>{{ row.partNumber }}</td>
-              <td>{{ row.vendor }}</td>
-              <td>
-                <input
-                  class="qty-input"
-                  type="number"
-                  [(ngModel)]="row.quantity"
-                />
-              </td>
-              <td>{{ row.mfgDate }}</td>
-              <td>{{ row.hsd }}</td>
-              <td>{{ row.location || "—" }}</td>
-              <td class="col-action">
-                <button
-                  mat-icon-button
-                  type="button"
-                  class="del-btn"
-                  (click)="removeBoxRow(row)"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </td>
-            </tr>
-            <tr *ngIf="!boxRows.length">
-              <td colspan="12" class="empty-cell">Chưa có thùng nào.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="table-wrap" *ngIf="listTab === 'pallet'">
-        <table class="data-table pallet-table">
-          <thead>
-            <tr>
-              <th class="col-expand"></th>
-              <th class="col-idx">#</th>
-              <th>Mã pallet</th>
-              <th>Người tạo</th>
-              <th>Số thùng</th>
-              <th>Tổng số loại vật tư</th>
-              <th>Tổng vật tư</th>
-              <th>Ghi chú</th>
-              <th class="col-actions">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <ng-container
-              *ngFor="
-                let row of palletRows;
-                let i = index;
-                trackBy: trackPallet
-              "
-            >
-              <tr class="pallet-row" [class.expanded]="isPalletExpanded(row)">
-                <td class="col-expand">
-                  <button
-                    mat-icon-button
-                    type="button"
-                    class="expand-btn"
-                    (click)="togglePallet(row)"
+            <div class="table-wrap" *ngIf="listTab === 'pallet'">
+              <table class="data-table pallet-table">
+                <thead>
+                  <tr>
+                    <th class="col-expand"></th>
+                    <th class="col-idx">#</th>
+                    <th>Mã pallet</th>
+                    <th>Người tạo</th>
+                    <th>Số thùng</th>
+                    <th>Tổng số loại vật tư</th>
+                    <th>Tổng vật tư</th>
+                    <th>Vị trí</th>
+                    <th>Ghi chú</th>
+                    <th class="col-actions">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <ng-container
+                    *ngFor="
+                      let row of palletRows;
+                      let i = index;
+                      trackBy: trackPallet
+                    "
                   >
-                    <mat-icon>{{
-                      isPalletExpanded(row) ? "expand_less" : "expand_more"
-                    }}</mat-icon>
-                  </button>
-                </td>
-                <td class="col-idx">{{ i + 1 }}</td>
-                <td class="fw">{{ row.palletCode }}</td>
-                <td>{{ row.createdBy }}</td>
-                <td>{{ row.boxCount }}</td>
-                <td>{{ row.materialTypeCount }}</td>
-                <td>{{ row.totalQty | number }}</td>
-                <td class="col-note">{{ row.note || "—" }}</td>
-                <td class="col-actions">
-                  <!-- <button
-                    mat-icon-button
-                    type="button"
-                    class="action-btn"
-                    (click)="onShowPalletQr(row)"
-                  >
-                    <mat-icon>qr_code_2</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    type="button"
-                    class="action-btn"
-                    (click)="onPrintPallet(row)"
-                  >
-                    <mat-icon>print</mat-icon>
-                  </button> -->
-                  <button
-                    mat-icon-button
-                    type="button"
-                    class="del-btn"
-                    (click)="removePalletRow(row)"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </td>
-              </tr>
-              <tr *ngIf="isPalletExpanded(row)" class="pallet-detail-row">
-                <td colspan="10">
-                  <div class="nested-table-wrap">
-                    <table class="data-table nested-table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Mã PO</th>
-                          <th>Lot</th>
-                          <th>ReelId</th>
-                          <th>Part Number</th>
-                          <th>Vendor</th>
-                          <th>Quantity</th>
-                          <th>MFGDate</th>
-                          <th>HSD</th>
-                          <th>Vị trí</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr
-                          *ngFor="
-                            let box of row.boxes;
-                            let bi = index;
-                            trackBy: trackBox
-                          "
+                    <tr
+                      class="pallet-row"
+                      [class.expanded]="isPalletExpanded(row)"
+                    >
+                      <td class="col-expand">
+                        <button
+                          mat-icon-button
+                          type="button"
+                          class="expand-btn"
+                          (click)="togglePallet(row)"
                         >
-                          <td>{{ bi + 1 }}</td>
-                          <td>{{ box.poCode || "—" }}</td>
-                          <td>{{ box.lot }}</td>
-                          <td>{{ box.reelId }}</td>
-                          <td>{{ box.partNumber }}</td>
-                          <td>{{ box.vendor }}</td>
-                          <td>
-                            <input
-                              class="qty-input"
-                              type="number"
-                              [(ngModel)]="box.quantity"
-                            />
-                          </td>
-                          <td>{{ box.mfgDate }}</td>
-                          <td>{{ box.hsd }}</td>
-                          <td>{{ box.location || "—" }}</td>
-                          <td>
-                            <button
-                              mat-icon-button
-                              type="button"
-                              class="del-btn"
-                              (click)="removeBoxFromPallet(row, box)"
-                            >
-                              <mat-icon>delete</mat-icon>
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-          </tbody>
-        </table>
+                          <mat-icon>{{
+                            isPalletExpanded(row)
+                              ? "expand_less"
+                              : "expand_more"
+                          }}</mat-icon>
+                        </button>
+                      </td>
+                      <td class="col-idx">{{ i + 1 }}</td>
+                      <td class="fw">{{ row.palletCode }}</td>
+                      <td>{{ row.createdBy }}</td>
+                      <td>{{ row.boxCount }}</td>
+                      <td>{{ row.materialTypeCount }}</td>
+                      <td>{{ row.totalQty | number }}</td>
+                      <td>
+                        <span
+                          class="pallet-loc"
+                          [class.unassigned]="!palletLocation(row)"
+                          >{{ palletLocation(row) || "Chưa gán" }}</span
+                        >
+                      </td>
+                      <td class="col-note">{{ row.note || "—" }}</td>
+                      <td class="col-actions">
+                        <!-- <button
+                        mat-icon-button
+                        type="button"
+                        class="action-btn"
+                        (click)="onShowPalletQr(row)"
+                      >
+                        <mat-icon>qr_code_2</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="action-btn"
+                        (click)="onPrintPallet(row)"
+                      >
+                        <mat-icon>print</mat-icon>
+                      </button> -->
+                        <button
+                          mat-icon-button
+                          type="button"
+                          class="del-btn"
+                          (click)="removePalletRow(row)"
+                        >
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr *ngIf="isPalletExpanded(row)" class="pallet-detail-row">
+                      <td colspan="11">
+                        <div class="nested-table-wrap">
+                          <table class="data-table nested-table">
+                            <thead>
+                              <tr>
+                                <th>#</th>
+                                <th>Mã PO</th>
+                                <th>Lot</th>
+                                <th>ReelId</th>
+                                <th>Part Number</th>
+                                <th>Vendor</th>
+                                <th>Quantity</th>
+                                <th>MFGDate</th>
+                                <th>HSD</th>
+                                <th>Vị trí</th>
+                                <th></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr
+                                *ngFor="
+                                  let box of row.boxes;
+                                  let bi = index;
+                                  trackBy: trackBox
+                                "
+                              >
+                                <td>{{ bi + 1 }}</td>
+                                <td>{{ box.poCode || "—" }}</td>
+                                <td>{{ box.lot }}</td>
+                                <td>{{ box.reelId }}</td>
+                                <td>{{ box.partNumber }}</td>
+                                <td>{{ box.vendor }}</td>
+                                <td>
+                                  {{ box.quantity | number }}
+                                </td>
+                                <td>{{ box.mfgDate }}</td>
+                                <td>{{ box.hsd }}</td>
+                                <td>{{ box.location || "—" }}</td>
+                                <td>
+                                  <button
+                                    mat-icon-button
+                                    type="button"
+                                    class="del-btn"
+                                    (click)="removeBoxFromPallet(row, box)"
+                                  >
+                                    <mat-icon>delete</mat-icon>
+                                  </button>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       </div>
+
+      <!-- Thanh chia ngang + phóng to vùng tổng hợp -->
+      <div
+        class="ws-hsplit"
+        *ngIf="hasSummary"
+        [class.maximized]="bottomMaximized"
+        title="Kéo để chỉnh chiều cao · bấm đúp để về mặc định"
+        (mousedown)="!bottomMaximized && startDrag('h', $event)"
+        (dblclick)="resetSplit('h')"
+      >
+        <span class="ws-grip"></span>
+        <button
+          type="button"
+          class="ws-max-btn"
+          (mousedown)="$event.stopPropagation()"
+          (click)="toggleBottomMaximized()"
+          [title]="
+            bottomMaximized ? 'Hiện lại vùng scan' : 'Phóng to vùng tổng hợp'
+          "
+        >
+          <mat-icon>{{
+            bottomMaximized ? "vertical_align_bottom" : "open_in_full"
+          }}</mat-icon>
+          {{ bottomMaximized ? "Hiện vùng scan" : "Phóng to tổng hợp" }}
+        </button>
+      </div>
+
+      <!-- ----- Dưới: tổng hợp vật tư của cả đơn ----- -->
+      <section class="ws-bottom" *ngIf="hasSummary">
+        <jhi-order-summary-panel
+          [loader]="data.loadOrderPos ?? null"
+          [refreshToken]="summaryRefresh"
+          [follow]="followSignal"
+          (saved)="onSummarySaved()"
+        ></jhi-order-summary-panel>
+      </section>
     </div>
 
     <!-- Kịch bản scan: nhập + chọn autocomplete -->
     <ng-template #scenarioInputTpl>
       <span class="scenario-field">
-        <span>Kịch bản scan:</span>
+        <span class="scenario-label">Kịch bản scan</span>
         <input
           class="scenario-input"
           [(ngModel)]="scenarioCodeValue"
           [matAutocomplete]="autoScenarioDesktop"
+          [title]="displayScenario(scenarioCodeValue)"
           (input)="onScenarioSearch(scenarioCodeValue)"
           (focus)="onScenarioSearch(scenarioCodeValue)"
           placeholder="Tìm theo tên hoặc mã NCC..."
@@ -388,39 +501,53 @@
         />
         <mat-autocomplete
           #autoScenarioDesktop="matAutocomplete"
+          [displayWith]="displayScenario"
+          panelWidth="420px"
           (optionSelected)="onScenarioSelectedByCode($event.option.value)"
         >
           <mat-option
             *ngFor="let s of filteredScenarioOptions"
             [value]="s.vendorCode"
+            class="scenario-option"
           >
             <div class="option-row">
-              <span>{{ s.vendorName }}</span>
-              <span class="muted">{{ s.vendorCode }}</span>
+              <span
+                ><strong>{{ s.vendorCode }}</strong> - {{ s.vendorName }}</span
+              >
+              <span class="qr-format sm">
+                <ng-container
+                  *ngFor="let f of qrFormat(s.mappingConfig); let last = last"
+                >
+                  <span class="qf-part" [class.ignored]="f.ignored">{{
+                    f.label
+                  }}</span
+                  ><span class="qf-sep" *ngIf="!last">{{ f.separator }}</span>
+                </ng-container>
+              </span>
             </div>
           </mat-option>
         </mat-autocomplete>
+        <!-- Mẫu QR của kịch bản đang chọn -->
+        <span class="qr-format-box" *ngIf="qrFormat(data.mappingConfig).length">
+          <span class="qf-title">Mẫu QR:</span>
+          <span class="qr-format">
+            <ng-container
+              *ngFor="let f of qrFormat(data.mappingConfig); let last = last"
+            >
+              <span
+                class="qf-part"
+                [class.ignored]="f.ignored"
+                [title]="f.title"
+                >{{ f.label }}</span
+              ><span class="qf-sep" *ngIf="!last">{{ f.separator }}</span>
+            </ng-container>
+          </span>
+        </span>
         <span class="saving-hint" *ngIf="savingCount > 0">
           Đang lưu {{ savingCount }} thùng...
         </span>
       </span>
     </ng-template>
-    <div class="dialog-footer">
-      <span class="footer-hint">Sửa SL trên danh sách rồi lưu tại đây</span>
-      <div class="footer-actions">
-        <button mat-stroked-button type="button" (click)="onCancel()">
-          Đóng
-        </button>
-        <button
-          mat-raised-button
-          type="button"
-          class="btn-confirm"
-          (click)="onConfirm()"
-        >
-          Xác nhận
-        </button>
-      </div>
-    </div>
   </ng-container>
 
   <!-- ========== MOBILE ========== -->
@@ -470,8 +597,36 @@
           </mat-autocomplete>
         </div>
 
+        <div class="m-modes">
+          <button
+            type="button"
+            [class.active]="scanMode === 'box'"
+            (click)="setScanMode('box')"
+          >
+            <mat-icon>inventory_2</mat-icon>
+            Thùng
+          </button>
+          <button
+            type="button"
+            [class.active]="scanMode === 'pallet'"
+            (click)="setScanMode('pallet')"
+          >
+            <mat-icon>layers</mat-icon>
+            Pallet
+          </button>
+        </div>
+
+        <div class="m-active-pallet" *ngIf="scanMode === 'box' && activePallet">
+          <mat-icon>layers</mat-icon>
+          <span
+            >Đang quét vào pallet
+            <strong>{{ activePallet.palletCode }}</strong></span
+          >
+          <button type="button" (click)="switchActivePallet()">Đổi</button>
+        </div>
+
         <div class="m-scan-inputs">
-          <div class="m-scan-field">
+          <div class="m-scan-field" *ngIf="scanMode === 'pallet'">
             <mat-icon>qr_code_2</mat-icon>
             <input
               #palletInputRef
@@ -482,7 +637,7 @@
               inputmode="none"
             />
           </div>
-          <div class="m-scan-field">
+          <div class="m-scan-field" *ngIf="scanMode === 'box'">
             <mat-icon>qr_code_2</mat-icon>
             <input
               #boxInputRef
@@ -494,15 +649,28 @@
             />
           </div>
           <div class="m-scan-field">
-            <mat-icon>qr_code_2</mat-icon>
+            <mat-icon>place</mat-icon>
             <input
               #locationInputRef
+              #mLocTrigger="matAutocompleteTrigger"
               [(ngModel)]="locationCode"
-              (keydown)="onLocationKeydown($event)"
-              placeholder="Quét vị trí"
+              (ngModelChange)="onScanLocationInput($event)"
+              [matAutocomplete]="mLocAuto"
+              (keydown.enter)="onMobileLocationEnter(mLocTrigger)"
+              [placeholder]="locationPlaceholder"
               autocomplete="off"
-              inputmode="none"
             />
+            <mat-autocomplete
+              #mLocAuto="matAutocomplete"
+              (optionSelected)="onScanLocationPicked($event.option.value)"
+            >
+              <mat-option
+                *ngFor="let w of scanLocationOptions"
+                [value]="w.locationFullName || w.locationName"
+              >
+                {{ w.locationFullName || w.locationName }}
+              </mat-option>
+            </mat-autocomplete>
           </div>
         </div>
 
@@ -545,9 +713,6 @@
               <div class="m-box-meta">{{ boxMetaLine(row) }}</div>
             </div>
             <span class="m-box-qty">{{ row.quantity }}</span>
-            <button type="button" class="m-del" (click)="removeBoxRow(row)">
-              <mat-icon>delete</mat-icon>
-            </button>
           </div>
           <div class="m-empty" *ngIf="!boxRows.length">Chưa có thùng nào.</div>
         </div>
@@ -580,7 +745,11 @@
                 </div>
                 <div>
                   <span class="lbl">Vị trí</span>
-                  <strong class="loc">{{ row.locationLabel }}</strong>
+                  <strong
+                    class="loc"
+                    [class.unassigned]="!palletLocation(row)"
+                    >{{ palletLocation(row) || "Chưa gán" }}</strong
+                  >
                 </div>
               </div>
             </div>
@@ -598,15 +767,6 @@
                   <div class="m-box-meta">{{ boxMetaLine(box) }}</div>
                 </div>
                 <span class="m-box-qty">{{ box.quantity }}</span>
-                <button
-                  type="button"
-                  class="m-del"
-                  (click)="
-                    removeBoxFromPallet(row, box); $event.stopPropagation()
-                  "
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
               </div>
             </div>
           </div>
@@ -677,7 +837,7 @@
           [disabled]="!unassignedMaterialCount"
           (click)="openUnassignedLots()"
         >
-          Vật tư chưa có PO
+          Hàng chờ vật tư
           <span class="badge">{{ unassignedMaterialCount }}</span>
         </button>
         <div class="info-loading" *ngIf="!isLoadingInfo && !infoPos.length">
@@ -850,6 +1010,13 @@
             </div>
           </div>
           <div class="lot-badges">
+            <span
+              *ngFor="let q of lotQueueReasons(lot)"
+              class="queue-badge"
+              [attr.data-reason]="q.reason"
+              [title]="queueReasonHint(q.reason)"
+              >{{ queueReasonLabel(q.reason) }} · {{ q.count }}</span
+            >
             <span class="outline">{{ lot.boxCount }} Thùng</span>
             <span class="outline"
               >Tổng số lượng: {{ lot.totalQty | number }}</span
@@ -869,7 +1036,16 @@
               *ngFor="let box of lot.boxes; trackBy: trackInfoBox"
             >
               <div class="box-main">
-                <div class="box-code">{{ box.code }}</div>
+                <div class="box-code">
+                  {{ box.code }}
+                  <span
+                    *ngIf="box.queueReason"
+                    class="queue-badge"
+                    [attr.data-reason]="box.queueReason"
+                    [title]="queueReasonHint(box.queueReason)"
+                    >{{ queueReasonLabel(box.queueReason) }}</span
+                  >
+                </div>
                 <div class="box-meta">{{ infoBoxMeta(box) }}</div>
               </div>
               <span
@@ -879,6 +1055,14 @@
               >
                 {{ box.missingInfo ? "Thiếu thông tin" : "Đủ thông tin" }}
               </span>
+              <button
+                type="button"
+                class="m-del"
+                aria-label="Xóa thùng"
+                (click)="onDeleteInfoBox(box); $event.stopPropagation()"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
             </div>
           </div>
         </div>
@@ -954,29 +1138,13 @@
             </mat-autocomplete>
           </div>
           <div class="field">
-            <label>Mã kho</label>
+            <label>Mã kho SAP (theo dòng PO)</label>
             <input
-              [(ngModel)]="elot.warehouseCode"
-              [matAutocomplete]="autoLotWhs"
-              (input)="onLotWarehouseSearch(elot.warehouseCode)"
-              (focus)="onLotWarehouseSearch(elot.warehouseCode)"
-              [placeholder]="
-                isLoadingSapWarehouses ? 'Đang tải kho...' : 'Mã kho SAP...'
-              "
-              autocomplete="off"
+              [value]="elot.warehouseCode || '—'"
+              readonly
+              tabindex="-1"
+              class="readonly-input"
             />
-            <mat-autocomplete
-              #autoLotWhs="matAutocomplete"
-              [displayWith]="displaySapWarehouse"
-              (optionSelected)="onLotWarehouseSelected($event.option.value)"
-            >
-              <mat-option
-                *ngFor="let whs of filteredSapWarehouseList"
-                [value]="whs.whsCode"
-              >
-                {{ whs.whsCode }} - {{ whs.whsName }}
-              </mat-option>
-            </mat-autocomplete>
           </div>
           <div class="field">
             <label>Ngày sản xuất</label>

@@ -1592,3 +1592,596 @@
     white-space: nowrap;
   }
 }
+
+/* =====================================================================
+   Màn Scan desktop (full màn): [Chọn mode | Kết quả scan] / Tổng hợp vật tư
+   ===================================================================== */
+.scan-import-dialog:not(.is-mobile) {
+  max-height: 100vh;
+}
+
+::ng-deep .scan-import-dialog-panel.scan-import-dialog-panel--workspace {
+  max-width: 100vw !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+
+  .mat-mdc-dialog-container,
+  .mat-mdc-dialog-surface {
+    border-radius: 0 !important;
+    height: 100%;
+  }
+}
+
+.ws {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f3f5f8;
+}
+
+.ws-top {
+  flex-shrink: 0;
+  min-height: 0;
+  display: flex;
+  background: #fff;
+}
+
+/* ----- Trái: chọn mode ----- */
+.ws-left {
+  flex-shrink: 0;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-right: 1px solid #e5e7eb;
+
+  .drop-zone {
+    min-height: 120px;
+  }
+}
+
+.ws-modes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.ws-mode {
+  --c: #2563eb;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px 8px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &[data-mode="pallet"] {
+    --c: #7c3aed;
+  }
+
+  &[data-mode="location"] {
+    --c: #ea580c;
+  }
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
+
+  kbd {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 9px;
+    color: #9ca3af;
+    font-family: inherit;
+  }
+
+  &:hover {
+    border-color: var(--c);
+  }
+
+  &.active {
+    border-color: var(--c);
+    background: var(--c);
+    color: #fff;
+
+    kbd {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+}
+
+/* Badge mode đang chọn — to, đổi màu theo mode */
+.ws-badge {
+  --c: #2563eb;
+  --bg: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--c);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+
+  &[data-mode="pallet"] {
+    --c: #7c3aed;
+    --bg: #f5f3ff;
+  }
+
+  &[data-mode="location"] {
+    --c: #ea580c;
+    --bg: #fff7ed;
+  }
+}
+
+.ws-badge-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c);
+  animation: ws-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ws-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.ws-scan-input {
+  --c: #2563eb;
+  --ring: rgba(37, 99, 235, 0.15);
+  height: 48px;
+  padding: 0 14px;
+  border: 2px solid var(--c);
+  border-radius: 10px;
+  font-size: 16px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+
+  &[data-mode="pallet"] {
+    --c: #7c3aed;
+    --ring: rgba(124, 58, 237, 0.15);
+  }
+
+  &[data-mode="location"] {
+    --c: #ea580c;
+    --ring: rgba(234, 88, 12, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.ws-no-pallet {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  font-size: 12px;
+  color: #4b5563;
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* ----- Phải: kết quả scan ----- */
+.ws-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  min-height: 0;
+}
+
+.ws-kpis {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.kpi {
+  --c: #2563eb;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid var(--c);
+  border-radius: 10px;
+  background: #fff;
+  min-width: 0;
+
+  &[data-tone="green"] {
+    --c: #16a34a;
+  }
+
+  &[data-tone="indigo"] {
+    --c: #4f46e5;
+  }
+
+  &[data-tone="purple"] {
+    --c: #7c3aed;
+  }
+
+  &[data-tone="amber"] {
+    --c: #d97706;
+  }
+
+  &[data-tone="red"] {
+    --c: #dc2626;
+  }
+
+  &.alert[data-tone="amber"] {
+    background: #fffbeb;
+  }
+
+  &.alert[data-tone="red"] {
+    background: #fef2f2;
+  }
+}
+
+.kpi-label {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--c);
+  line-height: 1.1;
+}
+
+.ws-results {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .table-wrap {
+    min-height: 0;
+  }
+}
+
+/* ----- Thanh kéo ----- */
+.ws-vsplit {
+  flex-shrink: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: #e5e7eb;
+
+  &:hover {
+    background: #93c5fd;
+  }
+}
+
+.ws-hsplit {
+  flex-shrink: 0;
+  position: relative;
+  height: 10px;
+  cursor: row-resize;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: #bfdbfe;
+  }
+
+  &.maximized {
+    cursor: default;
+  }
+}
+
+.ws-grip {
+  width: 48px;
+  height: 4px;
+  border-radius: 999px;
+  background: #9ca3af;
+}
+
+.ws-max-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* ----- Dưới: tổng hợp ----- */
+.ws-bottom {
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* Kịch bản scan (màn desktop): nhãn trên, ô nhập to, hiện "mã - tên" */
+.ws-left .scenario-tag {
+  display: block;
+  padding: 10px 12px;
+}
+
+.ws-left .scenario-field,
+.ws-left .scenario-tag .scenario-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+}
+
+.scenario-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.ws-left .scenario-input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+}
+
+/* Cột Vị trí trong bảng pallet */
+.pallet-loc {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+
+  &.unassigned {
+    background: #f3f4f6;
+    color: #9ca3af;
+    font-weight: 400;
+  }
+}
+
+/* Mẫu QR của kịch bản */
+.qr-format-box {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  padding: 6px 8px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.qf-title {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.qr-format {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  word-break: break-word;
+
+  &.sm {
+    font-size: 11px;
+    color: #4b5563;
+  }
+}
+
+.qf-part {
+  font-weight: 600;
+  color: #1d4ed8;
+
+  &.ignored {
+    font-weight: 400;
+    color: #9ca3af;
+    text-decoration: line-through;
+  }
+}
+
+.qf-sep {
+  margin: 0 1px;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+::ng-deep .scenario-option.mat-mdc-option {
+  min-height: 52px;
+  height: auto;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.qty-cell {
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ===== Mobile: chọn mode Thùng / Pallet ===== */
+.m-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #e5e7eb;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 40px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 700;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.active {
+      background: #fff;
+      color: #1e3a5f;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+    }
+  }
+}
+
+.m-active-pallet {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #f5f3ff;
+  color: #5b21b6;
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  span {
+    flex: 1;
+    min-width: 0;
+    word-break: break-all;
+  }
+
+  button {
+    border: 1px solid #c4b5fd;
+    border-radius: 8px;
+    background: #fff;
+    color: #5b21b6;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+  }
+}
+
+.lot-box-row .m-del {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.loc.unassigned {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* Lý do thùng nằm trong "Hàng chờ vật tư" */
+.queue-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  vertical-align: middle;
+  white-space: nowrap;
+
+  &[data-reason="overflow"] {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  &[data-reason="noPo"] {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  &[data-reason="poMismatch"] {
+    background: #ede9fe;
+    color: #6d28d9;
+  }
+}
+
+.lot-badges .queue-badge {
+  margin-left: 0;
+}
+
+/* Form LOT: mã kho SAP chỉ hiển thị (whsCode của dòng PO) */
+.readonly-input {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  cursor: default;
+}

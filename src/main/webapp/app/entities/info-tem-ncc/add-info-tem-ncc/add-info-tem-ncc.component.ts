@@ -17,10 +17,11 @@ import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatDialog } from "@angular/material/dialog";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Observable, take } from "rxjs";
+import { forkJoin, Observable, of, take } from "rxjs";
 import { map } from "rxjs/operators";
 import {
   DeliveryNotificationDetailDto,
+  DELIVERY_SOURCE_SYSTEM,
   DeliveryNotificationDto,
   InfoTemNccService,
   SapPor1BatchItem,
@@ -39,6 +40,7 @@ import {
   PoImportDialogData,
   PoImportSelection,
 } from "./po-import-dialog/po-import-dialog.component";
+import { OrderWorkspaceData } from "./order-summary-panel/order-summary-panel.component";
 import {
   MiniPageState,
   slicePage,
@@ -77,9 +79,11 @@ import {
 import {
   MaterialSummaryDialogComponent,
   MaterialSummaryDialogData,
+  UnassignedPoLine,
 } from "./material-summary-dialog/material-summary-dialog.component";
 import { ScanImportDialogComponent } from "./scan-import-dialog/scan-import-dialog.component";
 import { ScanImportDialogData } from "./scan-import-dialog/scan-import.models";
+import { boxLocation } from "../shared/box-location.util";
 
 /** Cấp 3 – lot */
 export interface AddLotItem {
@@ -209,15 +213,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     status: "",
   };
 
-  materialFilter: MaterialFilterValues = {
-    materialCode: "",
-    materialName: "",
-    partNumber: "",
-    warehouseCode: "",
-  };
-
-  lotFilter = "";
-
   dataSource = new MatTableDataSource<AddPoItem>([]);
   pageSize = 25;
   pageSizeOptions = [10, 25, 50];
@@ -269,6 +264,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   /** Phân trang: vật tư theo PO (key = id PO), lô theo vật tư (key = id vật tư) */
   private materialPageStates = new Map<number, MiniPageState>();
   private lotPageStates = new Map<number, MiniPageState>();
+  /** Ô lọc bảng con: vật tư theo PO (key = po.id), lot theo vật tư (key = material.id) */
+  private materialFilters = new Map<number, MaterialFilterValues>();
+  private lotFilters = new Map<number, { lot: string }>();
 
   private expandedPoIds = new Set<number>();
   private expandedMaterialIds = new Set<number>();
@@ -339,7 +337,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         deliveryNotificationCode: code,
         invoiceNumber: (this.orderInfo.invoiceNumber ?? "").trim(),
         contractCode: (this.orderInfo.contractCode ?? "").trim(),
-        vendorCode: this.orderVendorCode(),
         vendorName: this.orderVendorName(),
         contNo: (this.orderInfo.contNo ?? "").trim(),
         entryDate:
@@ -347,7 +344,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             ? arrival.toISOString()
             : now,
         numberOfPo: 0,
+        numberOfItem: 0,
         status: "New",
+        source: DELIVERY_SOURCE_SYSTEM,
         createdBy: this.currentUser,
         createdAt: now,
       })
@@ -490,8 +489,33 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator?.firstPage();
   }
 
+  /** Ô lọc vật tư riêng của từng PO (lọc PO nào chỉ áp cho bảng con của PO đó) */
+  getMaterialFilter(po: AddPoItem): MaterialFilterValues {
+    let f = this.materialFilters.get(po.id);
+    if (!f) {
+      f = {
+        materialCode: "",
+        materialName: "",
+        partNumber: "",
+        warehouseCode: "",
+      };
+      this.materialFilters.set(po.id, f);
+    }
+    return f;
+  }
+
+  /** Ô lọc lot riêng của từng vật tư */
+  getLotFilter(m: AddMaterialItem): { lot: string } {
+    let f = this.lotFilters.get(m.id);
+    if (!f) {
+      f = { lot: "" };
+      this.lotFilters.set(m.id, f);
+    }
+    return f;
+  }
+
   getFilteredMaterials(po: AddPoItem): AddMaterialItem[] {
-    const f = this.materialFilter;
+    const f = this.getMaterialFilter(po);
     return (po.materials ?? []).filter((m) => {
       const includes = (val: string, q: string): boolean => {
         const term = (q ?? "").trim().toLowerCase();
@@ -527,9 +551,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     this.materialPageStates.set(po.id, pageState);
   }
 
-  /** Đổi ô lọc vật tư → về trang đầu */
-  onMaterialFilterChange(): void {
-    this.materialPageStates.clear();
+  /** Đổi ô lọc vật tư của 1 PO → bảng con của PO đó về trang đầu */
+  onMaterialFilterChange(po: AddPoItem): void {
+    this.materialPageStates.delete(po.id);
   }
 
   materialRowNo(po: AddPoItem, indexInPage: number): number {
@@ -555,12 +579,13 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     this.lotPageStates.set(m.id, pageState);
   }
 
-  onLotFilterChange(): void {
-    this.lotPageStates.clear();
+  /** Đổi ô lọc lot của 1 vật tư → bảng lô của vật tư đó về trang đầu */
+  onLotFilterChange(m: AddMaterialItem): void {
+    this.lotPageStates.delete(m.id);
   }
 
   getFilteredLots(material: AddMaterialItem): AddLotItem[] {
-    const term = (this.lotFilter ?? "").trim().toLowerCase();
+    const term = (this.getLotFilter(material).lot ?? "").trim().toLowerCase();
     if (!term) {
       return material.lots ?? [];
     }
@@ -715,6 +740,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     const dialogData: ScanImportDialogData = {
       mappingConfig: this.activeMappingConfig,
       poCode: this.dataSource.data[0]?.poCode ?? "",
+      deliveryNotice: toText(this.orderInfo.deliveryNotice),
+      vehicleNumber: toText(this.orderInfo.contNo),
+      contractCode: toText(this.orderInfo.contractCode),
       vendorCode:
         (this.orderInfo.vendorCode ?? "").trim() ||
         (this.selectedScenario?.vendorCode ?? "").trim(),
@@ -724,17 +752,21 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       deliveryNotificationId: this.deliveryId,
       arrivalDate: this.orderInfo.arrivalDate,
       existingReelIds: existingReelIds.filter(Boolean),
+      // Màn Scan desktop: panel Tổng hợp vật tư của cả đơn
+      loadOrderPos:
+        this.deliveryId !== null ? () => this.buildWorkspaceData() : undefined,
     };
 
     this.dialog
       .open(ScanImportDialogComponent, {
-        width: isMobile ? "100vw" : "96vw",
-        maxWidth: isMobile ? "100vw" : "1400px",
-        height: isMobile ? "100vh" : "90vh",
-        maxHeight: isMobile ? "100dvh" : "92vh",
+        // Desktop: màn Scan full màn (scan + kết quả + tổng hợp)
+        width: "100vw",
+        maxWidth: "100vw",
+        height: isMobile ? "100vh" : "100vh",
+        maxHeight: isMobile ? "100dvh" : "100vh",
         panelClass: isMobile
           ? ["scan-import-dialog-panel", "scan-import-dialog-panel--mobile"]
-          : ["scan-import-dialog-panel"],
+          : ["scan-import-dialog-panel", "scan-import-dialog-panel--workspace"],
         autoFocus: false,
         disableClose: true,
         data: dialogData,
@@ -778,7 +810,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       userData5: b.userData5 ?? "",
       initialQuantity: b.initialQuantity ?? 0,
       msl: b.msdLevel ?? "",
-      storageUnit: b.storageUnit ?? "",
+      // Vị trí kho của thùng
+      storageUnit: boxLocation(b),
       manufacturingDate: this.toDateText(b.manufacturingDate),
       expirationDate: this.toDateText(b.expirationDate),
       sapCode: b.sapCode ?? material.materialCode,
@@ -790,6 +823,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       updatedBy: b.updatedBy ?? "",
       poDetailId: material.id,
       importVendorTemTransactionsId: this.deliveryId ?? this.mockTransactionId,
+      // Bản ghi thùng gốc → dialog lưu bằng PUT /vendor-label-infos/{id}
+      record: b,
     }));
     const data: LotDetailDialogData = {
       partNumber,
@@ -821,15 +856,23 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             },
           ],
     };
-    this.dialog.open(LotDetailDialogComponent, {
-      width: "98vw",
-      maxWidth: "98vw",
-      height: "92vh",
-      maxHeight: "92vh",
-      panelClass: "lot-detail-dialog-panel",
-      autoFocus: false,
-      data,
-    });
+    this.dialog
+      .open(LotDetailDialogComponent, {
+        width: "98vw",
+        maxWidth: "98vw",
+        height: "92vh",
+        maxHeight: "92vh",
+        panelClass: "lot-detail-dialog-panel",
+        autoFocus: false,
+        data,
+      })
+      .afterClosed()
+      .subscribe((result: unknown) => {
+        // Đã lưu thùng → tải lại chi tiết đơn
+        if (result && this.deliveryId !== null) {
+          this.loadDetail(this.deliveryId);
+        }
+      });
   }
 
   onSendWMS(row: AddPoItem, event?: Event): void {
@@ -895,58 +938,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     if (!this.unassignedBoxes.length) {
       return;
     }
-    // Gom thùng theo mã SAP → mỗi mã 1 "vật tư" (dựng như dòng PO giả để dùng lại mapMaterial)
-    const bySap = new Map<string, VendorLabelInfoDto[]>();
-    for (const b of this.unassignedBoxes) {
-      const key = toText(b.sapCode) || toText(b.partNumber) || "—";
-      bySap.set(key, [...(bySap.get(key) ?? []), b]);
-    }
-    let seq = 0;
-    const materials: AddMaterialItem[] = [];
-    bySap.forEach((boxes, sapCode) => {
-      seq -= 1;
-      const m = this.mapMaterial({
-        id: seq,
-        lineNum: null,
-        itemCode: sapCode,
-        dscription: "",
-        quantity: 0,
-        whsCode: null,
-        unitMsr: null,
-        price: null,
-        currency: null,
-        docEntry: null,
-        vendorLabelInfoList: boxes,
-      });
-      m.partNumber = this.distinctJoin(boxes.map((b) => b.partNumber));
-      materials.push(m);
-    });
-    const pseudoPo: AddPoItem = {
-      id: -1,
-      poCode: "Chưa có PO",
-      warehouseKeeper: "",
-      vendorCode: this.orderInfo.vendorCode,
-      vendorName: this.orderInfo.vendorName,
-      vehicleNumber: this.orderInfo.contNo,
-      invoiceNumber: this.orderInfo.invoiceNumber,
-      contractCode: this.orderInfo.contractCode,
-      importDate: "",
-      importBatch: null,
-      materialTypeCount: materials.length,
-      totalQuantity: 0,
-      status: "WAITING",
-      materials,
-    };
-    const poLines = this.dataSource.data.flatMap((po) =>
-      po.materials
-        .filter((m) => m.id > 0)
-        .map((m) => ({
-          id: m.id,
-          poCode: po.poCode,
-          sapCode: m.materialCode,
-          partNumber: m.partNumber,
-        })),
-    );
+    const pseudoPo = this.buildUnassignedPo(this.unassignedBoxes);
+    const poLines = this.buildPoLines(this.dataSource.data);
     this.dialog
       .open(MaterialSummaryDialogComponent, {
         width: "98vw",
@@ -1219,7 +1212,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.notificationService.success(
           `Đã thêm ${items.length} vật tư từ ${selections.length} PO vào đơn.`,
         );
-        this.loadDetail(deliveryId);
+        this.loadDetail(deliveryId, true);
       },
       error: () => {
         this.isLoadingDetail = false;
@@ -1247,13 +1240,14 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       return;
     }
     const base = this.loadedOrder;
+    const detailBase = base as DeliveryNotificationDetailDto | null;
     const arrival = this.orderInfo.arrivalDate;
     const payload: DeliveryNotificationDto = {
       id,
       deliveryNotificationCode: (this.orderInfo.deliveryNotice ?? "").trim(),
       invoiceNumber: (this.orderInfo.invoiceNumber ?? "").trim(),
       contractCode: (this.orderInfo.contractCode ?? "").trim(),
-      vendorCode: this.orderVendorCode(),
+      // vendorCode: this.orderVendorCode(),
       vendorName: this.orderVendorName(),
       contNo: (this.orderInfo.contNo ?? "").trim(),
       entryDate:
@@ -1261,7 +1255,10 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           ? arrival.toISOString()
           : (base?.entryDate ?? null),
       numberOfPo: base?.numberOfPo ?? null,
+      numberOfItem: base?.numberOfItem ?? null,
+      ...(detailBase?.sapPor1R1List ? this.orderCounts(detailBase) : {}),
       status: base?.status ?? "New",
+      source: base?.source ?? DELIVERY_SOURCE_SYSTEM,
       deletedAt: base?.deletedAt ?? null,
       deletedBy: base?.deletedBy ?? null,
       createdBy: base?.createdBy ?? null,
@@ -1360,9 +1357,138 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Dữ liệu cả đơn cho panel Tổng hợp trong màn Scan: detail (PO / vật tư / thùng) + thùng chưa có PO */
+  private buildWorkspaceData(): Observable<unknown> {
+    const id = this.deliveryId;
+    if (id === null) {
+      return of(null);
+    }
+    return forkJoin({
+      detail: this.infoTemNccService.getDeliveryNotificationDetail(id),
+      boxes: this.infoTemNccService.getVendorLabelInfosByDelivery(id),
+    }).pipe(
+      map(({ detail, boxes }) => {
+        const pos = this.mapPos(detail);
+        const lineIds = new Set((detail.sapPor1R1List ?? []).map((l) => l.id));
+        const orphans = boxes.filter(
+          (b) =>
+            b.sapPor1Id === null ||
+            b.sapPor1Id === undefined ||
+            !lineIds.has(b.sapPor1Id),
+        );
+        const data: OrderWorkspaceData = {
+          pos,
+          unassigned: orphans.length ? this.buildUnassignedPo(orphans) : null,
+          poLines: this.buildPoLines(pos),
+          vendorCode: this.orderInfo.vendorCode,
+          transactionId: this.mockTransactionId,
+        };
+        return data;
+      }),
+    );
+  }
+
+  /** Thùng chưa có PO → PO giả "Chưa có PO" (gom theo mã SAP, dùng lại mapMaterial) */
+  private buildUnassignedPo(boxesIn: VendorLabelInfoDto[]): AddPoItem {
+    // Gom thùng theo mã SAP → mỗi mã 1 "vật tư" (dựng như dòng PO giả để dùng lại mapMaterial)
+    const bySap = new Map<string, VendorLabelInfoDto[]>();
+    for (const b of boxesIn) {
+      const key = toText(b.sapCode) || toText(b.partNumber) || "—";
+      bySap.set(key, [...(bySap.get(key) ?? []), b]);
+    }
+    let seq = 0;
+    const materials: AddMaterialItem[] = [];
+    bySap.forEach((boxes, sapCode) => {
+      seq -= 1;
+      const m = this.mapMaterial({
+        id: seq,
+        lineNum: null,
+        itemCode: sapCode,
+        dscription: "",
+        quantity: 0,
+        whsCode: null,
+        unitMsr: null,
+        price: null,
+        currency: null,
+        docEntry: null,
+        vendorLabelInfoList: boxes,
+      });
+      m.partNumber = this.distinctJoin(boxes.map((b) => b.partNumber));
+      materials.push(m);
+    });
+    return {
+      id: -1,
+      poCode: "Hàng chờ vật tư",
+      warehouseKeeper: "",
+      vendorCode: this.orderInfo.vendorCode,
+      vendorName: this.orderInfo.vendorName,
+      vehicleNumber: this.orderInfo.contNo,
+      invoiceNumber: this.orderInfo.invoiceNumber,
+      contractCode: this.orderInfo.contractCode,
+      importDate: "",
+      importBatch: null,
+      materialTypeCount: materials.length,
+      totalQuantity: 0,
+      status: "WAITING",
+      materials,
+    };
+  }
+
+  /** Dòng vật tư của đơn (sapPor1R1) để gán thùng chưa có PO */
+  private buildPoLines(pos: AddPoItem[]): UnassignedPoLine[] {
+    return pos.flatMap((po) =>
+      po.materials
+        .filter((m) => m.id > 0)
+        .map((m) => ({
+          id: m.id,
+          poCode: po.poCode,
+          sapCode: m.materialCode,
+          partNumber: m.partNumber,
+        })),
+    );
+  }
+
   // ==================== DETAIL (API) ====================
 
-  private loadDetail(id: number): void {
+  /** Số PO (theo docEntry) và số vật tư (dòng sapPor1R1) hiện có trong đơn */
+  private orderCounts(
+    detail: DeliveryNotificationDetailDto,
+  ): Pick<DeliveryNotificationDto, "numberOfPo" | "numberOfItem"> {
+    const lines = detail.sapPor1R1List ?? [];
+    return {
+      numberOfPo: new Set(lines.map((l) => toText(l.docEntry))).size,
+      numberOfItem: lines.length,
+    };
+  }
+
+  /**
+   * PUT /delivery-notifications/{id} để thông tin đơn ở list khớp với PO/vật tư thực tế.
+   * Bỏ qua nếu số liệu đã đúng.
+   */
+  private syncOrderCounts(detail: DeliveryNotificationDetailDto): void {
+    const counts = this.orderCounts(detail);
+    if (
+      detail.numberOfPo === counts.numberOfPo &&
+      detail.numberOfItem === counts.numberOfItem
+    ) {
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { sapPor1R1List, ...order } = detail;
+    const payload: DeliveryNotificationDto = { ...order, ...counts };
+    this.infoTemNccService.updateDeliveryNotification(payload).subscribe({
+      next: (saved) => {
+        this.loadedOrder = { ...detail, ...payload, ...(saved ?? {}) };
+      },
+      error: () => {
+        this.notificationService.warning(
+          "Đã lưu vật tư nhưng cập nhật số PO/vật tư của đơn thất bại.",
+        );
+      },
+    });
+  }
+
+  private loadDetail(id: number, syncCounts = false): void {
     this.isLoadingDetail = true;
     this.infoTemNccService.getDeliveryNotificationDetail(id).subscribe({
       next: (detail) => {
@@ -1385,8 +1511,13 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.partLoadedPoIds.clear();
         this.materialPageStates.clear();
         this.lotPageStates.clear();
+        this.materialFilters.clear();
+        this.lotFilters.clear();
         this.dataSource.data = this.mapPos(detail);
         this.loadUnassignedBoxes(id, detail);
+        if (syncCounts) {
+          this.syncOrderCounts(detail);
+        }
         this.isLoadingDetail = false;
         this.cdr.markForCheck();
       },
@@ -1466,9 +1597,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       lots.push({
         id: lotBoxes[0].id,
         lotNumber: lotNumber || "—",
-        warehouseCode:
-          this.distinctJoin(lotBoxes.map((b) => b.storageUnit)) ||
-          (l.whsCode ?? ""),
+        // Mã kho SAP = whsCode của dòng vật tư trong PO
+        warehouseCode: l.whsCode ?? "",
         quantity: sumQty(lotBoxes),
         boxCount: lotBoxes.length,
         manufacturingDate: this.distinctJoin(

@@ -50,6 +50,20 @@ export interface TemPanacimExportInput {
 
 type FormatExportDateFn = (value: Date | string | null) => string;
 
+/**
+ * PanaCIM không nhận ký tự tiếng Việt (vd "Đ") — bỏ dấu trước khi đưa vào CSV:
+ * "272/KDVT-RĐ" → "272/KDVT-RD", "Vị trí" → "Vi tri". Ký tự không dấu giữ nguyên.
+ */
+export function toPanacimText(
+  value: string | number | null | undefined,
+): string {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/Đ/g, "D")
+    .replace(/đ/g, "d");
+}
+
 function formatExportDate(
   value: Date | string | null,
   formatDateFn: FormatExportDateFn,
@@ -71,16 +85,17 @@ export function buildTemPanacimExportRows(
   rows: TemPanacimExportInput[],
   formatDateFn: FormatExportDateFn,
 ): (string | number)[][] {
+  const t = toPanacimText;
   return rows.map((item) => [
-    item.reelId,
-    item.partNumber,
-    item.vendor,
-    item.lot,
-    item.userData1,
-    item.userData2,
-    item.userData3,
-    item.userData4,
-    item.userData5,
+    t(item.reelId),
+    t(item.partNumber),
+    t(item.vendor),
+    t(item.lot),
+    t(item.userData1),
+    t(item.userData2),
+    t(item.userData3),
+    t(item.userData4),
+    t(item.userData5),
     item.initialQuantity ?? "",
     "",
     "",
@@ -93,13 +108,13 @@ export function buildTemPanacimExportRows(
     "",
     "",
     "",
-    item.storageUnit,
+    t(item.storageUnit),
     "",
     "",
     formatExportDate(item.expirationDate, formatDateFn),
     formatExportDate(item.manufacturingDate, formatDateFn),
     "",
-    item.sapCode,
+    t(item.sapCode),
   ]);
 }
 

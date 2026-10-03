@@ -1,7 +1,7 @@
-<div class="summary-dialog">
-  <div class="dialog-header">
+<div class="summary-dialog" [class.embedded]="embedded">
+  <div class="dialog-header" *ngIf="!embedded">
     <div class="title-block">
-      <h2>{{ isUnassigned ? "Vật tư chưa có PO" : "Tổng hợp vật tư" }}</h2>
+      <h2>{{ isUnassigned ? "Hàng chờ vật tư" : "Tổng hợp vật tư" }}</h2>
       <p class="subtitle" *ngIf="!isUnassigned">
         {{ sapCount }} mã SAP · PO {{ poCode }}
       </p>
@@ -85,7 +85,11 @@
         </thead>
         <tbody>
           <ng-container *ngFor="let sap of filteredRows">
-            <tr class="sap-row" [class.expanded]="isSapExpanded(sap)">
+            <tr
+              class="sap-row"
+              [class.expanded]="isSapExpanded(sap)"
+              [class.flash]="isHighlighted(sap)"
+            >
               <td class="col-expand">
                 <button mat-icon-button type="button" (click)="toggleSap(sap)">
                   <mat-icon>{{
@@ -97,6 +101,13 @@
               <td>{{ sap.partNumber }}</td>
               <td class="col-name" [title]="sap.productName">
                 {{ sap.productName }}
+                <span
+                  *ngFor="let q of sapQueueReasons(sap)"
+                  class="queue-badge"
+                  [attr.data-reason]="q.reason"
+                  [matTooltip]="queueReasonHint(q.reason)"
+                  >{{ queueReasonLabel(q.reason) }} · {{ q.count }}</span
+                >
               </td>
               <td class="num">{{ sap.totalQty | number }}</td>
               <td class="num">{{ sap.labelCount }}</td>
@@ -210,30 +221,11 @@
                 </mat-autocomplete>
               </td>
               <td>
-                <input
-                  class="cell-input"
-                  [(ngModel)]="sap.warehouseCode"
-                  [matAutocomplete]="sapWhsAuto"
-                  (ngModelChange)="onWarehouseSearch($event)"
-                  (focus)="onWarehouseSearch('')"
-                  [placeholder]="isLoadingWarehouses ? 'Đang tải...' : '—'"
-                  (keydown.enter)="onSapFieldEnter(sap, 'warehouseCode')"
-                />
-                <mat-autocomplete
-                  #sapWhsAuto="matAutocomplete"
-                  panelWidth="280px"
-                  [displayWith]="displayWarehouse"
-                  (optionSelected)="
-                    onSapWarehouseSelected(sap, $event.option.value)
-                  "
+                <span
+                  class="whs-readonly"
+                  matTooltip="Mã kho SAP theo dòng PO"
+                  >{{ sap.warehouseCode || "—" }}</span
                 >
-                  <mat-option
-                    *ngFor="let whs of filteredWarehouseList"
-                    [value]="whs.whsCode"
-                  >
-                    {{ whs.whsCode }} - {{ whs.whsName }}
-                  </mat-option>
-                </mat-autocomplete>
               </td>
               <td>
                 <span
@@ -284,11 +276,22 @@
             </tr>
 
             <ng-container *ngIf="isSapExpanded(sap)">
-              <tr *ngFor="let lot of getVisibleLots(sap)" class="lot-row">
+              <tr
+                *ngFor="let lot of getVisibleLots(sap)"
+                class="lot-row"
+                [class.flash]="isHighlighted(sap, lot)"
+              >
                 <td></td>
                 <td colspan="3" class="lot-cell">
                   <!-- <mat-icon class="lot-icon">inventory_2</mat-icon> -->
                   <strong>{{ lot.lotNumber }}</strong>
+                  <span
+                    *ngFor="let q of lotQueueReasons(lot)"
+                    class="queue-badge"
+                    [attr.data-reason]="q.reason"
+                    [matTooltip]="queueReasonHint(q.reason)"
+                    >{{ queueReasonLabel(q.reason) }} · {{ q.count }}</span
+                  >
                 </td>
                 <td class="num">{{ lot.materialTypeCount }}</td>
                 <td class="num">{{ lot.boxCount }}</td>
@@ -408,30 +411,9 @@
                   </mat-autocomplete>
                 </td>
                 <td>
-                  <input
-                    class="cell-input"
-                    [(ngModel)]="lot.warehouseCode"
-                    [matAutocomplete]="lotWhsAuto"
-                    (ngModelChange)="onWarehouseSearch($event)"
-                    (focus)="onWarehouseSearch('')"
-                    [placeholder]="isLoadingWarehouses ? 'Đang tải...' : '—'"
-                    (keydown.enter)="onLotFieldEnter(sap, lot, 'warehouseCode')"
-                  />
-                  <mat-autocomplete
-                    #lotWhsAuto="matAutocomplete"
-                    panelWidth="280px"
-                    [displayWith]="displayWarehouse"
-                    (optionSelected)="
-                      onLotWarehouseSelected(sap, lot, $event.option.value)
-                    "
-                  >
-                    <mat-option
-                      *ngFor="let whs of filteredWarehouseList"
-                      [value]="whs.whsCode"
-                    >
-                      {{ whs.whsCode }} - {{ whs.whsName }}
-                    </mat-option>
-                  </mat-autocomplete>
+                  <span class="whs-readonly">{{
+                    lot.warehouseCode || "—"
+                  }}</span>
                 </td>
                 <td>
                   <span
@@ -465,6 +447,7 @@
 
   <div class="dialog-footer">
     <button
+      *ngIf="!embedded"
       mat-stroked-button
       type="button"
       (click)="onCancel()"

@@ -18,6 +18,7 @@ import {
   toText,
   VendorLabelInfoDto,
 } from "./info-tem-ncc.service";
+import { boxLocation } from "../shared/box-location.util";
 
 /** 1 thùng (vendor-label-info) cần gửi + thông tin vật tư / PO của nó */
 export interface SendBoxEntry {
@@ -77,9 +78,7 @@ export class VendorLabelSendService {
    */
   buildSapPayload(entries: SendBoxEntry[]): Observable<GoodsReceiptPoPayload> {
     for (const e of entries) {
-      const sapUnitError = validateStorageUnitForSap(
-        toText(e.record.storageUnit),
-      );
+      const sapUnitError = validateStorageUnitForSap(boxLocation(e.record));
       if (sapUnitError) {
         const label = `${e.sapCode}${e.record.lot ? ` / lô ${toText(e.record.lot)}` : ""}`;
         return throwError(() => new Error(`${label}: ${sapUnitError}`));
@@ -192,8 +191,7 @@ export class VendorLabelSendService {
           ? null
           : Number(e.record.initialQuantity),
       // StorageUnit PanaCIM = vị trí (như tem bên receiving-supplies)
-      storageUnit:
-        toText(e.record.subStorageUnit) || toText(e.record.storageUnit),
+      storageUnit: boxLocation(e.record),
       expirationDate: toText(e.record.expirationDate) || null,
       manufacturingDate: toText(e.record.manufacturingDate) || null,
       sapCode: toText(e.record.sapCode) || toText(e.sapCode),
@@ -244,7 +242,7 @@ export class VendorLabelSendService {
       ManufacturingDate: this.formatSapDateTime(
         this.parseDate(rec.manufacturingDate),
       ),
-      StorageUnit: toText(rec.storageUnit),
+      StorageUnit: boxLocation(rec),
     };
   }
 

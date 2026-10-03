@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpErrorResponse } from "@angular/common/http";
-import { Observable, of, throwError } from "rxjs";
-import { catchError, map } from "rxjs/operators";
+import { EMPTY, from, Observable, of, throwError } from "rxjs";
+import { catchError, map, mergeMap } from "rxjs/operators";
 import { environment } from "app/environments/environment.development";
 
 /** Pallet trong danh sách quản lý (GET /pallet-mngts) */
@@ -47,6 +47,52 @@ export interface PalletMngtDetail extends PalletMngtRow {
   vendorLabelInfoList: PalletBoxRecord[] | null;
 }
 
+/** Số thùng + tổng SL của 1 pallet */
+export interface PalletSummary {
+  serial: string;
+  numberOfBox: number;
+  totalQuantity: number;
+}
+
+/** Tính số thùng + tổng SL từ chi tiết pallet (API danh sách chưa trả 2 số này) */
+export function summarizePallet(
+  serial: string,
+  detail: PalletMngtDetail | null,
+): PalletSummary {
+  const boxes = detail?.vendorLabelInfoList ?? [];
+  return {
+    serial,
+    numberOfBox: boxes.length,
+    totalQuantity: boxes.reduce(
+      (s, b) => s + Number(b.initialQuantity ?? 0),
+      0,
+    ),
+  };
+}
+
+/** Pallet đang chứa thùng: biết số thùng thì theo số thùng, chưa biết thì theo trạng thái IN_USE */
+export function palletHasBoxes(row: PalletMngtRow): boolean {
+  if (row.numberOfBox !== null && row.numberOfBox !== undefined) {
+    return Number(row.numberOfBox) > 0;
+  }
+  return String(row.status ?? "").toUpperCase() === "IN_USE";
+}
+
+/** Sắp xếp: pallet đang có thùng lên đầu (giữ thứ tự gốc trong từng nhóm) */
+export function sortPalletsWithBoxesFirst<T>(
+  items: T[],
+  rowOf: (item: T) => PalletMngtRow | null,
+): T[] {
+  const has = (item: T): number => {
+    const row = rowOf(item);
+    return row && palletHasBoxes(row) ? 0 : 1;
+  };
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => has(a.item) - has(b.item) || a.index - b.index)
+    .map((x) => x.item);
+}
+
 /** Payload PUT /pallet-mngts/{id} */
 export interface PalletMngtPut {
   id: number;
@@ -87,6 +133,26 @@ export class PalletMaterialService {
             : throwError(() => err),
         ),
       );
+  }
+
+  /**
+   * Số thùng + tổng SL cho các pallet (gọi chi tiết từng pallet, tối đa `concurrency`
+   * request song song). Pallet lỗi khi tải bị bỏ qua. Emit lần lượt khi có kết quả.
+   */
+  loadPalletSummaries(
+    serials: string[],
+    concurrency = 4,
+  ): Observable<PalletSummary> {
+    return from(serials).pipe(
+      mergeMap(
+        (serial) =>
+          this.getPalletDetail(serial).pipe(
+            map((detail) => summarizePallet(serial, detail)),
+            catchError(() => EMPTY),
+          ),
+        concurrency,
+      ),
+    );
   }
 
   updatePallet(payload: PalletMngtPut): Observable<boolean> {

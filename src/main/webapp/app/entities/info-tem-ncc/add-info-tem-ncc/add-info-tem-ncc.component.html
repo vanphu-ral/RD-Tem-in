@@ -180,11 +180,11 @@
           (click)="onOpenUnassigned()"
           [matTooltip]="
             unassignedMaterialCount
-              ? 'Thùng đã scan nhưng chưa xác định PO — bấm để bổ sung PO'
-              : 'Không có vật tư chưa có PO'
+              ? 'Thùng chưa xác định PO hoặc dư so với SL PO — bấm để bổ sung PO'
+              : 'Không có thùng trong hàng chờ'
           "
         >
-          Vật tư chưa có PO
+          Hàng chờ vật tư
           <span class="chip-badge">{{ unassignedMaterialCount }}</span>
         </button>
       </mat-card-title>
@@ -443,8 +443,8 @@
                             Mã vật tư
                             <input
                               class="nested-filter"
-                              [(ngModel)]="materialFilter.materialCode"
-                              (ngModelChange)="onMaterialFilterChange()"
+                              [(ngModel)]="getMaterialFilter(row).materialCode"
+                              (ngModelChange)="onMaterialFilterChange(row)"
                               placeholder="Lọc..."
                             />
                           </th>
@@ -452,8 +452,8 @@
                             Tên vật tư
                             <input
                               class="nested-filter"
-                              [(ngModel)]="materialFilter.materialName"
-                              (ngModelChange)="onMaterialFilterChange()"
+                              [(ngModel)]="getMaterialFilter(row).materialName"
+                              (ngModelChange)="onMaterialFilterChange(row)"
                               placeholder="Lọc..."
                             />
                           </th>
@@ -461,8 +461,8 @@
                             Partnumber
                             <input
                               class="nested-filter"
-                              [(ngModel)]="materialFilter.partNumber"
-                              (ngModelChange)="onMaterialFilterChange()"
+                              [(ngModel)]="getMaterialFilter(row).partNumber"
+                              (ngModelChange)="onMaterialFilterChange(row)"
                               placeholder="Lọc..."
                             />
                           </th>
@@ -470,8 +470,8 @@
                             Mã kho
                             <input
                               class="nested-filter"
-                              [(ngModel)]="materialFilter.warehouseCode"
-                              (ngModelChange)="onMaterialFilterChange()"
+                              [(ngModel)]="getMaterialFilter(row).warehouseCode"
+                              (ngModelChange)="onMaterialFilterChange(row)"
                               placeholder="Lọc..."
                             />
                           </th>
@@ -558,9 +558,9 @@
                                           Lot
                                           <input
                                             class="nested-filter"
-                                            [(ngModel)]="lotFilter"
+                                            [(ngModel)]="getLotFilter(m).lot"
                                             (ngModelChange)="
-                                              onLotFilterChange()
+                                              onLotFilterChange(m)
                                             "
                                             placeholder="Lọc lot..."
                                           />

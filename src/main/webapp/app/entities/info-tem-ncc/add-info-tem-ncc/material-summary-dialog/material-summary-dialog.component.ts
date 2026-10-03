@@ -1,4 +1,12 @@
-import { Component, Inject, OnInit } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  Inject,
+  Input,
+  OnInit,
+  Optional,
+  Output,
+} from "@angular/core";
 import { forkJoin, Observable, of } from "rxjs";
 import { catchError, map } from "rxjs/operators";
 import {
@@ -10,10 +18,6 @@ import { NotificationService } from "app/entities/list-material/services/notific
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 import {
-  ReceivingSuppliesService,
-  SapOwhsDto,
-} from "app/entities/generate-tem-in/service/receiving-supplies.service";
-import {
   LotDetailDialogComponent,
   LotDetailDialogData,
   LotDetailRow,
@@ -24,6 +28,14 @@ import {
   toText,
   VendorLabelInfoDto,
 } from "../../services/info-tem-ncc.service";
+import {
+  clearQueueReason,
+  countQueueReasons,
+  QUEUE_REASON_HINTS,
+  QUEUE_REASON_LABELS,
+  QueueReason,
+} from "../../shared/queue-reason.util";
+import { boxLocation, locationFields } from "../../shared/box-location.util";
 
 export type ExpiryMode = "month" | "year";
 
@@ -104,6 +116,31 @@ export interface MaterialSummaryDialogData {
   unassigned?: { poLines: UnassignedPoLine[] };
 }
 
+/** Dòng cần nhấp sáng khi nhúng trong màn Scan */
+export interface SummaryHighlight {
+  sapCode: string;
+  lot: string;
+  seq: number;
+}
+
+/** PO rỗng — khi chưa có dữ liệu */
+const EMPTY_PO: AddPoItem = {
+  id: 0,
+  poCode: "",
+  warehouseKeeper: "",
+  vendorCode: "",
+  vendorName: "",
+  vehicleNumber: "",
+  invoiceNumber: "",
+  contractCode: "",
+  importDate: "",
+  importBatch: null,
+  materialTypeCount: 0,
+  totalQuantity: 0,
+  status: "WAITING",
+  materials: [],
+};
+
 type EditableField =
   | "manufacturingDate"
   | "expirationDate"
@@ -128,48 +165,91 @@ export class MaterialSummaryDialogComponent implements OnInit {
 
   rows: SummarySapRow[] = [];
 
+  /** Nhúng trong màn Scan (không phải dialog riêng): ẩn header, Lưu không đóng */
+  @Input() embedded = false;
+  /** Báo màn ngoài sau khi lưu thành công (chế độ nhúng) */
+  @Output() saved = new EventEmitter<number>();
+
+  data: MaterialSummaryDialogData;
+
   /** Autocomplete vị trí — tìm trong IndexedDB (WarehouseCacheService) */
   locationOptions: CachedWarehouse[] = [];
   isLoadingLocations = false;
-  /** Autocomplete mã kho — /api/owhs */
-  warehouseList: SapOwhsDto[] = [];
-  filteredWarehouseList: SapOwhsDto[] = [];
-  isLoadingWarehouses = false;
   /** Đang gửi PUT cập nhật thùng */
   isSaving = false;
+  /** Số thùng đã lưu từ dialog "Cập nhật thông tin vật tư" (để báo màn gọi tải lại) */
+  lotDialogUpdated = 0;
 
   private expandedSapIds = new Set<number>();
   private locationSearchSeq = 0;
+  private initialized = false;
+  /** Dòng cần nhấp sáng (thùng vừa scan): mã SAP + lô */
+  private highlightTarget: SummaryHighlight | null = null;
+  private highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
-    private dialogRef: MatDialogRef<MaterialSummaryDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: MaterialSummaryDialogData,
+    @Optional()
+    private dialogRef: MatDialogRef<MaterialSummaryDialogComponent> | null,
+    @Optional() @Inject(MAT_DIALOG_DATA) data: MaterialSummaryDialogData | null,
     private dialog: MatDialog,
     private notificationService: NotificationService,
     private warehouseCache: WarehouseCacheService,
-    private receivingService: ReceivingSuppliesService,
     private infoTemNccService: InfoTemNccService,
-  ) {}
+  ) {
+    this.data = data ?? { po: EMPTY_PO };
+  }
+
+  /** Chế độ nhúng: đổi dữ liệu (đổi PO / tải lại sau khi scan) — giữ phần đang sửa chưa lưu */
+  @Input() set panelData(value: MaterialSummaryDialogData | null) {
+    if (!value) {
+      return;
+    }
+    this.data = value;
+    if (this.initialized) {
+      this.rebuildPreservingEdits();
+    }
+  }
+
+  /** Chế độ nhúng: nhấp sáng + mở dòng của thùng vừa scan */
+  @Input() set highlight(value: SummaryHighlight | null) {
+    if (!value) {
+      return;
+    }
+    this.highlightTarget = value;
+    this.expandForHighlight();
+    if (this.highlightTimer) {
+      clearTimeout(this.highlightTimer);
+    }
+    this.highlightTimer = setTimeout(() => {
+      this.highlightTarget = null;
+      this.highlightTimer = null;
+    }, 3500);
+  }
 
   ngOnInit(): void {
     this.rows = this.buildRowsFromPo(this.data.po);
     if (this.rows.length) {
       this.expandedSapIds.add(this.rows[0].id);
     }
+    this.expandForHighlight();
+    this.initialized = true;
     this.loadPartNumbers();
     this.initLocationCache();
-    this.loadWarehouses();
   }
 
-  /** Label mã kho: "whsCode - whsName" */
-  displayWarehouse = (code: string | null): string => {
-    const c = toText(code);
-    if (!c) {
-      return "";
+  /** Dòng lô của thùng vừa scan → nhấp sáng */
+  isHighlighted(sap: SummarySapRow, lot?: SummaryLotRow): boolean {
+    const h = this.highlightTarget;
+    if (!h) {
+      return false;
     }
-    const whs = this.warehouseList.find((w) => w.whsCode === c);
-    return whs ? `${whs.whsCode} - ${whs.whsName}` : c;
-  };
+    const sameSap =
+      toText(sap.sapCode).toLowerCase() === toText(h.sapCode).toLowerCase();
+    if (!lot) {
+      return sameSap;
+    }
+    return sameSap && toText(lot.lotNumber) === toText(h.lot);
+  }
 
   /** Gõ vị trí → tìm contains trong IndexedDB (đã sync) */
   onLocationSearch(keyword: string): void {
@@ -207,31 +287,6 @@ export class MaterialSummaryDialogComponent implements OnInit {
   ): void {
     lot.location = toText(value);
     this.onLotFieldEnter(sap, lot, "location");
-  }
-
-  onWarehouseSearch(keyword: string): void {
-    const term = toText(keyword).toLowerCase();
-    this.filteredWarehouseList = term
-      ? this.warehouseList.filter(
-          (w) =>
-            w.whsCode.toLowerCase().includes(term) ||
-            toText(w.whsName).toLowerCase().includes(term),
-        )
-      : [...this.warehouseList];
-  }
-
-  onSapWarehouseSelected(sap: SummarySapRow, code: string): void {
-    sap.warehouseCode = toText(code);
-    this.onSapFieldEnter(sap, "warehouseCode");
-  }
-
-  onLotWarehouseSelected(
-    sap: SummarySapRow,
-    lot: SummaryLotRow,
-    code: string,
-  ): void {
-    lot.warehouseCode = toText(code);
-    this.onLotFieldEnter(sap, lot, "warehouseCode");
   }
 
   get poCode(): string {
@@ -327,17 +382,16 @@ export class MaterialSummaryDialogComponent implements OnInit {
     );
   }
 
+  /** Đủ thông tin: MFG, HSD, vị trí kho (mã kho SAP theo dòng PO, không tính theo thùng) */
   isComplete(row: {
     manufacturingDate: string;
     expirationDate: string;
     location: string;
-    warehouseCode: string;
   }): boolean {
     return !!(
       row.manufacturingDate?.trim() &&
       row.expirationDate?.trim() &&
-      row.location?.trim() &&
-      row.warehouseCode?.trim()
+      row.location?.trim()
     );
   }
 
@@ -345,6 +399,40 @@ export class MaterialSummaryDialogComponent implements OnInit {
    * Lô đủ thông tin: các ô của lô đủ, hoặc mọi thùng trong lô đều đủ
    * (các thùng khác giá trị nhau thì ô của lô để trống nhưng thực tế vẫn đủ).
    */
+  /** Hàng chờ: số thùng theo lý do (thừa SL / thiếu PO) của 1 lô */
+  lotQueueReasons(
+    lot: SummaryLotRow,
+  ): Array<{ reason: QueueReason; count: number }> {
+    if (!this.isUnassigned) {
+      return [];
+    }
+    return countQueueReasons(
+      lot.boxes.flatMap((b) => (b.record ? [b.record] : [])),
+    );
+  }
+
+  /** Hàng chờ: số thùng theo lý do của cả mã SAP */
+  sapQueueReasons(
+    sap: SummarySapRow,
+  ): Array<{ reason: QueueReason; count: number }> {
+    if (!this.isUnassigned) {
+      return [];
+    }
+    return countQueueReasons(
+      sap.lots.flatMap((l) =>
+        l.boxes.flatMap((b) => (b.record ? [b.record] : [])),
+      ),
+    );
+  }
+
+  queueReasonLabel(reason: QueueReason): string {
+    return QUEUE_REASON_LABELS[reason];
+  }
+
+  queueReasonHint(reason: QueueReason): string {
+    return QUEUE_REASON_HINTS[reason];
+  }
+
   isLotComplete(lot: SummaryLotRow): boolean {
     if (this.isComplete(lot)) {
       return true;
@@ -441,36 +529,21 @@ export class MaterialSummaryDialogComponent implements OnInit {
   }
 
   onSapFieldEnter(sap: SummarySapRow, field: EditableField): void {
-    const value = (sap[field] ?? "").trim();
-    sap.lots.forEach((lot) => {
-      lot[field] = value;
-      if (field === "manufacturingDate") {
-        lot.mfgDate = this.parseDisplayDate(value);
-        lot.expiryMode = sap.expiryMode;
-        lot.expiryOffset = sap.expiryOffset;
-        this.recalcExpiry(lot);
-      }
-      if (field === "expirationDate") {
-        lot.expiryOffset = sap.expiryOffset;
-        lot.expiryMode = sap.expiryMode;
-      }
-      lot.boxes.forEach((b) => {
-        b[field] = value;
-        if (field === "manufacturingDate") {
-          b.mfgDate = this.parseDisplayDate(value);
-          b.expiryMode = sap.expiryMode;
-          b.expiryOffset = sap.expiryOffset;
-          this.recalcExpiry(b);
-        }
-        if (field === "expirationDate") {
-          b.expiryMode = sap.expiryMode;
-          b.expiryOffset = sap.expiryOffset;
-        }
-      });
-    });
-    sap.lastUpdated = this.nowText();
-    this.notificationService.success(
-      `Đã áp dụng ${this.fieldLabel(field)} cho ${sap.lots.length} lô.`,
+    if (field !== "location") {
+      this.applySapField(sap, field);
+      return;
+    }
+    // Vị trí phải có trong danh sách vị trí; sai → báo lỗi, trả về giá trị cũ
+    const boxes = sap.lots.flatMap((l) => l.boxes);
+    this.withValidLocation(
+      sap.location,
+      (location) => {
+        sap.location = location;
+        this.applySapField(sap, field);
+      },
+      () => {
+        sap.location = this.commonValue(boxes.map((b) => b.location));
+      },
     );
   }
 
@@ -479,22 +552,20 @@ export class MaterialSummaryDialogComponent implements OnInit {
     lot: SummaryLotRow,
     field: EditableField,
   ): void {
-    const value = (lot[field] ?? "").trim();
-    lot.boxes.forEach((b) => {
-      b[field] = value;
-      if (field === "manufacturingDate") {
-        b.mfgDate = this.parseDisplayDate(value);
-        b.expiryMode = lot.expiryMode;
-        b.expiryOffset = lot.expiryOffset;
-        this.recalcExpiry(b);
-      }
-      if (field === "expirationDate") {
-        b.expiryMode = lot.expiryMode;
-        b.expiryOffset = lot.expiryOffset;
-      }
-    });
-    sap.lastUpdated = this.nowText();
-    lot.lastUpdated = sap.lastUpdated;
+    if (field !== "location") {
+      this.applyLotField(sap, lot, field);
+      return;
+    }
+    this.withValidLocation(
+      lot.location,
+      (location) => {
+        lot.location = location;
+        this.applyLotField(sap, lot, field);
+      },
+      () => {
+        lot.location = this.commonValue(lot.boxes.map((b) => b.location));
+      },
+    );
   }
 
   /** Xem các thùng thật trong lô (vendorLabelInfoList) */
@@ -520,7 +591,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
         userData5: toText(rec?.userData5),
         initialQuantity: b.quantity,
         msl: b.msl,
-        storageUnit: b.warehouseCode,
+        storageUnit: b.location,
         manufacturingDate: b.manufacturingDate,
         expirationDate: b.expirationDate,
         sapCode: toText(rec?.sapCode) || sap.sapCode,
@@ -535,6 +606,8 @@ export class MaterialSummaryDialogComponent implements OnInit {
         boxCode: b.boxCode,
         location: b.location,
         _idx: idx,
+        // Bản ghi thùng gốc → dialog lưu bằng PUT /vendor-label-infos/{id}
+        record: rec,
       };
     });
 
@@ -545,22 +618,32 @@ export class MaterialSummaryDialogComponent implements OnInit {
       rows,
     };
 
-    this.dialog.open(LotDetailDialogComponent, {
-      width: "98vw",
-      maxWidth: "98vw",
-      height: "92vh",
-      maxHeight: "92vh",
-      panelClass: "lot-detail-dialog-panel",
-      autoFocus: false,
-      data: dialogData,
-    });
+    this.dialog
+      .open(LotDetailDialogComponent, {
+        width: "98vw",
+        maxWidth: "98vw",
+        height: "92vh",
+        maxHeight: "92vh",
+        panelClass: "lot-detail-dialog-panel",
+        autoFocus: false,
+        data: dialogData,
+      })
+      .afterClosed()
+      .subscribe((result: unknown) => {
+        if (Array.isArray(result) && result.length) {
+          this.onLotBoxesSaved(result as VendorLabelInfoDto[]);
+        }
+      });
   }
 
   onCancel(): void {
     if (this.isSaving) {
       return;
     }
-    this.dialogRef.close(null);
+    // Đã lưu thùng ở dialog con → báo màn gọi tải lại
+    this.dialogRef?.close(
+      this.lotDialogUpdated ? { updated: this.lotDialogUpdated } : null,
+    );
   }
 
   /**
@@ -615,13 +698,129 @@ export class MaterialSummaryDialogComponent implements OnInit {
         : 0;
       if (unmatched) {
         this.notificationService.warning(
-          `Cập nhật ${ok} thùng; ${unmatched} thùng có PO không chứa mã vật tư đó nên vẫn ở "Vật tư chưa có PO".`,
+          `Cập nhật ${ok} thùng; ${unmatched} thùng có PO không chứa mã vật tư đó nên vẫn ở "Hàng chờ vật tư".`,
         );
       } else {
         this.notificationService.success(`Cập nhật thành công ${ok} thùng.`);
       }
-      this.dialogRef.close({ updated: ok });
+      if (this.embedded) {
+        this.saved.emit(ok);
+      } else {
+        this.dialogRef?.close({ updated: ok });
+      }
     });
+  }
+
+  /**
+   * Dựng lại bảng từ dữ liệu mới nhưng giữ các thùng đang sửa dở (chưa lưu):
+   * so theo id bản ghi thùng, áp lại giá trị đang sửa rồi tính lại hàng lô / SAP.
+   */
+  private rebuildPreservingEdits(beforeRebuild?: () => void): void {
+    const pending = new Map<number, SummaryBoxRow>();
+    for (const sap of this.rows) {
+      for (const lot of sap.lots) {
+        for (const box of lot.boxes) {
+          const id = box.record?.id;
+          if (id && this.buildUpdatePayload(box)) {
+            pending.set(id, box);
+          }
+        }
+      }
+    }
+    beforeRebuild?.();
+    this.rows = this.buildRowsFromPo(this.data.po);
+    for (const sap of this.rows) {
+      let sapTouched = false;
+      for (const lot of sap.lots) {
+        let lotTouched = false;
+        for (const box of lot.boxes) {
+          const old = box.record?.id ? pending.get(box.record.id) : undefined;
+          if (!old) {
+            continue;
+          }
+          box.manufacturingDate = old.manufacturingDate;
+          box.expirationDate = old.expirationDate;
+          box.location = old.location;
+          box.warehouseCode = old.warehouseCode;
+          box.userData1 = old.userData1;
+          box.userData2 = old.userData2;
+          box.userData3 = old.userData3;
+          box.userData4 = old.userData4;
+          box.msl = old.msl;
+          box.po = old.po;
+          box.mfgDate = old.mfgDate;
+          box.expiryMode = old.expiryMode;
+          box.expiryOffset = old.expiryOffset;
+          lotTouched = true;
+        }
+        if (lotTouched) {
+          sapTouched = true;
+          this.refreshAggregate(lot, lot.boxes);
+        }
+      }
+      if (sapTouched) {
+        this.refreshAggregate(sap, sap.lots);
+      }
+    }
+    this.expandForHighlight();
+    this.loadPartNumbers();
+  }
+
+  /**
+   * Dialog "Cập nhật thông tin vật tư" đã PUT các thùng → ghi bản ghi mới vào dữ liệu
+   * (giữ các ô đang sửa dở ở bảng này), báo màn ngoài tải lại.
+   */
+  private onLotBoxesSaved(saved: VendorLabelInfoDto[]): void {
+    const byId = new Map(saved.map((r) => [r.id, r]));
+    this.rebuildPreservingEdits(() => {
+      for (const m of this.data.po?.materials ?? []) {
+        for (const l of m.lots ?? []) {
+          for (const b of l.boxes ?? []) {
+            const next = byId.get(b.id);
+            if (next) {
+              Object.assign(b, next);
+            }
+          }
+        }
+      }
+    });
+    this.lotDialogUpdated += saved.length;
+    if (this.embedded) {
+      this.saved.emit(saved.length);
+    }
+  }
+
+  /** Tính lại giá trị chung (MFG, HSD, vị trí, mã kho, PO) của hàng cha từ các dòng con */
+  private refreshAggregate(
+    target: SummaryLotRow | SummarySapRow,
+    children: Array<SummaryLotRow | SummaryBoxRow>,
+  ): void {
+    target.manufacturingDate = this.commonValue(
+      children.map((c) => c.manufacturingDate),
+    );
+    target.expirationDate = this.commonValue(
+      children.map((c) => c.expirationDate),
+    );
+    target.location = this.commonValue(children.map((c) => c.location));
+    target.warehouseCode = this.commonValue(
+      children.map((c) => c.warehouseCode),
+    );
+    target.po = this.commonValue(children.map((c) => c.po));
+    target.mfgDate = this.parseDisplayDate(target.manufacturingDate);
+  }
+
+  private expandForHighlight(): void {
+    const h = this.highlightTarget;
+    if (!h) {
+      return;
+    }
+    for (const sap of this.rows) {
+      if (
+        toText(sap.sapCode).toLowerCase() === toText(h.sapCode).toLowerCase()
+      ) {
+        this.expandedSapIds.add(sap.id);
+      }
+    }
   }
 
   /** Gán MFG cho dòng con; nếu hàng cha đang chọn HSD theo tháng/năm thì tính lại HSD */
@@ -650,8 +849,8 @@ export class MaterialSummaryDialogComponent implements OnInit {
       ...rec,
       manufacturingDate: orNull(this.toApiDate(box.manufacturingDate)),
       expirationDate: orNull(this.toApiDate(box.expirationDate)),
-      subStorageUnit: orNull(box.location),
-      storageUnit: orNull(box.warehouseCode),
+      // storageUnit = vị trí kho, subStorageUnit trống; mã kho SAP theo dòng PO
+      ...locationFields(box.location),
       userData1: orNull(box.userData1),
       userData2: orNull(box.userData2),
       userData3: orNull(box.userData3),
@@ -665,6 +864,10 @@ export class MaterialSummaryDialogComponent implements OnInit {
       payload.userData5 = orNull(po);
       payload.sapPor1Id =
         this.resolvePoLineId(po, rec) ?? rec.sapPor1Id ?? null;
+      // Đã gán PO → bỏ mã lý do hàng chờ
+      if (payload.sapPor1Id) {
+        payload.comments = clearQueueReason(rec.comments);
+      }
     }
     const keys: Array<keyof VendorLabelInfoDto> = [
       "manufacturingDate",
@@ -759,20 +962,6 @@ export class MaterialSummaryDialogComponent implements OnInit {
       .finally(() => {
         this.isLoadingLocations = false;
       });
-  }
-
-  private loadWarehouses(): void {
-    this.isLoadingWarehouses = true;
-    this.receivingService.getSapWarehouses().subscribe({
-      next: (list) => {
-        this.warehouseList = list;
-        this.filteredWarehouseList = [...list];
-        this.isLoadingWarehouses = false;
-      },
-      error: () => {
-        this.isLoadingWarehouses = false;
-      },
-    });
   }
 
   private fieldLabel(field: string): string {
@@ -890,8 +1079,9 @@ export class MaterialSummaryDialogComponent implements OnInit {
     const materials: AddMaterialItem[] = po?.materials ?? [];
     return materials.map((m) => {
       const lots: SummaryLotRow[] = (m.lots ?? []).map((lot) => {
+        // Mã kho SAP = whsCode của dòng vật tư trong PO
         const boxes: SummaryBoxRow[] = (lot.boxes ?? []).map((b) =>
-          this.toBoxRow(b),
+          this.toBoxRow(b, m.warehouseCode),
         );
         const lotMfg = this.commonValue(boxes.map((b) => b.manufacturingDate));
         return {
@@ -903,7 +1093,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
           manufacturingDate: lotMfg,
           expirationDate: this.commonValue(boxes.map((b) => b.expirationDate)),
           location: this.commonValue(boxes.map((b) => b.location)),
-          warehouseCode: this.commonValue(boxes.map((b) => b.warehouseCode)),
+          warehouseCode: toText(m.warehouseCode),
           lastUpdated: this.latestUpdate(lot.boxes ?? []),
           boxes,
           po: this.commonValue(boxes.map((b) => b.po)),
@@ -925,7 +1115,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
         manufacturingDate: mfg,
         expirationDate: this.commonValue(lots.map((l) => l.expirationDate)),
         location: this.commonValue(lots.map((l) => l.location)),
-        warehouseCode: this.commonValue(lots.map((l) => l.warehouseCode)),
+        warehouseCode: toText(m.warehouseCode),
         lastUpdated: this.latestUpdate(
           (m.lots ?? []).flatMap((l) => l.boxes ?? []),
         ),
@@ -939,7 +1129,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
   }
 
   /** 1 bản ghi vendor-label-info = 1 thùng; mã thùng = ReelID */
-  private toBoxRow(b: VendorLabelInfoDto): SummaryBoxRow {
+  private toBoxRow(b: VendorLabelInfoDto, whsCode: string): SummaryBoxRow {
     const mfg = this.toDisplayDate(toText(b.manufacturingDate));
     return {
       id: b.id,
@@ -948,8 +1138,8 @@ export class MaterialSummaryDialogComponent implements OnInit {
       quantity: Number(b.initialQuantity ?? 0),
       manufacturingDate: mfg,
       expirationDate: this.toDisplayDate(toText(b.expirationDate)),
-      location: toText(b.subStorageUnit),
-      warehouseCode: toText(b.storageUnit),
+      location: boxLocation(b),
+      warehouseCode: toText(whsCode),
       userData1: toText(b.userData1),
       userData2: toText(b.userData2),
       userData3: toText(b.userData3),
@@ -961,6 +1151,102 @@ export class MaterialSummaryDialogComponent implements OnInit {
       po: toText(b.userData5),
       record: b,
     };
+  }
+
+  private applySapField(sap: SummarySapRow, field: EditableField): void {
+    const value = (sap[field] ?? "").trim();
+    sap.lots.forEach((lot) => {
+      lot[field] = value;
+      if (field === "manufacturingDate") {
+        lot.mfgDate = this.parseDisplayDate(value);
+        lot.expiryMode = sap.expiryMode;
+        lot.expiryOffset = sap.expiryOffset;
+        this.recalcExpiry(lot);
+      }
+      if (field === "expirationDate") {
+        lot.expiryOffset = sap.expiryOffset;
+        lot.expiryMode = sap.expiryMode;
+      }
+      lot.boxes.forEach((b) => {
+        b[field] = value;
+        if (field === "manufacturingDate") {
+          b.mfgDate = this.parseDisplayDate(value);
+          b.expiryMode = sap.expiryMode;
+          b.expiryOffset = sap.expiryOffset;
+          this.recalcExpiry(b);
+        }
+        if (field === "expirationDate") {
+          b.expiryMode = sap.expiryMode;
+          b.expiryOffset = sap.expiryOffset;
+        }
+      });
+    });
+    sap.lastUpdated = this.nowText();
+    this.notificationService.success(
+      `Đã áp dụng ${this.fieldLabel(field)} cho ${sap.lots.length} lô.`,
+    );
+  }
+
+  private applyLotField(
+    sap: SummarySapRow,
+    lot: SummaryLotRow,
+    field: EditableField,
+  ): void {
+    const value = (lot[field] ?? "").trim();
+    lot.boxes.forEach((b) => {
+      b[field] = value;
+      if (field === "manufacturingDate") {
+        b.mfgDate = this.parseDisplayDate(value);
+        b.expiryMode = lot.expiryMode;
+        b.expiryOffset = lot.expiryOffset;
+        this.recalcExpiry(b);
+      }
+      if (field === "expirationDate") {
+        b.expiryMode = lot.expiryMode;
+        b.expiryOffset = lot.expiryOffset;
+      }
+    });
+    sap.lastUpdated = this.nowText();
+    lot.lastUpdated = sap.lastUpdated;
+  }
+
+  /**
+   * Kiểm tra vị trí có trong danh sách vị trí (IndexedDB, khớp đúng tên / tên đầy đủ).
+   * Rỗng → cho qua (xóa vị trí); có → onValid(tên đầy đủ); không có → báo lỗi + onInvalid().
+   */
+  private withValidLocation(
+    raw: string,
+    onValid: (location: string) => void,
+    onInvalid: () => void,
+  ): void {
+    const value = toText(raw);
+    if (!value) {
+      onValid("");
+      return;
+    }
+    const lower = value.toLowerCase();
+    void this.warehouseCache
+      .ensureSynced()
+      .then(() => this.warehouseCache.searchByName(value))
+      .then((list) => {
+        const found = list.find(
+          (w) =>
+            toText(w.locationFullName).toLowerCase() === lower ||
+            toText(w.locationName).toLowerCase() === lower,
+        );
+        if (found) {
+          onValid(toText(found.locationFullName) || toText(found.locationName));
+          return;
+        }
+        this.notificationService.error(
+          `Vị trí "${value}" không có trong danh sách vị trí.`,
+        );
+        onInvalid();
+      })
+      .catch(() => {
+        this.notificationService.error("Không kiểm tra được danh sách vị trí.");
+        onInvalid();
+      });
   }
 
   /** Giá trị chung nếu mọi dòng giống nhau; khác nhau / không có → rỗng */

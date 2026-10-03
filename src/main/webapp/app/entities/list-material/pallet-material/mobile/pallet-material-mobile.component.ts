@@ -17,6 +17,7 @@ import {
   PalletMaterialService,
   PalletMngtDetail,
   PalletMngtRow,
+  sortPalletsWithBoxesFirst,
 } from "../../services/pallet-material.service";
 
 type MobileScreen = "list" | "detail" | "location" | "boxScan";
@@ -274,7 +275,8 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
             });
           }
         }
-        this.cards = [...this.cards];
+        this.sortCards();
+        this.loadCardSummaries();
       },
       error: () => {
         this.isLoading = false;
@@ -722,5 +724,49 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
     setTimeout(() => {
       this.mainInputRef?.nativeElement?.focus();
     }, 50);
+  }
+
+  /** Pallet đang có thùng lên đầu (đã tải chi tiết thì theo số thùng thật) */
+  private sortCards(): void {
+    this.cards = sortPalletsWithBoxesFirst(this.cards, (c) =>
+      c.detail
+        ? {
+            ...c.detail,
+            numberOfBox: (c.detail.vendorLabelInfoList ?? []).length,
+          }
+        : c.row,
+    );
+  }
+
+  /**
+   * API danh sách không trả số thùng / tổng SL → tải chi tiết các pallet IN_USE chưa có số
+   * để điền vào thẻ, xong thì sắp xếp lại.
+   */
+  private loadCardSummaries(): void {
+    const serials = this.cards
+      .filter(
+        (c) =>
+          !c.detail &&
+          !!c.row &&
+          String(c.row.status ?? "").toUpperCase() === "IN_USE" &&
+          (c.row.numberOfBox === null || c.row.totalQuantity === null),
+      )
+      .map((c) => c.serial);
+    if (!serials.length) {
+      return;
+    }
+    this.palletService.loadPalletSummaries(serials).subscribe({
+      next: (summary) => {
+        const card = this.cards.find((c) => c.serial === summary.serial);
+        if (card?.row) {
+          card.row = {
+            ...card.row,
+            numberOfBox: summary.numberOfBox,
+            totalQuantity: summary.totalQuantity,
+          };
+        }
+      },
+      complete: () => this.sortCards(),
+    });
   }
 }

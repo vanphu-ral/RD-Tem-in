@@ -19,8 +19,13 @@ export interface ChoiceDialogData {
   highlight?: string;
   confirmText: string;
   cancelText: string;
+  /** Nút lựa chọn thứ 3 (tùy chọn) — hiện giữa nút hủy và nút xác nhận */
+  extraText?: string;
   tone?: ChoiceDialogTone;
 }
+
+/** Kết quả modal 3 lựa chọn */
+export type ChoiceDialogResult = "confirm" | "extra" | "cancel";
 
 /** Modal lựa chọn 2 nút — gọn, dễ bấm trên mobile */
 @Component({
@@ -38,9 +43,17 @@ export interface ChoiceDialogData {
         {{ data.highlight }}
       </div>
       <p class="cd-message">{{ data.message }}</p>
-      <div class="cd-actions">
+      <div class="cd-actions" [class.cd-actions--three]="!!data.extraText">
         <button type="button" class="cd-btn cd-cancel" (click)="close(false)">
           {{ data.cancelText }}
+        </button>
+        <button
+          *ngIf="data.extraText"
+          type="button"
+          class="cd-btn cd-extra"
+          (click)="close('extra')"
+        >
+          {{ data.extraText }}
         </button>
         <button type="button" class="cd-btn cd-confirm" (click)="close(true)">
           {{ data.confirmText }}
@@ -112,6 +125,16 @@ export interface ChoiceDialogData {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
+      /* 3 nút: xếp dọc, nút chính lên đầu */
+      .cd-actions--three {
+        grid-template-columns: 1fr;
+      }
+      .cd-actions--three .cd-confirm {
+        order: -2;
+      }
+      .cd-actions--three .cd-extra {
+        order: -1;
+      }
       .cd-btn {
         min-height: 46px;
         padding: 8px 10px;
@@ -129,6 +152,14 @@ export interface ChoiceDialogData {
       .cd-cancel:active {
         background: #f3f4f6;
       }
+      .cd-extra {
+        border: 1.5px solid var(--tone);
+        background: var(--tone-bg);
+        color: var(--tone);
+      }
+      .cd-extra:active {
+        filter: brightness(0.95);
+      }
       .cd-confirm {
         border: none;
         background: var(--tone);
@@ -142,7 +173,7 @@ export interface ChoiceDialogData {
 })
 export class ChoiceDialogComponent {
   constructor(
-    private dialogRef: MatDialogRef<ChoiceDialogComponent, boolean>,
+    private dialogRef: MatDialogRef<ChoiceDialogComponent, boolean | "extra">,
     @Inject(MAT_DIALOG_DATA) public data: ChoiceDialogData,
   ) {}
 
@@ -157,7 +188,7 @@ export class ChoiceDialogComponent {
     return this.tone === "warning" ? "inventory_2" : "help_outline";
   }
 
-  close(result: boolean): void {
+  close(result: boolean | "extra"): void {
     this.dialogRef.close(result);
   }
 }
@@ -168,7 +199,7 @@ export function openChoiceDialog(
   data: ChoiceDialogData,
 ): Observable<boolean> {
   return dialog
-    .open<ChoiceDialogComponent, ChoiceDialogData, boolean>(
+    .open<ChoiceDialogComponent, ChoiceDialogData, boolean | "extra">(
       ChoiceDialogComponent,
       {
         width: "92vw",
@@ -180,4 +211,31 @@ export function openChoiceDialog(
     )
     .afterClosed()
     .pipe(map((result) => result === true));
+}
+
+/** Mở modal 3 lựa chọn (có extraText) → "confirm" | "extra" | "cancel" */
+export function openChoiceDialog3(
+  dialog: MatDialog,
+  data: ChoiceDialogData,
+): Observable<ChoiceDialogResult> {
+  return dialog
+    .open<ChoiceDialogComponent, ChoiceDialogData, boolean | "extra">(
+      ChoiceDialogComponent,
+      {
+        width: "92vw",
+        maxWidth: "380px",
+        autoFocus: false,
+        panelClass: "choice-dialog-panel",
+        data,
+      },
+    )
+    .afterClosed()
+    .pipe(
+      map((result): ChoiceDialogResult => {
+        if (result === "extra") {
+          return "extra";
+        }
+        return result === true ? "confirm" : "cancel";
+      }),
+    );
 }

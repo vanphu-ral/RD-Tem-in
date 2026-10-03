@@ -124,6 +124,8 @@ export interface DeliveryNoticeItem {
   poCount: number;
   materialQuantity: number;
   status: "INCOMPLETE" | "COMPLETED";
+  /** Nguồn tạo (giá trị gốc từ API, VD: "system", "appSmart") */
+  source: string;
   pos: PoItem[];
   /** Bản ghi gốc từ API — dùng khi PUT (xóa mềm) */
   raw: DeliveryNotificationDto;
@@ -139,7 +141,25 @@ export interface FilterValues {
   poCount: string;
   materialQuantity: string;
   status: string;
+  source: string;
 }
+
+/** Nhãn + màu badge cho các nguồn đã biết (key viết thường) */
+const SOURCE_BADGES: Record<string, { label: string; bg: string; fg: string }> =
+  {
+    system: { label: "Hệ thống", bg: "#e0e7ff", fg: "#4338ca" },
+    appsmart: { label: "AppSmart", bg: "#fce7f3", fg: "#be185d" },
+  };
+
+/** Bảng màu cho nguồn chưa khai báo — chọn ổn định theo tên nguồn */
+const SOURCE_FALLBACK_COLORS: { bg: string; fg: string }[] = [
+  { bg: "#ccfbf1", fg: "#0f766e" },
+  { bg: "#fef3c7", fg: "#b45309" },
+  { bg: "#ede9fe", fg: "#6d28d9" },
+  { bg: "#e0f2fe", fg: "#0369a1" },
+  { bg: "#fee2e2", fg: "#b91c1c" },
+  { bg: "#ecfccb", fg: "#4d7c0f" },
+];
 
 @Component({
   selector: "jhi-info-tem-ncc",
@@ -172,6 +192,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     "vehicleNumber",
     "poCount",
     "materialQuantity",
+    "source",
     "status",
   ];
   isLoading = false;
@@ -194,6 +215,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     poCount: "",
     materialQuantity: "",
     status: "",
+    source: "",
   };
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -324,6 +346,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       typeof window !== "undefined" &&
       window.innerWidth <= this.mobileBreakpoint;
     const data: ScanImportDialogData = {
+      deliveryNotice: delivery.deliveryNotice,
       vehicleNumber: delivery.vehicleNumber,
       contractCode: delivery.contractCode,
       vendorCode: delivery.pos[0]?.vendorCode ?? "",
@@ -625,6 +648,31 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     return status === "COMPLETED" ? "Đã hoàn thành" : "Chưa hoàn thành";
   }
 
+  sourceLabel(source: string): string {
+    const raw = toText(source);
+    if (!raw) {
+      return "—";
+    }
+    return SOURCE_BADGES[raw.toLowerCase()]?.label ?? raw;
+  }
+
+  sourceBadgeStyle(source: string): { background: string; color: string } {
+    const key = toText(source).toLowerCase();
+    if (!key) {
+      return { background: "#f1f5f9", color: "#64748b" };
+    }
+    const known = SOURCE_BADGES[key];
+    if (known) {
+      return { background: known.bg, color: known.fg };
+    }
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    }
+    const c = SOURCE_FALLBACK_COLORS[hash % SOURCE_FALLBACK_COLORS.length];
+    return { background: c.bg, color: c.fg };
+  }
+
   poStatusLabel(status: PoItem["status"]): string {
     return status === "IMPORTING" ? "Đang nhập" : "Chờ nhập";
   }
@@ -703,8 +751,9 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       vendorName: dto.vendorName ?? "",
       vehicleNumber: dto.contNo ?? "",
       poCount: dto.numberOfPo ?? 0,
-      materialQuantity: 0, // API list chưa trả về
+      materialQuantity: dto.numberOfItem ?? 0,
       status: status === "COMPLETED" ? "COMPLETED" : "INCOMPLETE",
+      source: toText(dto.source),
       pos: [], // API list chưa trả về, cần load khi expand
       raw: dto,
     };
@@ -742,6 +791,8 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         includes(item.vehicleNumber, f.vehicleNumber) &&
         includes(item.poCount, f.poCount) &&
         includes(item.materialQuantity, f.materialQuantity) &&
+        (includes(item.source, f.source) ||
+          includes(this.sourceLabel(item.source), f.source)) &&
         statusOk
       );
     };
