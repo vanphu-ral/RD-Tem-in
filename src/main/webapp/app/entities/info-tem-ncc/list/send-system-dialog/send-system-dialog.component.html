@@ -64,7 +64,10 @@
         <div class="ss-mat-side">
           <span class="box-badge">{{ mat.boxCount }} thùng</span>
           <span class="sent-badge" *ngIf="mat.boxCount">
-            Đã gửi {{ sentCount(mat) }}/{{ mat.boxCount }}
+            SAP {{ sentCount(mat) }}/{{ mat.boxCount }}
+          </span>
+          <span class="sent-badge" *ngIf="mat.boxCount">
+            PanaCIM {{ panaSentCount(mat) }}/{{ mat.boxCount }}
           </span>
           <button type="button" class="ss-chev" (click)="toggleMaterial(mat)">
             <mat-icon>{{

@@ -73,6 +73,7 @@ import {
   InfoTemNccService,
   toText,
 } from "../../services/info-tem-ncc.service";
+import { completeOrderFlow } from "../../shared/complete-order.flow";
 import {
   ScanBoxRow,
   ScanImportDialogData,
@@ -288,6 +289,9 @@ export class ScanImportDialogComponent
   lastLocationSearchTerm = "";
   locationSearchPending = false;
   locationSearchSettled = false;
+
+  /** Đang kiểm tra / gửi hoàn thành đơn (nút Hoàn thành mobile) */
+  isCompletingOrder = false;
 
   /** Số request lưu thùng đang chờ */
   savingCount = 0;
@@ -850,6 +854,29 @@ export class ScanImportDialogComponent
       boxRows: [...this.boxRows],
       palletRows: [...this.palletRows],
     });
+  }
+
+  /**
+   * Nút "Hoàn thành" (mobile): đủ điều kiện → PUT trạng thái đơn COMPLETED rồi đóng dialog;
+   * chưa đủ → popup đủ lý do, không gửi.
+   */
+  onCompleteOrder(): void {
+    if (this.isCompletingOrder) {
+      return;
+    }
+    completeOrderFlow(
+      {
+        dialog: this.dialog,
+        infoTemNccService: this.infoTemNccService,
+        notificationService: this.notificationService,
+      },
+      this.data.deliveryNotificationId,
+      () => this.onConfirm(),
+      (busy) => {
+        this.isCompletingOrder = busy;
+        this.cdr.markForCheck();
+      },
+    );
   }
 
   onSaveDraft(): void {

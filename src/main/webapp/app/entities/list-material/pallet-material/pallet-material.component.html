@@ -274,7 +274,16 @@
                     <span
                       class="st-badge adding"
                       *ngIf="!r.pendingRemove && r.pendingAdd"
-                      >Chờ thêm</span
+                      [title]="
+                        r.moveFrom
+                          ? 'Chuyển từ pallet ' + r.moveFrom.serialPallet
+                          : ''
+                      "
+                      >{{
+                        r.moveFrom
+                          ? "Chuyển từ " + r.moveFrom.serialPallet
+                          : "Chờ thêm"
+                      }}</span
                     >
                     <span
                       class="st-badge"

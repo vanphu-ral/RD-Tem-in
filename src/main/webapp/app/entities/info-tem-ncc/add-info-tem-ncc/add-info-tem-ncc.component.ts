@@ -81,6 +81,7 @@ import {
   MaterialSummaryDialogData,
   UnassignedPoLine,
 } from "./material-summary-dialog/material-summary-dialog.component";
+import { completeOrderFlow } from "../shared/complete-order.flow";
 import { ScanImportDialogComponent } from "./scan-import-dialog/scan-import-dialog.component";
 import { ScanImportDialogData } from "./scan-import-dialog/scan-import.models";
 import { boxLocation } from "../shared/box-location.util";
@@ -251,6 +252,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   isSavingOrder = false;
   /** Số mã vật tư có thùng chưa xác định PO (sapPor1Id rỗng / không thuộc đơn) */
   unassignedMaterialCount = 0;
+  /** Đang kiểm tra / gửi hoàn thành đơn */
+  isCompleting = false;
   /** PO đã gọi lấy part-numbers (chỉ gọi khi expand PO lần đầu) */
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -637,8 +640,24 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
 
   // ==================== ACTIONS ====================
 
+  /**
+   * Hoàn thành đơn: đủ SL mọi vật tư + đã gửi SAP, PanaCIM (không còn hàng chờ) →
+   * PUT /delivery-notifications/{id} trạng thái COMPLETED; chưa đủ → popup lý do, không gửi.
+   */
   onComplete(): void {
-    this.notificationService.info("Hoàn thành đơn (mock) — sẽ nối API sau.");
+    if (this.isCompleting) {
+      return;
+    }
+    completeOrderFlow(
+      {
+        dialog: this.dialog,
+        infoTemNccService: this.infoTemNccService,
+        notificationService: this.notificationService,
+      },
+      this.deliveryId,
+      () => this.reloadDetail(),
+      (busy) => (this.isCompleting = busy),
+    );
   }
 
   onManagePallet(): void {

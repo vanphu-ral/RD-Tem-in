@@ -17,6 +17,7 @@ import {
   PalletBoxRecord,
   PalletMaterialService,
   PalletMngtDetail,
+  PalletBoxMappingRow,
   PalletMngtRow,
   PalletSummary,
   sortPalletsNewestFirst,
@@ -56,6 +57,8 @@ interface BoxRow {
   newLocation: string | null;
   /** Thông tin tồn kho (/api/inventory) — có sẵn khi thùng vừa quét thêm */
   inventory?: RawGraphQLMaterial;
+  /** Thùng đang ở pallet khác, chọn "Chuyển" → gỡ liên kết cũ trước khi thêm vào pallet này */
+  moveFrom?: { mappingId: number; serialPallet: string };
 }
 
 interface LocationOption {
@@ -482,15 +485,7 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     for (const r of this.rows) {
       if (r.pendingAdd) {
         if (!r.pendingRemove) {
-          tasks.push(
-            this.safe(
-              this.palletService.addBoxToPallet(
-                serial,
-                r.reelId,
-                this.currentUser,
-              ),
-            ),
-          );
+          tasks.push(this.addRowToPallet(serial, r));
         }
         continue;
       }
@@ -798,14 +793,86 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
         if (this.rows.some((r) => r.reelId.toLowerCase() === lower)) {
           return;
         }
-        this.rows = [this.toInventoryRow(reelId, inv), ...this.rows];
-        this.cdr.markForCheck();
+        this.checkOtherPallet(serial, reelId, inv);
       },
       error: () => {
         this.finishLookup(lower);
         this.notificationService.error(`Lỗi khi tìm thùng: ${reelId}`);
       },
     });
+  }
+
+  /**
+   * Thùng đang ở pallet khác → popup [Quét thùng khác] / [Chuyển sang pallet này].
+   * Chuyển: khi "Xác nhận cập nhật" sẽ gỡ thùng khỏi pallet cũ rồi thêm vào pallet này.
+   */
+  private checkOtherPallet(
+    serial: string,
+    reelId: string,
+    inv: RawGraphQLMaterial,
+  ): void {
+    const lower = reelId.toLowerCase();
+    this.lookingUpReels.add(lower);
+    this.lookingUpCount++;
+    this.palletService.getBoxMappings().subscribe({
+      next: (mappings: PalletBoxMappingRow[]) => {
+        this.finishLookup(lower);
+        if (serial !== this.selectedSerial) {
+          return;
+        }
+        const other = mappings.find(
+          (m) =>
+            String(m.reelIdBox ?? "").toLowerCase() === lower &&
+            String(m.serialPallet ?? "").toLowerCase() !== serial.toLowerCase(),
+        );
+        if (!other) {
+          this.pushInventoryRow(reelId, inv);
+          return;
+        }
+        const fromSerial = String(other.serialPallet ?? "");
+        this.confirm(
+          "Thùng đang ở pallet khác",
+          `Thùng "${reelId}" đang ở pallet ${fromSerial}. Chuyển thùng này sang pallet ${serial}?`,
+          `Chuyển sang ${serial}`,
+          "Quét thùng khác",
+        ).subscribe((move) => {
+          if (move && serial === this.selectedSerial) {
+            this.pushInventoryRow(reelId, inv, {
+              mappingId: Number(other.id),
+              serialPallet: fromSerial,
+            });
+          }
+          setTimeout(() => this.scanInputRef?.nativeElement?.focus(), 30);
+        });
+      },
+      error: () => {
+        this.finishLookup(lower);
+        this.notificationService.error(
+          `Không kiểm tra được pallet của thùng "${reelId}" — chưa thêm.`,
+        );
+      },
+    });
+  }
+
+  private pushInventoryRow(
+    reelId: string,
+    inv: RawGraphQLMaterial,
+    moveFrom?: { mappingId: number; serialPallet: string },
+  ): void {
+    if (
+      this.rows.some((r) => r.reelId.toLowerCase() === reelId.toLowerCase())
+    ) {
+      return;
+    }
+    const row = this.toInventoryRow(reelId, inv);
+    row.moveFrom = moveFrom;
+    this.rows = [row, ...this.rows];
+    if (moveFrom) {
+      this.notificationService.info(
+        `Thùng "${reelId}" sẽ được chuyển từ pallet ${moveFrom.serialPallet} — bấm "Xác nhận cập nhật" để lưu.`,
+      );
+    }
+    this.cdr.markForCheck();
   }
 
   private finishLookup(lowerReelId: string): void {
@@ -835,9 +902,23 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       selected: false,
       pendingRemove: false,
       pendingAdd: true,
-      newLocation: null,
+      // Vị trí thùng phải giống pallet → khác thì đổi theo vị trí pallet khi xác nhận
+      newLocation: this.followPalletLocation(String(inv.locationName ?? "")),
       inventory: inv,
     };
+  }
+
+  /** Vị trí pallet (đang đặt / đã lưu); khác vị trí thùng → trả vị trí pallet, giống / chưa có → null */
+  private followPalletLocation(boxLocation: string): string | null {
+    const pallet = (
+      this.pendingPalletLocation ??
+      this.detail?.locationName ??
+      ""
+    ).trim();
+    if (!pallet || pallet.toLowerCase() === boxLocation.trim().toLowerCase()) {
+      return null;
+    }
+    return pallet;
   }
 
   /**
@@ -1158,5 +1239,51 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       ),
       catchError(() => of(false)),
     );
+  }
+
+  /**
+   * Thêm thùng vào pallet (POST /pallet-box-mappings). Thùng chuyển từ pallet khác → gỡ liên kết
+   * cũ trước (DELETE), pallet cũ không còn thùng → UNUSED.
+   */
+  private addRowToPallet(serial: string, r: BoxRow): Observable<boolean> {
+    const add$ = (): Observable<boolean> =>
+      this.palletService.addBoxToPallet(serial, r.reelId, this.currentUser);
+    const move = r.moveFrom;
+    if (!move) {
+      return this.safe(add$());
+    }
+    return this.palletService.removeBoxFromPallet(move.mappingId).pipe(
+      switchMap((): Observable<boolean> => add$()),
+      switchMap((ok: boolean): Observable<boolean> => {
+        this.releasePalletIfEmpty(move.serialPallet);
+        return of(ok);
+      }),
+      catchError(() => of(false)),
+    );
+  }
+
+  /** Pallet cũ (sau khi chuyển thùng đi) không còn thùng → PUT trạng thái UNUSED */
+  private releasePalletIfEmpty(serial: string): void {
+    this.palletService.getPalletDetail(serial).subscribe({
+      next: (d: PalletMngtDetail | null) => {
+        if (!d || (d.vendorLabelInfoList ?? []).length) {
+          return;
+        }
+        this.palletService
+          .updatePallet({
+            id: d.id,
+            serialPallet: d.serialPallet,
+            locationName: d.locationName,
+            status: "UNUSED",
+            note: d.note,
+            createAt: d.createAt,
+            createBy: d.createBy,
+            updatedAt: new Date().toISOString(),
+            updatedBy: this.currentUser,
+          })
+          .subscribe({ error: () => undefined });
+      },
+      error: () => undefined,
+    });
   }
 }

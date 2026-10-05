@@ -19,6 +19,8 @@ export interface ChoiceDialogData {
   highlight?: string;
   confirmText: string;
   cancelText: string;
+  /** Danh sách chi tiết (vd lý do) hiện dưới message */
+  items?: string[];
   /** Nút lựa chọn thứ 3 (tùy chọn) — hiện giữa nút hủy và nút xác nhận */
   extraText?: string;
   tone?: ChoiceDialogTone;
@@ -43,8 +45,20 @@ export type ChoiceDialogResult = "confirm" | "extra" | "cancel";
         {{ data.highlight }}
       </div>
       <p class="cd-message">{{ data.message }}</p>
-      <div class="cd-actions" [class.cd-actions--three]="!!data.extraText">
-        <button type="button" class="cd-btn cd-cancel" (click)="close(false)">
+      <ul class="cd-items" *ngIf="data.items?.length">
+        <li *ngFor="let item of data.items">{{ item }}</li>
+      </ul>
+      <div
+        class="cd-actions"
+        [class.cd-actions--three]="!!data.extraText"
+        [class.cd-actions--one]="!data.cancelText && !data.extraText"
+      >
+        <button
+          *ngIf="data.cancelText"
+          type="button"
+          class="cd-btn cd-cancel"
+          (click)="close(false)"
+        >
           {{ data.cancelText }}
         </button>
         <button
@@ -124,6 +138,25 @@ export type ChoiceDialogResult = "confirm" | "extra" | "cancel";
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 10px;
+      }
+      .cd-items {
+        margin: -8px 0 16px;
+        padding: 10px 12px 10px 28px;
+        max-height: 40vh;
+        overflow-y: auto;
+        text-align: left;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #374151;
+        background: #f9fafb;
+        border-radius: 8px;
+      }
+      .cd-items li + li {
+        margin-top: 4px;
+      }
+      /* Chỉ 1 nút (không có nút hủy) */
+      .cd-actions--one {
+        grid-template-columns: 1fr;
       }
       /* 3 nút: xếp dọc, nút chính lên đầu */
       .cd-actions--three {

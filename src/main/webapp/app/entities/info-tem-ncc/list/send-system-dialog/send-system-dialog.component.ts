@@ -106,8 +106,14 @@ export class SendSystemDialogComponent {
     return mat.lots.reduce((s, l) => s + (l.quantity || 0), 0);
   }
 
+  /** Số thùng đã gửi SAP */
   sentCount(mat: SendSystemMaterial): number {
     return mat.lots.filter((l) => l.sent).length;
+  }
+
+  /** Số thùng đã gửi PanaCIM */
+  panaSentCount(mat: SendSystemMaterial): number {
+    return mat.lots.filter((l) => l.panaSent).length;
   }
 
   /** Thùng còn gửi được (chưa gửi SAP hoặc chưa gửi PanaCIM) */

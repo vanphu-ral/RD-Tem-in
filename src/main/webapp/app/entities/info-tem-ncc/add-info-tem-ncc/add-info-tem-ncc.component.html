@@ -141,6 +141,7 @@
             mat-stroked-button
             color="primary"
             type="button"
+            [disabled]="isCompleting"
             (click)="onComplete()"
           >
             Hoàn thành

@@ -203,6 +203,16 @@ export class PalletMaterialService {
       .pipe(map((): boolean => true));
   }
 
+  /**
+   * Toàn bộ liên kết thùng–pallet (GET /pallet-box-mappings — backend chưa có lọc theo ReelID).
+   * Dùng để biết thùng vừa quét đang nằm ở pallet nào.
+   */
+  getBoxMappings(): Observable<PalletBoxMappingRow[]> {
+    return this.http
+      .get<PalletBoxMappingRow[]>(`${this.url}/pallet-box-mappings`)
+      .pipe(map((rows) => (Array.isArray(rows) ? rows : [])));
+  }
+
   /** Gỡ thùng khỏi pallet — id = palletBoxMapping.id */
   removeBoxFromPallet(mappingId: number): Observable<boolean> {
     return this.http

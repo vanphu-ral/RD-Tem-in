@@ -341,6 +341,23 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       void this.router.navigate(["/info-tem-ncc/add-info-tem-ncc"]);
       return;
     }
+    // Chưa có danh sách PO / vật tư của đơn → dialog không phân bổ được thùng vào PO
+    if (this.isDetailLoading(delivery)) {
+      this.notificationService.info(
+        "Đang tải chi tiết đơn — vui lòng đợi giây lát rồi bấm lại.",
+      );
+      return;
+    }
+    if (
+      this.hasDetailError(delivery) ||
+      !this.detailLoadedIds.has(delivery.id)
+    ) {
+      this.notificationService.warning(
+        "Chưa tải được chi tiết đơn — đang tải lại, vui lòng bấm lại sau.",
+      );
+      this.ensureDetail(delivery);
+      return;
+    }
 
     const isMobile =
       typeof window !== "undefined" &&
@@ -426,7 +443,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
 
   /**
    * Chưa nhận thùng nào → Chờ nhập; nhận chưa đủ SL PO → Đang nhập;
-   * đủ SL nhưng còn thùng chưa gửi SAP → Chưa gửi SAP; tất cả đã gửi → Đã gửi SAP.
+   * đủ SL → theo gửi SAP / PanaCIM: còn thùng chưa gửi → "Chưa gửi …"; gửi hết → "Đã gửi SAP, PanaCIM".
    */
   mobilePoStatus(po: PoItem): string {
     const total = this.poTotalQty(po);
@@ -437,10 +454,17 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     if (received < total) {
       return "Đang nhập";
     }
+    // Đủ SL → theo trạng thái gửi SAP / PanaCIM của mọi thùng
     const boxes = po.materials.flatMap((m) => m.boxes);
-    return boxes.every((b) => this.isSapSent(b.sapSendStatus))
-      ? "Đã gửi SAP"
-      : "Chưa gửi SAP";
+    const sapDone = boxes.every((b) => this.isSapSent(b.sapSendStatus));
+    const panaDone = boxes.every((b) => this.isSapSent(b.panaSendStatus));
+    if (sapDone && panaDone) {
+      return "Đã gửi SAP, PanaCIM";
+    }
+    if (!sapDone && !panaDone) {
+      return "Chưa gửi SAP, PanaCIM";
+    }
+    return sapDone ? "Chưa gửi PanaCIM" : "Chưa gửi SAP";
   }
 
   mobilePoStatusClass(po: PoItem): string {
@@ -448,10 +472,10 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     if (label === "Chờ nhập") {
       return "waiting";
     }
-    if (label === "Chưa gửi SAP") {
+    if (label.startsWith("Chưa gửi")) {
       return "sap";
     }
-    if (label === "Đã gửi SAP") {
+    if (label.startsWith("Đã gửi")) {
       return "done";
     }
     return "importing";

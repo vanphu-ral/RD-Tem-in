@@ -817,7 +817,8 @@
           <button
             type="button"
             class="m-btn outline-green"
-            (click)="onConfirm()"
+            [disabled]="isCompletingOrder"
+            (click)="onCompleteOrder()"
           >
             Hoàn thành
           </button>
@@ -889,7 +890,8 @@
           <button
             type="button"
             class="m-btn outline-green"
-            (click)="onConfirm()"
+            [disabled]="isCompletingOrder"
+            (click)="onCompleteOrder()"
           >
             Hoàn thành
           </button>
@@ -975,7 +977,8 @@
           <button
             type="button"
             class="m-btn outline-green"
-            (click)="onConfirm()"
+            [disabled]="isCompletingOrder"
+            (click)="onCompleteOrder()"
           >
             Hoàn thành
           </button>
