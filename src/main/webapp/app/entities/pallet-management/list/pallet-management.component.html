@@ -210,6 +210,7 @@
               type="button"
               matTooltip="Xóa"
               color="warn"
+              [disabled]="isDeleting(row)"
               (click)="onDelete(row); $event.stopPropagation()"
             >
               <mat-icon>delete</mat-icon>
@@ -482,7 +483,7 @@
               >
                 <thead>
                   <tr>
-                    <th>Reelid</th>
+                    <th>Mã thùng</th>
                     <th>Tên sản phẩm</th>
                     <th>Part number</th>
                     <th>Số lô</th>
@@ -593,6 +594,7 @@
             mat-stroked-button
             type="button"
             color="warn"
+            [disabled]="isDeleting(row)"
             (click)="onDelete(row); $event.stopPropagation()"
           >
             <mat-icon>delete</mat-icon>

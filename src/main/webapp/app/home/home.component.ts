@@ -13,6 +13,7 @@ import {
 import { LoginService } from "app/login/login.service";
 import { AccountService } from "app/core/auth/account.service";
 import { Account } from "app/core/auth/account.model";
+import { TabService } from "app/layouts/tab-bar/tab.service";
 
 export interface MenuGroupItem {
   title: string;
@@ -63,7 +64,7 @@ export class HomeComponent implements OnInit {
         { title: "Quản lý TEM vật tư", link: "/generate-tem-in" },
         { title: "Nhập thông tin TEM NCC", link: "/info-tem-ncc" },
         { title: "Cấu hình TEM NCC", link: "/info-tem-ncc/config-tem-ncc" },
-        { title: "Phê duyệt TEM NCC", link: "/approve-tem-ncc" },
+        // { title: "Phê duyệt TEM NCC", link: "/approve-tem-ncc" },
         { title: "Quản lý pallet", link: "/pallet-management" },
       ],
     },
@@ -92,6 +93,7 @@ export class HomeComponent implements OnInit {
     private accountService: AccountService,
     private loginService: LoginService,
     private router: Router,
+    private tabService: TabService,
   ) {}
 
   ngOnInit(): void {
@@ -102,5 +104,22 @@ export class HomeComponent implements OnInit {
 
   login(): void {
     this.loginService.login();
+  }
+
+  /**
+   * Bấm chức năng ở trang chủ → mở tab giống khi chọn từ menu sidebar.
+   * Ctrl / Cmd / Shift / chuột giữa → để trình duyệt mở cửa sổ mới, không tạo tab.
+   */
+  openFeature(item: { title: string; link: string }, event: MouseEvent): void {
+    if (
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.button !== 0
+    ) {
+      return;
+    }
+    event.preventDefault();
+    this.tabService.openTab(item.title, item.link);
   }
 }

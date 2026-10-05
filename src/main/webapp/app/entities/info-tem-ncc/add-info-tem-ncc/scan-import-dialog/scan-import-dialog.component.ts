@@ -1425,13 +1425,12 @@ export class ScanImportDialogComponent
    * → lưu thành công mới hiện lên bảng.
    */
   private submitBoxScan(rawCode: string): void {
-    const mappingConfig = this.data.mappingConfig as
-      | VendorQrMappingConfig
-      | null
-      | undefined;
+    const mappingConfig = this.ensureMappingConfig();
     if (!mappingConfig?.fieldMappings?.length) {
       this.notificationService.warning(
-        "Chưa chọn kịch bản scan — không tách được mã QR.",
+        this.isLoadingScenarios
+          ? "Đang tải danh sách kịch bản scan — thử lại sau giây lát."
+          : "Chưa chọn kịch bản scan — không tách được mã QR.",
       );
       return;
     }
@@ -1497,14 +1496,17 @@ export class ScanImportDialogComponent
       !!qrPo &&
       candidates.length > 0 &&
       !candidates.some((c) => samePo(c.poCode));
-    const matchedRow = qrPoMismatch
+    // PO trên QR không khớp nhưng vật tư chỉ có ở 1 dòng PO trong đơn → chắc chắn thuộc PO đó,
+    // bỏ qua PO trên QR; có ở nhiều PO → không biết thuộc PO nào → "Hàng chờ vật tư" (Sai PO)
+    const qrPoIgnored = qrPoMismatch && candidates.length === 1;
+    const poAmbiguous = qrPoMismatch && !qrPoIgnored;
+    const matchedRow = poAmbiguous
       ? undefined
-      : this.pickParentForBox(candidates, qrPo, quantity);
-    const overflowQueued =
-      candidates.length > 0 && !matchedRow && !qrPoMismatch;
+      : this.pickParentForBox(candidates, qrPoIgnored ? "" : qrPo, quantity);
+    const overflowQueued = candidates.length > 0 && !matchedRow && !poAmbiguous;
     let queueReason: QueueReason | null = null;
     if (!matchedRow) {
-      queueReason = qrPoMismatch
+      queueReason = poAmbiguous
         ? "poMismatch"
         : overflowQueued
           ? "overflow"
@@ -1591,15 +1593,20 @@ export class ScanImportDialogComponent
       sapPor1Id: matchedRow?.id ?? null,
     };
 
-    if (qrPoMismatch) {
+    if (poAmbiguous) {
       const code = toText(candidates[0].sapCode) || scannedPartNumber;
       const inOrder = (this.data.parentItems ?? []).some((p) =>
         samePo(p.poCode),
       );
       this.notificationService.warning(
         inOrder
-          ? `Thùng "${reelId}": PO ${qrPo} trên tem không chứa vật tư ${code} — đã đưa vào "Hàng chờ vật tư".`
-          : `Thùng "${reelId}": PO ${qrPo} trên tem không có trong đơn — đã đưa vào "Hàng chờ vật tư".`,
+          ? `Thùng "${reelId}": PO ${qrPo} trên tem không chứa vật tư ${code}, vật tư có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`
+          : `Thùng "${reelId}": PO ${qrPo} trên tem không có trong đơn, vật tư ${code} có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`,
+      );
+    } else if (qrPoIgnored && matchedRow) {
+      const code = toText(matchedRow.sapCode) || scannedPartNumber;
+      this.notificationService.info(
+        `Thùng "${reelId}" đã thêm vào PO này ${toText(matchedRow.poCode)}.`,
       );
     } else if (overflowQueued) {
       const code = toText(candidates[0].sapCode) || scannedPartNumber;
@@ -2715,11 +2722,9 @@ export class ScanImportDialogComponent
           0,
           this.SCENARIO_DISPLAY_LIMIT,
         );
-        // Chưa có mappingConfig từ trang ngoài → tự áp kịch bản khớp mã mặc định
+        // Chưa có mappingConfig từ trang ngoài → tự áp kịch bản khớp ô kịch bản (mã hoặc tên NCC)
         if (!this.data.mappingConfig && this.scenarioCodeValue) {
-          const matched = list.find(
-            (s) => s.vendorCode === this.scenarioCodeValue,
-          );
+          const matched = this.findScenario(this.scenarioCodeValue);
           if (matched) {
             this.onScenarioSelected(matched);
           }
@@ -3070,5 +3075,48 @@ export class ScanImportDialogComponent
       );
     }
     return null;
+  }
+
+  /**
+   * Kịch bản khớp giá trị ô kịch bản: mã NCC, tên NCC hoặc dạng "mã - tên" (không phân biệt
+   * hoa thường). Đơn có thể chỉ lưu tên NCC nên không chỉ so theo mã.
+   */
+  private findScenario(value: string): ScenarioOption | undefined {
+    const v = toText(value).toLowerCase();
+    if (!v) {
+      return undefined;
+    }
+    return this.scenarioOptions.find(
+      (s) =>
+        s.vendorCode.toLowerCase() === v ||
+        s.vendorName.toLowerCase() === v ||
+        `${s.vendorCode} - ${s.vendorName}`.toLowerCase() === v,
+    );
+  }
+
+  /**
+   * Cấu hình tách QR đang dùng. Chưa có (vd mở từ màn mobile, ô kịch bản đã điền sẵn nhưng chưa
+   * chọn lại) → tự áp kịch bản khớp ô kịch bản. Cấu hình dạng chuỗi JSON → parse.
+   */
+  private ensureMappingConfig(): VendorQrMappingConfig | null {
+    let config: unknown = this.data.mappingConfig;
+    if (typeof config === "string") {
+      try {
+        config = JSON.parse(config);
+      } catch {
+        config = null;
+      }
+      this.data.mappingConfig = config;
+    }
+    const current = config as VendorQrMappingConfig | null | undefined;
+    if (current?.fieldMappings?.length) {
+      return current;
+    }
+    const matched = this.findScenario(this.scenarioCodeValue);
+    if (!matched) {
+      return null;
+    }
+    this.onScenarioSelected(matched);
+    return (this.data.mappingConfig as VendorQrMappingConfig | null) ?? null;
   }
 }

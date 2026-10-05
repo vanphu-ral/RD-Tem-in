@@ -329,6 +329,7 @@
           #mainInputRef
           [(ngModel)]="newLocation"
           (ngModelChange)="onLocationInput($event)"
+          (keydown.enter)="onLocationEnter()"
           [matAutocomplete]="locAuto"
           placeholder="Quét / chọn vị trí mới..."
           autocomplete="off"

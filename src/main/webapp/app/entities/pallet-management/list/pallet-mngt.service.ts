@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
-import { Observable } from "rxjs";
-import { map } from "rxjs/operators";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import { Observable, of, throwError } from "rxjs";
+import { catchError, map } from "rxjs/operators";
 import { environment } from "app/environments/environment.development";
 import {
   PalletBoxItem,
@@ -16,6 +16,7 @@ import {
 export class PalletMngtService {
   // private readonly url = `${environment.testApiUrl}/pallet-mngts`;
   private readonly url = `${environment.baseInTemApiUrl}/pallet-mngts`;
+  private readonly mappingUrl = `${environment.baseInTemApiUrl}/pallet-box-mappings`;
 
   constructor(private http: HttpClient) {}
 
@@ -32,6 +33,49 @@ export class PalletMngtService {
   /** PUT /api/pallet-mngts/{id} — cập nhật pallet (trạng thái UNUSED / IN_USE...) */
   updatePallet(payload: PalletMngtUpdatePayload): Observable<unknown> {
     return this.http.put<unknown>(`${this.url}/${payload.id}`, payload);
+  }
+
+  /** DELETE /api/pallet-mngts/{id} — xóa pallet */
+  deletePallet(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/${id}`);
+  }
+
+  /** DELETE /api/pallet-box-mappings/{id} — gỡ 1 thùng khỏi pallet (id = palletBoxMapping.id) */
+  deleteBoxMapping(mappingId: number): Observable<void> {
+    return this.http.delete<void>(`${this.mappingUrl}/${mappingId}`);
+  }
+
+  /**
+   * id liên kết thùng–pallet (palletBoxMapping.id) của mọi thùng trong pallet —
+   * từ GET /pallet-mngts/serial-pallet/{serial}. Pallet không tồn tại (404) → [].
+   */
+  getBoxMappingIds(serialPallet: string): Observable<number[]> {
+    const serial = (serialPallet ?? "").trim();
+    return this.http
+      .get<unknown>(`${this.url}/serial-pallet/${encodeURIComponent(serial)}`)
+      .pipe(
+        map((raw): number[] => {
+          const rec = this.asRecord(raw);
+          const list = Array.isArray(rec?.["vendorLabelInfoList"])
+            ? (rec["vendorLabelInfoList"] as unknown[])
+            : [];
+          const ids: number[] = [];
+          for (const item of list) {
+            const box = this.asRecord(item);
+            const mapping = this.asRecord(box?.["palletBoxMapping"]);
+            const id = Number(mapping?.["id"] ?? box?.["palletBoxMappingId"]);
+            if (Number.isFinite(id) && id > 0) {
+              ids.push(id);
+            }
+          }
+          return ids;
+        }),
+        catchError((err: unknown) =>
+          err instanceof HttpErrorResponse && err.status === 404
+            ? of([])
+            : throwError(() => err),
+        ),
+      );
   }
 
   getBoxesBySerialPallet(serialPallet: string): Observable<PalletBoxItem[]> {
@@ -68,7 +112,9 @@ export class PalletMngtService {
     if (!rec) {
       return [];
     }
+    // GET /pallet-mngts/serial-pallet/{serial} trả thùng trong vendorLabelInfoList
     const nestedKeys = [
+      "vendorLabelInfoList",
       "boxes",
       "details",
       "items",
@@ -111,6 +157,7 @@ export class PalletMngtService {
           "sap_name",
           "materialName",
           "material_name",
+          "spMaterialName",
         ]),
         partNumber: this.pickString(rec, [
           "partNumber",
@@ -126,6 +173,7 @@ export class PalletMngtService {
           "so_lo",
         ]),
         quantity: this.pickNumber(rec, [
+          "initialQuantity",
           "quantity",
           "qty",
           "totalQuantity",
@@ -138,6 +186,7 @@ export class PalletMngtService {
           "ngay_san_xuat",
           "manufacturedDate",
           "manufactured_date",
+          "manufacturingDate",
         ]),
         expiryDate: this.pickString(rec, [
           "expiryDate",

@@ -8,7 +8,7 @@ import {
 } from "@angular/core";
 import { Router } from "@angular/router";
 import { forkJoin, Observable, of, take } from "rxjs";
-import { catchError } from "rxjs/operators";
+import { catchError, switchMap } from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
 import { NotificationService } from "../../services/notification.service";
 import { WarehouseCacheService } from "../../services/warehouse-cache.service";
@@ -17,7 +17,7 @@ import {
   PalletMaterialService,
   PalletMngtDetail,
   PalletMngtRow,
-  sortPalletsWithBoxesFirst,
+  sortPalletsNewestFirst,
 } from "../../services/pallet-material.service";
 
 type MobileScreen = "list" | "detail" | "location" | "boxScan";
@@ -56,8 +56,8 @@ interface ConfirmState {
   standalone: false,
 })
 export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
-  /** Tạm ẩn chức năng Xuất hàng — bật lại: true */
-  readonly showExport = false;
+  /** Hiện chức năng Xuất hàng (gỡ thùng khỏi pallet + số lượng thùng = 0) */
+  readonly showExport = true;
 
   @ViewChild("mainInputRef") mainInputRef?: ElementRef<HTMLInputElement>;
 
@@ -360,18 +360,27 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /** Xuất hàng các pallet đã chọn */
+  /** Xuất hàng mọi thùng của các pallet đã chọn */
   onExportPallets(): void {
     const targets = this.checkedCards;
     if (!targets.length) {
       return;
     }
-    this.askConfirm({
-      title: "Xác nhận xuất hàng",
-      message: `Xuất hàng ${targets.length} pallet đã chọn?`,
-      confirmText: "Xác nhận",
-      danger: false,
-      onConfirm: () => this.exportNotReady(),
+    this.withDetail(targets, () => {
+      const boxes = targets.flatMap((c) => c.detail?.vendorLabelInfoList ?? []);
+      if (!boxes.length) {
+        this.notificationService.warning(
+          "Các pallet đã chọn không có thùng nào.",
+        );
+        return;
+      }
+      this.askConfirm({
+        title: "Xác nhận xuất hàng",
+        message: `Xuất hàng ${boxes.length} thùng của ${targets.length} pallet đã chọn? Thùng sẽ được gỡ khỏi pallet và số lượng về 0.`,
+        confirmText: "Xuất hàng",
+        danger: false,
+        onConfirm: () => this.exportBoxes(targets, boxes),
+      });
     });
   }
 
@@ -408,12 +417,16 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
       this.notificationService.warning("Chọn thùng cần xuất hàng.");
       return;
     }
+    const card = this.current;
+    if (!card) {
+      return;
+    }
     this.askConfirm({
       title: "Xác nhận xuất hàng",
-      message: `Xuất hàng ${boxes.length} thùng đã chọn?`,
-      confirmText: "Xác nhận",
+      message: `Xuất hàng ${boxes.length} thùng đã chọn? Thùng sẽ được gỡ khỏi pallet và số lượng về 0.`,
+      confirmText: "Xuất hàng",
       danger: false,
-      onConfirm: () => this.exportNotReady(),
+      onConfirm: () => this.exportBoxes([card], boxes),
     });
   }
 
@@ -480,12 +493,16 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
       return;
     }
     if (this.boxScanMode === "export") {
+      const records = this.scannedBoxes
+        .map((s) => s.record)
+        .filter((r): r is PalletBoxRecord => r !== null);
       this.askConfirm({
         title: "Xác nhận xuất hàng",
-        message: `Xuất hàng ${this.scannedBoxes.length} thùng đã scan?`,
-        confirmText: "Xác nhận",
+        message: `Xuất hàng ${records.length} thùng đã scan? Thùng sẽ được gỡ khỏi pallet và số lượng về 0.`,
+        confirmText: "Xuất hàng",
         danger: false,
-        onConfirm: () => this.exportNotReady(),
+        onConfirm: () =>
+          this.exportBoxes([card], records, () => (this.scannedBoxes = [])),
       });
       return;
     }
@@ -525,36 +542,65 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
       .catch(() => undefined);
   }
 
+  /** Quét vị trí (máy scan gửi Enter) → kiểm tra có trong danh sách vị trí ngay */
+  onLocationEnter(): void {
+    const input = this.newLocation.trim();
+    if (!input) {
+      return;
+    }
+    void this.findLocation(input)
+      .then((found) => {
+        if (!found) {
+          this.notificationService.error(
+            `Vị trí "${input}" không có trong danh sách vị trí.`,
+          );
+          this.newLocation = "";
+          this.locationOptions = [];
+          this.focusMain();
+          return;
+        }
+        this.newLocation = found;
+        this.locationOptions = [];
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        this.notificationService.error("Không kiểm tra được danh sách vị trí.");
+      });
+  }
+
   onRescanLocation(): void {
     this.newLocation = "";
     this.locationOptions = [];
     this.focusMain();
   }
 
-  /** PUT từng thùng (subStorageUnit) + PUT pallet (locationName) */
+  /**
+   * Vị trí phải có trong danh sách vị trí (IndexedDB) → PUT từng thùng (storageUnit = vị trí,
+   * subStorageUnit trống) + PUT pallet (locationName).
+   */
   onConfirmLocation(): void {
-    const location = this.newLocation.trim();
-    if (!location) {
+    const input = this.newLocation.trim();
+    if (!input) {
       this.notificationService.warning("Quét hoặc chọn vị trí mới.");
       this.focusMain();
       return;
     }
-    const tasks: Array<Observable<boolean>> = [];
-    for (const c of this.locationTargets) {
-      for (const b of c.detail?.vendorLabelInfoList ?? []) {
-        tasks.push(
-          this.safe(
-            this.palletService.updateBox({ ...b, subStorageUnit: location }),
-          ),
-        );
-      }
-      if (c.detail) {
-        tasks.push(this.safe(this.updatePallet(c.detail, undefined, location)));
-      }
-    }
-    this.runTasks(tasks, "Cập nhật thành công!", this.locationTargets, () =>
-      this.goList(),
-    );
+    void this.findLocation(input)
+      .then((found) => {
+        if (!found) {
+          this.notificationService.error(
+            `Vị trí "${input}" không có trong danh sách vị trí.`,
+          );
+          this.newLocation = "";
+          this.focusMain();
+          return;
+        }
+        this.newLocation = found;
+        this.saveLocation(found);
+      })
+      .catch(() => {
+        this.notificationService.error("Không kiểm tra được danh sách vị trí.");
+      });
   }
 
   // ==================== Confirm modal ====================
@@ -587,8 +633,28 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
     this.confirmState = state;
   }
 
-  private exportNotReady(): void {
-    this.notificationService.info("Xuất hàng — chưa có API, sẽ nối sau.");
+  /** Xuất hàng: gỡ thùng khỏi pallet + số lượng = 0; pallet không còn thùng → UNUSED */
+  private exportBoxes(
+    cards: PalletCard[],
+    boxes: PalletBoxRecord[],
+    after?: () => void,
+  ): void {
+    const tasks: Array<Observable<boolean>> = boxes.map(
+      (b: PalletBoxRecord): Observable<boolean> => this.exportOneBox(b),
+    );
+    const exportIds = new Set(boxes.map((b) => b.id));
+    for (const c of cards) {
+      const left = (c.detail?.vendorLabelInfoList ?? []).filter(
+        (b) => !exportIds.has(b.id),
+      );
+      if (c.detail && !left.length) {
+        tasks.push(this.safe(this.updatePallet(c.detail, "UNUSED")));
+      }
+    }
+    this.runTasks(tasks, "Xuất hàng thành công!", cards, () => {
+      this.boxChecked = new Set<number>();
+      after?.();
+    });
   }
 
   /** Đảm bảo các pallet đã có chi tiết (danh sách thùng) rồi chạy tiếp */
@@ -733,21 +799,17 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
     }, 50);
   }
 
-  /** Pallet đang có thùng lên đầu (đã tải chi tiết thì theo số thùng thật) */
+  /** Pallet tạo mới nhất lên đầu */
   private sortCards(): void {
-    this.cards = sortPalletsWithBoxesFirst(this.cards, (c) =>
-      c.detail
-        ? {
-            ...c.detail,
-            numberOfBox: (c.detail.vendorLabelInfoList ?? []).length,
-          }
-        : c.row,
+    this.cards = sortPalletsNewestFirst<PalletCard>(
+      this.cards,
+      (c: PalletCard): PalletMngtRow | null => c.row ?? c.detail,
     );
   }
 
   /**
    * API danh sách không trả số thùng / tổng SL → tải chi tiết các pallet IN_USE chưa có số
-   * để điền vào thẻ, xong thì sắp xếp lại.
+   * để điền vào thẻ.
    */
   private loadCardSummaries(): void {
     const serials = this.cards
@@ -773,7 +835,6 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
           };
         }
       },
-      complete: () => this.sortCards(),
     });
   }
 
@@ -817,5 +878,68 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
           });
       },
     });
+  }
+
+  /** Vị trí khớp đúng tên / tên đầy đủ trong danh sách vị trí (IndexedDB) → tên đầy đủ; không có → null */
+  private async findLocation(value: string): Promise<string | null> {
+    const lower = value.toLowerCase();
+    await this.warehouseCache.ensureSynced();
+    const list = await this.warehouseCache.searchByName(value);
+    const found = list.find(
+      (w) =>
+        String(w.locationFullName ?? "").toLowerCase() === lower ||
+        String(w.locationName ?? "").toLowerCase() === lower,
+    );
+    return found
+      ? String(found.locationFullName ?? "") || String(found.locationName ?? "")
+      : null;
+  }
+
+  private saveLocation(location: string): void {
+    const tasks: Array<Observable<boolean>> = [];
+    for (const c of this.locationTargets) {
+      for (const b of c.detail?.vendorLabelInfoList ?? []) {
+        tasks.push(
+          this.safe(
+            this.palletService.updateBox({
+              ...b,
+              storageUnit: location,
+              subStorageUnit: null,
+            }),
+          ),
+        );
+      }
+      if (c.detail) {
+        tasks.push(this.safe(this.updatePallet(c.detail, undefined, location)));
+      }
+    }
+    this.runTasks(tasks, "Cập nhật thành công!", this.locationTargets, () =>
+      this.goList(),
+    );
+  }
+
+  /**
+   * Xuất hàng 1 thùng: gỡ khỏi pallet (DELETE /pallet-box-mappings/{mappingId})
+   * rồi đặt số lượng = 0 (PUT /vendor-label-infos/{id}). Gỡ lỗi thì không đổi số lượng.
+   */
+  private exportOneBox(box: PalletBoxRecord): Observable<boolean> {
+    const mappingId = Number(
+      box.palletBoxMapping?.id ?? box.palletBoxMappingId ?? 0,
+    );
+    const remove$: Observable<boolean> =
+      mappingId > 0
+        ? this.palletService.removeBoxFromPallet(mappingId)
+        : of(true);
+    return remove$.pipe(
+      switchMap(
+        (): Observable<boolean> =>
+          this.palletService.updateBox({
+            ...box,
+            initialQuantity: 0,
+            palletBoxMappingId: null,
+          }),
+      ),
+      catchError(() => of(false)),
+    );
   }
 }

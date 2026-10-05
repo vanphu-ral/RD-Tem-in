@@ -19,7 +19,7 @@ import {
   PalletMngtDetail,
   PalletMngtRow,
   PalletSummary,
-  sortPalletsWithBoxesFirst,
+  sortPalletsNewestFirst,
   summarizePallet,
 } from "../services/pallet-material.service";
 import { DialogContentExampleDialogComponent } from "../confirm-dialog/confirm-dialog.component";
@@ -77,8 +77,8 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
   /** ≤ 768px → hiển thị view mobile riêng */
   isMobile = this.detectMobile();
 
-  /** Tạm ẩn chức năng Xuất hàng — bật lại: true */
-  readonly showExport = false;
+  /** Hiện chức năng Xuất hàng (gỡ thùng khỏi pallet + số lượng thùng = 0) */
+  readonly showExport = true;
 
   pallets: PalletMngtRow[] = [];
   palletSearch = "";
@@ -424,8 +424,40 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /**
+   * Xuất hàng: thùng đã chọn (không chọn → tất cả thùng trong pallet) được gỡ khỏi pallet
+   * và đặt số lượng = 0. Gửi ngay sau khi xác nhận (không chờ "Xác nhận cập nhật").
+   */
   onExport(): void {
-    this.notificationService.info("Xuất hàng — chưa có API, sẽ nối sau.");
+    if (!this.detail || this.isSaving) {
+      return;
+    }
+    if (this.hasChanges) {
+      this.notificationService.warning(
+        `Pallet ${this.selectedSerial} có thay đổi chưa lưu (${this.changeSummary}) — xác nhận cập nhật hoặc hủy trước khi xuất hàng.`,
+      );
+      return;
+    }
+    const bySelection = this.selectedRows.length > 0;
+    const rows = (bySelection ? this.selectedRows : this.activeRows).filter(
+      (r) => !!r.record,
+    );
+    if (!rows.length) {
+      this.notificationService.warning(
+        "Pallet chưa có thùng nào để xuất hàng.",
+      );
+      return;
+    }
+    const serial = this.selectedSerial;
+    this.confirm(
+      "Xác nhận xuất hàng",
+      `Xuất hàng ${rows.length} thùng ${bySelection ? "đã chọn" : "trong pallet"} ${serial}? Thùng sẽ được gỡ khỏi pallet và số lượng về 0.`,
+      "Xuất hàng",
+    ).subscribe((ok) => {
+      if (ok) {
+        this.exportRows(serial, rows);
+      }
+    });
   }
 
   onCancel(): void {
@@ -562,9 +594,12 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
   private loadPallets(): void {
     this.isLoadingPallets = true;
     this.palletService.getPallets().subscribe({
-      next: (rows) => {
-        // Pallet đang có thùng (IN_USE) lên đầu
-        this.pallets = sortPalletsWithBoxesFirst(rows, (p) => p);
+      next: (rows: PalletMngtRow[]) => {
+        // Pallet tạo mới nhất lên đầu
+        this.pallets = sortPalletsNewestFirst<PalletMngtRow>(
+          rows,
+          (p: PalletMngtRow): PalletMngtRow => p,
+        );
         this.isLoadingPallets = false;
         if (!this.selectedSerial && this.pallets.length) {
           this.openPallet(this.pallets[0].serialPallet);
@@ -610,7 +645,7 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
 
   /**
    * API danh sách không trả số thùng / tổng SL → tải chi tiết các pallet đang có thùng
-   * (IN_USE, chưa có số) để điền vào thẻ, xong thì sắp xếp lại.
+   * (IN_USE, chưa có số) để điền vào thẻ.
    */
   private loadSummaries(): void {
     const seq = ++this.summarySeq;
@@ -632,7 +667,6 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       },
       complete: () => {
         if (seq === this.summarySeq) {
-          this.pallets = sortPalletsWithBoxesFirst(this.pallets, (p) => p);
           this.cdr.markForCheck();
         }
       },
@@ -1051,5 +1085,78 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       })
       .afterClosed()
       .pipe(map((result) => result === true));
+  }
+
+  /** Xuất hàng các thùng; pallet không còn thùng → UNUSED; xong tải lại pallet + danh sách */
+  private exportRows(serial: string, rows: BoxRow[]): void {
+    const d = this.detail;
+    if (!d) {
+      return;
+    }
+    const tasks: Array<Observable<boolean>> = rows.map((r) =>
+      r.record ? this.exportOneBox(r.record) : of(false),
+    );
+    if (rows.length >= this.activeRows.length) {
+      tasks.push(
+        this.safe(
+          this.palletService.updatePallet({
+            id: d.id,
+            serialPallet: d.serialPallet,
+            locationName: d.locationName,
+            status: "UNUSED",
+            note: d.note,
+            createAt: d.createAt,
+            createBy: d.createBy,
+            updatedAt: new Date().toISOString(),
+            updatedBy: this.currentUser,
+          }),
+        ),
+      );
+    }
+    this.isSaving = true;
+    forkJoin(tasks).subscribe((results: boolean[]) => {
+      this.isSaving = false;
+      const boxResults = results.slice(0, rows.length);
+      const ok = boxResults.filter(Boolean).length;
+      const failed = boxResults.length - ok;
+      if (!failed) {
+        this.notificationService.success(
+          `Đã xuất hàng ${ok} thùng khỏi pallet ${serial}.`,
+        );
+      } else if (!ok) {
+        this.notificationService.error(`Xuất hàng thất bại ${failed} thùng.`);
+      } else {
+        this.notificationService.warning(
+          `Xuất hàng ${ok}/${boxResults.length} thùng, ${failed} thùng lỗi.`,
+        );
+      }
+      this.openPallet(serial);
+      this.loadPallets();
+    });
+  }
+
+  /**
+   * Xuất hàng 1 thùng: gỡ khỏi pallet (DELETE /pallet-box-mappings/{mappingId})
+   * rồi đặt số lượng = 0 (PUT /vendor-label-infos/{id}). Gỡ lỗi thì không đổi số lượng.
+   */
+  private exportOneBox(box: PalletBoxRecord): Observable<boolean> {
+    const mappingId = Number(
+      box.palletBoxMapping?.id ?? box.palletBoxMappingId ?? 0,
+    );
+    const remove$: Observable<boolean> =
+      mappingId > 0
+        ? this.palletService.removeBoxFromPallet(mappingId)
+        : of(true);
+    return remove$.pipe(
+      switchMap(
+        (): Observable<boolean> =>
+          this.palletService.updateBox({
+            ...box,
+            initialQuantity: 0,
+            palletBoxMappingId: null,
+          }),
+      ),
+      catchError(() => of(false)),
+    );
   }
 }

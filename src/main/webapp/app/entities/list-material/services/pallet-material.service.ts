@@ -71,27 +71,25 @@ export function summarizePallet(
   };
 }
 
-/** Pallet đang chứa thùng: biết số thùng thì theo số thùng, chưa biết thì theo trạng thái IN_USE */
-export function palletHasBoxes(row: PalletMngtRow): boolean {
-  if (row.numberOfBox !== null && row.numberOfBox !== undefined) {
-    return Number(row.numberOfBox) > 0;
-  }
-  return String(row.status ?? "").toUpperCase() === "IN_USE";
+/** Thời điểm tạo của pallet (createAt) → ms; không có / sai định dạng → 0 */
+function createdTime(row: PalletMngtRow | null): number {
+  const t = new Date(String(row?.createAt ?? "")).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
-/** Sắp xếp: pallet đang có thùng lên đầu (giữ thứ tự gốc trong từng nhóm) */
-export function sortPalletsWithBoxesFirst<T>(
+/** Sắp xếp: pallet tạo mới nhất lên đầu (cùng thời điểm → id lớn hơn trước) */
+export function sortPalletsNewestFirst<T>(
   items: T[],
   rowOf: (item: T) => PalletMngtRow | null,
 ): T[] {
-  const has = (item: T): number => {
-    const row = rowOf(item);
-    return row && palletHasBoxes(row) ? 0 : 1;
-  };
-  return items
-    .map((item, index) => ({ item, index }))
-    .sort((a, b) => has(a.item) - has(b.item) || a.index - b.index)
-    .map((x) => x.item);
+  return [...items].sort((a, b) => {
+    const ra = rowOf(a);
+    const rb = rowOf(b);
+    return (
+      createdTime(rb) - createdTime(ra) ||
+      Number(rb?.id ?? 0) - Number(ra?.id ?? 0)
+    );
+  });
 }
 
 /** Kết quả tạo pallet: created = false nếu mã đã có (trả về mã đang có) */

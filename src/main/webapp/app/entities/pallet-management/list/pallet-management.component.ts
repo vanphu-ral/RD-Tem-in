@@ -4,6 +4,9 @@ import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatTableDataSource } from "@angular/material/table";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
+import { DialogContentExampleDialogComponent } from "app/entities/list-material/confirm-dialog/confirm-dialog.component";
+import { forkJoin, Observable, of } from "rxjs";
+import { catchError, map } from "rxjs/operators";
 import {
   CreatePalletDialogComponent,
   CreatePalletDialogData,
@@ -63,6 +66,8 @@ export class PalletManagementComponent implements OnInit {
   pageSizeOptions = [10, 20, 50, 100];
   filterExpanded = false;
   isLoading = false;
+  /** Pallet đang xóa (chặn bấm lặp) */
+  deletingIds = new Set<number>();
 
   @ViewChild(MatPaginator) set paginator(p: MatPaginator) {
     if (p) {
@@ -119,7 +124,10 @@ export class PalletManagementComponent implements OnInit {
     this.isLoading = true;
     this.palletMngtService.getAll().subscribe({
       next: (rows) => {
-        this.dataSource.data = Array.isArray(rows) ? rows : [];
+        // Ngày tạo mới nhất lên đầu (bấm tiêu đề cột vẫn sắp xếp lại được)
+        this.dataSource.data = this.sortNewestFirst(
+          Array.isArray(rows) ? rows : [],
+        );
         this.isLoading = false;
       },
       error: () => {
@@ -252,23 +260,24 @@ export class PalletManagementComponent implements OnInit {
     return !!this.boxErrorSerials[serial];
   }
 
+  /** Ngày → dd/MM/yyyy. Nhận yyyyMMdd (vd 20261008), yyyy-MM-dd, ISO; không parse được → giữ nguyên */
   formatDateOnly(value: string | null | undefined): string {
     const raw = (value ?? "").trim();
     if (!raw) {
       return "—";
     }
-    const datePart = raw.includes("T") ? raw.slice(0, 10) : raw;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
-      return datePart;
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    const ymd = /^(\d{4})-?(\d{2})-?(\d{2})$/.exec(
+      raw.includes("T") ? raw.slice(0, 10) : raw,
+    );
+    if (ymd) {
+      return `${ymd[3]}/${ymd[2]}/${ymd[1]}`;
     }
     const date = new Date(raw);
     if (Number.isNaN(date.getTime())) {
       return raw;
     }
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
+    return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
   }
 
   openCreateDialog(): void {
@@ -301,9 +310,42 @@ export class PalletManagementComponent implements OnInit {
     this.openPrintDialog();
   }
 
+  /**
+   * Xóa pallet: popup xác nhận → gỡ mọi thùng khỏi pallet (DELETE /pallet-box-mappings/{mappingId})
+   * → xóa pallet (DELETE /pallet-mngts/{id}) → tải lại danh sách.
+   * Gỡ thùng lỗi thì dừng, không xóa pallet. Thùng chỉ bị gỡ khỏi pallet, không bị xóa.
+   */
   onDelete(row: PalletItem): void {
-    this.dataSource.data = this.dataSource.data.filter((p) => p.id !== row.id);
-    this.applyFilter();
+    if (this.deletingIds.has(row.id)) {
+      return;
+    }
+    const serial = (row.serialPallet ?? "").trim();
+    this.deletingIds.add(row.id);
+    this.palletMngtService.getBoxMappingIds(serial).subscribe({
+      next: (mappingIds) => {
+        this.deletingIds.delete(row.id);
+        const boxNote = mappingIds.length
+          ? ` Pallet đang chứa ${mappingIds.length} thùng — các thùng sẽ được gỡ khỏi pallet (thùng không bị xóa).`
+          : "";
+        this.confirmDelete(
+          `Xóa pallet ${serial}?${boxNote} Thao tác này không hoàn tác được.`,
+        ).subscribe((ok) => {
+          if (ok) {
+            this.deletePallet(row, mappingIds);
+          }
+        });
+      },
+      error: () => {
+        this.deletingIds.delete(row.id);
+        this.notificationService.error(
+          `Không kiểm tra được thùng của pallet ${serial} — chưa xóa.`,
+        );
+      },
+    });
+  }
+
+  isDeleting(row: PalletItem): boolean {
+    return this.deletingIds.has(row.id);
   }
 
   /** In từ 1 dòng → dialog In chỉ có đúng pallet đó */
@@ -387,6 +429,80 @@ export class PalletManagementComponent implements OnInit {
       includes(row.note, "note") &&
       includes(this.formatDateTime(row.updatedAt), "updatedAt") &&
       includes(row.updatedBy, "updatedBy")
+    );
+  }
+
+  private deletePallet(row: PalletItem, mappingIds: number[]): void {
+    const serial = row.serialPallet;
+    this.deletingIds.add(row.id);
+    const removeBoxes$: Observable<boolean[]> = mappingIds.length
+      ? forkJoin(
+          mappingIds.map((id) =>
+            this.palletMngtService.deleteBoxMapping(id).pipe(
+              map((): boolean => true),
+              catchError(() => of(false)),
+            ),
+          ),
+        )
+      : of([]);
+    removeBoxes$.subscribe((results) => {
+      const failed = results.filter((ok) => !ok).length;
+      if (failed) {
+        this.deletingIds.delete(row.id);
+        this.notificationService.error(
+          `Gỡ được ${results.length - failed}/${results.length} thùng, ${failed} thùng lỗi — chưa xóa pallet ${serial}.`,
+        );
+        this.loadPallets();
+        return;
+      }
+      this.palletMngtService.deletePallet(row.id).subscribe({
+        next: () => {
+          this.deletingIds.delete(row.id);
+          this.notificationService.success(
+            results.length
+              ? `Đã gỡ ${results.length} thùng và xóa pallet ${serial}.`
+              : `Đã xóa pallet ${serial}.`,
+          );
+          this.loadPallets();
+        },
+        error: () => {
+          this.deletingIds.delete(row.id);
+          this.notificationService.error(
+            results.length
+              ? `Đã gỡ ${results.length} thùng nhưng xóa pallet ${serial} thất bại.`
+              : `Xóa pallet ${serial} thất bại.`,
+          );
+          this.loadPallets();
+        },
+      });
+    });
+  }
+
+  private confirmDelete(message: string): Observable<boolean> {
+    return this.dialog
+      .open(DialogContentExampleDialogComponent, {
+        width: "420px",
+        maxWidth: "92vw",
+        autoFocus: false,
+        data: {
+          title: "Xác nhận xóa pallet",
+          message,
+          confirmText: "Xóa",
+          cancelText: "Hủy",
+        },
+      })
+      .afterClosed()
+      .pipe(map((result) => result === true));
+  }
+
+  /** createAt giảm dần; cùng thời điểm / không có ngày tạo → id lớn hơn trước */
+  private sortNewestFirst(rows: PalletItem[]): PalletItem[] {
+    const time = (r: PalletItem): number => {
+      const t = new Date(r.createAt ?? "").getTime();
+      return Number.isNaN(t) ? 0 : t;
+    };
+    return [...rows].sort(
+      (a, b) => time(b) - time(a) || Number(b.id ?? 0) - Number(a.id ?? 0),
     );
   }
 }

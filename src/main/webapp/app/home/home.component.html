@@ -37,6 +37,7 @@
           <a
             *ngFor="let item of group.submenus; let i = index"
             [routerLink]="item.link"
+            (click)="openFeature(item, $event)"
             class="menu-card"
             [style.animation-delay]="i * 60 + 'ms'"
           >
