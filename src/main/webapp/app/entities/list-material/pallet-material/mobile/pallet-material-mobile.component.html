@@ -87,14 +87,24 @@
       <div class="mp-hint" *ngIf="!checkedCards.length">
         Chọn pallet để thao tác
       </div>
-      <div class="mp-grid" *ngIf="checkedCards.length === 1">
+      <div
+        class="mp-grid"
+        [class.cols-2]="!showExport"
+        *ngIf="checkedCards.length === 1"
+      >
         <button type="button" class="mp-btn" (click)="openBoxScan('add')">
           Thêm thùng
         </button>
         <button type="button" class="mp-btn" (click)="openBoxScan('remove')">
           Scan gỡ thùng
         </button>
-        <button type="button" class="mp-btn" (click)="openBoxScan('export')">
+        <!-- Xuất hàng: tạm ẩn (showExport = false) -->
+        <button
+          *ngIf="showExport"
+          type="button"
+          class="mp-btn"
+          (click)="openBoxScan('export')"
+        >
           Scan xuất hàng
         </button>
         <button type="button" class="mp-btn" (click)="openLocation()">
@@ -103,18 +113,32 @@
         <button type="button" class="mp-btn" (click)="onRemoveAllBoxes()">
           Gỡ tất cả thùng
         </button>
-        <button type="button" class="mp-btn" (click)="onExportPallets()">
+        <button
+          *ngIf="showExport"
+          type="button"
+          class="mp-btn"
+          (click)="onExportPallets()"
+        >
           Xuất hàng
         </button>
       </div>
-      <div class="mp-grid" *ngIf="checkedCards.length > 1">
+      <div
+        class="mp-grid"
+        [class.cols-2]="!showExport"
+        *ngIf="checkedCards.length > 1"
+      >
         <button type="button" class="mp-btn" (click)="openLocation()">
           Chuyển vị trí
         </button>
         <button type="button" class="mp-btn" (click)="onRemoveAllBoxes()">
           Gỡ tất cả thùng
         </button>
-        <button type="button" class="mp-btn" (click)="onExportPallets()">
+        <button
+          *ngIf="showExport"
+          type="button"
+          class="mp-btn"
+          (click)="onExportPallets()"
+        >
           Xuất hàng
         </button>
       </div>
@@ -172,11 +196,16 @@
     </div>
 
     <div class="mp-footer">
-      <div class="mp-row3">
+      <div class="mp-row3" [class.cols-2]="!showExport">
         <button type="button" class="mp-btn" (click)="openBoxScan('add', c)">
           Thêm thùng
         </button>
-        <button type="button" class="mp-btn" (click)="onDetailExport()">
+        <button
+          *ngIf="showExport"
+          type="button"
+          class="mp-btn"
+          (click)="onDetailExport()"
+        >
           Xuất hàng
         </button>
         <button type="button" class="mp-btn danger" (click)="onDetailRemove()">
@@ -354,7 +383,7 @@
       <p>{{ cs.message }}</p>
       <div class="mp-row2">
         <button type="button" class="mp-btn outline" (click)="closeConfirm()">
-          Hủy
+          {{ cs.cancelText || "Hủy" }}
         </button>
         <button
           type="button"

@@ -8,8 +8,8 @@ import {
   ViewChild,
 } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
-import { forkJoin, Observable, of, take } from "rxjs";
-import { catchError, map } from "rxjs/operators";
+import { forkJoin, from, Observable, of, take } from "rxjs";
+import { catchError, map, switchMap } from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
 import { NotificationService } from "../services/notification.service";
 import { WarehouseCacheService } from "../services/warehouse-cache.service";
@@ -23,6 +23,11 @@ import {
   summarizePallet,
 } from "../services/pallet-material.service";
 import { DialogContentExampleDialogComponent } from "../confirm-dialog/confirm-dialog.component";
+import {
+  inventory_update_requests_detail,
+  ListMaterialService,
+  RawGraphQLMaterial,
+} from "../services/list-material.service";
 
 /** Chế độ ô scan: chọn pallet / thêm thùng / gỡ thùng / cập nhật vị trí */
 type ScanMode = "pallet" | "add" | "remove" | "location";
@@ -36,6 +41,12 @@ interface BoxRow {
   location: string;
   lot: string;
   status: string;
+  /** Người cập nhật */
+  updatedBy: string;
+  /** Ngày sản xuất dd/MM/yyyy */
+  mfgDate: string;
+  /** Ngày nhận dd/MM/yyyy */
+  receivedDate: string;
   selected: boolean;
   /** Đã đánh dấu gỡ (chưa gửi) */
   pendingRemove: boolean;
@@ -43,6 +54,8 @@ interface BoxRow {
   pendingAdd: boolean;
   /** Vị trí mới (chưa gửi) */
   newLocation: string | null;
+  /** Thông tin tồn kho (/api/inventory) — có sẵn khi thùng vừa quét thêm */
+  inventory?: RawGraphQLMaterial;
 }
 
 interface LocationOption {
@@ -64,6 +77,9 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
   /** ≤ 768px → hiển thị view mobile riêng */
   isMobile = this.detectMobile();
 
+  /** Tạm ẩn chức năng Xuất hàng — bật lại: true */
+  readonly showExport = false;
+
   pallets: PalletMngtRow[] = [];
   palletSearch = "";
   isLoadingPallets = false;
@@ -78,8 +94,16 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
   scanValue = "";
   locationOptions: LocationOption[] = [];
 
+  /** Vị trí mới của pallet (chưa gửi) — đặt khi quét vị trí, kể cả pallet chưa có thùng */
+  pendingPalletLocation: string | null = null;
+
+  /** Số thùng đang tra cứu /api/inventory (vừa quét) */
+  lookingUpCount = 0;
+
   private currentUser = "";
   private locationSeq = 0;
+  /** ReelID đang tra cứu — chặn quét trùng khi chưa có kết quả */
+  private lookingUpReels = new Set<string>();
   /** Đổi mỗi lần tải lại danh sách — bỏ kết quả tính số lượng của lần tải cũ */
   private summarySeq = 0;
 
@@ -90,6 +114,7 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     private accountService: AccountService,
     private dialog: MatDialog,
     private cdr: ChangeDetectorRef,
+    private materialService: ListMaterialService,
   ) {}
 
   ngOnInit(): void {
@@ -149,8 +174,11 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
   }
 
   get hasChanges(): boolean {
-    return this.rows.some(
-      (r) => r.pendingRemove || r.pendingAdd || r.newLocation !== null,
+    return (
+      this.pendingPalletLocation !== null ||
+      this.rows.some(
+        (r) => r.pendingRemove || r.pendingAdd || r.newLocation !== null,
+      )
     );
   }
 
@@ -165,6 +193,9 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       (r) => r.newLocation !== null && !r.pendingRemove && !r.pendingAdd,
     ).length;
     const parts: string[] = [];
+    if (this.pendingPalletLocation !== null && !loc) {
+      parts.push(`đổi vị trí pallet → ${this.pendingPalletLocation}`);
+    }
     if (remove) {
       parts.push(`gỡ ${remove} thùng`);
     }
@@ -178,6 +209,9 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
   }
 
   get palletLocation(): string {
+    if (this.pendingPalletLocation !== null) {
+      return this.pendingPalletLocation;
+    }
     const locs = new Set(
       this.activeRows.map((r) => r.newLocation ?? r.location).filter(Boolean),
     );
@@ -236,7 +270,7 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
 
   /**
    * Enter ở ô tìm pallet (máy scan tự gửi Enter): khớp đúng mã hoặc chỉ còn 1 kết quả
-   * → mở pallet đó; không có trong danh sách → tra theo mã. Xong thì xóa ô, focus lại.
+   * → mở pallet đó; không có trong danh sách → popup [Quét mã khác] / [Tạo pallet].
    */
   onPalletSearchEnter(): void {
     const code = this.palletSearch.trim();
@@ -250,12 +284,19 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     const list = this.filteredPallets;
     const target = exact ?? (list.length === 1 ? list[0] : null);
     this.confirmDiscard().subscribe((ok) => {
-      if (ok) {
-        this.closeScan();
-        this.openPallet(target ? target.serialPallet : code);
-        this.palletSearch = "";
+      if (!ok) {
+        this.focusPalletSearch();
+        return;
       }
-      this.focusPalletSearch();
+      this.palletSearch = "";
+      if (target) {
+        this.closeScan();
+        this.openPallet(target.serialPallet);
+        this.focusPalletSearch();
+        return;
+      }
+      // Không có trong danh sách → hỏi quét mã khác / tạo pallet
+      this.askCreatePallet(code, () => this.focusPalletSearch());
     });
   }
 
@@ -433,15 +474,25 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
         continue;
       }
       if (r.newLocation !== null && r.record) {
+        // storageUnit = vị trí kho, subStorageUnit trống (cùng quy ước Nhập tem NCC)
         tasks.push(
           this.safe(
             this.palletService.updateBox({
               ...r.record,
-              subStorageUnit: r.newLocation,
+              storageUnit: r.newLocation,
+              subStorageUnit: null,
             }),
           ),
         );
       }
+    }
+
+    // Thùng đổi vị trí (kể cả thùng vừa quét thêm) → cập nhật thêm vị trí tồn kho (DB inventory)
+    const moved = this.rows.filter(
+      (r) => r.newLocation !== null && !r.pendingRemove,
+    );
+    if (moved.length) {
+      tasks.push(this.updateInventoryLocations(moved));
     }
 
     const remaining = this.activeRows.length;
@@ -480,6 +531,7 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
           `Cập nhật ${ok}/${results.length} thao tác, ${failed} thao tác lỗi.`,
         );
       }
+      this.pendingPalletLocation = null;
       this.openPallet(serial);
       this.loadPallets();
     });
@@ -528,6 +580,7 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
 
   private openPallet(serial: string): void {
     this.selectedSerial = serial;
+    this.pendingPalletLocation = null;
     this.isLoadingDetail = true;
     this.palletService.getPalletDetail(serial).subscribe({
       next: (detail) => {
@@ -597,23 +650,89 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     this.cdr.markForCheck();
   }
 
+  /**
+   * Nút "Scan mã pallet": có trong danh sách → mở; không có → popup
+   * [Quét mã khác] / [Tạo pallet].
+   */
   private scanPallet(code: string): void {
-    const found = this.pallets.find(
-      (p) => (p.serialPallet ?? "").toLowerCase() === code.toLowerCase(),
-    );
+    const found = this.findPallet(code);
     this.confirmDiscard().subscribe((ok) => {
       if (!ok) {
         return;
       }
-      this.openPallet(found ? found.serialPallet : code);
-      this.closeScan();
+      if (found) {
+        this.openPallet(found.serialPallet);
+        this.closeScan();
+        return;
+      }
+      this.askCreatePallet(code, () => this.focusScanInput());
     });
   }
 
-  private stageAdd(reelId: string): void {
-    const exists = this.rows.find(
-      (r) => r.reelId.toLowerCase() === reelId.toLowerCase(),
+  /**
+   * Mã pallet không có trong danh sách → popup [Quét mã khác] / [Tạo pallet].
+   * Tạo: kiểm tra trùng rồi POST /pallet-mngts (như Quản lý pallet), xong mở pallet.
+   */
+  private askCreatePallet(code: string, onScanOther: () => void): void {
+    this.confirm(
+      "Không có mã pallet này",
+      `Pallet "${code}" không có trong danh sách. Quét mã khác hoặc tạo pallet mới với mã này?`,
+      "Tạo pallet",
+      "Quét mã khác",
+    ).subscribe((create) => {
+      if (!create) {
+        onScanOther();
+        return;
+      }
+      this.isSaving = true;
+      this.palletService
+        .createPalletIfAbsent(code, this.currentUser)
+        .subscribe({
+          next: (res) => {
+            this.isSaving = false;
+            if (res.created) {
+              this.notificationService.success(
+                `Đã tạo pallet "${res.serial}".`,
+              );
+            } else {
+              this.notificationService.warning(
+                `Pallet "${res.serial}" đã có trong danh sách — mở pallet này.`,
+              );
+            }
+            this.loadPallets();
+            this.openPallet(res.serial);
+            this.closeScan();
+          },
+          error: () => {
+            this.isSaving = false;
+            this.notificationService.error(`Tạo pallet "${code}" thất bại.`);
+            onScanOther();
+          },
+        });
+    });
+  }
+
+  private findPallet(code: string): PalletMngtRow | undefined {
+    const lower = code.trim().toLowerCase();
+    return this.pallets.find(
+      (p) => (p.serialPallet ?? "").toLowerCase() === lower,
     );
+  }
+
+  /** Giữ ô scan (chế độ pallet) để quét mã khác */
+  private focusScanInput(): void {
+    this.scanValue = "";
+    setTimeout(() => this.scanInputRef?.nativeElement?.focus(), 30);
+  }
+
+  /**
+   * Quét thùng để thêm (giống list-material/update): ReelID = phần trước dấu # →
+   * GET /api/inventory/{reelId} lấy thông tin thùng → thêm dòng "Chờ thêm".
+   * Bấm "Xác nhận cập nhật" mới POST pallet-box-mappings.
+   */
+  private stageAdd(reelId: string): void {
+    const lower = reelId.toLowerCase();
+    const exists = this.rows.find((r) => r.reelId.toLowerCase() === lower);
     if (exists) {
       if (exists.pendingRemove) {
         exists.pendingRemove = false;
@@ -625,23 +744,96 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       }
       return;
     }
-    this.rows = [
-      {
-        key: `new-${reelId}`,
-        record: null,
-        reelId,
-        partNumber: "—",
-        quantity: 0,
-        location: "",
-        lot: "—",
-        status: "Chờ thêm",
-        selected: false,
-        pendingRemove: false,
-        pendingAdd: true,
-        newLocation: null,
+    if (this.lookingUpReels.has(lower)) {
+      return;
+    }
+    const serial = this.selectedSerial;
+    this.lookingUpReels.add(lower);
+    this.lookingUpCount++;
+    this.materialService.fetchMaterialById(reelId).subscribe({
+      next: (inv) => {
+        this.finishLookup(lower);
+        // Đã chuyển sang pallet khác trong lúc chờ → bỏ kết quả
+        if (serial !== this.selectedSerial) {
+          return;
+        }
+        if (!inv) {
+          this.notificationService.error(`Không tìm thấy thùng: ${reelId}`);
+          return;
+        }
+        if (this.rows.some((r) => r.reelId.toLowerCase() === lower)) {
+          return;
+        }
+        this.rows = [this.toInventoryRow(reelId, inv), ...this.rows];
+        this.cdr.markForCheck();
       },
-      ...this.rows,
-    ];
+      error: () => {
+        this.finishLookup(lower);
+        this.notificationService.error(`Lỗi khi tìm thùng: ${reelId}`);
+      },
+    });
+  }
+
+  private finishLookup(lowerReelId: string): void {
+    this.lookingUpReels.delete(lowerReelId);
+    this.lookingUpCount = Math.max(0, this.lookingUpCount - 1);
+    this.cdr.markForCheck();
+  }
+
+  /** Dòng "Chờ thêm" từ thông tin tồn kho (/api/inventory) */
+  private toInventoryRow(reelId: string, inv: RawGraphQLMaterial): BoxRow {
+    const raw = inv as RawGraphQLMaterial & {
+      manufacturingDate?: string | number | null;
+      initialQuantity?: number | null;
+    };
+    return {
+      key: `new-${reelId}`,
+      record: null,
+      reelId: String(inv.materialIdentifier ?? "") || reelId,
+      partNumber: String(inv.partNumber ?? "") || "—",
+      quantity: Number(inv.quantity ?? raw.initialQuantity ?? 0),
+      location: String(inv.locationName ?? ""),
+      lot: String(inv.lotNumber ?? "") || "—",
+      status: "Chờ thêm",
+      updatedBy: String(inv.updatedBy ?? ""),
+      mfgDate: this.formatDay(raw.manufacturingDate),
+      receivedDate: this.formatDay(inv.receivedDate),
+      selected: false,
+      pendingRemove: false,
+      pendingAdd: true,
+      newLocation: null,
+      inventory: inv,
+    };
+  }
+
+  /**
+   * Ngày → dd/MM/yyyy. Nhận: timestamp giây (vd "1776038400") hoặc mili-giây,
+   * yyyyMMdd (vd "20261008"), chuỗi ISO. Không parse được → "—".
+   */
+  private formatDay(value: unknown): string {
+    const text = String(value ?? "").trim();
+    if (!text) {
+      return "—";
+    }
+    let d: Date | null = null;
+    if (/^\d{8}$/.test(text) && Number(text.slice(0, 4)) > 1900) {
+      d = new Date(
+        Number(text.slice(0, 4)),
+        Number(text.slice(4, 6)) - 1,
+        Number(text.slice(6, 8)),
+      );
+    } else if (/^\d+$/.test(text)) {
+      const n = Number(text);
+      // < 1e12 → giây (timestamp Unix), còn lại → mili-giây
+      d = new Date(n < 1e12 ? n * 1000 : n);
+    } else {
+      d = new Date(text);
+    }
+    if (Number.isNaN(d.getTime())) {
+      return text;
+    }
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
   }
 
   private stageRemoveByReel(reelId: string): void {
@@ -662,26 +854,135 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     this.notificationService.success(`Đánh dấu gỡ thùng "${reelId}".`);
   }
 
-  /** Vị trí áp cho thùng đang chọn; không chọn thùng nào → tất cả thùng trong pallet */
+  /**
+   * Quét / chọn vị trí: phải có trong danh sách vị trí (IndexedDB).
+   * Chọn thùng → áp cho thùng đã chọn; không chọn → cả pallet + mọi thùng trong pallet
+   * (pallet chưa có thùng vẫn đổi được vị trí pallet). Bấm "Xác nhận cập nhật" mới gửi.
+   */
   private applyLocation(value: string): void {
-    const location = value.trim();
-    if (!location) {
+    const input = value.trim();
+    if (!input) {
       return;
     }
-    const targets = this.selectedRows.length
-      ? this.selectedRows
-      : this.activeRows;
-    if (!targets.length) {
-      this.notificationService.warning("Pallet chưa có thùng nào.");
-      return;
-    }
-    for (const r of targets) {
-      r.newLocation = location === r.location ? null : location;
-    }
-    this.notificationService.info(
-      `Vị trí "${location}" áp cho ${targets.length} thùng — bấm "Xác nhận cập nhật" để lưu.`,
+    void this.findLocation(input)
+      .then((loc) => {
+        if (!loc) {
+          this.notificationService.error(
+            `Vị trí "${input}" không có trong danh sách vị trí.`,
+          );
+          return;
+        }
+        const location = loc.locationFullName || loc.locationName;
+        const bySelection = this.selectedRows.length > 0;
+        const targets = bySelection ? this.selectedRows : this.activeRows;
+        for (const r of targets) {
+          r.newLocation = location === r.location ? null : location;
+        }
+        if (!bySelection) {
+          this.pendingPalletLocation =
+            location === (this.detail?.locationName ?? "") && !targets.length
+              ? null
+              : location;
+        }
+        this.notificationService.info(
+          targets.length
+            ? `Vị trí "${location}" áp cho ${targets.length} thùng${bySelection ? "" : " và pallet"} — bấm "Xác nhận cập nhật" để lưu.`
+            : `Vị trí pallet → "${location}" — bấm "Xác nhận cập nhật" để lưu.`,
+        );
+        this.closeScan();
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        this.notificationService.error("Không kiểm tra được danh sách vị trí.");
+      });
+  }
+
+  /** Vị trí khớp đúng tên / tên đầy đủ trong danh sách vị trí (IndexedDB) */
+  private async findLocation(value: string): Promise<{
+    locationId: number;
+    locationName: string;
+    locationFullName: string;
+  } | null> {
+    const lower = value.toLowerCase();
+    await this.warehouseCache.ensureSynced();
+    const list = await this.warehouseCache.searchByName(value);
+    const found = list.find(
+      (w) =>
+        String(w.locationFullName ?? "").toLowerCase() === lower ||
+        String(w.locationName ?? "").toLowerCase() === lower,
     );
-    this.closeScan();
+    return found
+      ? {
+          locationId: Number(found.locationId),
+          locationName: String(found.locationName ?? ""),
+          locationFullName: String(found.locationFullName ?? ""),
+        }
+      : null;
+  }
+
+  /**
+   * Cập nhật vị trí tồn kho (DB inventory — khác DB vendor-label-info) cho các thùng đổi vị trí:
+   * như dialog cập nhật vật tư (list-material/dialog) — 1 request MOVE tự phê duyệt
+   * (POST api/request, status APPROVE). Thùng chưa có thông tin tồn kho → GET /api/inventory/{reelId}.
+   */
+  private updateInventoryLocations(rows: BoxRow[]): Observable<boolean> {
+    const locations = [...new Set(rows.map((r) => r.newLocation ?? ""))];
+    const inventories$ = forkJoin(
+      rows.map((r) =>
+        r.inventory
+          ? of(r.inventory)
+          : this.materialService
+              .fetchMaterialById(r.reelId)
+              .pipe(catchError(() => of(undefined))),
+      ),
+    );
+    const locationIds$ = from(
+      Promise.all(locations.map((name) => this.findLocation(name))),
+    );
+    return forkJoin([inventories$, locationIds$]).pipe(
+      switchMap(([inventories, locs]) => {
+        const idByName = new Map<string, string>();
+        locations.forEach((name, i) => {
+          const loc = locs[i];
+          if (loc) {
+            idByName.set(name, String(loc.locationId));
+          }
+        });
+        const detail: inventory_update_requests_detail[] = [];
+        rows.forEach((r, i) => {
+          const inv = inventories[i];
+          const name = r.newLocation ?? "";
+          if (!inv || !idByName.has(name)) {
+            return;
+          }
+          const qty = String(inv.quantity ?? r.quantity ?? "");
+          detail.push({
+            id: inv.inventoryId != null ? Number(inv.inventoryId) : null,
+            materialId: String(inv.materialIdentifier ?? r.reelId),
+            updatedBy: this.currentUser,
+            createdTime: "",
+            updatedTime: "",
+            productCode: String(inv.partNumber ?? ""),
+            productName: String(inv.partNumber ?? ""),
+            quantity: qty,
+            quantityChange: qty,
+            type: "MOVE",
+            locationId: idByName.get(name) ?? "",
+            locationName: name,
+            expiredTime: String(inv.expirationDate ?? ""),
+            status: "APPROVE",
+            requestId: null,
+          });
+        });
+        if (!detail.length) {
+          return of(false);
+        }
+        return this.materialService
+          .postAutoApprovedUpdate(detail, this.currentUser)
+          .pipe(map((): boolean => detail.length === rows.length));
+      }),
+      catchError(() => of(false)),
+    );
   }
 
   private toRow(b: PalletBoxRecord): BoxRow {
@@ -692,9 +993,15 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       reelId,
       partNumber: String(b.partNumber ?? "") || "—",
       quantity: Number(b.initialQuantity ?? 0),
-      location: String(b.subStorageUnit ?? ""),
+      // Vị trí kho: storageUnit (dữ liệu cũ nằm ở subStorageUnit)
+      location:
+        String(b.subStorageUnit ?? "").trim() ||
+        String(b.storageUnit ?? "").trim(),
       lot: String(b.lot ?? "") || "—",
       status: String(b.status ?? "") || "Available",
+      updatedBy: String(b.updatedBy ?? "") || String(b.createdBy ?? ""),
+      mfgDate: this.formatDay(b.manufacturingDate),
+      receivedDate: this.formatDay(b.createdAt),
       selected: false,
       pendingRemove: false,
       pendingAdd: false,
@@ -733,13 +1040,14 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     title: string,
     message: string,
     confirmText: string,
+    cancelText = "Hủy",
   ): Observable<boolean> {
     return this.dialog
       .open(DialogContentExampleDialogComponent, {
         width: "420px",
         maxWidth: "92vw",
         autoFocus: false,
-        data: { title, message, confirmText, cancelText: "Hủy" },
+        data: { title, message, confirmText, cancelText },
       })
       .afterClosed()
       .pipe(map((result) => result === true));

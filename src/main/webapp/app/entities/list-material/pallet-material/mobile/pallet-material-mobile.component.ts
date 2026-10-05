@@ -41,8 +41,12 @@ interface ConfirmState {
   title: string;
   message: string;
   confirmText: string;
+  /** Nhãn nút hủy (mặc định "Hủy") */
+  cancelText?: string;
   danger: boolean;
   onConfirm: () => void;
+  /** Bấm hủy / chạm ra ngoài */
+  onCancel?: () => void;
 }
 
 @Component({
@@ -52,6 +56,9 @@ interface ConfirmState {
   standalone: false,
 })
 export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
+  /** Tạm ẩn chức năng Xuất hàng — bật lại: true */
+  readonly showExport = false;
+
   @ViewChild("mainInputRef") mainInputRef?: ElementRef<HTMLInputElement>;
 
   screen: MobileScreen = "list";
@@ -231,10 +238,8 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
           this.isLoading = false;
           this.palletInput = "";
           if (!detail) {
-            this.notificationService.warning(
-              `Không tìm thấy pallet "${code}".`,
-            );
-            this.focusMain();
+            // Không có pallet này → hỏi quét mã khác / tạo pallet
+            this.askCreatePallet(code);
             return;
           }
           const card: PalletCard = existing ?? {
@@ -561,7 +566,9 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
   }
 
   closeConfirm(): void {
+    const state = this.confirmState;
     this.confirmState = null;
+    state?.onCancel?.();
   }
 
   trackCard(_: number, c: PalletCard): string {
@@ -767,6 +774,48 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
         }
       },
       complete: () => this.sortCards(),
+    });
+  }
+
+  /**
+   * Mã pallet không có → popup [Quét mã khác] / [Tạo pallet]. Tạo: kiểm tra trùng rồi
+   * POST /pallet-mngts (như Quản lý pallet), xong thêm pallet vào danh sách và chọn nó.
+   */
+  private askCreatePallet(code: string): void {
+    this.askConfirm({
+      title: "Không có mã pallet này",
+      message: `Pallet "${code}" không có trong danh sách. Quét mã khác hoặc tạo pallet mới với mã này?`,
+      confirmText: "Tạo pallet",
+      cancelText: "Quét mã khác",
+      danger: false,
+      onCancel: () => this.focusMain(),
+      onConfirm: () => {
+        this.isLoading = true;
+        this.palletService
+          .createPalletIfAbsent(code, this.currentUser)
+          .subscribe({
+            next: (res) => {
+              this.isLoading = false;
+              if (res.created) {
+                this.notificationService.success(
+                  `Đã tạo pallet "${res.serial}".`,
+                );
+              } else {
+                this.notificationService.warning(
+                  `Pallet "${res.serial}" đã có trong danh sách.`,
+                );
+              }
+              // Nạp pallet vừa tạo / đang có như khi quét mã hợp lệ
+              this.palletInput = res.serial;
+              this.onApplyPallet();
+            },
+            error: () => {
+              this.isLoading = false;
+              this.notificationService.error(`Tạo pallet "${code}" thất bại.`);
+              this.focusMain();
+            },
+          });
+      },
     });
   }
 }

@@ -476,3 +476,9 @@
     line-height: 1.45;
   }
 }
+
+// Khi ẩn Xuất hàng: còn 2 hoặc 4 nút → chia 2 cột cho cân
+.mp-grid.cols-2,
+.mp-row3.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}

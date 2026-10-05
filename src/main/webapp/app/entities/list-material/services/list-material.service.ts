@@ -700,9 +700,7 @@ export class ListMaterialService {
     const withDbName = materials.map((m) => ({
       ...m,
       itemName:
-        m.itemName ??
-        (m as { materialName?: string }).materialName ??
-        "",
+        m.itemName ?? (m as { materialName?: string }).materialName ?? "",
     }));
 
     const itemCodes = [
@@ -1042,7 +1040,8 @@ export class ListMaterialService {
       if (value == null || value === "") {
         return null;
       }
-      const n = typeof value === "number" ? value : Number(String(value).trim());
+      const n =
+        typeof value === "number" ? value : Number(String(value).trim());
       return Number.isFinite(n) ? n : null;
     };
 
@@ -1093,7 +1092,10 @@ export class ListMaterialService {
       materialType: f.materialType ?? "",
       materialTypeMode: modeOf("materialType"),
       checkinDate: f.checkinDate ?? "",
-      checkinDateMode: modeOf("checkinDate", f.checkinDate ? "equals" : "contains"),
+      checkinDateMode: modeOf(
+        "checkinDate",
+        f.checkinDate ? "equals" : "contains",
+      ),
       receivedDate: f.receivedDate ?? "",
       receivedDateMode: modeOf(
         "receivedDate",
@@ -1123,7 +1125,9 @@ export class ListMaterialService {
           (row): RawGraphQLMaterial => ({ ...row }),
         ),
       };
-      return of(hit).pipe(tap((response) => this.applyMaterialsResponse(response)));
+      return of(hit).pipe(
+        tap((response) => this.applyMaterialsResponse(response)),
+      );
     }
 
     // console.log("Request Body:", JSON.stringify(body, null, 2));
@@ -1726,47 +1730,12 @@ export class ListMaterialService {
     },
     currentUser: string,
   ): Observable<any> {
-    const requestCode = this.generateRequestCode();
-    const currentTime = new Date().toISOString();
-    const requestHeader: inventory_update_requests = {
-      id: parentRequestId,
-      requestCode,
-      createdTime: currentTime,
-      updatedTime: currentTime,
-      requestedBy: currentUser,
-      reqApprover: dialogData.approvers.join(", "),
-      approvedBy: currentUser,
-      status: "APPROVE",
-    };
-
-    const requestDetails: inventory_update_requests_detail[] =
-      dialogData.updatedItems.map((item) => {
-        // Ưu tiên tên kho từ item.locationName
-        const finalLocationName = item.locationName ?? "";
-
-        return {
-          id: item.id,
-          materialId: String(item.materialId ?? ""),
-          updatedBy: currentUser,
-          createdTime: currentTime,
-          updatedTime: currentTime,
-          productCode: item.productCode,
-          productName: item.productName,
-          quantity: String(item.quantity),
-          type: item.type,
-          locationId: item.locationId ?? "",
-          locationName: finalLocationName,
-          status: item.status,
-          requestId: null,
-          quantityChange: String(item.quantityChange),
-          expiredTime: item.expiredTime || "",
-        };
-      });
-
-    const payload: UpdateInfo = {
-      request: requestHeader,
-      detail: requestDetails,
-    };
+    const payload = this.buildApprovedUpdatePayload(
+      parentRequestId,
+      dialogData.updatedItems,
+      dialogData.approvers,
+      currentUser,
+    );
 
     // console.log("Payload approve gửi lên:", payload);
 
@@ -1781,6 +1750,24 @@ export class ListMaterialService {
         this.fetchAllInventoryUpdateRequests();
       }),
     );
+  }
+
+  /**
+   * Gửi cập nhật tồn kho tự phê duyệt (cùng payload / API với dialog cập nhật vật tư)
+   * nhưng không tải lại dữ liệu màn danh sách vật tư — dùng cho màn khác (vd scan pallet).
+   */
+  public postAutoApprovedUpdate(
+    items: inventory_update_requests_detail[],
+    currentUser: string,
+  ): Observable<unknown> {
+    const payload = this.buildApprovedUpdatePayload(
+      null,
+      items,
+      [currentUser],
+      currentUser,
+    );
+    const headers = new HttpHeaders({ "Content-Type": "application/json" });
+    return this.http.post(this.apiUrl_post_update, payload, { headers });
   }
 
   // Lưu dữ liệu vào Dexie (cache version được gắn trong WarehouseCacheService.saveAll)
@@ -2113,4 +2100,52 @@ export class ListMaterialService {
   }
 
   // #endregion
+
+  /** Payload request + detail trạng thái APPROVE (dùng chung cho tự phê duyệt) */
+  private buildApprovedUpdatePayload(
+    parentRequestId: number | null,
+    updatedItems: inventory_update_requests_detail[],
+    approvers: string[],
+    currentUser: string,
+  ): UpdateInfo {
+    const requestCode = this.generateRequestCode();
+    const currentTime = new Date().toISOString();
+    const requestHeader: inventory_update_requests = {
+      id: parentRequestId,
+      requestCode,
+      createdTime: currentTime,
+      updatedTime: currentTime,
+      requestedBy: currentUser,
+      reqApprover: approvers.join(", "),
+      approvedBy: currentUser,
+      status: "APPROVE",
+    };
+
+    const requestDetails: inventory_update_requests_detail[] = updatedItems.map(
+      (item) => {
+        // Ưu tiên tên kho từ item.locationName
+        const finalLocationName = item.locationName ?? "";
+
+        return {
+          id: item.id,
+          materialId: String(item.materialId ?? ""),
+          updatedBy: currentUser,
+          createdTime: currentTime,
+          updatedTime: currentTime,
+          productCode: item.productCode,
+          productName: item.productName,
+          quantity: String(item.quantity),
+          type: item.type,
+          locationId: item.locationId ?? "",
+          locationName: finalLocationName,
+          status: item.status,
+          requestId: null,
+          quantityChange: String(item.quantityChange),
+          expiredTime: item.expiredTime || "",
+        };
+      },
+    );
+
+    return { request: requestHeader, detail: requestDetails };
+  }
 }

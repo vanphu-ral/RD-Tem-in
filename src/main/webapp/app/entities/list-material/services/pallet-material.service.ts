@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { EMPTY, from, Observable, of, throwError } from "rxjs";
 import { catchError, map, mergeMap } from "rxjs/operators";
 import { environment } from "app/environments/environment.development";
+import { PalletMngtService } from "app/entities/pallet-management/list/pallet-mngt.service";
 
 /** Pallet trong danh sách quản lý (GET /pallet-mngts) */
 export interface PalletMngtRow {
@@ -93,6 +94,12 @@ export function sortPalletsWithBoxesFirst<T>(
     .map((x) => x.item);
 }
 
+/** Kết quả tạo pallet: created = false nếu mã đã có (trả về mã đang có) */
+export interface CreatePalletResult {
+  created: boolean;
+  serial: string;
+}
+
 /** Payload PUT /pallet-mngts/{id} */
 export interface PalletMngtPut {
   id: number;
@@ -111,7 +118,44 @@ export class PalletMaterialService {
   // private readonly url = `${environment.testApiUrl}`;
   private readonly url = `${environment.baseInTemApiUrl}`;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private palletMngtService: PalletMngtService,
+  ) {}
+
+  /**
+   * Tạo pallet mới với mã quét được (POST /pallet-mngts — như Quản lý pallet):
+   * tải lại danh sách để kiểm tra trùng mã (không phân biệt hoa thường);
+   * trùng → không tạo, trả về mã đang có; không trùng → tạo trạng thái UNUSED.
+   */
+  createPalletIfAbsent(
+    code: string,
+    user: string,
+  ): Observable<CreatePalletResult> {
+    const serial = code.trim();
+    return this.getPallets().pipe(
+      mergeMap((rows): Observable<CreatePalletResult> => {
+        const dup = rows.find(
+          (p) => (p.serialPallet ?? "").toLowerCase() === serial.toLowerCase(),
+        );
+        if (dup) {
+          return of({ created: false, serial: dup.serialPallet });
+        }
+        const now = new Date().toISOString();
+        return this.palletMngtService
+          .createPallet({
+            serialPallet: serial,
+            status: "UNUSED",
+            note: "",
+            createAt: now,
+            createBy: user,
+            updatedAt: now,
+            updatedBy: user,
+          })
+          .pipe(map((): CreatePalletResult => ({ created: true, serial })));
+      }),
+    );
+  }
 
   getPallets(): Observable<PalletMngtRow[]> {
     return this.http

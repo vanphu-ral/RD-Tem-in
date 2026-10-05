@@ -34,7 +34,7 @@
           }}</span>
         </div>
         <div class="pm-search">
-          <mat-icon>search</mat-icon>
+          <mat-icon>qr_code</mat-icon>
           <input
             #palletSearchRef
             [(ngModel)]="palletSearch"
@@ -103,7 +103,13 @@
             </div>
           </div>
           <div class="pm-actions">
-            <button type="button" class="pm-btn primary" (click)="onExport()">
+            <!-- Xuất hàng: tạm ẩn (showExport = false) -->
+            <button
+              *ngIf="showExport"
+              type="button"
+              class="pm-btn primary"
+              (click)="onExport()"
+            >
               Xuất hàng
             </button>
             <button
@@ -160,6 +166,9 @@
               </mat-option>
             </mat-autocomplete>
           </div>
+          <span class="pm-scan-loading" *ngIf="lookingUpCount">
+            Đang tra cứu {{ lookingUpCount }} thùng...
+          </span>
           <button
             type="button"
             class="pm-scan-close"
@@ -215,16 +224,19 @@
                 <th>Quantity</th>
                 <th>Vị trí</th>
                 <th>Số lô</th>
+                <th>Ngày sản xuất</th>
+                <th>Ngày nhận</th>
+                <th>Người cập nhật</th>
                 <th>Trạng thái</th>
                 <th class="col-act"></th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="isLoadingDetail">
-                <td colspan="8" class="pm-empty">Đang tải...</td>
+                <td colspan="11" class="pm-empty">Đang tải...</td>
               </tr>
               <tr *ngIf="!isLoadingDetail && !rows.length">
-                <td colspan="8" class="pm-empty">Pallet chưa có thùng nào.</td>
+                <td colspan="11" class="pm-empty">Pallet chưa có thùng nào.</td>
               </tr>
               <ng-container *ngIf="!isLoadingDetail">
                 <tr
@@ -242,9 +254,7 @@
                   </td>
                   <td class="reel">{{ r.reelId }}</td>
                   <td>{{ r.partNumber }}</td>
-                  <td class="qty">
-                    {{ r.pendingAdd ? "—" : (r.quantity | number) }}
-                  </td>
+                  <td class="qty">{{ r.quantity | number }}</td>
                   <td>
                     <ng-container *ngIf="r.newLocation !== null; else oldLoc">
                       <span class="loc-old">{{ r.location || "—" }}</span>
@@ -254,6 +264,9 @@
                     <ng-template #oldLoc>{{ r.location || "—" }}</ng-template>
                   </td>
                   <td>{{ r.lot }}</td>
+                  <td>{{ r.mfgDate }}</td>
+                  <td>{{ r.receivedDate }}</td>
+                  <td>{{ r.updatedBy || "—" }}</td>
                   <td>
                     <span class="st-badge removing" *ngIf="r.pendingRemove"
                       >Chờ gỡ</span
