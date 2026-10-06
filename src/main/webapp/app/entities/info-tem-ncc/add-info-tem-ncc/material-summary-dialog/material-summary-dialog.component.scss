@@ -175,6 +175,7 @@
 
   td {
     padding: 4px 3px;
+    color: #111827;
     border-bottom: 1px solid #eef2f7;
     vertical-align: middle;
     text-align: center;
@@ -226,8 +227,10 @@
 .sap-row {
   background: #fff;
 
-  &.expanded {
-    background: #f5f9fc;
+  /* Hàng đang mở: nền xanh, nối liền với vùng mở rộng bên dưới */
+  &.expanded > td {
+    background: #dbeafe;
+    border-bottom: none;
   }
 
   td {
@@ -235,39 +238,108 @@
   }
 }
 
-.meta-row td {
-  background: #eef5fb;
-  padding: 6px 10px !important;
-  text-align: left !important;
-  border-bottom: 1px solid #d6e6f3;
+/* ===== Vùng mở rộng của 1 mã SAP: panel có padding, bảng lô nằm giữa ===== */
+.summary-table td.expand-cell {
+  padding: 0;
+  background: #eaf2f9;
+  border-bottom: 2px solid #b8d4f0;
+  overflow: visible;
+}
+
+.lot-panel {
+  padding: 8px 16px 14px;
 }
 
 .lot-meta {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 16px;
+  /* Thẳng mép trái với bảng lô bên dưới */
+  width: 84%;
+  margin: 0 auto 8px;
   font-size: 12px;
-  color: #334155;
+  color: #111827;
 
   strong {
-    color: #1e3a5f;
+    color: #111827;
   }
 }
 
-.child-header-row td {
-  background: #f1f5f9;
-  font-size: 11px;
-  font-weight: 700;
-  color: #475569;
-  padding: 5px 4px !important;
+.lot-table-wrap {
+  width: 84%;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #cfe0f0;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.lot-row {
-  background: #fafbfd;
+.summary-table .lot-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
 
-  &:hover {
+  col.l-lot {
+    width: 16%;
+  }
+  col.l-num {
+    width: 7%;
+  }
+  col.l-po {
+    width: 11%;
+  }
+  col.l-reason {
+    width: 10%;
+  }
+  col.l-mfg {
+    width: 14%;
+  }
+  col.l-hsd {
+    width: 14%;
+  }
+  col.l-loc {
+    width: 10%;
+  }
+  col.l-wh {
+    width: 7%;
+  }
+  col.l-info {
+    width: 10%;
+  }
+  col.l-action {
+    width: 42px;
+  }
+
+  /* Không dính header như bảng ngoài */
+  thead th {
+    position: static;
+    background: #c5daf0;
+    color: #1e3a5f;
+    font-weight: 700;
+    padding: 6px 4px;
+    border-bottom: 1px solid #a8c7e6;
+  }
+
+  td {
+    background: #fff;
+  }
+
+  tr.lot-row:hover > td {
     background: #f0f7fc;
   }
+
+  tr:last-child > td {
+    border-bottom: none;
+  }
+}
+
+.empty-lots {
+  padding: 14px !important;
+  text-align: center !important;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .lot-cell {
@@ -301,6 +373,7 @@
   font-size: 11px;
   outline: none;
   background: #fff;
+  color: #111827;
   box-sizing: border-box;
   text-align: center;
 
@@ -311,7 +384,7 @@
 
   &[readonly] {
     background: #f8fafc;
-    color: #1f2937;
+    color: #111827;
   }
 }
 
@@ -474,6 +547,19 @@
   font-weight: 600;
 }
 
+/* Hàng chờ: cột lý do (Thừa SL / Thiếu PO / Sai PO) */
+.w-reason {
+  width: 110px;
+}
+
+.col-reason {
+  white-space: normal !important;
+
+  .queue-badge {
+    margin: 1px 2px;
+  }
+}
+
 /* ===== Chế độ nhúng trong màn Scan ===== */
 :host {
   display: block;
@@ -561,5 +647,5 @@ tr.flash > td {
 
 /* Mã kho SAP: chỉ hiển thị (whsCode của dòng vật tư trong PO) */
 .whs-readonly {
-  color: #4b5563;
+  color: #111827;
 }

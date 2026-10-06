@@ -227,10 +227,8 @@ export class MaterialSummaryDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Mặc định thu gọn — chỉ mở khi bấm (hoặc nhấp sáng thùng vừa scan)
     this.rows = this.buildRowsFromPo(this.data.po);
-    if (this.rows.length) {
-      this.expandedSapIds.add(this.rows[0].id);
-    }
     this.expandForHighlight();
     this.initialized = true;
     this.loadPartNumbers();
@@ -320,6 +318,16 @@ export class MaterialSummaryDialogComponent implements OnInit {
   onLotPoSelected(sap: SummarySapRow, lot: SummaryLotRow, value: string): void {
     lot.po = toText(value);
     this.onLotFieldEnter(sap, lot, "po");
+  }
+
+  /** Số cột của bảng (chế độ hàng chờ thêm cột PO + Lý do) */
+  get columnCount(): number {
+    return this.isUnassigned ? 15 : 13;
+  }
+
+  /** Số cột của bảng lô trong vùng mở rộng */
+  get lotColumnCount(): number {
+    return this.isUnassigned ? 11 : 9;
   }
 
   get sapCount(): number {
@@ -864,9 +872,9 @@ export class MaterialSummaryDialogComponent implements OnInit {
       payload.userData5 = orNull(po);
       payload.sapPor1Id =
         this.resolvePoLineId(po, rec) ?? rec.sapPor1Id ?? null;
-      // Đã gán PO → bỏ mã lý do hàng chờ
+      // Đã gán PO → bỏ mã lý do hàng chờ ở status
       if (payload.sapPor1Id) {
-        payload.comments = clearQueueReason(rec.comments);
+        Object.assign(payload, clearQueueReason(rec));
       }
     }
     const keys: Array<keyof VendorLabelInfoDto> = [

@@ -181,13 +181,49 @@
           (click)="onOpenUnassigned()"
           [matTooltip]="
             unassignedMaterialCount
-              ? 'Thùng chưa xác định PO hoặc dư so với SL PO — bấm để bổ sung PO'
+              ? 'Thùng chưa xác định được PO — bấm để bổ sung PO'
               : 'Không có thùng trong hàng chờ'
           "
         >
           Hàng chờ vật tư
           <span class="chip-badge">{{ unassignedMaterialCount }}</span>
         </button>
+        <!-- Gửi cả đơn: gom thùng chưa gửi của tất cả PO (logic như nút trên từng dòng PO) -->
+        <div class="send-all-actions" *ngIf="dataSource.data.length">
+          <span class="send-all-label">Gửi cả đơn:</span>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            matTooltip="Gửi PanaCIM các thùng chưa gửi của tất cả PO trong đơn"
+            [disabled]="isSendingPanacim"
+            (click)="onSendAllPanaCIM()"
+          >
+            <mat-icon>send</mat-icon>
+            PanaCIM
+          </button>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            matTooltip="Gửi SAP các thùng chưa gửi của tất cả PO trong đơn"
+            [disabled]="isSendingSap"
+            (click)="onSendAllSAP()"
+          >
+            <mat-icon>cloud_upload</mat-icon>
+            SAP
+          </button>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            matTooltip="Gửi WMS TQ tất cả PO trong đơn"
+            (click)="onSendAllWMS()"
+          >
+            <mat-icon>warehouse</mat-icon>
+            WMS TQ
+          </button>
+        </div>
       </mat-card-title>
     </mat-card-header>
     <mat-card-content>
@@ -525,10 +561,17 @@
                                   <div
                                     class="progress-fill"
                                     [ngClass]="progressClass(m.scannedProgress)"
-                                    [style.width.%]="m.scannedProgress"
+                                    [style.width.%]="
+                                      progressWidth(m.scannedProgress)
+                                    "
                                   ></div>
                                 </div>
-                                <span>{{ m.scannedProgress }}%</span>
+                                <span
+                                  [title]="
+                                    m.receivedQuantity + ' / ' + m.poQuantity
+                                  "
+                                  >{{ formatPercent(m.scannedProgress) }}</span
+                                >
                               </div>
                             </td>
                             <td class="col-progress">
@@ -537,10 +580,17 @@
                                   <div
                                     class="progress-fill"
                                     [ngClass]="progressClass(m.sentProgress)"
-                                    [style.width.%]="m.sentProgress"
+                                    [style.width.%]="
+                                      progressWidth(m.sentProgress)
+                                    "
                                   ></div>
                                 </div>
-                                <span>{{ m.sentProgress }}%</span>
+                                <span
+                                  [title]="
+                                    m.sentQuantity + ' / ' + m.poQuantity
+                                  "
+                                  >{{ formatPercent(m.sentProgress) }}</span
+                                >
                               </div>
                             </td>
                           </tr>

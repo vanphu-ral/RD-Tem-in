@@ -117,6 +117,8 @@ export interface AddMaterialItem {
   palletCount: number;
   boxCount: number;
   importedBy: string;
+  /** SL thùng đã gửi đủ SAP + PanaCIM */
+  sentQuantity: number;
   scannedProgress: number;
   sentProgress: number;
   lots: AddLotItem[];
@@ -628,7 +630,27 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     return status === "IMPORTING" ? "Đang nhập" : "Chờ nhập";
   }
 
+  /** Hiển thị %: < 1% giữ 2 số lẻ (0,04%), còn lại 1 số lẻ; có tiến độ nhưng < 0,01% → "<0,01%" */
+  formatPercent(progress: number): string {
+    if (progress <= 0) {
+      return "0%";
+    }
+    if (progress < 0.01) {
+      return "<0,01%";
+    }
+    return `${String(progress).replace(".", ",")}%`;
+  }
+
+  /** Độ rộng thanh tiến độ: có tiến độ thì tối thiểu 3% để còn nhìn thấy */
+  progressWidth(progress: number): number {
+    return progress > 0 ? Math.max(3, Math.min(100, progress)) : 0;
+  }
+
   progressClass(progress: number): string {
+    // Nhận / gửi vượt SL PO → thanh màu cam
+    if (progress > 100) {
+      return "over";
+    }
     if (progress >= 100) {
       return "done";
     }
@@ -895,69 +917,50 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   onSendWMS(row: AddPoItem, event?: Event): void {
+    event?.stopPropagation();
+    this.notificationService.success("Đang phát triển");
+  }
+
+  /** Gửi WMS TQ cả đơn (tất cả PO) */
+  onSendAllWMS(): void {
     this.notificationService.success("Đang phát triển");
   }
 
   /** Gửi PanaCIM các thùng chưa gửi của PO (giống receiving-supplies: CSV → /api/csv-upload) */
   onUploadPanaCIM(row: AddPoItem, event?: Event): void {
     event?.stopPropagation();
-    if (this.isSendingPanacim) {
-      return;
-    }
-    // Chỉ thùng panaSendStatus khác true; thùng đã gửi bỏ qua
-    const all = this.collectSendEntries(row, () => true);
-    const entries = all.filter((e) => !isSendFlagOn(e.record.panaSendStatus));
-    if (!entries.length) {
-      this.notificationService.warning(
-        all.length
-          ? `Tất cả ${all.length} thùng của PO ${row.poCode} đã gửi PanaCIM.`
-          : "PO chưa có thùng nào được scan.",
-      );
-      return;
-    }
-    openSendConfirm(
-      this.dialog,
-      "PanaCIM",
-      row.poCode,
-      entries,
-      all.length - entries.length,
-    ).subscribe((ok) => {
-      if (!ok) {
-        return;
-      }
-      // TẠM TẮT gửi thật
-      this.isSendingPanacim = true;
-      this.vendorLabelSendService.sendPanacim(entries, row.poCode).subscribe({
-        next: (res) => {
-          this.isSendingPanacim = false;
-          this.notifySendResult(res.count, res.statusSaved, "PanaCIM");
-          this.reloadDetail();
-        },
-        error: (err: unknown) => {
-          this.isSendingPanacim = false;
-          this.notificationService.error(
-            resolveHttpErrorMessage(err, "Gửi PanaCIM thất bại."),
-          );
-        },
-      });
-      // const csv = this.vendorLabelSendService.buildPanacimCsv(
-      //   entries,
-      //   row.poCode,
-      // );
-      // this.openPayloadPreview({
-      //   title: "Payload gửi PanaCIM (xem trước — chưa gửi)",
-      //   endpoint: 'POST /api/csv-upload (multipart/form-data, field "file")',
-      //   note: `File: ${csv.fileName} · ${csv.rowCount} dòng (thùng)`,
-      //   content: csv.content.replace(/^\ufeff/, ""),
-      // });
-    });
+    this.sendPanacimFor([row], `PO ${row.poCode}`, row.poCode);
   }
+
+  /** Gửi PanaCIM cả đơn: gom thùng chưa gửi của tất cả PO, gửi 1 lần */
+  onSendAllPanaCIM(): void {
+    this.sendPanacimFor(
+      this.dataSource.data,
+      this.orderScopeLabel,
+      toText(this.orderInfo.deliveryNotice) || "ALL",
+    );
+  }
+
+  /** Gửi SAP các thùng chưa gửi của PO (giống receiving-supplies: post-goods-receipt-po) */
+  onSendSAP(row: AddPoItem, event?: Event): void {
+    event?.stopPropagation();
+    this.sendSapFor([row], `PO ${row.poCode}`);
+  }
+
+  /** Gửi SAP cả đơn: gom thùng chưa gửi của tất cả PO, gửi 1 lần */
+  onSendAllSAP(): void {
+    this.sendSapFor(this.dataSource.data, this.orderScopeLabel);
+  }
+
   /** Mở Tổng hợp vật tư cho các thùng chưa có PO → bổ sung PO → thùng chuyển vào PO tương ứng */
   onOpenUnassigned(): void {
     if (!this.unassignedBoxes.length) {
       return;
     }
-    const pseudoPo = this.buildUnassignedPo(this.unassignedBoxes);
+    const pseudoPo = this.buildUnassignedPo(
+      this.unassignedBoxes,
+      this.dataSource.data,
+    );
     const poLines = this.buildPoLines(this.dataSource.data);
     this.dialog
       .open(MaterialSummaryDialogComponent, {
@@ -1007,70 +1010,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           this.loadDetail(this.deliveryId);
         }
       });
-  }
-
-  /** Gửi SAP các thùng chưa gửi của PO (giống receiving-supplies: post-goods-receipt-po) */
-  onSendSAP(row: AddPoItem, event?: Event): void {
-    event?.stopPropagation();
-    if (this.isSendingSap) {
-      return;
-    }
-    // Chỉ thùng sapSendStatus khác true; thùng đã gửi bỏ qua
-    const all = this.collectSendEntries(row, () => true);
-    const entries = all.filter((e) => !isSendFlagOn(e.record.sapSendStatus));
-    if (!entries.length) {
-      this.notificationService.warning(
-        all.length
-          ? `Tất cả ${all.length} thùng của PO ${row.poCode} đã gửi SAP.`
-          : "PO chưa có thùng nào được scan.",
-      );
-      return;
-    }
-    openSendConfirm(
-      this.dialog,
-      "SAP",
-      row.poCode,
-      entries,
-      all.length - entries.length,
-    ).subscribe((ok) => {
-      if (!ok) {
-        return;
-      }
-      // TẠM TẮT gửi thật
-      this.isSendingSap = true;
-      this.vendorLabelSendService.sendSap(entries).subscribe({
-        next: (res) => {
-          this.isSendingSap = false;
-          this.notifySendResult(res.count, res.statusSaved, "SAP");
-          this.reloadDetail();
-        },
-        error: (err: unknown) => {
-          this.isSendingSap = false;
-          this.notificationService.error(
-            resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
-          );
-        },
-      });
-      // gửi test payload
-      // this.isSendingSap = true;
-      // this.vendorLabelSendService.buildSapPayload(entries).subscribe({
-      //   next: (payload) => {
-      //     this.isSendingSap = false;
-      //     this.openPayloadPreview({
-      //       title: "Payload gửi SAP (xem trước — chưa gửi)",
-      //       endpoint: "POST /api/post-goods-receipt-po",
-      //       note: `${payload.OPDN.length} dòng OPDN (thùng) · PO ${row.poCode}`,
-      //       content: JSON.stringify(payload, null, 2),
-      //     });
-      //   },
-      //   error: (err: unknown) => {
-      //     this.isSendingSap = false;
-      //     this.notificationService.error(
-      //       resolveHttpErrorMessage(err, "Không dựng được payload SAP."),
-      //     );
-      //   },
-      // });
-    });
   }
 
   /** Expose mapping helper for potential future QR parse outside dialog. */
@@ -1151,6 +1090,129 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         includes(this.poStatusLabel(item.status), f.status)
       );
     };
+  }
+
+  /** Tiêu đề phạm vi khi gửi cả đơn (popup xác nhận / thông báo) */
+  private get orderScopeLabel(): string {
+    const notice = toText(this.orderInfo.deliveryNotice);
+    const poCount = this.dataSource.data.length;
+    return `Cả đơn${notice ? ` ${notice}` : ""} (${poCount} PO)`;
+  }
+
+  /** Gửi PanaCIM các thùng chưa gửi của các PO; thùng đã gửi bỏ qua */
+  private sendPanacimFor(
+    pos: AddPoItem[],
+    scopeLabel: string,
+    fileTag: string,
+  ): void {
+    if (this.isSendingPanacim) {
+      return;
+    }
+    const all = pos.flatMap((po) => this.collectSendEntries(po, () => true));
+    const entries = all.filter((e) => !isSendFlagOn(e.record.panaSendStatus));
+    if (!entries.length) {
+      this.notificationService.warning(
+        all.length
+          ? `Tất cả ${all.length} thùng của ${scopeLabel} đã gửi PanaCIM.`
+          : `${scopeLabel} chưa có thùng nào được scan.`,
+      );
+      return;
+    }
+    openSendConfirm(
+      this.dialog,
+      "PanaCIM",
+      pos.length === 1 ? pos[0].poCode : "",
+      entries,
+      all.length - entries.length,
+      pos.length === 1 ? undefined : scopeLabel,
+    ).subscribe((ok) => {
+      if (!ok) {
+        return;
+      }
+      this.isSendingPanacim = true;
+      this.vendorLabelSendService.sendPanacim(entries, fileTag).subscribe({
+        next: (res) => {
+          this.isSendingPanacim = false;
+          this.notifySendResult(res.count, res.statusSaved, "PanaCIM");
+          this.reloadDetail();
+        },
+        error: (err: unknown) => {
+          this.isSendingPanacim = false;
+          this.notificationService.error(
+            resolveHttpErrorMessage(err, "Gửi PanaCIM thất bại."),
+          );
+        },
+      });
+      // const csv = this.vendorLabelSendService.buildPanacimCsv(entries, fileTag);
+      // this.openPayloadPreview({
+      //   title: "Payload gửi PanaCIM (xem trước — chưa gửi)",
+      //   endpoint: 'POST /api/csv-upload (multipart/form-data, field "file")',
+      //   note: `File: ${csv.fileName} · ${csv.rowCount} dòng (thùng)`,
+      //   content: csv.content.replace(/^\ufeff/, ""),
+      // });
+    });
+  }
+
+  /** Gửi SAP các thùng chưa gửi của các PO; thùng đã gửi bỏ qua */
+  private sendSapFor(pos: AddPoItem[], scopeLabel: string): void {
+    if (this.isSendingSap) {
+      return;
+    }
+    const all = pos.flatMap((po) => this.collectSendEntries(po, () => true));
+    const entries = all.filter((e) => !isSendFlagOn(e.record.sapSendStatus));
+    if (!entries.length) {
+      this.notificationService.warning(
+        all.length
+          ? `Tất cả ${all.length} thùng của ${scopeLabel} đã gửi SAP.`
+          : `${scopeLabel} chưa có thùng nào được scan.`,
+      );
+      return;
+    }
+    openSendConfirm(
+      this.dialog,
+      "SAP",
+      pos.length === 1 ? pos[0].poCode : "",
+      entries,
+      all.length - entries.length,
+      pos.length === 1 ? undefined : scopeLabel,
+    ).subscribe((ok) => {
+      if (!ok) {
+        return;
+      }
+      this.isSendingSap = true;
+      this.vendorLabelSendService.sendSap(entries).subscribe({
+        next: (res) => {
+          this.isSendingSap = false;
+          this.notifySendResult(res.count, res.statusSaved, "SAP");
+          this.reloadDetail();
+        },
+        error: (err: unknown) => {
+          this.isSendingSap = false;
+          this.notificationService.error(
+            resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
+          );
+        },
+      });
+      // gửi test payload
+      // this.isSendingSap = true;
+      // this.vendorLabelSendService.buildSapPayload(entries).subscribe({
+      //   next: (payload) => {
+      //     this.isSendingSap = false;
+      //     this.openPayloadPreview({
+      //       title: "Payload gửi SAP (xem trước — chưa gửi)",
+      //       endpoint: "POST /api/post-goods-receipt-po",
+      //       note: `${payload.OPDN.length} dòng OPDN (thùng) · ${scopeLabel}`,
+      //       content: JSON.stringify(payload, null, 2),
+      //     });
+      //   },
+      //   error: (err: unknown) => {
+      //     this.isSendingSap = false;
+      //     this.notificationService.error(
+      //       resolveHttpErrorMessage(err, "Không dựng được payload SAP."),
+      //     );
+      //   },
+      // });
+    });
   }
 
   /** Thùng của PO (có id) thỏa điều kiện → entry gửi SAP / PanaCIM */
@@ -1397,7 +1459,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         );
         const data: OrderWorkspaceData = {
           pos,
-          unassigned: orphans.length ? this.buildUnassignedPo(orphans) : null,
+          unassigned: orphans.length
+            ? this.buildUnassignedPo(orphans, pos)
+            : null,
           poLines: this.buildPoLines(pos),
           vendorCode: this.orderInfo.vendorCode,
           transactionId: this.mockTransactionId,
@@ -1407,8 +1471,21 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     );
   }
 
-  /** Thùng chưa có PO → PO giả "Chưa có PO" (gom theo mã SAP, dùng lại mapMaterial) */
-  private buildUnassignedPo(boxesIn: VendorLabelInfoDto[]): AddPoItem {
+  /**
+   * Thùng chưa có PO → PO giả "Chưa có PO" (gom theo mã SAP, dùng lại mapMaterial).
+   * Tên SP lấy theo dòng PO cùng mã SAP trong đơn, không có thì theo tên trên tem.
+   */
+  private buildUnassignedPo(
+    boxesIn: VendorLabelInfoDto[],
+    pos: AddPoItem[],
+  ): AddPoItem {
+    const nameBySap = new Map<string, string>();
+    for (const m of pos.flatMap((po) => po.materials)) {
+      const code = toText(m.materialCode).toLowerCase();
+      if (code && toText(m.materialName) && !nameBySap.has(code)) {
+        nameBySap.set(code, toText(m.materialName));
+      }
+    }
     // Gom thùng theo mã SAP → mỗi mã 1 "vật tư" (dựng như dòng PO giả để dùng lại mapMaterial)
     const bySap = new Map<string, VendorLabelInfoDto[]>();
     for (const b of boxesIn) {
@@ -1423,7 +1500,10 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         id: seq,
         lineNum: null,
         itemCode: sapCode,
-        dscription: "",
+        dscription:
+          nameBySap.get(sapCode.toLowerCase()) ??
+          boxes.map((b) => toText(b.spMaterialName)).find(Boolean) ??
+          "",
         quantity: 0,
         whsCode: null,
         unitMsr: null,
@@ -1595,11 +1675,26 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     const sumQty = (list: VendorLabelInfoDto[]): number =>
       list.reduce((s, b) => s + Number(b.initialQuantity ?? 0), 0);
     const receivedQuantity = sumQty(boxes);
+    // "Mã đã gửi" = thùng đã gửi cả SAP và PanaCIM (cùng điều kiện hoàn thành đơn)
     const sentQuantity = sumQty(
-      boxes.filter((b) => this.isSent(b.sapSendStatus)),
+      boxes.filter(
+        (b) => this.isSent(b.sapSendStatus) && this.isSent(b.panaSendStatus),
+      ),
     );
-    const percent = (v: number): number =>
-      poQuantity ? Math.min(100, Math.round((v / poQuantity) * 100)) : 0;
+    // Không làm tròn về 0 khi mới nhận rất ít so với SL PO (vd 61/150.000 = 0,04%)
+    const percent = (v: number): number => {
+      if (!poQuantity || v <= 0) {
+        return 0;
+      }
+      // Cho phép vượt 100% (nhận dư so với SL PO)
+      const p = (v / poQuantity) * 100;
+      if (p >= 1) {
+        return Math.round(p * 10) / 10;
+      }
+      // < 1%: 2 số lẻ; nhỏ hơn 0,01% thì giữ giá trị thật (hiển thị "<0,01%")
+      const rounded = Math.round(p * 100) / 100;
+      return rounded > 0 ? rounded : p;
+    };
 
     const byLot = new Map<string, VendorLabelInfoDto[]>();
     for (const b of boxes) {
@@ -1646,6 +1741,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       ).size,
       boxCount: boxes.length,
       importedBy: this.distinctJoin(boxes.map((b) => b.createdBy)),
+      sentQuantity,
       scannedProgress: percent(receivedQuantity),
       sentProgress: percent(sentQuantity),
       lots,

@@ -58,6 +58,7 @@
           <col class="w-num" />
           <col class="w-num" />
           <col class="w-po" *ngIf="isUnassigned" />
+          <col class="w-reason" *ngIf="isUnassigned" />
           <col class="w-mfg" />
           <col class="w-hsd" />
           <col class="w-loc" />
@@ -75,6 +76,7 @@
             <th>SL tem</th>
             <th>Số lô</th>
             <th *ngIf="isUnassigned">PO</th>
+            <th *ngIf="isUnassigned">Lý do</th>
             <th>MFG</th>
             <th>HSD*</th>
             <th>Vị trí</th>
@@ -100,14 +102,7 @@
               <td class="fw">{{ sap.sapCode }}</td>
               <td>{{ sap.partNumber }}</td>
               <td class="col-name" [title]="sap.productName">
-                {{ sap.productName }}
-                <span
-                  *ngFor="let q of sapQueueReasons(sap)"
-                  class="queue-badge"
-                  [attr.data-reason]="q.reason"
-                  [matTooltip]="queueReasonHint(q.reason)"
-                  >{{ queueReasonLabel(q.reason) }} · {{ q.count }}</span
-                >
+                {{ sap.productName || "—" }}
               </td>
               <td class="num">{{ sap.totalQty | number }}</td>
               <td class="num">{{ sap.labelCount }}</td>
@@ -134,6 +129,15 @@
                     PO {{ p }}
                   </mat-option>
                 </mat-autocomplete>
+              </td>
+              <td *ngIf="isUnassigned" class="col-reason">
+                <span
+                  *ngFor="let q of sapQueueReasons(sap)"
+                  class="queue-badge"
+                  [attr.data-reason]="q.reason"
+                  [matTooltip]="queueReasonHint(q.reason)"
+                  >{{ queueReasonLabel(q.reason) }} · {{ q.count }}</span
+                >
               </td>
               <td class="col-mfg">
                 <div class="mfg-cell">
@@ -239,206 +243,255 @@
               <td class="col-action"></td>
             </tr>
 
-            <tr *ngIf="isSapExpanded(sap)" class="meta-row">
-              <td [attr.colspan]="isUnassigned ? 14 : 13">
-                <div class="lot-meta">
-                  <span
-                    >Danh sách lô:
-                    <strong>{{ sap.lots.length }} lô</strong></span
-                  >
-                  <span>Cập nhật gần nhất: {{ sap.lastUpdated }}</span>
-                  <span
-                    >Đủ thông tin:
-                    <strong
-                      >{{ completeLotCount(sap) }}/{{
-                        sap.lots.length
-                      }}
-                      lô</strong
-                    ></span
-                  >
+            <tr *ngIf="isSapExpanded(sap)" class="expand-row">
+              <td [attr.colspan]="columnCount" class="expand-cell">
+                <div class="lot-panel">
+                  <div class="lot-meta">
+                    <span
+                      >Danh sách lô:
+                      <strong>{{ sap.lots.length }} lô</strong></span
+                    >
+                    <span>Cập nhật gần nhất: {{ sap.lastUpdated }}</span>
+                    <span
+                      >Đủ thông tin:
+                      <strong
+                        >{{ completeLotCount(sap) }}/{{
+                          sap.lots.length
+                        }}
+                        lô</strong
+                      ></span
+                    >
+                  </div>
+                  <div class="lot-table-wrap">
+                    <table class="lot-table">
+                      <colgroup>
+                        <col class="l-lot" />
+                        <col class="l-num" />
+                        <col class="l-num" />
+                        <col class="l-po" *ngIf="isUnassigned" />
+                        <col class="l-reason" *ngIf="isUnassigned" />
+                        <col class="l-mfg" />
+                        <col class="l-hsd" />
+                        <col class="l-loc" />
+                        <col class="l-wh" />
+                        <col class="l-info" />
+                        <col class="l-action" />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th>Số lô</th>
+                          <th>Số thùng</th>
+                          <th>SL VT</th>
+                          <th *ngIf="isUnassigned">PO</th>
+                          <th *ngIf="isUnassigned">Lý do</th>
+                          <th>MFG</th>
+                          <th>HSD*</th>
+                          <th>Vị trí</th>
+                          <th>Mã kho</th>
+                          <th>Thông tin</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          *ngFor="let lot of getVisibleLots(sap)"
+                          class="lot-row"
+                          [class.flash]="isHighlighted(sap, lot)"
+                        >
+                          <td class="lot-cell">
+                            <strong>{{ lot.lotNumber }}</strong>
+                          </td>
+                          <td class="num">{{ lot.boxCount }}</td>
+                          <td class="num">{{ lot.quantity | number }}</td>
+                          <td *ngIf="isUnassigned">
+                            <input
+                              #lotPoInput
+                              class="cell-input po-input"
+                              [(ngModel)]="lot.po"
+                              [matAutocomplete]="lotPoAuto"
+                              placeholder="Nhập PO"
+                              (keydown.enter)="onLotFieldEnter(sap, lot, 'po')"
+                            />
+                            <mat-autocomplete
+                              #lotPoAuto="matAutocomplete"
+                              (optionSelected)="
+                                onLotPoSelected(sap, lot, $event.option.value)
+                              "
+                            >
+                              <mat-option
+                                *ngFor="
+                                  let p of poOptionsFor(
+                                    sap.sapCode,
+                                    lotPoInput.value
+                                  )
+                                "
+                                [value]="p"
+                              >
+                                PO {{ p }}
+                              </mat-option>
+                            </mat-autocomplete>
+                          </td>
+                          <td *ngIf="isUnassigned" class="col-reason">
+                            <span
+                              *ngFor="let q of lotQueueReasons(lot)"
+                              class="queue-badge"
+                              [attr.data-reason]="q.reason"
+                              [matTooltip]="queueReasonHint(q.reason)"
+                              >{{ queueReasonLabel(q.reason) }} ·
+                              {{ q.count }}</span
+                            >
+                          </td>
+                          <td class="col-mfg">
+                            <div class="mfg-cell">
+                              <input
+                                class="cell-input date-input"
+                                [matDatepicker]="lotMfg"
+                                [ngModel]="lot.mfgDate"
+                                (ngModelChange)="
+                                  onLotMfgChange(sap, lot, $event)
+                                "
+                                (keydown.enter)="
+                                  onLotFieldEnter(sap, lot, 'manufacturingDate')
+                                "
+                                placeholder="dd/MM/yyyy"
+                              />
+                              <mat-datepicker-toggle
+                                matSuffix
+                                [for]="lotMfg"
+                              ></mat-datepicker-toggle>
+                              <mat-datepicker #lotMfg></mat-datepicker>
+                            </div>
+                          </td>
+                          <td class="col-hsd">
+                            <div class="hsd-cell">
+                              <div class="hsd-top">
+                                <div class="hsd-mode">
+                                  <button
+                                    type="button"
+                                    [class.active]="lot.expiryMode === 'month'"
+                                    (click)="setExpiryMode(lot, 'month')"
+                                  >
+                                    Tháng
+                                  </button>
+                                  <button
+                                    type="button"
+                                    [class.active]="lot.expiryMode === 'year'"
+                                    (click)="setExpiryMode(lot, 'year')"
+                                  >
+                                    Năm
+                                  </button>
+                                </div>
+                                <select
+                                  class="hsd-select"
+                                  [ngModel]="lot.expiryOffset"
+                                  (ngModelChange)="
+                                    onExpiryOffsetChange(lot, $event)
+                                  "
+                                >
+                                  <option [ngValue]="null">—</option>
+                                  <option
+                                    *ngFor="
+                                      let n of getExpiryOptions(lot.expiryMode)
+                                    "
+                                    [ngValue]="n"
+                                  >
+                                    {{ n }}
+                                    {{
+                                      lot.expiryMode === "year"
+                                        ? "năm"
+                                        : "tháng"
+                                    }}
+                                  </option>
+                                </select>
+                              </div>
+                              <input
+                                class="cell-input hsd-result"
+                                [(ngModel)]="lot.expirationDate"
+                                readonly
+                                placeholder="—"
+                                (keydown.enter)="
+                                  onLotFieldEnter(sap, lot, 'expirationDate')
+                                "
+                              />
+                            </div>
+                          </td>
+                          <td>
+                            <input
+                              class="cell-input"
+                              [(ngModel)]="lot.location"
+                              [matAutocomplete]="lotLocAuto"
+                              (ngModelChange)="onLocationSearch($event)"
+                              (focus)="onLocationSearch(lot.location)"
+                              [placeholder]="
+                                isLoadingLocations ? 'Đang tải...' : '—'
+                              "
+                              (keydown.enter)="
+                                onLotFieldEnter(sap, lot, 'location')
+                              "
+                            />
+                            <mat-autocomplete
+                              #lotLocAuto="matAutocomplete"
+                              panelWidth="280px"
+                              (optionSelected)="
+                                onLotLocationSelected(
+                                  sap,
+                                  lot,
+                                  $event.option.value
+                                )
+                              "
+                            >
+                              <mat-option
+                                *ngFor="let w of locationOptions"
+                                [value]="w.locationFullName"
+                              >
+                                {{ w.locationFullName || w.locationName }}
+                              </mat-option>
+                            </mat-autocomplete>
+                          </td>
+                          <td>
+                            <span class="whs-readonly">{{
+                              lot.warehouseCode || "—"
+                            }}</span>
+                          </td>
+                          <td>
+                            <span
+                              class="info-badge"
+                              [class.ok]="isLotComplete(lot)"
+                              [class.missing]="!isLotComplete(lot)"
+                            >
+                              {{
+                                isLotComplete(lot)
+                                  ? "Đủ thông tin"
+                                  : "Thiếu thông tin"
+                              }}
+                            </span>
+                          </td>
+                          <td class="col-action">
+                            <button
+                              mat-icon-button
+                              type="button"
+                              class="view-btn"
+                              matTooltip="Xem thùng trong lô"
+                              (click)="onViewLotBoxes(sap, lot)"
+                            >
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                          </td>
+                        </tr>
+                        <tr *ngIf="!getVisibleLots(sap).length">
+                          <td
+                            [attr.colspan]="lotColumnCount"
+                            class="empty-lots"
+                          >
+                            Không có mã nào
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </td>
             </tr>
-
-            <tr *ngIf="isSapExpanded(sap)" class="child-header-row">
-              <td></td>
-              <td colspan="3">Số lô</td>
-              <td>Số loại VT</td>
-              <td>Số thùng</td>
-              <td>SL VT</td>
-              <td *ngIf="isUnassigned">PO</td>
-              <td>MFG</td>
-              <td>HSD*</td>
-              <td>Vị trí</td>
-              <td>Mã kho</td>
-              <td>Thông tin</td>
-              <td></td>
-            </tr>
-
-            <ng-container *ngIf="isSapExpanded(sap)">
-              <tr
-                *ngFor="let lot of getVisibleLots(sap)"
-                class="lot-row"
-                [class.flash]="isHighlighted(sap, lot)"
-              >
-                <td></td>
-                <td colspan="3" class="lot-cell">
-                  <!-- <mat-icon class="lot-icon">inventory_2</mat-icon> -->
-                  <strong>{{ lot.lotNumber }}</strong>
-                  <span
-                    *ngFor="let q of lotQueueReasons(lot)"
-                    class="queue-badge"
-                    [attr.data-reason]="q.reason"
-                    [matTooltip]="queueReasonHint(q.reason)"
-                    >{{ queueReasonLabel(q.reason) }} · {{ q.count }}</span
-                  >
-                </td>
-                <td class="num">{{ lot.materialTypeCount }}</td>
-                <td class="num">{{ lot.boxCount }}</td>
-                <td class="num">{{ lot.quantity | number }}</td>
-                <td *ngIf="isUnassigned">
-                  <input
-                    #lotPoInput
-                    class="cell-input po-input"
-                    [(ngModel)]="lot.po"
-                    [matAutocomplete]="lotPoAuto"
-                    placeholder="Nhập PO"
-                    (keydown.enter)="onLotFieldEnter(sap, lot, 'po')"
-                  />
-                  <mat-autocomplete
-                    #lotPoAuto="matAutocomplete"
-                    (optionSelected)="
-                      onLotPoSelected(sap, lot, $event.option.value)
-                    "
-                  >
-                    <mat-option
-                      *ngFor="
-                        let p of poOptionsFor(sap.sapCode, lotPoInput.value)
-                      "
-                      [value]="p"
-                    >
-                      PO {{ p }}
-                    </mat-option>
-                  </mat-autocomplete>
-                </td>
-                <td class="col-mfg">
-                  <div class="mfg-cell">
-                    <input
-                      class="cell-input date-input"
-                      [matDatepicker]="lotMfg"
-                      [ngModel]="lot.mfgDate"
-                      (ngModelChange)="onLotMfgChange(sap, lot, $event)"
-                      (keydown.enter)="
-                        onLotFieldEnter(sap, lot, 'manufacturingDate')
-                      "
-                      placeholder="dd/MM/yyyy"
-                    />
-                    <mat-datepicker-toggle
-                      matSuffix
-                      [for]="lotMfg"
-                    ></mat-datepicker-toggle>
-                    <mat-datepicker #lotMfg></mat-datepicker>
-                  </div>
-                </td>
-                <td class="col-hsd">
-                  <div class="hsd-cell">
-                    <div class="hsd-top">
-                      <div class="hsd-mode">
-                        <button
-                          type="button"
-                          [class.active]="lot.expiryMode === 'month'"
-                          (click)="setExpiryMode(lot, 'month')"
-                        >
-                          Tháng
-                        </button>
-                        <button
-                          type="button"
-                          [class.active]="lot.expiryMode === 'year'"
-                          (click)="setExpiryMode(lot, 'year')"
-                        >
-                          Năm
-                        </button>
-                      </div>
-                      <select
-                        class="hsd-select"
-                        [ngModel]="lot.expiryOffset"
-                        (ngModelChange)="onExpiryOffsetChange(lot, $event)"
-                      >
-                        <option [ngValue]="null">—</option>
-                        <option
-                          *ngFor="let n of getExpiryOptions(lot.expiryMode)"
-                          [ngValue]="n"
-                        >
-                          {{ n }}
-                          {{ lot.expiryMode === "year" ? "năm" : "tháng" }}
-                        </option>
-                      </select>
-                    </div>
-                    <input
-                      class="cell-input hsd-result"
-                      [(ngModel)]="lot.expirationDate"
-                      readonly
-                      placeholder="—"
-                      (keydown.enter)="
-                        onLotFieldEnter(sap, lot, 'expirationDate')
-                      "
-                    />
-                  </div>
-                </td>
-                <td>
-                  <input
-                    class="cell-input"
-                    [(ngModel)]="lot.location"
-                    [matAutocomplete]="lotLocAuto"
-                    (ngModelChange)="onLocationSearch($event)"
-                    (focus)="onLocationSearch(lot.location)"
-                    [placeholder]="isLoadingLocations ? 'Đang tải...' : '—'"
-                    (keydown.enter)="onLotFieldEnter(sap, lot, 'location')"
-                  />
-                  <mat-autocomplete
-                    #lotLocAuto="matAutocomplete"
-                    panelWidth="280px"
-                    (optionSelected)="
-                      onLotLocationSelected(sap, lot, $event.option.value)
-                    "
-                  >
-                    <mat-option
-                      *ngFor="let w of locationOptions"
-                      [value]="w.locationFullName"
-                    >
-                      {{ w.locationFullName || w.locationName }}
-                    </mat-option>
-                  </mat-autocomplete>
-                </td>
-                <td>
-                  <span class="whs-readonly">{{
-                    lot.warehouseCode || "—"
-                  }}</span>
-                </td>
-                <td>
-                  <span
-                    class="info-badge"
-                    [class.ok]="isLotComplete(lot)"
-                    [class.missing]="!isLotComplete(lot)"
-                  >
-                    {{
-                      isLotComplete(lot) ? "Đủ thông tin" : "Thiếu thông tin"
-                    }}
-                  </span>
-                </td>
-                <td class="col-action">
-                  <button
-                    mat-icon-button
-                    type="button"
-                    class="view-btn"
-                    matTooltip="Xem thùng trong lô"
-                    (click)="onViewLotBoxes(sap, lot)"
-                  >
-                    <mat-icon>visibility</mat-icon>
-                  </button>
-                </td>
-              </tr>
-            </ng-container>
           </ng-container>
         </tbody>
       </table>

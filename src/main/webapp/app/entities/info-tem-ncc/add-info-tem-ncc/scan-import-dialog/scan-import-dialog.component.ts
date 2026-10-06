@@ -1510,150 +1510,163 @@ export class ScanImportDialogComponent
       );
       return;
     }
-    // QR có PO → ưu tiên PO đó; không có → PO thêm trước còn đủ chỗ cho cả thùng.
-    // PO trên QR không khớp PO nào của vật tư này → "Hàng chờ vật tư" (Sai PO);
-    // mọi PO cùng vật tư đều không đủ chỗ → thùng dư, "Hàng chờ vật tư" (Thừa SL)
-    const qrPo = this.firstNonEmpty(
-      fieldMap["userData5"],
-      fieldMap["poNumber"],
-    );
-    const samePo = (po: unknown): boolean =>
-      toText(po).toLowerCase() === qrPo.toLowerCase();
-    const qrPoMismatch =
-      !!qrPo &&
-      candidates.length > 0 &&
-      !candidates.some((c) => samePo(c.poCode));
-    // PO trên QR không khớp nhưng vật tư chỉ có ở 1 dòng PO trong đơn → chắc chắn thuộc PO đó,
-    // bỏ qua PO trên QR; có ở nhiều PO → không biết thuộc PO nào → "Hàng chờ vật tư" (Sai PO)
-    const qrPoIgnored = qrPoMismatch && candidates.length === 1;
-    const poAmbiguous = qrPoMismatch && !qrPoIgnored;
-    const matchedRow = poAmbiguous
-      ? undefined
-      : this.pickParentForBox(candidates, qrPoIgnored ? "" : qrPo, quantity);
-    const overflowQueued = candidates.length > 0 && !matchedRow && !poAmbiguous;
-    let queueReason: QueueReason | null = null;
-    if (!matchedRow) {
-      queueReason = poAmbiguous
-        ? "poMismatch"
-        : overflowQueued
-          ? "overflow"
-          : "noPo";
-    }
-
-    let manufacturingDate = mapped("manufacturingDate")
-      ? normalizeVendorDateToYyyyMmDd(fieldMap["manufacturingDate"])
-      : "";
-    if (
-      !manufacturingDate &&
-      isVendorQrFieldMapped(mappingConfig, "manufacturingDate")
-    ) {
-      manufacturingDate = normalizeVendorDateToYyyyMmDd(
-        this.data.arrivalDate ? this.toIsoDate(this.data.arrivalDate) : "",
+    // Phân bổ PO + lưu
+    const proceed = (): void => {
+      // QR có PO → ưu tiên PO đó; không có → PO thêm trước còn đủ chỗ cho cả thùng;
+      // mọi PO cùng vật tư đều không đủ chỗ → vẫn thêm vào PO (vượt SL theo PO).
+      // PO trên QR không khớp PO nào của vật tư này → "Hàng chờ vật tư" (Sai PO)
+      const qrPo = this.firstNonEmpty(
+        fieldMap["userData5"],
+        fieldMap["poNumber"],
       );
-    }
-    const expirationDate = mapped("expirationDate")
-      ? normalizeVendorDateToYyyyMmDd(fieldMap["expirationDate"])
-      : "";
-    const lot =
-      mapped("lotNumber", "lot") ||
-      (scannedPartNumber && manufacturingDate
-        ? `${scannedPartNumber}${manufacturingDate}`
-        : "");
-    const vendor = this.firstNonEmpty(fieldMap["vendor"], this.data.vendorCode);
-    const orNull = (v: string): string | null => (v ? v : null);
+      const samePo = (po: unknown): boolean =>
+        toText(po).toLowerCase() === qrPo.toLowerCase();
+      const qrPoMismatch =
+        !!qrPo &&
+        candidates.length > 0 &&
+        !candidates.some((c) => samePo(c.poCode));
+      // PO trên QR không khớp nhưng vật tư chỉ có ở 1 dòng PO trong đơn → chắc chắn thuộc PO đó,
+      // bỏ qua PO trên QR; có ở nhiều PO → không biết thuộc PO nào → "Hàng chờ vật tư" (Sai PO)
+      const qrPoIgnored = qrPoMismatch && candidates.length === 1;
+      const poAmbiguous = qrPoMismatch && !qrPoIgnored;
+      const matchedRow = poAmbiguous
+        ? undefined
+        : this.pickParentForBox(candidates, qrPoIgnored ? "" : qrPo, quantity);
+      // Thùng làm SL đã nhận vượt SL theo PO (vẫn thêm vào PO)
+      const overPo = !!matchedRow && this.exceedsPo(matchedRow, quantity);
+      let queueReason: QueueReason | null = null;
+      if (!matchedRow) {
+        queueReason = poAmbiguous ? "poMismatch" : "noPo";
+      }
 
-    const payload: CreateVendorLabelInfoPayload = {
-      reelId,
-      partNumber: orNull(scannedPartNumber),
-      vendor: orNull(vendor),
-      lot: orNull(lot),
-      userData1: orNull(mapped("userData1")),
-      userData2: orNull(mapped("userData2")),
-      userData3: orNull(mapped("userData3")),
-      userData4: orNull(mapped("userData4")),
-      // Có dòng PO → mã PO của dòng đó; vào hàng chờ → chỉ giữ PO trên QR (nếu có)
-      userData5: orNull(
-        matchedRow
-          ? this.firstNonEmpty(matchedRow.poCode, qrPo)
-          : this.firstNonEmpty(
-              qrPo,
-              candidates.length || noPoMatched ? "" : this.data.poCode,
-            ),
-      ),
-      initialQuantity: quantity,
-      msdLevel: orNull(mapped("msl", "msdLevel")),
-      msdInitialFloorTime: null,
-      msdBagSealDate: null,
-      marketUsage: null,
-      quantityOverride: Number(fieldMap["quantityOverride"]) || null,
-      shelfTime: null,
-      spMaterialName: orNull(mapped("spMaterialName")),
-      warningLimit: null,
-      maximumLimit: null,
-      // Vào hàng chờ → ghi lý do (thừa SL / thiếu PO) để hiện badge
-      comments: queueReason ? queueReasonCode(queueReason) : null,
-      warmupTime: null,
-      // Vị trí kho gán sau (quét vị trí / form LOT); mã kho SAP = whsCode của dòng PO
-      storageUnit: null,
-      subStorageUnit: null,
-      locationOverride: orNull(mapped("locationOverride")),
-      expirationDate: orNull(expirationDate),
-      manufacturingDate: orNull(manufacturingDate),
-      partClass: null,
-      sapCode: orNull(
-        this.firstNonEmpty(
-          matchedRow?.sapCode,
-          candidates[0]?.sapCode,
-          scannedSap,
+      let manufacturingDate = mapped("manufacturingDate")
+        ? normalizeVendorDateToYyyyMmDd(fieldMap["manufacturingDate"])
+        : "";
+      if (
+        !manufacturingDate &&
+        isVendorQrFieldMapped(mappingConfig, "manufacturingDate")
+      ) {
+        manufacturingDate = normalizeVendorDateToYyyyMmDd(
+          this.data.arrivalDate ? this.toIsoDate(this.data.arrivalDate) : "",
+        );
+      }
+      const expirationDate = mapped("expirationDate")
+        ? normalizeVendorDateToYyyyMmDd(fieldMap["expirationDate"])
+        : "";
+      const lot =
+        mapped("lotNumber", "lot") ||
+        (scannedPartNumber && manufacturingDate
+          ? `${scannedPartNumber}${manufacturingDate}`
+          : "");
+      const vendor = this.firstNonEmpty(
+        fieldMap["vendor"],
+        this.data.vendorCode,
+      );
+      const orNull = (v: string): string | null => (v ? v : null);
+
+      const payload: CreateVendorLabelInfoPayload = {
+        reelId,
+        partNumber: orNull(scannedPartNumber),
+        vendor: orNull(vendor),
+        lot: orNull(lot),
+        userData1: orNull(mapped("userData1")),
+        userData2: orNull(mapped("userData2")),
+        userData3: orNull(mapped("userData3")),
+        userData4: orNull(mapped("userData4")),
+        // Có dòng PO → mã PO của dòng đó; vào hàng chờ → chỉ giữ PO trên QR (nếu có)
+        userData5: orNull(
+          matchedRow
+            ? this.firstNonEmpty(matchedRow.poCode, qrPo)
+            : this.firstNonEmpty(
+                qrPo,
+                candidates.length || noPoMatched ? "" : this.data.poCode,
+              ),
         ),
-      ),
-      vendorQrCode: rawCode,
-      status: null,
-      createdBy: orNull(this.currentUser),
-      createdAt: null,
-      updatedBy: null,
-      updatedAt: null,
-      vendorAdditionalData: null,
-      panaSendStatus: null,
-      sapSendStatus: null,
-      deliveryNotificationId,
-      sapPor1Id: matchedRow?.id ?? null,
+        initialQuantity: quantity,
+        msdLevel: orNull(mapped("msl", "msdLevel")),
+        msdInitialFloorTime: null,
+        msdBagSealDate: null,
+        marketUsage: null,
+        quantityOverride: Number(fieldMap["quantityOverride"]) || null,
+        shelfTime: null,
+        spMaterialName: orNull(mapped("spMaterialName")),
+        warningLimit: null,
+        maximumLimit: null,
+        comments: null,
+        warmupTime: null,
+        // Vị trí kho gán sau (quét vị trí / form LOT); mã kho SAP = whsCode của dòng PO
+        storageUnit: null,
+        subStorageUnit: null,
+        locationOverride: orNull(mapped("locationOverride")),
+        expirationDate: orNull(expirationDate),
+        manufacturingDate: orNull(manufacturingDate),
+        partClass: null,
+        sapCode: orNull(
+          this.firstNonEmpty(
+            matchedRow?.sapCode,
+            candidates[0]?.sapCode,
+            scannedSap,
+          ),
+        ),
+        vendorQrCode: rawCode,
+        // Vào hàng chờ → ghi lý do (thừa SL / thiếu PO / sai PO) vào status để hiện badge
+        status: queueReason ? queueReasonCode(queueReason) : null,
+        createdBy: orNull(this.currentUser),
+        createdAt: null,
+        updatedBy: null,
+        updatedAt: null,
+        vendorAdditionalData: null,
+        panaSendStatus: null,
+        sapSendStatus: null,
+        deliveryNotificationId,
+        sapPor1Id: matchedRow?.id ?? null,
+      };
+
+      if (poAmbiguous) {
+        const code = toText(candidates[0].sapCode) || scannedPartNumber;
+        const inOrder = (this.data.parentItems ?? []).some((p) =>
+          samePo(p.poCode),
+        );
+        this.notificationService.warning(
+          inOrder
+            ? `Thùng "${reelId}": PO ${qrPo} trên tem không chứa vật tư ${code}, vật tư có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`
+            : `Thùng "${reelId}": PO ${qrPo} trên tem không có trong đơn, vật tư ${code} có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`,
+        );
+      } else if (overPo && matchedRow) {
+        const code = toText(matchedRow.sapCode) || scannedPartNumber;
+        this.notificationService.warning(
+          `Thùng "${reelId}" (SL ${quantity}) vượt SL theo PO ${toText(matchedRow.poCode)} của vật tư ${code} — vẫn thêm vào PO.`,
+        );
+      } else if (qrPoIgnored && matchedRow) {
+        this.notificationService.info(
+          `Thùng "${reelId}" đã thêm vào PO này ${toText(matchedRow.poCode)}.`,
+        );
+      } else if (
+        matchedRow &&
+        qrPo &&
+        toText(matchedRow.poCode).toLowerCase() !== qrPo.toLowerCase() &&
+        candidates.some(
+          (c) => toText(c.poCode).toLowerCase() === qrPo.toLowerCase(),
+        )
+      ) {
+        this.notificationService.info(
+          `PO ${qrPo} đã đủ SL — thùng "${reelId}" được thêm vào PO ${toText(matchedRow.poCode)}.`,
+        );
+      }
+      this.saveScannedBox(payload, matchedRow, reelId, quantity, noPoMatched);
     };
 
-    if (poAmbiguous) {
-      const code = toText(candidates[0].sapCode) || scannedPartNumber;
-      const inOrder = (this.data.parentItems ?? []).some((p) =>
-        samePo(p.poCode),
-      );
-      this.notificationService.warning(
-        inOrder
-          ? `Thùng "${reelId}": PO ${qrPo} trên tem không chứa vật tư ${code}, vật tư có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`
-          : `Thùng "${reelId}": PO ${qrPo} trên tem không có trong đơn, vật tư ${code} có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`,
-      );
-    } else if (qrPoIgnored && matchedRow) {
-      const code = toText(matchedRow.sapCode) || scannedPartNumber;
-      this.notificationService.info(
-        `Thùng "${reelId}" đã thêm vào PO này ${toText(matchedRow.poCode)}.`,
-      );
-    } else if (overflowQueued) {
-      const code = toText(candidates[0].sapCode) || scannedPartNumber;
-      this.notificationService.warning(
-        `Thùng "${reelId}" (SL ${quantity}) vượt SL các PO của vật tư ${code} — đã đưa vào "Hàng chờ vật tư".`,
-      );
-    } else if (
-      matchedRow &&
-      qrPo &&
-      toText(matchedRow.poCode).toLowerCase() !== qrPo.toLowerCase() &&
-      candidates.some(
-        (c) => toText(c.poCode).toLowerCase() === qrPo.toLowerCase(),
-      )
-    ) {
-      this.notificationService.info(
-        `PO ${qrPo} đã đủ SL — thùng "${reelId}" được thêm vào PO ${toText(matchedRow.poCode)}.`,
-      );
-    }
     this.usedReelIds.add(reelId);
-    this.saveScannedBox(payload, matchedRow, reelId, quantity, noPoMatched);
+    proceed();
+  }
+
+  /** Thêm thùng vào dòng PO thì SL đã nhận vượt SL theo PO (dòng SL = 0 coi như không giới hạn) */
+  private exceedsPo(row: ParentItem, quantity: number): boolean {
+    const orderQty = Number(row.orderQty ?? 0);
+    return (
+      orderQty > 0 &&
+      (this.receivedByParent.get(row.id) ?? 0) + quantity > orderQty
+    );
   }
 
   /** POST thùng (lẻ hoặc vào pallet đang quét) → lưu thành công mới hiện lên bảng */
@@ -2159,8 +2172,8 @@ export class ScanImportDialogComponent
         userData2: orKeep(edited.rankMau, rec.userData2) as string | null,
         userData3: orKeep(edited.rankQuang, rec.userData3) as string | null,
         sapPor1Id,
-        // Đã gán PO → không còn trong hàng chờ
-        comments: sapPor1Id ? clearQueueReason(rec.comments) : rec.comments,
+        // Đã gán PO → không còn trong hàng chờ: bỏ mã lý do ở status
+        ...(sapPor1Id ? clearQueueReason(rec) : {}),
         palletBoxMapping: undefined,
       });
     }
@@ -2630,23 +2643,17 @@ export class ScanImportDialogComponent
   }
 
   /**
-   * Phân bổ thùng cho 1 dòng PO khi nhiều PO cùng mã vật tư — chỉ chọn PO còn đủ chỗ cho cả thùng:
+   * Phân bổ thùng cho 1 dòng PO khi nhiều PO cùng mã vật tư — ưu tiên PO còn đủ chỗ cho cả thùng:
    *  - QR có PO, khớp 1 ứng viên và còn đủ chỗ → dùng đúng PO đó
    *  - không → PO thêm trước còn đủ chỗ (dòng có SL theo PO = 0 coi như không giới hạn)
-   *  - không PO nào đủ chỗ → undefined (thùng dư → "Hàng chờ vật tư")
+   *  - không PO nào đủ chỗ → vẫn thêm vào PO (vượt SL): PO trên QR, không có thì PO thêm trước
    */
   private pickParentForBox(
     candidates: ParentItem[],
     qrPo: string,
     quantity: number,
   ): ParentItem | undefined {
-    const fits = (c: ParentItem): boolean => {
-      const orderQty = Number(c.orderQty ?? 0);
-      return (
-        orderQty <= 0 ||
-        (this.receivedByParent.get(c.id) ?? 0) + quantity <= orderQty
-      );
-    };
+    const fits = (c: ParentItem): boolean => !this.exceedsPo(c, quantity);
     const po = toText(qrPo).toLowerCase();
     const byPo = po
       ? candidates.find((c) => toText(c.poCode).toLowerCase() === po)
@@ -2654,7 +2661,7 @@ export class ScanImportDialogComponent
     if (byPo && fits(byPo)) {
       return byPo;
     }
-    return candidates.find(fits);
+    return candidates.find(fits) ?? byPo ?? candidates[0];
   }
 
   /** Cộng / trừ SL đã nhận của 1 dòng PO */

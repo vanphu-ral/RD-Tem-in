@@ -482,6 +482,9 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   mobileMaterialStatus(m: MaterialItem): string {
+    if (m.progress > 100) {
+      return "Vượt SL";
+    }
     if (m.progress >= 100) {
       return "Đủ SL";
     }
@@ -702,6 +705,9 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   progressClass(progress: number): string {
+    if (progress > 100) {
+      return "over";
+    }
     if (progress >= 100) {
       return "done";
     }
@@ -913,8 +919,9 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       // mỗi bản ghi vendorLabelInfo = 1 thùng
       boxCount: reels.length,
       importedBy: this.distinctJoin(reels.map((r) => r.createdBy)),
+      // Cho phép vượt 100% (nhận dư so với SL PO)
       progress: poQuantity
-        ? Math.min(100, Math.round((receivedQuantity / poQuantity) * 100))
+        ? Math.round((receivedQuantity / poQuantity) * 100)
         : 0,
       boxes: reels,
     };

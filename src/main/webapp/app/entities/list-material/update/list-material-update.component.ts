@@ -55,6 +55,7 @@ import { MaterialItem } from "../dialog/list-material-update-dialog";
 import { BreakpointObserver } from "@angular/cdk/layout";
 import { PendingMaterialService } from "../services/pending-material.service";
 import { DialogContentExampleDialogComponent } from "../confirm-dialog/confirm-dialog.component";
+import { extractReelIdFromScan } from "../services/scan-code.util";
 
 interface sumary_mode {
   value: string;
@@ -627,7 +628,7 @@ export class ListMaterialUpdateComponent
     }
 
     this.scanTimeoutId = setTimeout(() => {
-      const code = rawValue.trim().split("#")[0];
+      const code = extractReelIdFromScan(rawValue);
       this.isLoading = true;
 
       this.ngZone.runOutsideAngular(() => {
@@ -745,8 +746,7 @@ export class ListMaterialUpdateComponent
   }
 
   handleScanInput(scanString: string, event?: KeyboardEvent): void {
-    const parts = scanString.split("#");
-    const inventoryTerm = parts[0] || "";
+    const inventoryTerm = extractReelIdFromScan(scanString);
     if (!inventoryTerm) {
       console.warn("[handleScanInput] - Chuỗi scan không hợp lệ hoặc rỗng");
       return;

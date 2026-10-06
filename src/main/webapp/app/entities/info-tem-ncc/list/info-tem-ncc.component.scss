@@ -343,6 +343,10 @@
     background: #3b82f6;
   }
 
+  &.over {
+    background: #f97316;
+  }
+
   &.empty {
     width: 0 !important;
     background: transparent;

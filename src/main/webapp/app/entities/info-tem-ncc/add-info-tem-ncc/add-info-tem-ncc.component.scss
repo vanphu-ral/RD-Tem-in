@@ -93,6 +93,12 @@
 
   mat-card-header {
     padding-bottom: 4px;
+
+    /* Cho tiêu đề chiếm hết chiều ngang → nhóm "Gửi cả đơn" đẩy được sang phải */
+    ::ng-deep .mat-mdc-card-header-text {
+      flex: 1;
+      min-width: 0;
+    }
   }
 
   mat-card-title {
@@ -381,6 +387,10 @@
     background: #3b82f6;
   }
 
+  &.over {
+    background: #f97316;
+  }
+
   &.empty {
     width: 0 !important;
   }
@@ -424,7 +434,27 @@ mat-paginator {
 .list-title {
   display: flex !important;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+.send-all-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+
+  .send-all-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+  }
+
+  button {
+    height: 30px;
+    font-size: 13px;
+  }
 }
 
 .unassigned-chip {

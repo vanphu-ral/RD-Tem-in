@@ -60,6 +60,7 @@ import {
   faCircleExclamation,
   faWarehouse,
 } from "@fortawesome/free-solid-svg-icons";
+import { extractReelIdFromScan } from "../services/scan-code.util";
 
 interface sumary_mode {
   value: string;
@@ -727,7 +728,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       this.scanTimeoutId = null;
     }
 
-    const code = rawValue.trim().split("#")[0].trim().toLowerCase();
+    const code = extractReelIdFromScan(rawValue).toLowerCase();
     if (!code) {
       this.openError("Không nhận diện được mã vật tư!");
       this.exitScanMode();

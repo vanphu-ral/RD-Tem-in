@@ -26,7 +26,11 @@
         </span>
         <span class="osp-progress">
           <span class="osp-track">
-            <span class="osp-fill" [style.width.%]="percent(c)"></span>
+            <span
+              class="osp-fill"
+              [class.over]="isOver(c)"
+              [style.width.%]="percent(c)"
+            ></span>
           </span>
           <span class="osp-frac"
             >{{ c.received | number }}/{{ c.total | number }}</span

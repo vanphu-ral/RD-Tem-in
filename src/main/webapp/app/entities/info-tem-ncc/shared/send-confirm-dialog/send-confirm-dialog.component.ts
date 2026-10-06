@@ -16,6 +16,8 @@ import type { SendBoxEntry } from "../../services/vendor-label-send.service";
 /**
  * Mở modal xác nhận gửi kèm thống kê: số thùng, số LOT (theo mã SAP + lot),
  * tổng số lượng của các thùng sẽ gửi, số thùng đã gửi bị bỏ qua → true nếu Xác nhận.
+ * scopeLabel: tiêu đề phạm vi gửi thay cho "PO …" (vd gửi cả đơn); các thùng thuộc
+ * nhiều PO → hiện thêm bảng số thùng / số lượng theo từng PO.
  */
 export function openSendConfirm(
   dialog: MatDialog,
@@ -23,13 +25,24 @@ export function openSendConfirm(
   poCode: string,
   entries: SendBoxEntry[],
   skippedCount: number,
+  scopeLabel?: string,
 ): Observable<boolean> {
   const lots = new Set(
     entries.map((e) => `${toText(e.sapCode)}|${toText(e.record.lot)}`),
   );
+  const byPo = new Map<string, SendConfirmPoRow>();
+  for (const e of entries) {
+    const code = toText(e.poCode) || "—";
+    const row = byPo.get(code) ?? { poCode: code, boxCount: 0, totalQty: 0 };
+    row.boxCount++;
+    row.totalQty += Number(e.record.initialQuantity ?? 0);
+    byPo.set(code, row);
+  }
   const data: SendConfirmDialogData = {
     target,
     poCode,
+    scopeLabel,
+    poRows: byPo.size > 1 ? [...byPo.values()] : [],
     boxCount: entries.length,
     lotCount: lots.size,
     totalQty: entries.reduce(
@@ -64,6 +77,16 @@ export interface SendConfirmDialogData {
   totalQty: number;
   /** Số thùng đã gửi trước đó — bỏ qua */
   skippedCount: number;
+  /** Tiêu đề phạm vi gửi (vd "Cả đơn …") — không có thì hiện "PO {poCode}" */
+  scopeLabel?: string;
+  /** Thống kê theo PO — chỉ có khi các thùng thuộc nhiều PO */
+  poRows: SendConfirmPoRow[];
+}
+
+export interface SendConfirmPoRow {
+  poCode: string;
+  boxCount: number;
+  totalQty: number;
 }
 
 /** Modal xác nhận gửi SAP / PanaCIM kèm thống kê lần gửi */
@@ -77,8 +100,13 @@ export interface SendConfirmDialogData {
       <h2 mat-dialog-title>Xác nhận gửi {{ data.target }}</h2>
       <mat-dialog-content>
         <p class="sc-sub">
-          PO <strong>{{ data.poCode || "—" }}</strong> · chỉ gửi các thùng chưa
-          gửi
+          <ng-container *ngIf="data.scopeLabel; else poScope">
+            <strong>{{ data.scopeLabel }}</strong>
+          </ng-container>
+          <ng-template #poScope>
+            PO <strong>{{ data.poCode || "—" }}</strong>
+          </ng-template>
+          · chỉ gửi các thùng chưa gửi
           {{ data.target }}
         </p>
         <div class="sc-stats">
@@ -95,6 +123,22 @@ export interface SendConfirmDialogData {
             <span class="sc-lbl">Tổng số lượng</span>
           </div>
         </div>
+        <table class="sc-po-table" *ngIf="data.poRows.length">
+          <thead>
+            <tr>
+              <th>PO ({{ data.poRows.length }})</th>
+              <th>Thùng</th>
+              <th>Số lượng</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of data.poRows">
+              <td>{{ r.poCode }}</td>
+              <td>{{ r.boxCount | number }}</td>
+              <td>{{ r.totalQty | number }}</td>
+            </tr>
+          </tbody>
+        </table>
         <p class="sc-skip" *ngIf="data.skippedCount > 0">
           <mat-icon>info</mat-icon>
           Bỏ qua {{ data.skippedCount | number }} thùng đã gửi
@@ -150,6 +194,27 @@ export interface SendConfirmDialogData {
         font-size: 11px;
         color: #6b7280;
         text-align: center;
+      }
+      .sc-po-table {
+        width: 100%;
+        margin-top: 12px;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .sc-po-table th,
+      .sc-po-table td {
+        padding: 5px 8px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: right;
+      }
+      .sc-po-table th:first-child,
+      .sc-po-table td:first-child {
+        text-align: left;
+      }
+      .sc-po-table th {
+        color: #6b7280;
+        font-weight: 600;
+        background: #f9fafb;
       }
       .sc-skip {
         margin: 12px 0 0;

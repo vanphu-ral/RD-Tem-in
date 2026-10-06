@@ -133,10 +133,16 @@ export class OrderSummaryPanelComponent implements OnDestroy {
     }
   }
 
+  /** Độ rộng thanh tiến độ (tối đa 100%) */
   percent(card: PoCard): number {
     return card.total
       ? Math.min(100, Math.round((card.received / card.total) * 100))
       : 0;
+  }
+
+  /** Nhận vượt SL PO → thanh màu cam */
+  isOver(card: PoCard): boolean {
+    return card.total > 0 && card.received > card.total;
   }
 
   onSummarySaved(count: number): void {
