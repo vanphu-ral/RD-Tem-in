@@ -72,6 +72,10 @@ class DeliveryNotificationResourceIT {
     private static final Integer UPDATED_NUMBER_OF_PO = 2;
     private static final Integer SMALLER_NUMBER_OF_PO = 1 - 1;
 
+    private static final Integer DEFAULT_NUMBER_OF_ITEM = 1;
+    private static final Integer UPDATED_NUMBER_OF_ITEM = 2;
+    private static final Integer SMALLER_NUMBER_OF_ITEM = 1 - 1;
+
     private static final String DEFAULT_STATUS = "AAAAAAAAAA";
     private static final String UPDATED_STATUS = "BBBBBBBBBB";
 
@@ -146,6 +150,7 @@ class DeliveryNotificationResourceIT {
             .contNo(DEFAULT_CONT_NO)
             .entryDate(DEFAULT_ENTRY_DATE)
             .numberOfPo(DEFAULT_NUMBER_OF_PO)
+            .numberOfItem(DEFAULT_NUMBER_OF_ITEM)
             .status(DEFAULT_STATUS)
             .createdAt(DEFAULT_CREATED_AT)
             .createdBy(DEFAULT_CREATED_BY)
@@ -168,6 +173,7 @@ class DeliveryNotificationResourceIT {
             .contNo(UPDATED_CONT_NO)
             .entryDate(UPDATED_ENTRY_DATE)
             .numberOfPo(UPDATED_NUMBER_OF_PO)
+            .numberOfItem(UPDATED_NUMBER_OF_ITEM)
             .status(UPDATED_STATUS)
             .createdAt(UPDATED_CREATED_AT)
             .createdBy(UPDATED_CREATED_BY)
@@ -308,6 +314,11 @@ class DeliveryNotificationResourceIT {
                     hasItem(DEFAULT_NUMBER_OF_PO)
                 )
             )
+            .andExpect(
+                jsonPath("$.[*].numberOfItem").value(
+                    hasItem(DEFAULT_NUMBER_OF_ITEM)
+                )
+            )
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS)))
             .andExpect(
                 jsonPath("$.[*].createdAt").value(
@@ -358,6 +369,7 @@ class DeliveryNotificationResourceIT {
                 jsonPath("$.entryDate").value(DEFAULT_ENTRY_DATE.toString())
             )
             .andExpect(jsonPath("$.numberOfPo").value(DEFAULT_NUMBER_OF_PO))
+            .andExpect(jsonPath("$.numberOfItem").value(DEFAULT_NUMBER_OF_ITEM))
             .andExpect(jsonPath("$.status").value(DEFAULT_STATUS))
             .andExpect(
                 jsonPath("$.createdAt").value(DEFAULT_CREATED_AT.toString())
@@ -1012,6 +1024,114 @@ class DeliveryNotificationResourceIT {
 
     @Test
     @Transactional
+    void getAllDeliveryNotificationsByNumberOfItemIsEqualToSomething()
+        throws Exception {
+        // Initialize the database
+        insertedDeliveryNotification =
+            deliveryNotificationRepository.saveAndFlush(deliveryNotification);
+
+        // Get all the deliveryNotificationList where numberOfItem equals to
+        defaultDeliveryNotificationFiltering(
+            "numberOfItem.equals=" + DEFAULT_NUMBER_OF_ITEM,
+            "numberOfItem.equals=" + UPDATED_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveryNotificationsByNumberOfItemIsInShouldWork()
+        throws Exception {
+        // Initialize the database
+        insertedDeliveryNotification =
+            deliveryNotificationRepository.saveAndFlush(deliveryNotification);
+
+        // Get all the deliveryNotificationList where numberOfItem in
+        defaultDeliveryNotificationFiltering(
+            "numberOfItem.in=" +
+            DEFAULT_NUMBER_OF_ITEM +
+            "," +
+            UPDATED_NUMBER_OF_ITEM,
+            "numberOfItem.in=" + UPDATED_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveryNotificationsByNumberOfItemIsNullOrNotNull()
+        throws Exception {
+        // Initialize the database
+        insertedDeliveryNotification =
+            deliveryNotificationRepository.saveAndFlush(deliveryNotification);
+
+        // Get all the deliveryNotificationList where numberOfItem is not null
+        defaultDeliveryNotificationFiltering(
+            "numberOfItem.specified=true",
+            "numberOfItem.specified=false"
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveryNotificationsByNumberOfItemIsGreaterThanOrEqualToSomething()
+        throws Exception {
+        // Initialize the database
+        insertedDeliveryNotification =
+            deliveryNotificationRepository.saveAndFlush(deliveryNotification);
+
+        // Get all the deliveryNotificationList where numberOfItem is greater than or equal to
+        defaultDeliveryNotificationFiltering(
+            "numberOfItem.greaterThanOrEqual=" + DEFAULT_NUMBER_OF_ITEM,
+            "numberOfItem.greaterThanOrEqual=" + UPDATED_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveryNotificationsByNumberOfItemIsLessThanOrEqualToSomething()
+        throws Exception {
+        // Initialize the database
+        insertedDeliveryNotification =
+            deliveryNotificationRepository.saveAndFlush(deliveryNotification);
+
+        // Get all the deliveryNotificationList where numberOfItem is less than or equal to
+        defaultDeliveryNotificationFiltering(
+            "numberOfItem.lessThanOrEqual=" + DEFAULT_NUMBER_OF_ITEM,
+            "numberOfItem.lessThanOrEqual=" + SMALLER_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveryNotificationsByNumberOfItemIsLessThanSomething()
+        throws Exception {
+        // Initialize the database
+        insertedDeliveryNotification =
+            deliveryNotificationRepository.saveAndFlush(deliveryNotification);
+
+        // Get all the deliveryNotificationList where numberOfItem is less than
+        defaultDeliveryNotificationFiltering(
+            "numberOfItem.lessThan=" + UPDATED_NUMBER_OF_ITEM,
+            "numberOfItem.lessThan=" + DEFAULT_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveryNotificationsByNumberOfItemIsGreaterThanSomething()
+        throws Exception {
+        // Initialize the database
+        insertedDeliveryNotification =
+            deliveryNotificationRepository.saveAndFlush(deliveryNotification);
+
+        // Get all the deliveryNotificationList where numberOfItem is greater than
+        defaultDeliveryNotificationFiltering(
+            "numberOfItem.greaterThan=" + SMALLER_NUMBER_OF_ITEM,
+            "numberOfItem.greaterThan=" + DEFAULT_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
     void getAllDeliveryNotificationsByStatusIsEqualToSomething()
         throws Exception {
         // Initialize the database
@@ -1377,6 +1497,11 @@ class DeliveryNotificationResourceIT {
                     hasItem(DEFAULT_NUMBER_OF_PO)
                 )
             )
+            .andExpect(
+                jsonPath("$.[*].numberOfItem").value(
+                    hasItem(DEFAULT_NUMBER_OF_ITEM)
+                )
+            )
             .andExpect(jsonPath("$.[*].status").value(hasItem(DEFAULT_STATUS)))
             .andExpect(
                 jsonPath("$.[*].createdAt").value(
@@ -1456,6 +1581,7 @@ class DeliveryNotificationResourceIT {
             .contNo(UPDATED_CONT_NO)
             .entryDate(UPDATED_ENTRY_DATE)
             .numberOfPo(UPDATED_NUMBER_OF_PO)
+            .numberOfItem(UPDATED_NUMBER_OF_ITEM)
             .status(UPDATED_STATUS)
             .createdAt(UPDATED_CREATED_AT)
             .createdBy(UPDATED_CREATED_BY)
@@ -1620,6 +1746,7 @@ class DeliveryNotificationResourceIT {
             .contNo(UPDATED_CONT_NO)
             .entryDate(UPDATED_ENTRY_DATE)
             .numberOfPo(UPDATED_NUMBER_OF_PO)
+            .numberOfItem(UPDATED_NUMBER_OF_ITEM)
             .status(UPDATED_STATUS)
             .createdAt(UPDATED_CREATED_AT)
             .createdBy(UPDATED_CREATED_BY)

@@ -1469,14 +1469,8 @@ public class UserServices {
     public List<workOrderInfo> getListWorkOrders(
         ScanWorkOrderDTO scanWorkOrderDTO
     ) {
-        LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(
-            LocalDate.now().getYear(),
-            LocalDate.now().getMonth(),
-            1
-        );
-        String entryTime1 = firstDay.toString() + " 00:00:00.000";
-        String entryTime2 = date.toString() + " 23:59:59.000";
+        String entryTime1 = null;
+        String entryTime2 = null;
         if (scanWorkOrderDTO.getCreateAt() != null) {
             entryTime1 = scanWorkOrderDTO.getCreateAt() + " 00:00:00.000";
             entryTime2 = scanWorkOrderDTO.getCreateAt() + " 23:59:59.000";
@@ -1499,14 +1493,8 @@ public class UserServices {
 
     //☺ Lấy tổng item
     public Integer getToTalItemWorkOrders(ScanWorkOrderDTO scanWorkOrderDTO) {
-        LocalDate date = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(
-            LocalDate.now().getYear(),
-            LocalDate.now().getMonth(),
-            1
-        );
-        String entryTime1 = firstDay.toString() + " 00:00:00.000";
-        String entryTime2 = date.toString() + " 23:59:59.000";
+        String entryTime1 = null;
+        String entryTime2 = null;
         if (scanWorkOrderDTO.getCreateAt() != null) {
             entryTime1 = scanWorkOrderDTO.getCreateAt() + " 00:00:00.000";
             entryTime2 = scanWorkOrderDTO.getCreateAt() + " 23:59:59.000";

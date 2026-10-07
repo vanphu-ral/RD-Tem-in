@@ -50,6 +50,10 @@
       "fieldType": "Integer"
     },
     {
+      "fieldName": "numberOfItem",
+      "fieldType": "Integer"
+    },
+    {
       "fieldName": "status",
       "fieldType": "String",
       "fieldValidateRules": ["maxlength"],

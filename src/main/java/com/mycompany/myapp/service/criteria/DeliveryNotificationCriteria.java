@@ -20,407 +20,470 @@ import tech.jhipster.service.filter.*;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class DeliveryNotificationCriteria implements Serializable, Criteria {
 
-  private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-  private LongFilter id;
+    private LongFilter id;
 
-  private StringFilter deliveryNotificationCode;
+    private StringFilter deliveryNotificationCode;
 
-  private StringFilter invoiceNumber;
+    private StringFilter invoiceNumber;
 
-  private StringFilter contractCode;
+    private StringFilter contractCode;
 
-  private StringFilter vendorName;
+    private StringFilter vendorName;
 
-  private StringFilter contNo;
+    private StringFilter contNo;
 
-  private InstantFilter entryDate;
+    private InstantFilter entryDate;
 
-  private IntegerFilter numberOfPo;
+    private IntegerFilter numberOfPo;
 
-  private StringFilter status;
+    private IntegerFilter numberOfItem;
 
-  private InstantFilter createdAt;
+    private StringFilter status;
 
-  private StringFilter createdBy;
+    private StringFilter source;
 
-  private InstantFilter deletedAt;
+    private InstantFilter createdAt;
 
-  private StringFilter deletedBy;
+    private StringFilter createdBy;
 
-  private Boolean distinct;
+    private InstantFilter deletedAt;
 
-  public DeliveryNotificationCriteria() {}
+    private StringFilter deletedBy;
 
-  public DeliveryNotificationCriteria(DeliveryNotificationCriteria other) {
-    this.id = other.optionalId().map(LongFilter::copy).orElse(null);
-    this.deliveryNotificationCode = other
-      .optionalDeliveryNotificationCode()
-      .map(StringFilter::copy)
-      .orElse(null);
-    this.invoiceNumber = other
-      .optionalInvoiceNumber()
-      .map(StringFilter::copy)
-      .orElse(null);
-    this.contractCode = other
-      .optionalContractCode()
-      .map(StringFilter::copy)
-      .orElse(null);
-    this.vendorName = other
-      .optionalVendorName()
-      .map(StringFilter::copy)
-      .orElse(null);
-    this.contNo = other.optionalContNo().map(StringFilter::copy).orElse(null);
-    this.entryDate = other
-      .optionalEntryDate()
-      .map(InstantFilter::copy)
-      .orElse(null);
-    this.numberOfPo = other
-      .optionalNumberOfPo()
-      .map(IntegerFilter::copy)
-      .orElse(null);
-    this.status = other.optionalStatus().map(StringFilter::copy).orElse(null);
-    this.createdAt = other
-      .optionalCreatedAt()
-      .map(InstantFilter::copy)
-      .orElse(null);
-    this.createdBy = other
-      .optionalCreatedBy()
-      .map(StringFilter::copy)
-      .orElse(null);
-    this.deletedAt = other
-      .optionalDeletedAt()
-      .map(InstantFilter::copy)
-      .orElse(null);
-    this.deletedBy = other
-      .optionalDeletedBy()
-      .map(StringFilter::copy)
-      .orElse(null);
-    this.distinct = other.distinct;
-  }
+    private Boolean distinct;
 
-  @Override
-  public DeliveryNotificationCriteria copy() {
-    return new DeliveryNotificationCriteria(this);
-  }
+    public DeliveryNotificationCriteria() {}
 
-  public LongFilter getId() {
-    return id;
-  }
-
-  public Optional<LongFilter> optionalId() {
-    return Optional.ofNullable(id);
-  }
-
-  public LongFilter id() {
-    if (id == null) {
-      setId(new LongFilter());
+    public DeliveryNotificationCriteria(DeliveryNotificationCriteria other) {
+        this.id = other.optionalId().map(LongFilter::copy).orElse(null);
+        this.deliveryNotificationCode = other
+            .optionalDeliveryNotificationCode()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.invoiceNumber = other
+            .optionalInvoiceNumber()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.contractCode = other
+            .optionalContractCode()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.vendorName = other
+            .optionalVendorName()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.contNo = other
+            .optionalContNo()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.entryDate = other
+            .optionalEntryDate()
+            .map(InstantFilter::copy)
+            .orElse(null);
+        this.numberOfPo = other
+            .optionalNumberOfPo()
+            .map(IntegerFilter::copy)
+            .orElse(null);
+        this.numberOfItem = other
+            .optionalNumberOfItem()
+            .map(IntegerFilter::copy)
+            .orElse(null);
+        this.status = other
+            .optionalStatus()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.source = other
+            .optionalSource()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.createdAt = other
+            .optionalCreatedAt()
+            .map(InstantFilter::copy)
+            .orElse(null);
+        this.createdBy = other
+            .optionalCreatedBy()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.deletedAt = other
+            .optionalDeletedAt()
+            .map(InstantFilter::copy)
+            .orElse(null);
+        this.deletedBy = other
+            .optionalDeletedBy()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.distinct = other.distinct;
     }
-    return id;
-  }
 
-  public void setId(LongFilter id) {
-    this.id = id;
-  }
-
-  public StringFilter getDeliveryNotificationCode() {
-    return deliveryNotificationCode;
-  }
-
-  public Optional<StringFilter> optionalDeliveryNotificationCode() {
-    return Optional.ofNullable(deliveryNotificationCode);
-  }
-
-  public StringFilter deliveryNotificationCode() {
-    if (deliveryNotificationCode == null) {
-      setDeliveryNotificationCode(new StringFilter());
+    @Override
+    public DeliveryNotificationCriteria copy() {
+        return new DeliveryNotificationCriteria(this);
     }
-    return deliveryNotificationCode;
-  }
 
-  public void setDeliveryNotificationCode(
-    StringFilter deliveryNotificationCode
-  ) {
-    this.deliveryNotificationCode = deliveryNotificationCode;
-  }
-
-
-  public StringFilter getInvoiceNumber() {
-    return invoiceNumber;
-  }
-
-  public Optional<StringFilter> optionalInvoiceNumber() {
-    return Optional.ofNullable(invoiceNumber);
-  }
-
-  public StringFilter invoiceNumber() {
-    if (invoiceNumber == null) {
-      setInvoiceNumber(new StringFilter());
+    public LongFilter getId() {
+        return id;
     }
-    return invoiceNumber;
-  }
 
-  public void setInvoiceNumber(StringFilter invoiceNumber) {
-    this.invoiceNumber = invoiceNumber;
-  }
-
-  public StringFilter getContractCode() {
-    return contractCode;
-  }
-
-  public Optional<StringFilter> optionalContractCode() {
-    return Optional.ofNullable(contractCode);
-  }
-
-  public StringFilter contractCode() {
-    if (contractCode == null) {
-      setContractCode(new StringFilter());
+    public Optional<LongFilter> optionalId() {
+        return Optional.ofNullable(id);
     }
-    return contractCode;
-  }
 
-  public void setContractCode(StringFilter contractCode) {
-    this.contractCode = contractCode;
-  }
-
-  public StringFilter getVendorName() {
-    return vendorName;
-  }
-
-  public Optional<StringFilter> optionalVendorName() {
-    return Optional.ofNullable(vendorName);
-  }
-
-  public StringFilter vendorName() {
-    if (vendorName == null) {
-      setVendorName(new StringFilter());
+    public LongFilter id() {
+        if (id == null) {
+            setId(new LongFilter());
+        }
+        return id;
     }
-    return vendorName;
-  }
 
-  public void setVendorName(StringFilter vendorName) {
-    this.vendorName = vendorName;
-  }
-
-  public StringFilter getContNo() {
-    return contNo;
-  }
-
-  public Optional<StringFilter> optionalContNo() {
-    return Optional.ofNullable(contNo);
-  }
-
-  public StringFilter contNo() {
-    if (contNo == null) {
-      setContNo(new StringFilter());
+    public void setId(LongFilter id) {
+        this.id = id;
     }
-    return contNo;
-  }
 
-  public void setContNo(StringFilter contNo) {
-    this.contNo = contNo;
-  }
-
-  public InstantFilter getEntryDate() {
-    return entryDate;
-  }
-
-  public Optional<InstantFilter> optionalEntryDate() {
-    return Optional.ofNullable(entryDate);
-  }
-
-  public InstantFilter entryDate() {
-    if (entryDate == null) {
-      setEntryDate(new InstantFilter());
+    public StringFilter getDeliveryNotificationCode() {
+        return deliveryNotificationCode;
     }
-    return entryDate;
-  }
 
-  public void setEntryDate(InstantFilter entryDate) {
-    this.entryDate = entryDate;
-  }
-
-  public IntegerFilter getNumberOfPo() {
-    return numberOfPo;
-  }
-
-  public Optional<IntegerFilter> optionalNumberOfPo() {
-    return Optional.ofNullable(numberOfPo);
-  }
-
-  public IntegerFilter numberOfPo() {
-    if (numberOfPo == null) {
-      setNumberOfPo(new IntegerFilter());
+    public Optional<StringFilter> optionalDeliveryNotificationCode() {
+        return Optional.ofNullable(deliveryNotificationCode);
     }
-    return numberOfPo;
-  }
 
-  public void setNumberOfPo(IntegerFilter numberOfPo) {
-    this.numberOfPo = numberOfPo;
-  }
-
-  public StringFilter getStatus() {
-    return status;
-  }
-
-  public Optional<StringFilter> optionalStatus() {
-    return Optional.ofNullable(status);
-  }
-
-  public StringFilter status() {
-    if (status == null) {
-      setStatus(new StringFilter());
+    public StringFilter deliveryNotificationCode() {
+        if (deliveryNotificationCode == null) {
+            setDeliveryNotificationCode(new StringFilter());
+        }
+        return deliveryNotificationCode;
     }
-    return status;
-  }
 
-  public void setStatus(StringFilter status) {
-    this.status = status;
-  }
-
-  public InstantFilter getCreatedAt() {
-    return createdAt;
-  }
-
-  public Optional<InstantFilter> optionalCreatedAt() {
-    return Optional.ofNullable(createdAt);
-  }
-
-  public InstantFilter createdAt() {
-    if (createdAt == null) {
-      setCreatedAt(new InstantFilter());
+    public void setDeliveryNotificationCode(
+        StringFilter deliveryNotificationCode
+    ) {
+        this.deliveryNotificationCode = deliveryNotificationCode;
     }
-    return createdAt;
-  }
 
-  public void setCreatedAt(InstantFilter createdAt) {
-    this.createdAt = createdAt;
-  }
-
-  public StringFilter getCreatedBy() {
-    return createdBy;
-  }
-
-  public Optional<StringFilter> optionalCreatedBy() {
-    return Optional.ofNullable(createdBy);
-  }
-
-  public StringFilter createdBy() {
-    if (createdBy == null) {
-      setCreatedBy(new StringFilter());
+    public StringFilter getInvoiceNumber() {
+        return invoiceNumber;
     }
-    return createdBy;
-  }
 
-  public void setCreatedBy(StringFilter createdBy) {
-    this.createdBy = createdBy;
-  }
-
-  public InstantFilter getDeletedAt() {
-    return deletedAt;
-  }
-
-  public Optional<InstantFilter> optionalDeletedAt() {
-    return Optional.ofNullable(deletedAt);
-  }
-
-  public InstantFilter deletedAt() {
-    if (deletedAt == null) {
-      setDeletedAt(new InstantFilter());
+    public Optional<StringFilter> optionalInvoiceNumber() {
+        return Optional.ofNullable(invoiceNumber);
     }
-    return deletedAt;
-  }
 
-  public void setDeletedAt(InstantFilter deletedAt) {
-    this.deletedAt = deletedAt;
-  }
-
-  public StringFilter getDeletedBy() {
-    return deletedBy;
-  }
-
-  public Optional<StringFilter> optionalDeletedBy() {
-    return Optional.ofNullable(deletedBy);
-  }
-
-  public StringFilter deletedBy() {
-    if (deletedBy == null) {
-      setDeletedBy(new StringFilter());
+    public StringFilter invoiceNumber() {
+        if (invoiceNumber == null) {
+            setInvoiceNumber(new StringFilter());
+        }
+        return invoiceNumber;
     }
-    return deletedBy;
-  }
 
-  public void setDeletedBy(StringFilter deletedBy) {
-    this.deletedBy = deletedBy;
-  }
-
-  public Boolean getDistinct() {
-    return distinct;
-  }
-
-  public Optional<Boolean> optionalDistinct() {
-    return Optional.ofNullable(distinct);
-  }
-
-  public Boolean distinct() {
-    if (distinct == null) {
-      setDistinct(true);
+    public void setInvoiceNumber(StringFilter invoiceNumber) {
+        this.invoiceNumber = invoiceNumber;
     }
-    return distinct;
-  }
 
-  public void setDistinct(Boolean distinct) {
-    this.distinct = distinct;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    public StringFilter getContractCode() {
+        return contractCode;
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
+
+    public Optional<StringFilter> optionalContractCode() {
+        return Optional.ofNullable(contractCode);
     }
-    final DeliveryNotificationCriteria that = (DeliveryNotificationCriteria) o;
-    return (
-      Objects.equals(id, that.id) &&
-      Objects.equals(deliveryNotificationCode, that.deliveryNotificationCode) &&
-      Objects.equals(invoiceNumber, that.invoiceNumber) &&
-      Objects.equals(contractCode, that.contractCode) &&
-      Objects.equals(vendorName, that.vendorName) &&
-      Objects.equals(contNo, that.contNo) &&
-      Objects.equals(entryDate, that.entryDate) &&
-      Objects.equals(numberOfPo, that.numberOfPo) &&
-      Objects.equals(status, that.status) &&
-      Objects.equals(createdAt, that.createdAt) &&
-      Objects.equals(createdBy, that.createdBy) &&
-      Objects.equals(deletedAt, that.deletedAt) &&
-      Objects.equals(deletedBy, that.deletedBy) &&
-      Objects.equals(distinct, that.distinct)
-    );
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-      id,
-      deliveryNotificationCode,
-      invoiceNumber,
-      contractCode,
-      vendorName,
-      contNo,
-      entryDate,
-      numberOfPo,
-      status,
-      createdAt,
-      createdBy,
-      deletedAt,
-      deletedBy,
-      distinct
-    );
-  }
+    public StringFilter contractCode() {
+        if (contractCode == null) {
+            setContractCode(new StringFilter());
+        }
+        return contractCode;
+    }
 
-  // prettier-ignore
+    public void setContractCode(StringFilter contractCode) {
+        this.contractCode = contractCode;
+    }
+
+    public StringFilter getVendorName() {
+        return vendorName;
+    }
+
+    public Optional<StringFilter> optionalVendorName() {
+        return Optional.ofNullable(vendorName);
+    }
+
+    public StringFilter vendorName() {
+        if (vendorName == null) {
+            setVendorName(new StringFilter());
+        }
+        return vendorName;
+    }
+
+    public void setVendorName(StringFilter vendorName) {
+        this.vendorName = vendorName;
+    }
+
+    public StringFilter getContNo() {
+        return contNo;
+    }
+
+    public Optional<StringFilter> optionalContNo() {
+        return Optional.ofNullable(contNo);
+    }
+
+    public StringFilter contNo() {
+        if (contNo == null) {
+            setContNo(new StringFilter());
+        }
+        return contNo;
+    }
+
+    public void setContNo(StringFilter contNo) {
+        this.contNo = contNo;
+    }
+
+    public InstantFilter getEntryDate() {
+        return entryDate;
+    }
+
+    public Optional<InstantFilter> optionalEntryDate() {
+        return Optional.ofNullable(entryDate);
+    }
+
+    public InstantFilter entryDate() {
+        if (entryDate == null) {
+            setEntryDate(new InstantFilter());
+        }
+        return entryDate;
+    }
+
+    public void setEntryDate(InstantFilter entryDate) {
+        this.entryDate = entryDate;
+    }
+
+    public IntegerFilter getNumberOfPo() {
+        return numberOfPo;
+    }
+
+    public Optional<IntegerFilter> optionalNumberOfPo() {
+        return Optional.ofNullable(numberOfPo);
+    }
+
+    public IntegerFilter numberOfPo() {
+        if (numberOfPo == null) {
+            setNumberOfPo(new IntegerFilter());
+        }
+        return numberOfPo;
+    }
+
+    public void setNumberOfPo(IntegerFilter numberOfPo) {
+        this.numberOfPo = numberOfPo;
+    }
+
+    public IntegerFilter getNumberOfItem() {
+        return numberOfItem;
+    }
+
+    public Optional<IntegerFilter> optionalNumberOfItem() {
+        return Optional.ofNullable(numberOfItem);
+    }
+
+    public IntegerFilter numberOfItem() {
+        if (numberOfItem == null) {
+            setNumberOfItem(new IntegerFilter());
+        }
+        return numberOfItem;
+    }
+
+    public void setNumberOfItem(IntegerFilter numberOfItem) {
+        this.numberOfItem = numberOfItem;
+    }
+
+    public StringFilter getStatus() {
+        return status;
+    }
+
+    public Optional<StringFilter> optionalStatus() {
+        return Optional.ofNullable(status);
+    }
+
+    public StringFilter status() {
+        if (status == null) {
+            setStatus(new StringFilter());
+        }
+        return status;
+    }
+
+    public void setStatus(StringFilter status) {
+        this.status = status;
+    }
+
+    public StringFilter getSource() {
+        return source;
+    }
+
+    public Optional<StringFilter> optionalSource() {
+        return Optional.ofNullable(source);
+    }
+
+    public StringFilter source() {
+        if (source == null) {
+            setSource(new StringFilter());
+        }
+        return source;
+    }
+
+    public void setSource(StringFilter source) {
+        this.source = source;
+    }
+
+    public InstantFilter getCreatedAt() {
+        return createdAt;
+    }
+
+    public Optional<InstantFilter> optionalCreatedAt() {
+        return Optional.ofNullable(createdAt);
+    }
+
+    public InstantFilter createdAt() {
+        if (createdAt == null) {
+            setCreatedAt(new InstantFilter());
+        }
+        return createdAt;
+    }
+
+    public void setCreatedAt(InstantFilter createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public StringFilter getCreatedBy() {
+        return createdBy;
+    }
+
+    public Optional<StringFilter> optionalCreatedBy() {
+        return Optional.ofNullable(createdBy);
+    }
+
+    public StringFilter createdBy() {
+        if (createdBy == null) {
+            setCreatedBy(new StringFilter());
+        }
+        return createdBy;
+    }
+
+    public void setCreatedBy(StringFilter createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public InstantFilter getDeletedAt() {
+        return deletedAt;
+    }
+
+    public Optional<InstantFilter> optionalDeletedAt() {
+        return Optional.ofNullable(deletedAt);
+    }
+
+    public InstantFilter deletedAt() {
+        if (deletedAt == null) {
+            setDeletedAt(new InstantFilter());
+        }
+        return deletedAt;
+    }
+
+    public void setDeletedAt(InstantFilter deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public StringFilter getDeletedBy() {
+        return deletedBy;
+    }
+
+    public Optional<StringFilter> optionalDeletedBy() {
+        return Optional.ofNullable(deletedBy);
+    }
+
+    public StringFilter deletedBy() {
+        if (deletedBy == null) {
+            setDeletedBy(new StringFilter());
+        }
+        return deletedBy;
+    }
+
+    public void setDeletedBy(StringFilter deletedBy) {
+        this.deletedBy = deletedBy;
+    }
+
+    public Boolean getDistinct() {
+        return distinct;
+    }
+
+    public Optional<Boolean> optionalDistinct() {
+        return Optional.ofNullable(distinct);
+    }
+
+    public Boolean distinct() {
+        if (distinct == null) {
+            setDistinct(true);
+        }
+        return distinct;
+    }
+
+    public void setDistinct(Boolean distinct) {
+        this.distinct = distinct;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final DeliveryNotificationCriteria that =
+            (DeliveryNotificationCriteria) o;
+        return (
+            Objects.equals(id, that.id) &&
+            Objects.equals(
+                deliveryNotificationCode,
+                that.deliveryNotificationCode
+            ) &&
+            Objects.equals(invoiceNumber, that.invoiceNumber) &&
+            Objects.equals(contractCode, that.contractCode) &&
+            Objects.equals(vendorName, that.vendorName) &&
+            Objects.equals(contNo, that.contNo) &&
+            Objects.equals(entryDate, that.entryDate) &&
+            Objects.equals(numberOfPo, that.numberOfPo) &&
+            Objects.equals(numberOfItem, that.numberOfItem) &&
+            Objects.equals(status, that.status) &&
+            Objects.equals(source, that.source) &&
+            Objects.equals(createdAt, that.createdAt) &&
+            Objects.equals(createdBy, that.createdBy) &&
+            Objects.equals(deletedAt, that.deletedAt) &&
+            Objects.equals(deletedBy, that.deletedBy) &&
+            Objects.equals(distinct, that.distinct)
+        );
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+            id,
+            deliveryNotificationCode,
+            invoiceNumber,
+            contractCode,
+            vendorName,
+            contNo,
+            entryDate,
+            numberOfPo,
+            numberOfItem,
+            status,
+            source,
+            createdAt,
+            createdBy,
+            deletedAt,
+            deletedBy,
+            distinct
+        );
+    }
+
+    // prettier-ignore
     @Override
     public String toString() {
         return "DeliveryNotificationCriteria{" +
@@ -432,7 +495,9 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             optionalContNo().map(f -> "contNo=" + f + ", ").orElse("") +
             optionalEntryDate().map(f -> "entryDate=" + f + ", ").orElse("") +
             optionalNumberOfPo().map(f -> "numberOfPo=" + f + ", ").orElse("") +
+            optionalNumberOfItem().map(f -> "numberOfItem=" + f + ", ").orElse("") +
             optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
+            optionalSource().map(f -> "source=" + f + ", ").orElse("") +
             optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
             optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
             optionalDeletedAt().map(f -> "deletedAt=" + f + ", ").orElse("") +

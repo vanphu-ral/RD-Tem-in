@@ -28,7 +28,11 @@ public class DeliveryNotificationDetailDTO implements Serializable {
 
     private Integer numberOfPo;
 
+    private Integer numberOfItem;
+
     private String status;
+
+    private String source;
 
     private String createdBy;
 
@@ -55,7 +59,9 @@ public class DeliveryNotificationDetailDTO implements Serializable {
             this.contNo = entity.getContNo();
             this.entryDate = entity.getEntryDate();
             this.numberOfPo = entity.getNumberOfPo();
+            this.numberOfItem = entity.getNumberOfItem();
             this.status = entity.getStatus();
+            this.source = entity.getSource();
             this.createdBy = entity.getCreatedBy();
             this.createdAt = entity.getCreatedAt();
         }
@@ -128,12 +134,28 @@ public class DeliveryNotificationDetailDTO implements Serializable {
         this.numberOfPo = numberOfPo;
     }
 
+    public Integer getNumberOfItem() {
+        return numberOfItem;
+    }
+
+    public void setNumberOfItem(Integer numberOfItem) {
+        this.numberOfItem = numberOfItem;
+    }
+
     public String getStatus() {
         return status;
     }
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 
     public String getCreatedBy() {

@@ -9,7 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface scanWorkOrderRepository extends JpaRepository<scanWorkorder, Long> {
+public interface scanWorkOrderRepository
+    extends JpaRepository<scanWorkorder, Long> {
     @Query(
         value = "select " +
         "wo.order_id as orderId," +
@@ -32,7 +33,12 @@ public interface scanWorkOrderRepository extends JpaRepository<scanWorkorder, Lo
     )
     public List<workOrderInfo> listWorkOrderByGroup();
 
-    @Query(value = "update Scan_workOrder set working=?1 " + "inner join scan " + "where order_id=?2;", nativeQuery = true)
+    @Query(
+        value = "update Scan_workOrder set working=?1 " +
+        "inner join scan " +
+        "where order_id=?2;",
+        nativeQuery = true
+    )
     public void updateWorkingWorkOrder(Integer working, Long orderId);
 
     @Query(
@@ -59,8 +65,15 @@ public interface scanWorkOrderRepository extends JpaRepository<scanWorkorder, Lo
     public workOrderInfo listWorkOrderByGroupById(Long orderId);
 
     @Modifying
-    @Query(value = "update Scan_workOrder set working = ?1, run_time = ?2 where order_id = ?3", nativeQuery = true)
-    public void updateWorkOrderWorking(Integer working, Integer runTime, Long orderId);
+    @Query(
+        value = "update Scan_workOrder set working = ?1, run_time = ?2 where order_id = ?3",
+        nativeQuery = true
+    )
+    public void updateWorkOrderWorking(
+        Integer working,
+        Integer runTime,
+        Long orderId
+    );
 
     @Query(
         value = "" +
@@ -88,7 +101,8 @@ public interface scanWorkOrderRepository extends JpaRepository<scanWorkorder, Lo
         "\t\t  and pd.product_code like ?3\n" +
         "\t\t  and pd.product_name like ?4\n" +
         "\t\t  and gm.group_name like ?5\n" +
-        "\t\t  and wo.create_at between ?6 and ?7\n " +
+        "\t\t  and (?6 is null or wo.create_at >= ?6)\n" +
+        "\t\t  and (?7 is null or wo.create_at <= ?7)\n " +
         "group by " +
         "wo.order_id," +
         "wo.work_order," +
@@ -129,7 +143,8 @@ public interface scanWorkOrderRepository extends JpaRepository<scanWorkorder, Lo
         "\t\t  and pd.product_code like ?3 \n" +
         "\t\t  and pd.product_name like ?4 \n" +
         "\t\t  and gm.group_name like ?5 \n" +
-        "\t\t  and wo.create_at between ?6 and ?7 ;",
+        "\t\t  and (?6 is null or wo.create_at >= ?6) " +
+        "\t\t  and (?7 is null or wo.create_at <= ?7) ;",
         nativeQuery = true
     )
     public Integer getTotalData(

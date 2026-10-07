@@ -6,6 +6,7 @@ import com.mycompany.myapp.service.VendorLabelInfoService;
 import com.mycompany.myapp.service.dto.PalletVendorLabelInfoRequestDTO;
 import com.mycompany.myapp.service.dto.PalletVendorLabelInfoResponseDTO;
 import com.mycompany.myapp.service.dto.VendorLabelInfoDTO;
+import com.mycompany.myapp.service.dto.VendorLabelInfoUserData5SumDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -294,5 +295,27 @@ public class VendorLabelInfoResource {
                 )
             )
             .build();
+    }
+
+    /**
+     * {@code GET  /vendor-label-infos/sum-by-user-data-5/{userData5}} : aggregate the
+     * {@code initial_quantity} per {@code sap_code} for records whose
+     * {@code user_data_5} equals the given value.
+     *
+     * @param userData5 the value of {@code user_data_5} to filter on.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the
+     *         list of aggregation results, one per {@code sap_code}.
+     */
+    @GetMapping("/sum-by-user-data-5/{userData5}")
+    public ResponseEntity<
+        List<VendorLabelInfoUserData5SumDTO>
+    > sumInitialQuantityByUserData5(@PathVariable String userData5) {
+        LOG.debug(
+            "REST request to sum initial_quantity by sap_code for userData5 : {}",
+            userData5
+        );
+        List<VendorLabelInfoUserData5SumDTO> result =
+            vendorLabelInfoService.sumInitialQuantityByUserData5(userData5);
+        return ResponseEntity.ok(result);
     }
 }

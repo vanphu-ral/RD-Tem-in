@@ -31,6 +31,7 @@ entity DeliveryNotification {
   contNo String maxlength(50)
   entryDate Instant
   numberOfPo Integer
+  numberOfItem Integer
   status String maxlength(50)
   createAt Instant
   createBy String maxlength(50)
