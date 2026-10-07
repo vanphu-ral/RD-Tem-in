@@ -385,6 +385,8 @@
     <include file="config/liquibase/changelog/20260925051517_added_entity_DeliveryNotification.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260925051518_added_entity_SapPor1R1.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260925051519_added_entity_VendorLabelInfo.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261002100000_add_source_to_delivery_notification.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261002110000_add_number_of_item_to_delivery_notification.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <include file="config/liquibase/changelog/20260309010238_added_entity_constraints_PoDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260309010239_added_entity_constraints_VendorTemDetail.xml" relativeToChangelogFile="false"/>

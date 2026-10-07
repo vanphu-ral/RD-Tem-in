@@ -33,6 +33,7 @@ spring:
       enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     url: jdbc:sqlserver://172.168.6.99:1433;database=ProfileProductions;encrypt=true;trustServerCertificate=true;
     username: SA
     password: Led@R@ngDong
@@ -55,6 +56,7 @@ jasper:
 partner:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     url: jdbc:sqlserver://172.168.6.3:1433;database=PanaCIMMC;encrypt=true;trustServerCertificate=true;
     username: itcntt
     password: it-cntt@16
@@ -69,17 +71,18 @@ partner:
 partner2:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     url: jdbc:sqlserver://172.168.6.99:1433;database=WMSRAL;encrypt=true;trustServerCertificate=true;
     username: SA
     password: Led@R@ngDong
-  hikari:
-    poolName: Hikari
-    auto-commit: false
-    data-source-properties:
-      cachePrepStmts: true
-      prepStmtCacheSize: 250
-      prepStmtCacheSqlLimit: 2048
-      useServerPrepStmts: true
+    hikari:
+      poolName: Hikari
+      auto-commit: false
+      data-source-properties:
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
   jpa:
   # Replace by 'prod, faker' to add the faker context and have sample data loaded in production
   liquibase:
@@ -102,6 +105,7 @@ partner2:
       discovery:
         enabled: true
 partner3:
+  enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
@@ -118,13 +122,10 @@ partner3:
       leak-detection-threshold: 60000
       data-source-properties:
         reWriteBatchedInserts: true
-  liquibase:
-    enabled: true
-    change-log: classpath:config/liquibase/partner3/master.xml
-    contexts: prod
 partner4:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     url: jdbc:sqlserver://192.168.68.62:1433;database=DWH;encrypt=true;trustServerCertificate=true;
     username: technical
     password: QLHT-CNTT@2022
@@ -139,6 +140,65 @@ partner4:
         prepStmtCacheSize: 250
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
+partner5:
+  enabled: true
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/VENDOR_TEM_MNGT_DB
+    username: postgres
+    password: admin123
+    hikari:
+      poolName: HikariCP-Partner5
+      auto-commit: false
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+      data-source-properties:
+        reWriteBatchedInserts: true
+
+partner6:
+  enabled: false
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:sqlserver://192.168.68.62:1433;database=RawZone;encrypt=true;trustServerCertificate=true;
+    username: technical
+    password: QLHT-CNTT@2022
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      poolName: Hikari
+      auto-commit: false
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+      data-source-properties:
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
+
+partner7:
+  enabled: true
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:sqlserver://192.168.68.3:1433;databaseName=Thang4;trustServerCertificate=true;
+    username: read
+    password: 2022@mesrd
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      poolName: Hikari
+      auto-commit: false
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+      data-source-properties:
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
+
 # ===================================================================
 # To enable TLS in production, generate a certificate using:
 # keytool -genkey -alias jhipster -storetype PKCS12 -keyalg RSA -keysize 2048 -keystore keystore.p12 -validity 3650

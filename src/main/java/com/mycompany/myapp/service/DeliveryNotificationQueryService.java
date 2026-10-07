@@ -24,145 +24,169 @@ import tech.jhipster.service.QueryService;
 @Service
 @Transactional(value = "partner5TransactionManager", readOnly = true)
 public class DeliveryNotificationQueryService
-  extends QueryService<DeliveryNotification> {
+    extends QueryService<DeliveryNotification> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(
-    DeliveryNotificationQueryService.class
-  );
-
-  private final DeliveryNotificationRepository deliveryNotificationRepository;
-
-  private final DeliveryNotificationMapper deliveryNotificationMapper;
-
-  public DeliveryNotificationQueryService(
-    DeliveryNotificationRepository deliveryNotificationRepository,
-    DeliveryNotificationMapper deliveryNotificationMapper
-  ) {
-    this.deliveryNotificationRepository = deliveryNotificationRepository;
-    this.deliveryNotificationMapper = deliveryNotificationMapper;
-  }
-
-  /**
-   * Return a {@link Page} of {@link DeliveryNotificationDTO} which matches the criteria from the database.
-   * @param criteria The object which holds all the filters, which the entities should match.
-   * @param page The page, which should be returned.
-   * @return the matching entities.
-   */
-  @Transactional(value = "partner5TransactionManager", readOnly = true)
-  public Page<DeliveryNotificationDTO> findByCriteria(
-    DeliveryNotificationCriteria criteria,
-    Pageable page
-  ) {
-    LOG.debug("find by criteria : {}, page: {}", criteria, page);
-    final Specification<DeliveryNotification> specification =
-      createSpecification(criteria);
-    return deliveryNotificationRepository
-      .findAll(specification, page)
-      .map(deliveryNotificationMapper::toDto);
-  }
-
-  /**
-   * Return the number of matching entities in the database.
-   * @param criteria The object which holds all the filters, which the entities should match.
-   * @return the number of matching entities.
-   */
-  @Transactional(value = "partner5TransactionManager", readOnly = true)
-  public long countByCriteria(DeliveryNotificationCriteria criteria) {
-    LOG.debug("count by criteria : {}", criteria);
-    final Specification<DeliveryNotification> specification =
-      createSpecification(criteria);
-    return deliveryNotificationRepository.count(specification);
-  }
-
-  /**
-   * Function to convert {@link DeliveryNotificationCriteria} to a {@link Specification}
-   * @param criteria The object which holds all the filters, which the entities should match.
-   * @return the matching {@link Specification} of the entity.
-   */
-  protected Specification<DeliveryNotification> createSpecification(
-    DeliveryNotificationCriteria criteria
-  ) {
-    Specification<DeliveryNotification> specification = Specification.where(
-      null
+    private static final Logger LOG = LoggerFactory.getLogger(
+        DeliveryNotificationQueryService.class
     );
-     if (criteria != null) {
-      if (Boolean.TRUE.equals(criteria.getDistinct())) {
-        specification = specification.and(distinct(criteria.getDistinct()));
-      }
-      specification = specification.and(
-        buildRangeSpecification(criteria.id(), DeliveryNotification_.id)
-      );
-      specification = specification.and(
-        buildStringSpecification(
-          criteria.deliveryNotificationCode(),
-          DeliveryNotification_.deliveryNotificationCode
-        )
-      );
 
-      specification = specification.and(
-        buildStringSpecification(
-          criteria.invoiceNumber(),
-          DeliveryNotification_.invoiceNumber
-        )
-      );
-      specification = specification.and(
-        buildStringSpecification(
-          criteria.contractCode(),
-          DeliveryNotification_.contractCode
-        )
-      );
-      specification = specification.and(
-        buildStringSpecification(
-          criteria.vendorName(),
-          DeliveryNotification_.vendorName
-        )
-      );
-      specification = specification.and(
-        buildStringSpecification(
-          criteria.contNo(),
-          DeliveryNotification_.contNo
-        )
-      );
-      specification = specification.and(
-        buildRangeSpecification(
-          criteria.entryDate(),
-          DeliveryNotification_.entryDate
-        )
-      );
-      specification = specification.and(
-        buildRangeSpecification(
-          criteria.numberOfPo(),
-          DeliveryNotification_.numberOfPo
-        )
-      );
-      specification = specification.and(
-        buildStringSpecification(criteria.status(), DeliveryNotification_.status)
-      );
-      specification = specification.and(
-        buildRangeSpecification(
-          criteria.createdAt(),
-          DeliveryNotification_.createdAt
-        )
-      );
-      specification = specification.and(
-        buildStringSpecification(
-          criteria.createdBy(),
-          DeliveryNotification_.createdBy
-        )
-      );
-      specification = specification.and(
-        buildRangeSpecification(
-          criteria.deletedAt(),
-          DeliveryNotification_.deletedAt
-        )
-      );
-      specification = specification.and(
-        buildStringSpecification(
-          criteria.deletedBy(),
-          DeliveryNotification_.deletedBy
-        )
-      );
+    private final DeliveryNotificationRepository deliveryNotificationRepository;
+
+    private final DeliveryNotificationMapper deliveryNotificationMapper;
+
+    public DeliveryNotificationQueryService(
+        DeliveryNotificationRepository deliveryNotificationRepository,
+        DeliveryNotificationMapper deliveryNotificationMapper
+    ) {
+        this.deliveryNotificationRepository = deliveryNotificationRepository;
+        this.deliveryNotificationMapper = deliveryNotificationMapper;
     }
-    return specification;
-  }
+
+    /**
+     * Return a {@link Page} of {@link DeliveryNotificationDTO} which matches the criteria from the database.
+     * @param criteria The object which holds all the filters, which the entities should match.
+     * @param page The page, which should be returned.
+     * @return the matching entities.
+     */
+    @Transactional(value = "partner5TransactionManager", readOnly = true)
+    public Page<DeliveryNotificationDTO> findByCriteria(
+        DeliveryNotificationCriteria criteria,
+        Pageable page
+    ) {
+        LOG.debug("find by criteria : {}, page: {}", criteria, page);
+        final Specification<DeliveryNotification> specification =
+            createSpecification(criteria);
+        return deliveryNotificationRepository
+            .findAll(specification, page)
+            .map(deliveryNotificationMapper::toDto);
+    }
+
+    /**
+     * Return the number of matching entities in the database.
+     * @param criteria The object which holds all the filters, which the entities should match.
+     * @return the number of matching entities.
+     */
+    @Transactional(value = "partner5TransactionManager", readOnly = true)
+    public long countByCriteria(DeliveryNotificationCriteria criteria) {
+        LOG.debug("count by criteria : {}", criteria);
+        final Specification<DeliveryNotification> specification =
+            createSpecification(criteria);
+        return deliveryNotificationRepository.count(specification);
+    }
+
+    /**
+     * Function to convert {@link DeliveryNotificationCriteria} to a {@link Specification}
+     * @param criteria The object which holds all the filters, which the entities should match.
+     * @return the matching {@link Specification} of the entity.
+     */
+    protected Specification<DeliveryNotification> createSpecification(
+        DeliveryNotificationCriteria criteria
+    ) {
+        Specification<DeliveryNotification> specification = Specification.where(
+            null
+        );
+        if (criteria != null) {
+            if (Boolean.TRUE.equals(criteria.getDistinct())) {
+                specification = specification.and(
+                    distinct(criteria.getDistinct())
+                );
+            }
+            // By default, exclude soft-deleted records (deletedAt IS NULL)
+            // unless the user explicitly provides a deletedAt filter
+            if (criteria.getDeletedAt() == null) {
+                specification = specification.and((root, query, cb) ->
+                    cb.isNull(root.get(DeliveryNotification_.deletedAt))
+                );
+            }
+            specification = specification.and(
+                buildRangeSpecification(criteria.id(), DeliveryNotification_.id)
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.deliveryNotificationCode(),
+                    DeliveryNotification_.deliveryNotificationCode
+                )
+            );
+
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.invoiceNumber(),
+                    DeliveryNotification_.invoiceNumber
+                )
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.contractCode(),
+                    DeliveryNotification_.contractCode
+                )
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.vendorName(),
+                    DeliveryNotification_.vendorName
+                )
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.contNo(),
+                    DeliveryNotification_.contNo
+                )
+            );
+            specification = specification.and(
+                buildRangeSpecification(
+                    criteria.entryDate(),
+                    DeliveryNotification_.entryDate
+                )
+            );
+            specification = specification.and(
+                buildRangeSpecification(
+                    criteria.numberOfPo(),
+                    DeliveryNotification_.numberOfPo
+                )
+            );
+            specification = specification.and(
+                buildRangeSpecification(
+                    criteria.numberOfItem(),
+                    DeliveryNotification_.numberOfItem
+                )
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.status(),
+                    DeliveryNotification_.status
+                )
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.source(),
+                    DeliveryNotification_.source
+                )
+            );
+            specification = specification.and(
+                buildRangeSpecification(
+                    criteria.createdAt(),
+                    DeliveryNotification_.createdAt
+                )
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.createdBy(),
+                    DeliveryNotification_.createdBy
+                )
+            );
+            specification = specification.and(
+                buildRangeSpecification(
+                    criteria.deletedAt(),
+                    DeliveryNotification_.deletedAt
+                )
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.deletedBy(),
+                    DeliveryNotification_.deletedBy
+                )
+            );
+        }
+        return specification;
+    }
 }

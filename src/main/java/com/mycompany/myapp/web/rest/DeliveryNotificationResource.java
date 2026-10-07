@@ -42,6 +42,8 @@ public class DeliveryNotificationResource {
 
     private static final String ENTITY_NAME = "deliveryNotification";
 
+    private static final String DEFAULT_SOURCE = "system";
+
     @Value("${jhipster.clientApp.name}")
     private String applicationName;
 
@@ -88,6 +90,12 @@ public class DeliveryNotificationResource {
                 ENTITY_NAME,
                 "idexists"
             );
+        }
+        if (
+            deliveryNotificationDTO.getSource() == null ||
+            deliveryNotificationDTO.getSource().trim().isEmpty()
+        ) {
+            deliveryNotificationDTO.setSource(DEFAULT_SOURCE);
         }
         deliveryNotificationDTO = deliveryNotificationService.save(
             deliveryNotificationDTO
@@ -248,8 +256,26 @@ public class DeliveryNotificationResource {
             criteria
         );
 
+        // Mặc định sắp xếp bản ghi mới tạo lên đầu, chỉ áp dụng khi client không truyền sort
+        Pageable sortedPageable = pageable;
+        if (pageable.getSort().isUnsorted()) {
+            sortedPageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Order.desc(
+                        "createdAt"
+                    ),
+                    org.springframework.data.domain.Sort.Order.desc("id")
+                )
+            );
+        }
+
         Page<DeliveryNotificationDTO> page =
-            deliveryNotificationQueryService.findByCriteria(criteria, pageable);
+            deliveryNotificationQueryService.findByCriteria(
+                criteria,
+                sortedPageable
+            );
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
             ServletUriComponentsBuilder.fromCurrentRequest(),
             page
