@@ -158,6 +158,12 @@ export interface SapPor1R1Dto {
   vendorLabelInfoList: VendorLabelInfoDto[] | null;
 }
 
+/** 1 dòng GET /vendor-label-infos/sum-by-user-data-5/{po} — tổng SL đã scan theo mã SAP */
+export interface ScannedSumBySapDto {
+  sapCode: string | null;
+  totalInitialQuantity: number | null;
+}
+
 /** Payload POST /vendor-label-infos — 1 bản ghi = 1 thùng scan được */
 export interface CreateVendorLabelInfoPayload {
   reelId: string | null;
@@ -308,6 +314,15 @@ export class InfoTemNccService {
       .get<
         VendorLabelInfoDto[] | null
       >(`${this.url}/delivery-notifications/${deliveryId}/vendor-label-infos`)
+      .pipe(map((res) => (Array.isArray(res) ? res : [])));
+  }
+
+  /** Tổng SL đã scan của các thùng có userData5 = mã PO, gom theo mã SAP */
+  getScannedSumByPo(poCode: string): Observable<ScannedSumBySapDto[]> {
+    return this.http
+      .get<
+        ScannedSumBySapDto[] | null
+      >(`${this.url}/vendor-label-infos/sum-by-user-data-5/${encodeURIComponent(poCode)}`)
       .pipe(map((res) => (Array.isArray(res) ? res : [])));
   }
 

@@ -1513,7 +1513,8 @@ export class ScanImportDialogComponent
     // Phân bổ PO + lưu
     const proceed = (): void => {
       // QR có PO → ưu tiên PO đó; không có → PO thêm trước còn đủ chỗ cho cả thùng;
-      // mọi PO cùng vật tư đều không đủ chỗ → vẫn thêm vào PO (vượt SL theo PO).
+      // mọi PO cùng vật tư đều không đủ chỗ → cả thùng vào "Hàng chờ vật tư" (Thừa SL),
+      // ở hàng chờ tách thùng: phần vừa đủ vào PO, phần dư thành thùng mới.
       // PO trên QR không khớp PO nào của vật tư này → "Hàng chờ vật tư" (Sai PO)
       const qrPo = this.firstNonEmpty(
         fieldMap["userData5"],
@@ -1532,11 +1533,20 @@ export class ScanImportDialogComponent
       const matchedRow = poAmbiguous
         ? undefined
         : this.pickParentForBox(candidates, qrPoIgnored ? "" : qrPo, quantity);
-      // Thùng làm SL đã nhận vượt SL theo PO (vẫn thêm vào PO)
-      const overPo = !!matchedRow && this.exceedsPo(matchedRow, quantity);
+      const overflowQueued =
+        candidates.length > 0 && !matchedRow && !poAmbiguous;
+      // Thừa SL: PO dự kiến của thùng (PO trên tem, không có thì PO đầu tiên của vật tư)
+      // — lưu vào userData5 để chọn sẵn khi tách thùng
+      const overflowPo = overflowQueued
+        ? (candidates.find((c) => samePo(c.poCode)) ?? candidates[0])
+        : undefined;
       let queueReason: QueueReason | null = null;
       if (!matchedRow) {
-        queueReason = poAmbiguous ? "poMismatch" : "noPo";
+        queueReason = poAmbiguous
+          ? "poMismatch"
+          : overflowQueued
+            ? "overflow"
+            : "noPo";
       }
 
       let manufacturingDate = mapped("manufacturingDate")
@@ -1577,10 +1587,12 @@ export class ScanImportDialogComponent
         userData5: orNull(
           matchedRow
             ? this.firstNonEmpty(matchedRow.poCode, qrPo)
-            : this.firstNonEmpty(
-                qrPo,
-                candidates.length || noPoMatched ? "" : this.data.poCode,
-              ),
+            : overflowPo
+              ? this.firstNonEmpty(overflowPo.poCode, qrPo)
+              : this.firstNonEmpty(
+                  qrPo,
+                  candidates.length || noPoMatched ? "" : this.data.poCode,
+                ),
         ),
         initialQuantity: quantity,
         msdLevel: orNull(mapped("msl", "msdLevel")),
@@ -1632,10 +1644,10 @@ export class ScanImportDialogComponent
             ? `Thùng "${reelId}": PO ${qrPo} trên tem không chứa vật tư ${code}, vật tư có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`
             : `Thùng "${reelId}": PO ${qrPo} trên tem không có trong đơn, vật tư ${code} có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`,
         );
-      } else if (overPo && matchedRow) {
-        const code = toText(matchedRow.sapCode) || scannedPartNumber;
+      } else if (overflowQueued) {
+        const code = toText(candidates[0].sapCode) || scannedPartNumber;
         this.notificationService.warning(
-          `Thùng "${reelId}" (SL ${quantity}) vượt SL theo PO ${toText(matchedRow.poCode)} của vật tư ${code} — vẫn thêm vào PO.`,
+          `Thùng "${reelId}" (SL ${quantity}) vượt SL còn nhận của PO vật tư ${code} — đã đưa vào "Hàng chờ vật tư", tách thùng để nhập phần vừa đủ.`,
         );
       } else if (qrPoIgnored && matchedRow) {
         this.notificationService.info(
@@ -2646,7 +2658,7 @@ export class ScanImportDialogComponent
    * Phân bổ thùng cho 1 dòng PO khi nhiều PO cùng mã vật tư — ưu tiên PO còn đủ chỗ cho cả thùng:
    *  - QR có PO, khớp 1 ứng viên và còn đủ chỗ → dùng đúng PO đó
    *  - không → PO thêm trước còn đủ chỗ (dòng có SL theo PO = 0 coi như không giới hạn)
-   *  - không PO nào đủ chỗ → vẫn thêm vào PO (vượt SL): PO trên QR, không có thì PO thêm trước
+   *  - không PO nào đủ chỗ → undefined (cả thùng vào "Hàng chờ vật tư" — Thừa SL)
    */
   private pickParentForBox(
     candidates: ParentItem[],
@@ -2661,7 +2673,7 @@ export class ScanImportDialogComponent
     if (byPo && fits(byPo)) {
       return byPo;
     }
-    return candidates.find(fits) ?? byPo ?? candidates[0];
+    return candidates.find(fits);
   }
 
   /** Cộng / trừ SL đã nhận của 1 dòng PO */

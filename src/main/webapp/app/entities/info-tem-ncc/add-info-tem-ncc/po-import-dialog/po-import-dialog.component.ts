@@ -17,11 +17,14 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from "@angular/material/dialog";
+import { forkJoin, Observable, of } from "rxjs";
+import { catchError } from "rxjs/operators";
 import { ReceivingSuppliesService } from "app/entities/generate-tem-in/service/receiving-supplies.service";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import {
   InfoTemNccService,
   SapPor1BatchItem,
+  ScannedSumBySapDto,
   toText,
 } from "../../services/info-tem-ncc.service";
 
@@ -33,6 +36,10 @@ export interface PoImportRow {
   itemName: string;
   partNumber: string;
   quantity: number;
+  /** SL đã scan của dòng PO — null = chưa có dữ liệu (chờ API) */
+  scannedQty: number | null;
+  /** SL lần nhập này — người dùng nhập (hiện chỉ hiển thị, chưa lưu) */
+  importQty: number | null;
   unit: string;
   whsCode: string;
   lineNum: string;
@@ -288,8 +295,12 @@ export class PoImportDialogComponent implements OnInit {
       return;
     }
     this.isFetching = true;
-    this.receivingService.getSapPoInfo(po).subscribe({
-      next: (res) => {
+    // Gọi song song: thông tin PO + SL đã scan theo mã PO (lỗi SL đã scan không chặn PO)
+    forkJoin({
+      res: this.receivingService.getSapPoInfo(po),
+      scanned: this.scannedSum$(po),
+    }).subscribe({
+      next: ({ res, scanned }) => {
         this.isFetching = false;
         const details = res?.poDetails ?? [];
         if (!res || !details.length) {
@@ -316,6 +327,9 @@ export class PoImportDialogComponent implements OnInit {
             itemName: toText(d.por1Dscription),
             partNumber: "",
             quantity: Number(d.por1Quantity ?? 0) || 0,
+            // Điền sau khi gọi sum-by-user-data-5 (loadScannedQty)
+            scannedQty: null,
+            importQty: null,
             unit: toText(d.por1UnitMsr) || toText(d.por1UOMCode),
             whsCode: toText(d.por1WhsCode),
             lineNum: toText(d.por1LineNum),
@@ -352,6 +366,14 @@ export class PoImportDialogComponent implements OnInit {
         this.poInput = "";
         this.clearFilters();
         this.loadPartNumbers(rows);
+        // userData5 của thùng = mã PO trên bảng (docEntry); khác mã vừa nhập → gọi lại theo docEntry
+        if (poCode.toLowerCase() === po.toLowerCase()) {
+          this.applyScannedQty(poCode, rows, scanned);
+        } else {
+          this.scannedSum$(poCode).subscribe((list) =>
+            this.applyScannedQty(poCode, rows, list),
+          );
+        }
         this.focusPoInput();
       },
       error: () => {
@@ -409,6 +431,17 @@ export class PoImportDialogComponent implements OnInit {
     for (const r of this.selectableVisible) {
       this.onRowCheck(r, checked);
     }
+  }
+
+  /** SL lần nhập: không cho số âm */
+  onImportQtyChange(r: PoImportRow, value: number | null): void {
+    const n = value === null || value === undefined ? null : Number(value);
+    if (n !== null && (!Number.isFinite(n) || n < 0)) {
+      this.notificationService.warning("SL lần nhập không được âm.");
+      r.importQty = 0;
+      return;
+    }
+    r.importQty = n;
   }
 
   onConfirm(): void {
@@ -492,6 +525,43 @@ export class PoImportDialogComponent implements OnInit {
     this.filterSap = "";
     this.filterName = "";
     this.filterPart = "";
+  }
+
+  /** GET /vendor-label-infos/sum-by-user-data-5/{po} — lỗi → null (giữ "—") */
+  private scannedSum$(poCode: string): Observable<ScannedSumBySapDto[] | null> {
+    return this.infoTemNccService
+      .getScannedSumByPo(poCode)
+      .pipe(catchError(() => of(null)));
+  }
+
+  /**
+   * SL đã scan của từng vật tư trong PO: tổng SL các thùng có userData5 = mã PO, theo mã SAP.
+   * Vật tư không có trong kết quả → 0; lỗi API → giữ "—".
+   */
+  private applyScannedQty(
+    poCode: string,
+    rows: PoImportRow[],
+    list: ScannedSumBySapDto[] | null,
+  ): void {
+    if (!list) {
+      this.notificationService.warning(
+        `Không lấy được SL đã scan của PO ${poCode}.`,
+      );
+      return;
+    }
+    const bySap = new Map<string, number>();
+    for (const item of list) {
+      const code = toText(item.sapCode).toLowerCase();
+      if (code) {
+        bySap.set(
+          code,
+          (bySap.get(code) ?? 0) + (Number(item.totalInitialQuantity) || 0),
+        );
+      }
+    }
+    for (const row of rows) {
+      row.scannedQty = bySap.get(row.sapCode.toLowerCase()) ?? 0;
+    }
   }
 
   /** Part number OITM theo mã SAP (service có cache) */

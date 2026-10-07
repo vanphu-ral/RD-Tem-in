@@ -4,13 +4,15 @@
  *  - overflow: vật tư có trong PO của đơn nhưng mọi PO đều không còn đủ SL
  *  - noPo: vật tư không thuộc PO nào trong đơn (hoặc đơn chưa có PO)
  *  - poMismatch: PO trên tem (QR) không khớp PO nào của vật tư này trong đơn
+ *  - splitRemainder: phần dư tách ra từ thùng Thừa SL (thùng mới, chờ nhập đơn sau)
  */
-export type QueueReason = "overflow" | "noPo" | "poMismatch";
+export type QueueReason = "overflow" | "noPo" | "poMismatch" | "splitRemainder";
 
 const CODES: Record<QueueReason, string> = {
   overflow: "THUA_SL",
   noPo: "THIEU_PO",
   poMismatch: "SAI_PO",
+  splitRemainder: "DU_TACH",
 };
 
 /** Dữ liệu cũ: mã lý do từng lưu ở comments với tiền tố này */
@@ -20,12 +22,15 @@ export const QUEUE_REASON_LABELS: Record<QueueReason, string> = {
   overflow: "Thừa SL",
   noPo: "Thiếu PO",
   poMismatch: "Sai PO",
+  splitRemainder: "Dư tách",
 };
 
 export const QUEUE_REASON_HINTS: Record<QueueReason, string> = {
   overflow: "Các PO cùng vật tư đã đủ số lượng — thùng dư",
   noPo: "Vật tư không thuộc PO nào trong đơn",
   poMismatch: "PO trên tem không khớp PO nào của vật tư này trong đơn",
+  splitRemainder:
+    "Phần dư tách ra từ thùng thừa SL — thùng mới, chờ nhập vào đơn sau",
 };
 
 /** Giá trị status lưu khi đưa thùng vào hàng chờ */
@@ -73,7 +78,7 @@ export function clearQueueReason(rec: {
   };
 }
 
-/** Đếm số thùng theo lý do → [{reason, count}] theo thứ tự overflow, poMismatch, noPo */
+/** Đếm số thùng theo lý do → [{reason, count}] theo thứ tự overflow, splitRemainder, poMismatch, noPo */
 export function countQueueReasons(
   records: Array<{
     status?: string | null;
@@ -85,6 +90,7 @@ export function countQueueReasons(
     overflow: 0,
     noPo: 0,
     poMismatch: 0,
+    splitRemainder: 0,
   };
   for (const rec of records) {
     const reason = queueReasonOf(rec);
@@ -92,7 +98,7 @@ export function countQueueReasons(
       counts[reason]++;
     }
   }
-  return (["overflow", "poMismatch", "noPo"] as QueueReason[])
+  return (["overflow", "splitRemainder", "poMismatch", "noPo"] as QueueReason[])
     .filter((r) => counts[r] > 0)
     .map((reason) => ({ reason, count: counts[reason] }));
 }

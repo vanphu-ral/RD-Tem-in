@@ -309,7 +309,7 @@
     width: 10%;
   }
   col.l-action {
-    width: 42px;
+    width: 108px;
   }
 
   /* Không dính header như bảng ngoài */
@@ -643,9 +643,29 @@ tr.flash > td {
     background: #ede9fe;
     color: #6d28d9;
   }
+
+  &[data-reason="splitRemainder"] {
+    background: #ffedd5;
+    color: #c2410c;
+  }
 }
 
 /* Mã kho SAP: chỉ hiển thị (whsCode của dòng vật tư trong PO) */
 .whs-readonly {
   color: #111827;
+}
+
+/* Hàng chờ: nút tách thùng thừa SL */
+.summary-table .lot-table .col-action {
+  width: auto;
+  max-width: none;
+  white-space: nowrap;
+
+  .split-btn mat-icon {
+    color: #c2410c;
+  }
+
+  .print-btn mat-icon {
+    color: #15803d;
+  }
 }

@@ -1543,6 +1543,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
           poCode: po.poCode,
           sapCode: m.materialCode,
           partNumber: m.partNumber,
+          orderQty: m.poQuantity,
+          receivedQty: m.receivedQuantity,
         })),
     );
   }

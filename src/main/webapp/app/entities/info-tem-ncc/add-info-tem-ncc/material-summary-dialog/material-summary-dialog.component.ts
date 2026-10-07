@@ -34,8 +34,15 @@ import {
   QUEUE_REASON_HINTS,
   QUEUE_REASON_LABELS,
   QueueReason,
+  queueReasonOf,
 } from "../../shared/queue-reason.util";
 import { boxLocation, locationFields } from "../../shared/box-location.util";
+import {
+  SplitBoxDialogComponent,
+  SplitBoxDialogData,
+  SplitBoxDialogResult,
+} from "../split-box-dialog/split-box-dialog.component";
+import { openVendorNccLabelPrint } from "../../shared/split-label-print.util";
 
 export type ExpiryMode = "month" | "year";
 
@@ -106,6 +113,10 @@ export interface UnassignedPoLine {
   poCode: string;
   sapCode: string;
   partNumber: string;
+  /** SL theo PO của dòng (0 = không giới hạn) */
+  orderQty: number;
+  /** SL đã nhận vào dòng trong đơn này */
+  receivedQty: number;
 }
 
 export interface MaterialSummaryDialogData {
@@ -439,6 +450,95 @@ export class MaterialSummaryDialogComponent implements OnInit {
 
   queueReasonHint(reason: QueueReason): string {
     return QUEUE_REASON_HINTS[reason];
+  }
+
+  /** Hàng chờ: thùng Thừa SL trong lô — tách được */
+  overflowBoxes(lot: SummaryLotRow): VendorLabelInfoDto[] {
+    if (!this.isUnassigned) {
+      return [];
+    }
+    return lot.boxes.flatMap((b) =>
+      b.record && queueReasonOf(b.record) === "overflow" ? [b.record] : [],
+    );
+  }
+
+  /** Hàng chờ: thùng "Dư tách" (phần dư tách ra) trong lô — in lại tem được */
+  remainderBoxes(lot: SummaryLotRow): VendorLabelInfoDto[] {
+    if (!this.isUnassigned) {
+      return [];
+    }
+    return lot.boxes.flatMap((b) =>
+      b.record && queueReasonOf(b.record) === "splitRemainder"
+        ? [b.record]
+        : [],
+    );
+  }
+
+  /** In tem các thùng "Dư tách" của lô (dialog In tem nhà cung cấp) */
+  onPrintRemainders(sap: SummarySapRow, lot: SummaryLotRow): void {
+    openVendorNccLabelPrint(this.dialog, this.remainderBoxes(lot), {
+      sapCode: sap.sapCode,
+      partNumber: sap.partNumber,
+      materialName: sap.productName,
+      vendorName: this.data.po?.vendorName,
+      invoiceNumber: this.data.po?.invoiceNumber,
+      contractCode: this.data.po?.contractCode,
+    });
+  }
+
+  /**
+   * Tách thùng Thừa SL của lô: phần vừa đủ vào PO, phần dư thành thùng mới ở hàng chờ.
+   * Xong → thay thùng gốc bằng thùng dư trong bảng, báo màn ngoài tải lại.
+   */
+  onSplitLot(sap: SummarySapRow, lot: SummaryLotRow): void {
+    const boxes = this.overflowBoxes(lot);
+    if (!boxes.length) {
+      return;
+    }
+    const code = toText(sap.sapCode).toLowerCase();
+    const lines = (this.data.unassigned?.poLines ?? []).filter(
+      (l) => toText(l.sapCode).toLowerCase() === code,
+    );
+    const takenReelIds = (this.data.po?.materials ?? []).flatMap((m) =>
+      (m.lots ?? []).flatMap((l) =>
+        (l.boxes ?? []).map((b) => toText(b.reelId)),
+      ),
+    );
+    const data: SplitBoxDialogData = {
+      sapCode: sap.sapCode,
+      partNumber: sap.partNumber,
+      materialName: sap.productName,
+      boxes,
+      poLines: lines.map((l) => ({
+        id: l.id,
+        poCode: l.poCode,
+        orderQty: l.orderQty,
+        receivedQty: l.receivedQty,
+      })),
+      takenReelIds,
+      vendorName: this.data.po?.vendorName,
+      invoiceNumber: this.data.po?.invoiceNumber,
+      contractCode: this.data.po?.contractCode,
+    };
+    this.dialog
+      .open<SplitBoxDialogComponent, SplitBoxDialogData, SplitBoxDialogResult>(
+        SplitBoxDialogComponent,
+        {
+          width: "960px",
+          maxWidth: "96vw",
+          maxHeight: "90vh",
+          autoFocus: false,
+          disableClose: true,
+          data,
+        },
+      )
+      .afterClosed()
+      .subscribe((result) => {
+        const results = result?.results ?? [];
+        if (results.length) {
+          this.onBoxesSplit(results);
+        }
+      });
   }
 
   isLotComplete(lot: SummaryLotRow): boolean {
@@ -778,6 +878,33 @@ export class MaterialSummaryDialogComponent implements OnInit {
    * Dialog "Cập nhật thông tin vật tư" đã PUT các thùng → ghi bản ghi mới vào dữ liệu
    * (giữ các ô đang sửa dở ở bảng này), báo màn ngoài tải lại.
    */
+  /** Đã tách thùng: thùng gốc rời hàng chờ (vào PO), thùng dư mới thế chỗ trong lô */
+  private onBoxesSplit(results: SplitBoxDialogResult["results"]): void {
+    const byOriginal = new Map(results.map((r) => [r.original.id, r]));
+    this.rebuildPreservingEdits(() => {
+      for (const m of this.data.po?.materials ?? []) {
+        for (const l of m.lots ?? []) {
+          l.boxes = (l.boxes ?? []).map(
+            (b) => byOriginal.get(b.id)?.remainder ?? b,
+          );
+        }
+      }
+    });
+    // SL đã nhận của dòng PO — lần tách sau tính đúng SL còn nhận
+    for (const r of results) {
+      const line = this.data.unassigned?.poLines.find(
+        (l) => l.id === r.poLineId,
+      );
+      if (line) {
+        line.receivedQty += r.intoPoQty;
+      }
+    }
+    this.lotDialogUpdated += results.length;
+    if (this.embedded) {
+      this.saved.emit(results.length);
+    }
+  }
+
   private onLotBoxesSaved(saved: VendorLabelInfoDto[]): void {
     const byId = new Map(saved.map((r) => [r.id, r]));
     this.rebuildPreservingEdits(() => {

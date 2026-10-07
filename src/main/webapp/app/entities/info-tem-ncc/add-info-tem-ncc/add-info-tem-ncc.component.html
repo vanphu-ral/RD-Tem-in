@@ -514,7 +514,9 @@
                           </th>
                           <th>Số lượng lô</th>
                           <th>Số lượng theo PO</th>
-                          <th>Số lượng đã nhận</th>
+                          <!-- Tạm ẩn: SL trong lần giao -->
+                          <!-- <th>Số lượng trong lần giao</th> -->
+                          <th>Số lượng đã scan</th>
                           <th>Số pallet</th>
                           <th>Số thùng</th>
                           <th>Người nhập</th>
@@ -551,6 +553,8 @@
                             <td>{{ m.warehouseCode }}</td>
                             <td>{{ m.lotCount }}</td>
                             <td>{{ m.poQuantity }}</td>
+                            <!-- Tạm ẩn: SL trong lần giao (chưa có dữ liệu) -->
+                            <!-- <td>—</td> -->
                             <td>{{ m.receivedQuantity }}</td>
                             <td>{{ m.palletCount }}</td>
                             <td>{{ m.boxCount }}</td>

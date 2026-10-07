@@ -468,6 +468,34 @@
                           </td>
                           <td class="col-action">
                             <button
+                              *ngIf="overflowBoxes(lot).length"
+                              mat-icon-button
+                              type="button"
+                              class="view-btn split-btn"
+                              [matTooltip]="
+                                'Tách thùng thừa SL (' +
+                                overflowBoxes(lot).length +
+                                ' thùng)'
+                              "
+                              (click)="onSplitLot(sap, lot)"
+                            >
+                              <mat-icon>call_split</mat-icon>
+                            </button>
+                            <button
+                              *ngIf="remainderBoxes(lot).length"
+                              mat-icon-button
+                              type="button"
+                              class="view-btn print-btn"
+                              [matTooltip]="
+                                'In tem thùng dư tách (' +
+                                remainderBoxes(lot).length +
+                                ' thùng)'
+                              "
+                              (click)="onPrintRemainders(sap, lot)"
+                            >
+                              <mat-icon>print</mat-icon>
+                            </button>
+                            <button
                               mat-icon-button
                               type="button"
                               class="view-btn"

@@ -2173,6 +2173,11 @@
     background: #ede9fe;
     color: #6d28d9;
   }
+
+  &[data-reason="splitRemainder"] {
+    background: #ffedd5;
+    color: #c2410c;
+  }
 }
 
 .lot-badges .queue-badge {

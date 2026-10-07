@@ -1,0 +1,133 @@
+<div class="split-dialog">
+  <div class="sb-header">
+    <div>
+      <h2>Tách thùng thừa SL</h2>
+      <p class="sb-sub">
+        {{ data.sapCode }}
+        <ng-container *ngIf="data.materialName">
+          · {{ data.materialName }}</ng-container
+        >
+        — nhập SL dư: phần còn lại vào PO, phần dư thành thùng mới ở hàng chờ
+      </p>
+    </div>
+    <button
+      mat-icon-button
+      type="button"
+      (click)="onClose()"
+      [disabled]="isBusy"
+      aria-label="Đóng"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="sb-body">
+    <table class="sb-table">
+      <thead>
+        <tr>
+          <th>ReelID</th>
+          <th class="num">SL thùng</th>
+          <th>PO nhận</th>
+          <th class="num">PO còn nhận</th>
+          <th class="num">SL dư tách</th>
+          <th class="num">SL vào PO</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let row of rows">
+          <tr [class.done]="row.state === 'done'">
+            <td class="reel">{{ row.record.reelId }}</td>
+            <td class="num">{{ row.quantity | number }}</td>
+            <td>
+              <select
+                class="sb-input"
+                [(ngModel)]="row.lineId"
+                [disabled]="row.state !== 'idle'"
+              >
+                <option [ngValue]="null">— Chọn PO —</option>
+                <option *ngFor="let l of lines" [ngValue]="l.id">
+                  PO {{ l.poCode }}
+                </option>
+              </select>
+            </td>
+            <td class="num">{{ remainingText(lineOf(row)) }}</td>
+            <td class="num">
+              <input
+                class="sb-input qty"
+                type="number"
+                min="1"
+                [max]="row.quantity - 1"
+                [(ngModel)]="row.excess"
+                [disabled]="row.state !== 'idle'"
+                (keydown.enter)="onSplit(row)"
+              />
+            </td>
+            <td class="num strong">
+              {{ intoPo(row) === null ? "—" : (intoPo(row) | number) }}
+            </td>
+            <td class="actions">
+              <button
+                *ngIf="row.state !== 'done'"
+                mat-flat-button
+                color="primary"
+                type="button"
+                [disabled]="row.state !== 'idle' || !!validate(row)"
+                (click)="onSplit(row)"
+              >
+                {{ row.state === "saving" ? "Đang tách..." : "Tách" }}
+              </button>
+              <ng-container *ngIf="row.state === 'done' && row.remainder">
+                <span class="new-reel" [matTooltip]="'Thùng dư mới'">
+                  → {{ row.remainder.reelId }} ({{
+                    row.remainder.initialQuantity | number
+                  }})
+                </span>
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="In tem thùng dư"
+                  (click)="onPrint([row])"
+                >
+                  <mat-icon>print</mat-icon>
+                </button>
+              </ng-container>
+            </td>
+          </tr>
+          <tr *ngIf="row.state === 'idle' && validate(row)" class="hint-row">
+            <td colspan="7">{{ validate(row) }}</td>
+          </tr>
+        </ng-container>
+        <tr *ngIf="!rows.length">
+          <td colspan="7" class="empty">Không có thùng thừa SL</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="sb-note" *ngIf="!lines.length">
+      <mat-icon>info</mat-icon>
+      Vật tư {{ data.sapCode }} không có dòng PO nào trong đơn — không tách
+      được.
+    </p>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button
+      mat-stroked-button
+      type="button"
+      [disabled]="!doneRows.length"
+      (click)="onPrint(doneRows)"
+    >
+      <mat-icon>print</mat-icon>
+      In tem thùng dư ({{ doneRows.length }})
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      [disabled]="isBusy"
+      (click)="onClose()"
+    >
+      Xong
+    </button>
+  </mat-dialog-actions>
+</div>

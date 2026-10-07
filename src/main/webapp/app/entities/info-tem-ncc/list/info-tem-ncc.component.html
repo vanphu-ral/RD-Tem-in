@@ -431,7 +431,9 @@
                                   <th>Mã kho</th>
                                   <th>Số lượng lô</th>
                                   <th>Số lượng theo PO</th>
-                                  <th>Số lượng đã nhận</th>
+                                  <!-- Tạm ẩn: SL trong lần giao -->
+                                  <!-- <th>Số lượng trong lần giao</th> -->
+                                  <th>Số lượng đã scan</th>
                                   <th>Số pallet</th>
                                   <th>Số thùng</th>
                                   <th>Người nhập</th>
@@ -469,6 +471,8 @@
                                   <td class="text-center">
                                     {{ m.poQuantity }}
                                   </td>
+                                  <!-- Tạm ẩn: SL trong lần giao (chưa có dữ liệu) -->
+                                  <!-- <td class="text-center">—</td> -->
                                   <td class="text-center">
                                     {{ m.receivedQuantity }}
                                   </td>
@@ -693,8 +697,12 @@
       <mat-icon>chevron_left</mat-icon>
     </button>
     <div class="mobile-header-text">
-      <h1>Số xe {{ d.vehicleNumber }}</h1>
-      <p>Hợp đồng {{ d.contractCode }}</p>
+      <!-- Giống header màn Scan: TBGH ở tiêu đề, số xe · hợp đồng ở dòng phụ -->
+      <h1>Thông báo giao hàng: {{ d.deliveryNotice || "—" }}</h1>
+      <p>
+        Số xe: {{ d.vehicleNumber || "—" }} · Hợp đồng:
+        {{ d.contractCode || "—" }}
+      </p>
     </div>
   </div>
 
@@ -716,19 +724,18 @@
             <span>{{ po.materialTypeCount }} vật tư</span>
           </div>
         </div>
-        <button
-          type="button"
-          class="btn-import-sys"
-          (click)="onImportSystem(po, $event)"
-        >
-          <mat-icon>send</mat-icon>
-          Nhập hệ thống
-        </button>
         <button type="button" class="po-expand-btn" tabindex="-1">
           <mat-icon>{{
             isPoExpanded(po) ? "expand_less" : "expand_more"
           }}</mat-icon>
         </button>
+      </div>
+
+      <!-- Trạng thái riêng 1 dòng — nội dung dài (vd "Chưa gửi SAP, PanaCIM") tự xuống dòng -->
+      <div class="po-status-row">
+        <span class="status-pill po-status" [ngClass]="mobilePoStatusClass(po)">
+          {{ mobilePoStatus(po) }}
+        </span>
       </div>
 
       <div class="po-progress-row">
@@ -744,9 +751,17 @@
             {{ poReceivedQty(po) | number }} / {{ poTotalQty(po) | number }}
           </span>
         </div>
-        <span class="status-pill" [ngClass]="mobilePoStatusClass(po)">
-          {{ mobilePoStatus(po) }}
-        </span>
+      </div>
+
+      <div class="po-card-actions">
+        <button
+          type="button"
+          class="btn-import-sys"
+          (click)="onImportSystem(po, $event)"
+        >
+          <mat-icon>send</mat-icon>
+          Nhập hệ thống
+        </button>
       </div>
 
       <div class="po-materials" *ngIf="isPoExpanded(po)">

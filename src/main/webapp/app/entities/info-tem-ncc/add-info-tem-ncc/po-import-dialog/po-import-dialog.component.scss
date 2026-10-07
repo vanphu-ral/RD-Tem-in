@@ -208,6 +208,18 @@
   .num {
     text-align: right;
   }
+
+  .center {
+    text-align: center;
+  }
+}
+
+.pi-table .col-qty {
+  min-width: 110px;
+}
+
+.qty-input {
+  text-align: center;
 }
 
 .pi-badge {

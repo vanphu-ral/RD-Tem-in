@@ -22,7 +22,6 @@
           (keydown.enter)="onFetchPo()"
           placeholder="Nhập mã PO rồi Enter..."
           autocomplete="off"
-          cdkFocusInitial
         />
       </div>
       <button
@@ -121,7 +120,10 @@
               <th>Mã SAP</th>
               <th>Tên vật tư</th>
               <th>Part number</th>
-              <th class="num">SL theo PO</th>
+              <th class="center">SL theo PO</th>
+              <th class="center">SL đã scan</th>
+              <!-- Tạm ẩn: SL lần nhập này -->
+              <!-- <th class="center">SL lần nhập này</th> -->
               <th>ĐVT</th>
               <th>Mã kho SAP</th>
             </tr>
@@ -172,6 +174,9 @@
               </th>
               <th></th>
               <th></th>
+              <!-- Tạm ẩn: ô lọc cột SL lần nhập này -->
+              <!-- <th></th> -->
+              <th></th>
               <th>
                 <input
                   #headerWhsInput
@@ -201,7 +206,7 @@
           </thead>
           <tbody>
             <tr *ngIf="!visibleRows.length">
-              <td colspan="8" class="pi-empty">Không có vật tư phù hợp.</td>
+              <td colspan="9" class="pi-empty">Không có vật tư phù hợp.</td>
             </tr>
             <tr
               *ngFor="let r of visibleRows; let i = index; trackBy: trackRow"
@@ -238,7 +243,25 @@
                   }}</mat-option>
                 </mat-autocomplete>
               </td>
-              <td class="num">{{ r.quantity | number: "1.0-3" }}</td>
+              <td class="center">{{ r.quantity | number: "1.0-3" }}</td>
+              <td class="center">
+                {{
+                  r.scannedQty === null ? "—" : (r.scannedQty | number: "1.0-3")
+                }}
+              </td>
+              <!-- Tạm ẩn: ô nhập SL lần nhập này
+              <td class="col-qty">
+                <input
+                  class="cell-input qty-input"
+                  type="number"
+                  min="0"
+                  [ngModel]="r.importQty"
+                  (ngModelChange)="onImportQtyChange(r, $event)"
+                  [disabled]="r.onTable"
+                  placeholder="Nhập SL"
+                />
+              </td>
+              -->
               <td>{{ r.unit || "—" }}</td>
               <td class="col-edit">
                 <input
