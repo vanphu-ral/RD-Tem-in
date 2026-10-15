@@ -1,0 +1,313 @@
+<div class="eh">
+  <!-- Header -->
+  <div class="eh-header">
+    <div class="eh-title">
+      <span class="eh-title-icon"><mat-icon>history</mat-icon></span>
+      <div>
+        <h2>Lịch sử xuất kho</h2>
+        <p>Tra cứu các yêu cầu xuất vật tư đã thực hiện</p>
+      </div>
+    </div>
+    <button
+      mat-icon-button
+      type="button"
+      class="eh-close"
+      (click)="onClose()"
+      aria-label="Đóng"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="eh-body">
+    <!-- Thống kê -->
+    <div class="eh-stats">
+      <div class="eh-stat blue">
+        <span class="eh-stat-label">Tổng phiếu xuất</span>
+        <span class="eh-stat-value">{{ slipCount | number }}</span>
+      </div>
+      <div class="eh-stat purple">
+        <span class="eh-stat-label">Mã yêu cầu</span>
+        <span class="eh-stat-value">{{ requestCount | number }}</span>
+      </div>
+      <div class="eh-stat green">
+        <span class="eh-stat-label">Tổng số lượng xuất</span>
+        <span class="eh-stat-value">{{ totalQty | number }}</span>
+      </div>
+    </div>
+
+    <!-- Bộ lọc -->
+    <div class="eh-filter">
+      <div class="eh-field wide">
+        <label for="ehCode">Mã yêu cầu</label>
+        <div class="eh-input">
+          <mat-icon>search</mat-icon>
+          <input
+            id="ehCode"
+            [(ngModel)]="filter.requestCode"
+            (keydown.enter)="onSearch()"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+      <div class="eh-field">
+        <label for="ehFrom">Từ ngày</label>
+        <input
+          id="ehFrom"
+          class="eh-control"
+          type="date"
+          [(ngModel)]="filter.fromDate"
+        />
+      </div>
+      <div class="eh-field">
+        <label for="ehTo">Đến ngày</label>
+        <input
+          id="ehTo"
+          class="eh-control"
+          type="date"
+          [(ngModel)]="filter.toDate"
+        />
+      </div>
+      <div class="eh-field">
+        <label for="ehWh">Kho</label>
+        <select id="ehWh" class="eh-control" [(ngModel)]="filter.warehouse">
+          <option value="">Tất cả</option>
+          <option *ngFor="let w of warehouses" [value]="w">{{ w }}</option>
+        </select>
+      </div>
+      <div class="eh-field">
+        <label for="ehOp">Người thực hiện</label>
+        <select id="ehOp" class="eh-control" [(ngModel)]="filter.operator">
+          <option value="">Tất cả</option>
+          <option *ngFor="let o of operators" [value]="o">{{ o }}</option>
+        </select>
+      </div>
+      <button type="button" class="eh-btn primary" (click)="onSearch()">
+        Tìm kiếm
+      </button>
+      <button type="button" class="eh-btn" (click)="onReset()">Đặt lại</button>
+    </div>
+
+    <!-- Bảng phiếu xuất -->
+    <div class="eh-table-card">
+      <div class="eh-scroll">
+        <table class="eh-table">
+          <thead>
+            <tr>
+              <th class="col-toggle"></th>
+              <th>Mã yêu cầu</th>
+              <th>Ngày xuất</th>
+              <th>Người thực hiện</th>
+              <th>Kho</th>
+              <th class="num">Số vật tư</th>
+              <th class="num">Tổng SL</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="!records.length">
+              <td colspan="8" class="eh-empty">
+                {{ isLoading ? "Đang tải..." : "Không có phiếu xuất phù hợp." }}
+              </td>
+            </tr>
+            <ng-container *ngFor="let r of records; trackBy: trackRecord">
+              <tr
+                class="eh-row"
+                [class.open]="isRecordExpanded(r)"
+                (click)="toggleRecord(r)"
+              >
+                <td class="col-toggle">
+                  <span class="eh-toggle">
+                    <mat-icon>{{
+                      isRecordExpanded(r) ? "expand_less" : "expand_more"
+                    }}</mat-icon>
+                  </span>
+                </td>
+                <td class="mono">{{ r.requestCode }}</td>
+                <td>{{ formatDateTime(r.exportedAt) }}</td>
+                <td>{{ r.operator }}</td>
+                <td>{{ r.warehouse }}</td>
+                <td class="num">{{ r.items.length }}</td>
+                <td class="num">{{ recordQty(r) | number }}</td>
+                <td></td>
+              </tr>
+
+              <!-- Cấp 2: vật tư -->
+              <tr *ngIf="isRecordExpanded(r)" class="eh-detail-row">
+                <td colspan="8">
+                  <div class="eh-detail">
+                    <table class="eh-table inner">
+                      <thead>
+                        <tr>
+                          <th class="col-toggle"></th>
+                          <th>Mã vật tư</th>
+                          <th>Tên vật tư</th>
+                          <th class="num">SL yêu cầu</th>
+                          <th class="num">SL đã xuất</th>
+                          <th class="num">Số thùng</th>
+                          <th class="num">Số pallet</th>
+                          <th class="center">Mã kho</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <ng-container *ngFor="let i of r.items">
+                          <tr class="eh-item" (click)="toggleItem(r, i)">
+                            <td class="col-toggle">
+                              <span class="eh-toggle sm">
+                                <mat-icon>{{
+                                  isItemExpanded(r, i)
+                                    ? "expand_less"
+                                    : "expand_more"
+                                }}</mat-icon>
+                              </span>
+                            </td>
+                            <td class="mono">{{ i.materialCode }}</td>
+                            <td>{{ i.materialName }}</td>
+                            <td class="num">{{ i.requiredQty | number }}</td>
+                            <td
+                              class="num exported"
+                              [class.short]="i.exportedQty < i.requiredQty"
+                            >
+                              {{ i.exportedQty | number }}
+                            </td>
+                            <td class="num">{{ i.boxes.length }}</td>
+                            <td class="num">{{ palletRows(i).length }}</td>
+                            <td class="center">{{ i.warehouseCode }}</td>
+                          </tr>
+
+                          <!-- Cấp 3: thùng / pallet -->
+                          <tr *ngIf="isItemExpanded(r, i)" class="eh-sub-row">
+                            <td colspan="8">
+                              <div class="eh-sub">
+                                <div class="eh-subtabs">
+                                  <button
+                                    type="button"
+                                    [class.active]="itemTab(r, i) === 'box'"
+                                    (click)="setItemTab(r, i, 'box')"
+                                  >
+                                    Thùng
+                                    <span class="eh-count">{{
+                                      i.boxes.length
+                                    }}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    [class.active]="itemTab(r, i) === 'pallet'"
+                                    (click)="setItemTab(r, i, 'pallet')"
+                                  >
+                                    Pallet
+                                    <span class="eh-count">{{
+                                      palletRows(i).length
+                                    }}</span>
+                                  </button>
+                                </div>
+
+                                <table
+                                  class="eh-table leaf"
+                                  *ngIf="itemTab(r, i) === 'box'"
+                                >
+                                  <thead>
+                                    <tr>
+                                      <th>Reelid</th>
+                                      <th class="num">Số lượng</th>
+                                      <th>Số lô</th>
+                                      <th>Ngày SX</th>
+                                      <th>Pallet</th>
+                                      <th>Vị trí kho</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr *ngFor="let b of i.boxes">
+                                      <td class="mono">{{ b.reelId }}</td>
+                                      <td class="num">
+                                        {{ b.quantity | number }}
+                                      </td>
+                                      <td>{{ b.lot || "—" }}</td>
+                                      <td>{{ b.mfgDate || "—" }}</td>
+                                      <td>{{ b.palletCode || "—" }}</td>
+                                      <td>{{ b.location || "—" }}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+
+                                <table
+                                  class="eh-table leaf"
+                                  *ngIf="itemTab(r, i) === 'pallet'"
+                                >
+                                  <thead>
+                                    <tr>
+                                      <th>Mã pallet</th>
+                                      <th class="num">Số thùng</th>
+                                      <th class="num">Tổng SL</th>
+                                      <th>Vị trí kho</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr *ngIf="!palletRows(i).length">
+                                      <td colspan="4" class="eh-empty">
+                                        Không có pallet
+                                      </td>
+                                    </tr>
+                                    <tr *ngFor="let p of palletRows(i)">
+                                      <td class="mono">{{ p.palletCode }}</td>
+                                      <td class="num">{{ p.boxCount }}</td>
+                                      <td class="num">
+                                        {{ p.totalQty | number }}
+                                      </td>
+                                      <td>{{ p.location || "—" }}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        </ng-container>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Phân trang -->
+      <div class="eh-pager">
+        <span class="eh-range">{{ rangeText }}</span>
+        <div class="eh-pages">
+          <button
+            type="button"
+            class="eh-page"
+            [disabled]="pageIndex === 0"
+            (click)="goPage(pageIndex - 1)"
+            aria-label="Trang trước"
+          >
+            ‹
+          </button>
+          <ng-container *ngFor="let p of pageButtons">
+            <span class="eh-page dots" *ngIf="p === null">…</span>
+            <button
+              *ngIf="p !== null"
+              type="button"
+              class="eh-page"
+              [class.active]="p === pageIndex"
+              (click)="goPage(p)"
+            >
+              {{ p + 1 }}
+            </button>
+          </ng-container>
+          <button
+            type="button"
+            class="eh-page"
+            [disabled]="pageIndex >= pageCount - 1"
+            (click)="goPage(pageIndex + 1)"
+            aria-label="Trang sau"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

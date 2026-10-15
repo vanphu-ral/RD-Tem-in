@@ -1,5 +1,6 @@
 import { NgModule } from "@angular/core";
 import { RouterModule } from "@angular/router";
+import { UserRouteAccessService } from "app/core/auth/user-route-access.service";
 
 @NgModule({
   imports: [
@@ -121,6 +122,30 @@ import { RouterModule } from "@angular/router";
           import("./list-material/list-material.module").then(
             (m) => m.ListMaterialModule,
           ),
+      },
+      {
+        path: "warehouse-export",
+        data: { pageTitle: "Xuất chuyển kho" },
+        loadChildren: () =>
+          import("./warehouse-export/warehouse-export.routes").then(
+            (m) => m.WAREHOUSE_EXPORT_ROUTES,
+          ),
+      },
+      {
+        // Dùng chung trang danh sách của Xuất chuyển kho, cấu hình qua data
+        path: "warehouse-export-planning",
+        canActivate: [UserRouteAccessService],
+        data: {
+          pageTitle: "Xuất kho khuyến nghị",
+          mode: "planning",
+          title: "Xuất kho khuyến nghị",
+          codeLabel: "Mã lệnh",
+          searchPlaceholder: "Nhập mã lệnh...",
+        },
+        loadComponent: () =>
+          import(
+            "./warehouse-export/list/warehouse-export-list.component"
+          ).then((m) => m.WarehouseExportListComponent),
       },
       {
         path: "approve-material-update",

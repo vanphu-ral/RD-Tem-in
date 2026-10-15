@@ -1,0 +1,130 @@
+<div class="ps">
+  <div class="ps-header">
+    <div>
+      <h2>Gợi ý lấy hàng theo vị trí</h2>
+      <p>
+        {{ data.title }} · cuộn nào cùng part cũng scan được — hệ thống tự bù
+        vào khuyến nghị
+      </p>
+    </div>
+    <button type="button" class="ps-close" (click)="close()" aria-label="Đóng">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="ps-toolbar">
+    <div class="ps-modes">
+      <button
+        type="button"
+        [class.active]="mode === 'fifo'"
+        (click)="setMode('fifo')"
+      >
+        FIFO (nhận trước xuất trước)
+      </button>
+      <button
+        type="button"
+        [class.active]="mode === 'fewest'"
+        (click)="setMode('fewest')"
+      >
+        Ít vị trí nhất
+      </button>
+    </div>
+    <span class="ps-meta" *ngIf="!isLoading"
+      >{{ parts.length }} part · {{ locationCount }} vị trí cần đi</span
+    >
+    <button
+      type="button"
+      class="ps-reload"
+      [disabled]="isLoading"
+      (click)="reload()"
+    >
+      <mat-icon>refresh</mat-icon> Tải lại
+    </button>
+  </div>
+
+  <div class="ps-body">
+    <div class="ps-loader" *ngIf="isLoading">
+      <span class="ps-spinner"></span>
+      Đang tra tồn kho... còn {{ loadingCount }}/{{ parts.length }} part
+    </div>
+
+    <div class="ps-empty" *ngIf="!parts.length">
+      Không có part nào còn thiếu — đã scan đủ.
+    </div>
+
+    <section class="ps-part" *ngFor="let p of parts">
+      <div class="ps-part-head">
+        <span class="ps-code">{{ p.partNumber }}</span>
+        <span class="ps-chip">Còn thiếu {{ p.needQty | number }}</span>
+        <span class="ps-chip muted" *ngIf="!p.loading"
+          >Tồn khả dụng {{ p.stockQty | number }} ·
+          {{ p.stock.length }} cuộn</span
+        >
+        <span
+          class="ps-time"
+          *ngIf="!p.loading && p.fetchedAt"
+          [title]="
+            p.fromCache
+              ? 'Lấy từ cache phiên — bấm Tải lại để tra mới'
+              : 'Vừa tra từ hệ thống'
+          "
+          >Tồn lúc {{ fetchedText(p) }}{{ p.fromCache ? " · cache" : "" }}</span
+        >
+        <span class="ps-spacer"></span>
+        <span class="ps-status loading" *ngIf="p.loading">Đang tra...</span>
+        <span class="ps-status bad" *ngIf="!p.loading && p.error"
+          >Lỗi tra tồn kho</span
+        >
+        <span
+          class="ps-status bad"
+          *ngIf="!p.loading && !p.error && p.pickedQty < p.needQty"
+          >Kho thiếu {{ p.needQty - p.pickedQty | number }}</span
+        >
+        <span
+          class="ps-status ok"
+          *ngIf="!p.loading && !p.error && p.pickedQty >= p.needQty"
+          >Lấy {{ p.pickedQty | number }} ở {{ p.groups.length }} vị trí</span
+        >
+      </div>
+
+      <div class="ps-groups" *ngIf="!p.loading && p.groups.length">
+        <div class="ps-group" *ngFor="let g of p.groups">
+          <div class="ps-group-head" (click)="toggleGroup(p, g)">
+            <mat-icon class="ps-pin">place</mat-icon>
+            <span class="ps-loc">{{ g.location }}</span>
+            <span class="ps-group-meta"
+              >{{ g.reels.length }} cuộn · {{ g.qty | number }}</span
+            >
+            <mat-icon class="ps-toggle">{{
+              isGroupOpen(p, g) ? "expand_less" : "expand_more"
+            }}</mat-icon>
+          </div>
+          <table class="ps-table" *ngIf="isGroupOpen(p, g)">
+            <thead>
+              <tr>
+                <th>ReelID</th>
+                <th class="num">Tồn</th>
+                <th>Lô</th>
+                <th>Ngày nhận</th>
+                <th>HSD</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of g.reels">
+                <td class="mono">{{ r.reelId }}</td>
+                <td class="num">{{ r.availableQty | number }}</td>
+                <td>{{ r.lot || "—" }}</td>
+                <td>{{ r.receivedDate || "—" }}</td>
+                <td>{{ r.expirationDate || "—" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="ps-footer">
+    <button type="button" class="ps-btn" (click)="close()">Đóng</button>
+  </div>
+</div>

@@ -1,0 +1,1653 @@
+<!-- ===================== DESKTOP ===================== -->
+<div class="we" *ngIf="!isMobile">
+  <!-- Header -->
+  <div class="we-header">
+    <div class="we-title">
+      <span class="we-title-icon"><mat-icon>inventory</mat-icon></span>
+      <h2>{{ dialogTitle }}</h2>
+    </div>
+    <button
+      mat-icon-button
+      type="button"
+      class="we-close"
+      (click)="onCancel()"
+      aria-label="Đóng"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="we-tabs">
+    <div class="we-tab-list">
+      <button
+        *ngIf="!lockedTab || lockedTab === 'request'"
+        type="button"
+        class="we-tab"
+        [class.active]="mainTab === 'request'"
+        (click)="selectTab('request')"
+      >
+        Yêu cầu lĩnh vật tư
+      </button>
+      <button
+        *ngIf="!lockedTab || lockedTab === 'planning'"
+        type="button"
+        class="we-tab"
+        [class.active]="mainTab === 'planning'"
+        (click)="selectTab('planning')"
+      >
+        Khuyến nghị Planning
+      </button>
+    </div>
+    <button
+      type="button"
+      class="we-history"
+      *ngIf="!isPlanning"
+      (click)="onHistory()"
+    >
+      Lịch sử xuất kho
+    </button>
+  </div>
+
+  <!-- ===== Cả 2 tab dùng chung giao diện; dữ liệu theo tab (ws) ===== -->
+  <div class="we-body">
+    <!-- Cột trái: nhập / scan -->
+    <section class="we-panel we-left">
+      <label class="we-label" for="weRequest">Mã yêu cầu</label>
+      <div class="we-input">
+        <mat-icon>qr_code_scanner</mat-icon>
+        <input
+          #requestInput
+          id="weRequest"
+          [(ngModel)]="ws.requestCode"
+          (keydown.enter)="onRequestEnter()"
+          [placeholder]="isPlanning ? 'Nhập mã Work Order' : 'Nhập mã yêu cầu'"
+          autocomplete="off"
+        />
+      </div>
+
+      <label class="we-label" for="wePallet">Scan Pallet</label>
+      <div class="we-input">
+        <mat-icon>qr_code_scanner</mat-icon>
+        <input
+          #palletInput
+          id="wePallet"
+          [(ngModel)]="ws.palletCode"
+          (keydown.enter)="onPalletEnter()"
+          placeholder="Scan pallet"
+          autocomplete="off"
+        />
+      </div>
+
+      <label class="we-label" for="weBox">Scan thùng</label>
+      <div class="we-input">
+        <mat-icon>qr_code_scanner</mat-icon>
+        <input
+          #boxInput
+          id="weBox"
+          [(ngModel)]="ws.boxCode"
+          (keydown.enter)="onBoxEnter()"
+          placeholder="Scan thùng"
+          autocomplete="off"
+        />
+      </div>
+
+      <p class="we-hint">
+        <mat-icon>info</mat-icon>
+        Nhập mã {{ codeNoun }} trước, sau đó scan pallet hoặc thùng. Kết quả
+        hiển thị ở vùng bên phải.
+      </p>
+    </section>
+
+    <!-- Cột phải -->
+    <div class="we-right">
+      <!-- Danh sách yêu cầu -->
+      <section class="we-panel we-requests">
+        <div class="we-panel-head">
+          <h3>Danh sách yêu cầu</h3>
+          <span class="we-muted">{{ ws.requests.length }} yêu cầu</span>
+        </div>
+        <div class="we-scroll">
+          <div class="we-empty" *ngIf="!ws.requests.length">
+            Chưa có yêu cầu. Nhập mã {{ codeNoun }} ở bên trái.
+          </div>
+          <div
+            class="we-req"
+            *ngFor="let r of ws.requests"
+            [class.enough]="isEnough(r)"
+          >
+            <div class="we-req-head" (click)="toggleRequest(r)">
+              <span class="we-req-code">{{ r.code }}</span>
+              <span class="we-chip" *ngIf="r.sapCode">SAP {{ r.sapCode }}</span>
+              <span class="we-chip">{{ r.items.length }} vật tư</span>
+              <span class="we-chip"
+                >Tiến độ {{ scannedTotal(r) | number }}/{{
+                  requiredTotal(r) | number
+                }}</span
+              >
+              <span class="we-spacer"></span>
+              <button
+                *ngIf="hasReels(r)"
+                type="button"
+                class="we-pick-btn"
+                [disabled]="isCheckingInventory(r)"
+                (click)="openPickSuggestion(r, $event)"
+              >
+                <mat-icon>place</mat-icon>
+                Gợi ý lấy hàng
+              </button>
+              <span class="we-status" [class.ok]="isEnough(r)">{{
+                isEnough(r) ? "Đủ số lượng" : "Chưa đủ số lượng"
+              }}</span>
+              <button type="button" class="we-toggle" tabindex="-1">
+                <mat-icon>{{
+                  isExpanded(r) ? "expand_less" : "expand_more"
+                }}</mat-icon>
+              </button>
+            </div>
+            <!-- Yêu cầu lĩnh vật tư: theo vật tư -->
+            <div class="we-req-body" *ngIf="isExpanded(r) && !hasReels(r)">
+              <table class="we-table pl-table">
+                <thead>
+                  <tr>
+                    <th class="pl-check"></th>
+                    <th>Mã vật tư</th>
+                    <th>Tên vật tư</th>
+                    <th class="num">SL yêu cầu</th>
+                    <th class="num">Số thùng</th>
+                    <th class="num">SL đã scan</th>
+                    <th class="num">Còn thiếu</th>
+                    <th>Mã kho</th>
+                    <th class="num">Tồn kho</th>
+                    <th>
+                      Vị trí trong kho
+                      <button
+                        type="button"
+                        class="pl-refresh"
+                        matTooltip="Tra vị trí tất cả vật tư"
+                        (click)="refreshItemStocks(r, $event)"
+                      >
+                        <mat-icon>refresh</mat-icon>
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <ng-container *ngFor="let i of r.items">
+                    <tr
+                      class="pl-group"
+                      [class.open]="isNodeOpen(r, itemKey(i))"
+                      (click)="toggleItem(r, i)"
+                    >
+                      <td class="pl-check">
+                        <mat-icon>{{
+                          isNodeOpen(r, itemKey(i))
+                            ? "expand_more"
+                            : "chevron_right"
+                        }}</mat-icon>
+                      </td>
+                      <td class="mono">{{ i.materialCode }}</td>
+                      <td>
+                        {{ i.materialName }}
+                        <span class="pl-sub" *ngIf="i.partNumbers">{{
+                          i.partNumbers
+                        }}</span>
+                      </td>
+                      <td class="num">
+                        {{ i.requiredQty | number }}
+                        <span class="pl-sub" *ngIf="i.uom">{{ i.uom }}</span>
+                      </td>
+                      <td class="num">{{ boxesOf(i).length | number }}</td>
+                      <td class="num scanned" [attr.data-state]="itemState(i)">
+                        {{ i.scannedQty | number }}
+                      </td>
+                      <td class="num">
+                        {{
+                          (i.requiredQty > i.scannedQty
+                            ? i.requiredQty - i.scannedQty
+                            : 0
+                          ) | number
+                        }}
+                      </td>
+                      <td>{{ i.warehouseCode }}</td>
+                      <ng-container *ngIf="itemStock(i) as st">
+                        <td class="num strong">
+                          <span class="pl-muted" *ngIf="st.loading">…</span>
+                          <ng-container *ngIf="!st.loading">{{
+                            itemStockQty(i) | number
+                          }}</ng-container>
+                        </td>
+                        <td class="pl-wh-cell">
+                          <span class="pl-muted" *ngIf="st.loading"
+                            >Đang tra…</span
+                          >
+                          <span
+                            class="pl-bad-text"
+                            *ngIf="!st.loading && st.error"
+                            >Lỗi tra tồn</span
+                          >
+                          <ng-container *ngIf="!st.loading && !st.error">
+                            <!-- Mỗi vị trí 1 chip: areaName · locationName -->
+                            <span
+                              class="pl-wh-chip pl-loc-chip"
+                              *ngFor="
+                                let loc of itemStockLocations(i)
+                                  | slice: 0 : LOCATION_CHIP_LIMIT
+                              "
+                              [matTooltip]="
+                                (loc.areaName || loc.areaCode) +
+                                ' · ' +
+                                loc.reels +
+                                ' cuộn · ' +
+                                (loc.qty | number)
+                              "
+                              ><b>{{ loc.areaCode || "?" }}</b> ·
+                              {{ loc.location }}</span
+                            >
+                            <span
+                              class="pl-muted"
+                              *ngIf="
+                                itemStockLocations(i).length >
+                                LOCATION_CHIP_LIMIT
+                              "
+                              matTooltip="Mở dòng để xem tất cả vị trí"
+                              >+{{
+                                itemStockLocations(i).length -
+                                  LOCATION_CHIP_LIMIT
+                              }}
+                              vị trí</span
+                            >
+                            <span
+                              class="pl-muted"
+                              *ngIf="!itemStockLocations(i).length"
+                              >Hết hàng</span
+                            >
+                          </ng-container>
+                        </td>
+                      </ng-container>
+                      <ng-container *ngIf="!itemStock(i)">
+                        <td class="num pl-muted">—</td>
+                        <td>
+                          <button
+                            type="button"
+                            class="pl-lookup"
+                            (click)="lookupItemStock(i, $event)"
+                          >
+                            <mat-icon>travel_explore</mat-icon> Tra vị trí
+                          </button>
+                        </td>
+                      </ng-container>
+                    </tr>
+                    <tr *ngIf="isNodeOpen(r, itemKey(i))" class="pl-detail-row">
+                      <td colspan="10">
+                        <!-- Vị trí đang có mã vật tư -->
+                        <div class="pl-caption">
+                          Vị trí đang có hàng
+                          <span class="pl-muted" *ngIf="itemStock(i)?.fetchedAt"
+                            >· Tồn lúc
+                            {{ itemStock(i)?.fetchedAt | date: "HH:mm" }}</span
+                          >
+                          <span
+                            class="pl-bad-text"
+                            *ngIf="itemStock(i)?.failedAreas"
+                            >· {{ itemStock(i)?.failedAreas }} kho tra lỗi, kết
+                            quả có thể thiếu</span
+                          >
+                          <button
+                            type="button"
+                            class="pl-refresh"
+                            matTooltip="Tra lại"
+                            *ngIf="itemStock(i) && !itemStock(i)?.loading"
+                            (click)="lookupItemStock(i, $event, true)"
+                          >
+                            <mat-icon>refresh</mat-icon>
+                          </button>
+                        </div>
+                        <table class="we-table pl-reels">
+                          <thead>
+                            <tr>
+                              <th>Kho</th>
+                              <th>Vị trí</th>
+                              <th class="num">Số cuộn</th>
+                              <th class="num">Tồn</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngIf="itemStock(i)?.loading">
+                              <td colspan="4" class="pl-none">
+                                Đang tra vị trí…
+                              </td>
+                            </tr>
+                            <tr
+                              *ngIf="
+                                !itemStock(i)?.loading &&
+                                !itemStockLocations(i).length
+                              "
+                            >
+                              <td colspan="4" class="pl-none">
+                                Không còn cuộn khả dụng trong kho.
+                              </td>
+                            </tr>
+                            <ng-container *ngIf="!itemStock(i)?.loading">
+                              <tr
+                                *ngFor="let loc of itemStockLocations(i)"
+                                class="pl-reel"
+                              >
+                                <td>
+                                  <span class="mono">{{
+                                    loc.areaCode || "—"
+                                  }}</span>
+                                  <span
+                                    class="pl-sub"
+                                    *ngIf="
+                                      loc.areaName &&
+                                      loc.areaName !== loc.areaCode
+                                    "
+                                    >{{ loc.areaName }}</span
+                                  >
+                                </td>
+                                <td class="mono">{{ loc.location }}</td>
+                                <td class="num">{{ loc.reels | number }}</td>
+                                <td class="num strong">
+                                  {{ loc.qty | number }}
+                                </td>
+                              </tr>
+                            </ng-container>
+                          </tbody>
+                        </table>
+
+                        <!-- Thùng đã scan của vật tư -->
+                        <div class="pl-caption">Thùng đã scan</div>
+                        <table class="we-table pl-reels">
+                          <thead>
+                            <tr>
+                              <th class="col-no">#</th>
+                              <th>ReelID</th>
+                              <th>Part number</th>
+                              <th>Số lô</th>
+                              <th>Ngày SX</th>
+                              <th>HSD</th>
+                              <th>Vị trí</th>
+                              <th>Pallet</th>
+                              <th class="num">Tồn kho</th>
+                              <th class="num">SL xuất</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngIf="!boxesOf(i).length">
+                              <td colspan="10" class="pl-none">
+                                Chưa scan thùng nào của vật tư này.
+                              </td>
+                            </tr>
+                            <tr
+                              *ngFor="
+                                let b of boxesOf(i);
+                                let idx = index;
+                                trackBy: trackBox
+                              "
+                              class="pl-reel"
+                            >
+                              <td class="col-no">{{ idx + 1 }}</td>
+                              <td class="mono">{{ b.reelId }}</td>
+                              <td class="mono">{{ b.partNumber || "—" }}</td>
+                              <td>{{ b.lot || "—" }}</td>
+                              <td>{{ b.mfgDate || "—" }}</td>
+                              <td>{{ b.expirationDate || "—" }}</td>
+                              <td>{{ b.location || "—" }}</td>
+                              <td>{{ b.palletCode || "—" }}</td>
+                              <td class="num">
+                                {{ b.inventoryQty ?? 0 | number }}
+                              </td>
+                              <td class="num strong">
+                                {{ b.quantity | number }}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Khuyến nghị Planning: đối chiếu Planning ↔ Kho, nhóm theo part -->
+            <div class="we-req-body" *ngIf="isExpanded(r) && hasReels(r)">
+              <!-- Tổng hợp WO (BE): SL cần / thùng-cuộn đã scan / SL đã scan -->
+              <div class="pl-wo-stats" *ngIf="r.planningSummary as ps">
+                <div class="pl-wo-stat">
+                  <span>Số lượng cần</span>
+                  <strong>{{ ps.requiredQty | number }}</strong>
+                </div>
+                <div class="pl-wo-stat">
+                  <span>Thùng/cuộn đã scan</span>
+                  <strong>{{ ps.scannedCount | number }}</strong>
+                </div>
+                <div class="pl-wo-stat">
+                  <span>Số lượng đã scan</span>
+                  <strong [class.ok]="ps.scannedQty >= ps.requiredQty">{{
+                    ps.scannedQty | number
+                  }}</strong>
+                </div>
+                <div class="pl-wo-stat grow">
+                  <span
+                    >Tiến độ
+                    {{
+                      ps.requiredQty
+                        ? (ps.scannedQty / ps.requiredQty | percent: "1.0-0")
+                        : "—"
+                    }}</span
+                  >
+                  <div class="pl-progress">
+                    <span
+                      [style.width.%]="
+                        ps.requiredQty
+                          ? (ps.scannedQty / ps.requiredQty) * 100
+                          : 0
+                      "
+                    ></span>
+                  </div>
+                </div>
+              </div>
+              <!-- Loader: chờ tra kho xong mọi thùng mới hiện bảng -->
+              <div class="pl-loader" *ngIf="isCheckingInventory(r)">
+                <span class="pl-spinner"></span>
+                <div class="pl-loader-text">
+                  Đang tải thông tin kho các thùng khuyến nghị...
+                  <strong
+                    >{{ reelStats(r).checked }}/{{ reelStats(r).total }}</strong
+                  >
+                </div>
+                <div class="pl-progress">
+                  <span [style.width.%]="inventoryPercent(r)"></span>
+                </div>
+              </div>
+
+              <ng-container *ngIf="!isCheckingInventory(r)">
+                <div class="pl-summary" *ngIf="reelStats(r) as st">
+                  <span
+                    >Đã tra kho <strong>{{ st.total }}</strong> thùng</span
+                  >
+                  <span class="pl-ok"
+                    >Sẵn sàng: <strong>{{ st.ready }}</strong></span
+                  >
+                  <span class="pl-done" *ngIf="st.exported"
+                    >Đã xuất: <strong>{{ st.exported }}</strong></span
+                  >
+                  <span
+                    class="pl-bad"
+                    *ngIf="st.total - st.ready - st.exported > 0"
+                    >Không sẵn sàng:
+                    <strong>{{
+                      st.total - st.ready - st.exported
+                    }}</strong></span
+                  >
+                  <span class="pl-hint">Bấm vị trí → part → từng thùng</span>
+                </div>
+                <table class="we-table pl-table">
+                  <thead>
+                    <tr>
+                      <th class="pl-check"></th>
+                      <th>Mã kho</th>
+                      <th>Mã vị trí</th>
+                      <th>Mã SAP</th>
+                      <th class="num">Số thùng</th>
+                      <th class="num">Tồn</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <ng-container
+                      *ngFor="let g of locationGroups(r); trackBy: trackNode"
+                    >
+                      <!-- Tầng 1: vị trí trong kho của mã SAP -->
+                      <tr
+                        class="pl-loc"
+                        [class.open]="isNodeOpen(r, g.key)"
+                        [class.missing]="g.missing"
+                        (click)="toggleNode(r, g.key)"
+                      >
+                        <td class="pl-check">
+                          <mat-icon>{{
+                            isNodeOpen(r, g.key)
+                              ? "expand_more"
+                              : "chevron_right"
+                          }}</mat-icon>
+                        </td>
+                        <td>
+                          <span class="mono">{{ g.areaCode || "—" }}</span>
+                          <span class="pl-sub" *ngIf="g.areaName">{{
+                            g.areaName
+                          }}</span>
+                        </td>
+                        <td class="mono">{{ g.location }}</td>
+                        <td class="mono">{{ g.sapCode || "—" }}</td>
+                        <td class="num">{{ g.reelCount | number }}</td>
+                        <td class="num strong">{{ g.stock | number }}</td>
+                      </tr>
+
+                      <!-- Tầng 2: part tại vị trí -->
+                      <tr *ngIf="isNodeOpen(r, g.key)" class="pl-detail-row">
+                        <td colspan="6">
+                          <table class="we-table pl-parts">
+                            <thead>
+                              <tr>
+                                <th class="pl-check"></th>
+                                <th>Mã part</th>
+                                <th
+                                  class="num"
+                                  matTooltip="Tổng estReqdQty của part trên cả WO (− SL đã xuất)"
+                                >
+                                  SL cần (WO)
+                                </th>
+                                <th
+                                  class="num"
+                                  matTooltip="Tổng SL các thùng khuyến nghị tại vị trí này"
+                                >
+                                  SL khuyến nghị
+                                </th>
+                                <th
+                                  class="num"
+                                  matTooltip="SL đã scan của các thùng tại vị trí này"
+                                >
+                                  Đã scan
+                                </th>
+                                <th
+                                  class="num"
+                                  matTooltip="SL cần − SL đã scan của part trên cả WO"
+                                >
+                                  Còn thiếu (WO)
+                                </th>
+                                <th class="num">Số thùng</th>
+                                <th class="num">Tồn kho</th>
+                                <th>Kho</th>
+                                <th>Đối chiếu</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <ng-container
+                                *ngFor="let p of g.parts; trackBy: trackNode"
+                              >
+                                <tr
+                                  class="pl-group"
+                                  [class.open]="isNodeOpen(r, p.key)"
+                                  (click)="toggleNode(r, p.key)"
+                                >
+                                  <td class="pl-check">
+                                    <mat-icon>{{
+                                      isNodeOpen(r, p.key)
+                                        ? "expand_more"
+                                        : "chevron_right"
+                                    }}</mat-icon>
+                                  </td>
+                                  <td class="mono">
+                                    {{ p.item.materialCode }}
+                                    <span
+                                      class="pl-sub"
+                                      *ngIf="p.item.altPartCodes?.length"
+                                      >Thay thế:
+                                      {{
+                                        p.item.altPartCodes?.join(", ")
+                                      }}</span
+                                    >
+                                  </td>
+                                  <td class="num strong">
+                                    {{ partRequired(p) | number }}
+                                  </td>
+                                  <td class="num">
+                                    {{ partPlanned(p) | number }}
+                                  </td>
+                                  <td
+                                    class="num scanned"
+                                    [attr.data-state]="partState(p)"
+                                  >
+                                    {{ partScanned(p) | number }}
+                                  </td>
+                                  <td
+                                    class="num strong"
+                                    [class.short]="partNeed(p) > 0"
+                                  >
+                                    {{ partNeed(p) | number }}
+                                  </td>
+                                  <td class="num">{{ partReelProgress(p) }}</td>
+                                  <td
+                                    class="num"
+                                    [class.short]="
+                                      partStockQty(p) < partNeed(p)
+                                    "
+                                  >
+                                    {{ partStockQty(p) | number }}
+                                  </td>
+                                  <td>
+                                    <span
+                                      class="pl-wh-chip"
+                                      *ngIf="g.areaName"
+                                      >{{ g.areaName }}</span
+                                    >
+                                    <span class="pl-muted" *ngIf="!g.areaName"
+                                      >—</span
+                                    >
+                                  </td>
+                                  <td>
+                                    <span
+                                      class="pl-badge"
+                                      *ngFor="let s of partReadiness(p)"
+                                      [attr.data-state]="s.state"
+                                      >{{ s.label }} · {{ s.count }}</span
+                                    >
+                                  </td>
+                                </tr>
+
+                                <!-- Tầng 3: từng thùng Planning ↔ Kho -->
+                                <tr
+                                  *ngIf="isNodeOpen(r, p.key)"
+                                  class="pl-detail-row"
+                                >
+                                  <td colspan="10">
+                                    <table class="we-table pl-reels">
+                                      <thead>
+                                        <tr>
+                                          <th rowspan="2" class="pl-check"></th>
+                                          <th rowspan="2">ReelID</th>
+                                          <th colspan="2" class="pl-src">
+                                            Planning
+                                          </th>
+                                          <th colspan="4" class="pl-inv">
+                                            Kho (Inventory)
+                                          </th>
+                                          <th rowspan="2">Đối chiếu</th>
+                                        </tr>
+                                        <tr>
+                                          <th class="pl-src">Mã part</th>
+                                          <th class="num pl-src">SL</th>
+                                          <th class="pl-inv">Part</th>
+                                          <th class="num pl-inv">Tồn</th>
+                                          <th class="pl-inv">Trạng thái</th>
+                                          <th class="pl-inv">Vị trí</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        <tr
+                                          *ngFor="let x of p.reels"
+                                          class="pl-reel"
+                                          [class.scanned]="x.scanned"
+                                        >
+                                          <td class="pl-check">
+                                            <mat-icon [class.on]="x.scanned">{{
+                                              x.scanned
+                                                ? "check_box"
+                                                : "check_box_outline_blank"
+                                            }}</mat-icon>
+                                          </td>
+                                          <td class="mono">
+                                            {{ x.reelId }}
+                                            <span
+                                              class="pl-before"
+                                              *ngIf="x.scannedBefore"
+                                              matTooltip="BE đã ghi nhận scan (scanCheck = 1)"
+                                              >Đã scan trước</span
+                                            >
+                                          </td>
+                                          <td class="mono pl-src">
+                                            {{
+                                              x.partCode || p.item.materialCode
+                                            }}
+                                            <span
+                                              class="pl-sub"
+                                              *ngIf="
+                                                x.partCode &&
+                                                x.partCode !== p.item.partCode
+                                              "
+                                              >Part thay thế</span
+                                            >
+                                          </td>
+                                          <td class="num pl-src">
+                                            {{ x.quantity | number }}
+                                          </td>
+                                          <ng-container
+                                            *ngIf="
+                                              x.inventory as inv;
+                                              else noInv
+                                            "
+                                          >
+                                            <td class="pl-inv">
+                                              <span class="mono">{{
+                                                inv.partNumber || "—"
+                                              }}</span>
+                                              <span
+                                                class="pl-sub"
+                                                *ngIf="inv.partId"
+                                                >ID {{ inv.partId }}</span
+                                              >
+                                            </td>
+                                            <td
+                                              class="num pl-inv"
+                                              [class.short]="
+                                                inv.availableQty < x.quantity
+                                              "
+                                            >
+                                              {{ inv.availableQty | number }}
+                                            </td>
+                                            <td class="pl-inv">
+                                              {{ inv.status || "—" }}
+                                            </td>
+                                            <td class="pl-inv">
+                                              {{ inv.location || "—" }}
+                                              <span
+                                                class="pl-sub"
+                                                *ngIf="
+                                                  areaOf(
+                                                    inv.locationId,
+                                                    inv.location
+                                                  ) as a
+                                                "
+                                                >{{ a.areaName }}</span
+                                              >
+                                            </td>
+                                          </ng-container>
+                                          <ng-template #noInv>
+                                            <td
+                                              colspan="4"
+                                              class="pl-inv pl-none"
+                                            >
+                                              {{
+                                                x.inventoryError
+                                                  ? "Không tra được tồn kho"
+                                                  : "Không có trong kho"
+                                              }}
+                                            </td>
+                                          </ng-template>
+                                          <td>
+                                            <span
+                                              class="pl-badge"
+                                              [attr.data-state]="
+                                                reelReadiness(p.item, x)
+                                              "
+                                              >{{
+                                                readinessLabel(
+                                                  reelReadiness(p.item, x)
+                                                )
+                                              }}</span
+                                            >
+                                          </td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </td>
+                                </tr>
+                              </ng-container>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </ng-container>
+                  </tbody>
+                </table>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Thông tin đã scan -->
+      <section class="we-panel we-scanned">
+        <div class="we-panel-head">
+          <h3>Thông tin đã scan</h3>
+        </div>
+        <div class="we-subtabs">
+          <button
+            type="button"
+            [class.active]="scannedTab === 'box'"
+            (click)="scannedTab = 'box'"
+          >
+            Thùng ({{ ws.boxes.length }})
+          </button>
+          <button
+            type="button"
+            [class.active]="scannedTab === 'pallet'"
+            (click)="scannedTab = 'pallet'"
+          >
+            Pallet ({{ ws.pallets.length }})
+          </button>
+        </div>
+        <div class="we-scroll">
+          <!-- Ô vị trí: gợi ý từ IndexedDB -->
+          <!-- Ô vị trí ở header: chọn gợi ý → áp cả cột -->
+          <mat-autocomplete
+            #bulkLocAuto="matAutocomplete"
+            panelWidth="280px"
+            (optionSelected)="applyLocationToAll($event.option.value)"
+          >
+            <mat-option
+              *ngFor="let w of locationOptions"
+              [value]="w.locationFullName || w.locationName"
+            >
+              {{ w.locationFullName || w.locationName }}
+            </mat-option>
+          </mat-autocomplete>
+
+          <mat-autocomplete #locAuto="matAutocomplete" panelWidth="280px">
+            <mat-option
+              *ngFor="let w of locationOptions"
+              [value]="w.locationFullName || w.locationName"
+            >
+              {{ w.locationFullName || w.locationName }}
+            </mat-option>
+          </mat-autocomplete>
+
+          <!-- Khuyến nghị Planning: thông tin tồn kho của thùng (/api/inventory) -->
+          <table class="we-table" *ngIf="scannedTab === 'box' && isPlanning">
+            <thead>
+              <tr>
+                <th class="col-no">#</th>
+                <th>Reelid</th>
+                <th>Mã part</th>
+                <th>Loại</th>
+                <th class="num">SL khuyến nghị</th>
+                <th class="num">Tồn kho</th>
+                <th class="num">SL xuất</th>
+                <th>Số lô</th>
+                <th>HSD</th>
+                <th class="col-loc">
+                  <div class="th-loc">
+                    <span>Vị trí kho</span>
+                    <input
+                      class="we-cell-input loc head"
+                      [(ngModel)]="bulkLocation"
+                      [matAutocomplete]="bulkLocAuto"
+                      (ngModelChange)="onLocationSearch($event)"
+                      (focus)="onLocationSearch(bulkLocation)"
+                      (keydown.enter)="applyLocationToAll()"
+                      [disabled]="!ws.boxes.length"
+                      placeholder="Vị trí..."
+                      matTooltip="Nhập / chọn vị trí rồi Enter để áp cho mọi thùng"
+                    />
+                  </div>
+                </th>
+                <th class="col-del"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!ws.boxes.length">
+                <td colspan="11" class="we-empty-cell">Chưa scan thùng nào.</td>
+              </tr>
+              <tr
+                *ngFor="let b of ws.boxes; let idx = index; trackBy: trackBox"
+              >
+                <td class="col-no">{{ idx + 1 }}</td>
+                <td class="mono">{{ b.reelId }}</td>
+                <td class="mono">{{ b.materialCode || "—" }}</td>
+                <td>
+                  <span class="pl-kind" [class.extra]="b.supplementary">{{
+                    b.supplementary ? "Bổ sung" : "Khuyến nghị"
+                  }}</span>
+                </td>
+                <td class="num">
+                  {{
+                    b.plannedQty === undefined ? "—" : (b.plannedQty | number)
+                  }}
+                </td>
+                <td class="num">{{ b.inventoryQty ?? 0 | number }}</td>
+                <td class="num">
+                  <input
+                    class="we-cell-input qty"
+                    type="number"
+                    min="0"
+                    [max]="b.inventoryQty ?? null"
+                    [ngModel]="b.quantity"
+                    (ngModelChange)="onBoxQtyChange(b, $event)"
+                  />
+                </td>
+                <td>{{ b.lot || "—" }}</td>
+                <td>{{ b.expirationDate || "—" }}</td>
+                <td>
+                  <input
+                    class="we-cell-input loc"
+                    [(ngModel)]="b.location"
+                    [matAutocomplete]="locAuto"
+                    (ngModelChange)="onLocationSearch($event)"
+                    (focus)="onLocationSearch(b.location)"
+                    placeholder="Vị trí"
+                  />
+                </td>
+                <td class="col-del">
+                  <button
+                    type="button"
+                    class="we-del"
+                    matTooltip="Bỏ thùng"
+                    (click)="removeBox(b)"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="we-table" *ngIf="scannedTab === 'box' && !isPlanning">
+            <thead>
+              <tr>
+                <th class="col-no">#</th>
+                <th>Reelid</th>
+                <th>Mã vật tư</th>
+                <th>Part number</th>
+                <th class="num">Tồn kho</th>
+                <th class="num">SL xuất</th>
+                <th>Số lô</th>
+                <th>Ngày SX</th>
+                <th>HSD</th>
+                <th>Trạng thái</th>
+                <th>Pallet</th>
+                <th class="col-loc">
+                  <div class="th-loc">
+                    <span>Vị trí kho</span>
+                    <input
+                      class="we-cell-input loc head"
+                      [(ngModel)]="bulkLocation"
+                      [matAutocomplete]="bulkLocAuto"
+                      (ngModelChange)="onLocationSearch($event)"
+                      (focus)="onLocationSearch(bulkLocation)"
+                      (keydown.enter)="applyLocationToAll()"
+                      [disabled]="!ws.boxes.length"
+                      placeholder="Vị trí..."
+                      matTooltip="Nhập / chọn vị trí rồi Enter để áp cho mọi thùng"
+                    />
+                  </div>
+                </th>
+                <th class="col-del"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!ws.boxes.length">
+                <td colspan="13" class="we-empty-cell">Chưa scan thùng nào.</td>
+              </tr>
+              <tr
+                *ngFor="let b of ws.boxes; let idx = index; trackBy: trackBox"
+              >
+                <td class="col-no">{{ idx + 1 }}</td>
+                <td class="mono">{{ b.reelId }}</td>
+                <td class="mono">{{ b.materialCode }}</td>
+                <td class="mono">{{ b.partNumber || "—" }}</td>
+                <td class="num">{{ b.inventoryQty ?? 0 | number }}</td>
+                <td class="num">
+                  <input
+                    class="we-cell-input qty"
+                    type="number"
+                    min="0"
+                    [max]="b.inventoryQty ?? null"
+                    [ngModel]="b.quantity"
+                    (ngModelChange)="onBoxQtyChange(b, $event)"
+                  />
+                </td>
+                <td>{{ b.lot || "—" }}</td>
+                <td>{{ b.mfgDate || "—" }}</td>
+                <td>{{ b.expirationDate || "—" }}</td>
+                <td>{{ b.inventoryStatus || "—" }}</td>
+                <td>{{ b.palletCode || "—" }}</td>
+                <td>
+                  <input
+                    class="we-cell-input loc"
+                    [(ngModel)]="b.location"
+                    [matAutocomplete]="locAuto"
+                    (ngModelChange)="onLocationSearch($event)"
+                    (focus)="onLocationSearch(b.location)"
+                    placeholder="Vị trí"
+                  />
+                </td>
+                <td class="col-del">
+                  <button
+                    type="button"
+                    class="we-del"
+                    matTooltip="Bỏ thùng"
+                    (click)="removeBox(b)"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="we-table" *ngIf="scannedTab === 'pallet'">
+            <thead>
+              <tr>
+                <th class="col-no">#</th>
+                <th>Mã pallet</th>
+                <th class="num">Số thùng</th>
+                <th class="num">Tổng SL</th>
+                <th>Vị trí kho</th>
+                <th class="col-del"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!ws.pallets.length">
+                <td colspan="6" class="we-empty-cell">Chưa scan pallet nào.</td>
+              </tr>
+              <tr *ngFor="let p of ws.pallets; let idx = index">
+                <td class="col-no">{{ idx + 1 }}</td>
+                <td class="mono">{{ p.palletCode }}</td>
+                <td class="num">{{ p.boxes.length }}</td>
+                <td class="num">{{ palletQty(p) | number }}</td>
+                <td>{{ p.location || "—" }}</td>
+                <td class="col-del">
+                  <button
+                    type="button"
+                    class="we-del"
+                    matTooltip="Bỏ pallet (và các thùng trên pallet)"
+                    (click)="removePallet(p)"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Chọn thông tin gửi -->
+  <!-- <div class="we-approval">
+    <div class="we-approval-title">Chọn thông tin gửi</div>
+    <div class="we-approval-grid">
+      <label class="we-approval-field">
+        <span>Chọn kho duyệt</span>
+        <select [(ngModel)]="approval.warehouseCode">
+          <option value="">— Chọn kho —</option>
+          <option *ngFor="let w of approvalWarehouses" [value]="w.code">
+            {{ w.code }} - {{ w.name }}
+          </option>
+        </select>
+      </label>
+      <label class="we-approval-field">
+        <span>Chọn người duyệt</span>
+        <input
+          [(ngModel)]="approval.approver"
+          [matAutocomplete]="approverAuto"
+          placeholder="Tìm người duyệt"
+          autocomplete="off"
+        />
+        <mat-autocomplete #approverAuto="matAutocomplete">
+          <mat-option
+            *ngFor="let u of approvers | slice: 0 : 50"
+            [value]="u"
+            [hidden]="
+              !!approval.approver &&
+              !u.toLowerCase().includes(approval.approver.toLowerCase())
+            "
+            >{{ u }}</mat-option
+          >
+        </mat-autocomplete>
+      </label>
+      <label class="we-approval-field">
+        <span>Chọn người quản lý kho</span>
+        <input
+          [(ngModel)]="approval.warehouseManager"
+          [matAutocomplete]="managerAuto"
+          placeholder="Tìm người quản lý kho"
+          autocomplete="off"
+        />
+        <mat-autocomplete #managerAuto="matAutocomplete">
+          <mat-option
+            *ngFor="let u of approvers | slice: 0 : 50"
+            [value]="u"
+            [hidden]="
+              !!approval.warehouseManager &&
+              !u.toLowerCase().includes(approval.warehouseManager.toLowerCase())
+            "
+            >{{ u }}</mat-option
+          >
+        </mat-autocomplete>
+      </label>
+    </div>
+  </div> -->
+
+  <!-- Footer -->
+  <div class="we-footer">
+    <button type="button" class="we-btn cancel" (click)="onCancel()">
+      Hủy
+    </button>
+    <button
+      type="button"
+      class="we-btn send"
+      [disabled]="isSending || isCompleting"
+      (click)="onSend()"
+    >
+      {{ isSending ? "Đang gửi..." : "Gửi" }}
+    </button>
+    <button
+      type="button"
+      class="we-btn complete"
+      [disabled]="isCompleting"
+      (click)="onComplete()"
+    >
+      {{ isCompleting ? "Đang lưu..." : "Xác nhận xuất" }}
+    </button>
+  </div>
+</div>
+
+<!-- ===================== MOBILE ===================== -->
+<div class="mx" *ngIf="isMobile">
+  <!-- Header -->
+  <div class="mx-header">
+    <button
+      type="button"
+      class="mx-icon-btn"
+      (click)="onCancel()"
+      aria-label="Đóng"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <h2>{{ dialogTitle }}</h2>
+    <button
+      type="button"
+      class="mx-icon-btn"
+      (click)="toggleMobileMenu()"
+      aria-label="Menu"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <div class="mx-menu" *ngIf="mobileMenuOpen">
+      <button type="button" (click)="openAddCode()">
+        <mat-icon>add</mat-icon> Thêm mã {{ codeNoun }}
+      </button>
+      <button
+        type="button"
+        *ngIf="isPlanning && ws.requests.length"
+        (click)="openMobilePick()"
+      >
+        <mat-icon>place</mat-icon> Gợi ý lấy hàng
+      </button>
+      <button
+        type="button"
+        *ngIf="!isPlanning"
+        (click)="mobileMenuOpen = false; onHistory()"
+      >
+        <mat-icon>history</mat-icon> Lịch sử xuất kho
+      </button>
+    </div>
+  </div>
+
+  <!-- Mã đang xuất + tiến độ tổng (luôn hiện) -->
+  <div class="mx-summary">
+    <div class="mx-codes">
+      <span class="mx-code-chip" *ngFor="let r of ws.requests">{{
+        r.code
+      }}</span>
+      <span class="mx-muted" *ngIf="!ws.requests.length"
+        >Chưa có {{ codeNoun }} — ⋯ → Thêm mã</span
+      >
+    </div>
+    <div class="mx-progress">
+      <div class="mx-track">
+        <span [style.width.%]="mobilePercent"></span>
+      </div>
+      <span class="mx-progress-text"
+        >{{ mobileScannedTotal | number }}/{{
+          mobileRequiredTotal | number
+        }}</span
+      >
+    </div>
+  </div>
+
+  <!-- Thêm mã (từ menu ⋯) -->
+  <div class="mx-add" *ngIf="showAddCode">
+    <input
+      [(ngModel)]="ws.requestCode"
+      (keydown.enter)="onMobileAddCode()"
+      [placeholder]="'Nhập mã ' + codeNoun"
+      autocomplete="off"
+    />
+    <button type="button" (click)="onMobileAddCode()">Thêm</button>
+    <button type="button" class="ghost" (click)="showAddCode = false">
+      Đóng
+    </button>
+  </div>
+
+  <!-- Ô scan duy nhất + chọn chế độ -->
+  <div class="mx-scan" *ngIf="mobileTab !== 'send'">
+    <div class="mx-modes">
+      <button
+        type="button"
+        [class.active]="mobileScanMode === 'box'"
+        (click)="setMobileScanMode('box')"
+      >
+        Thùng
+      </button>
+      <button
+        type="button"
+        [class.active]="mobileScanMode === 'pallet'"
+        (click)="setMobileScanMode('pallet')"
+      >
+        Pallet
+      </button>
+    </div>
+    <div class="mx-scan-input" [attr.data-mode]="mobileScanMode">
+      <mat-icon>qr_code_scanner</mat-icon>
+      <input
+        #mobileScanInput
+        [(ngModel)]="mobileScanCode"
+        (keydown.enter)="onMobileScanEnter()"
+        [placeholder]="
+          mobileScanMode === 'pallet' ? 'Scan mã pallet…' : 'Scan mã thùng…'
+        "
+        autocomplete="off"
+      />
+    </div>
+    <div class="mx-retry" *ngIf="scanRetry">
+      <span
+        >Không tìm thấy "{{ scanRetry.code }}" — có phải mã
+        {{ scanRetry.mode === "pallet" ? "pallet" : "thùng" }}?</span
+      >
+      <button type="button" (click)="retryScanAsOther()">
+        Thử như {{ scanRetry.mode === "pallet" ? "Pallet" : "Thùng" }}
+      </button>
+    </div>
+  </div>
+
+  <div class="mx-body">
+    <!-- ===== Tab: Cần lấy ===== -->
+    <ng-container *ngIf="mobileTab === 'pick'">
+      <!-- Khuyến nghị Planning: thẻ theo vị trí -->
+      <ng-container *ngIf="isPlanning">
+        <label class="mx-toggle">
+          <input type="checkbox" [(ngModel)]="hideDoneLocations" />
+          Ẩn vị trí đã lấy đủ
+        </label>
+        <ng-container *ngFor="let r of ws.requests">
+          <div class="mx-wo-stats" *ngIf="r.planningSummary as ps">
+            <div class="mx-wo-code">{{ r.code }}</div>
+            <div class="mx-wo-grid">
+              <div>
+                <span>SL cần</span>
+                <strong>{{ ps.requiredQty | number }}</strong>
+              </div>
+              <div>
+                <span>Đã scan</span>
+                <strong>{{ ps.scannedCount | number }} cuộn</strong>
+              </div>
+              <div>
+                <span>SL đã scan</span>
+                <strong [class.ok]="ps.scannedQty >= ps.requiredQty">{{
+                  ps.scannedQty | number
+                }}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="mx-loading" *ngIf="isCheckingInventory(r)">
+            <span class="mx-spinner"></span>
+            {{ r.code }}: đang tra kho {{ reelStats(r).checked }}/{{
+              reelStats(r).total
+            }}
+            thùng...
+          </div>
+          <ng-container *ngIf="!isCheckingInventory(r)">
+            <ng-container
+              *ngFor="let g of locationGroups(r); trackBy: trackNode"
+            >
+              <div
+                class="mx-card"
+                *ngIf="!hideDoneLocations || !isGroupDone(g)"
+                [class.done]="isGroupDone(g)"
+                [class.missing]="g.missing"
+              >
+                <div class="mx-card-head" (click)="toggleNode(r, g.key)">
+                  <mat-icon class="mx-pin">place</mat-icon>
+                  <div class="mx-card-main">
+                    <div class="mx-loc">{{ g.location }}</div>
+                    <div class="mx-sub">
+                      {{ g.areaName || g.areaCode || "—" }} · SAP
+                      {{ g.sapCode || "—" }}
+                    </div>
+                  </div>
+                  <div class="mx-card-side">
+                    <span class="mx-strong">{{ g.stock | number }}</span>
+                    <span class="mx-sub"
+                      >Đã lấy {{ groupReelProgress(g) }}</span
+                    >
+                  </div>
+                  <mat-icon class="mx-chev">{{
+                    isNodeOpen(r, g.key) ? "expand_less" : "expand_more"
+                  }}</mat-icon>
+                </div>
+                <div class="mx-parts" *ngIf="isNodeOpen(r, g.key)">
+                  <button
+                    type="button"
+                    class="mx-part"
+                    *ngFor="let p of g.parts; trackBy: trackNode"
+                    (click)="openPartSheet(r, p)"
+                  >
+                    <span
+                      class="mx-state"
+                      [attr.data-state]="partState(p)"
+                    ></span>
+                    <span class="mx-part-main">
+                      <span class="mx-mono">{{ p.item.materialCode }}</span>
+                      <span class="mx-sub"
+                        >Cần {{ partRequired(p) | number }} · Đã scan
+                        {{ p.item.scannedQty | number }} · Thiếu
+                        {{ partNeed(p) | number }} · Thùng
+                        {{ partReelProgress(p) }}</span
+                      >
+                    </span>
+                    <mat-icon class="mx-chev">chevron_right</mat-icon>
+                  </button>
+                </div>
+              </div>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+
+      <!-- Yêu cầu lĩnh vật tư: thẻ theo vật tư -->
+      <ng-container *ngIf="!isPlanning">
+        <div class="mx-card" *ngFor="let r of ws.requests">
+          <div class="mx-card-head" (click)="toggleRequest(r)">
+            <div class="mx-card-main">
+              <div class="mx-loc">{{ r.code }}</div>
+              <div class="mx-sub">{{ r.items.length }} vật tư</div>
+            </div>
+            <span class="mx-status" [class.ok]="isEnough(r)">{{
+              isEnough(r) ? "Đủ" : "Chưa đủ"
+            }}</span>
+            <mat-icon class="mx-chev">{{
+              isExpanded(r) ? "expand_less" : "expand_more"
+            }}</mat-icon>
+          </div>
+          <div class="mx-parts" *ngIf="isExpanded(r)">
+            <div class="mx-part static" *ngFor="let i of r.items">
+              <span class="mx-state" [attr.data-state]="itemState(i)"></span>
+              <span class="mx-part-main">
+                <span class="mx-mono">{{ i.materialCode }}</span>
+                <span class="mx-sub"
+                  >{{ i.materialName }} · {{ boxesOf(i).length }} thùng</span
+                >
+              </span>
+              <span class="mx-qty"
+                >{{ i.scannedQty | number }}/{{ targetQty(i) | number }}</span
+              >
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <div class="mx-empty" *ngIf="!ws.requests.length">
+        Chưa có {{ codeNoun }}. Mở từ danh sách hoặc ⋯ → Thêm mã.
+      </div>
+    </ng-container>
+
+    <!-- ===== Tab: Đã scan ===== -->
+    <ng-container *ngIf="mobileTab === 'scanned'">
+      <div class="mx-bulk" *ngIf="ws.boxes.length">
+        <input
+          [(ngModel)]="bulkLocation"
+          [matAutocomplete]="bulkLocAutoM"
+          (ngModelChange)="onLocationSearch($event)"
+          (keydown.enter)="applyLocationToAll()"
+          placeholder="Áp vị trí cho tất cả thùng"
+          autocomplete="off"
+        />
+        <button type="button" (click)="applyLocationToAll()">Áp</button>
+        <mat-autocomplete
+          #bulkLocAutoM="matAutocomplete"
+          (optionSelected)="applyLocationToAll($event.option.value)"
+        >
+          <mat-option
+            *ngFor="let w of locationOptions"
+            [value]="w.locationFullName || w.locationName"
+            >{{ w.locationFullName || w.locationName }}</mat-option
+          >
+        </mat-autocomplete>
+      </div>
+      <mat-autocomplete #locAutoM="matAutocomplete">
+        <mat-option
+          *ngFor="let w of locationOptions"
+          [value]="w.locationFullName || w.locationName"
+          >{{ w.locationFullName || w.locationName }}</mat-option
+        >
+      </mat-autocomplete>
+
+      <div class="mx-box" *ngFor="let b of ws.boxes; trackBy: trackBox">
+        <div class="mx-box-top">
+          <span class="mx-mono mx-reel" [title]="b.reelId">{{ b.reelId }}</span>
+          <span
+            class="mx-kind"
+            *ngIf="isPlanning"
+            [class.extra]="b.supplementary"
+            >{{ b.supplementary ? "Bổ sung" : "Khuyến nghị" }}</span
+          >
+          <button
+            type="button"
+            class="mx-del"
+            (click)="removeBox(b)"
+            aria-label="Bỏ thùng"
+          >
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+        <div class="mx-sub">
+          {{ b.materialCode }}
+          <ng-container *ngIf="b.partNumber">
+            · {{ b.partNumber }}</ng-container
+          >
+          · Lô {{ b.lot || "—" }}
+          <ng-container *ngIf="b.expirationDate">
+            · HSD {{ b.expirationDate }}</ng-container
+          >
+          <ng-container *ngIf="b.palletCode">
+            · Pallet {{ b.palletCode }}</ng-container
+          >
+        </div>
+        <div class="mx-box-edit">
+          <label>
+            <span
+              >SL xuất<ng-container *ngIf="b.inventoryQty !== undefined">
+                (tồn {{ b.inventoryQty | number }})</ng-container
+              ></span
+            >
+            <input
+              type="number"
+              inputmode="numeric"
+              min="0"
+              [ngModel]="b.quantity"
+              (ngModelChange)="onBoxQtyChange(b, $event)"
+            />
+          </label>
+          <label>
+            <span>Vị trí</span>
+            <input
+              [(ngModel)]="b.location"
+              [matAutocomplete]="locAutoM"
+              (ngModelChange)="onLocationSearch($event)"
+              placeholder="Vị trí"
+            />
+          </label>
+        </div>
+      </div>
+      <div class="mx-empty" *ngIf="!ws.boxes.length">Chưa scan thùng nào.</div>
+    </ng-container>
+
+    <!-- ===== Tab: Gửi ===== -->
+    <ng-container *ngIf="mobileTab === 'send'">
+      <div class="mx-send-stats">
+        <div>
+          <span class="mx-sub">Thùng</span
+          ><strong>{{ ws.boxes.length | number }}</strong>
+        </div>
+        <div>
+          <span class="mx-sub">SL xuất</span
+          ><strong>{{ mobileScannedQty | number }}</strong>
+        </div>
+        <div>
+          <span class="mx-sub">Tiến độ</span
+          ><strong>{{ mobilePercent }}%</strong>
+        </div>
+      </div>
+
+      <div class="mx-missing" *ngIf="mobileMissing.length">
+        <div class="mx-missing-title">Chưa đủ số lượng — chưa xuất được:</div>
+        <div class="mx-missing-row" *ngFor="let m of mobileMissing">
+          <span class="mx-mono">{{ m.part }}</span>
+          <span>{{ m.scanned | number }}/{{ m.need | number }}</span>
+        </div>
+      </div>
+
+      <div class="mx-approval">
+        <label>
+          <span>Kho duyệt</span>
+          <select [(ngModel)]="approval.warehouseCode">
+            <option value="">— Chọn kho —</option>
+            <option *ngFor="let w of approvalWarehouses" [value]="w.code">
+              {{ w.code }} - {{ w.name }}
+            </option>
+          </select>
+        </label>
+        <label>
+          <span>Người duyệt</span>
+          <input
+            [(ngModel)]="approval.approver"
+            [matAutocomplete]="approverAutoM"
+            placeholder="Tìm người duyệt"
+            autocomplete="off"
+          />
+          <mat-autocomplete #approverAutoM="matAutocomplete">
+            <mat-option
+              *ngFor="let u of approvers | slice: 0 : 50"
+              [value]="u"
+              [hidden]="
+                !!approval.approver &&
+                !u.toLowerCase().includes(approval.approver.toLowerCase())
+              "
+              >{{ u }}</mat-option
+            >
+          </mat-autocomplete>
+        </label>
+        <label>
+          <span>Người quản lý kho</span>
+          <input
+            [(ngModel)]="approval.warehouseManager"
+            [matAutocomplete]="managerAutoM"
+            placeholder="Tìm người quản lý kho"
+            autocomplete="off"
+          />
+          <mat-autocomplete #managerAutoM="matAutocomplete">
+            <mat-option
+              *ngFor="let u of approvers | slice: 0 : 50"
+              [value]="u"
+              [hidden]="
+                !!approval.warehouseManager &&
+                !u
+                  .toLowerCase()
+                  .includes(approval.warehouseManager.toLowerCase())
+              "
+              >{{ u }}</mat-option
+            >
+          </mat-autocomplete>
+        </label>
+      </div>
+
+      <div class="mx-submit-row">
+        <button
+          type="button"
+          class="mx-submit send"
+          [disabled]="isSending || isCompleting || !ws.boxes.length"
+          (click)="onSend()"
+        >
+          {{ isSending ? "Đang gửi..." : "Gửi" }}
+        </button>
+        <button
+          type="button"
+          class="mx-submit"
+          [disabled]="
+            isCompleting || !ws.boxes.length || mobileMissing.length > 0
+          "
+          (click)="onMobileComplete()"
+        >
+          {{ isCompleting ? "Đang lưu..." : "Xác nhận xuất" }}
+        </button>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Thanh tab dưới đáy -->
+  <div class="mx-tabs">
+    <button
+      type="button"
+      [class.active]="mobileTab === 'pick'"
+      (click)="setMobileTab('pick')"
+    >
+      <mat-icon>{{ isPlanning ? "place" : "list_alt" }}</mat-icon>
+      Cần lấy
+    </button>
+    <button
+      type="button"
+      [class.active]="mobileTab === 'scanned'"
+      (click)="setMobileTab('scanned')"
+    >
+      <mat-icon>inventory_2</mat-icon>
+      Đã scan
+      <span class="mx-badge" *ngIf="ws.boxes.length">{{
+        ws.boxes.length
+      }}</span>
+    </button>
+    <button
+      type="button"
+      [class.active]="mobileTab === 'send'"
+      (click)="setMobileTab('send')"
+    >
+      <mat-icon>send</mat-icon>
+      Gửi
+    </button>
+  </div>
+
+  <!-- Bottom sheet: thùng của 1 part tại 1 vị trí -->
+  <div class="mx-sheet-backdrop" *ngIf="sheet" (click)="closeSheet()"></div>
+  <div class="mx-sheet" *ngIf="sheet as sh">
+    <div class="mx-sheet-head">
+      <div>
+        <div class="mx-mono">{{ sh.part.item.materialCode }}</div>
+        <div class="mx-sub">
+          Cần {{ partRequired(sh.part) | number }} · Đã scan
+          {{ sh.part.item.scannedQty | number }} · Thiếu
+          {{ partNeed(sh.part) | number }} · Thùng
+          {{ partReelProgress(sh.part) }}
+        </div>
+      </div>
+      <button type="button" class="mx-icon-btn" (click)="closeSheet()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="mx-sheet-body">
+      <div
+        class="mx-reel-row"
+        *ngFor="let x of sh.part.reels"
+        [class.scanned]="x.scanned"
+      >
+        <mat-icon class="mx-tick">{{
+          x.scanned ? "check_box" : "check_box_outline_blank"
+        }}</mat-icon>
+        <div class="mx-reel-main">
+          <div class="mx-mono mx-reel">
+            {{ x.reelId }}
+            <span class="pl-before" *ngIf="x.scannedBefore">Đã scan trước</span>
+          </div>
+          <div class="mx-sub">
+            KN {{ x.quantity | number }}
+            <ng-container *ngIf="x.inventory as inv">
+              · Tồn {{ inv.availableQty | number }} · {{ inv.status || "—" }} ·
+              {{ inv.location || "—" }}</ng-container
+            >
+            <ng-container *ngIf="x.inventory === null">
+              · Không có trong kho</ng-container
+            >
+          </div>
+        </div>
+        <span
+          class="pl-badge"
+          [attr.data-state]="reelReadiness(sh.part.item, x)"
+          >{{ readinessLabel(reelReadiness(sh.part.item, x)) }}</span
+        >
+      </div>
+    </div>
+  </div>
+</div>

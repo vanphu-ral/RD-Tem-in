@@ -82,6 +82,8 @@ export class HomeComponent implements OnInit {
       icon: faTable,
       submenus: [
         { title: "Danh sách vật tư", link: "/list-material" },
+        { title: "Xuất chuyển kho", link: "/warehouse-export" },
+        { title: "Xuất kho khuyến nghị", link: "/warehouse-export-planning" },
         { title: "Dashboard vật tư", link: "/list-material/warehouse-summary" },
         { title: "Quản lý phê duyệt", link: "/approve-material-update" },
         { title: "Lịch sử phê duyệt", link: "/approve-material-history" },

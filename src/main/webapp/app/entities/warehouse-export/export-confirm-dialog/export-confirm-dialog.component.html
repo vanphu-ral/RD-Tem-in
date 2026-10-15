@@ -1,0 +1,114 @@
+<div class="ec">
+  <!-- ===== Không thể hoàn thành xuất kho ===== -->
+  <ng-container *ngIf="incomplete as d">
+    <div class="ec-head">
+      <span class="ec-icon">!</span>
+      <div>
+        <h2>Không thể hoàn thành xuất kho</h2>
+        <p>Chỉ được xuất kho khi scan đủ số lượng của tất cả yêu cầu</p>
+      </div>
+    </div>
+
+    <div class="ec-stats">
+      <div class="ec-stat">
+        <span class="ec-stat-label">Tổng yêu cầu</span>
+        <span class="ec-stat-value">{{ d.requiredTotal | number }}</span>
+      </div>
+      <div class="ec-stat">
+        <span class="ec-stat-label">Đã scan</span>
+        <span class="ec-stat-value green">{{ d.scannedTotal | number }}</span>
+      </div>
+      <div class="ec-stat">
+        <span class="ec-stat-label">Còn thiếu</span>
+        <span class="ec-stat-value red">{{
+          d.requiredTotal - d.scannedTotal | number
+        }}</span>
+      </div>
+    </div>
+
+    <!-- Danh sách thiếu: tự cuộn khi dài (header / thống kê / nút luôn hiện) -->
+    <div class="ec-list">
+      <div class="ec-alert" *ngFor="let r of d.requests">
+        <p class="ec-alert-title">
+          Mã yêu cầu <span class="mono">{{ r.code }}</span> chưa đủ số lượng:
+        </p>
+        <table class="ec-table">
+          <thead>
+            <tr>
+              <th>Mã vật tư</th>
+              <th class="num">Yêu cầu</th>
+              <th class="num">Đã scan</th>
+              <th class="num">Thiếu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let i of r.items">
+              <td class="mono">{{ i.materialCode }}</td>
+              <td class="num">{{ i.requiredQty | number }}</td>
+              <td class="num">{{ i.scannedQty | number }}</td>
+              <td class="num short">{{ shortOf(i) | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ec-actions">
+      <button type="button" class="ec-btn primary" (click)="close(false)">
+        Quay lại scan
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- ===== Xác nhận hủy ===== -->
+  <ng-container *ngIf="cancel as d">
+    <div class="ec-head">
+      <span class="ec-icon">!</span>
+      <div>
+        <h2>Xác nhận hủy</h2>
+        <p>Bạn không muốn tiếp tục thực hiện lĩnh vật tư này?</p>
+      </div>
+    </div>
+
+    <div class="ec-stats">
+      <div class="ec-stat">
+        <span class="ec-stat-label">Mã yêu cầu</span>
+        <span class="ec-stat-value">{{ d.requestCodes.length | number }}</span>
+      </div>
+      <div class="ec-stat">
+        <span class="ec-stat-label">Thùng đã scan</span>
+        <span class="ec-stat-value">{{ d.boxCount | number }}</span>
+      </div>
+      <div class="ec-stat">
+        <span class="ec-stat-label">Số lượng đã scan</span>
+        <span class="ec-stat-value red">{{ d.scannedQty | number }}</span>
+      </div>
+    </div>
+
+    <div class="ec-list">
+      <div class="ec-alert">
+        <p class="ec-alert-text">
+          Toàn bộ dữ liệu đã scan (pallet, thùng)<ng-container
+            *ngIf="d.requestCodes.length"
+          >
+            của các mã yêu cầu
+            <ng-container *ngFor="let c of d.requestCodes; let last = last">
+              <span class="mono">{{ c }}</span
+              >{{ last ? "" : ", " }}
+            </ng-container></ng-container
+          >
+          sẽ bị xóa và không thể khôi phục.
+        </p>
+      </div>
+    </div>
+
+    <div class="ec-actions">
+      <button type="button" class="ec-btn" (click)="close(false)">
+        Tiếp tục thực hiện
+      </button>
+      <button type="button" class="ec-btn danger" (click)="close(true)">
+        Xác nhận hủy
+      </button>
+    </div>
+  </ng-container>
+</div>

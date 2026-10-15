@@ -27,12 +27,12 @@ import {
   exportVendorNccLabelsToPdfSequential,
   getVendorNccPaperDimensions,
   loadVendorNccPaperSizePreference,
-  runVendorNccLabelPrint,
   saveVendorNccPaperSizePreference,
   VENDOR_NCC_SHIPPING_ICONS_SRC,
   VendorNccLabelData,
   VendorNccPaperSize,
 } from "../vendor-ncc-label-print.util";
+import { printVendorNccLabels } from "../vendor-ncc-label-print-doc.util";
 
 export interface VendorNccPrintDialogData {
   labels: VendorNccLabelData[];
@@ -200,28 +200,32 @@ export class VendorNccPrintDialogComponent
   }
 
   async printLabels(): Promise<void> {
-    if (!this.allLabels.length || this.isPreparingPrint || this.isExportingPdf) {
+    if (
+      !this.allLabels.length ||
+      this.isPreparingPrint ||
+      this.isExportingPdf
+    ) {
       return;
     }
 
     this.isPreparingPrint = true;
-    this.printAllMode = true;
     this.cdr.detectChanges();
 
+    // In bằng tài liệu HTML/CSS độc lập (khổ trang = khổ tem), không clone DOM của app
     try {
-      const waitMs = Math.min(3000, 400 + this.allLabels.length * 45);
-      await this.delay(waitMs);
-      runVendorNccLabelPrint(this.printAllContainerId, this.paperSize, () => {
-        this.finishPrintAllMode();
-      });
-      setTimeout(() => this.finishPrintAllMode(), 10000);
-    } catch {
-      this.finishPrintAllMode();
+      await printVendorNccLabels(this.allLabels, this.paperSize);
+    } finally {
+      this.isPreparingPrint = false;
+      this.cdr.markForCheck();
     }
   }
 
   async exportPdf(): Promise<void> {
-    if (!this.allLabels.length || this.isExportingPdf || this.isPreparingPrint) {
+    if (
+      !this.allLabels.length ||
+      this.isExportingPdf ||
+      this.isPreparingPrint
+    ) {
       return;
     }
 
@@ -320,10 +324,7 @@ export class VendorNccPrintDialogComponent
       availH / this.labelHeightPx,
       PREVIEW_SCALE_MAX,
     );
-    const next = Math.max(
-      PREVIEW_SCALE_MIN,
-      Math.round(scale * 1000) / 1000,
-    );
+    const next = Math.max(PREVIEW_SCALE_MIN, Math.round(scale * 1000) / 1000);
     if (Math.abs(next - this.previewScale) < 0.01) {
       return;
     }

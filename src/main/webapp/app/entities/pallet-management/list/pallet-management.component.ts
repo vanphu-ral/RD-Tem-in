@@ -6,7 +6,8 @@ import { MatTableDataSource } from "@angular/material/table";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import { DialogContentExampleDialogComponent } from "app/entities/list-material/confirm-dialog/confirm-dialog.component";
 import { forkJoin, Observable, of } from "rxjs";
-import { catchError, map } from "rxjs/operators";
+import { catchError, map, take } from "rxjs/operators";
+import { AccountService } from "app/core/auth/account.service";
 import {
   CreatePalletDialogComponent,
   CreatePalletDialogData,
@@ -19,6 +20,9 @@ import {
   PalletItem,
   PrintPalletDialogData,
 } from "./pallet-management.model";
+
+/** Mặc định danh sách chỉ hiện pallet đang sử dụng (IN_USE) — chọn "Tất cả" để xem hết */
+const DEFAULT_STATUS_FILTER = "Đang sử dụng";
 
 @Component({
   selector: "jhi-pallet-management",
@@ -68,6 +72,8 @@ export class PalletManagementComponent implements OnInit {
   isLoading = false;
   /** Pallet đang xóa (chặn bấm lặp) */
   deletingIds = new Set<number>();
+  /** Người thao tác — ghi vào updatedBy khi đổi trạng thái pallet */
+  private currentUser = "";
 
   @ViewChild(MatPaginator) set paginator(p: MatPaginator) {
     if (p) {
@@ -85,11 +91,20 @@ export class PalletManagementComponent implements OnInit {
     private dialog: MatDialog,
     private palletMngtService: PalletMngtService,
     private notificationService: NotificationService,
+    private accountService: AccountService,
   ) {}
 
   ngOnInit(): void {
     this.dataSource.filterPredicate = (row, filterJson) =>
       this.matchFilters(row, filterJson);
+    this.accountService
+      .getAuthenticationState()
+      .pipe(take(1))
+      .subscribe((account) => {
+        this.currentUser = account?.login ?? "";
+      });
+    // Áp bộ lọc mặc định (chỉ pallet đang sử dụng) ngay từ đầu
+    this.dataSource.filter = JSON.stringify(this.filterValues);
     this.loadPallets();
   }
 
@@ -117,7 +132,10 @@ export class PalletManagementComponent implements OnInit {
       "updatedAt",
       "updatedBy",
     ];
-    return keys.filter((k) => (this.filterValues[k] ?? "").trim()).length;
+    return keys.filter((k) => {
+      const value = (this.filterValues[k] ?? "").trim();
+      return k === "status" ? value !== DEFAULT_STATUS_FILTER : !!value;
+    }).length;
   }
 
   loadPallets(): void {
@@ -146,6 +164,7 @@ export class PalletManagementComponent implements OnInit {
     Object.keys(this.filterValues).forEach((k) => {
       this.filterValues[k] = "";
     });
+    this.filterValues["status"] = DEFAULT_STATUS_FILTER;
     this.applyFilter();
   }
 
@@ -311,9 +330,10 @@ export class PalletManagementComponent implements OnInit {
   }
 
   /**
-   * Xóa pallet: popup xác nhận → gỡ mọi thùng khỏi pallet (DELETE /pallet-box-mappings/{mappingId})
-   * → xóa pallet (DELETE /pallet-mngts/{id}) → tải lại danh sách.
-   * Gỡ thùng lỗi thì dừng, không xóa pallet. Thùng chỉ bị gỡ khỏi pallet, không bị xóa.
+   * Xóa pallet (không xóa hẳn): popup xác nhận → gỡ mọi thùng khỏi pallet
+   * (DELETE /pallet-box-mappings/{mappingId}) → chuyển pallet sang "Chưa sử dụng"
+   * (PUT /pallet-mngts/{id}, status IN_USE → UNUSED) → tải lại danh sách.
+   * Gỡ thùng lỗi thì dừng, không đổi trạng thái. Thùng chỉ bị gỡ khỏi pallet, không bị xóa.
    */
   onDelete(row: PalletItem): void {
     if (this.deletingIds.has(row.id)) {
@@ -328,7 +348,7 @@ export class PalletManagementComponent implements OnInit {
           ? ` Pallet đang chứa ${mappingIds.length} thùng — các thùng sẽ được gỡ khỏi pallet (thùng không bị xóa).`
           : "";
         this.confirmDelete(
-          `Xóa pallet ${serial}?${boxNote} Thao tác này không hoàn tác được.`,
+          `Xóa pallet ${serial}? Pallet sẽ chuyển sang "Chưa sử dụng" (không xóa khỏi hệ thống).${boxNote}`,
         ).subscribe((ok) => {
           if (ok) {
             this.deletePallet(row, mappingIds);
@@ -450,31 +470,44 @@ export class PalletManagementComponent implements OnInit {
       if (failed) {
         this.deletingIds.delete(row.id);
         this.notificationService.error(
-          `Gỡ được ${results.length - failed}/${results.length} thùng, ${failed} thùng lỗi — chưa xóa pallet ${serial}.`,
+          `Gỡ được ${results.length - failed}/${results.length} thùng, ${failed} thùng lỗi — chưa đổi trạng thái pallet ${serial}.`,
         );
         this.loadPallets();
         return;
       }
-      this.palletMngtService.deletePallet(row.id).subscribe({
-        next: () => {
-          this.deletingIds.delete(row.id);
-          this.notificationService.success(
-            results.length
-              ? `Đã gỡ ${results.length} thùng và xóa pallet ${serial}.`
-              : `Đã xóa pallet ${serial}.`,
-          );
-          this.loadPallets();
-        },
-        error: () => {
-          this.deletingIds.delete(row.id);
-          this.notificationService.error(
-            results.length
-              ? `Đã gỡ ${results.length} thùng nhưng xóa pallet ${serial} thất bại.`
-              : `Xóa pallet ${serial} thất bại.`,
-          );
-          this.loadPallets();
-        },
-      });
+      // Không xóa hẳn: PUT /pallet-mngts/{id} chuyển trạng thái IN_USE → UNUSED
+      this.palletMngtService
+        .updatePallet({
+          id: row.id,
+          serialPallet: row.serialPallet,
+          locationName: row.locationName,
+          status: "UNUSED",
+          note: row.note,
+          createAt: row.createAt,
+          createBy: row.createBy,
+          updatedAt: new Date().toISOString(),
+          updatedBy: this.currentUser || (row.updatedBy ?? ""),
+        })
+        .subscribe({
+          next: () => {
+            this.deletingIds.delete(row.id);
+            this.notificationService.success(
+              results.length
+                ? `Đã gỡ ${results.length} thùng, pallet ${serial} chuyển sang Chưa sử dụng.`
+                : `Pallet ${serial} đã chuyển sang Chưa sử dụng.`,
+            );
+            this.loadPallets();
+          },
+          error: () => {
+            this.deletingIds.delete(row.id);
+            this.notificationService.error(
+              results.length
+                ? `Đã gỡ ${results.length} thùng nhưng cập nhật trạng thái pallet ${serial} thất bại.`
+                : `Cập nhật trạng thái pallet ${serial} thất bại.`,
+            );
+            this.loadPallets();
+          },
+        });
     });
   }
 

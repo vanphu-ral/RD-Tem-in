@@ -250,7 +250,11 @@ export class PoImportDialogComponent implements OnInit {
     );
   }
 
+  /** PO khác nhà cung cấp của đơn → không cho chọn vật tư */
   get selectableVisible(): PoImportRow[] {
+    if (this.activePo?.vendorMismatch) {
+      return [];
+    }
     return this.visibleRows.filter((r) => !r.onTable);
   }
 
@@ -349,7 +353,7 @@ export class PoImportDialogComponent implements OnInit {
             toText(res.poInfo?.oporCardName) || poVendor || "không rõ";
           const orderName = this.orderVendorName || this.orderVendorCode;
           this.notificationService.warning(
-            `PO ${poCode} là của "${poName}", khác nhà cung cấp của đơn "${orderName}".`,
+            `PO ${poCode} là của "${poName}", khác nhà cung cấp của đơn "${orderName}" — không thể thêm vào đơn.`,
           );
         }
         this.loadedPos = [
@@ -421,6 +425,10 @@ export class PoImportDialogComponent implements OnInit {
 
   /** Tích 1 vật tư → nếu header đã chọn kho thì áp luôn */
   onRowCheck(r: PoImportRow, checked: boolean): void {
+    if (checked && this.isVendorBlocked(r.poCode)) {
+      r.selected = false;
+      return;
+    }
     r.selected = checked;
     if (checked && this.headerWarehouseCode && !r.onTable) {
       r.whsCode = this.headerWarehouseCode;
@@ -444,8 +452,15 @@ export class PoImportDialogComponent implements OnInit {
     r.importQty = n;
   }
 
+  /** PO đã tải mà khác nhà cung cấp của đơn */
+  isVendorBlocked(poCode: string): boolean {
+    return this.loadedPos.some((p) => p.poCode === poCode && p.vendorMismatch);
+  }
+
   onConfirm(): void {
+    // PO khác nhà cung cấp của đơn → không thêm vào đơn
     const result: PoImportSelection[] = this.loadedPos
+      .filter((p) => !p.vendorMismatch)
       .map((p) => ({
         poCode: p.poCode,
         vendorCode: p.vendorCode,

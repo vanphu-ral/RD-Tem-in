@@ -1,0 +1,293 @@
+$blue: #3b82f6;
+$navy: #1e3a5f;
+$border: #e5e7eb;
+$text: #111827;
+$muted: #6b7280;
+$mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+.ps {
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+  color: $text;
+  font-size: 14px;
+}
+
+.ps-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 8px;
+
+  h2 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: $muted;
+    font-size: 13px;
+  }
+}
+
+.ps-close {
+  border: none;
+  background: none;
+  color: $muted;
+  cursor: pointer;
+}
+
+.ps-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 20px 12px;
+  border-bottom: 1px solid $border;
+}
+
+.ps-modes {
+  display: inline-flex;
+  border: 1px solid $border;
+  border-radius: 8px;
+  overflow: hidden;
+
+  button {
+    padding: 7px 14px;
+    border: none;
+    background: #fff;
+    color: #475569;
+    font-size: 13px;
+    cursor: pointer;
+
+    &.active {
+      background: $navy;
+      color: #fff;
+    }
+  }
+}
+
+.ps-meta {
+  color: $muted;
+  font-size: 13px;
+}
+
+.ps-reload {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.ps-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ps-loader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.ps-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #bfdbfe;
+  border-top-color: $blue;
+  border-radius: 50%;
+  animation: ps-spin 0.8s linear infinite;
+}
+
+@keyframes ps-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ps-empty {
+  padding: 24px;
+  text-align: center;
+  color: $muted;
+  font-style: italic;
+}
+
+.ps-part {
+  border: 1px solid $border;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ps-part-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.ps-code {
+  font-family: $mono;
+  font-weight: 700;
+}
+
+.ps-chip {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.muted {
+    background: #f1f5f9;
+    color: #475569;
+  }
+}
+
+.ps-time {
+  color: $muted;
+  font-size: 12px;
+}
+
+.ps-spacer {
+  flex: 1;
+}
+
+.ps-status {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.ok {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  &.bad {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  &.loading {
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+}
+
+.ps-groups {
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-group {
+  border-top: 1px solid $border;
+}
+
+.ps-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.ps-pin {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #f97316;
+}
+
+.ps-loc {
+  font-weight: 600;
+}
+
+.ps-group-meta {
+  margin-left: auto;
+  color: #475569;
+  font-size: 13px;
+}
+
+.ps-toggle {
+  color: $muted;
+}
+
+.ps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    padding: 6px 12px;
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  td {
+    padding: 6px 12px;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .num {
+    text-align: right;
+  }
+
+  .mono {
+    font-family: $mono;
+  }
+}
+
+.ps-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 20px 16px;
+  border-top: 1px solid $border;
+}
+
+.ps-btn {
+  min-width: 100px;
+  height: 38px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}

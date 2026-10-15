@@ -1,0 +1,183 @@
+<div class="wel">
+  <div class="wel-toolbar">
+    <h2>{{ config.title }}</h2>
+    <!-- Ô nhập mã + chip các mã đã nhập ngay bên dưới -->
+    <div class="wel-search-box">
+      <input
+        class="wel-search"
+        [(ngModel)]="search"
+        (keydown.enter)="onSearchEnter()"
+        [placeholder]="config.searchPlaceholder"
+        autocomplete="off"
+      />
+      <div class="wel-chips" *ngIf="codes.length || pending.size">
+        <span class="wel-chip" *ngFor="let code of codes">
+          {{ code }}
+          <button
+            type="button"
+            class="wel-chip-x"
+            [attr.aria-label]="'Bỏ mã ' + code"
+            (click)="removeCode(code)"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </span>
+        <span class="wel-chip pending" *ngFor="let code of pending">
+          {{ code }}…
+        </span>
+        <button
+          type="button"
+          class="wel-chip-clear"
+          *ngIf="codes.length > 1"
+          (click)="clearCodes()"
+        >
+          Xóa tất cả
+        </button>
+      </div>
+    </div>
+    <button type="button" class="wel-detail-btn" (click)="openSelectedDetail()">
+      Chi tiết xuất
+      <span class="wel-badge" *ngIf="selectedCount">{{ selectedCount }}</span>
+    </button>
+  </div>
+
+  <div class="wel-card">
+    <div class="wel-table-wrap">
+      <table
+        mat-table
+        matSort
+        [dataSource]="dataSource"
+        [trackBy]="trackRow"
+        class="wel-table"
+      >
+        <ng-container matColumnDef="select">
+          <th mat-header-cell *matHeaderCellDef class="col-select">
+            <mat-checkbox
+              color="primary"
+              [checked]="allPageSelected"
+              [indeterminate]="somePageSelected"
+              [disabled]="!dataSource.data.length"
+              (change)="toggleAllPage($event.checked)"
+            ></mat-checkbox>
+          </th>
+          <td mat-cell *matCellDef="let row" class="col-select">
+            <mat-checkbox
+              color="primary"
+              [checked]="isSelected(row)"
+              (change)="toggleRow(row, $event.checked)"
+            ></mat-checkbox>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="code">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            {{ config.codeLabel }}
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.code }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="proposer">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            Người đề nghị
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.proposer }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="receivingUnit">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Đơn vị lĩnh</th>
+          <td mat-cell *matCellDef="let row">{{ row.receivingUnit }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="issuingUnit">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Đơn vị xuất</th>
+          <td mat-cell *matCellDef="let row">{{ row.issuingUnit }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày tạo</th>
+          <td mat-cell *matCellDef="let row">{{ row.createdDate }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="requestDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            Ngày yêu cầu
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.requestDate }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Trạng thái</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="wel-status" [ngClass]="statusClass(row.status)">{{
+              row.status
+            }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="warehouse">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Kho xuất</th>
+          <td mat-cell *matCellDef="let row">{{ row.warehouse }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            Mô tả yêu cầu
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.description }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="progress">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Tiến độ</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="wel-progress">
+              <div class="wel-track">
+                <span [style.width.%]="row.progress"></span>
+              </div>
+              <span class="wel-pct">{{ row.progress }}%</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Thao tác</th>
+          <td mat-cell *matCellDef="let row">
+            <button
+              type="button"
+              class="wel-view"
+              matTooltip="Chi tiết xuất"
+              (click)="openRowDetail(row)"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="displayedColumns; sticky: true"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          [class.selected]="isSelected(row)"
+        ></tr>
+      </table>
+
+      <div class="wel-empty" *ngIf="!isLoading && !dataSource.data.length">
+        Không có dữ liệu.
+      </div>
+      <div class="wel-empty" *ngIf="isLoading">Đang tải...</div>
+    </div>
+
+    <!-- Phân trang chỉ khi chưa lọc theo chip -->
+    <mat-paginator
+      *ngIf="!codes.length"
+      [length]="total"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPage($event)"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+</div>

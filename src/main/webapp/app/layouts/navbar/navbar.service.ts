@@ -76,6 +76,8 @@ export class NavbarService {
       type: "dropdown",
       submenus: [
         { title: "Danh sách vật tư", link: "/list-material" },
+        { title: "Xuất chuyển kho", link: "/warehouse-export" },
+        { title: "Xuất kho khuyến nghị", link: "/warehouse-export-planning" },
         { title: "Quản lý phê duyệt", link: "/approve-material-update" },
         { title: "Lịch sử phê duyệt", link: "/approve-material-history" },
       ],

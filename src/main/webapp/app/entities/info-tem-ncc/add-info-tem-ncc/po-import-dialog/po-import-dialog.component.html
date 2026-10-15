@@ -98,8 +98,8 @@
           </div>
         </div>
         <p class="vw-hint">
-          Vật tư của PO này có thể không thuộc đơn hàng. Hãy kiểm tra lại trước
-          khi chọn.
+          Không thể thêm vật tư của PO này vào đơn. Hãy kiểm tra lại mã PO hoặc
+          nhà cung cấp của đơn.
         </p>
       </div>
 
@@ -218,7 +218,7 @@
                   color="primary"
                   [ngModel]="r.selected"
                   (ngModelChange)="onRowCheck(r, $event)"
-                  [disabled]="r.onTable"
+                  [disabled]="r.onTable || po.vendorMismatch"
                 ></mat-checkbox>
               </td>
               <td class="col-stt">{{ i + 1 }}</td>
@@ -234,7 +234,7 @@
                   class="cell-input"
                   [(ngModel)]="r.partNumber"
                   [matAutocomplete]="acRowPart"
-                  [disabled]="r.onTable"
+                  [disabled]="r.onTable || po.vendorMismatch"
                   placeholder="Part number"
                 />
                 <mat-autocomplete #acRowPart="matAutocomplete">
@@ -257,7 +257,7 @@
                   min="0"
                   [ngModel]="r.importQty"
                   (ngModelChange)="onImportQtyChange(r, $event)"
-                  [disabled]="r.onTable"
+                  [disabled]="r.onTable || po.vendorMismatch"
                   placeholder="Nhập SL"
                 />
               </td>
@@ -269,7 +269,7 @@
                   class="cell-input"
                   [(ngModel)]="r.whsCode"
                   [matAutocomplete]="acRowWhs"
-                  [disabled]="r.onTable"
+                  [disabled]="r.onTable || po.vendorMismatch"
                   [placeholder]="
                     isLoadingWarehouses ? 'Đang tải kho...' : 'Mã kho SAP'
                   "
