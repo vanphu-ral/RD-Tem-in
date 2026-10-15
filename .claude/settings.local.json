@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw test-compile:*)",
+      "Bash(./mvnw compile:*)",
+      "Bash(./mvnw clean:*)",
+      "Bash(cmd:*)",
+      "Bash(bash mvnw:*)",
+      "Bash(sh mvnw:*)",
+      "Bash(mvn clean:*)",
+      "Bash(bash:*)",
+      "Bash(sh:*)",
+      "Bash(chmod +x mvnw)"
+    ]
+  }
+}

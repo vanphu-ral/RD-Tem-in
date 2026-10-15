@@ -51,6 +51,8 @@ import tech.jhipster.config.JHipsterConstants;
             com.mycompany.myapp.repository.DeliveryNotificationRepository.class,
             com.mycompany.myapp.repository.SapPor1R1Repository.class,
             com.mycompany.myapp.repository.VendorLabelInfoRepository.class,
+            com.mycompany.myapp.repository.DeliveryRepository.class,
+            com.mycompany.myapp.repository.DetailDeliveryRepository.class,
         }
     )
 )
