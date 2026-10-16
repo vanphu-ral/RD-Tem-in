@@ -5,6 +5,7 @@ import com.mycompany.myapp.service.dto.VendorLabelInfoUserData5SumDTO;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,18 +15,22 @@ import org.springframework.stereotype.Repository;
  */
 @SuppressWarnings("unused")
 public interface VendorLabelInfoRepository
-    extends JpaRepository<VendorLabelInfo, Long> {
-    List<VendorLabelInfo> findBySapPor1IdInOrderByReelIdAsc(
-        Collection<Long> sapPor1Ids
+    extends JpaRepository<VendorLabelInfo, UUID> {
+    List<VendorLabelInfo> findByDetailDelivery_LineIdInOrderByReelIdAsc(
+        Collection<UUID> lineIds
     );
 
-    List<VendorLabelInfo> findByDeliveryNotificationIdOrderByReelIdAsc(
-        Long deliveryNotificationId
+    List<VendorLabelInfo> findByDelivery_DeliveryIdOrderByReelIdAsc(
+        UUID deliveryId
     );
 
     Optional<VendorLabelInfo> findByReelId(String reelId);
 
     boolean existsByReelId(String reelId);
+
+    List<VendorLabelInfo> findByDetailDelivery(
+        com.mycompany.myapp.domain.DetailDelivery detailDelivery
+    );
 
     List<VendorLabelInfo> findByReelIdIn(Collection<String> reelIds);
 

@@ -22,6 +22,7 @@ public class Delivery implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
+    @GeneratedValue
     @Column(name = "delivery_id", nullable = false)
     private UUID deliveryId;
 
@@ -75,6 +76,9 @@ public class Delivery implements Serializable {
     @Size(max = 50)
     @Column(name = "source", length = 50)
     private String source;
+
+    @Column(name = "number_of_item")
+    private Integer numberOfItem;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "delivery")
     @JsonIgnoreProperties(value = { "delivery" }, allowSetters = true)
@@ -277,6 +281,19 @@ public class Delivery implements Serializable {
         this.source = source;
     }
 
+    public Integer getNumberOfItem() {
+        return this.numberOfItem;
+    }
+
+    public Delivery numberOfItem(Integer numberOfItem) {
+        this.setNumberOfItem(numberOfItem);
+        return this;
+    }
+
+    public void setNumberOfItem(Integer numberOfItem) {
+        this.numberOfItem = numberOfItem;
+    }
+
     public Set<DetailDelivery> getDetailDeliveries() {
         return this.detailDeliveries;
     }
@@ -341,6 +358,8 @@ public class Delivery implements Serializable {
             ", dateArrivalRangDong='" + getDateArrivalRangDong() + "'" +
             ", vehicleNo='" + getVehicleNo() + "'" +
             ", numberOfPo=" + getNumberOfPo() +
+            ", numberOfItem=" + getNumberOfItem() +
+            ", source='" + getSource() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", createdBy='" + getCreatedBy() + "'" +
             ", deletedAt='" + getDeletedAt() + "'" +

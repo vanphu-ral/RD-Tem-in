@@ -85,6 +85,13 @@ class DeliveryResourceIT {
     private static final Integer UPDATED_NUMBER_OF_PO = 2;
     private static final Integer SMALLER_NUMBER_OF_PO = 1 - 1;
 
+    private static final Integer DEFAULT_NUMBER_OF_ITEM = 1;
+    private static final Integer UPDATED_NUMBER_OF_ITEM = 2;
+    private static final Integer SMALLER_NUMBER_OF_ITEM = 1 - 1;
+
+    private static final String DEFAULT_SOURCE = "AAAAAAAAAA";
+    private static final String UPDATED_SOURCE = "BBBBBBBBBB";
+
     private static final ZonedDateTime DEFAULT_CREATED_AT =
         ZonedDateTime.ofInstant(Instant.ofEpochMilli(0L), ZoneOffset.UTC);
     private static final ZonedDateTime UPDATED_CREATED_AT = ZonedDateTime.now(
@@ -150,6 +157,8 @@ class DeliveryResourceIT {
             .dateArrivalRangDong(DEFAULT_DATE_ARRIVAL_RANG_DONG)
             .vehicleNo(DEFAULT_VEHICLE_NO)
             .numberOfPo(DEFAULT_NUMBER_OF_PO)
+            .numberOfItem(DEFAULT_NUMBER_OF_ITEM)
+            .source(DEFAULT_SOURCE)
             .createdAt(DEFAULT_CREATED_AT)
             .createdBy(DEFAULT_CREATED_BY)
             .deletedAt(DEFAULT_DELETED_AT)
@@ -175,6 +184,8 @@ class DeliveryResourceIT {
             .dateArrivalRangDong(UPDATED_DATE_ARRIVAL_RANG_DONG)
             .vehicleNo(UPDATED_VEHICLE_NO)
             .numberOfPo(UPDATED_NUMBER_OF_PO)
+            .numberOfItem(UPDATED_NUMBER_OF_ITEM)
+            .source(UPDATED_SOURCE)
             .createdAt(UPDATED_CREATED_AT)
             .createdBy(UPDATED_CREATED_BY)
             .deletedAt(UPDATED_DELETED_AT)
@@ -1129,6 +1140,168 @@ class DeliveryResourceIT {
         defaultDeliveryFiltering(
             "numberOfPo.greaterThan=" + SMALLER_NUMBER_OF_PO,
             "numberOfPo.greaterThan=" + DEFAULT_NUMBER_OF_PO
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesByNumberOfItemIsEqualToSomething() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where numberOfItem equals to
+        defaultDeliveryFiltering(
+            "numberOfItem.equals=" + DEFAULT_NUMBER_OF_ITEM,
+            "numberOfItem.equals=" + UPDATED_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesByNumberOfItemIsInShouldWork() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where numberOfItem in
+        defaultDeliveryFiltering(
+            "numberOfItem.in=" +
+            DEFAULT_NUMBER_OF_ITEM +
+            "," +
+            UPDATED_NUMBER_OF_ITEM,
+            "numberOfItem.in=" + UPDATED_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesByNumberOfItemIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where numberOfItem is not null
+        defaultDeliveryFiltering(
+            "numberOfItem.specified=true",
+            "numberOfItem.specified=false"
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesByNumberOfItemIsGreaterThanOrEqualToSomething()
+        throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where numberOfItem is greater than or equal to
+        defaultDeliveryFiltering(
+            "numberOfItem.greaterThanOrEqual=" + DEFAULT_NUMBER_OF_ITEM,
+            "numberOfItem.greaterThanOrEqual=" + UPDATED_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesByNumberOfItemIsLessThanOrEqualToSomething()
+        throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where numberOfItem is less than or equal to
+        defaultDeliveryFiltering(
+            "numberOfItem.lessThanOrEqual=" + DEFAULT_NUMBER_OF_ITEM,
+            "numberOfItem.lessThanOrEqual=" + SMALLER_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesByNumberOfItemIsLessThanSomething() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where numberOfItem is less than
+        defaultDeliveryFiltering(
+            "numberOfItem.lessThan=" + UPDATED_NUMBER_OF_ITEM,
+            "numberOfItem.lessThan=" + DEFAULT_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesByNumberOfItemIsGreaterThanSomething()
+        throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where numberOfItem is greater than
+        defaultDeliveryFiltering(
+            "numberOfItem.greaterThan=" + SMALLER_NUMBER_OF_ITEM,
+            "numberOfItem.greaterThan=" + DEFAULT_NUMBER_OF_ITEM
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesBySourceIsEqualToSomething() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where source equals to
+        defaultDeliveryFiltering(
+            "source.equals=" + DEFAULT_SOURCE,
+            "source.equals=" + UPDATED_SOURCE
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesBySourceIsInShouldWork() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where source in
+        defaultDeliveryFiltering(
+            "source.in=" + DEFAULT_SOURCE + "," + UPDATED_SOURCE,
+            "source.in=" + UPDATED_SOURCE
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesBySourceIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where source is not null
+        defaultDeliveryFiltering(
+            "source.specified=true",
+            "source.specified=false"
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesBySourceContainsSomething() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where source contains
+        defaultDeliveryFiltering(
+            "source.contains=" + DEFAULT_SOURCE,
+            "source.contains=" + UPDATED_SOURCE
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllDeliveriesBySourceNotContainsSomething() throws Exception {
+        // Initialize the database
+        deliveryRepository.saveAndFlush(delivery);
+
+        // Get all the deliveryList where source does not contain
+        defaultDeliveryFiltering(
+            "source.doesNotContain=" + UPDATED_SOURCE,
+            "source.doesNotContain=" + DEFAULT_SOURCE
         );
     }
 

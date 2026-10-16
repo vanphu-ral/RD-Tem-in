@@ -13,6 +13,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
@@ -141,7 +142,7 @@ public class VendorLabelInfoResource {
      */
     @PutMapping("/{id}")
     public ResponseEntity<VendorLabelInfoDTO> updateVendorLabelInfo(
-        @PathVariable(value = "id", required = false) final Long id,
+        @PathVariable(value = "id", required = false) final UUID id,
         @Valid @RequestBody VendorLabelInfoDTO vendorLabelInfoDTO
     ) throws URISyntaxException {
         LOG.debug(
@@ -201,7 +202,7 @@ public class VendorLabelInfoResource {
         consumes = { "application/json", "application/merge-patch+json" }
     )
     public ResponseEntity<VendorLabelInfoDTO> partialUpdateVendorLabelInfo(
-        @PathVariable(value = "id", required = false) final Long id,
+        @PathVariable(value = "id", required = false) final UUID id,
         @NotNull @RequestBody VendorLabelInfoDTO vendorLabelInfoDTO
     ) throws URISyntaxException {
         LOG.debug(
@@ -265,7 +266,7 @@ public class VendorLabelInfoResource {
      */
     @GetMapping("/{id}")
     public ResponseEntity<VendorLabelInfoDTO> getVendorLabelInfo(
-        @PathVariable("id") Long id
+        @PathVariable("id") UUID id
     ) {
         LOG.debug("REST request to get VendorLabelInfo : {}", id);
         Optional<VendorLabelInfoDTO> vendorLabelInfoDTO =
@@ -281,7 +282,7 @@ public class VendorLabelInfoResource {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteVendorLabelInfo(
-        @PathVariable("id") Long id
+        @PathVariable("id") UUID id
     ) {
         LOG.debug("REST request to delete VendorLabelInfo : {}", id);
         vendorLabelInfoService.delete(id);

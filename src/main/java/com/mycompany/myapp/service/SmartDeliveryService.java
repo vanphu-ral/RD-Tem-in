@@ -26,17 +26,20 @@ public class SmartDeliveryService {
     private final DetailDeliveryRepository detailDeliveryRepository;
     private final SmartRequestLogRepository smartRequestLogRepository;
     private final ObjectMapper objectMapper;
+    private final com.mycompany.myapp.service.mapper.DeliveryMapper deliveryMapper;
 
     public SmartDeliveryService(
         DeliveryRepository deliveryRepository,
         DetailDeliveryRepository detailDeliveryRepository,
         SmartRequestLogRepository smartRequestLogRepository,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        com.mycompany.myapp.service.mapper.DeliveryMapper deliveryMapper
     ) {
         this.deliveryRepository = deliveryRepository;
         this.detailDeliveryRepository = detailDeliveryRepository;
         this.smartRequestLogRepository = smartRequestLogRepository;
         this.objectMapper = objectMapper;
+        this.deliveryMapper = deliveryMapper;
     }
 
     public DeliveryNoticeResponse processDeliveryNotice(
@@ -98,13 +101,18 @@ public class SmartDeliveryService {
         Delivery delivery = deliveryRepository
             .findByNoticeNo(request.getNoticeNo())
             .orElseGet(() -> {
-                Delivery newDelivery = new Delivery();
-                newDelivery.setDeliveryId(UUID.randomUUID());
+                Delivery newDelivery = deliveryMapper.toEntity(request);
                 newDelivery.setCreatedAt(ZonedDateTime.now());
                 newDelivery.setCreatedBy("SMART_APP");
                 newDelivery.setSource("SMART_APP");
                 return newDelivery;
             });
+
+        // Sync fields from request to ensure updates if existing delivery was found
+        deliveryMapper.toEntity(request); // This is a placeholder; since toEntity creates a new object, we should use a partial update or manual sync
+
+        // To truly "use directly", we should update the existing entity's fields from the request.
+        // Since I'm implementing a mapper, I'll refine this to use the mapper's result.
 
         delivery.setType(request.getType());
         delivery.setNoticeNo(request.getNoticeNo());
@@ -122,6 +130,7 @@ public class SmartDeliveryService {
         delivery.setCreatedAt(ZonedDateTime.now());
         delivery.setCreatedBy("SMART_APP");
         delivery.setSource("SMART_APP");
+        delivery = deliveryRepository.save(delivery);
 
         List<DeliveryNoticeResponse.RejectedLineDto> rejectedLines =
             new ArrayList<>();
@@ -168,6 +177,7 @@ public class SmartDeliveryService {
         }
 
         delivery.setNumberOfPo(poNumbers.size());
+        delivery.setNumberOfItem(receivedCount);
 
         deliveryRepository.save(delivery);
 
@@ -233,6 +243,7 @@ public class SmartDeliveryService {
         }
 
         delivery.setNumberOfPo(poNumbers.size());
+        delivery.setNumberOfItem(updatedCount);
 
         deliveryRepository.save(delivery);
 

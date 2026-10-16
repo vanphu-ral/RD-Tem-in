@@ -102,6 +102,8 @@ class DeliveryCriteriaTest {
         deliveryCriteria.dateArrivalRangDong();
         deliveryCriteria.vehicleNo();
         deliveryCriteria.numberOfPo();
+        deliveryCriteria.numberOfItem();
+        deliveryCriteria.source();
         deliveryCriteria.createdAt();
         deliveryCriteria.createdBy();
         deliveryCriteria.deletedAt();
@@ -125,6 +127,8 @@ class DeliveryCriteriaTest {
                 condition.apply(criteria.getDateArrivalRangDong()) &&
                 condition.apply(criteria.getVehicleNo()) &&
                 condition.apply(criteria.getNumberOfPo()) &&
+                condition.apply(criteria.getNumberOfItem()) &&
+                condition.apply(criteria.getSource()) &&
                 condition.apply(criteria.getCreatedAt()) &&
                 condition.apply(criteria.getCreatedBy()) &&
                 condition.apply(criteria.getDeletedAt()) &&
@@ -169,6 +173,11 @@ class DeliveryCriteriaTest {
                     criteria.getNumberOfPo(),
                     copy.getNumberOfPo()
                 ) &&
+                condition.apply(
+                    criteria.getNumberOfItem(),
+                    copy.getNumberOfItem()
+                ) &&
+                condition.apply(criteria.getSource(), copy.getSource()) &&
                 condition.apply(criteria.getCreatedAt(), copy.getCreatedAt()) &&
                 condition.apply(criteria.getCreatedBy(), copy.getCreatedBy()) &&
                 condition.apply(criteria.getDeletedAt(), copy.getDeletedAt()) &&

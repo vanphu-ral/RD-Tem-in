@@ -1,20 +1,22 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.domain.Delivery;
+import com.mycompany.myapp.domain.DetailDelivery;
 import com.mycompany.myapp.domain.PalletBoxMapping;
-import com.mycompany.myapp.domain.SapPor1R1;
 import com.mycompany.myapp.domain.VendorLabelInfo;
-import com.mycompany.myapp.repository.DeliveryNotificationRepository;
+import com.mycompany.myapp.repository.DeliveryRepository;
+import com.mycompany.myapp.repository.DetailDeliveryRepository;
 import com.mycompany.myapp.repository.PalletBoxMappingRepository;
-import com.mycompany.myapp.repository.SapPor1R1Repository;
 import com.mycompany.myapp.repository.VendorLabelInfoRepository;
 import com.mycompany.myapp.service.dto.DeliveryNotificationDetailDTO;
-import com.mycompany.myapp.service.dto.SapPor1R1DetailDTO;
+import com.mycompany.myapp.service.dto.DetailDeliveryDetailDTO;
 import com.mycompany.myapp.service.dto.VendorLabelInfoDetailDTO;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service for building the full detail of a {@link com.mycompany.myapp.domain.DeliveryNotification}:
- * the delivery notification itself, its SapPor1R1 lines and, inside every line,
+ * Service for building the full detail of a {@link com.mycompany.myapp.domain.Delivery}:
+ * the delivery itself, its DetailDelivery lines and, inside every line,
  * the VendorLabelInfo boxes enriched with serialPallet resolved from PalletBoxMapping
  * (pallet_box_mapping.reel_id_box = vendor_label_info.reel_id).
  */
@@ -35,141 +37,101 @@ public class DeliveryNotificationDetailService {
         DeliveryNotificationDetailService.class
     );
 
-    private final DeliveryNotificationRepository deliveryNotificationRepository;
+    private final DeliveryRepository deliveryRepository;
 
-    private final SapPor1R1Repository sapPor1R1Repository;
+    private final DetailDeliveryRepository detailDeliveryRepository;
 
     private final VendorLabelInfoRepository vendorLabelInfoRepository;
 
     private final PalletBoxMappingRepository palletBoxMappingRepository;
 
     public DeliveryNotificationDetailService(
-        DeliveryNotificationRepository deliveryNotificationRepository,
-        SapPor1R1Repository sapPor1R1Repository,
+        DeliveryRepository deliveryRepository,
+        DetailDeliveryRepository detailDeliveryRepository,
         VendorLabelInfoRepository vendorLabelInfoRepository,
         PalletBoxMappingRepository palletBoxMappingRepository
     ) {
-        this.deliveryNotificationRepository = deliveryNotificationRepository;
-        this.sapPor1R1Repository = sapPor1R1Repository;
+        this.deliveryRepository = deliveryRepository;
+        this.detailDeliveryRepository = detailDeliveryRepository;
         this.vendorLabelInfoRepository = vendorLabelInfoRepository;
         this.palletBoxMappingRepository = palletBoxMappingRepository;
     }
 
     /**
-     * Get the full detail of a delivery notification.
+     * Get the full detail of a delivery.
      *
-     * @param id the id of the delivery notification.
-     * @return the detail, or empty when the delivery notification does not exist.
+     * @param id the id of the delivery.
+     * @return the detail, or empty when the delivery does not exist.
      */
-    public Optional<DeliveryNotificationDetailDTO> findOneWithDetail(Long id) {
-        LOG.debug("Request to get DeliveryNotification detail : {}", id);
-        return deliveryNotificationRepository
+    public Optional<DeliveryNotificationDetailDTO> findOneWithDetail(UUID id) {
+        LOG.debug("Request to get Delivery detail : {}", id);
+        return deliveryRepository
             .findById(id)
-            .map(deliveryNotification ->
+            .map(delivery ->
                 new DeliveryNotificationDetailDTO(
-                    deliveryNotification,
-                    findSapPor1R1List(id)
+                    delivery,
+                    findDetailDeliveryList(id)
                 )
             );
     }
 
-    /**
-     * Get every {@link VendorLabelInfo} linked to a delivery notification,
-     * enriched with the {@code serialPallet} it belongs to (resolved from
-     * {@code pallet_box_mapping} where {@code reel_id_box} = {@code reel_id}).
-     *
-     * @param deliveryNotificationId the id of the delivery notification.
-     * @return the list of vendor label information with serial pallet, or an
-     *         empty list when the delivery notification has no vendor label info.
-     */
-    public List<
-        VendorLabelInfoDetailDTO
-    > findVendorLabelInfosWithPalletByDeliveryNotificationId(
-        Long deliveryNotificationId
+    private List<DetailDeliveryDetailDTO> findDetailDeliveryList(
+        UUID deliveryId
     ) {
-        LOG.debug(
-            "Request to get VendorLabelInfo list with serialPallet by deliveryNotificationId : {}",
-            deliveryNotificationId
-        );
-        List<VendorLabelInfo> vendorLabelInfoList =
-            vendorLabelInfoRepository.findByDeliveryNotificationIdOrderByReelIdAsc(
-                deliveryNotificationId
-            );
-        if (vendorLabelInfoList.isEmpty()) {
-            return new ArrayList<>();
-        }
-        Map<String, PalletBoxMapping> palletBoxMappingByReelId =
-            findPalletBoxMappingByReelId(vendorLabelInfoList);
-        return vendorLabelInfoList
-            .stream()
-            .map(vendorLabelInfo ->
-                new VendorLabelInfoDetailDTO(
-                    vendorLabelInfo,
-                    palletBoxMappingByReelId.get(vendorLabelInfo.getReelId())
-                )
-            )
-            .collect(Collectors.toList());
-    }
-
-    private List<SapPor1R1DetailDTO> findSapPor1R1List(
-        Long deliveryNotificationId
-    ) {
-        List<SapPor1R1> sapPor1R1List =
-            sapPor1R1Repository.findByDeliveryNotificationIdOrderByIdAsc(
-                deliveryNotificationId
-            );
-        if (sapPor1R1List.isEmpty()) {
+        List<DetailDelivery> detailDeliveries =
+            detailDeliveryRepository.findByDelivery_DeliveryId(deliveryId);
+        if (detailDeliveries.isEmpty()) {
             return new ArrayList<>();
         }
 
-        Map<Long, List<VendorLabelInfo>> vendorLabelInfoBySapPor1Id =
-            findVendorLabelInfoMap(sapPor1R1List);
-        List<VendorLabelInfo> flatVendorLabelInfos = vendorLabelInfoBySapPor1Id
-            .values()
+        List<UUID> lineIds = detailDeliveries
             .stream()
-            .flatMap(List::stream)
+            .map(DetailDelivery::getLineId)
             .collect(Collectors.toList());
-        Map<String, PalletBoxMapping> palletBoxMappingByReelId =
-            findPalletBoxMappingByReelId(flatVendorLabelInfos);
 
-        return sapPor1R1List
-            .stream()
-            .map(sapPor1R1 ->
-                new SapPor1R1DetailDTO(
-                    sapPor1R1,
-                    vendorLabelInfoBySapPor1Id
-                        .getOrDefault(sapPor1R1.getId(), new ArrayList<>())
-                        .stream()
-                        .map(vendorLabelInfo ->
-                            new VendorLabelInfoDetailDTO(
-                                vendorLabelInfo,
-                                palletBoxMappingByReelId.get(
-                                    vendorLabelInfo.getReelId()
-                                )
-                            )
+        List<VendorLabelInfo> vendorLabelInfos =
+            vendorLabelInfoRepository.findByDetailDelivery_LineIdInOrderByReelIdAsc(
+                lineIds
+            );
+        Map<String, PalletBoxMapping> palletBoxMappingByReelId =
+            findPalletBoxMappingByReelId(vendorLabelInfos);
+
+        Map<UUID, List<VendorLabelInfoDetailDTO>> vendorLabelInfoByLineId =
+            vendorLabelInfos
+                .stream()
+                .collect(
+                    Collectors.groupingBy(
+                        vli ->
+                            vli.getDetailDelivery() != null
+                                ? vli.getDetailDelivery().getLineId()
+                                : null,
+                        Collectors.mapping(
+                            vli ->
+                                new VendorLabelInfoDetailDTO(
+                                    vli,
+                                    palletBoxMappingByReelId.get(
+                                        vli.getReelId()
+                                    )
+                                ),
+                            Collectors.toList()
                         )
-                        .collect(Collectors.toList())
-                )
-            )
-            .collect(Collectors.toList());
-    }
+                    )
+                );
 
-    private Map<Long, List<VendorLabelInfo>> findVendorLabelInfoMap(
-        List<SapPor1R1> sapPor1R1List
-    ) {
-        List<Long> sapPor1Ids = sapPor1R1List
+        return detailDeliveries
             .stream()
-            .map(SapPor1R1::getId)
+            .map(detailDelivery -> {
+                List<VendorLabelInfoDetailDTO> vendorLabelInfoDTOs =
+                    vendorLabelInfoByLineId.getOrDefault(
+                        detailDelivery.getLineId(),
+                        new ArrayList<>()
+                    );
+                return new DetailDeliveryDetailDTO(
+                    detailDelivery,
+                    vendorLabelInfoDTOs
+                );
+            })
             .collect(Collectors.toList());
-        return vendorLabelInfoRepository
-            .findBySapPor1IdInOrderByReelIdAsc(sapPor1Ids)
-            .stream()
-            .filter(vendorLabelInfo -> vendorLabelInfo.getSapPor1() != null)
-            .collect(
-                Collectors.groupingBy(vendorLabelInfo ->
-                    vendorLabelInfo.getSapPor1().getId()
-                )
-            );
     }
 
     private Map<String, PalletBoxMapping> findPalletBoxMappingByReelId(

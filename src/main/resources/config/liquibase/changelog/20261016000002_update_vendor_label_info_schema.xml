@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Update vendor_label_info table:
+        - Change id to UUID
+        - Rename sap_por1_id to line_id and change to UUID
+        - Rename delivery_notification_id to delivery_id and change to UUID
+        - Update Foreign Keys
+    -->
+    <changeSet id="20261016000002-1" author="claude">
+        <!-- 1. Drop existing foreign keys first -->
+        <dropForeignKeyConstraint baseTableName="vendor_label_info" constraintName="fk_vendor_label_info__delivery_notification_id"/>
+        <dropForeignKeyConstraint baseTableName="vendor_label_info" constraintName="fk_vendor_label_info__sap_por1_id"/>
+
+        <!-- 2. Update ID column to UUID -->
+        <!-- Note: For existing data, this may require a custom SQL transition depending on DB,
+             but here we follow the requested type change. -->
+        <dropPrimaryKey tableName="vendor_label_info" constraintName="primary"/>
+        <modifyDataType tableName="vendor_label_info" columnName="id" newDataType="uuid"/>
+        <addPrimaryKey tableName="vendor_label_info" columnNames="id" constraintName="pk_vendor_label_info"/>
+
+        <!-- 3. Rename and update sap_por1_id -> line_id -->
+        <renameColumn tableName="vendor_label_info" oldColumnName="sap_por1_id" newColumnName="line_id"/>
+        <modifyDataType tableName="vendor_label_info" columnName="line_id" newDataType="uuid"/>
+
+        <!-- 4. Rename and update delivery_notification_id -> delivery_id -->
+        <renameColumn tableName="vendor_label_info" oldColumnName="delivery_notification_id" newColumnName="delivery_id"/>
+        <modifyDataType tableName="vendor_label_info" columnName="delivery_id" newDataType="uuid"/>
+
+        <!-- 5. Establish new foreign key constraints -->
+        <addForeignKeyConstraint baseColumnNames="line_id"
+                                 baseTableName="vendor_label_info"
+                                 constraintName="fk_vendor_label_info__line_id"
+                                 referencedColumnNames="line_id"
+                                 referencedTableName="detail_delivery"
+                                 />
+        <addForeignKeyConstraint baseColumnNames="delivery_id"
+                                 baseTableName="vendor_label_info"
+                                 constraintName="fk_vendor_label_info__delivery_id"
+                                 referencedColumnNames="delivery_id"
+                                 referencedTableName="delivery"
+                                 />
+    </changeSet>
+</databaseChangeLog>

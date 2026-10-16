@@ -3,6 +3,7 @@ package com.mycompany.myapp.domain;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.UUID;
 import javax.persistence.*;
 import javax.validation.constraints.*;
 
@@ -17,9 +18,8 @@ public class VendorLabelInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private Long id;
+    private UUID id;
 
     @Size(max = 50)
     @Column(name = "reel_id", length = 50, unique = true)
@@ -131,8 +131,8 @@ public class VendorLabelInfo implements Serializable {
     @Column(name = "sap_code", length = 20)
     private String sapCode;
 
-    @Lob
-    @Column(name = "vendor_qr_code")
+    @Size(max = 510)
+    @Column(name = "vendor_qr_code", length = 510)
     private String vendorQrCode;
 
     @Size(max = 50)
@@ -164,16 +164,16 @@ public class VendorLabelInfo implements Serializable {
     private Boolean sapSendStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "delivery_notification_id", referencedColumnName = "id")
-    private DeliveryNotification deliveryNotification;
+    @JoinColumn(name = "delivery_id", referencedColumnName = "delivery_id")
+    private Delivery delivery;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sap_por1_id", referencedColumnName = "id")
+    @JoinColumn(name = "line_id", referencedColumnName = "line_id")
     @JsonIgnoreProperties(
         value = { "deliveryNotification" },
         allowSetters = true
     )
-    private SapPor1R1 sapPor1;
+    private DetailDelivery detailDelivery;
 
     // Property-ref (@OneToOne mappedBy) on a non-PK column makes Hibernate 5.6
     // crash while loading this entity (PropertyAccessException on reelId), so the
@@ -184,16 +184,16 @@ public class VendorLabelInfo implements Serializable {
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
-    public Long getId() {
+    public UUID getId() {
         return this.id;
     }
 
-    public VendorLabelInfo id(Long id) {
+    public VendorLabelInfo id(UUID id) {
         this.setId(id);
         return this;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -678,33 +678,29 @@ public class VendorLabelInfo implements Serializable {
         this.sapSendStatus = sapSendStatus;
     }
 
-    public DeliveryNotification getDeliveryNotification() {
-        return this.deliveryNotification;
+    public Delivery getDelivery() {
+        return this.delivery;
     }
 
-    public void setDeliveryNotification(
-        DeliveryNotification deliveryNotification
-    ) {
-        this.deliveryNotification = deliveryNotification;
+    public void setDelivery(Delivery delivery) {
+        this.delivery = delivery;
     }
 
-    public VendorLabelInfo deliveryNotification(
-        DeliveryNotification deliveryNotification
-    ) {
-        this.setDeliveryNotification(deliveryNotification);
+    public VendorLabelInfo delivery(Delivery delivery) {
+        this.setDelivery(delivery);
         return this;
     }
 
-    public SapPor1R1 getSapPor1() {
-        return this.sapPor1;
+    public DetailDelivery getDetailDelivery() {
+        return this.detailDelivery;
     }
 
-    public void setSapPor1(SapPor1R1 sapPor1R1) {
-        this.sapPor1 = sapPor1R1;
+    public void setDetailDelivery(DetailDelivery detailDelivery) {
+        this.detailDelivery = detailDelivery;
     }
 
-    public VendorLabelInfo sapPor1(SapPor1R1 sapPor1R1) {
-        this.setSapPor1(sapPor1R1);
+    public VendorLabelInfo detailDelivery(DetailDelivery detailDelivery) {
+        this.setDetailDelivery(detailDelivery);
         return this;
     }
 
@@ -789,6 +785,8 @@ public class VendorLabelInfo implements Serializable {
             ", vendorAdditionalData='" + getVendorAdditionalData() + "'" +
             ", panaSendStatus='" + getPanaSendStatus() + "'" +
             ", sapSendStatus='" + getSapSendStatus() + "'" +
+            ", delivery='" + getDelivery() + "'" +
+            ", detailDelivery='" + getDetailDelivery() + "'" +
             "}";
     }
 }

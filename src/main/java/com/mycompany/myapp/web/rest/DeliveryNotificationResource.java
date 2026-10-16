@@ -324,15 +324,15 @@ public class DeliveryNotificationResource {
      * @param id the id of the deliveryNotificationDTO to retrieve.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the deliveryNotification detail, or with status {@code 404 (Not Found)}.
      */
-    @GetMapping("/{id}/detail")
-    public ResponseEntity<
-        DeliveryNotificationDetailDTO
-    > getDeliveryNotificationDetail(@PathVariable("id") Long id) {
-        LOG.debug("REST request to get DeliveryNotification detail : {}", id);
-        Optional<DeliveryNotificationDetailDTO> detail =
-            deliveryNotificationDetailService.findOneWithDetail(id);
-        return ResponseUtil.wrapOrNotFound(detail);
-    }
+    // @GetMapping("/{id}/detail")
+    // public ResponseEntity<
+    //     DeliveryNotificationDetailDTO
+    // > getDeliveryNotificationDetail(@PathVariable("id") Long id) {
+    //     LOG.debug("REST request to get DeliveryNotification detail : {}", id);
+    //     Optional<DeliveryNotificationDetailDTO> detail =
+    //         deliveryNotificationDetailService.findOneWithDetail(id);
+    //     return ResponseUtil.wrapOrNotFound(detail);
+    // }
 
     /**
      * {@code GET  /delivery-notifications/:id/vendor-label-infos} : get the flat list of
@@ -343,20 +343,20 @@ public class DeliveryNotificationResource {
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of
      *         vendorLabelInfo (with serialPallet) in the body.
      */
-    @GetMapping("/{id}/vendor-label-infos")
-    public ResponseEntity<
-        List<VendorLabelInfoDetailDTO>
-    > getVendorLabelInfosWithPallet(@PathVariable("id") Long id) {
-        LOG.debug(
-            "REST request to get VendorLabelInfo list with serialPallet by deliveryNotification : {}",
-            id
-        );
-        List<VendorLabelInfoDetailDTO> result =
-            deliveryNotificationDetailService.findVendorLabelInfosWithPalletByDeliveryNotificationId(
-                id
-            );
-        return ResponseEntity.ok().body(result);
-    }
+    // @GetMapping("/{id}/vendor-label-infos")
+    // public ResponseEntity<
+    //     List<VendorLabelInfoDetailDTO>
+    // > getVendorLabelInfosWithPallet(@PathVariable("id") Long id) {
+    //     LOG.debug(
+    //         "REST request to get VendorLabelInfo list with serialPallet by deliveryNotification : {}",
+    //         id
+    //     );
+    //     List<VendorLabelInfoDetailDTO> result =
+    //         deliveryNotificationDetailService.findVendorLabelInfosWithPalletByDeliveryNotificationId(
+    //             id
+    //         );
+    //     return ResponseEntity.ok().body(result);
+    // }
 
     /**
      * {@code DELETE  /delivery-notifications/:id} : delete the "id" deliveryNotification.

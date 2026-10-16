@@ -47,4 +47,11 @@ public interface DetailDeliveryRepository
     Optional<DetailDelivery> findOneWithToOneRelationships(
         @Param("id") UUID id
     );
+
+    @Query(
+        "select detailDelivery from DetailDelivery detailDelivery where detailDelivery.delivery.deliveryId =:deliveryId"
+    )
+    List<DetailDelivery> findByDelivery_DeliveryId(
+        @Param("deliveryId") UUID deliveryId
+    );
 }

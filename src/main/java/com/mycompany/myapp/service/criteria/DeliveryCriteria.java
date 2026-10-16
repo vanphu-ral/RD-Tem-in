@@ -42,6 +42,10 @@ public class DeliveryCriteria implements Serializable, Criteria {
 
     private IntegerFilter numberOfPo;
 
+    private IntegerFilter numberOfItem;
+
+    private StringFilter source;
+
     private ZonedDateTimeFilter createdAt;
 
     private StringFilter createdBy;
@@ -93,6 +97,14 @@ public class DeliveryCriteria implements Serializable, Criteria {
         this.numberOfPo = other
             .optionalNumberOfPo()
             .map(IntegerFilter::copy)
+            .orElse(null);
+        this.numberOfItem = other
+            .optionalNumberOfItem()
+            .map(IntegerFilter::copy)
+            .orElse(null);
+        this.source = other
+            .optionalSource()
+            .map(StringFilter::copy)
             .orElse(null);
         this.createdAt = other
             .optionalCreatedAt()
@@ -314,6 +326,44 @@ public class DeliveryCriteria implements Serializable, Criteria {
         this.numberOfPo = numberOfPo;
     }
 
+    public IntegerFilter getNumberOfItem() {
+        return numberOfItem;
+    }
+
+    public Optional<IntegerFilter> optionalNumberOfItem() {
+        return Optional.ofNullable(numberOfItem);
+    }
+
+    public IntegerFilter numberOfItem() {
+        if (numberOfItem == null) {
+            setNumberOfItem(new IntegerFilter());
+        }
+        return numberOfItem;
+    }
+
+    public void setNumberOfItem(IntegerFilter numberOfItem) {
+        this.numberOfItem = numberOfItem;
+    }
+
+    public StringFilter getSource() {
+        return source;
+    }
+
+    public Optional<StringFilter> optionalSource() {
+        return Optional.ofNullable(source);
+    }
+
+    public StringFilter source() {
+        if (source == null) {
+            setSource(new StringFilter());
+        }
+        return source;
+    }
+
+    public void setSource(StringFilter source) {
+        this.source = source;
+    }
+
     public ZonedDateTimeFilter getCreatedAt() {
         return createdAt;
     }
@@ -448,6 +498,8 @@ public class DeliveryCriteria implements Serializable, Criteria {
             Objects.equals(dateArrivalRangDong, that.dateArrivalRangDong) &&
             Objects.equals(vehicleNo, that.vehicleNo) &&
             Objects.equals(numberOfPo, that.numberOfPo) &&
+            Objects.equals(numberOfItem, that.numberOfItem) &&
+            Objects.equals(source, that.source) &&
             Objects.equals(createdAt, that.createdAt) &&
             Objects.equals(createdBy, that.createdBy) &&
             Objects.equals(deletedAt, that.deletedAt) &&
@@ -470,6 +522,8 @@ public class DeliveryCriteria implements Serializable, Criteria {
             dateArrivalRangDong,
             vehicleNo,
             numberOfPo,
+            numberOfItem,
+            source,
             createdAt,
             createdBy,
             deletedAt,
@@ -494,6 +548,8 @@ public class DeliveryCriteria implements Serializable, Criteria {
             optionalDateArrivalRangDong().map(f -> "dateArrivalRangDong=" + f + ", ").orElse("") +
             optionalVehicleNo().map(f -> "vehicleNo=" + f + ", ").orElse("") +
             optionalNumberOfPo().map(f -> "numberOfPo=" + f + ", ").orElse("") +
+            optionalNumberOfItem().map(f -> "numberOfItem=" + f + ", ").orElse("") +
+            optionalSource().map(f -> "source=" + f + ", ").orElse("") +
             optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
             optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
             optionalDeletedAt().map(f -> "deletedAt=" + f + ", ").orElse("") +

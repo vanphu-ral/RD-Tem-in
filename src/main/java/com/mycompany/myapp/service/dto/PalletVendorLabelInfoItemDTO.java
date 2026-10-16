@@ -32,10 +32,10 @@ public class PalletVendorLabelInfoItemDTO
             ", reelId='" +
             getReelId() +
             '\'' +
-            ", deliveryNotificationId=" +
-            getDeliveryNotificationId() +
-            ", sapPor1Id=" +
-            getSapPor1Id() +
+            ", deliveryId=" +
+            getDeliveryId() +
+            ", lineId=" +
+            getLineId() +
             ", palletBoxMappingId=" +
             getPalletBoxMappingId() +
             "}"

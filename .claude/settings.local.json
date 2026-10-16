@@ -10,7 +10,14 @@
       "Bash(mvn clean:*)",
       "Bash(bash:*)",
       "Bash(sh:*)",
-      "Bash(chmod +x mvnw)"
+      "Bash(chmod +x mvnw)",
+      "Bash(./mvnw verify:*)",
+      "Bash(./mvnw.cmd clean:*)",
+      "Bash(./mvnw.cmd verify:*)",
+      "Bash(./mvnw.cmd compile:*)"
     ]
+  },
+  "enabledPlugins": {
+    "ecc@ecc": true
   }
 }

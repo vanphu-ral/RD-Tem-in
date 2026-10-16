@@ -170,6 +170,22 @@ public class DeliveryQueryService extends QueryService<Delivery> {
                     )
                 );
             }
+            if (criteria.getNumberOfItem() != null) {
+                specification = specification.and(
+                    buildRangeSpecification(
+                        criteria.getNumberOfItem(),
+                        Delivery_.numberOfItem
+                    )
+                );
+            }
+            if (criteria.getSource() != null) {
+                specification = specification.and(
+                    buildStringSpecification(
+                        criteria.getSource(),
+                        Delivery_.source
+                    )
+                );
+            }
             if (criteria.getCreatedAt() != null) {
                 specification = specification.and(
                     buildRangeSpecification(

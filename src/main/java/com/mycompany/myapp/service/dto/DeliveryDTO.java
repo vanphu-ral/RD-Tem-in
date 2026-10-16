@@ -13,7 +13,6 @@ import javax.validation.constraints.*;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class DeliveryDTO implements Serializable {
 
-    @NotNull
     private UUID deliveryId;
 
     @Size(max = 50)
@@ -42,6 +41,11 @@ public class DeliveryDTO implements Serializable {
     private String vehicleNo;
 
     private Integer numberOfPo;
+
+    private Integer numberOfItem;
+
+    @Size(max = 50)
+    private String source;
 
     private ZonedDateTime createdAt;
 
@@ -141,6 +145,22 @@ public class DeliveryDTO implements Serializable {
         this.numberOfPo = numberOfPo;
     }
 
+    public Integer getNumberOfItem() {
+        return numberOfItem;
+    }
+
+    public void setNumberOfItem(Integer numberOfItem) {
+        this.numberOfItem = numberOfItem;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
     public ZonedDateTime getCreatedAt() {
         return createdAt;
     }
@@ -209,6 +229,8 @@ public class DeliveryDTO implements Serializable {
              ", dateArrivalRangDong='" + getDateArrivalRangDong() + "'" +
              ", vehicleNo='" + getVehicleNo() + "'" +
              ", numberOfPo=" + getNumberOfPo() +
+             ", numberOfItem=" + getNumberOfItem() +
+             ", source='" + getSource() + "'" +
              ", createdAt='" + getCreatedAt() + "'" +
              ", createdBy='" + getCreatedBy() + "'" +
              ", deletedAt='" + getDeletedAt() + "'" +

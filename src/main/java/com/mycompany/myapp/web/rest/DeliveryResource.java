@@ -79,13 +79,6 @@ public class DeliveryResource {
         @Valid @RequestBody DeliveryDTO deliveryDTO
     ) throws URISyntaxException {
         log.debug("REST request to save Delivery : {}", deliveryDTO);
-        if (deliveryDTO.getDeliveryId() != null) {
-            throw new BadRequestAlertException(
-                "A new delivery cannot already have an ID",
-                ENTITY_NAME,
-                "idexists"
-            );
-        }
         deliveryDTO = deliveryService.save(deliveryDTO);
         return ResponseEntity.created(
             new URI("/api/deliveries/" + deliveryDTO.getDeliveryId())
@@ -267,6 +260,16 @@ public class DeliveryResource {
         log.debug("REST request to get Delivery : {}", id);
         Optional<DeliveryDTO> deliveryDTO = deliveryService.findOne(id);
         return ResponseUtil.wrapOrNotFound(deliveryDTO);
+    }
+
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<
+        com.mycompany.myapp.service.dto.DeliveryDetailDTO
+    > getDeliveryDetail(@PathVariable("id") UUID id) {
+        log.debug("REST request to get Delivery Detail : {}", id);
+        Optional<com.mycompany.myapp.service.dto.DeliveryDetailDTO> result =
+            deliveryService.findOneDetail(id);
+        return ResponseUtil.wrapOrNotFound(result);
     }
 
     /**

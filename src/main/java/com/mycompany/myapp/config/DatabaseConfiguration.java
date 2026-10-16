@@ -53,6 +53,7 @@ import tech.jhipster.config.JHipsterConstants;
             com.mycompany.myapp.repository.VendorLabelInfoRepository.class,
             com.mycompany.myapp.repository.DeliveryRepository.class,
             com.mycompany.myapp.repository.DetailDeliveryRepository.class,
+            com.mycompany.myapp.repository.SmartRequestLogRepository.class,
         }
     )
 )
