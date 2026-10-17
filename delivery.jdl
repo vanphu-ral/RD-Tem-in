@@ -1,0 +1,47 @@
+entity Delivery {
+deliveryId UUID required,
+type String maxlength(50),
+noticeNo String maxlength(50),
+noticeDate LocalDate,
+supplierCode String maxlength(50),
+supplierName String maxlength(255),
+factory String maxlength(50),
+deliveryNotificationCode String maxlength(50),
+dateArrivalRangDong LocalDate,
+vehicleNo String maxlength(50),
+numberOfPo Integer,
+createdAt ZonedDateTime,
+createdBy String maxlength(50),
+deletedAt ZonedDateTime,
+deletedBy String maxlength(50)
+}
+
+entity DetailDelivery {
+lineId UUID required,
+poSmart String maxlength(50),
+poErp String maxlength(50),
+prNumber String maxlength(50),
+contractNo String maxlength(50),
+lineItemStt String maxlength(50),
+poLineItem String maxlength(50),
+itemCode String maxlength(50),
+itemName String maxlength(255),
+whsCode String maxlength(50),
+unit String maxlength(50),
+quantity Integer,
+invoiceSmartNo String maxlength(50),
+invoiceNo String maxlength(50),
+invoiceDate LocalDate,
+deliveryTurn Integer
+}
+
+// Relationships
+relationship OneToMany {
+Delivery{detailDeliveries} to DetailDelivery{delivery(deliveryId) required}
+}
+
+// Options (Pagination, DTO, Service options if needed)
+paginate Delivery with pagination
+dto Delivery, DetailDelivery with mapstruct
+service Delivery, DetailDelivery with serviceClass
+filter Delivery

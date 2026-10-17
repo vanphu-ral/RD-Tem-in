@@ -50,13 +50,15 @@
       "PalletBoxMapping",
       "DeliveryNotification",
       "SapPor1R1",
-      "VendorLabelInfo"
+      "VendorLabelInfo",
+      "Delivery",
+      "DetailDelivery"
     ],
     "entitySuffix": "",
     "jhiPrefix": "jhi",
-    "jhipsterVersion": "8.11.0",
+    "jhipsterVersion": "8.2.1",
     "languages": ["en", "fr"],
-    "lastLiquibaseTimestamp": 1790313319000,
+    "lastLiquibaseTimestamp": 1791960783000,
     "messageBroker": false,
     "nativeLanguage": "en",
     "otherModules": [],

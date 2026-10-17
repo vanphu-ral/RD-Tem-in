@@ -1,36 +1,37 @@
 package com.mycompany.myapp.service.dto;
 
-import com.mycompany.myapp.domain.DeliveryNotification;
+import com.mycompany.myapp.domain.Delivery;
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
- * A DTO for a DeliveryNotification with its SapPor1R1 lines, each line holding
+ * A DTO for a Delivery with its DetailDelivery lines, each line holding
  * the VendorLabelInfo boxes (enriched with serialPallet from PalletBoxMapping).
  */
 public class DeliveryNotificationDetailDTO implements Serializable {
 
-    private Long id;
+    private UUID id;
 
     private String deliveryNotificationCode;
 
-    private String invoiceNumber;
+    private String noticeNo;
 
-    private String contractCode;
+    private String supplierCode;
 
-    private String vendorName;
+    private String supplierName;
 
-    private String contNo;
+    private String factory;
 
-    private Instant entryDate;
+    private LocalDate noticeDate;
 
     private Integer numberOfPo;
 
     private Integer numberOfItem;
-
-    private String status;
 
     private String source;
 
@@ -38,43 +39,43 @@ public class DeliveryNotificationDetailDTO implements Serializable {
 
     private Instant createdAt;
 
-    private List<SapPor1R1DetailDTO> sapPor1R1List;
+    private List<DetailDeliveryDetailDTO> detailDeliveryList;
 
     public DeliveryNotificationDetailDTO() {
         super();
     }
 
     public DeliveryNotificationDetailDTO(
-        DeliveryNotification entity,
-        List<SapPor1R1DetailDTO> sapPor1R1List
+        Delivery entity,
+        List<DetailDeliveryDetailDTO> detailDeliveryList
     ) {
         super();
         if (entity != null) {
-            this.id = entity.getId();
-            this.deliveryNotificationCode =
-                entity.getDeliveryNotificationCode();
-            this.invoiceNumber = entity.getInvoiceNumber();
-            this.contractCode = entity.getContractCode();
-            this.vendorName = entity.getVendorName();
-            this.contNo = entity.getContNo();
-            this.entryDate = entity.getEntryDate();
+            this.id = entity.getDeliveryId();
+            this.deliveryNotificationCode = entity.getNoticeNo();
+            this.noticeNo = entity.getNoticeNo();
+            this.supplierCode = entity.getSupplierCode();
+            this.supplierName = entity.getSupplierName();
+            this.factory = entity.getFactory();
+            this.noticeDate = entity.getNoticeDate();
             this.numberOfPo = entity.getNumberOfPo();
             this.numberOfItem = entity.getNumberOfItem();
-            this.status = entity.getStatus();
             this.source = entity.getSource();
             this.createdBy = entity.getCreatedBy();
-            this.createdAt = entity.getCreatedAt();
+            this.createdAt = entity.getCreatedAt() != null
+                ? entity.getCreatedAt().toInstant()
+                : null;
         }
-        this.sapPor1R1List = sapPor1R1List == null
+        this.detailDeliveryList = detailDeliveryList == null
             ? new ArrayList<>()
-            : sapPor1R1List;
+            : detailDeliveryList;
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -86,44 +87,44 @@ public class DeliveryNotificationDetailDTO implements Serializable {
         this.deliveryNotificationCode = deliveryNotificationCode;
     }
 
-    public String getInvoiceNumber() {
-        return invoiceNumber;
+    public String getNoticeNo() {
+        return noticeNo;
     }
 
-    public void setInvoiceNumber(String invoiceNumber) {
-        this.invoiceNumber = invoiceNumber;
+    public void setNoticeNo(String noticeNo) {
+        this.noticeNo = noticeNo;
     }
 
-    public String getContractCode() {
-        return contractCode;
+    public String getSupplierCode() {
+        return supplierCode;
     }
 
-    public void setContractCode(String contractCode) {
-        this.contractCode = contractCode;
+    public void setSupplierCode(String supplierCode) {
+        this.supplierCode = supplierCode;
     }
 
-    public String getVendorName() {
-        return vendorName;
+    public String getSupplierName() {
+        return supplierName;
     }
 
-    public void setVendorName(String vendorName) {
-        this.vendorName = vendorName;
+    public void setSupplierName(String supplierName) {
+        this.supplierName = supplierName;
     }
 
-    public String getContNo() {
-        return contNo;
+    public String getFactory() {
+        return factory;
     }
 
-    public void setContNo(String contNo) {
-        this.contNo = contNo;
+    public void setFactory(String factory) {
+        this.factory = factory;
     }
 
-    public Instant getEntryDate() {
-        return entryDate;
+    public LocalDate getNoticeDate() {
+        return noticeDate;
     }
 
-    public void setEntryDate(Instant entryDate) {
-        this.entryDate = entryDate;
+    public void setNoticeDate(LocalDate noticeDate) {
+        this.noticeDate = noticeDate;
     }
 
     public Integer getNumberOfPo() {
@@ -140,14 +141,6 @@ public class DeliveryNotificationDetailDTO implements Serializable {
 
     public void setNumberOfItem(Integer numberOfItem) {
         this.numberOfItem = numberOfItem;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public String getSource() {
@@ -174,12 +167,14 @@ public class DeliveryNotificationDetailDTO implements Serializable {
         this.createdAt = createdAt;
     }
 
-    public List<SapPor1R1DetailDTO> getSapPor1R1List() {
-        return sapPor1R1List;
+    public List<DetailDeliveryDetailDTO> getDetailDeliveryList() {
+        return detailDeliveryList;
     }
 
-    public void setSapPor1R1List(List<SapPor1R1DetailDTO> sapPor1R1List) {
-        this.sapPor1R1List = sapPor1R1List;
+    public void setDetailDeliveryList(
+        List<DetailDeliveryDetailDTO> detailDeliveryList
+    ) {
+        this.detailDeliveryList = detailDeliveryList;
     }
 
     @Override
@@ -192,10 +187,10 @@ public class DeliveryNotificationDetailDTO implements Serializable {
             deliveryNotificationCode +
             "'" +
             ", status='" +
-            status +
+            source +
             "'" +
-            ", sapPor1R1List=" +
-            sapPor1R1List +
+            ", detailDeliveryList=" +
+            detailDeliveryList +
             "}"
         );
     }

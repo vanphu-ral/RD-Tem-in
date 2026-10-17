@@ -13,7 +13,7 @@ import java.io.Serializable;
  */
 @JsonIgnoreProperties(
     ignoreUnknown = true,
-    value = { "deliveryNotification", "sapPor1", "palletBoxMapping" }
+    value = { "delivery", "detailDelivery", "palletBoxMapping" }
 )
 public class VendorLabelInfoDetailDTO
     extends VendorLabelInfoDTO
@@ -69,13 +69,11 @@ public class VendorLabelInfoDetailDTO
             this.setVendorAdditionalData(entity.getVendorAdditionalData());
             this.setPanaSendStatus(entity.getPanaSendStatus());
             this.setSapSendStatus(entity.getSapSendStatus());
-            if (entity.getDeliveryNotification() != null) {
-                this.setDeliveryNotificationId(
-                    entity.getDeliveryNotification().getId()
-                );
+            if (entity.getDelivery() != null) {
+                this.setDeliveryId(entity.getDelivery().getDeliveryId());
             }
-            if (entity.getSapPor1() != null) {
-                this.setSapPor1Id(entity.getSapPor1().getId());
+            if (entity.getDetailDelivery() != null) {
+                this.setLineId(entity.getDetailDelivery().getLineId());
             }
         }
         if (palletBoxMapping != null) {
@@ -110,10 +108,10 @@ public class VendorLabelInfoDetailDTO
             ", serialPallet='" +
             serialPallet +
             "'" +
-            ", deliveryNotificationId=" +
-            getDeliveryNotificationId() +
-            ", sapPor1Id=" +
-            getSapPor1Id() +
+            ", deliveryId=" +
+            getDeliveryId() +
+            ", lineId=" +
+            getLineId() +
             ", palletBoxMappingId=" +
             getPalletBoxMappingId() +
             "}"

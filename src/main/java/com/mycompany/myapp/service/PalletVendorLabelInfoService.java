@@ -1,14 +1,14 @@
 package com.mycompany.myapp.service;
 
-import com.mycompany.myapp.domain.DeliveryNotification;
+import com.mycompany.myapp.domain.Delivery;
+import com.mycompany.myapp.domain.DetailDelivery;
 import com.mycompany.myapp.domain.PalletBoxMapping;
 import com.mycompany.myapp.domain.PalletMngt;
-import com.mycompany.myapp.domain.SapPor1R1;
 import com.mycompany.myapp.domain.VendorLabelInfo;
-import com.mycompany.myapp.repository.DeliveryNotificationRepository;
+import com.mycompany.myapp.repository.DeliveryRepository;
+import com.mycompany.myapp.repository.DetailDeliveryRepository;
 import com.mycompany.myapp.repository.PalletBoxMappingRepository;
 import com.mycompany.myapp.repository.PalletMngtRepository;
-import com.mycompany.myapp.repository.SapPor1R1Repository;
 import com.mycompany.myapp.repository.VendorLabelInfoRepository;
 import com.mycompany.myapp.security.SecurityUtils;
 import com.mycompany.myapp.service.dto.PalletBoxMappingDTO;
@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -63,24 +64,24 @@ public class PalletVendorLabelInfoService {
 
     private final PalletMngtRepository palletMngtRepository;
 
-    private final DeliveryNotificationRepository deliveryNotificationRepository;
+    private final DeliveryRepository deliveryRepository;
 
-    private final SapPor1R1Repository sapPor1R1Repository;
+    private final DetailDeliveryRepository detailDeliveryRepository;
 
     public PalletVendorLabelInfoService(
         VendorLabelInfoRepository vendorLabelInfoRepository,
         VendorLabelInfoMapper vendorLabelInfoMapper,
         PalletBoxMappingRepository palletBoxMappingRepository,
         PalletMngtRepository palletMngtRepository,
-        DeliveryNotificationRepository deliveryNotificationRepository,
-        SapPor1R1Repository sapPor1R1Repository
+        DeliveryRepository deliveryRepository,
+        DetailDeliveryRepository detailDeliveryRepository
     ) {
         this.vendorLabelInfoRepository = vendorLabelInfoRepository;
         this.vendorLabelInfoMapper = vendorLabelInfoMapper;
         this.palletBoxMappingRepository = palletBoxMappingRepository;
         this.palletMngtRepository = palletMngtRepository;
-        this.deliveryNotificationRepository = deliveryNotificationRepository;
-        this.sapPor1R1Repository = sapPor1R1Repository;
+        this.deliveryRepository = deliveryRepository;
+        this.detailDeliveryRepository = detailDeliveryRepository;
     }
 
     /**
@@ -135,9 +136,11 @@ public class PalletVendorLabelInfoService {
         );
         PalletMngt palletMngt = findPalletMngt(serialPallet);
         checkReelIdNotUsed(normalizedDTOList);
-        Map<Long, DeliveryNotification> deliveryNotificationMap =
+        Map<UUID, Delivery> deliveryNotificationMap =
             findDeliveryNotificationMap(normalizedDTOList);
-        Map<Long, SapPor1R1> sapPor1Map = findSapPor1Map(normalizedDTOList);
+        Map<UUID, DetailDelivery> detailDeliveryMap = findDetailDeliveryMap(
+            normalizedDTOList
+        );
 
         String currentUser = SecurityUtils.getCurrentUserLogin().orElse(null);
         Instant now = Instant.now();
@@ -150,10 +153,12 @@ public class PalletVendorLabelInfoService {
                 dto
             );
             vendorLabelInfo.setId(null);
-            vendorLabelInfo.setDeliveryNotification(
-                deliveryNotificationMap.get(dto.getDeliveryNotificationId())
+            vendorLabelInfo.setDelivery(
+                deliveryNotificationMap.get(dto.getDeliveryId())
             );
-            vendorLabelInfo.setSapPor1(sapPor1Map.get(dto.getSapPor1Id()));
+            vendorLabelInfo.setDetailDelivery(
+                detailDeliveryMap.get(dto.getLineId())
+            );
             vendorLabelInfo.setPalletBoxMapping(null);
             if (trimToNull(vendorLabelInfo.getCreatedBy()) == null) {
                 vendorLabelInfo.setCreatedBy(limit(currentUser, 20));
@@ -226,7 +231,6 @@ public class PalletVendorLabelInfoService {
                 vendorLabelInfoMapper.toDto(vendorLabelInfo),
                 itemDTO,
                 "deliveryNotification",
-                "sapPor1",
                 "palletBoxMapping"
             );
             if (palletBoxMapping != null) {
@@ -328,51 +332,47 @@ public class PalletVendorLabelInfoService {
             });
     }
 
-    private Map<Long, DeliveryNotification> findDeliveryNotificationMap(
+    private Map<UUID, Delivery> findDeliveryNotificationMap(
         List<VendorLabelInfoDTO> dtoList
     ) {
-        Set<Long> ids = collectIds(
-            dtoList,
-            VendorLabelInfoDTO::getDeliveryNotificationId
-        );
+        Set<UUID> ids = collectIds(dtoList, VendorLabelInfoDTO::getDeliveryId);
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<Long, DeliveryNotification> map = deliveryNotificationRepository
+        Map<UUID, Delivery> map = deliveryRepository
             .findAllById(ids)
             .stream()
             .collect(
-                Collectors.toMap(
-                    DeliveryNotification::getId,
-                    Function.identity()
-                )
+                Collectors.toMap(Delivery::getDeliveryId, Function.identity())
             );
-        assertAllExist(ids, map.keySet(), "deliveryNotificationId");
+        assertAllExist(ids, map.keySet(), "deliveryId");
         return map;
     }
 
-    private Map<Long, SapPor1R1> findSapPor1Map(
+    private Map<UUID, DetailDelivery> findDetailDeliveryMap(
         List<VendorLabelInfoDTO> dtoList
     ) {
-        Set<Long> ids = collectIds(dtoList, VendorLabelInfoDTO::getSapPor1Id);
+        Set<UUID> ids = collectIds(dtoList, VendorLabelInfoDTO::getLineId);
         if (ids.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<Long, SapPor1R1> map = sapPor1R1Repository
+        Map<UUID, DetailDelivery> map = detailDeliveryRepository
             .findAllById(ids)
             .stream()
-            .collect(Collectors.toMap(SapPor1R1::getId, Function.identity()));
-        assertAllExist(ids, map.keySet(), "sapPor1Id");
+            .collect(
+                Collectors.toMap(DetailDelivery::getLineId, Function.identity())
+            );
+        assertAllExist(ids, map.keySet(), "lineId");
         return map;
     }
 
-    private Set<Long> collectIds(
+    private Set<UUID> collectIds(
         List<VendorLabelInfoDTO> dtoList,
-        Function<VendorLabelInfoDTO, Long> extractor
+        Function<VendorLabelInfoDTO, UUID> extractor
     ) {
-        Map<Long, Boolean> ids = new LinkedHashMap<>();
+        Map<UUID, Boolean> ids = new LinkedHashMap<>();
         for (VendorLabelInfoDTO dto : dtoList) {
-            Long id = extractor.apply(dto);
+            UUID id = extractor.apply(dto);
             if (id != null) {
                 ids.put(id, Boolean.TRUE);
             }
@@ -381,11 +381,11 @@ public class PalletVendorLabelInfoService {
     }
 
     private void assertAllExist(
-        Collection<Long> requestedIds,
-        Collection<Long> foundIds,
+        Collection<UUID> requestedIds,
+        Collection<UUID> foundIds,
         String fieldName
     ) {
-        List<Long> missingIds = requestedIds
+        List<UUID> missingIds = requestedIds
             .stream()
             .filter(id -> !foundIds.contains(id))
             .collect(Collectors.toList());

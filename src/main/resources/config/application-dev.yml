@@ -113,8 +113,8 @@ partner3:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/PNM_DB
     # url: jdbc:postgresql://localhost:5432/PNM_DB
+    url: jdbc:postgresql://localhost:5432/PNM_DB
     username: postgres
 
     # username: admin

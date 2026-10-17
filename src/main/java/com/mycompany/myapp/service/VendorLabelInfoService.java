@@ -1,7 +1,7 @@
 package com.mycompany.myapp.service;
 
-import com.mycompany.myapp.domain.DeliveryNotification;
-import com.mycompany.myapp.domain.SapPor1R1;
+import com.mycompany.myapp.domain.Delivery;
+import com.mycompany.myapp.domain.DetailDelivery;
 import com.mycompany.myapp.domain.VendorLabelInfo;
 import com.mycompany.myapp.repository.VendorLabelInfoRepository;
 import com.mycompany.myapp.service.dto.VendorLabelInfoDTO;
@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,15 +62,15 @@ public class VendorLabelInfoService {
         if (existing.isPresent()) {
             VendorLabelInfo vendorLabelInfo = existing.get();
             // Update deliveryNotificationId and sapPor1Id from the new request body
-            if (vendorLabelInfoDTO.getDeliveryNotificationId() != null) {
-                DeliveryNotification dn = new DeliveryNotification();
-                dn.setId(vendorLabelInfoDTO.getDeliveryNotificationId());
-                vendorLabelInfo.setDeliveryNotification(dn);
+            if (vendorLabelInfoDTO.getDeliveryId() != null) {
+                Delivery delivery = new Delivery();
+                delivery.setDeliveryId(vendorLabelInfoDTO.getDeliveryId());
+                vendorLabelInfo.setDelivery(delivery);
             }
-            if (vendorLabelInfoDTO.getSapPor1Id() != null) {
-                SapPor1R1 sapPor1 = new SapPor1R1();
-                sapPor1.setId(vendorLabelInfoDTO.getSapPor1Id());
-                vendorLabelInfo.setSapPor1(sapPor1);
+            if (vendorLabelInfoDTO.getLineId() != null) {
+                DetailDelivery detailDelivery = new DetailDelivery();
+                detailDelivery.setLineId(vendorLabelInfoDTO.getLineId());
+                vendorLabelInfo.setDetailDelivery(detailDelivery);
             }
             // Set audit fields: updatedAt = now, updatedBy = createdBy from request body
             vendorLabelInfo.setUpdatedAt(Instant.now());
@@ -152,7 +153,7 @@ public class VendorLabelInfoService {
      * @return the entity.
      */
     @Transactional(value = "partner5TransactionManager", readOnly = true)
-    public Optional<VendorLabelInfoDTO> findOne(Long id) {
+    public Optional<VendorLabelInfoDTO> findOne(UUID id) {
         LOG.debug("Request to get VendorLabelInfo : {}", id);
         return vendorLabelInfoRepository
             .findById(id)
@@ -164,7 +165,7 @@ public class VendorLabelInfoService {
      *
      * @param id the id of the entity.
      */
-    public void delete(Long id) {
+    public void delete(UUID id) {
         LOG.debug("Request to delete VendorLabelInfo : {}", id);
         vendorLabelInfoRepository.deleteById(id);
     }

@@ -9,31 +9,46 @@ import org.mapstruct.*;
  * Mapper for the entity {@link VendorLabelInfo} and its DTO {@link VendorLabelInfoDTO}.
  */
 @Mapper(componentModel = "spring", uses = { PalletBoxMappingMapper.class })
-public interface VendorLabelInfoMapper extends EntityMapper<VendorLabelInfoDTO, VendorLabelInfo> {
+public interface VendorLabelInfoMapper
+    extends EntityMapper<VendorLabelInfoDTO, VendorLabelInfo> {
+    @BeanMapping(
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+    )
+    @Mapping(source = "deliveryId", target = "delivery.deliveryId")
+    @Mapping(source = "lineId", target = "detailDelivery.lineId")
+    VendorLabelInfo toEntity(VendorLabelInfoDTO dto);
 
-  @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-  @Mapping(source = "deliveryNotificationId", target = "deliveryNotification.id")
-  @Mapping(source = "sapPor1Id", target = "sapPor1.id")
-  VendorLabelInfo toEntity(VendorLabelInfoDTO dto);
+    @Mapping(source = "delivery.deliveryId", target = "deliveryId")
+    @Mapping(source = "detailDelivery.lineId", target = "lineId")
+    VendorLabelInfoDTO toDto(VendorLabelInfo entity);
 
-  @Mapping(source = "deliveryNotification.id", target = "deliveryNotificationId")
-  @Mapping(source = "sapPor1.id", target = "sapPor1Id")
-  VendorLabelInfoDTO toDto(VendorLabelInfo entity);
-
-  @AfterMapping
-  default void linkRelationships(@MappingTarget VendorLabelInfo vendorLabelInfo) {
-    if (vendorLabelInfo.getDeliveryNotification() != null && vendorLabelInfo.getDeliveryNotification().getId() == null) {
-      vendorLabelInfo.setDeliveryNotification(null);
+    @AfterMapping
+    default void linkRelationships(
+        @MappingTarget VendorLabelInfo vendorLabelInfo
+    ) {
+        if (
+            vendorLabelInfo.getDelivery() != null &&
+            vendorLabelInfo.getDelivery().getDeliveryId() == null
+        ) {
+            vendorLabelInfo.setDelivery(null);
+        }
+        if (
+            vendorLabelInfo.getDetailDelivery() != null &&
+            vendorLabelInfo.getDetailDelivery().getLineId() == null
+        ) {
+            vendorLabelInfo.setDetailDelivery(null);
+        }
+        if (vendorLabelInfo.getPalletBoxMapping() != null) {
+            if (
+                vendorLabelInfo.getPalletBoxMapping().getId() == null &&
+                vendorLabelInfo.getPalletBoxMapping().getReelIdBox() == null
+            ) {
+                vendorLabelInfo.setPalletBoxMapping(null);
+            } else {
+                vendorLabelInfo
+                    .getPalletBoxMapping()
+                    .setVendorLabelInfo(vendorLabelInfo);
+            }
+        }
     }
-    if (vendorLabelInfo.getSapPor1() != null && vendorLabelInfo.getSapPor1().getId() == null) {
-      vendorLabelInfo.setSapPor1(null);
-    }
-    if (vendorLabelInfo.getPalletBoxMapping() != null) {
-      if (vendorLabelInfo.getPalletBoxMapping().getId() == null && vendorLabelInfo.getPalletBoxMapping().getReelIdBox() == null) {
-        vendorLabelInfo.setPalletBoxMapping(null);
-      } else {
-        vendorLabelInfo.getPalletBoxMapping().setVendorLabelInfo(vendorLabelInfo);
-      }
-    }
-  }
 }

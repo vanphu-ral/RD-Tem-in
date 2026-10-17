@@ -141,7 +141,8 @@ public class VendorTemDetail implements Serializable {
     @Column(name = "vendor_additional_data", length = 510)
     private String vendorAdditionalData;
 
-    @Column(name = "vendor_qr_code", columnDefinition = "TEXT")
+    @Size(max = 510)
+    @Column(name = "vendor_qr_code", length = 510)
     private String vendorQrCode;
 
     @Size(max = 50)
