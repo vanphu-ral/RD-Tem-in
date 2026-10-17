@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 import javax.validation.constraints.*;
 
 /**
@@ -105,6 +106,29 @@ public class SapPor1R1DTO implements Serializable {
 
     @Size(max = 255)
     private String whsCode;
+
+    private UUID lineId;
+
+    private UUID deliveryId;
+
+    @Size(max = 50)
+    private String poSmart;
+
+    @Size(max = 50)
+    private String prNumber;
+
+    @Size(max = 50)
+    private String contractNo;
+
+    @Size(max = 50)
+    private String invoiceSmartNo;
+
+    @Size(max = 50)
+    private String invoiceNo;
+
+    private java.time.LocalDate invoiceDate;
+
+    private Integer deliveryTurn;
 
     private DeliveryNotificationDTO deliveryNotification;
 
@@ -377,6 +401,78 @@ public class SapPor1R1DTO implements Serializable {
         this.whsCode = whsCode;
     }
 
+    public UUID getLineId() {
+        return lineId;
+    }
+
+    public void setLineId(UUID lineId) {
+        this.lineId = lineId;
+    }
+
+    public UUID getDeliveryId() {
+        return deliveryId;
+    }
+
+    public void setDeliveryId(UUID deliveryId) {
+        this.deliveryId = deliveryId;
+    }
+
+    public String getPoSmart() {
+        return poSmart;
+    }
+
+    public void setPoSmart(String poSmart) {
+        this.poSmart = poSmart;
+    }
+
+    public String getPrNumber() {
+        return prNumber;
+    }
+
+    public void setPrNumber(String prNumber) {
+        this.prNumber = prNumber;
+    }
+
+    public String getContractNo() {
+        return contractNo;
+    }
+
+    public void setContractNo(String contractNo) {
+        this.contractNo = contractNo;
+    }
+
+    public String getInvoiceSmartNo() {
+        return invoiceSmartNo;
+    }
+
+    public void setInvoiceSmartNo(String invoiceSmartNo) {
+        this.invoiceSmartNo = invoiceSmartNo;
+    }
+
+    public String getInvoiceNo() {
+        return invoiceNo;
+    }
+
+    public void setInvoiceNo(String invoiceNo) {
+        this.invoiceNo = invoiceNo;
+    }
+
+    public java.time.LocalDate getInvoiceDate() {
+        return invoiceDate;
+    }
+
+    public void setInvoiceDate(java.time.LocalDate invoiceDate) {
+        this.invoiceDate = invoiceDate;
+    }
+
+    public Integer getDeliveryTurn() {
+        return deliveryTurn;
+    }
+
+    public void setDeliveryTurn(Integer deliveryTurn) {
+        this.deliveryTurn = deliveryTurn;
+    }
+
     public DeliveryNotificationDTO getDeliveryNotification() {
         return deliveryNotification;
     }
@@ -443,6 +539,15 @@ public class SapPor1R1DTO implements Serializable {
             ", vatPrcnt=" + getVatPrcnt() +
             ", priceAfVat=" + getPriceAfVat() +
             ", whsCode='" + getWhsCode() + "'" +
+            ", lineId=" + getLineId() +
+            ", deliveryId=" + getDeliveryId() +
+            ", poSmart='" + getPoSmart() + "'" +
+            ", prNumber='" + getPrNumber() + "'" +
+            ", contractNo='" + getContractNo() + "'" +
+            ", invoiceSmartNo='" + getInvoiceSmartNo() + "'" +
+            ", invoiceNo='" + getInvoiceNo() + "'" +
+            ", invoiceDate='" + getInvoiceDate() + "'" +
+            ", deliveryTurn=" + getDeliveryTurn() +
             ", deliveryNotification=" + getDeliveryNotification() +
             "}";
     }

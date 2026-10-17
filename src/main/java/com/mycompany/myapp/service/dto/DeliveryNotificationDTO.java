@@ -3,6 +3,7 @@ package com.mycompany.myapp.service.dto;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 import javax.validation.constraints.*;
 
 /**
@@ -39,6 +40,19 @@ public class DeliveryNotificationDTO implements Serializable {
 
     @Size(max = 50)
     private String source;
+
+    private UUID deliveryId;
+
+    @Size(max = 50)
+    private String type;
+
+    @Size(max = 255)
+    private String vendorCode;
+
+    private java.time.LocalDate noticeDate;
+
+    @Size(max = 50)
+    private String factory;
 
     private Instant createAt;
 
@@ -138,6 +152,46 @@ public class DeliveryNotificationDTO implements Serializable {
         this.source = source;
     }
 
+    public UUID getDeliveryId() {
+        return deliveryId;
+    }
+
+    public void setDeliveryId(UUID deliveryId) {
+        this.deliveryId = deliveryId;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getVendorCode() {
+        return vendorCode;
+    }
+
+    public void setVendorCode(String vendorCode) {
+        this.vendorCode = vendorCode;
+    }
+
+    public java.time.LocalDate getNoticeDate() {
+        return noticeDate;
+    }
+
+    public void setNoticeDate(java.time.LocalDate noticeDate) {
+        this.noticeDate = noticeDate;
+    }
+
+    public String getFactory() {
+        return factory;
+    }
+
+    public void setFactory(String factory) {
+        this.factory = factory;
+    }
+
     public Instant getCreatedAt() {
         return createAt;
     }
@@ -207,6 +261,11 @@ public class DeliveryNotificationDTO implements Serializable {
             ", numberOfItem=" + getNumberOfItem() +
             ", status='" + getStatus() + "'" +
             ", source='" + getSource() + "'" +
+            ", deliveryId='" + getDeliveryId() + "'" +
+            ", type='" + getType() + "'" +
+            ", vendorCode='" + getVendorCode() + "'" +
+            ", noticeDate='" + getNoticeDate() + "'" +
+            ", factory='" + getFactory() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", createdBy='" + getCreatedBy() + "'" +
             ", deletedAt='" + getDeletedAt() + "'" +

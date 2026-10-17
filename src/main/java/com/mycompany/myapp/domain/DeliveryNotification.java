@@ -2,6 +2,7 @@ package com.mycompany.myapp.domain;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.UUID;
 import javax.persistence.*;
 import javax.validation.constraints.*;
 
@@ -56,6 +57,24 @@ public class DeliveryNotification implements Serializable {
     @Size(max = 50)
     @Column(name = "source", length = 50)
     private String source;
+
+    @Column(name = "delivery_id", length = 255)
+    private UUID deliveryId;
+
+    @Size(max = 50)
+    @Column(name = "type", length = 50)
+    private String type;
+
+    @Size(max = 255)
+    @Column(name = "vendor_code", length = 255)
+    private String vendorCode;
+
+    @Column(name = "notice_date")
+    private java.time.LocalDate noticeDate;
+
+    @Size(max = 50)
+    @Column(name = "factory", length = 50)
+    private String factory;
 
     @Column(name = "created_at")
     private Instant createdAt;
@@ -218,6 +237,71 @@ public class DeliveryNotification implements Serializable {
         this.source = source;
     }
 
+    public UUID getDeliveryId() {
+        return this.deliveryId;
+    }
+
+    public DeliveryNotification deliveryId(UUID deliveryId) {
+        this.setDeliveryId(deliveryId);
+        return this;
+    }
+
+    public void setDeliveryId(UUID deliveryId) {
+        this.deliveryId = deliveryId;
+    }
+
+    public String getType() {
+        return this.type;
+    }
+
+    public DeliveryNotification type(String type) {
+        this.setType(type);
+        return this;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getVendorCode() {
+        return this.vendorCode;
+    }
+
+    public DeliveryNotification vendorCode(String vendorCode) {
+        this.setVendorCode(vendorCode);
+        return this;
+    }
+
+    public void setVendorCode(String vendorCode) {
+        this.vendorCode = vendorCode;
+    }
+
+    public java.time.LocalDate getNoticeDate() {
+        return this.noticeDate;
+    }
+
+    public DeliveryNotification noticeDate(java.time.LocalDate noticeDate) {
+        this.setNoticeDate(noticeDate);
+        return this;
+    }
+
+    public void setNoticeDate(java.time.LocalDate noticeDate) {
+        this.noticeDate = noticeDate;
+    }
+
+    public String getFactory() {
+        return this.factory;
+    }
+
+    public DeliveryNotification factory(String factory) {
+        this.setFactory(factory);
+        return this;
+    }
+
+    public void setFactory(String factory) {
+        this.factory = factory;
+    }
+
     public Instant getCreatedAt() {
         return this.createdAt;
     }
@@ -307,6 +391,11 @@ public class DeliveryNotification implements Serializable {
             ", numberOfItem=" + getNumberOfItem() +
             ", status='" + getStatus() + "'" +
             ", source='" + getSource() + "'" +
+            ", deliveryId='" + getDeliveryId() + "'" +
+            ", type='" + getType() + "'" +
+            ", vendorCode='" + getVendorCode() + "'" +
+            ", noticeDate='" + getNoticeDate() + "'" +
+            ", factory='" + getFactory() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", createdBy='" + getCreatedBy() + "'" +
             ", deletedAt='" + getDeletedAt() + "'" +

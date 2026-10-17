@@ -5,6 +5,7 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * A DTO for a DeliveryNotification with its SapPor1R1 lines, each line holding
@@ -34,6 +35,16 @@ public class DeliveryNotificationDetailDTO implements Serializable {
 
     private String source;
 
+    private UUID deliveryId;
+
+    private String type;
+
+    private String vendorCode;
+
+    private java.time.LocalDate noticeDate;
+
+    private String factory;
+
     private String createdBy;
 
     private Instant createdAt;
@@ -62,6 +73,11 @@ public class DeliveryNotificationDetailDTO implements Serializable {
             this.numberOfItem = entity.getNumberOfItem();
             this.status = entity.getStatus();
             this.source = entity.getSource();
+            this.deliveryId = entity.getDeliveryId();
+            this.type = entity.getType();
+            this.vendorCode = entity.getVendorCode();
+            this.noticeDate = entity.getNoticeDate();
+            this.factory = entity.getFactory();
             this.createdBy = entity.getCreatedBy();
             this.createdAt = entity.getCreatedAt();
         }
@@ -156,6 +172,46 @@ public class DeliveryNotificationDetailDTO implements Serializable {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public UUID getDeliveryId() {
+        return deliveryId;
+    }
+
+    public void setDeliveryId(UUID deliveryId) {
+        this.deliveryId = deliveryId;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getVendorCode() {
+        return vendorCode;
+    }
+
+    public void setVendorCode(String vendorCode) {
+        this.vendorCode = vendorCode;
+    }
+
+    public java.time.LocalDate getNoticeDate() {
+        return noticeDate;
+    }
+
+    public void setNoticeDate(java.time.LocalDate noticeDate) {
+        this.noticeDate = noticeDate;
+    }
+
+    public String getFactory() {
+        return factory;
+    }
+
+    public void setFactory(String factory) {
+        this.factory = factory;
     }
 
     public String getCreatedBy() {
