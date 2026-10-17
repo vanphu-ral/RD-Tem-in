@@ -35,6 +35,12 @@ const ALL_COLUMNS = [
   "actions",
 ];
 
+/**
+ * Tab danh sách (chỉ Xuất chuyển kho): Tất cả phiếu (SAP) / Đang xử lý / Đã xuất
+ * (2 tab sau lấy từ dữ liệu scan lưu bên mình — chưa có API, đang dùng dữ liệu mẫu)
+ */
+type ListTab = "all" | "processing" | "exported";
+
 /** Cấu hình trang theo route: Xuất chuyển kho / Xuất kho khuyến nghị */
 export interface WarehouseExportListRouteData {
   mode: "request" | "planning";
@@ -67,10 +73,17 @@ export interface WarehouseExportListRouteData {
   styleUrls: ["./warehouse-export-list.component.scss"],
 })
 export class WarehouseExportListComponent implements OnInit {
-  /** Cột bảng — Xuất kho khuyến nghị tạm ẩn Tiến độ (chưa có dữ liệu) */
+  /**
+   * Cột bảng:
+   * - Xuất kho khuyến nghị: tạm ẩn Tiến độ (chưa có dữ liệu)
+   * - Xuất chuyển kho, tab Tất cả phiếu (SAP): ẩn Trạng thái + Tiến độ (chỉ tab Đang xử lý / Đã xuất có)
+   */
   get displayedColumns(): string[] {
-    return this.config.mode === "planning"
-      ? ALL_COLUMNS.filter((c) => c !== "progress")
+    if (this.config.mode === "planning") {
+      return ALL_COLUMNS.filter((c) => c !== "progress");
+    }
+    return this.tab === "all"
+      ? ALL_COLUMNS.filter((c) => c !== "status" && c !== "progress")
       : ALL_COLUMNS;
   }
 
@@ -80,6 +93,10 @@ export class WarehouseExportListComponent implements OnInit {
   codes: string[] = [];
   /** Mã đang tra (chưa có kết quả) */
   pending = new Set<string>();
+
+  /** Tab đang mở + số phiếu đang xử lý (badge) */
+  tab: ListTab = "all";
+  processingCount = 0;
 
   /** Danh sách phân trang (khi chưa nhập mã nào) */
   total = 0;
@@ -122,6 +139,29 @@ export class WarehouseExportListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadPage();
+    this.loadProcessingCount();
+  }
+
+  /** Tab chỉ có ở Xuất chuyển kho */
+  get showTabs(): boolean {
+    return this.config.mode === "request";
+  }
+
+  /** Lọc theo chip chỉ áp dụng cho tab Tất cả phiếu */
+  get isChipFiltered(): boolean {
+    return this.tab === "all" && this.codes.length > 0;
+  }
+
+  selectTab(tab: ListTab): void {
+    if (this.tab === tab) {
+      return;
+    }
+    this.tab = tab;
+    this.pageIndex = 0;
+    this.pageRows = [];
+    this.total = 0;
+    this.refreshView();
     this.loadPage();
   }
 
@@ -248,7 +288,7 @@ export class WarehouseExportListComponent implements OnInit {
     if (s.includes("đã xuất")) {
       return "done";
     }
-    if (s.includes("đang")) {
+    if (s.includes("đang") || s.includes("đã gửi")) {
       return "doing";
     }
     return "waiting";
@@ -283,35 +323,66 @@ export class WarehouseExportListComponent implements OnInit {
           // Đã xuất xong → bỏ chip/dòng của các mã đã xuất + tải lại trang danh sách
           requestCodes.forEach((code) => this.removeCode(code));
           this.loadPage();
+          this.loadProcessingCount();
         }
       });
   }
 
   /** Có chip → chỉ hiện các mã đã nhập; chưa có → trang danh sách hiện tại */
   private refreshView(): void {
-    this.dataSource.data = this.codes.length ? this.chipRows : this.pageRows;
+    this.dataSource.data = this.isChipFiltered ? this.chipRows : this.pageRows;
+  }
+
+  /** Badge "Đang xử lý (n)" — TODO: dữ liệu mẫu, thay khi có API */
+  private loadProcessingCount(): void {
+    if (!this.showTabs) {
+      return;
+    }
+    this.exportService.getExportTrackingList("processing", 0, 1).subscribe({
+      next: (page: ExportRequestListPage) => {
+        this.processingCount = page.total;
+      },
+      error: () => {
+        this.processingCount = 0;
+      },
+    });
   }
 
   private loadPage(): void {
     this.listLoading = true;
-    this.exportService
-      .getExportRequestList("", this.pageIndex, this.pageSize, this.config.mode)
-      .subscribe({
-        next: (page: ExportRequestListPage) => {
-          this.listLoading = false;
-          this.pageRows = page.rows;
-          this.total = page.total;
-          this.refreshView();
-        },
-        error: () => {
-          this.listLoading = false;
-          this.pageRows = [];
-          this.total = 0;
-          this.refreshView();
-          this.notificationService.error(
-            `Không tải được danh sách ${this.config.title.toLowerCase()}.`,
+    const tab = this.tab;
+    const page$ =
+      tab === "all"
+        ? this.exportService.getExportRequestList(
+            "",
+            this.pageIndex,
+            this.pageSize,
+            this.config.mode,
+          )
+        : this.exportService.getExportTrackingList(
+            tab,
+            this.pageIndex,
+            this.pageSize,
           );
-        },
-      });
+    page$.subscribe({
+      next: (page: ExportRequestListPage) => {
+        if (tab !== this.tab) {
+          return;
+        }
+        this.listLoading = false;
+        this.pageRows = page.rows;
+        this.total = page.total;
+        this.refreshView();
+      },
+      error: () => {
+        this.listLoading = false;
+        this.pageRows = [];
+        this.total = 0;
+        this.refreshView();
+        this.notificationService.error(
+          `Không tải được danh sách ${this.config.title.toLowerCase()}.`,
+        );
+      },
+    });
   }
 }

@@ -29,6 +29,14 @@ export interface DeliveryNotificationDto {
   status: string | null;
   /** Nguồn tạo đơn: "system", "appSmart", ... */
   source?: string | null;
+  /** UUID đơn bên Smart — đơn cũ có thể null */
+  deliveryId?: string | null;
+  /** Loại thông báo, VD "Transport" */
+  type?: string | null;
+  /** Ngày thông báo (yyyy-MM-dd) */
+  noticeDate?: string | null;
+  /** Nhà máy, VD "LED" */
+  factory?: string | null;
   deletedAt: string | null;
   deletedBy: string | null;
   createdBy: string | null;
@@ -85,9 +93,19 @@ export interface CreateDeliveryNotificationPayload {
   status: string;
   /** Nguồn tạo đơn: "system" (web này), "appSmart", ... */
   source: string;
+  /** Tạo mới gửi null — BE tự sinh và trả về */
+  deliveryId: string | null;
+  type: string;
+  /** yyyy-MM-dd */
+  noticeDate: string;
+  factory: string;
   createdBy: string;
   createdAt: string;
 }
+
+/** Giá trị mặc định khi tạo đơn thủ công từ web này */
+export const DELIVERY_DEFAULT_TYPE = "Transport";
+export const DELIVERY_DEFAULT_FACTORY = "LED";
 
 /** Nguồn tạo của đơn tạo từ web này */
 export const DELIVERY_SOURCE_SYSTEM = "system";

@@ -121,6 +121,12 @@ export interface DeliveryNoticeItem {
   contractCode: string;
   vendorName: string;
   vehicleNumber: string;
+  /** Loại thông báo (type), VD "Transport" */
+  type: string;
+  /** Ngày thông báo (yyyy-MM-dd) */
+  noticeDate: string;
+  /** Nhà máy, VD "LED" */
+  factory: string;
   poCount: number;
   materialQuantity: number;
   status: "INCOMPLETE" | "COMPLETED";
@@ -138,6 +144,9 @@ export interface FilterValues {
   contractCode: string;
   vendorName: string;
   vehicleNumber: string;
+  type: string;
+  noticeDate: string;
+  factory: string;
   poCount: string;
   materialQuantity: string;
   status: string;
@@ -190,6 +199,9 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     "contractCode",
     "vendorName",
     "vehicleNumber",
+    "type",
+    "noticeDate",
+    "factory",
     "poCount",
     "materialQuantity",
     "source",
@@ -212,6 +224,9 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     contractCode: "",
     vendorName: "",
     vehicleNumber: "",
+    type: "",
+    noticeDate: "",
+    factory: "",
     poCount: "",
     materialQuantity: "",
     status: "",
@@ -780,6 +795,9 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       contractCode: dto.contractCode ?? "",
       vendorName: dto.vendorName ?? "",
       vehicleNumber: dto.contNo ?? "",
+      type: toText(dto.type),
+      noticeDate: toText(dto.noticeDate),
+      factory: toText(dto.factory),
       poCount: dto.numberOfPo ?? 0,
       materialQuantity: dto.numberOfItem ?? 0,
       status: status === "COMPLETED" ? "COMPLETED" : "INCOMPLETE",
@@ -819,6 +837,11 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         includes(item.contractCode, f.contractCode) &&
         includes(item.vendorName, f.vendorName) &&
         includes(item.vehicleNumber, f.vehicleNumber) &&
+        includes(item.type, f.type) &&
+        // yyyy-MM-dd: so cả chuỗi gốc và dd/MM/yyyy (giống ô chọn ngày)
+        (includes(item.noticeDate, f.noticeDate) ||
+          includes(this.formatDisplayDate(item.noticeDate), f.noticeDate)) &&
+        includes(item.factory, f.factory) &&
         includes(item.poCount, f.poCount) &&
         includes(item.materialQuantity, f.materialQuantity) &&
         (includes(item.source, f.source) ||

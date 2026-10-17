@@ -100,6 +100,11 @@ export function buildCompletedOrderPayload(
     numberOfPo: detail.numberOfPo,
     status: DELIVERY_STATUS_COMPLETED,
     source: detail.source ?? null,
+    // Giữ nguyên các trường mới của đơn
+    deliveryId: detail.deliveryId,
+    type: detail.type,
+    noticeDate: detail.noticeDate,
+    factory: detail.factory,
     deletedAt: detail.deletedAt,
     deletedBy: detail.deletedBy,
     createdBy: detail.createdBy,

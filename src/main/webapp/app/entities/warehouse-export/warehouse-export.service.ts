@@ -305,6 +305,70 @@ export class WarehouseExportService {
   private areaIndex: ExportLocationAreaIndex | null = null;
   private areaIndex$: Observable<ExportLocationAreaIndex> | null = null;
 
+  /** Xuất chuyển kho — phiếu đang xử lý / đã xuất mẫu. TODO: thay bằng API (DB bên mình) */
+  private readonly mockTrackingList: ExportRequestListRow[] = [
+    {
+      code: "124456",
+      proposer: "Chị Ngọc Anh",
+      receivingUnit: "PX Led - Ngành Điện tử tự động",
+      issuingUnit: "01 - Kho linh kiện điện tử",
+      createdDate: "12/10/2026",
+      requestDate: "12/10/2026",
+      status: "Đang scan",
+      warehouse: "05 - Kho ngành ĐTTĐ",
+      description: "",
+      progress: 62,
+    },
+    {
+      code: "124449",
+      proposer: "Chị Ngọc Anh",
+      receivingUnit: "PX Led - Ngành Điện tử tự động",
+      issuingUnit: "01 - Kho linh kiện điện tử",
+      createdDate: "12/10/2026",
+      requestDate: "12/10/2026",
+      status: "Đã gửi",
+      warehouse: "05 - Kho ngành ĐTTĐ",
+      description: "",
+      progress: 100,
+    },
+    {
+      code: "124431",
+      proposer: "",
+      receivingUnit: "",
+      issuingUnit: "27 - Kho xuất khẩu 02",
+      createdDate: "11/10/2026",
+      requestDate: "11/10/2026",
+      status: "Đang scan",
+      warehouse: "08 - Kho ngành LED2",
+      description: "",
+      progress: 15,
+    },
+    {
+      code: "124402",
+      proposer: "Chị Ngọc Anh",
+      receivingUnit: "PX Led - Ngành Điện tử tự động",
+      issuingUnit: "01 - Kho linh kiện điện tử",
+      createdDate: "10/10/2026",
+      requestDate: "10/10/2026",
+      status: "Đã xuất",
+      warehouse: "05 - Kho ngành ĐTTĐ",
+      description: "",
+      progress: 100,
+    },
+    {
+      code: "124388",
+      proposer: "",
+      receivingUnit: "",
+      issuingUnit: "19 - Kho LKDT thủ công",
+      createdDate: "09/10/2026",
+      requestDate: "09/10/2026",
+      status: "Đã xuất",
+      warehouse: "IQC - IQC",
+      description: "",
+      progress: 100,
+    },
+  ];
+
   /** Tên kho SAP (GET /api/owhs) — dùng chung trong phiên */
   private sapWarehouseNames$: Observable<Map<string, string>> | null = null;
   /** Danh sách kho (GET /api/location/area) — dùng chung trong phiên */
@@ -542,6 +606,29 @@ export class WarehouseExportService {
           total: page.totalElements ?? 0,
         })),
       );
+  }
+
+  /**
+   * Xuất chuyển kho — tab "Đang xử lý" / "Đã xuất": phiếu đã có dữ liệu scan lưu bên mình
+   * (không phải SAP), phân trang (pageIndex từ 0).
+   * TODO: chưa có API — đang trả dữ liệu mẫu; thay bằng API danh sách phiếu theo trạng thái.
+   */
+  getExportTrackingList(
+    status: "processing" | "exported",
+    pageIndex: number,
+    pageSize: number,
+  ): Observable<ExportRequestListPage> {
+    const rows = this.mockTrackingList.filter((r) =>
+      status === "exported"
+        ? r.progress >= 100 && r.status === "Đã xuất"
+        : r.status !== "Đã xuất",
+    );
+    return of({
+      rows: rows
+        .slice(pageIndex * pageSize, pageIndex * pageSize + pageSize)
+        .map((r) => ({ ...r })),
+      total: rows.length,
+    }).pipe(delay(200));
   }
 
   /**
@@ -1239,6 +1326,8 @@ export class WarehouseExportService {
       expirationDate: inv.expirationDate,
       inventoryStatus: inv.status,
       partNumber: inv.partNumber,
+      inventoryId: inv.inventoryId ?? undefined,
+      expirationRaw: inv.expirationRaw,
     };
   }
 
@@ -1264,6 +1353,8 @@ export class WarehouseExportService {
       manufacturingDate: this.formatInventoryDate(
         text(raw["manufacturingDate"]),
       ),
+      inventoryId: Number(raw["inventoryId"]) || null,
+      expirationRaw: text(raw["expirationDate"]),
     };
   }
 
