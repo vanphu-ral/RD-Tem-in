@@ -1,8 +1,38 @@
 <div class="wel">
   <div class="wel-toolbar">
     <h2>{{ config.title }}</h2>
-    <!-- Ô nhập mã + chip các mã đã nhập ngay bên dưới -->
-    <div class="wel-search-box">
+    <!-- Tab: Tất cả phiếu (SAP) / Đang xử lý / Đã xuất (dữ liệu bên mình) -->
+    <div class="wel-tabs" *ngIf="showTabs">
+      <button
+        type="button"
+        class="wel-tab"
+        [class.active]="tab === 'all'"
+        (click)="selectTab('all')"
+      >
+        Tất cả phiếu
+      </button>
+      <button
+        type="button"
+        class="wel-tab"
+        [class.active]="tab === 'processing'"
+        (click)="selectTab('processing')"
+      >
+        Đang xử lý
+        <span class="wel-tab-count" *ngIf="processingCount">{{
+          processingCount
+        }}</span>
+      </button>
+      <button
+        type="button"
+        class="wel-tab"
+        [class.active]="tab === 'exported'"
+        (click)="selectTab('exported')"
+      >
+        Đã xuất
+      </button>
+    </div>
+    <!-- Ô nhập mã + chip các mã đã nhập ngay bên dưới (tab Tất cả phiếu) -->
+    <div class="wel-search-box" *ngIf="tab === 'all'">
       <input
         class="wel-search"
         [(ngModel)]="search"
@@ -164,14 +194,20 @@
       </table>
 
       <div class="wel-empty" *ngIf="!isLoading && !dataSource.data.length">
-        Không có dữ liệu.
+        {{
+          tab === "processing"
+            ? "Không có phiếu nào đang xử lý."
+            : tab === "exported"
+              ? "Chưa có phiếu nào đã xuất."
+              : "Không có dữ liệu."
+        }}
       </div>
       <div class="wel-empty" *ngIf="isLoading">Đang tải...</div>
     </div>
 
     <!-- Phân trang chỉ khi chưa lọc theo chip -->
     <mat-paginator
-      *ngIf="!codes.length"
+      *ngIf="!isChipFiltered"
       [length]="total"
       [pageIndex]="pageIndex"
       [pageSize]="pageSize"

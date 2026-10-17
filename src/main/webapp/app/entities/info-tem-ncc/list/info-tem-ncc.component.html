@@ -188,6 +188,74 @@
         <td mat-cell *matCellDef="let row">{{ row.vehicleNumber }}</td>
       </ng-container>
 
+      <!-- Loại -->
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="type">Loại</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.type"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ row.type }}</td>
+      </ng-container>
+
+      <!-- Ngày thông báo -->
+      <ng-container matColumnDef="noticeDate">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="noticeDate">Ngày thông báo</span>
+            <div class="date-filter">
+              <input
+                class="col-filter"
+                [(ngModel)]="filterValues.noticeDate"
+                (ngModelChange)="applyFilter()"
+                placeholder="dd/MM/yyyy"
+              />
+              <input
+                class="picker-anchor"
+                [matDatepicker]="pkNoticeDate"
+                (dateChange)="onFilterDatePicked('noticeDate', $event.value)"
+                tabindex="-1"
+                aria-hidden="true"
+              />
+              <mat-datepicker #pkNoticeDate></mat-datepicker>
+              <button
+                type="button"
+                class="date-filter-btn"
+                aria-label="Chọn ngày"
+                (click)="pkNoticeDate.open(); $event.stopPropagation()"
+              >
+                <mat-icon>calendar_today</mat-icon>
+              </button>
+            </div>
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          {{ formatDisplayDate(row.noticeDate) }}
+        </td>
+      </ng-container>
+
+      <!-- Nhà máy -->
+      <ng-container matColumnDef="factory">
+        <th mat-header-cell *matHeaderCellDef>
+          <div class="th-wrap">
+            <span mat-sort-header="factory">Nhà máy</span>
+            <input
+              class="col-filter"
+              [(ngModel)]="filterValues.factory"
+              (ngModelChange)="applyFilter()"
+              placeholder="Tìm kiếm..."
+            />
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">{{ row.factory }}</td>
+      </ng-container>
+
       <!-- Số lượng PO -->
       <ng-container matColumnDef="poCount">
         <th mat-header-cell *matHeaderCellDef>

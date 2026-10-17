@@ -875,6 +875,19 @@ $mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   vertical-align: middle;
 }
 
+.pl-unsent {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  vertical-align: middle;
+}
+
 /* Khuyến nghị Planning: tổng hợp WO (BE) */
 .pl-wo-stats {
   display: flex;

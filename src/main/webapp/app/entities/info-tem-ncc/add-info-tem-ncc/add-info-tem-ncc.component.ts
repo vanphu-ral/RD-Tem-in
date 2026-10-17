@@ -21,6 +21,8 @@ import { forkJoin, Observable, of, take } from "rxjs";
 import { map } from "rxjs/operators";
 import {
   DeliveryNotificationDetailDto,
+  DELIVERY_DEFAULT_FACTORY,
+  DELIVERY_DEFAULT_TYPE,
   DELIVERY_SOURCE_SYSTEM,
   DeliveryNotificationDto,
   InfoTemNccService,
@@ -352,6 +354,11 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         numberOfItem: 0,
         status: "New",
         source: DELIVERY_SOURCE_SYSTEM,
+        // Tạo từ web: deliveryId để BE tự sinh; type / factory mặc định; ngày thông báo = hôm nay
+        deliveryId: null,
+        type: DELIVERY_DEFAULT_TYPE,
+        noticeDate: this.todayDateText(),
+        factory: DELIVERY_DEFAULT_FACTORY,
         createdBy: this.currentUser,
         createdAt: now,
       })
@@ -1340,6 +1347,11 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       ...(detailBase?.sapPor1R1List ? this.orderCounts(detailBase) : {}),
       status: base?.status ?? "New",
       source: base?.source ?? DELIVERY_SOURCE_SYSTEM,
+      // Trường mới không có trên form → giữ nguyên giá trị đang có của đơn
+      deliveryId: base?.deliveryId,
+      type: base?.type,
+      noticeDate: base?.noticeDate,
+      factory: base?.factory,
       deletedAt: base?.deletedAt ?? null,
       deletedBy: base?.deletedBy ?? null,
       createdBy: base?.createdBy ?? null,
@@ -1787,6 +1799,13 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
 
   private toDateText(value: unknown): string {
     return toText(value).slice(0, 10);
+  }
+
+  /** Ngày hiện tại (giờ địa phương) dạng yyyy-MM-dd */
+  private todayDateText(): string {
+    const d = new Date();
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
   /** sapSendStatus có thể là string/boolean/number — rỗng, false, 0 = chưa gửi */

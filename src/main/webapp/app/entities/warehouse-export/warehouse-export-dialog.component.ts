@@ -10,7 +10,14 @@ import {
   ViewChild,
 } from "@angular/core";
 import { forkJoin, from, Observable, of, Subscription } from "rxjs";
-import { catchError, map, mergeMap, switchMap, toArray } from "rxjs/operators";
+import {
+  catchError,
+  map,
+  mergeMap,
+  switchMap,
+  take,
+  toArray,
+} from "rxjs/operators";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
@@ -24,6 +31,8 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { MatAutocompleteModule } from "@angular/material/autocomplete";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
+import { AccountService } from "app/core/auth/account.service";
+import { ListMaterialService } from "app/entities/list-material/services/list-material.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import { extractReelIdFromScan } from "app/entities/list-material/services/scan-code.util";
@@ -205,6 +214,9 @@ interface LocationGroup {
 /** Số request /inventory chạy song song khi kiểm tra tồn kho các thùng khuyến nghị */
 const INVENTORY_CONCURRENCY = 6;
 
+/** Lỗi vị trí khi Xác nhận xuất (thông báo hiện thẳng cho người dùng) */
+class LocationError extends Error {}
+
 /** Khuyến nghị Planning — Gửi: số request PATCH chạy song song */
 const SEND_CONCURRENCY = 4;
 
@@ -304,6 +316,8 @@ export class WarehouseExportDialogComponent
     private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
     private warehouseCache: WarehouseCacheService,
+    private accountService: AccountService,
+    private listMaterialService: ListMaterialService,
     @Optional()
     @Inject(MAT_DIALOG_DATA)
     private dialogData: WarehouseExportDialogData | null,
@@ -741,6 +755,9 @@ export class WarehouseExportDialogComponent
       this.notificationService.error(
         `Cần nhập mã ${this.codeNoun} và scan ít nhất 1 thùng.`,
       );
+      return;
+    }
+    if (!this.ensureAllSent()) {
       return;
     }
     if (this.ws.requests.some((r) => !this.isEnough(r))) {
@@ -1312,6 +1329,9 @@ export class WarehouseExportDialogComponent
       );
       return;
     }
+    if (!this.ensureAllSent()) {
+      return;
+    }
     // Chỉ được xuất kho khi scan đủ SL của tất cả yêu cầu
     const missing = this.ws.requests.filter((r) => !this.isEnough(r));
     if (missing.length) {
@@ -1387,6 +1407,7 @@ export class WarehouseExportDialogComponent
           box: ExportScannedBox;
           planned: { item: ExportRequestItem; reel: ExportPlannedReel };
         } =>
+          !x.box.sent &&
           !!x.planned &&
           !x.planned.reel.scannedBefore &&
           !!x.planned.reel.detailDetailId,
@@ -1397,7 +1418,8 @@ export class WarehouseExportDialogComponent
       );
       return;
     }
-    const skipped = this.ws.boxes.length - targets.length;
+    const skipped =
+      this.ws.boxes.filter((b) => !b.sent).length - targets.length;
     openChoiceDialog(this.dialog, {
       title: "Xác nhận gửi",
       message:
@@ -1441,20 +1463,11 @@ export class WarehouseExportDialogComponent
         this.isSending = false;
         const sent = results.filter((x) => x.ok).map((x) => x.t);
         const failed = results.filter((x) => !x.ok).map((x) => x.t);
-        // Thùng đã gửi → BE đã ghi nhận scan: đánh dấu + bỏ khỏi danh sách vừa scan
-        const sentIds = new Set(sent.map((t) => t.box.reelId.toLowerCase()));
+        // Thùng đã gửi → BE đã ghi nhận scan; giữ trong danh sách để Xác nhận xuất
         for (const t of sent) {
           t.planned.reel.scannedBefore = true;
+          t.box.sent = true;
         }
-        this.ws.boxes = this.ws.boxes.filter(
-          (b) => !sentIds.has(b.reelId.toLowerCase()),
-        );
-        this.ws.pallets = this.ws.pallets
-          .map((p) => ({
-            ...p,
-            boxes: p.boxes.filter((b) => !sentIds.has(b.reelId.toLowerCase())),
-          }))
-          .filter((p) => p.boxes.length > 0);
         this.recalcScanned();
         if (sent.length) {
           this.notificationService.success(`Đã gửi ${sent.length} thùng.`);
@@ -1649,8 +1662,144 @@ export class WarehouseExportDialogComponent
     }
   }
 
+  /** Khuyến nghị Planning: mọi thùng đã scan phải được Gửi trước khi Xác nhận xuất */
+  private ensureAllSent(): boolean {
+    if (!this.isPlanning) {
+      return true;
+    }
+    const unsent = this.ws.boxes.filter((b) => !b.sent);
+    if (unsent.length) {
+      this.notificationService.warning(
+        `Còn ${unsent.length} thùng chưa Gửi (${unsent
+          .slice(0, 3)
+          .map((b) => b.reelId)
+          .join(
+            ", ",
+          )}${unsent.length > 3 ? "…" : ""}) — bấm Gửi trước khi Xác nhận xuất.`,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /** Vị trí (tên) → locationId theo danh sách vị trí đã cache (IndexedDB) */
+  private async resolveLocation(
+    name: string,
+  ): Promise<{ locationId: number; locationName: string } | null> {
+    const value = name.trim();
+    if (!value) {
+      return null;
+    }
+    const lower = value.toLowerCase();
+    await this.warehouseCache.ensureSynced();
+    const exact = await this.warehouseCache.findExactByFullName(value);
+    const found =
+      exact ??
+      (await this.warehouseCache.searchByName(value)).find(
+        (w) =>
+          (w.locationFullName ?? "").trim().toLowerCase() === lower ||
+          (w.locationName ?? "").trim().toLowerCase() === lower,
+      );
+    return found
+      ? {
+          locationId: Number(found.locationId),
+          locationName: found.locationFullName || found.locationName || value,
+        }
+      : null;
+  }
+
+  /**
+   * Khuyến nghị Planning — Xác nhận xuất: tra locationId các vị trí → POST api/request
+   * (cùng API dialog cập nhật vật tư) cập nhật SL xuất + vị trí từng thùng đã scan.
+   */
+  private submitPlanningExport(): void {
+    const boxes = [...this.ws.boxes];
+    const noInventory = boxes.filter((b) => !b.inventoryId);
+    if (noInventory.length) {
+      this.notificationService.error(
+        `Thiếu thông tin tồn kho của ${noInventory.length} thùng (${noInventory
+          .slice(0, 3)
+          .map((b) => b.reelId)
+          .join(", ")}) — bỏ thùng và scan lại.`,
+      );
+      return;
+    }
+    this.isCompleting = true;
+    const names = [...new Set(boxes.map((b) => b.location.trim()))];
+    from(Promise.all(names.map((n) => this.resolveLocation(n))))
+      .pipe(
+        switchMap((locs) => {
+          const byName = new Map(names.map((n, i) => [n, locs[i]]));
+          const missing = boxes.filter((b) => !byName.get(b.location.trim()));
+          if (missing.length) {
+            throw new LocationError(
+              `Vị trí không hợp lệ / chưa nhập ở ${missing.length} thùng (${missing
+                .slice(0, 3)
+                .map((b) => `${b.reelId}: "${b.location || "trống"}"`)
+                .join(", ")}) — chọn vị trí trong danh sách gợi ý.`,
+            );
+          }
+          const update$: Observable<unknown> = this.accountService
+            .identity()
+            .pipe(
+              take(1),
+              switchMap((account): Observable<unknown> => {
+                const user = account?.login ?? "unknown";
+                // Cùng payload dialog cập nhật vật tư: MOVE, tự phê duyệt
+                return this.listMaterialService.postAutoApprovedUpdate(
+                  boxes.map((box) => {
+                    const loc = byName.get(box.location.trim())!;
+                    return {
+                      id: box.inventoryId ?? null,
+                      materialId: box.reelId,
+                      updatedBy: user,
+                      createdTime: "",
+                      updatedTime: "",
+                      productCode: box.partNumber ?? box.materialCode,
+                      productName: box.partNumber ?? box.materialCode,
+                      // SL hiện tại của thùng → SL xuất
+                      quantity: String(box.inventoryQty ?? box.quantity),
+                      quantityChange: String(box.quantity),
+                      type: "MOVE",
+                      locationId: String(loc.locationId),
+                      locationName: loc.locationName,
+                      expiredTime: box.expirationRaw ?? "",
+                      status: "APPROVE",
+                      requestId: null,
+                    };
+                  }),
+                  user,
+                );
+              }),
+            );
+          return update$;
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.isCompleting = false;
+          this.notificationService.success(
+            `Xuất kho thành công: đã cập nhật ${boxes.length} thùng.`,
+          );
+          this.dialogRef.close(true);
+        },
+        error: (err: unknown) => {
+          this.isCompleting = false;
+          this.notificationService.error(
+            err instanceof LocationError
+              ? err.message
+              : "Cập nhật tồn kho thất bại — chưa xuất, thử lại.",
+          );
+        },
+      });
+  }
+
   /** Lưu xuất kho của tab đang mở */
   private submitComplete(): void {
+    if (this.isPlanning) {
+      this.submitPlanningExport();
+      return;
+    }
     this.isCompleting = true;
     this.exportService
       .complete(this.ws.requests, this.ws.boxes, this.approval)
@@ -1896,6 +2045,9 @@ export class WarehouseExportDialogComponent
             inventoryQty: inv.availableQty,
             expirationDate: inv.expirationDate,
             inventoryStatus: inv.status,
+            partNumber: inv.partNumber,
+            inventoryId: inv.inventoryId ?? undefined,
+            expirationRaw: inv.expirationRaw,
           },
         };
       }),

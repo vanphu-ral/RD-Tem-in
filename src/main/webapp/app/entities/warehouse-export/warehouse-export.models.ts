@@ -65,6 +65,10 @@ export interface ExportReelInventory {
   expirationDate: string;
   /** dd/MM/yyyy */
   manufacturingDate: string;
+  /** inventoryId — id cập nhật tồn kho (POST api/request) */
+  inventoryId: number | null;
+  /** HSD gốc từ /inventory (epoch) — gửi lại khi cập nhật */
+  expirationRaw: string;
 }
 
 /** Yêu cầu lĩnh vật tư */
@@ -110,6 +114,11 @@ export interface ExportScannedBox {
   inventoryStatus?: string;
   /** Part number NCC của thùng (partNumber) */
   partNumber?: string;
+  /** inventoryId / HSD gốc — dùng khi Xác nhận xuất (cập nhật SL + vị trí) */
+  inventoryId?: number;
+  expirationRaw?: string;
+  /** Khuyến nghị Planning: đã Gửi (PATCH scanCheck = 1) — mới được Xác nhận xuất */
+  sent?: boolean;
 }
 
 /** Pallet đã scan để xuất (kèm các thùng trên pallet) */

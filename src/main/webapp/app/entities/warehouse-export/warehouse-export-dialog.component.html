@@ -880,6 +880,18 @@
                   <span class="pl-kind" [class.extra]="b.supplementary">{{
                     b.supplementary ? "Bổ sung" : "Khuyến nghị"
                   }}</span>
+                  <span
+                    class="pl-before"
+                    *ngIf="b.sent"
+                    matTooltip="Đã Gửi — sẵn sàng Xác nhận xuất"
+                    >Đã gửi</span
+                  >
+                  <span
+                    class="pl-unsent"
+                    *ngIf="!b.sent"
+                    matTooltip="Bấm Gửi trước khi Xác nhận xuất"
+                    >Chưa gửi</span
+                  >
                 </td>
                 <td class="num">
                   {{
@@ -1416,6 +1428,8 @@
             [class.extra]="b.supplementary"
             >{{ b.supplementary ? "Bổ sung" : "Khuyến nghị" }}</span
           >
+          <span class="pl-before" *ngIf="isPlanning && b.sent">Đã gửi</span>
+          <span class="pl-unsent" *ngIf="isPlanning && !b.sent">Chưa gửi</span>
           <button
             type="button"
             class="mx-del"
