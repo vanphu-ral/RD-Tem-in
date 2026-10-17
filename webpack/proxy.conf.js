@@ -16,6 +16,13 @@ function setupProxy({ tls }) {
       secure: false,
       changeOrigin: tls,
     },
+    {
+      // SAP chuyển kho (OWTQ / WTQ1) — gọi qua dev server để không bị CORS
+      context: ["/tem-in-info"],
+      target: "http://192.168.68.86:9090",
+      secure: false,
+      changeOrigin: true,
+    },
   ];
   return conf;
 }
