@@ -158,5 +158,10 @@ Desktop.ini
 /coverage/
 /.nyc_output/
 /.vs
+<<<<<<< HEAD
 CLAUDE.md
 .claude/
+=======
+
+CLAUDE.md
+>>>>>>> 01c04a92e005b2f91f37b93bc74203ee3f3b23ba
