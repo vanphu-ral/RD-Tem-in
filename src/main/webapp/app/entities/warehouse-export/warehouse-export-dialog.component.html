@@ -39,14 +39,14 @@
         Khuyến nghị Planning
       </button>
     </div>
-    <button
+    <!-- <button
       type="button"
       class="we-history"
       *ngIf="!isPlanning"
       (click)="onHistory()"
     >
       Lịch sử xuất kho
-    </button>
+    </button> -->
   </div>
 
   <!-- ===== Cả 2 tab dùng chung giao diện; dữ liệu theo tab (ws) ===== -->
@@ -393,7 +393,9 @@
                               <td>{{ b.lot || "—" }}</td>
                               <td>{{ b.mfgDate || "—" }}</td>
                               <td>{{ b.expirationDate || "—" }}</td>
-                              <td>{{ b.location || "—" }}</td>
+                              <td>
+                                {{ b.sourceLocation ?? (b.location || "—") }}
+                              </td>
                               <td>{{ b.palletCode || "—" }}</td>
                               <td class="num">
                                 {{ b.inventoryQty ?? 0 | number }}
@@ -949,9 +951,11 @@
                 <th>HSD</th>
                 <th>Trạng thái</th>
                 <th>Pallet</th>
+                <th>Vị trí hiện tại</th>
+                <th>Kho chuyển đến</th>
                 <th class="col-loc">
                   <div class="th-loc">
-                    <span>Vị trí kho</span>
+                    <span>Vị trí chuyển đến</span>
                     <input
                       class="we-cell-input loc head"
                       [(ngModel)]="bulkLocation"
@@ -970,13 +974,33 @@
             </thead>
             <tbody>
               <tr *ngIf="!ws.boxes.length">
-                <td colspan="13" class="we-empty-cell">Chưa scan thùng nào.</td>
+                <td colspan="15" class="we-empty-cell">Chưa scan thùng nào.</td>
               </tr>
               <tr
                 *ngFor="let b of ws.boxes; let idx = index; trackBy: trackBox"
               >
                 <td class="col-no">{{ idx + 1 }}</td>
-                <td class="mono">{{ b.reelId }}</td>
+                <td class="mono">
+                  {{ b.reelId }}
+                  <ng-container *ngIf="hasSession">
+                    <span
+                      class="pl-before"
+                      *ngIf="b.sent"
+                      matTooltip="Đã lưu vào phiên"
+                      >Đã lưu</span
+                    >
+                    <span class="pl-unsent" *ngIf="!b.sent && isBoxSaving(b)"
+                      >Đang lưu...</span
+                    >
+                    <span
+                      class="pl-unsent retry"
+                      *ngIf="!b.sent && !isBoxSaving(b)"
+                      matTooltip="Lưu lỗi — bấm để thử lại"
+                      (click)="saveSessionBoxes()"
+                      >Chưa lưu</span
+                    >
+                  </ng-container>
+                </td>
                 <td class="mono">{{ b.materialCode }}</td>
                 <td class="mono">{{ b.partNumber || "—" }}</td>
                 <td class="num">{{ b.inventoryQty ?? 0 | number }}</td>
@@ -993,17 +1017,50 @@
                 <td>{{ b.lot || "—" }}</td>
                 <td>{{ b.mfgDate || "—" }}</td>
                 <td>{{ b.expirationDate || "—" }}</td>
-                <td>{{ b.inventoryStatus || "—" }}</td>
+                <td>
+                  <span
+                    *ngIf="b.inventoryStatus; else noValue"
+                    class="we-badge"
+                    [ngClass]="stockStatusTone(b.inventoryStatus)"
+                    >{{ b.inventoryStatus }}</span
+                  >
+                </td>
                 <td>{{ b.palletCode || "—" }}</td>
+                <td>
+                  <span
+                    *ngIf="b.sourceLocation; else noValue"
+                    class="we-badge loc"
+                    >{{ b.sourceLocation }}</span
+                  >
+                </td>
+                <td class="dest-area">
+                  <span
+                    *ngIf="b.destWhsCode; else noValue"
+                    class="we-badge dest"
+                    [class.unknown]="!destAreaOf(b)"
+                    [matTooltip]="
+                      destAreaOf(b)
+                        ? ''
+                        : 'Không tìm thấy kho có mã đuôi -' + b.destWhsCode
+                    "
+                    >{{ destAreaLabel(b) }}</span
+                  >
+                </td>
                 <td>
                   <input
                     class="we-cell-input loc"
+                    [class.invalid]="locationIssue(b)"
                     [(ngModel)]="b.location"
                     [matAutocomplete]="locAuto"
-                    (ngModelChange)="onLocationSearch($event)"
-                    (focus)="onLocationSearch(b.location)"
+                    (ngModelChange)="onLocationSearch($event, b)"
+                    (focus)="onLocationSearch(b.location, b)"
+                    (change)="onBoxLocationCommit(b)"
+                    [matTooltip]="locationIssue(b) ?? ''"
                     placeholder="Vị trí"
                   />
+                  <div class="loc-error" *ngIf="locationIssue(b) as issue">
+                    {{ issue }}
+                  </div>
                 </td>
                 <td class="col-del">
                   <button
@@ -1018,6 +1075,8 @@
               </tr>
             </tbody>
           </table>
+
+          <ng-template #noValue>—</ng-template>
 
           <table class="we-table" *ngIf="scannedTab === 'pallet'">
             <thead>
@@ -1120,6 +1179,7 @@
       Hủy
     </button>
     <button
+      *ngIf="!hasSession"
       type="button"
       class="we-btn send"
       [disabled]="isSending || isCompleting"
@@ -1170,13 +1230,13 @@
       >
         <mat-icon>place</mat-icon> Gợi ý lấy hàng
       </button>
-      <button
+      <!-- <button
         type="button"
         *ngIf="!isPlanning"
         (click)="mobileMenuOpen = false; onHistory()"
       >
         <mat-icon>history</mat-icon> Lịch sử xuất kho
-      </button>
+      </button> -->
     </div>
   </div>
 
@@ -1351,14 +1411,26 @@
         </ng-container>
       </ng-container>
 
-      <!-- Yêu cầu lĩnh vật tư: thẻ theo vật tư -->
+      <!-- Yêu cầu lĩnh vật tư: thẻ theo yêu cầu → từng vật tư (mở ra: vị trí có hàng + thùng đã scan) -->
       <ng-container *ngIf="!isPlanning">
         <div class="mx-card" *ngFor="let r of ws.requests">
           <div class="mx-card-head" (click)="toggleRequest(r)">
             <div class="mx-card-main">
               <div class="mx-loc">{{ r.code }}</div>
-              <div class="mx-sub">{{ r.items.length }} vật tư</div>
+              <div class="mx-sub">
+                {{ r.items.length }} vật tư · {{ scannedTotal(r) | number }}/{{
+                  requiredTotal(r) | number
+                }}
+              </div>
             </div>
+            <button
+              type="button"
+              class="mx-icon-btn"
+              aria-label="Tra vị trí tất cả vật tư"
+              (click)="refreshItemStocks(r, $event)"
+            >
+              <mat-icon>refresh</mat-icon>
+            </button>
             <span class="mx-status" [class.ok]="isEnough(r)">{{
               isEnough(r) ? "Đủ" : "Chưa đủ"
             }}</span>
@@ -1366,18 +1438,186 @@
               isExpanded(r) ? "expand_less" : "expand_more"
             }}</mat-icon>
           </div>
-          <div class="mx-parts" *ngIf="isExpanded(r)">
-            <div class="mx-part static" *ngFor="let i of r.items">
-              <span class="mx-state" [attr.data-state]="itemState(i)"></span>
-              <span class="mx-part-main">
-                <span class="mx-mono">{{ i.materialCode }}</span>
-                <span class="mx-sub"
-                  >{{ i.materialName }} · {{ boxesOf(i).length }} thùng</span
+          <div class="mx-req-bar">
+            <span
+              [style.width.%]="
+                requiredTotal(r)
+                  ? (scannedTotal(r) / requiredTotal(r)) * 100
+                  : 0
+              "
+            ></span>
+          </div>
+
+          <div class="mx-items" *ngIf="isExpanded(r)">
+            <div
+              class="mx-item"
+              *ngFor="let i of r.items"
+              [class.open]="isNodeOpen(r, itemKey(i))"
+            >
+              <!-- Dòng vật tư (chạm để mở) -->
+              <div class="mx-item-head" (click)="toggleItem(r, i)">
+                <span class="mx-state" [attr.data-state]="itemState(i)"></span>
+                <span class="mx-mono mx-item-code">{{ i.materialCode }}</span>
+                <span class="mx-item-qty" [attr.data-state]="itemState(i)"
+                  >{{ i.scannedQty | number
+                  }}<small
+                    >/{{ targetQty(i) | number
+                    }}{{ i.uom ? " " + i.uom : "" }}</small
+                  ></span
                 >
-              </span>
-              <span class="mx-qty"
-                >{{ i.scannedQty | number }}/{{ targetQty(i) | number }}</span
+                <mat-icon class="mx-chev">{{
+                  isNodeOpen(r, itemKey(i)) ? "expand_less" : "expand_more"
+                }}</mat-icon>
+              </div>
+              <div class="mx-item-name">{{ i.materialName }}</div>
+              <div class="mx-item-part" *ngIf="i.partNumbers">
+                {{ i.partNumbers }}
+              </div>
+
+              <div class="mx-box-tags">
+                <span
+                  class="we-badge"
+                  [ngClass]="itemState(i) === 'done' ? 'ok' : 'warn'"
+                  >{{
+                    itemState(i) === "done"
+                      ? "Đủ"
+                      : "Thiếu " + (targetQty(i) - i.scannedQty | number)
+                  }}</span
+                >
+                <span class="mx-tag">{{ boxesOf(i).length }} thùng</span>
+                <span class="mx-tag" *ngIf="i.warehouseCode"
+                  >Kho {{ i.warehouseCode }}</span
+                >
+                <ng-container *ngIf="itemStock(i) as st; else noStock">
+                  <span class="mx-tag" *ngIf="st.loading">Đang tra tồn…</span>
+                  <span class="we-badge bad" *ngIf="!st.loading && st.error"
+                    >Lỗi tra tồn</span
+                  >
+                  <span class="mx-tag strong" *ngIf="!st.loading && !st.error"
+                    >Tồn {{ itemStockQty(i) | number }}</span
+                  >
+                </ng-container>
+                <ng-template #noStock>
+                  <button
+                    type="button"
+                    class="mx-tag link"
+                    (click)="lookupItemStock(i, $event)"
+                  >
+                    Tra vị trí
+                  </button>
+                </ng-template>
+              </div>
+
+              <!-- Vị trí đang có hàng (rút gọn) -->
+              <div
+                class="mx-loc-chips"
+                *ngIf="
+                  itemStock(i) &&
+                  !itemStock(i)?.loading &&
+                  !itemStock(i)?.error &&
+                  !isNodeOpen(r, itemKey(i))
+                "
               >
+                <span
+                  class="mx-loc-chip"
+                  *ngFor="
+                    let loc of itemStockLocations(i)
+                      | slice: 0 : LOCATION_CHIP_LIMIT
+                  "
+                  ><b>{{ loc.areaCode || "?" }}</b> · {{ loc.location }}</span
+                >
+                <span
+                  class="mx-sub"
+                  *ngIf="itemStockLocations(i).length > LOCATION_CHIP_LIMIT"
+                  >+{{ itemStockLocations(i).length - LOCATION_CHIP_LIMIT }} vị
+                  trí</span
+                >
+                <span class="mx-sub" *ngIf="!itemStockLocations(i).length"
+                  >Hết hàng trong kho</span
+                >
+              </div>
+
+              <!-- Mở rộng: vị trí có hàng + thùng đã scan -->
+              <div class="mx-item-detail" *ngIf="isNodeOpen(r, itemKey(i))">
+                <div class="mx-detail-caption">
+                  Vị trí đang có hàng
+                  <span *ngIf="itemStock(i)?.fetchedAt"
+                    >· {{ itemStock(i)?.fetchedAt | date: "HH:mm" }}</span
+                  >
+                  <button
+                    type="button"
+                    class="mx-icon-btn sm"
+                    aria-label="Tra lại"
+                    *ngIf="itemStock(i) && !itemStock(i)?.loading"
+                    (click)="lookupItemStock(i, $event, true)"
+                  >
+                    <mat-icon>refresh</mat-icon>
+                  </button>
+                </div>
+                <div class="mx-sub" *ngIf="itemStock(i)?.failedAreas">
+                  {{ itemStock(i)?.failedAreas }} kho tra lỗi, kết quả có thể
+                  thiếu
+                </div>
+                <div class="mx-sub" *ngIf="itemStock(i)?.loading">
+                  Đang tra vị trí…
+                </div>
+                <ng-container *ngIf="!itemStock(i)?.loading">
+                  <div
+                    class="mx-detail-row"
+                    *ngFor="let loc of itemStockLocations(i)"
+                  >
+                    <span class="mx-detail-main">
+                      <span class="mx-mono">{{ loc.location }}</span>
+                      <span class="mx-sub"
+                        >{{ loc.areaCode || "—"
+                        }}<ng-container
+                          *ngIf="loc.areaName && loc.areaName !== loc.areaCode"
+                        >
+                          · {{ loc.areaName }}</ng-container
+                        ></span
+                      >
+                    </span>
+                    <span class="mx-detail-side">
+                      <strong>{{ loc.qty | number }}</strong>
+                      <span class="mx-sub">{{ loc.reels | number }} cuộn</span>
+                    </span>
+                  </div>
+                  <div class="mx-sub" *ngIf="!itemStockLocations(i).length">
+                    Không còn cuộn khả dụng trong kho.
+                  </div>
+                </ng-container>
+
+                <div class="mx-detail-caption">
+                  Thùng đã scan ({{ boxesOf(i).length }})
+                </div>
+                <div class="mx-sub" *ngIf="!boxesOf(i).length">
+                  Chưa scan thùng nào của vật tư này.
+                </div>
+                <div
+                  class="mx-detail-row"
+                  *ngFor="let b of boxesOf(i); trackBy: trackBox"
+                >
+                  <span class="mx-detail-main">
+                    <span class="mx-mono" [title]="b.reelId">{{
+                      b.reelId
+                    }}</span>
+                    <span class="mx-sub"
+                      >Lô {{ b.lot || "—"
+                      }}<ng-container *ngIf="b.expirationDate">
+                        · HSD {{ b.expirationDate }}</ng-container
+                      ><ng-container *ngIf="b.sourceLocation ?? b.location">
+                        · {{ b.sourceLocation ?? b.location }}</ng-container
+                      ></span
+                    >
+                  </span>
+                  <span class="mx-detail-side">
+                    <strong>{{ b.quantity | number }}</strong>
+                    <span class="mx-sub" *ngIf="b.inventoryQty !== undefined"
+                      >/ {{ b.inventoryQty | number }}</span
+                    >
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1419,7 +1659,12 @@
         >
       </mat-autocomplete>
 
-      <div class="mx-box" *ngFor="let b of ws.boxes; trackBy: trackBox">
+      <div
+        class="mx-box"
+        *ngFor="let b of ws.boxes; trackBy: trackBox"
+        [class.has-error]="locationIssue(b)"
+      >
+        <!-- ReelID + trạng thái lưu/gửi + xoá -->
         <div class="mx-box-top">
           <span class="mx-mono mx-reel" [title]="b.reelId">{{ b.reelId }}</span>
           <span
@@ -1430,6 +1675,18 @@
           >
           <span class="pl-before" *ngIf="isPlanning && b.sent">Đã gửi</span>
           <span class="pl-unsent" *ngIf="isPlanning && !b.sent">Chưa gửi</span>
+          <ng-container *ngIf="hasSession">
+            <span class="pl-before" *ngIf="b.sent">Đã lưu</span>
+            <span class="pl-unsent" *ngIf="!b.sent && isBoxSaving(b)"
+              >Đang lưu...</span
+            >
+            <span
+              class="pl-unsent retry"
+              *ngIf="!b.sent && !isBoxSaving(b)"
+              (click)="saveSessionBoxes()"
+              >Chưa lưu</span
+            >
+          </ng-container>
           <button
             type="button"
             class="mx-del"
@@ -1439,24 +1696,55 @@
             <mat-icon>delete_outline</mat-icon>
           </button>
         </div>
-        <div class="mx-sub">
-          {{ b.materialCode }}
-          <ng-container *ngIf="b.partNumber">
-            · {{ b.partNumber }}</ng-container
-          >
-          · Lô {{ b.lot || "—" }}
-          <ng-container *ngIf="b.expirationDate">
-            · HSD {{ b.expirationDate }}</ng-container
-          >
-          <ng-container *ngIf="b.palletCode">
-            · Pallet {{ b.palletCode }}</ng-container
+
+        <!-- Mã vật tư · part number -->
+        <div class="mx-box-mat">
+          <span class="mx-mono">{{ b.materialCode || "—" }}</span>
+          <span
+            class="mx-box-part"
+            *ngIf="b.partNumber"
+            [title]="b.partNumber"
+            >{{ b.partNumber }}</span
           >
         </div>
+
+        <!-- Lô / HSD / pallet / trạng thái tồn -->
+        <div class="mx-box-tags">
+          <span class="mx-tag">Lô {{ b.lot || "—" }}</span>
+          <span class="mx-tag" *ngIf="b.expirationDate"
+            >HSD {{ b.expirationDate }}</span
+          >
+          <span class="mx-tag" *ngIf="b.palletCode"
+            >Pallet {{ b.palletCode }}</span
+          >
+          <span
+            class="we-badge"
+            *ngIf="b.inventoryStatus"
+            [ngClass]="stockStatusTone(b.inventoryStatus)"
+            >{{ b.inventoryStatus }}</span
+          >
+        </div>
+
+        <!-- Xuất chuyển kho: vị trí hiện tại → kho chuyển đến -->
+        <div class="mx-box-route" *ngIf="!isPlanning">
+          <span class="we-badge loc" [title]="b.sourceLocation || ''">{{
+            b.sourceLocation || "—"
+          }}</span>
+          <mat-icon>arrow_forward</mat-icon>
+          <span
+            class="we-badge dest"
+            [class.unknown]="!destAreaOf(b)"
+            [title]="destAreaLabel(b)"
+            >{{ destAreaLabel(b) }}</span
+          >
+        </div>
+
+        <!-- SL xuất + vị trí -->
         <div class="mx-box-edit">
-          <label>
+          <label class="qty">
             <span
               >SL xuất<ng-container *ngIf="b.inventoryQty !== undefined">
-                (tồn {{ b.inventoryQty | number }})</ng-container
+                / {{ b.inventoryQty | number }}</ng-container
               ></span
             >
             <input
@@ -1468,14 +1756,19 @@
             />
           </label>
           <label>
-            <span>Vị trí</span>
+            <span>{{ isPlanning ? "Vị trí" : "Vị trí chuyển đến" }}</span>
             <input
+              [class.invalid]="locationIssue(b)"
               [(ngModel)]="b.location"
               [matAutocomplete]="locAutoM"
-              (ngModelChange)="onLocationSearch($event)"
-              placeholder="Vị trí"
+              (ngModelChange)="onLocationSearch($event, b)"
+              (change)="onBoxLocationCommit(b)"
+              placeholder="Nhập vị trí"
             />
           </label>
+        </div>
+        <div class="loc-error mx-box-error" *ngIf="locationIssue(b) as issue">
+          {{ issue }}
         </div>
       </div>
       <div class="mx-empty" *ngIf="!ws.boxes.length">Chưa scan thùng nào.</div>
@@ -1562,6 +1855,7 @@
 
       <div class="mx-submit-row">
         <button
+          *ngIf="!hasSession"
           type="button"
           class="mx-submit send"
           [disabled]="isSending || isCompleting || !ws.boxes.length"

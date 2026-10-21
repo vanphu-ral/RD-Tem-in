@@ -17,6 +17,10 @@ export interface ExportRequestItem {
   partNumbers?: string;
   /** Đơn vị tính (uomCode) */
   uom?: string;
+  /** Xuất chuyển kho: lineNum WTQ1 (dòng đầu tiên của mã khi gộp nhiều dòng) */
+  lineNum?: number;
+  /** Xuất chuyển kho: mã kho SAP chuyển đến (whsCode của WTQ1, vd 05) */
+  toWhsCode?: string;
 }
 
 /** Thùng được Planning khuyến nghị xuất (materialId = ReelID) */
@@ -69,6 +73,8 @@ export interface ExportReelInventory {
   inventoryId: number | null;
   /** HSD gốc từ /inventory (epoch) — gửi lại khi cập nhật */
   expirationRaw: string;
+  /** Bản ghi gốc /api/inventory/{reelId} — lưu thùng vào phiên (warehouse-transfer-details) */
+  raw?: Record<string, unknown>;
 }
 
 /** Yêu cầu lĩnh vật tư */
@@ -117,8 +123,17 @@ export interface ExportScannedBox {
   /** inventoryId / HSD gốc — dùng khi Xác nhận xuất (cập nhật SL + vị trí) */
   inventoryId?: number;
   expirationRaw?: string;
-  /** Khuyến nghị Planning: đã Gửi (PATCH scanCheck = 1) — mới được Xác nhận xuất */
+  /**
+   * Đã Gửi — Khuyến nghị Planning: PATCH scanCheck = 1 (mới được Xác nhận xuất);
+   * Xuất chuyển kho theo phiên: đã lưu vào phiên (POST /warehouse-transfer-details)
+   */
   sent?: boolean;
+  /** Bản ghi gốc /api/inventory/{reelId} */
+  inventoryRaw?: Record<string, unknown>;
+  /** Xuất chuyển kho: mã kho SAP chuyển đến (whsCode của dòng vật tư, vd 05) */
+  destWhsCode?: string;
+  /** Xuất chuyển kho: vị trí hiện tại của thùng (location = vị trí mới cần chuyển đến) */
+  sourceLocation?: string;
 }
 
 /** Pallet đã scan để xuất (kèm các thùng trên pallet) */

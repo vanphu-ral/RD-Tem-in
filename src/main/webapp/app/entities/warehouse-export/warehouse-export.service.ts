@@ -112,6 +112,8 @@ interface OwtqDto {
   uPurNvGiao?: string | null;
   uPurNvNhan?: string | null;
   remark?: string | null;
+  /** Tổng SL yêu cầu của phiếu */
+  totalQuantity?: number | null;
   /** Dòng vật tư (WTQ1) — chỉ có ở GET /owtq/{docEntry} */
   lines?: Array<Wtq1Dto | null> | null;
 }
@@ -135,6 +137,104 @@ interface OwtqPageDto {
   totalElements?: number | null;
 }
 
+/** Trường của warehouse-transfer-details lấy nguyên từ /api/inventory (cùng tên) */
+const TRANSFER_DETAIL_RAW_FIELDS = [
+  "userData1",
+  "userData2",
+  "userData3",
+  "userData4",
+  "userData5",
+  "msdLevel",
+  "msdInitialFloorTime",
+  "msdBagSealDate",
+  "marketUsage",
+  "shelfTime",
+  "spMaterialName",
+  "warningLimit",
+  "maximumLimit",
+  "comments",
+  "warmupTime",
+  "storageUnit",
+  "subStorageUnit",
+  "partClass",
+  "vendorQrCode",
+];
+
+/** Số request summary tiến độ chạy song song (danh sách Xuất chuyển kho) */
+const SUMMARY_CONCURRENCY = 6;
+
+/** Phiên xuất chuyển kho — 1 phiên gom nhiều phiếu OWTQ */
+interface WarehouseTransferSessionDto {
+  id?: number | null;
+  status?: string | null;
+  note?: string | null;
+  createdAt?: string | null;
+  createdBy?: string | null;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  /** Tổng SL cần xuất của các phiếu trong phiên (BE bổ sung sau) */
+  totalQuantity?: number | null;
+  /** Tổng SL đã scan của phiên (BE bổ sung sau) */
+  scannedQuantity?: number | null;
+  /** docEntry các phiếu OWTQ của phiên */
+  owtqList?: Array<number | string | null> | null;
+  owtqSessions?: Array<{ owtqDocEntry?: number | null } | null> | null;
+}
+
+/** GET /warehouse-transfer-sessions — mảng hoặc trang Spring Data */
+type WarehouseTransferSessionPageDto =
+  | WarehouseTransferSessionDto[]
+  | {
+      content?: WarehouseTransferSessionDto[] | null;
+      totalElements?: number | null;
+    };
+
+/** GET /warehouse-transfer-sessions/{id}/detail (chỉ các trường dùng tới) */
+interface WarehouseTransferSessionDetailDto {
+  session?: WarehouseTransferSessionDto | null;
+  /** Các phiếu của phiên — owtqDocEntry = docEntry của /owtq/{docEntry} */
+  owtqSessions?: Array<{ owtqDocEntry?: number | null } | null> | null;
+  /** Các thùng đã scan trong phiên */
+  details?: Array<{ reelId?: string | null } | null> | null;
+}
+
+/** Chi tiết 1 phiên xuất chuyển kho */
+export interface WarehouseTransferSessionDetail {
+  sessionId: number;
+  status: string;
+  note: string;
+  /** docEntry các phiếu OWTQ của phiên */
+  requestCodes: string[];
+  /** ReelID các thùng đã scan */
+  reelIds: string[];
+}
+
+/** 1 dòng tab Đang xử lý — 1 phiên xuất chuyển kho */
+export interface TransferSessionRow {
+  id: number;
+  status: string;
+  note: string;
+  /** docEntry các phiếu OWTQ của phiên */
+  requestCodes: string[];
+  createdBy: string;
+  /** dd/MM/yyyy HH:mm */
+  createdAt: string;
+  updatedBy: string;
+  /** dd/MM/yyyy HH:mm */
+  updatedAt: string;
+  /** ISO gốc — dùng để sắp xếp */
+  createdAtRaw: string;
+  updatedAtRaw: string;
+}
+
+export interface TransferSessionPage {
+  rows: TransferSessionRow[];
+  /** null khi BE trả mảng (chưa có totalElements) */
+  total: number | null;
+}
+
 /** 1 dòng danh sách yêu cầu xuất kho (trang Xuất kho) */
 export interface ExportRequestListRow {
   code: string;
@@ -152,6 +252,20 @@ export interface ExportRequestListRow {
   description: string;
   /** Tiến độ xuất (%) */
   progress: number;
+  /** Xuất chuyển kho: tổng SL yêu cầu của phiếu (OWTQ totalQuantity) */
+  requiredQty?: number;
+  /** Xuất chuyển kho: SL / số thùng đã scan (summary) — undefined khi chưa tải */
+  scannedQty?: number;
+  scannedBoxes?: number;
+}
+
+/** GET /warehouse-transfer-details/summary/{owtqDocEntry} */
+export interface TransferDetailSummary {
+  owtqDocEntry: number;
+  /** Số thùng đã scan của phiếu */
+  numberOfRecord: number;
+  /** Tổng SL đã scan của phiếu */
+  totalQuantity: number;
 }
 
 /** 1 trang danh sách yêu cầu xuất kho */
@@ -254,6 +368,17 @@ const STOCK_MAX_PAGES = 4;
 
 @Injectable({ providedIn: "root" })
 export class WarehouseExportService {
+  /**
+   * Cache danh sách theo "mode:tab" (Xuất chuyển kho / Khuyến nghị × tab) + tab đang mở,
+   * số phiên đang xử lý — quay lại tab / trang không gọi lại API, chỉ tải lại khi Làm mới.
+   */
+  readonly listCache = new Map<
+    string,
+    { pageIndex: number; pageSize: number; total: number; rows: unknown[] }
+  >();
+  readonly lastListTab = new Map<string, string>();
+  processingCountCache: number | null = null;
+
   private readonly mockRequests: ExportRequest[] = [
     {
       code: "YC2026100601",
@@ -652,6 +777,202 @@ export class WarehouseExportService {
         return wo ? this.toWorkOrderRow(wo) : null;
       }),
     );
+  }
+
+  /**
+   * Xuất chuyển kho — tạo phiên từ các phiếu đã tích (POST /warehouse-transfer-sessions).
+   * Trả về id phiên.
+   */
+  createTransferSession(
+    requestCodes: string[],
+    user: string,
+    note = "",
+  ): Observable<number> {
+    const now = new Date().toISOString();
+    return this.http
+      .post<WarehouseTransferSessionDto | WarehouseTransferSessionDetailDto>(
+        // `${environment.testApiUrl}/warehouse-transfer-sessions`,
+        `${environment.baseInTemApiUrl}/warehouse-transfer-sessions`,
+        {
+          status: "new",
+          note,
+          createdAt: now,
+          createdBy: user,
+          updatedAt: now,
+          updatedBy: user,
+          deletedAt: null,
+          deletedBy: null,
+          owtqList: requestCodes.map((c) => Number(c.trim())),
+        },
+      )
+      .pipe(
+        map((res) => {
+          const id =
+            (res as WarehouseTransferSessionDetailDto)?.session?.id ??
+            (res as WarehouseTransferSessionDto)?.id;
+          if (id == null) {
+            throw new Error("Không nhận được id phiên xuất chuyển kho.");
+          }
+          return id;
+        }),
+      );
+  }
+
+  /**
+   * Lưu 1 thùng đã scan vào phiên — POST {testApiUrl}/warehouse-transfer-details.
+   * Thông tin thùng lấy từ bản ghi /api/inventory (cùng tên trường); SL xuất = quantityOverride.
+   */
+  saveTransferDetail(
+    sessionId: number,
+    box: ExportScannedBox,
+    /** Phiếu (owtqDocEntry) + dòng WTQ1 (lineNum) mà thùng được phân vào */
+    link: { owtqDocEntry?: number; lineNum?: number },
+    user: string,
+  ): Observable<void> {
+    const raw = box.inventoryRaw ?? {};
+    const str = (key: string): string | null => {
+      const v = raw[key];
+      return v === null || v === undefined || String(v).trim() === ""
+        ? null
+        : String(v).trim();
+    };
+    const sameName = Object.fromEntries(
+      TRANSFER_DETAIL_RAW_FIELDS.map((key) => [key, str(key)]),
+    );
+    const now = new Date().toISOString();
+    return (
+      this.http
+        // .post(`${environment.testApiUrl}/warehouse-transfer-details`, {
+        .post(`${environment.baseInTemApiUrl}/warehouse-transfer-details`, {
+          ...sameName,
+          lineNum: link.lineNum ?? 0,
+          owtqDocEntry: link.owtqDocEntry ?? null,
+          reelId: box.reelId,
+          partNumber: str("partNumber") ?? box.partNumber ?? null,
+          vendor: str("vendor") ?? str("vendorName"),
+          lot: box.lot || str("lotNumber"),
+          initialQuantity: Number(raw["initialQuantity"]) || 0,
+          quantityOverride: box.quantity,
+          locationOverride: box.location || null,
+          expirationDate: str("expirationDate") ?? box.expirationRaw ?? null,
+          manufacturingDate: str("manufacturingDate"),
+          sapCode: box.materialCode || null,
+          status: "scanned",
+          createdBy: user,
+          createdAt: now,
+          updatedBy: user,
+          updatedAt: now,
+          panaSendStatus: false,
+          sapSendStatus: false,
+          warehouseTransferSessionId: sessionId,
+          warehouseTransferSession: { id: sessionId },
+        })
+        .pipe(map(() => undefined))
+    );
+  }
+
+  /** Danh sách kho (khu vực) — GET /api/location/area (1 lần / phiên) */
+  getWarehouseAreaList(): Observable<ExportWarehouseArea[]> {
+    return this.getWarehouseAreas();
+  }
+
+  /**
+   * Xuất chuyển kho — tiến độ các phiếu: GET {testApiUrl}/warehouse-transfer-details/summary/{docEntry}
+   * cho từng phiếu (song song có giới hạn), điền SL / số thùng đã scan + % vào chính các dòng.
+   * Phiếu tra lỗi giữ nguyên (0%).
+   */
+  fillTransferProgress(rows: ExportRequestListRow[]): Observable<void> {
+    const targets = rows.filter((r) => /^\d+$/.test(r.code));
+    if (!targets.length) {
+      return of(undefined);
+    }
+    return from(targets).pipe(
+      mergeMap(
+        (row) =>
+          this.http
+            .get<TransferDetailSummary | null>(
+              `${environment.baseInTemApiUrl}/warehouse-transfer-details/summary/${row.code}`,
+              // `${environment.testApiUrl}/warehouse-transfer-details/summary/${row.code}`,
+            )
+            .pipe(
+              map((s) => ({ row, s })),
+              catchError(() => of({ row, s: null })),
+            ),
+        SUMMARY_CONCURRENCY,
+      ),
+      map(({ row, s }) => {
+        if (!s) {
+          return;
+        }
+        const scanned = Number(s.totalQuantity) || 0;
+        const required = row.requiredQty ?? 0;
+        row.scannedQty = scanned;
+        row.scannedBoxes = Number(s.numberOfRecord) || 0;
+        row.progress =
+          required > 0
+            ? Math.min(100, Math.round((scanned / required) * 100))
+            : 0;
+      }),
+      toArray(),
+      map(() => undefined),
+    );
+  }
+
+  /** Tab Đang xử lý: danh sách phiên, phân trang (pageIndex từ 0) — GET /warehouse-transfer-sessions */
+  getTransferSessionList(
+    pageIndex: number,
+    pageSize: number,
+  ): Observable<TransferSessionPage> {
+    return this.http
+      .get<WarehouseTransferSessionPageDto>(
+        `${environment.baseInTemApiUrl}/warehouse-transfer-sessions`,
+        // `${environment.testApiUrl}/warehouse-transfer-sessions`,
+        { params: { page: pageIndex, size: pageSize } },
+      )
+      .pipe(
+        map((res) => {
+          const list = Array.isArray(res) ? res : (res?.content ?? []);
+          return {
+            rows: list
+              .filter((s) => s?.id != null && !s.deletedAt)
+              .map((s) => this.toSessionRow(s)),
+            total: Array.isArray(res) ? null : (res?.totalElements ?? null),
+          };
+        }),
+      );
+  }
+
+  /** Chi tiết phiên: các phiếu OWTQ + các thùng đã scan (GET /warehouse-transfer-sessions/{id}/detail) */
+  getTransferSessionDetail(
+    sessionId: number,
+  ): Observable<WarehouseTransferSessionDetail> {
+    return this.http
+      .get<WarehouseTransferSessionDetailDto>(
+        `${environment.baseInTemApiUrl}/warehouse-transfer-sessions/${sessionId}/detail`,
+        // `${environment.testApiUrl}/warehouse-transfer-sessions/${sessionId}/detail`,
+      )
+      .pipe(
+        map((dto) => ({
+          sessionId: dto.session?.id ?? sessionId,
+          status: dto.session?.status ?? "",
+          note: dto.session?.note ?? "",
+          requestCodes: [
+            ...new Set(
+              (dto.owtqSessions ?? [])
+                .map((o) => o?.owtqDocEntry)
+                .filter((x): x is number => x != null)
+                .map(String),
+            ),
+          ],
+          reelIds: [
+            ...new Set(
+              (dto.details ?? [])
+                .map((d) => (d?.reelId ?? "").trim())
+                .filter(Boolean),
+            ),
+          ],
+        })),
+      );
   }
 
   /**
@@ -1328,6 +1649,7 @@ export class WarehouseExportService {
       partNumber: inv.partNumber,
       inventoryId: inv.inventoryId ?? undefined,
       expirationRaw: inv.expirationRaw,
+      inventoryRaw: inv.raw,
     };
   }
 
@@ -1355,6 +1677,7 @@ export class WarehouseExportService {
       ),
       inventoryId: Number(raw["inventoryId"]) || null,
       expirationRaw: text(raw["expirationDate"]),
+      raw,
     };
   }
 
@@ -1386,6 +1709,43 @@ export class WarehouseExportService {
           err.status === 404 ? of(null) : throwError(() => err),
         ),
       );
+  }
+
+  private toSessionRow(s: WarehouseTransferSessionDto): TransferSessionRow {
+    return {
+      id: s.id as number,
+      status: s.status ?? "",
+      note: s.note ?? "",
+      requestCodes: [
+        ...new Set(
+          [
+            ...(s.owtqList ?? []),
+            ...(s.owtqSessions ?? []).map((o) => o?.owtqDocEntry),
+          ]
+            .filter((x) => x != null && String(x).trim() !== "")
+            .map((x) => String(x).trim()),
+        ),
+      ],
+      createdBy: s.createdBy ?? "",
+      createdAt: this.formatDateTime(s.createdAt),
+      updatedBy: s.updatedBy ?? "",
+      updatedAt: this.formatDateTime(s.updatedAt),
+      createdAtRaw: s.createdAt ?? "",
+      updatedAtRaw: s.updatedAt ?? "",
+    };
+  }
+
+  /** ISO → dd/MM/yyyy HH:mm (giờ máy) */
+  private formatDateTime(iso: string | null | undefined): string {
+    const d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d.getTime())) {
+      return "";
+    }
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    return (
+      `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ` +
+      `${pad(d.getHours())}:${pad(d.getMinutes())}`
+    );
   }
 
   /** OWTQ → dòng danh sách. SAP không có trạng thái / tiến độ xuất → mặc định Chờ xuất, 0% */
@@ -1448,7 +1808,9 @@ export class WarehouseExportService {
       status: "Chờ xuất",
       warehouse: this.sapWarehouseLabel(dto.toWhsCode, names),
       description: dto.remark ?? "",
+      // Tiến độ điền sau theo summary (fillTransferProgress)
       progress: 0,
+      requiredQty: Number(dto.totalQuantity) || 0,
     };
   }
 
@@ -1477,6 +1839,8 @@ export class WarehouseExportService {
         warehouseCode: line.fromWhsCode ?? dto.filler ?? "",
         partNumbers: line.uPartNumber ?? undefined,
         uom: line.uomCode ?? undefined,
+        lineNum: line.lineNum ?? undefined,
+        toWhsCode: (line.whsCode ?? dto.toWhsCode ?? "").trim() || undefined,
       });
     }
     return [...byCode.values()];

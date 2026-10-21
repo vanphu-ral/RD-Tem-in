@@ -43,10 +43,7 @@ import {
   PickSuggestionDialogComponent,
   PickSuggestionDialogData,
 } from "./pick-suggestion-dialog/pick-suggestion-dialog.component";
-import {
-  openExportCancel,
-  openExportIncomplete,
-} from "./export-confirm-dialog/export-confirm-dialog.component";
+import { openExportCancel } from "./export-confirm-dialog/export-confirm-dialog.component";
 import {
   ExportApproval,
   ExportPlannedReel,
@@ -75,6 +72,11 @@ interface ExportWorkspace {
 /** Mở màn Xuất kho từ danh sách: nạp sẵn các mã yêu cầu đã chọn */
 export interface WarehouseExportDialogData {
   requestCodes?: string[];
+  /**
+   * Xuất chuyển kho: id phiên (POST /warehouse-transfer-sessions) — có thì nạp phiếu + thùng
+   * đã scan theo chi tiết phiên thay cho requestCodes
+   */
+  sessionId?: number;
   /** Mở từ menu nào: chỉ hiện đúng tab đó (request = Yêu cầu lĩnh vật tư) */
   mode?: "request" | "planning";
   /** Tiêu đề màn (vd Xuất chuyển kho / Xuất kho khuyến nghị) */
@@ -86,6 +88,9 @@ type MobileTab = "pick" | "scanned" | "send";
 
 /** Mobile: chế độ của ô scan duy nhất */
 type MobileScanMode = "box" | "pallet";
+
+/** Số thùng tra song song khi nạp lại phiên */
+const SESSION_BOX_CONCURRENCY = 6;
 
 const MOBILE_SCAN_MODE_KEY = "warehouse-export.mobile-scan-mode";
 
@@ -271,6 +276,8 @@ export class WarehouseExportDialogComponent
   locationOptions: CachedWarehouse[] = [];
   /** Ô vị trí ở header cột — áp cho mọi thùng đã scan */
   bulkLocation = "";
+  /** Xuất chuyển kho: danh sách kho (khu vực) — đối chiếu whsCode SAP → kho (vd 05 → RD-LED-05) */
+  warehouseAreas: WarehouseAreaRef[] = [];
 
   /** Mobile: tab đang mở, chế độ + mã của ô scan, gợi ý quét lại khi nhầm chế độ */
   mobileTab: MobileTab = "pick";
@@ -304,6 +311,9 @@ export class WarehouseExportDialogComponent
   /** Mobile — Chi tiết: vật tư đang mở danh sách thùng */
   private expandedItems = new Set<string>();
 
+  /** Xuất chuyển kho theo phiên: thùng đang POST lưu vào phiên */
+  private savingBoxes = new Set<ExportScannedBox>();
+
   private readonly workspaces: Record<MainTab, ExportWorkspace> = {
     request: this.emptyWorkspace(),
     planning: this.emptyWorkspace(),
@@ -328,6 +338,11 @@ export class WarehouseExportDialogComponent
     return this.dialogData?.title ?? "Xuất kho";
   }
 
+  /** Xuất chuyển kho theo phiên: scan xong tự lưu thùng vào phiên (không dùng nút Gửi) */
+  get hasSession(): boolean {
+    return !this.isPlanning && this.dialogData?.sessionId != null;
+  }
+
   /** Mở từ menu cố định 1 chế độ → chỉ hiện tab đó */
   get lockedTab(): MainTab | null {
     return this.dialogData?.mode ?? null;
@@ -341,7 +356,10 @@ export class WarehouseExportDialogComponent
     const codes = (this.dialogData?.requestCodes ?? [])
       .map((x) => x.trim())
       .filter(Boolean);
-    if (codes.length) {
+    const sessionId = this.dialogData?.sessionId;
+    if (sessionId != null) {
+      setTimeout(() => this.loadSession(sessionId, codes));
+    } else if (codes.length) {
       setTimeout(() => this.preloadRequests(codes));
     }
     this.exportService.getApprovers().subscribe({
@@ -760,10 +778,6 @@ export class WarehouseExportDialogComponent
     if (!this.ensureAllSent()) {
       return;
     }
-    if (this.ws.requests.some((r) => !this.isEnough(r))) {
-      this.notificationService.error("Chưa đủ số lượng yêu cầu");
-      return;
-    }
     this.confirmAndSubmit();
   }
 
@@ -1015,17 +1029,35 @@ export class WarehouseExportDialogComponent
     this.recalcScanned();
   }
 
-  /** Gõ vị trí → tìm trong IndexedDB */
-  onLocationSearch(term: string): void {
+  /**
+   * Gõ vị trí → tìm trong IndexedDB. Xuất chuyển kho: chỉ gợi ý vị trí thuộc kho chuyển đến
+   * (của thùng b, hoặc kho chung của mọi thùng khi áp cho cả cột).
+   */
+  onLocationSearch(term: string, b?: ExportScannedBox): void {
     const keyword = (term ?? "").trim();
     if (!keyword) {
       this.locationOptions = [];
       return;
     }
+    const dest = this.isPlanning
+      ? null
+      : b
+        ? this.destAreaOf(b)
+        : this.commonDestArea();
     void this.warehouseCache
       .searchByName(keyword)
       .then((list) => {
-        this.locationOptions = list.slice(0, 30);
+        this.locationOptions = (
+          dest && this.areaIndex
+            ? list.filter(
+                (w) =>
+                  this.areaOf(
+                    Number(w.locationId),
+                    w.locationFullName || w.locationName,
+                  )?.areaCode === dest.areaCode,
+              )
+            : list
+        ).slice(0, 30);
         this.cdr.markForCheck();
       })
       .catch(() => {
@@ -1050,9 +1082,81 @@ export class WarehouseExportDialogComponent
     for (const pallet of this.ws.pallets) {
       pallet.location = location;
     }
+    const invalid = this.ws.boxes.filter((b) => this.locationIssue(b));
+    if (invalid.length) {
+      this.notificationService.warning(
+        `${this.locationIssue(invalid[0])}` +
+          (invalid.length > 1 ? ` (${invalid.length} thùng)` : ""),
+      );
+      return;
+    }
     this.notificationService.success(
       `Đã áp vị trí "${location}" cho ${this.ws.boxes.length} thùng.`,
     );
+  }
+
+  /** Xuất chuyển kho: kho chuyển đến của thùng — whsCode SAP (05) → kho có mã đuôi -05 (RD-LED-05) */
+  destAreaOf(b: ExportScannedBox): WarehouseAreaRef | null {
+    const whs = (b.destWhsCode ?? "").trim();
+    if (!whs) {
+      return null;
+    }
+    return (
+      this.warehouseAreas.find(
+        (a) => a.areaCode.split("-").pop()?.trim() === whs,
+      ) ?? null
+    );
+  }
+
+  /** Màu badge trạng thái tồn kho của thùng (calculatedStatus) */
+  stockStatusTone(status: string | undefined): "ok" | "bad" | "warn" {
+    const s = (status ?? "").toLowerCase();
+    if (s === "available") {
+      return "ok";
+    }
+    if (/expired|consumed|reject|hold|block|quarantine/.test(s)) {
+      return "bad";
+    }
+    return "warn";
+  }
+
+  /** Nhãn cột Kho chuyển đến */
+  destAreaLabel(b: ExportScannedBox): string {
+    const area = this.destAreaOf(b);
+    if (area) {
+      return area.areaName && area.areaName !== area.areaCode
+        ? `${area.areaCode} · ${area.areaName}`
+        : area.areaCode;
+    }
+    return b.destWhsCode ? `Kho ${b.destWhsCode}` : "—";
+  }
+
+  /**
+   * Xuất chuyển kho: vị trí nhập không có / không thuộc kho chuyển đến → câu báo lỗi
+   * (đối chiếu bảng vị trí → kho, tải từ area-locations). Trống / chưa tải bảng → null.
+   */
+  locationIssue(b: ExportScannedBox): string | null {
+    const loc = (b.location ?? "").trim();
+    if (this.isPlanning || !loc || !this.areaIndex) {
+      return null;
+    }
+    const area = this.areaOf(0, loc);
+    if (!area) {
+      return `Vị trí "${loc}" không tồn tại.`;
+    }
+    const dest = this.destAreaOf(b);
+    if (dest && area.areaCode !== dest.areaCode) {
+      return `Vị trí "${loc}" thuộc kho ${area.areaCode}, không thuộc kho chuyển đến ${dest.areaCode}.`;
+    }
+    return null;
+  }
+
+  /** Rời ô vị trí: sai kho → báo ngay */
+  onBoxLocationCommit(b: ExportScannedBox): void {
+    const issue = this.locationIssue(b);
+    if (issue) {
+      this.notificationService.warning(`Thùng ${b.reelId}: ${issue}`);
+    }
   }
 
   // ==================== SCAN ====================
@@ -1112,10 +1216,12 @@ export class WarehouseExportDialogComponent
           this.focus(this.palletInput);
           return;
         }
+        this.prepareTransferBoxes(usable);
         this.ws.pallets = [...this.ws.pallets, { ...pallet, boxes: usable }];
         this.ws.boxes = [...this.ws.boxes, ...usable];
         this.scanFeedback(true);
         this.recalcScanned();
+        this.saveSessionBoxes();
         this.notificationService.success(
           `Đã thêm pallet "${pallet.palletCode}" (${usable.length} thùng)` +
             (skipped
@@ -1171,9 +1277,11 @@ export class WarehouseExportDialogComponent
           this.scanFeedback(false);
         } else {
           this.scanFeedback(true);
+          this.prepareTransferBoxes([box]);
           this.ws.boxes = [...this.ws.boxes, box];
           this.scannedTab = "box";
           this.recalcScanned();
+          this.saveSessionBoxes();
         }
         this.focus(this.boxInput);
       },
@@ -1295,6 +1403,10 @@ export class WarehouseExportDialogComponent
       this.sendPlanningScans();
       return;
     }
+    if (this.hasSession) {
+      this.saveSessionBoxes();
+      return;
+    }
     if (!this.ensureApproval()) {
       return;
     }
@@ -1319,6 +1431,69 @@ export class WarehouseExportDialogComponent
       });
   }
 
+  /** Thùng đang lưu vào phiên */
+  isBoxSaving(box: ExportScannedBox): boolean {
+    return this.savingBoxes.has(box);
+  }
+
+  /**
+   * Xuất chuyển kho theo phiên: tự lưu ngay sau khi scan (thùng / pallet) —
+   * POST /warehouse-transfer-details từng thùng chưa lưu (song song có giới hạn).
+   * Thùng lỗi giữ "Chưa lưu" → lần scan sau tự thử lại, hoặc bấm nhãn để thử lại.
+   */
+  saveSessionBoxes(): void {
+    const sessionId = this.dialogData?.sessionId;
+    if (!this.hasSession || sessionId == null) {
+      return;
+    }
+    const targets = this.ws.boxes.filter(
+      (b) => !b.sent && !this.savingBoxes.has(b),
+    );
+    if (!targets.length) {
+      return;
+    }
+    targets.forEach((b) => this.savingBoxes.add(b));
+    this.accountService
+      .identity()
+      .pipe(
+        take(1),
+        switchMap((account) =>
+          from(targets).pipe(
+            mergeMap(
+              (box) =>
+                this.exportService
+                  .saveTransferDetail(
+                    sessionId,
+                    box,
+                    this.transferLinkOf(box),
+                    account?.login ?? "unknown",
+                  )
+                  .pipe(
+                    map(() => ({ box, ok: true })),
+                    catchError(() => of({ box, ok: false })),
+                  ),
+              SESSION_BOX_CONCURRENCY,
+            ),
+            toArray(),
+          ),
+        ),
+      )
+      .subscribe((results) => {
+        results.forEach((r) => {
+          this.savingBoxes.delete(r.box);
+          r.box.sent = r.ok;
+        });
+        const failed = results.filter((r) => !r.ok).map((r) => r.box.reelId);
+        if (failed.length) {
+          this.notificationService.error(
+            `Không lưu được ${failed.length} thùng vào phiên: ${failed.slice(0, 5).join(", ")}` +
+              `${failed.length > 5 ? "…" : ""} — bấm "Chưa lưu" để thử lại.`,
+          );
+        }
+        this.cdr.markForCheck();
+      });
+  }
+
   onComplete(): void {
     if (this.isCompleting) {
       return;
@@ -1332,31 +1507,7 @@ export class WarehouseExportDialogComponent
     if (!this.ensureAllSent()) {
       return;
     }
-    // Chỉ được xuất kho khi scan đủ SL của tất cả yêu cầu
-    const missing = this.ws.requests.filter((r) => !this.isEnough(r));
-    if (missing.length) {
-      openExportIncomplete(this.dialog, {
-        requiredTotal: this.ws.requests.reduce(
-          (s, r) => s + this.requiredTotal(r),
-          0,
-        ),
-        scannedTotal: this.ws.requests.reduce(
-          (s, r) => s + this.scannedTotal(r),
-          0,
-        ),
-        requests: missing.map((r) => ({
-          code: r.code,
-          items: r.items
-            .filter((i) => i.scannedQty < this.targetQty(i))
-            .map((i) => ({
-              materialCode: i.materialCode,
-              requiredQty: this.targetQty(i),
-              scannedQty: i.scannedQty,
-            })),
-        })),
-      }).subscribe(() => this.focus(this.boxInput));
-      return;
-    }
+    // Không bắt buộc scan đủ SL — thùng đã scan đúng mã thì xuất (cập nhật vị trí) bấy nhiêu thùng
     this.confirmAndSubmit();
   }
 
@@ -1509,8 +1660,85 @@ export class WarehouseExportDialogComponent
     });
   }
 
+  /**
+   * Xuất chuyển kho theo phiên: GET chi tiết phiên → các phiếu (owtqSessions → /owtq/{docEntry})
+   * + các thùng đã scan (details). Lỗi → nạp theo mã đã chọn ở danh sách.
+   */
+  private loadSession(sessionId: number, fallbackCodes: string[]): void {
+    this.mainTab = this.lockedTab ?? "request";
+    this.isBusy = true;
+    this.exportService.getTransferSessionDetail(sessionId).subscribe({
+      next: (detail) => {
+        this.isBusy = false;
+        const codes = detail.requestCodes.length
+          ? detail.requestCodes
+          : fallbackCodes;
+        if (codes.length) {
+          this.preloadRequests(codes, detail.reelIds);
+        }
+      },
+      error: () => {
+        this.isBusy = false;
+        this.notificationService.error(
+          `Không tải được chi tiết phiên xuất chuyển kho #${sessionId}.`,
+        );
+        if (fallbackCodes.length) {
+          this.preloadRequests(fallbackCodes);
+        }
+      },
+    });
+  }
+
+  /** Nạp lại các thùng đã scan của phiên (tra lại tồn kho từng thùng) */
+  private restoreBoxes(reelIds: string[]): void {
+    const ids = reelIds.filter(
+      (id) =>
+        !this.ws.boxes.some((b) => b.reelId.toLowerCase() === id.toLowerCase()),
+    );
+    if (!ids.length) {
+      return;
+    }
+    this.isBusy = true;
+    from(ids)
+      .pipe(
+        mergeMap(
+          (id) =>
+            this.exportService.getBox(id).pipe(
+              map((box) => ({ id, box })),
+              catchError(() =>
+                of({ id, box: null as ExportScannedBox | null }),
+              ),
+            ),
+          SESSION_BOX_CONCURRENCY,
+        ),
+        toArray(),
+      )
+      .subscribe((list) => {
+        this.isBusy = false;
+        const byId = new Map(list.map((x) => [x.id, x.box]));
+        const found = ids
+          .map((id) => byId.get(id))
+          .filter((b): b is ExportScannedBox => !!b);
+        // Thùng của phiên đã lưu ở BE → không gửi lại
+        found.forEach((b) => (b.sent = true));
+        this.prepareTransferBoxes(found);
+        const missing = ids.filter((id) => !byId.get(id));
+        if (found.length) {
+          this.ws.boxes = [...this.ws.boxes, ...found];
+          this.scannedTab = "box";
+          this.recalcScanned();
+        }
+        if (missing.length) {
+          this.notificationService.warning(
+            `Không tra được ${missing.length} thùng đã scan của phiên: ${missing.join(", ")}.`,
+          );
+        }
+        this.cdr.markForCheck();
+      });
+  }
+
   /** Nạp sẵn các yêu cầu đã chọn ở danh sách (tab Yêu cầu lĩnh vật tư) */
-  private preloadRequests(codes: string[]): void {
+  private preloadRequests(codes: string[], reelIds: string[] = []): void {
     this.mainTab = this.lockedTab ?? "request";
     this.isBusy = true;
     forkJoin(
@@ -1537,6 +1765,7 @@ export class WarehouseExportDialogComponent
           `Không tìm thấy ${this.codeNoun}: ${missing.join(", ")}.`,
         );
       }
+      this.restoreBoxes(reelIds);
       this.focus(this.boxInput);
     });
   }
@@ -1552,6 +1781,43 @@ export class WarehouseExportDialogComponent
     } else if (req.items.length) {
       // Xuất chuyển kho: vị trí mọi mã lấy từ 1 bảng chung (tải 1 lần / phiên)
       this.loadItemStocks(req.items.map((i) => i.materialCode));
+      this.ensureWarehouseAreas();
+      this.ensureAreaIndex();
+    }
+  }
+
+  /** Xuất chuyển kho: tải danh sách kho 1 lần (đối chiếu kho chuyển đến) */
+  private ensureWarehouseAreas(): void {
+    if (this.warehouseAreas.length) {
+      return;
+    }
+    this.exportService.getWarehouseAreaList().subscribe({
+      next: (areas) => {
+        this.warehouseAreas = areas;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.notificationService.warning(
+          "Không tải được danh sách kho — chưa đối chiếu được kho chuyển đến.",
+        );
+      },
+    });
+  }
+
+  /**
+   * Xuất chuyển kho — thùng mới thêm: gắn kho chuyển đến (whsCode của dòng vật tư),
+   * giữ vị trí hiện tại ở sourceLocation, ô Vị trí để trống cho nhập vị trí mới.
+   */
+  private prepareTransferBoxes(boxes: ExportScannedBox[]): void {
+    if (this.isPlanning) {
+      return;
+    }
+    for (const b of boxes) {
+      b.destWhsCode = this.findItems(b.materialCode)[0]?.toWhsCode;
+      if (b.sourceLocation === undefined) {
+        b.sourceLocation = b.location;
+        b.location = "";
+      }
     }
   }
 
@@ -1709,10 +1975,10 @@ export class WarehouseExportDialogComponent
   }
 
   /**
-   * Khuyến nghị Planning — Xác nhận xuất: tra locationId các vị trí → POST api/request
-   * (cùng API dialog cập nhật vật tư) cập nhật SL xuất + vị trí từng thùng đã scan.
+   * Xác nhận xuất (Khuyến nghị Planning + Xuất chuyển kho): tra locationId các vị trí →
+   * POST api/request (cùng API dialog cập nhật vật tư) cập nhật SL xuất + vị trí từng thùng đã scan.
    */
-  private submitPlanningExport(): void {
+  private submitInventoryUpdate(): void {
     const boxes = [...this.ws.boxes];
     const noInventory = boxes.filter((b) => !b.inventoryId);
     if (noInventory.length) {
@@ -1796,28 +2062,65 @@ export class WarehouseExportDialogComponent
 
   /** Lưu xuất kho của tab đang mở */
   private submitComplete(): void {
-    if (this.isPlanning) {
-      this.submitPlanningExport();
+    if (!this.isPlanning && !this.ensureTransferLocations()) {
       return;
     }
-    this.isCompleting = true;
-    this.exportService
-      .complete(this.ws.requests, this.ws.boxes, this.approval)
-      .subscribe({
-        next: (done) => {
-          this.isCompleting = false;
-          if (!done) {
-            this.notificationService.error("Xuất hàng thất bại.");
-            return;
-          }
-          this.notificationService.success("Xuất hàng thành công");
-          this.dialogRef.close(true);
-        },
-        error: () => {
-          this.isCompleting = false;
-          this.notificationService.error("Xuất hàng thất bại.");
-        },
-      });
+    this.submitInventoryUpdate();
+  }
+
+  /** Kho chuyển đến chung của mọi thùng đã scan (khác nhau → null) */
+  private commonDestArea(): WarehouseAreaRef | null {
+    const areas = this.ws.boxes.map((b) => this.destAreaOf(b));
+    const first = areas[0] ?? null;
+    return first && areas.every((a) => a?.areaCode === first.areaCode)
+      ? first
+      : null;
+  }
+
+  /**
+   * Xuất chuyển kho: mọi thùng đã scan phải có vị trí thuộc đúng kho chuyển đến
+   * (không bắt buộc scan đủ SL — có bao nhiêu thùng cập nhật bấy nhiêu).
+   */
+  private ensureTransferLocations(): boolean {
+    if (!this.areaIndex || !this.warehouseAreas.length) {
+      this.ensureAreaIndex();
+      this.ensureWarehouseAreas();
+      this.notificationService.warning(
+        "Đang tải danh sách kho / vị trí — thử lại sau giây lát.",
+      );
+      return false;
+    }
+    const empty = this.ws.boxes.filter((b) => !b.location.trim());
+    if (empty.length) {
+      this.notificationService.warning(
+        `Chưa nhập vị trí cho ${empty.length} thùng (${empty
+          .slice(0, 3)
+          .map((b) => b.reelId)
+          .join(", ")}${empty.length > 3 ? "…" : ""}).`,
+      );
+      return false;
+    }
+    const noDest = this.ws.boxes.filter((b) => !this.destAreaOf(b));
+    if (noDest.length) {
+      this.notificationService.warning(
+        `Không xác định được kho chuyển đến của ${noDest.length} thùng (${noDest
+          .slice(0, 3)
+          .map((b) => `${b.reelId}: kho ${b.destWhsCode ?? "?"}`)
+          .join(", ")}).`,
+      );
+      return false;
+    }
+    const invalid = this.ws.boxes.filter((b) => this.locationIssue(b));
+    if (invalid.length) {
+      this.notificationService.warning(
+        `Thùng ${invalid[0].reelId}: ${this.locationIssue(invalid[0])}` +
+          (invalid.length > 1
+            ? ` (+${invalid.length - 1} thùng sai vị trí)`
+            : ""),
+      );
+      return false;
+    }
+    return true;
   }
 
   private detectMobile(): boolean {
@@ -2191,6 +2494,33 @@ export class WarehouseExportDialogComponent
       }
     }
     return undefined;
+  }
+
+  /**
+   * Xuất chuyển kho: phiếu (owtqDocEntry = mã yêu cầu) + dòng WTQ1 mà thùng được phân vào
+   * (theo ws.allocation — lấp đầy phiếu thêm trước). Chưa phân bổ → phiếu đầu tiên có mã vật tư.
+   */
+  private transferLinkOf(box: ExportScannedBox): {
+    owtqDocEntry?: number;
+    lineNum?: number;
+  } {
+    let item: ExportRequestItem | undefined;
+    for (const [i, boxes] of this.ws.allocation) {
+      if (boxes.includes(box)) {
+        item = i;
+        break;
+      }
+    }
+    item ??= this.findItems(box.materialCode)[0];
+    const request = item
+      ? this.ws.requests.find((r) => r.items.includes(item!))
+      : undefined;
+    const docEntry = Number(request?.code);
+    return {
+      owtqDocEntry:
+        Number.isFinite(docEntry) && docEntry > 0 ? docEntry : undefined,
+      lineNum: item?.lineNum,
+    };
   }
 
   private findItems(materialCode: string): ExportRequestItem[] {

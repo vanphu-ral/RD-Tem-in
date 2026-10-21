@@ -45,6 +45,46 @@ $muted: #6b7280;
   }
 }
 
+.wel-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  color: $navy;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #f1f5f9;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  .spin {
+    animation: wel-spin 0.9s linear infinite;
+  }
+}
+
+@keyframes wel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .wel-detail-btn {
   position: relative;
   height: 40px;
@@ -166,18 +206,262 @@ $muted: #6b7280;
 
 .wel-view {
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
+  padding: 0;
+  overflow: visible;
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: $text;
+  color: $header;
   cursor: pointer;
 
   &:hover {
-    background: #f1f5f9;
+    background: #eef3fd;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    line-height: 20px;
+  }
+}
+
+/* Tab Đang xử lý: mã đề nghị của phiên — "124230, 124231 +2", hover hiện đủ */
+.wel-codes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.wel-codes-more {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ==================== Mobile: card ==================== */
+.wcards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.wcard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid $border;
+  border-radius: 12px;
+  background: #fff;
+
+  &.selected {
+    border-color: $header;
+    background: #f5f8ff;
+  }
+
+  .wel-progress {
+    min-width: 0;
+  }
+}
+
+.wcard-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  mat-checkbox {
+    margin: -8px 0 -8px -10px;
+  }
+}
+
+.wcard-title {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.wcard-label {
+  color: $muted;
+  font-size: 11px;
+}
+
+.wcard-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.wcard-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #fef3c7;
+  color: #b45309;
+
+  &.doing {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+
+  &.done {
+    background: #dcfce7;
+    color: #15803d;
+  }
+}
+
+/* Kho xuất → kho nhận */
+.wcard-route {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+
+  mat-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    color: $muted;
+  }
+}
+
+.wcard-wh {
+  min-width: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &.to {
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+}
+
+.wcard-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: #475569;
+  font-size: 12.5px;
+
+  &.muted {
+    color: $muted;
+  }
+
+  mat-icon {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    font-size: 15px;
+    color: $muted;
+  }
+}
+
+.wcard-ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wcard-dot {
+  color: #cbd5e1;
+}
+
+.wcard-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: $text;
+  font-size: 12.5px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.wcard-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.wcard-code-chip {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .wel {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .wel-toolbar {
+    gap: 8px;
+
+    h2 {
+      width: 100%;
+      font-size: 18px;
+      line-height: 28px;
+    }
+  }
+
+  .wel-tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .wel-search-box,
+  .wel-search {
+    width: 100%;
+  }
+
+  .wel-refresh,
+  .wel-detail-btn {
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .wel-detail-btn {
+    flex: 1;
+  }
+
+  .wel-card {
+    min-height: 0;
+    border: none;
+    background: transparent;
   }
 }
 

@@ -23,6 +23,7 @@
         }}</span>
       </button>
       <button
+        *ngIf="showExportedTab"
         type="button"
         class="wel-tab"
         [class.active]="tab === 'exported'"
@@ -65,7 +66,23 @@
         </button>
       </div>
     </div>
-    <button type="button" class="wel-detail-btn" (click)="openSelectedDetail()">
+    <button
+      type="button"
+      class="wel-refresh"
+      [disabled]="isLoading"
+      matTooltip="Tải lại danh sách"
+      (click)="refresh()"
+    >
+      <mat-icon [class.spin]="listLoading">refresh</mat-icon>
+      Làm mới
+    </button>
+    <button
+      *ngIf="tab !== 'processing'"
+      type="button"
+      class="wel-detail-btn"
+      [disabled]="creatingSession"
+      (click)="openSelectedDetail()"
+    >
       Chi tiết xuất
       <span class="wel-badge" *ngIf="selectedCount">{{ selectedCount }}</span>
     </button>
@@ -74,6 +91,7 @@
   <div class="wel-card">
     <div class="wel-table-wrap">
       <table
+        *ngIf="tab !== 'processing' && !isMobile"
         mat-table
         matSort
         [dataSource]="dataSource"
@@ -159,7 +177,20 @@
         <ng-container matColumnDef="progress">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Tiến độ</th>
           <td mat-cell *matCellDef="let row">
-            <div class="wel-progress">
+            <div
+              class="wel-progress"
+              [matTooltip]="
+                row.scannedQty === undefined
+                  ? ''
+                  : 'Đã scan ' +
+                    (row.scannedQty | number) +
+                    '/' +
+                    (row.requiredQty | number) +
+                    ' · ' +
+                    row.scannedBoxes +
+                    ' thùng'
+              "
+            >
               <div class="wel-track">
                 <span [style.width.%]="row.progress"></span>
               </div>
@@ -175,6 +206,7 @@
               type="button"
               class="wel-view"
               matTooltip="Chi tiết xuất"
+              [disabled]="creatingSession"
               (click)="openRowDetail(row)"
             >
               <mat-icon>visibility</mat-icon>
@@ -193,7 +225,223 @@
         ></tr>
       </table>
 
-      <div class="wel-empty" *ngIf="!isLoading && !dataSource.data.length">
+      <!-- Tab Đang xử lý: mỗi dòng = 1 phiên xuất chuyển kho -->
+      <table
+        *ngIf="tab === 'processing' && !isMobile"
+        mat-table
+        matSort
+        [dataSource]="sessionSource"
+        [trackBy]="trackSession"
+        class="wel-table"
+      >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Mã phiên</th>
+          <td mat-cell *matCellDef="let row">#{{ row.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="requestCodes">
+          <th mat-header-cell *matHeaderCellDef>{{ config.codeLabel }}</th>
+          <td mat-cell *matCellDef="let row">
+            <span
+              *ngIf="row.requestCodes.length; else noCodes"
+              class="wel-codes"
+              [matTooltip]="row.requestCodes.join(', ')"
+            >
+              {{ row.requestCodes.slice(0, sessionCodePreview).join(", ") }}
+              <span
+                class="wel-codes-more"
+                *ngIf="row.requestCodes.length > sessionCodePreview"
+                >+{{ row.requestCodes.length - sessionCodePreview }}</span
+              >
+            </span>
+            <ng-template #noCodes>—</ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Trạng thái</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="wel-status doing">{{
+              sessionStatusLabel(row.status)
+            }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="note">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Ghi chú</th>
+          <td mat-cell *matCellDef="let row">{{ row.note }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdBy">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Người tạo</th>
+          <td mat-cell *matCellDef="let row">{{ row.createdBy }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày tạo</th>
+          <td mat-cell *matCellDef="let row">{{ row.createdAt }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="updatedAt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            Cập nhật lần cuối
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.updatedAt }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Thao tác</th>
+          <td mat-cell *matCellDef="let row">
+            <button
+              type="button"
+              class="wel-view"
+              matTooltip="Chi tiết phiên"
+              (click)="openSessionDetail(row)"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="sessionColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: sessionColumns"></tr>
+      </table>
+
+      <!-- Mobile: phiếu yêu cầu dạng card -->
+      <div class="wcards" *ngIf="isMobile && tab !== 'processing'">
+        <div
+          class="wcard"
+          *ngFor="let row of dataSource.data; trackBy: trackRow"
+          [class.selected]="isSelected(row)"
+        >
+          <div class="wcard-head">
+            <mat-checkbox
+              color="primary"
+              [checked]="isSelected(row)"
+              (change)="toggleRow(row, $event.checked)"
+            ></mat-checkbox>
+            <div class="wcard-title">
+              <span class="wcard-label">{{ config.codeLabel }}</span>
+              <span class="wcard-code">{{ row.code }}</span>
+            </div>
+            <span
+              *ngIf="hasColumn('status')"
+              class="wcard-status"
+              [ngClass]="statusClass(row.status)"
+              >{{ row.status }}</span
+            >
+            <button
+              type="button"
+              class="wel-view"
+              aria-label="Chi tiết xuất"
+              [disabled]="creatingSession"
+              (click)="openRowDetail(row)"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </div>
+
+          <div class="wcard-route">
+            <span class="wcard-wh" [title]="row.issuingUnit">{{
+              row.issuingUnit || "—"
+            }}</span>
+            <mat-icon>arrow_forward</mat-icon>
+            <span class="wcard-wh to" [title]="row.warehouse">{{
+              row.warehouse || "—"
+            }}</span>
+          </div>
+
+          <div class="wcard-line" *ngIf="row.proposer || row.receivingUnit">
+            <mat-icon>person_outline</mat-icon>
+            <span class="wcard-ellipsis"
+              >{{ row.proposer || "—"
+              }}<ng-container *ngIf="row.receivingUnit">
+                · {{ row.receivingUnit }}</ng-container
+              ></span
+            >
+          </div>
+
+          <div class="wcard-line">
+            <mat-icon>event</mat-icon>
+            <span>Tạo {{ row.createdDate || "—" }}</span>
+            <span class="wcard-dot">·</span>
+            <span>Yêu cầu {{ row.requestDate || "—" }}</span>
+          </div>
+
+          <div class="wcard-desc" *ngIf="row.description">
+            {{ row.description }}
+          </div>
+
+          <div class="wel-progress" *ngIf="hasColumn('progress')">
+            <div class="wel-track">
+              <span [style.width.%]="row.progress"></span>
+            </div>
+            <span class="wel-pct"
+              >{{ row.progress }}%<ng-container
+                *ngIf="row.scannedQty !== undefined"
+              >
+                · {{ row.scannedQty | number }}/{{ row.requiredQty | number }} ·
+                {{ row.scannedBoxes }} thùng</ng-container
+              ></span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile: phiên đang xử lý dạng card -->
+      <div class="wcards" *ngIf="isMobile && tab === 'processing'">
+        <div
+          class="wcard"
+          *ngFor="let row of sessionSource.data; trackBy: trackSession"
+        >
+          <div class="wcard-head">
+            <div class="wcard-title">
+              <span class="wcard-label">Phiên</span>
+              <span class="wcard-code">#{{ row.id }}</span>
+            </div>
+            <span class="wcard-status doing">{{
+              sessionStatusLabel(row.status)
+            }}</span>
+            <button
+              type="button"
+              class="wel-view"
+              aria-label="Chi tiết phiên"
+              (click)="openSessionDetail(row)"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </div>
+
+          <div class="wcard-codes" *ngIf="row.requestCodes.length">
+            <span
+              class="wcard-code-chip"
+              *ngFor="let c of row.requestCodes.slice(0, 3)"
+              >{{ c }}</span
+            >
+            <span
+              class="wel-codes-more"
+              *ngIf="row.requestCodes.length > 3"
+              [matTooltip]="row.requestCodes.join(', ')"
+              >+{{ row.requestCodes.length - 3 }}</span
+            >
+          </div>
+
+          <div class="wcard-desc" *ngIf="row.note">{{ row.note }}</div>
+
+          <div class="wcard-line">
+            <mat-icon>person_outline</mat-icon>
+            <span>{{ row.createdBy || "—" }}</span>
+            <span class="wcard-dot">·</span>
+            <span>{{ row.createdAt || "—" }}</span>
+          </div>
+          <div class="wcard-line muted" *ngIf="row.updatedAt">
+            <mat-icon>update</mat-icon>
+            <span>Cập nhật {{ row.updatedAt }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="wel-empty" *ngIf="!isLoading && !rowCount">
         {{
           tab === "processing"
             ? "Không có phiếu nào đang xử lý."
