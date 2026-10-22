@@ -550,7 +550,7 @@ export class WarehouseExportService {
 
   /**
    * Khuyến nghị Planning theo Work Order: GET {planningSapApiUrl}/dnlnvl/full?woId=.
-   * Lấy các đề nghị lĩnh đã gửi (bỏ nháp status "0"), cuộn chưa bị xoá (deletedAt null).
+   * Lấy mọi đề nghị lĩnh chưa bị xoá (kể cả nháp status "0"), cuộn chưa bị xoá (deletedAt null).
    * Mỗi partNumberCode = 1 dòng vật tư; cuộn = thùng được chỉ định (materialName = ReelID,
    * reserveQty = SL). Cuộn trùng giữa các đề nghị chỉ tính 1 lần. Không có WO (404) → null.
    */
@@ -1202,8 +1202,8 @@ export class WarehouseExportService {
     const wo = full.find((x) => x.workOrder)?.workOrder ?? null;
     for (const entry of full) {
       for (const dn of entry.dnlnvls ?? []) {
-        // Bỏ đề nghị nháp (chưa gửi) / đã xoá
-        if (!dn || text(dn.dnlnvl?.status) === "0" || dn.dnlnvl?.deletedAt) {
+        // Bỏ đề nghị đã xoá (đề nghị nháp status "0" vẫn lấy như bình thường)
+        if (!dn || dn.dnlnvl?.deletedAt) {
           continue;
         }
         for (const d of dn.details ?? []) {
