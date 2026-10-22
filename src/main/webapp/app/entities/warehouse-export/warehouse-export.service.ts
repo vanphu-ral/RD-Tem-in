@@ -16,7 +16,6 @@ import { environment } from "app/environments/environment";
 import { ListMaterialService } from "app/entities/list-material/services/list-material.service";
 import { PalletMngtService } from "app/entities/pallet-management/list/pallet-mngt.service";
 import {
-  ExportApproval,
   ExportHistoryFilter,
   ExportHistoryPage,
   ExportHistoryRecord,
@@ -163,8 +162,18 @@ const TRANSFER_DETAIL_RAW_FIELDS = [
 /** Số request summary tiến độ chạy song song (danh sách Xuất chuyển kho) */
 const SUMMARY_CONCURRENCY = 6;
 
+/** Trạng thái phiên xuất chuyển kho (cột status) */
+export const TRANSFER_SESSION_STATUS = {
+  /** Vừa tạo, chưa scan thùng nào */
+  NEW: "new",
+  /** Đã scan thùng (đang xuất) */
+  EXPORTING: "exporting",
+  /** Xác nhận xuất khi đã đủ SL của mọi phiếu */
+  COMPLETED: "completed",
+} as const;
+
 /** Phiên xuất chuyển kho — 1 phiên gom nhiều phiếu OWTQ */
-interface WarehouseTransferSessionDto {
+export interface WarehouseTransferSessionDto {
   id?: number | null;
   status?: string | null;
   note?: string | null;
@@ -203,6 +212,8 @@ interface WarehouseTransferSessionDetailDto {
 /** Chi tiết 1 phiên xuất chuyển kho */
 export interface WarehouseTransferSessionDetail {
   sessionId: number;
+  /** Bản ghi phiên gốc — gửi lại khi PUT cập nhật trạng thái / xoá mềm */
+  session: WarehouseTransferSessionDto | null;
   status: string;
   note: string;
   /** docEntry các phiếu OWTQ của phiên */
@@ -922,12 +933,24 @@ export class WarehouseExportService {
   getTransferSessionList(
     pageIndex: number,
     pageSize: number,
+    /** Lọc theo header (tên param → giá trị); giá trị rỗng không gửi */
+    filters: Record<string, string> = {},
   ): Observable<TransferSessionPage> {
+    const params: Record<string, string | number> = {
+      page: pageIndex,
+      size: pageSize,
+    };
+    for (const [key, value] of Object.entries(filters)) {
+      const v = value.trim();
+      if (v) {
+        params[key] = v;
+      }
+    }
     return this.http
       .get<WarehouseTransferSessionPageDto>(
         `${environment.baseInTemApiUrl}/warehouse-transfer-sessions`,
         // `${environment.testApiUrl}/warehouse-transfer-sessions`,
-        { params: { page: pageIndex, size: pageSize } },
+        { params },
       )
       .pipe(
         map((res) => {
@@ -942,6 +965,29 @@ export class WarehouseExportService {
       );
   }
 
+  /**
+   * Cập nhật phiên — PUT /warehouse-transfer-sessions/{id}: gửi lại bản ghi phiên + các thay đổi
+   * (trạng thái, hoặc deletedAt/deletedBy để xoá mềm), kèm updatedAt/updatedBy.
+   */
+  updateTransferSession(
+    session: WarehouseTransferSessionDto,
+    changes: Partial<WarehouseTransferSessionDto>,
+    user: string,
+  ): Observable<WarehouseTransferSessionDto> {
+    const body: WarehouseTransferSessionDto = {
+      ...session,
+      ...changes,
+      updatedAt: new Date().toISOString(),
+      updatedBy: user,
+    };
+    return this.http
+      .put<WarehouseTransferSessionDto | null>(
+        `${environment.baseInTemApiUrl}/warehouse-transfer-sessions/${session.id}`,
+        body,
+      )
+      .pipe(map((res) => (res?.id != null ? res : body)));
+  }
+
   /** Chi tiết phiên: các phiếu OWTQ + các thùng đã scan (GET /warehouse-transfer-sessions/{id}/detail) */
   getTransferSessionDetail(
     sessionId: number,
@@ -954,6 +1000,7 @@ export class WarehouseExportService {
       .pipe(
         map((dto) => ({
           sessionId: dto.session?.id ?? sessionId,
+          session: dto.session ?? null,
           status: dto.session?.status ?? "",
           note: dto.session?.note ?? "",
           requestCodes: [
@@ -1039,11 +1086,8 @@ export class WarehouseExportService {
   send(
     requests: ExportRequest[],
     boxes: ExportScannedBox[],
-    approval: ExportApproval,
   ): Observable<boolean> {
-    return of(
-      requests.length > 0 && boxes.length > 0 && !!approval.approver,
-    ).pipe(delay(300));
+    return of(requests.length > 0 && boxes.length > 0).pipe(delay(300));
   }
 
   /**
@@ -1061,24 +1105,6 @@ export class WarehouseExportService {
         },
       ])
       .pipe(map(() => undefined));
-  }
-
-  /** Hoàn thành xuất kho — TODO: gọi API lưu phiếu xuất */
-  complete(
-    requests: ExportRequest[],
-    boxes: ExportScannedBox[],
-    approval: ExportApproval,
-  ): Observable<boolean> {
-    return of(
-      requests.length > 0 && boxes.length > 0 && !!approval.approver,
-    ).pipe(delay(200));
-  }
-
-  /** Người duyệt / người quản lý kho — cùng danh sách người duyệt của Danh sách vật tư */
-  getApprovers(): Observable<string[]> {
-    return this.listMaterialService
-      .getApprovers()
-      .pipe(map((list) => list.map((u) => u.username).filter(Boolean)));
   }
 
   /**

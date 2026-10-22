@@ -1,4 +1,10 @@
-import { Component, HostListener, OnInit, ViewChild } from "@angular/core";
+import {
+  Component,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -11,10 +17,12 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import { AccountService } from "app/core/auth/account.service";
-import { take } from "rxjs/operators";
+import { Subject, Subscription } from "rxjs";
+import { debounceTime, take } from "rxjs/operators";
 import {
   ExportRequestListPage,
   ExportRequestListRow,
+  TRANSFER_SESSION_STATUS,
   TransferSessionPage,
   TransferSessionRow,
   WarehouseExportService,
@@ -44,7 +52,6 @@ const ALL_COLUMNS = [
  * không có cột riêng của từng phiếu (người đề nghị, đơn vị, kho...)
  */
 const SESSION_COLUMNS = [
-  "id",
   "requestCodes",
   "status",
   "note",
@@ -53,6 +60,28 @@ const SESSION_COLUMNS = [
   "updatedAt",
   "actions",
 ];
+
+/**
+ * Lọc ở header tab Đang xử lý → query param của GET /warehouse-transfer-sessions
+ * (key = tên param). Ngày dạng yyyy-MM-dd.
+ */
+interface SessionFilters {
+  owtqDocEntry: string;
+  status: string;
+  note: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const EMPTY_SESSION_FILTERS: SessionFilters = {
+  owtqDocEntry: "",
+  status: "",
+  note: "",
+  createdBy: "",
+  createdAt: "",
+  updatedAt: "",
+};
 
 /** Màn hình hẹp → danh sách dạng card */
 const MOBILE_BREAKPOINT = 768;
@@ -67,7 +96,9 @@ interface TabPageCache<T> {
 
 /** Trạng thái phiên (BE) → nhãn hiển thị */
 const SESSION_STATUS_LABELS: Record<string, string> = {
-  new: "Mới tạo",
+  [TRANSFER_SESSION_STATUS.NEW]: "Mới tạo",
+  [TRANSFER_SESSION_STATUS.EXPORTING]: "Đang xuất",
+  [TRANSFER_SESSION_STATUS.COMPLETED]: "Hoàn thành",
 };
 
 /**
@@ -107,7 +138,7 @@ export interface WarehouseExportListRouteData {
   templateUrl: "./warehouse-export-list.component.html",
   styleUrls: ["./warehouse-export-list.component.scss"],
 })
-export class WarehouseExportListComponent implements OnInit {
+export class WarehouseExportListComponent implements OnInit, OnDestroy {
   /**
    * Cột bảng:
    * - Xuất kho khuyến nghị: tạm ẩn Tiến độ (chưa có dữ liệu)
@@ -124,6 +155,12 @@ export class WarehouseExportListComponent implements OnInit {
   }
 
   readonly sessionColumns = SESSION_COLUMNS;
+  /** Tab Đang xử lý: lọc ở header (gửi theo param) */
+  sessionFilters: SessionFilters = { ...EMPTY_SESSION_FILTERS };
+  /** Lựa chọn lọc Trạng thái */
+  readonly sessionStatusOptions = Object.entries(SESSION_STATUS_LABELS).map(
+    ([value, label]) => ({ value, label }),
+  );
   /** Tab "Đã xuất": tạm ẩn (chưa có API) — bật lại khi dùng */
   readonly showExportedTab = false;
   /** Mobile: hiển thị dạng card thay cho bảng */
@@ -163,6 +200,9 @@ export class WarehouseExportListComponent implements OnInit {
 
   /** Mã đã tích */
   private selected = new Set<string>();
+  /** Gõ ô lọc → chờ gõ xong mới gọi API */
+  private sessionFilter$ = new Subject<void>();
+  private subscriptions = new Subscription();
   /** Dòng của trang hiện tại / dòng của các chip */
   private pageRows: ExportRequestListRow[] = [];
   private chipRows: ExportRequestListRow[] = [];
@@ -194,6 +234,12 @@ export class WarehouseExportListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.subscriptions.add(
+      this.sessionFilter$.pipe(debounceTime(400)).subscribe(() => {
+        this.pageIndex = 0;
+        this.loadPage(true);
+      }),
+    );
     this.sessionSource.sortingDataAccessor = (row, column) => {
       switch (column) {
         case "createdAt":
@@ -240,6 +286,26 @@ export class WarehouseExportListComponent implements OnInit {
     this.restorePaging();
     this.refreshView();
     this.loadPage();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  /** Có đang lọc ở header tab Đang xử lý */
+  get hasSessionFilter(): boolean {
+    return Object.values(this.sessionFilters).some((v) => v.trim() !== "");
+  }
+
+  /** Đổi ô lọc header (tab Đang xử lý) → tải lại trang đầu theo bộ lọc */
+  onSessionFilterChange(): void {
+    this.sessionFilter$.next();
+  }
+
+  clearSessionFilters(): void {
+    this.sessionFilters = { ...EMPTY_SESSION_FILTERS };
+    this.pageIndex = 0;
+    this.loadPage(true);
   }
 
   /** Làm mới: gọi lại API danh sách của tab đang mở (+ số phiên đang xử lý) */
@@ -469,6 +535,13 @@ export class WarehouseExportListComponent implements OnInit {
       )
       .afterClosed()
       .subscribe((done) => {
+        if (sessionId != null && !done) {
+          // Phiên có thể đã đổi trạng thái (đã scan thùng) → tab Đang xử lý tải lại khi mở
+          this.exportService.listCache.delete(this.cacheKey("processing"));
+          if (this.tab === "processing") {
+            this.loadPage(true);
+          }
+        }
         if (done) {
           // Đã xuất xong → bỏ chip/dòng của các mã đã xuất + tải lại trang danh sách
           requestCodes.forEach((code) => this.removeCode(code));
@@ -519,6 +592,11 @@ export class WarehouseExportListComponent implements OnInit {
     });
   }
 
+  /** Tab Đang xử lý đang lọc → không dùng cache (cache chỉ giữ danh sách chưa lọc) */
+  private isFilteredSessions(): boolean {
+    return this.tab === "processing" && this.hasSessionFilter;
+  }
+
   private detectMobile(): boolean {
     return (
       typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT
@@ -531,6 +609,9 @@ export class WarehouseExportListComponent implements OnInit {
 
   /** Trang đã cache của tab đang mở — đúng trang / cỡ trang hiện tại mới dùng */
   private cachedPage<T>(): TabPageCache<T> | null {
+    if (this.isFilteredSessions()) {
+      return null;
+    }
     const cached = this.exportService.listCache.get(this.cacheKey()) as
       | TabPageCache<T>
       | undefined;
@@ -542,6 +623,9 @@ export class WarehouseExportListComponent implements OnInit {
   }
 
   private storePage<T>(rows: T[], total: number): void {
+    if (this.isFilteredSessions()) {
+      return;
+    }
     this.exportService.listCache.set(this.cacheKey(), {
       pageIndex: this.pageIndex,
       pageSize: this.pageSize,
@@ -577,30 +661,32 @@ export class WarehouseExportListComponent implements OnInit {
     }
     this.listLoading = true;
     const { pageIndex, pageSize } = this;
-    this.exportService.getTransferSessionList(pageIndex, pageSize).subscribe({
-      next: (page: TransferSessionPage) => {
-        if (this.tab !== "processing") {
-          return;
-        }
-        this.listLoading = false;
-        this.sessionSource.data = page.rows;
-        // BE chưa trả totalElements → trang đầy thì cho sang trang sau
-        this.total =
-          page.total ??
-          pageIndex * pageSize +
-            page.rows.length +
-            (page.rows.length === pageSize ? 1 : 0);
-        this.storePage(page.rows, this.total);
-      },
-      error: () => {
-        this.listLoading = false;
-        this.sessionSource.data = [];
-        this.total = 0;
-        this.notificationService.error(
-          "Không tải được danh sách phiên xuất chuyển kho.",
-        );
-      },
-    });
+    this.exportService
+      .getTransferSessionList(pageIndex, pageSize, { ...this.sessionFilters })
+      .subscribe({
+        next: (page: TransferSessionPage) => {
+          if (this.tab !== "processing") {
+            return;
+          }
+          this.listLoading = false;
+          this.sessionSource.data = page.rows;
+          // BE chưa trả totalElements → trang đầy thì cho sang trang sau
+          this.total =
+            page.total ??
+            pageIndex * pageSize +
+              page.rows.length +
+              (page.rows.length === pageSize ? 1 : 0);
+          this.storePage(page.rows, this.total);
+        },
+        error: () => {
+          this.listLoading = false;
+          this.sessionSource.data = [];
+          this.total = 0;
+          this.notificationService.error(
+            "Không tải được danh sách phiên xuất chuyển kho.",
+          );
+        },
+      });
   }
 
   /** Tải trang danh sách của tab đang mở — đã cache thì dùng lại (force = gọi lại API) */

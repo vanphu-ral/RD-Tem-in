@@ -104,20 +104,12 @@
       color="primary"
       type="button"
       (click)="onSave()"
-      [disabled]="quantity < 1 || isSaving || isLoadingSequence"
+      [disabled]="
+        quantity < 1 || isSaving || isLoadingSequence || isOpeningPrint
+      "
     >
       <mat-icon>save</mat-icon>
-      {{ isSaving ? "Đang lưu..." : "Lưu" }}
-    </button>
-    <button
-      mat-raised-button
-      color="primary"
-      type="button"
-      (click)="onPrint()"
-      [disabled]="isSaving || isOpeningPrint"
-    >
-      <mat-icon>print</mat-icon>
-      {{ isOpeningPrint ? "Đang mở..." : "In" }}
+      {{ isSaving ? "Đang lưu..." : isOpeningPrint ? "Đang mở in..." : "Lưu" }}
     </button>
   </div>
 </div>

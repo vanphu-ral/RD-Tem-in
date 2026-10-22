@@ -184,11 +184,3 @@ export interface ExportHistoryPage {
   requestCount: number;
   totalQty: number;
 }
-
-/** Thông tin gửi duyệt khi xác nhận xuất kho */
-export interface ExportApproval {
-  /** Mã kho duyệt (vd 01) */
-  warehouseCode: string;
-  approver: string;
-  warehouseManager: string;
-}
