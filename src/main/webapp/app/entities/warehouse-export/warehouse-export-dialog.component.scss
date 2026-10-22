@@ -754,6 +754,11 @@ $mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     background: #ede9fe;
     color: #6d28d9;
   }
+
+  &[data-state="unchecked"] {
+    background: #f1f5f9;
+    color: #475569;
+  }
 }
 
 /* Nút Gợi ý lấy hàng theo vị trí */
@@ -960,6 +965,39 @@ $mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 /* Khuyến nghị Planning: tổng hợp WO (BE) */
+/* Thanh tiến độ WO: phần BE đã ghi nhận (xanh) + phần scan ở FE chưa gửi (cam sọc) */
+.pl-progress.split {
+  display: flex;
+
+  span {
+    flex: none;
+  }
+
+  .be {
+    background: #16a34a;
+  }
+
+  .pending {
+    background: repeating-linear-gradient(
+      45deg,
+      #f59e0b 0 6px,
+      #fbbf24 6px 12px
+    );
+  }
+}
+
+.pl-pending-text {
+  margin-left: 6px;
+  color: #b45309 !important;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mx-wo-progress {
+  width: 100%;
+  margin-top: 8px;
+}
+
 .pl-wo-stats {
   display: flex;
   flex-wrap: wrap;

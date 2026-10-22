@@ -114,10 +114,9 @@
               >
               <span class="we-spacer"></span>
               <button
-                *ngIf="hasReels(r)"
+                *ngIf="isPlanning"
                 type="button"
                 class="we-pick-btn"
-                [disabled]="isCheckingInventory(r)"
                 (click)="openPickSuggestion(r, $event)"
               >
                 <mat-icon>place</mat-icon>
@@ -142,7 +141,7 @@
               </button>
             </div>
             <!-- Yêu cầu lĩnh vật tư: theo vật tư -->
-            <div class="we-req-body" *ngIf="isExpanded(r) && !hasReels(r)">
+            <div class="we-req-body" *ngIf="isExpanded(r) && !isPlanning">
               <table class="we-table pl-table">
                 <thead>
                   <tr>
@@ -385,7 +384,7 @@
             </div>
 
             <!-- Khuyến nghị Planning: đối chiếu Planning ↔ Kho, nhóm theo part -->
-            <div class="we-req-body" *ngIf="isExpanded(r) && hasReels(r)">
+            <div class="we-req-body" *ngIf="isExpanded(r) && isPlanning">
               <!-- Tổng hợp WO (BE): SL cần / thùng-cuộn đã scan / SL đã scan -->
               <div class="pl-wo-stats" *ngIf="r.planningSummary as ps">
                 <div class="pl-wo-stat">
@@ -394,13 +393,25 @@
                 </div>
                 <div class="pl-wo-stat">
                   <span>Thùng/cuộn đã scan</span>
-                  <strong>{{ ps.scannedCount | number }}</strong>
+                  <strong
+                    >{{ ps.scannedCount | number
+                    }}<small
+                      class="pl-pending-text"
+                      *ngIf="planningPending(r).count"
+                      >+{{ planningPending(r).count }} chưa gửi</small
+                    ></strong
+                  >
                 </div>
                 <div class="pl-wo-stat">
                   <span>Số lượng đã scan</span>
-                  <strong [class.ok]="ps.scannedQty >= ps.requiredQty">{{
-                    ps.scannedQty | number
-                  }}</strong>
+                  <strong [class.ok]="ps.scannedQty >= ps.requiredQty"
+                    >{{ ps.scannedQty | number
+                    }}<small
+                      class="pl-pending-text"
+                      *ngIf="planningPending(r).qty"
+                      >+{{ planningPending(r).qty | number }} chưa gửi</small
+                    ></strong
+                  >
                 </div>
                 <div class="pl-wo-stat grow">
                   <span
@@ -409,37 +420,43 @@
                       ps.requiredQty
                         ? (ps.scannedQty / ps.requiredQty | percent: "1.0-0")
                         : "—"
-                    }}</span
+                    }}<ng-container *ngIf="planningPendingPercent(r) > 0">
+                      ·
+                      <span class="pl-pending-text"
+                        >+{{
+                          planningPendingPercent(r) / 100 | percent: "1.0-0"
+                        }}
+                        chưa gửi</span
+                      ></ng-container
+                    ></span
                   >
-                  <div class="pl-progress">
+                  <div
+                    class="pl-progress split"
+                    [matTooltip]="
+                      'Đã ghi nhận (BE): ' +
+                      (ps.scannedQty | number) +
+                      (planningPending(r).qty
+                        ? ' · Scan chưa gửi: ' +
+                          (planningPending(r).qty | number)
+                        : '')
+                    "
+                  >
                     <span
-                      [style.width.%]="
-                        ps.requiredQty
-                          ? (ps.scannedQty / ps.requiredQty) * 100
-                          : 0
-                      "
+                      class="be"
+                      [style.width.%]="planningBePercent(r)"
+                    ></span>
+                    <span
+                      class="pending"
+                      [style.width.%]="planningPendingPercent(r)"
                     ></span>
                   </div>
                 </div>
               </div>
-              <!-- Loader: chờ tra kho xong mọi thùng mới hiện bảng -->
-              <div class="pl-loader" *ngIf="isCheckingInventory(r)">
-                <span class="pl-spinner"></span>
-                <div class="pl-loader-text">
-                  Đang tải thông tin kho các thùng khuyến nghị...
-                  <strong
-                    >{{ reelStats(r).checked }}/{{ reelStats(r).total }}</strong
-                  >
-                </div>
-                <div class="pl-progress">
-                  <span [style.width.%]="inventoryPercent(r)"></span>
-                </div>
-              </div>
-
-              <ng-container *ngIf="!isCheckingInventory(r)">
+              <ng-container>
                 <div class="pl-summary" *ngIf="reelStats(r) as st">
                   <span
-                    >Đã tra kho <strong>{{ st.total }}</strong> thùng</span
+                    >Thùng khuyến nghị <strong>{{ st.total }}</strong> · đã scan
+                    / tra kho <strong>{{ st.checked }}</strong></span
                   >
                   <span class="pl-ok"
                     >Sẵn sàng: <strong>{{ st.ready }}</strong></span
@@ -449,305 +466,226 @@
                   >
                   <span
                     class="pl-bad"
-                    *ngIf="st.total - st.ready - st.exported > 0"
+                    *ngIf="st.checked - st.ready - st.exported > 0"
                     >Không sẵn sàng:
                     <strong>{{
-                      st.total - st.ready - st.exported
+                      st.checked - st.ready - st.exported
                     }}</strong></span
                   >
-                  <span class="pl-hint">Bấm vị trí → part → từng thùng</span>
+                  <span class="pl-hint">Bấm part để xem từng thùng</span>
                 </div>
-                <table class="we-table pl-table">
+                <!-- Mỗi part của WO 1 dòng → mở ra các thùng khuyến nghị -->
+                <table class="we-table pl-table pl-parts">
                   <thead>
                     <tr>
                       <th class="pl-check"></th>
-                      <th>Mã kho</th>
-                      <th>Mã vị trí</th>
-                      <th>Mã SAP</th>
+                      <th>Mã part</th>
+                      <th
+                        class="num"
+                        matTooltip="Tổng estReqdQty của part trên cả WO (− SL đã xuất)"
+                      >
+                        SL cần (WO)
+                      </th>
+                      <th
+                        class="num"
+                        matTooltip="Tổng SL các thùng khuyến nghị của part"
+                      >
+                        SL khuyến nghị
+                      </th>
+                      <th
+                        class="num"
+                        matTooltip="SL đã scan của các thùng khuyến nghị của part"
+                      >
+                        Đã scan
+                      </th>
+                      <th
+                        class="num"
+                        matTooltip="SL cần − SL đã scan của part trên cả WO"
+                      >
+                        Còn thiếu (WO)
+                      </th>
                       <th class="num">Số thùng</th>
-                      <th class="num">Tồn</th>
+                      <th
+                        class="num"
+                        matTooltip="Thùng chưa scan: theo SL Planning; đã scan: theo tồn kho"
+                      >
+                        Tồn kho
+                      </th>
+                      <th>Kho</th>
+                      <th>Đối chiếu</th>
                     </tr>
                   </thead>
                   <tbody>
                     <ng-container
-                      *ngFor="let g of locationGroups(r); trackBy: trackNode"
+                      *ngFor="let p of planningParts(r); trackBy: trackNode"
                     >
-                      <!-- Tầng 1: vị trí trong kho của mã SAP -->
                       <tr
-                        class="pl-loc"
-                        [class.open]="isNodeOpen(r, g.key)"
-                        [class.missing]="g.missing"
-                        (click)="toggleNode(r, g.key)"
+                        class="pl-group"
+                        [class.open]="isNodeOpen(r, p.key)"
+                        (click)="toggleNode(r, p.key)"
                       >
                         <td class="pl-check">
                           <mat-icon>{{
-                            isNodeOpen(r, g.key)
+                            isNodeOpen(r, p.key)
                               ? "expand_more"
                               : "chevron_right"
                           }}</mat-icon>
                         </td>
-                        <td>
-                          <span class="mono">{{ g.areaCode || "—" }}</span>
-                          <span class="pl-sub" *ngIf="g.areaName">{{
-                            g.areaName
-                          }}</span>
+                        <td class="mono">
+                          {{ p.item.materialCode }}
+                          <span
+                            class="pl-sub"
+                            *ngIf="p.item.altPartCodes?.length"
+                            >Thay thế:
+                            {{ p.item.altPartCodes?.join(", ") }}</span
+                          >
                         </td>
-                        <td class="mono">{{ g.location }}</td>
-                        <td class="mono">{{ g.sapCode || "—" }}</td>
-                        <td class="num">{{ g.reelCount | number }}</td>
-                        <td class="num strong">{{ g.stock | number }}</td>
+                        <td class="num strong">
+                          {{ partRequired(p) | number }}
+                        </td>
+                        <td class="num">{{ partPlanned(p) | number }}</td>
+                        <td
+                          class="num scanned"
+                          [attr.data-state]="partState(p)"
+                        >
+                          {{ partScanned(p) | number }}
+                        </td>
+                        <td class="num strong" [class.short]="partNeed(p) > 0">
+                          {{ partNeed(p) | number }}
+                        </td>
+                        <td class="num">{{ partReelProgress(p) }}</td>
+                        <td
+                          class="num"
+                          [class.short]="partStockQty(p) < partNeed(p)"
+                        >
+                          {{ partStockQty(p) | number }}
+                        </td>
+                        <td>
+                          <span
+                            class="pl-wh-chip"
+                            *ngFor="let a of partAreas(p)"
+                            >{{ a }}</span
+                          >
+                          <span class="pl-muted" *ngIf="!partAreas(p).length"
+                            >—</span
+                          >
+                        </td>
+                        <td>
+                          <span
+                            class="pl-badge"
+                            *ngFor="let s of partReadiness(p)"
+                            [attr.data-state]="s.state"
+                            >{{ s.label }} · {{ s.count }}</span
+                          >
+                          <span class="pl-muted" *ngIf="!p.reels.length"
+                            >Chưa có thùng khuyến nghị</span
+                          >
+                        </td>
                       </tr>
 
-                      <!-- Tầng 2: part tại vị trí -->
-                      <tr *ngIf="isNodeOpen(r, g.key)" class="pl-detail-row">
-                        <td colspan="6">
-                          <table class="we-table pl-parts">
+                      <!-- Từng thùng Planning ↔ Kho (kho: chỉ có sau khi scan) -->
+                      <tr *ngIf="isNodeOpen(r, p.key)" class="pl-detail-row">
+                        <td colspan="10">
+                          <table class="we-table pl-reels">
                             <thead>
                               <tr>
-                                <th class="pl-check"></th>
-                                <th>Mã part</th>
-                                <th
-                                  class="num"
-                                  matTooltip="Tổng estReqdQty của part trên cả WO (− SL đã xuất)"
-                                >
-                                  SL cần (WO)
+                                <th rowspan="2" class="pl-check"></th>
+                                <th rowspan="2">ReelID</th>
+                                <th colspan="2" class="pl-src">Planning</th>
+                                <th colspan="2" class="pl-inv">
+                                  Kho (Inventory)
                                 </th>
-                                <th
-                                  class="num"
-                                  matTooltip="Tổng SL các thùng khuyến nghị tại vị trí này"
-                                >
-                                  SL khuyến nghị
-                                </th>
-                                <th
-                                  class="num"
-                                  matTooltip="SL đã scan của các thùng tại vị trí này"
-                                >
-                                  Đã scan
-                                </th>
-                                <th
-                                  class="num"
-                                  matTooltip="SL cần − SL đã scan của part trên cả WO"
-                                >
-                                  Còn thiếu (WO)
-                                </th>
-                                <th class="num">Số thùng</th>
-                                <th class="num">Tồn kho</th>
-                                <th>Kho</th>
-                                <th>Đối chiếu</th>
+                                <th rowspan="2">Đối chiếu</th>
+                              </tr>
+                              <tr>
+                                <th class="pl-src">Mã part</th>
+                                <th class="num pl-src">SL</th>
+                                <th class="pl-inv">Trạng thái</th>
+                                <th class="pl-inv">Vị trí</th>
                               </tr>
                             </thead>
                             <tbody>
-                              <ng-container
-                                *ngFor="let p of g.parts; trackBy: trackNode"
+                              <tr *ngIf="!p.reels.length">
+                                <td colspan="7" class="pl-none">
+                                  Planning chưa chỉ định thùng nào cho part này.
+                                </td>
+                              </tr>
+                              <tr
+                                *ngFor="let x of p.reels"
+                                class="pl-reel"
+                                [class.scanned]="x.scanned"
                               >
-                                <tr
-                                  class="pl-group"
-                                  [class.open]="isNodeOpen(r, p.key)"
-                                  (click)="toggleNode(r, p.key)"
+                                <td class="pl-check">
+                                  <mat-icon [class.on]="x.scanned">{{
+                                    x.scanned
+                                      ? "check_box"
+                                      : "check_box_outline_blank"
+                                  }}</mat-icon>
+                                </td>
+                                <td class="mono">
+                                  {{ x.reelId }}
+                                  <span
+                                    class="pl-before"
+                                    *ngIf="x.scannedBefore"
+                                    matTooltip="BE đã ghi nhận scan (scanCheck = 1)"
+                                    >Đã scan trước</span
+                                  >
+                                </td>
+                                <td class="mono pl-src">
+                                  {{ x.partCode || p.item.materialCode }}
+                                  <span
+                                    class="pl-sub"
+                                    *ngIf="
+                                      x.partCode &&
+                                      x.partCode !== p.item.partCode
+                                    "
+                                    >Part thay thế</span
+                                  >
+                                </td>
+                                <td class="num pl-src">
+                                  {{ x.quantity | number }}
+                                </td>
+                                <ng-container
+                                  *ngIf="x.inventory as inv; else noInv"
                                 >
-                                  <td class="pl-check">
-                                    <mat-icon>{{
-                                      isNodeOpen(r, p.key)
-                                        ? "expand_more"
-                                        : "chevron_right"
-                                    }}</mat-icon>
+                                  <td class="pl-inv">
+                                    {{ inv.status || "—" }}
                                   </td>
-                                  <td class="mono">
-                                    {{ p.item.materialCode }}
+                                  <td class="pl-inv">
+                                    {{ inv.location || "—" }}
                                     <span
                                       class="pl-sub"
-                                      *ngIf="p.item.altPartCodes?.length"
-                                      >Thay thế:
-                                      {{
-                                        p.item.altPartCodes?.join(", ")
-                                      }}</span
+                                      *ngIf="
+                                        areaOf(
+                                          inv.locationId,
+                                          inv.location
+                                        ) as a
+                                      "
+                                      >{{ a.areaName }}</span
                                     >
                                   </td>
-                                  <td class="num strong">
-                                    {{ partRequired(p) | number }}
+                                </ng-container>
+                                <ng-template #noInv>
+                                  <td colspan="2" class="pl-inv pl-none">
+                                    {{
+                                      x.inventoryError
+                                        ? "Không tra được tồn kho"
+                                        : x.inventory === null
+                                          ? "Không có trong kho"
+                                          : "Chưa scan"
+                                    }}
                                   </td>
-                                  <td class="num">
-                                    {{ partPlanned(p) | number }}
-                                  </td>
-                                  <td
-                                    class="num scanned"
-                                    [attr.data-state]="partState(p)"
+                                </ng-template>
+                                <td>
+                                  <span
+                                    class="pl-badge"
+                                    [attr.data-state]="reelReadiness(p.item, x)"
+                                    >{{
+                                      readinessLabel(reelReadiness(p.item, x))
+                                    }}</span
                                   >
-                                    {{ partScanned(p) | number }}
-                                  </td>
-                                  <td
-                                    class="num strong"
-                                    [class.short]="partNeed(p) > 0"
-                                  >
-                                    {{ partNeed(p) | number }}
-                                  </td>
-                                  <td class="num">{{ partReelProgress(p) }}</td>
-                                  <td
-                                    class="num"
-                                    [class.short]="
-                                      partStockQty(p) < partNeed(p)
-                                    "
-                                  >
-                                    {{ partStockQty(p) | number }}
-                                  </td>
-                                  <td>
-                                    <span
-                                      class="pl-wh-chip"
-                                      *ngIf="g.areaName"
-                                      >{{ g.areaName }}</span
-                                    >
-                                    <span class="pl-muted" *ngIf="!g.areaName"
-                                      >—</span
-                                    >
-                                  </td>
-                                  <td>
-                                    <span
-                                      class="pl-badge"
-                                      *ngFor="let s of partReadiness(p)"
-                                      [attr.data-state]="s.state"
-                                      >{{ s.label }} · {{ s.count }}</span
-                                    >
-                                  </td>
-                                </tr>
-
-                                <!-- Tầng 3: từng thùng Planning ↔ Kho -->
-                                <tr
-                                  *ngIf="isNodeOpen(r, p.key)"
-                                  class="pl-detail-row"
-                                >
-                                  <td colspan="10">
-                                    <table class="we-table pl-reels">
-                                      <thead>
-                                        <tr>
-                                          <th rowspan="2" class="pl-check"></th>
-                                          <th rowspan="2">ReelID</th>
-                                          <th colspan="2" class="pl-src">
-                                            Planning
-                                          </th>
-                                          <th colspan="4" class="pl-inv">
-                                            Kho (Inventory)
-                                          </th>
-                                          <th rowspan="2">Đối chiếu</th>
-                                        </tr>
-                                        <tr>
-                                          <th class="pl-src">Mã part</th>
-                                          <th class="num pl-src">SL</th>
-                                          <th class="pl-inv">Part</th>
-                                          <th class="num pl-inv">Tồn</th>
-                                          <th class="pl-inv">Trạng thái</th>
-                                          <th class="pl-inv">Vị trí</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        <tr
-                                          *ngFor="let x of p.reels"
-                                          class="pl-reel"
-                                          [class.scanned]="x.scanned"
-                                        >
-                                          <td class="pl-check">
-                                            <mat-icon [class.on]="x.scanned">{{
-                                              x.scanned
-                                                ? "check_box"
-                                                : "check_box_outline_blank"
-                                            }}</mat-icon>
-                                          </td>
-                                          <td class="mono">
-                                            {{ x.reelId }}
-                                            <span
-                                              class="pl-before"
-                                              *ngIf="x.scannedBefore"
-                                              matTooltip="BE đã ghi nhận scan (scanCheck = 1)"
-                                              >Đã scan trước</span
-                                            >
-                                          </td>
-                                          <td class="mono pl-src">
-                                            {{
-                                              x.partCode || p.item.materialCode
-                                            }}
-                                            <span
-                                              class="pl-sub"
-                                              *ngIf="
-                                                x.partCode &&
-                                                x.partCode !== p.item.partCode
-                                              "
-                                              >Part thay thế</span
-                                            >
-                                          </td>
-                                          <td class="num pl-src">
-                                            {{ x.quantity | number }}
-                                          </td>
-                                          <ng-container
-                                            *ngIf="
-                                              x.inventory as inv;
-                                              else noInv
-                                            "
-                                          >
-                                            <td class="pl-inv">
-                                              <span class="mono">{{
-                                                inv.partNumber || "—"
-                                              }}</span>
-                                              <span
-                                                class="pl-sub"
-                                                *ngIf="inv.partId"
-                                                >ID {{ inv.partId }}</span
-                                              >
-                                            </td>
-                                            <td
-                                              class="num pl-inv"
-                                              [class.short]="
-                                                inv.availableQty < x.quantity
-                                              "
-                                            >
-                                              {{ inv.availableQty | number }}
-                                            </td>
-                                            <td class="pl-inv">
-                                              {{ inv.status || "—" }}
-                                            </td>
-                                            <td class="pl-inv">
-                                              {{ inv.location || "—" }}
-                                              <span
-                                                class="pl-sub"
-                                                *ngIf="
-                                                  areaOf(
-                                                    inv.locationId,
-                                                    inv.location
-                                                  ) as a
-                                                "
-                                                >{{ a.areaName }}</span
-                                              >
-                                            </td>
-                                          </ng-container>
-                                          <ng-template #noInv>
-                                            <td
-                                              colspan="4"
-                                              class="pl-inv pl-none"
-                                            >
-                                              {{
-                                                x.inventoryError
-                                                  ? "Không tra được tồn kho"
-                                                  : "Không có trong kho"
-                                              }}
-                                            </td>
-                                          </ng-template>
-                                          <td>
-                                            <span
-                                              class="pl-badge"
-                                              [attr.data-state]="
-                                                reelReadiness(p.item, x)
-                                              "
-                                              >{{
-                                                readinessLabel(
-                                                  reelReadiness(p.item, x)
-                                                )
-                                              }}</span
-                                            >
-                                          </td>
-                                        </tr>
-                                      </tbody>
-                                    </table>
-                                  </td>
-                                </tr>
-                              </ng-container>
+                                </td>
+                              </tr>
                             </tbody>
                           </table>
                         </td>
@@ -1305,23 +1243,29 @@
               <div>
                 <span>Đã scan</span>
                 <strong>{{ ps.scannedCount | number }} cuộn</strong>
+                <small class="pl-pending-text" *ngIf="planningPending(r).count"
+                  >+{{ planningPending(r).count }} chưa gửi</small
+                >
               </div>
               <div>
                 <span>SL đã scan</span>
                 <strong [class.ok]="ps.scannedQty >= ps.requiredQty">{{
                   ps.scannedQty | number
                 }}</strong>
+                <small class="pl-pending-text" *ngIf="planningPending(r).qty"
+                  >+{{ planningPending(r).qty | number }} chưa gửi</small
+                >
               </div>
             </div>
+            <div class="pl-progress split mx-wo-progress">
+              <span class="be" [style.width.%]="planningBePercent(r)"></span>
+              <span
+                class="pending"
+                [style.width.%]="planningPendingPercent(r)"
+              ></span>
+            </div>
           </div>
-          <div class="mx-loading" *ngIf="isCheckingInventory(r)">
-            <span class="mx-spinner"></span>
-            {{ r.code }}: đang tra kho {{ reelStats(r).checked }}/{{
-              reelStats(r).total
-            }}
-            thùng...
-          </div>
-          <ng-container *ngIf="!isCheckingInventory(r)">
+          <ng-container>
             <ng-container
               *ngFor="let g of locationGroups(r); trackBy: trackNode"
             >

@@ -549,6 +549,32 @@ export class WarehouseExportService {
   }
 
   /**
+   * Khuyến nghị Planning — tổng hợp WO do BE tính (SL cần / số cuộn & SL đã scan đã ghi nhận):
+   * GET /dnlnvl/full?woId= lấy lại sau khi Gửi. Không có → null.
+   */
+  getPlanningSummary(workOrder: string): Observable<{
+    requiredQty: number;
+    scannedCount: number;
+    scannedQty: number;
+  } | null> {
+    return this.getDnlnvlFull(workOrder.trim()).pipe(
+      map((full) => {
+        const s = full?.find(
+          (x) =>
+            x.requiredQuantity !== null && x.requiredQuantity !== undefined,
+        );
+        return s
+          ? {
+              requiredQty: Number(s.requiredQuantity) || 0,
+              scannedCount: Number(s.scannedCount) || 0,
+              scannedQty: Number(s.scannedQuantity) || 0,
+            }
+          : null;
+      }),
+    );
+  }
+
+  /**
    * Khuyến nghị Planning theo Work Order: GET {planningSapApiUrl}/dnlnvl/full?woId=.
    * Lấy mọi đề nghị lĩnh chưa bị xoá (kể cả nháp status "0"), cuộn chưa bị xoá (deletedAt null).
    * Mỗi partNumberCode = 1 dòng vật tư; cuộn = thùng được chỉ định (materialName = ReelID,

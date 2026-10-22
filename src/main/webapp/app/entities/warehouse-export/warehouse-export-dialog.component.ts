@@ -49,6 +49,7 @@ import {
 import { openExportCancel } from "./export-confirm-dialog/export-confirm-dialog.component";
 import {
   ExportPlannedReel,
+  ExportPlanningSummary,
   ExportReelInventory,
   ExportRequest,
   ExportRequestItem,
@@ -116,7 +117,7 @@ type ScannedTab = "box" | "pallet";
 
 /** Đối chiếu 1 thùng khuyến nghị (Planning) với tồn kho (Inventory) */
 type ReelReadiness =
-  | "loading"
+  | "unchecked"
   | "error"
   | "missing"
   | "mismatch"
@@ -125,7 +126,8 @@ type ReelReadiness =
   | "ready";
 
 const READINESS_LABELS: Record<ReelReadiness, string> = {
-  loading: "Đang kiểm tra",
+  // Chưa scan → chưa tra /inventory (SL theo Planning = SL tồn của thùng)
+  unchecked: "Chưa scan",
   error: "Lỗi tra cứu",
   missing: "Không có trong kho",
   mismatch: "Lệch part",
@@ -213,9 +215,6 @@ interface LocationGroup {
   parts: LocationPart[];
 }
 
-/** Số request /inventory chạy song song khi kiểm tra tồn kho các thùng khuyến nghị */
-const INVENTORY_CONCURRENCY = 6;
-
 /** Lỗi vị trí khi Xác nhận xuất (thông báo hiện thẳng cho người dùng) */
 class LocationError extends Error {}
 
@@ -302,6 +301,8 @@ export class WarehouseExportDialogComponent
   /** Mobile — Chi tiết: vật tư đang mở danh sách thùng */
   private expandedItems = new Set<string>();
 
+  /** Planning: thùng đã Gửi nhưng tổng hợp WO (BE) chưa tải lại — vẫn tính phần FE */
+  private summaryRefreshing = new Set<ExportScannedBox>();
   /** SL xuất nhập sai của từng thùng (chưa nhận) */
   private qtyErrors = new Map<ExportScannedBox, string>();
   /** Xuất chuyển kho theo phiên: thùng đang POST lưu vào phiên */
@@ -402,7 +403,7 @@ export class WarehouseExportDialogComponent
       return "error";
     }
     if (reel.inventory === undefined) {
-      return "loading";
+      return "unchecked";
     }
     const inv = reel.inventory;
     if (!inv) {
@@ -423,17 +424,6 @@ export class WarehouseExportDialogComponent
 
   readinessLabel(state: ReelReadiness): string {
     return READINESS_LABELS[state];
-  }
-
-  /** Còn thùng đang tra kho → hiện loader thay cho bảng đối chiếu */
-  isCheckingInventory(r: ExportRequest): boolean {
-    const st = this.reelStats(r);
-    return st.checked < st.total;
-  }
-
-  inventoryPercent(r: ExportRequest): number {
-    const st = this.reelStats(r);
-    return st.total ? Math.round((st.checked / st.total) * 100) : 100;
   }
 
   /** Số thùng theo từng kết quả đối chiếu của 1 part (bỏ trạng thái = 0) */
@@ -498,7 +488,9 @@ export class WarehouseExportDialogComponent
           ? inv.location || "Chưa có vị trí"
           : reel.inventoryError
             ? "Lỗi tra kho"
-            : "Không có trong kho";
+            : inv === null
+              ? "Không có trong kho"
+              : "Chưa xác định vị trí (chưa scan)";
         const sapCode = inv?.sapCode ?? "";
         const key = `${area?.areaCode ?? ""}|${location}|${sapCode}`;
         const group = groups.get(key) ?? {
@@ -507,12 +499,17 @@ export class WarehouseExportDialogComponent
           areaName: area?.areaName ?? "",
           location,
           sapCode,
-          missing: !inv,
+          missing: inv === null || !!reel.inventoryError,
           stock: 0,
           reelCount: 0,
           parts: [],
         };
-        group.stock += inv?.availableQty ?? 0;
+        // Chưa scan → SL theo Planning (đã là SL tồn của thùng)
+        group.stock += inv
+          ? inv.availableQty
+          : inv === null
+            ? 0
+            : reel.quantity;
         group.reelCount++;
         let part = group.parts.find((x) => x.item === item);
         if (!part) {
@@ -693,6 +690,67 @@ export class WarehouseExportDialogComponent
     return node.key;
   }
 
+  /**
+   * Bảng Planning (desktop): mỗi part của WO 1 dòng (không nhóm theo vị trí) —
+   * mở dòng → các thùng khuyến nghị của part.
+   */
+  planningParts(r: ExportRequest): LocationPart[] {
+    return r.items.map((item) => ({
+      key: `part:${item.partCode ?? item.materialCode}`,
+      item,
+      reels: item.reels ?? [],
+    }));
+  }
+
+  /**
+   * Planning: phần scan ở FE mà BE chưa ghi nhận (chưa Gửi, hoặc vừa Gửi chưa tải lại tổng hợp)
+   * của 1 WO — số thùng + SL.
+   */
+  planningPending(r: ExportRequest): { count: number; qty: number } {
+    let count = 0;
+    let qty = 0;
+    for (const i of r.items) {
+      for (const b of this.boxesOf(i)) {
+        if (!b.sent || this.summaryRefreshing.has(b)) {
+          count++;
+          qty += b.quantity;
+        }
+      }
+    }
+    return { count, qty };
+  }
+
+  /** % tiến độ BE đã ghi nhận (tối đa 100) */
+  planningBePercent(r: ExportRequest): number {
+    const ps = r.planningSummary;
+    return ps?.requiredQty
+      ? Math.min(100, (ps.scannedQty / ps.requiredQty) * 100)
+      : 0;
+  }
+
+  /** % phần scan ở FE chưa ghi nhận (nối tiếp phần BE, tổng tối đa 100) */
+  planningPendingPercent(r: ExportRequest): number {
+    const ps = r.planningSummary;
+    if (!ps?.requiredQty) {
+      return 0;
+    }
+    const pending = (this.planningPending(r).qty / ps.requiredQty) * 100;
+    return Math.max(0, Math.min(100 - this.planningBePercent(r), pending));
+  }
+
+  /** Kho (khu vực) các thùng của part đã tra kho (khi scan) */
+  partAreas(p: LocationPart): string[] {
+    const names = new Set<string>();
+    for (const reel of p.reels) {
+      const inv = reel.inventory;
+      const area = inv ? this.areaOf(inv.locationId, inv.location) : null;
+      if (area) {
+        names.add(area.areaName || area.areaCode);
+      }
+    }
+    return [...names];
+  }
+
   /** SL khuyến nghị của part tại vị trí */
   partPlanned(p: LocationPart): number {
     return p.reels.reduce((sum, reel) => sum + reel.quantity, 0);
@@ -736,7 +794,13 @@ export class WarehouseExportDialogComponent
 
   partStockQty(p: LocationPart): number {
     return p.reels.reduce(
-      (sum, reel) => sum + (reel.inventory?.availableQty ?? 0),
+      (sum, reel) =>
+        sum +
+        (reel.inventory
+          ? reel.inventory.availableQty
+          : reel.inventory === null
+            ? 0
+            : reel.quantity),
       0,
     );
   }
@@ -752,6 +816,7 @@ export class WarehouseExportDialogComponent
   reelStats(r: ExportRequest): {
     total: number;
     checked: number;
+    unchecked: number;
     ready: number;
     exported: number;
   } {
@@ -763,7 +828,7 @@ export class WarehouseExportDialogComponent
       for (const reel of i.reels ?? []) {
         total++;
         const state = this.reelReadiness(i, reel);
-        if (state !== "loading") {
+        if (state !== "unchecked") {
           checked++;
         }
         if (state === "ready") {
@@ -774,7 +839,7 @@ export class WarehouseExportDialogComponent
         }
       }
     }
-    return { total, checked, ready, exported };
+    return { total, checked, unchecked: total - checked, ready, exported };
   }
 
   /** Số thùng sẵn sàng / tổng thùng của 1 vật tư */
@@ -954,7 +1019,8 @@ export class WarehouseExportDialogComponent
   /** Mobile ⋯: Gợi ý lấy hàng cho mọi WO đang mở */
   openMobilePick(): void {
     this.mobileMenuOpen = false;
-    const r = this.ws.requests.find((x) => this.hasReels(x));
+    const r =
+      this.ws.requests.find((x) => this.hasReels(x)) ?? this.ws.requests[0];
     if (r) {
       this.openPickSuggestion(r);
     }
@@ -1647,8 +1713,12 @@ export class WarehouseExportDialogComponent
         for (const t of sent) {
           t.planned.reel.scannedBefore = true;
           t.box.sent = true;
+          this.summaryRefreshing.add(t.box);
         }
         this.recalcScanned();
+        if (sent.length) {
+          this.refreshPlanningSummaries();
+        }
         if (sent.length) {
           this.notificationService.success(`Đã gửi ${sent.length} thùng.`);
         }
@@ -1663,6 +1733,37 @@ export class WarehouseExportDialogComponent
           );
         }
       });
+  }
+
+  /**
+   * Planning: sau khi Gửi → lấy lại tổng hợp WO (BE) để thanh tiến độ về đúng số BE,
+   * phần FE vừa gửi chuyển thành phần BE (đồng màu).
+   */
+  private refreshPlanningSummaries(): void {
+    const requests = [...this.ws.requests];
+    forkJoin(
+      requests.map(
+        (r): Observable<ExportPlanningSummary | null | undefined> =>
+          (
+            this.exportService.getPlanningSummary(
+              r.code,
+            ) as Observable<ExportPlanningSummary | null>
+          ).pipe(catchError(() => of(undefined))),
+      ),
+    ).subscribe((summaries) => {
+      summaries.forEach((s, idx) => {
+        if (s) {
+          requests[idx].planningSummary = s as ExportPlanningSummary;
+        }
+      });
+      if (summaries.some((s) => s === undefined)) {
+        this.notificationService.warning(
+          "Chưa tải lại được tiến độ WO từ BE — mở lại chi tiết để cập nhật.",
+        );
+      }
+      this.summaryRefreshing.clear();
+      this.cdr.markForCheck();
+    });
   }
 
   /** Đã nhập vị trí cho mọi thùng → popup "Xác nhận xuất" → cập nhật vị trí */
@@ -1911,8 +2012,9 @@ export class WarehouseExportDialogComponent
     this.ws.requests = [...this.ws.requests, req];
     this.ws.expanded.add(req.code);
     this.recalcScanned();
-    if (req.items.some((i) => i.reels?.length)) {
-      this.loadReelInventories(req);
+    // Chọn theo chế độ đang mở (WO Planning có thể chưa có cuộn khuyến nghị nào)
+    if (this.isPlanning) {
+      // Không tra /inventory từng thùng khuyến nghị (SL Planning = SL tồn) — chỉ tra khi scan
       this.ensureAreaIndex();
     } else if (req.items.length) {
       // Xuất chuyển kho: vị trí mọi mã lấy từ 1 bảng chung (tải 1 lần / phiên)
@@ -2444,6 +2546,7 @@ export class WarehouseExportDialogComponent
         if (planned) {
           planned.reel.inventory = inv;
           planned.reel.inventoryError = false;
+          this.applyReelInventory(planned.item, inv);
         }
         const id = planned?.reel.reelId ?? reelId;
         if (!inv) {
@@ -2542,45 +2645,23 @@ export class WarehouseExportDialogComponent
     return undefined;
   }
 
-  /** Tra tồn kho mọi thùng khuyến nghị của 1 yêu cầu (song song có giới hạn) */
-  private loadReelInventories(req: ExportRequest): void {
-    const reels = req.items.flatMap((item) =>
-      (item.reels ?? []).map((reel) => ({ item, reel })),
-    );
-    const sub = from(reels)
-      .pipe(
-        mergeMap(
-          ({ item, reel }) =>
-            this.exportService.getReelInventory(reel.reelId).pipe(
-              map((inv) => ({ item, reel, inv, error: false })),
-              catchError(() =>
-                of({
-                  item,
-                  reel,
-                  inv: undefined as ExportReelInventory | null | undefined,
-                  error: true,
-                }),
-              ),
-            ),
-          INVENTORY_CONCURRENCY,
-        ),
-      )
-      .subscribe(({ item, reel, inv, error }) => {
-        reel.inventory = error ? undefined : inv;
-        reel.inventoryError = error;
-        // dnlnvl chỉ có partNumberCode → lấy part number (vd 1N4148W) + mã SAP từ kho
-        if (
-          inv &&
-          item.materialCode === item.partCode &&
-          inv.partNumber &&
-          inv.partId.toLowerCase() === (item.partCode ?? "").toLowerCase()
-        ) {
-          item.materialCode = inv.partNumber;
-          item.materialName ||= inv.sapCode;
-        }
-        this.cdr.markForCheck();
-      });
-    this.inventorySubs.push(sub);
+  /**
+   * Thùng khuyến nghị vừa tra kho (khi scan): dnlnvl chỉ có partNumberCode → lấy part number
+   * (vd 1N4148W) + mã SAP từ kho cho dòng vật tư.
+   */
+  private applyReelInventory(
+    item: ExportRequestItem,
+    inv: ExportReelInventory | null,
+  ): void {
+    if (
+      inv &&
+      item.materialCode === item.partCode &&
+      inv.partNumber &&
+      inv.partId.toLowerCase() === (item.partCode ?? "").toLowerCase()
+    ) {
+      item.materialCode = inv.partNumber;
+      item.materialName ||= inv.sapCode;
+    }
   }
 
   /** Tải bảng vị trí → kho (1 lần / phiên) */
