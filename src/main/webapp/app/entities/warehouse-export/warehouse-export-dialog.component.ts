@@ -266,6 +266,8 @@ export class WarehouseExportDialogComponent
   locationOptions: CachedWarehouse[] = [];
   /** Ô vị trí ở header cột — áp cho mọi thùng đã scan */
   bulkLocation = "";
+  /** Yêu cầu đang mở dialog "Vị trí có vật tư" */
+  locModalRequest: ExportRequest | null = null;
   /** Xuất chuyển kho: danh sách kho (khu vực) — đối chiếu whsCode SAP → kho (vd 05 → RD-LED-05) */
   warehouseAreas: WarehouseAreaRef[] = [];
 
@@ -582,9 +584,86 @@ export class WarehouseExportDialogComponent
     return this.itemStockLocations(i).reduce((s, x) => s + x.qty, 0);
   }
 
-  /** Các vị trí đang có mã vật tư, sắp theo kho → vị trí */
+  /**
+   * Các vị trí đang có mã vật tư, sắp theo kho → vị trí.
+   * Xuất chuyển kho: chỉ vị trí thuộc kho xuất của dòng vật tư (whsCode 19 → kho mã đuôi -19).
+   */
   itemStockLocations(i: ExportRequestItem): ItemStockLocation[] {
+    const locations = this.itemStock(i)?.locations ?? [];
+    const fromWhs = (i.warehouseCode ?? "").trim();
+    if (this.isPlanning || !fromWhs) {
+      return locations;
+    }
+    return locations.filter(
+      (loc) => (loc.areaCode ?? "").split("-").pop()?.trim() === fromWhs,
+    );
+  }
+
+  /** Dialog "Vị trí có vật tư": mọi vị trí đang có mã vật tư (mọi kho, không lọc kho xuất) */
+  itemAllLocations(i: ExportRequestItem): ItemStockLocation[] {
     return this.itemStock(i)?.locations ?? [];
+  }
+
+  /** Tổng tồn của mã vật tư ở mọi kho */
+  itemAllStockQty(i: ExportRequestItem): number {
+    return this.itemAllLocations(i).reduce((s, x) => s + x.qty, 0);
+  }
+
+  /** Vị trí thuộc kho xuất của dòng vật tư (đánh dấu trong dialog) */
+  isFromWhsLocation(i: ExportRequestItem, loc: ItemStockLocation): boolean {
+    const fromWhs = (i.warehouseCode ?? "").trim();
+    return (
+      !!fromWhs && (loc.areaCode ?? "").split("-").pop()?.trim() === fromWhs
+    );
+  }
+
+  /** Kho (khu vực) theo mã kho SAP: 05 → kho có mã đuôi -05 (RD-LED-05) */
+  areaByWhsCode(whsCode: string | undefined | null): WarehouseAreaRef | null {
+    const whs = (whsCode ?? "").trim();
+    if (!whs) {
+      return null;
+    }
+    return (
+      this.warehouseAreas.find(
+        (a) => a.areaCode.split("-").pop()?.trim() === whs,
+      ) ?? null
+    );
+  }
+
+  /** Nhãn kho theo mã kho SAP: "19 · RD-LED-19 · Kho LKDT thủ công" */
+  whsLabel(whsCode: string | undefined | null): string {
+    const whs = (whsCode ?? "").trim();
+    if (!whs) {
+      return "—";
+    }
+    const area = this.areaByWhsCode(whs);
+    if (!area) {
+      return `Kho ${whs}`;
+    }
+    return area.areaName && area.areaName !== area.areaCode
+      ? `${area.areaCode} · ${area.areaName}`
+      : area.areaCode;
+  }
+
+  /** Mở dialog "Vị trí có vật tư": tra vị trí (kho xuất) các mã chưa tra */
+  openItemLocations(r: ExportRequest, event?: Event): void {
+    event?.stopPropagation();
+    this.locModalRequest = r;
+    this.loadItemStocks(
+      r.items.filter((i) => !this.itemStock(i)).map((i) => i.materialCode),
+    );
+  }
+
+  closeItemLocations(): void {
+    this.locModalRequest = null;
+  }
+
+  /** Kho xuất chung của các vật tư trong yêu cầu (khác nhau → rỗng) */
+  requestFromWhs(r: ExportRequest): string {
+    const codes = [
+      ...new Set(r.items.map((i) => (i.warehouseCode ?? "").trim())),
+    ];
+    return codes.length === 1 ? codes[0] : "";
   }
 
   /** Mở / đóng dòng vật tư — mở lần đầu thì tra vị trí của mã đó */
@@ -1037,15 +1116,7 @@ export class WarehouseExportDialogComponent
 
   /** Xuất chuyển kho: kho chuyển đến của thùng — whsCode SAP (05) → kho có mã đuôi -05 (RD-LED-05) */
   destAreaOf(b: ExportScannedBox): WarehouseAreaRef | null {
-    const whs = (b.destWhsCode ?? "").trim();
-    if (!whs) {
-      return null;
-    }
-    return (
-      this.warehouseAreas.find(
-        (a) => a.areaCode.split("-").pop()?.trim() === whs,
-      ) ?? null
-    );
+    return this.areaByWhsCode(b.destWhsCode);
   }
 
   /** Màu badge trạng thái tồn kho của thùng (calculatedStatus) */

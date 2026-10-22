@@ -123,6 +123,15 @@
                 <mat-icon>place</mat-icon>
                 Gợi ý lấy hàng
               </button>
+              <button
+                *ngIf="!isPlanning"
+                type="button"
+                class="we-pick-btn"
+                (click)="openItemLocations(r, $event)"
+              >
+                <mat-icon>place</mat-icon>
+                Vị trí có vật tư
+              </button>
               <span class="we-status" [class.ok]="isEnough(r)">{{
                 isEnough(r) ? "Đủ số lượng" : "Chưa đủ số lượng"
               }}</span>
@@ -144,19 +153,19 @@
                     <th class="num">Số thùng</th>
                     <th class="num">SL đã scan</th>
                     <th class="num">Còn thiếu</th>
-                    <th>Mã kho</th>
-                    <th class="num">Tồn kho</th>
-                    <th>
-                      Vị trí trong kho
+                    <th>Kho xuất</th>
+                    <th class="num">
+                      Tồn kho xuất
                       <button
                         type="button"
                         class="pl-refresh"
-                        matTooltip="Tra vị trí tất cả vật tư"
+                        matTooltip="Tra lại tồn tất cả vật tư"
                         (click)="refreshItemStocks(r, $event)"
                       >
                         <mat-icon>refresh</mat-icon>
                       </button>
                     </th>
+                    <th>Kho nhận</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -196,80 +205,55 @@
                           ) | number
                         }}
                       </td>
-                      <td>{{ i.warehouseCode }}</td>
-                      <ng-container *ngIf="itemStock(i) as st">
-                        <td class="num strong">
+                      <td>
+                        <span
+                          class="we-badge loc"
+                          *ngIf="i.warehouseCode; else noValueItem"
+                          [title]="whsLabel(i.warehouseCode)"
+                          >{{ whsLabel(i.warehouseCode) }}</span
+                        >
+                      </td>
+                      <td class="num strong">
+                        <ng-container
+                          *ngIf="itemStock(i) as st; else noStockItem"
+                        >
                           <span class="pl-muted" *ngIf="st.loading">…</span>
-                          <ng-container *ngIf="!st.loading">{{
-                            itemStockQty(i) | number
-                          }}</ng-container>
-                        </td>
-                        <td class="pl-wh-cell">
-                          <span class="pl-muted" *ngIf="st.loading"
-                            >Đang tra…</span
-                          >
                           <span
                             class="pl-bad-text"
                             *ngIf="!st.loading && st.error"
                             >Lỗi tra tồn</span
                           >
-                          <ng-container *ngIf="!st.loading && !st.error">
-                            <!-- Mỗi vị trí 1 chip: areaName · locationName -->
-                            <span
-                              class="pl-wh-chip pl-loc-chip"
-                              *ngFor="
-                                let loc of itemStockLocations(i)
-                                  | slice: 0 : LOCATION_CHIP_LIMIT
-                              "
-                              [matTooltip]="
-                                (loc.areaName || loc.areaCode) +
-                                ' · ' +
-                                loc.reels +
-                                ' cuộn · ' +
-                                (loc.qty | number)
-                              "
-                              ><b>{{ loc.areaCode || "?" }}</b> ·
-                              {{ loc.location }}</span
-                            >
-                            <span
-                              class="pl-muted"
-                              *ngIf="
-                                itemStockLocations(i).length >
-                                LOCATION_CHIP_LIMIT
-                              "
-                              matTooltip="Mở dòng để xem tất cả vị trí"
-                              >+{{
-                                itemStockLocations(i).length -
-                                  LOCATION_CHIP_LIMIT
-                              }}
-                              vị trí</span
-                            >
-                            <span
-                              class="pl-muted"
-                              *ngIf="!itemStockLocations(i).length"
-                              >Hết hàng</span
-                            >
-                          </ng-container>
-                        </td>
-                      </ng-container>
-                      <ng-container *ngIf="!itemStock(i)">
-                        <td class="num pl-muted">—</td>
-                        <td>
+                          <ng-container *ngIf="!st.loading && !st.error">{{
+                            itemStockQty(i) | number
+                          }}</ng-container>
+                        </ng-container>
+                        <ng-template #noStockItem>
                           <button
                             type="button"
                             class="pl-lookup"
                             (click)="lookupItemStock(i, $event)"
                           >
-                            <mat-icon>travel_explore</mat-icon> Tra vị trí
+                            <mat-icon>travel_explore</mat-icon> Tra tồn
                           </button>
-                        </td>
-                      </ng-container>
+                        </ng-template>
+                      </td>
+                      <td>
+                        <span
+                          class="we-badge dest"
+                          *ngIf="i.toWhsCode; else noValueItem"
+                          [class.unknown]="!areaByWhsCode(i.toWhsCode)"
+                          [title]="whsLabel(i.toWhsCode)"
+                          >{{ whsLabel(i.toWhsCode) }}</span
+                        >
+                        <ng-template #noValueItem>—</ng-template>
+                      </td>
                     </tr>
                     <tr *ngIf="isNodeOpen(r, itemKey(i))" class="pl-detail-row">
                       <td colspan="10">
                         <!-- Vị trí đang có mã vật tư -->
                         <div class="pl-caption">
-                          Vị trí đang có hàng
+                          Vị trí đang có hàng tại kho xuất
+                          {{ whsLabel(i.warehouseCode) }}
                           <span class="pl-muted" *ngIf="itemStock(i)?.fetchedAt"
                             >· Tồn lúc
                             {{ itemStock(i)?.fetchedAt | date: "HH:mm" }}</span
@@ -1415,6 +1399,14 @@
             >
               <mat-icon>refresh</mat-icon>
             </button>
+            <button
+              type="button"
+              class="mx-icon-btn"
+              aria-label="Vị trí có vật tư"
+              (click)="openItemLocations(r, $event)"
+            >
+              <mat-icon>place</mat-icon>
+            </button>
             <span class="mx-status" [class.ok]="isEnough(r)">{{
               isEnough(r) ? "Đủ" : "Chưa đủ"
             }}</span>
@@ -1469,8 +1461,9 @@
                   }}</span
                 >
                 <span class="mx-tag">{{ boxesOf(i).length }} thùng</span>
-                <span class="mx-tag" *ngIf="i.warehouseCode"
-                  >Kho {{ i.warehouseCode }}</span
+                <span class="mx-tag" *ngIf="i.warehouseCode || i.toWhsCode"
+                  >Kho {{ i.warehouseCode || "?" }} →
+                  {{ i.toWhsCode || "?" }}</span
                 >
                 <ng-container *ngIf="itemStock(i) as st; else noStock">
                   <span class="mx-tag" *ngIf="st.loading">Đang tra tồn…</span>
@@ -1478,7 +1471,7 @@
                     >Lỗi tra tồn</span
                   >
                   <span class="mx-tag strong" *ngIf="!st.loading && !st.error"
-                    >Tồn {{ itemStockQty(i) | number }}</span
+                    >Tồn kho xuất {{ itemStockQty(i) | number }}</span
                   >
                 </ng-container>
                 <ng-template #noStock>
@@ -1524,7 +1517,7 @@
               <!-- Mở rộng: vị trí có hàng + thùng đã scan -->
               <div class="mx-item-detail" *ngIf="isNodeOpen(r, itemKey(i))">
                 <div class="mx-detail-caption">
-                  Vị trí đang có hàng
+                  Vị trí tại kho xuất {{ i.warehouseCode }}
                   <span *ngIf="itemStock(i)?.fetchedAt"
                     >· {{ itemStock(i)?.fetchedAt | date: "HH:mm" }}</span
                   >
@@ -1898,6 +1891,114 @@
           [attr.data-state]="reelReadiness(sh.part.item, x)"
           >{{ readinessLabel(reelReadiness(sh.part.item, x)) }}</span
         >
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== Vị trí có vật tư (mọi kho) ===================== -->
+<div
+  class="we-modal-backdrop"
+  *ngIf="locModalRequest as m"
+  (click)="closeItemLocations()"
+>
+  <div class="we-modal" (click)="$event.stopPropagation()">
+    <div class="we-modal-head">
+      <div class="we-modal-title">
+        <h3>Vị trí có vật tư · {{ m.code }}</h3>
+        <span class="we-muted"
+          >Mọi vị trí đang có vật tư (tất cả các kho)<ng-container
+            *ngIf="requestFromWhs(m)"
+          >
+            · Kho xuất: {{ whsLabel(requestFromWhs(m)) }}</ng-container
+          ></span
+        >
+      </div>
+      <button
+        type="button"
+        class="we-modal-icon"
+        matTooltip="Tra lại tồn"
+        aria-label="Tra lại tồn"
+        (click)="refreshItemStocks(m, $event)"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <button
+        type="button"
+        class="we-modal-icon"
+        aria-label="Đóng"
+        (click)="closeItemLocations()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="we-modal-body">
+      <div class="we-locs-item" *ngFor="let i of m.items">
+        <div class="we-locs-head">
+          <span class="mono strong">{{ i.materialCode }}</span>
+          <span class="we-locs-name">{{ i.materialName }}</span>
+          <span class="we-badge loc" *ngIf="!requestFromWhs(m)"
+            >Kho xuất {{ whsLabel(i.warehouseCode) }}</span
+          >
+          <span class="we-locs-qty"
+            >Cần {{ targetQty(i) | number }} · Đã scan
+            {{ i.scannedQty | number }} · Tồn kho xuất
+            <strong>{{ itemStockQty(i) | number }}</strong> · Tồn tất cả
+            <strong>{{ itemAllStockQty(i) | number }}</strong></span
+          >
+        </div>
+
+        <ng-container *ngIf="itemStock(i) as st; else locsNotLoaded">
+          <div class="pl-muted" *ngIf="st.loading">Đang tra vị trí…</div>
+          <div class="pl-bad-text" *ngIf="!st.loading && st.error">
+            Lỗi tra tồn — bấm tra lại.
+          </div>
+          <ng-container *ngIf="!st.loading && !st.error">
+            <div class="pl-muted" *ngIf="!itemAllLocations(i).length">
+              Không còn vị trí nào có vật tư này.
+            </div>
+            <table
+              class="we-table we-locs-table"
+              *ngIf="itemAllLocations(i).length"
+            >
+              <thead>
+                <tr>
+                  <th>Kho</th>
+                  <th>Vị trí</th>
+                  <th class="num">Số cuộn</th>
+                  <th class="num">Tồn</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let loc of itemAllLocations(i)"
+                  [class.from-whs]="isFromWhsLocation(i, loc)"
+                >
+                  <td>
+                    <span class="mono">{{ loc.areaCode || "—" }}</span>
+                    <span
+                      class="we-locs-area"
+                      *ngIf="loc.areaName && loc.areaName !== loc.areaCode"
+                      >{{ loc.areaName }}</span
+                    >
+                    <span
+                      class="we-badge ok we-locs-tag"
+                      *ngIf="isFromWhsLocation(i, loc)"
+                      >Kho xuất</span
+                    >
+                  </td>
+                  <td class="mono">{{ loc.location }}</td>
+                  <td class="num">{{ loc.reels | number }}</td>
+                  <td class="num strong">{{ loc.qty | number }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </ng-container>
+        </ng-container>
+        <ng-template #locsNotLoaded>
+          <div class="pl-muted">Đang tra vị trí…</div>
+        </ng-template>
       </div>
     </div>
   </div>
