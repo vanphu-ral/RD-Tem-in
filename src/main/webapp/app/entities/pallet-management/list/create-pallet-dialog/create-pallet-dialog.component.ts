@@ -36,9 +36,9 @@ export class CreatePalletDialogComponent implements OnInit {
   quantity = 1;
   note = "";
   isSaving = false;
-  /** Đang tải danh sách pallet để mở dialog In */
+  /** Lưu xong → đang tải danh sách pallet để mở dialog In */
   isOpeningPrint = false;
-  /** Pallet đã lưu trong lần mở dialog này — nút In dùng danh sách này */
+  /** Pallet đã lưu trong lần mở dialog này (trả về trang ngoài) */
   savedPallets: PalletItem[] = [];
   /** Đang lấy danh sách pallet để tính STT tiếp theo */
   isLoadingSequence = false;
@@ -114,32 +114,6 @@ export class CreatePalletDialogComponent implements OnInit {
     }
     // Đã lưu pallet → trả kết quả để trang ngoài tải lại danh sách (không in)
     this.dialogRef.close(this.buildResult(false));
-  }
-
-  /**
-   * In: mở dialog In ngay trên dialog này.
-   * Đã lưu pallet → chỉ các pallet vừa lưu; chưa lưu → toàn bộ pallet (như nút In ở ngoài).
-   */
-  onPrint(): void {
-    if (this.isSaving || this.isOpeningPrint) {
-      return;
-    }
-    if (this.savedPallets.length) {
-      this.openPrintDialog([]);
-      return;
-    }
-    this.isOpeningPrint = true;
-    this.palletMngtService.getAll().subscribe({
-      next: (rows) => {
-        this.isOpeningPrint = false;
-        this.openPrintDialog(rows ?? []);
-      },
-      error: () => {
-        this.isOpeningPrint = false;
-        // Không tải được danh sách → vẫn in được các pallet vừa lưu
-        this.openPrintDialog([]);
-      },
-    });
   }
 
   onSave(): void {
@@ -220,6 +194,7 @@ export class CreatePalletDialogComponent implements OnInit {
         );
         // Lấy lại STT để lần lưu tiếp không trùng mã
         this.loadNextSequence();
+        this.openPrintAfterSave(created);
       },
       error: () => {
         this.isSaving = false;
@@ -228,11 +203,37 @@ export class CreatePalletDialogComponent implements OnInit {
     });
   }
 
-  private openPrintDialog(all: PalletItem[]): void {
-    const savedIds = new Set(this.savedPallets.map((p) => p.id));
+  /**
+   * Lưu thành công → mở dialog In: danh sách gồm pallet vừa tạo (lên đầu) + các pallet khác,
+   * chỉ tích sẵn các pallet vừa tạo (muốn in thêm thì người dùng tự chọn).
+   */
+  private openPrintAfterSave(created: PalletItem[]): void {
+    this.isOpeningPrint = true;
+    this.palletMngtService.getAll().subscribe({
+      next: (rows) => {
+        this.isOpeningPrint = false;
+        this.openPrintDialog(created, rows ?? []);
+      },
+      error: () => {
+        this.isOpeningPrint = false;
+        // Không tải được danh sách → vẫn in được các pallet vừa tạo
+        this.openPrintDialog(created, []);
+      },
+    });
+  }
+
+  private openPrintDialog(created: PalletItem[], all: PalletItem[]): void {
+    // Đối chiếu theo mã pallet: dùng bản ghi từ danh sách (id thật) nếu có
+    const codeOf = (p: PalletItem): string =>
+      String(p.serialPallet ?? "")
+        .trim()
+        .toUpperCase();
+    const byCode = new Map(all.map((p) => [codeOf(p), p]));
+    const fresh = created.map((p) => byCode.get(codeOf(p)) ?? p);
+    const freshCodes = new Set(fresh.map(codeOf));
     const pallets = [
-      ...this.savedPallets,
-      ...all.filter((p) => !savedIds.has(p.id)),
+      ...fresh,
+      ...all.filter((p) => !freshCodes.has(codeOf(p))),
     ];
     if (!pallets.length) {
       this.notificationService.warning("Chưa có pallet nào để in.");
@@ -246,7 +247,7 @@ export class CreatePalletDialogComponent implements OnInit {
       panelClass: "print-pallet-dialog-panel",
       data: {
         pallets,
-        preselectedIds: this.savedPallets.map((p) => p.id),
+        preselectedIds: fresh.map((p) => p.id),
       } as PrintPalletDialogData,
     });
   }

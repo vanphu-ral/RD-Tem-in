@@ -846,6 +846,12 @@ $mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   white-space: nowrap;
 }
 
+/* Lỗi SL xuất dưới ô số lượng (cột số → căn phải) */
+.qty-error {
+  margin-left: auto;
+  text-align: right;
+}
+
 /* Bảng kết quả scan (Xuất chuyển kho): vị trí hiện tại / kho chuyển đến / trạng thái */
 .we-badge {
   display: inline-block;
@@ -2627,6 +2633,12 @@ $mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     border: 1.5px solid #3b82f6;
     background: #fff;
     color: #1d4ed8;
+  }
+
+  &.cancel {
+    border: 1.5px solid #fca5a5;
+    background: #fff;
+    color: #dc2626;
   }
 
   &:disabled {

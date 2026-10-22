@@ -17,7 +17,7 @@
         [class.active]="tab === 'processing'"
         (click)="selectTab('processing')"
       >
-        Đang xử lý
+        Tất cả phiên
         <span class="wel-tab-count" *ngIf="processingCount">{{
           processingCount
         }}</span>
@@ -163,7 +163,7 @@
         </ng-container>
 
         <ng-container matColumnDef="warehouse">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Kho xuất</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Đơn vị nhận</th>
           <td mat-cell *matCellDef="let row">{{ row.warehouse }}</td>
         </ng-container>
 
@@ -240,7 +240,20 @@
         </ng-container>
 
         <ng-container matColumnDef="requestCodes">
-          <th mat-header-cell *matHeaderCellDef>{{ config.codeLabel }}</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="wel-th">
+              <span>{{ config.codeLabel }}</span>
+              <input
+                class="wel-th-filter"
+                [(ngModel)]="sessionFilters.owtqDocEntry"
+                (ngModelChange)="onSessionFilterChange()"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+                placeholder="Mã đề nghị..."
+                autocomplete="off"
+              />
+            </div>
+          </th>
           <td mat-cell *matCellDef="let row">
             <span
               *ngIf="row.requestCodes.length; else noCodes"
@@ -259,7 +272,25 @@
         </ng-container>
 
         <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Trạng thái</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="wel-th">
+              <span mat-sort-header>Trạng thái</span>
+              <select
+                class="wel-th-filter"
+                [(ngModel)]="sessionFilters.status"
+                (ngModelChange)="onSessionFilterChange()"
+                (click)="$event.stopPropagation()"
+              >
+                <option value="">Tất cả</option>
+                <option
+                  *ngFor="let o of sessionStatusOptions"
+                  [value]="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </div>
+          </th>
           <td mat-cell *matCellDef="let row">
             <span class="wel-status doing">{{
               sessionStatusLabel(row.status)
@@ -268,29 +299,89 @@
         </ng-container>
 
         <ng-container matColumnDef="note">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Ghi chú</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="wel-th">
+              <span mat-sort-header>Ghi chú</span>
+              <input
+                class="wel-th-filter"
+                [(ngModel)]="sessionFilters.note"
+                (ngModelChange)="onSessionFilterChange()"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+                placeholder="Lọc..."
+                autocomplete="off"
+              />
+            </div>
+          </th>
           <td mat-cell *matCellDef="let row">{{ row.note }}</td>
         </ng-container>
 
         <ng-container matColumnDef="createdBy">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Người tạo</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="wel-th">
+              <span mat-sort-header>Người tạo</span>
+              <input
+                class="wel-th-filter"
+                [(ngModel)]="sessionFilters.createdBy"
+                (ngModelChange)="onSessionFilterChange()"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+                placeholder="Lọc..."
+                autocomplete="off"
+              />
+            </div>
+          </th>
           <td mat-cell *matCellDef="let row">{{ row.createdBy }}</td>
         </ng-container>
 
         <ng-container matColumnDef="createdAt">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Ngày tạo</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="wel-th">
+              <span mat-sort-header>Ngày tạo</span>
+              <input
+                class="wel-th-filter"
+                type="date"
+                [(ngModel)]="sessionFilters.createdAt"
+                (ngModelChange)="onSessionFilterChange()"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+              />
+            </div>
+          </th>
           <td mat-cell *matCellDef="let row">{{ row.createdAt }}</td>
         </ng-container>
 
         <ng-container matColumnDef="updatedAt">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>
-            Cập nhật lần cuối
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="wel-th">
+              <span mat-sort-header>Cập nhật lần cuối</span>
+              <input
+                class="wel-th-filter"
+                type="date"
+                [(ngModel)]="sessionFilters.updatedAt"
+                (ngModelChange)="onSessionFilterChange()"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+              />
+            </div>
           </th>
           <td mat-cell *matCellDef="let row">{{ row.updatedAt }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Thao tác</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <div class="wel-th">
+              <span>Thao tác</span>
+              <button
+                type="button"
+                class="wel-th-clear"
+                *ngIf="hasSessionFilter"
+                (click)="clearSessionFilters()"
+              >
+                Xóa lọc
+              </button>
+            </div>
+          </th>
           <td mat-cell *matCellDef="let row">
             <button
               type="button"
@@ -303,7 +394,11 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="sessionColumns; sticky: true"></tr>
+        <tr
+          mat-header-row
+          class="wel-filter-head"
+          *matHeaderRowDef="sessionColumns; sticky: true"
+        ></tr>
         <tr mat-row *matRowDef="let row; columns: sessionColumns"></tr>
       </table>
 
