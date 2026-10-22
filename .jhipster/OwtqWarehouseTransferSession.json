@@ -1,0 +1,28 @@
+{
+  "annotations": {
+    "changelogDate": "20261019065917"
+  },
+  "applications": "*",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "warehouseTransferSessionId",
+      "fieldType": "Long"
+    },
+    {
+      "fieldName": "owtqDocEntry",
+      "fieldType": "Long"
+    }
+  ],
+  "name": "OwtqWarehouseTransferSession",
+  "relationships": [
+    {
+      "otherEntityName": "warehouseTransferSession",
+      "relationshipName": "warehouseTransferSession",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}

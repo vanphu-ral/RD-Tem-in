@@ -1,0 +1,72 @@
+
+
+entity WarehouseTransferSession {
+status String maxlength(50)
+note String maxlength(255)
+createdAt Instant
+createdBy String maxlength(50)
+updatedAt Instant
+updatedBy String maxlength(50)
+deletedAt Instant
+deletedBy String maxlength(50)
+}
+
+entity OwtqWarehouseTransferSession {
+warehouseTransferSessionId Long
+owtqDocEntry Long
+}
+
+entity WarehouseTransferDetail {
+lineNum Long
+reelId String maxlength(50)
+partNumber String maxlength(50)
+vendor String maxlength(20)
+lot String maxlength(30)
+userData1 String maxlength(20)
+userData2 String maxlength(255)
+userData3 String maxlength(100)
+userData4 String maxlength(20)
+userData5 String maxlength(20)
+initialQuantity Integer
+msdLevel String maxlength(20)
+msdInitialFloorTime String maxlength(20)
+msdBagSealDate String maxlength(20)
+marketUsage String maxlength(20)
+quantityOverride Integer
+shelfTime String maxlength(20)
+spMaterialName String maxlength(255)
+warningLimit String maxlength(20)
+maximumLimit String maxlength(20)
+comments String maxlength(50)
+warmupTime String maxlength(20)
+storageUnit String maxlength(20)
+subStorageUnit String maxlength(20)
+locationOverride String maxlength(20)
+expirationDate String maxlength(20)
+manufacturingDate String maxlength(20)
+partClass String maxlength(20)
+sapCode String maxlength(20)
+vendorQrCode TextBlob
+status String maxlength(50)
+createdBy String maxlength(20)
+createdAt Instant
+updatedBy String maxlength(20)
+updatedAt Instant
+panaSendStatus Boolean
+sapSendStatus Boolean
+}
+
+// Relationships
+relationship OneToMany {
+WarehouseTransferSession{details} to WarehouseTransferDetail{warehouseTransferSession}
+}
+
+relationship ManyToOne {
+OwtqWarehouseTransferSession{warehouseTransferSession} to WarehouseTransferSession
+}
+
+// Options
+paginate WarehouseTransferSession with pagination
+filter WarehouseTransferSession
+service * with serviceImpl
+dto * with mapstruct

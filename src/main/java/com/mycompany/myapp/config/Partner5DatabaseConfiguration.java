@@ -32,11 +32,21 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
             com.mycompany.myapp.repository.DeliveryNotificationRepository.class,
             com.mycompany.myapp.repository.SapPor1R1Repository.class,
             com.mycompany.myapp.repository.VendorLabelInfoRepository.class,
-            com.mycompany.myapp.repository.partner5.ImportVendorTemTransactionsRepository.class,
+            com.mycompany.myapp.repository
+                .OwtqWarehouseTransferSessionRepository.class,
+            com.mycompany.myapp.repository
+                .WarehouseTransferDetailRepository.class,
+            com.mycompany.myapp.repository
+                .WarehouseTransferSessionRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .ImportVendorTemTransactionsRepository.class,
             com.mycompany.myapp.repository.partner5.PoDetailRepository.class,
-            com.mycompany.myapp.repository.partner5.VendorTemDetailRepository.class,
-            com.mycompany.myapp.repository.partner5.TemIdentificationScenarioRepository.class,
-            com.mycompany.myapp.repository.partner5.RdMaterialAttributesRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .VendorTemDetailRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .TemIdentificationScenarioRepository.class,
+            com.mycompany.myapp.repository.partner5
+                .RdMaterialAttributesRepository.class,
             com.mycompany.myapp.repository.partner5.PoImportTemRepository.class,
         }
     )

@@ -12,4 +12,5 @@ export const environment = {
   },
   baseInTemApiUrl: "http://192.168.68.77:8085/api",
   testApiUrl: "http://192.168.10.99:8085/api",
+  planningSapApiUrl: "http://192.168.68.86:9090/tem-in-info/api",
 };
