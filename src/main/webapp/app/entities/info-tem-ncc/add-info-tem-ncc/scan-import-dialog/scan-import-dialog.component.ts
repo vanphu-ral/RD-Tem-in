@@ -1723,6 +1723,10 @@ export class ScanImportDialogComponent
           ...(saved ?? {}),
           id: saved?.id ?? 0,
           serialPallet: palletCode,
+          // Response thùng theo pallet không có id đơn / PO → giữ của payload (PUT sau cần)
+          deliveryNotificationId:
+            saved?.deliveryNotificationId ?? payload.deliveryNotificationId,
+          sapPor1Id: saved?.sapPor1Id ?? payload.sapPor1Id,
         };
         const row = this.toBoxRow(record, this.nowTime());
         if (noPoMatched) {
@@ -2418,7 +2422,13 @@ export class ScanImportDialogComponent
       this.infoTemNccService.updateVendorLabelInfo(body).subscribe({
         next: (saved) => {
           this.savingCount--;
-          this.boxRecords.set(box.id, { ...body, ...(saved ?? {}) });
+          this.boxRecords.set(box.id, {
+            ...body,
+            ...(saved ?? {}),
+            deliveryNotificationId:
+              saved?.deliveryNotificationId ?? body.deliveryNotificationId,
+            sapPor1Id: saved?.sapPor1Id ?? body.sapPor1Id,
+          });
           box.location = location;
           // Thùng đang có thay đổi chờ "Cập nhật" → giữ vị trí mới, không ghi đè bằng giá trị cũ
           const pendingEdit = this.pendingInfoEdits.get(record.id);

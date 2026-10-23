@@ -117,6 +117,9 @@ export interface DeliveryNotificationPage {
 /** Bản ghi thùng (vendor-label-info) backend trả về */
 export interface VendorLabelInfoDto extends CreateVendorLabelInfoPayload {
   id: number;
+  /** Quan hệ đơn / dòng PO dạng object (BE map quan hệ từ các object này khi PUT) */
+  deliveryNotification?: { id?: number | null } | null;
+  sapPor1?: { id?: number | null } | null;
   serialPallet?: string | null;
   palletBoxMappingId?: number | null;
   /** Có khi thùng thuộc pallet (response POST /vendor-label-infos/pallet) */
@@ -318,9 +321,18 @@ export class InfoTemNccService {
   createVendorLabelInfo(
     payload: CreateVendorLabelInfoPayload,
   ): Observable<VendorLabelInfoDto> {
+    // Thùng mới: BE map quan hệ đơn / dòng PO từ object lồng nhau → gửi kèm { id }
+    const body = {
+      ...payload,
+      deliveryNotification:
+        payload.deliveryNotificationId !== null
+          ? { id: payload.deliveryNotificationId }
+          : null,
+      sapPor1: payload.sapPor1Id !== null ? { id: payload.sapPor1Id } : null,
+    };
     return this.http.post<VendorLabelInfoDto>(
       `${this.url}/vendor-label-infos`,
-      payload,
+      body,
     );
   }
 
@@ -344,13 +356,30 @@ export class InfoTemNccService {
       .pipe(map((res) => (Array.isArray(res) ? res : [])));
   }
 
-  /** Cập nhật 1 thùng (vd: gán vị trí vào subStorageUnit) */
+  /**
+   * Cập nhật 1 thùng (vd: gán vị trí vào subStorageUnit) — PUT ghi đè cả bản ghi.
+   * BE map quan hệ đơn (deliveryNotification) / dòng PO (sapPor1) từ object lồng nhau, không
+   * từ deliveryNotificationId / sapPor1Id → luôn gửi kèm object { id } để PUT không cắt thùng
+   * khỏi đơn / PO (response thùng theo pallet và danh sách theo đơn không có các object này).
+   */
   updateVendorLabelInfo(
     payload: VendorLabelInfoDto,
   ): Observable<VendorLabelInfoDto> {
+    const deliveryId =
+      payload.deliveryNotificationId ??
+      payload.deliveryNotification?.id ??
+      null;
+    const sapPor1Id = payload.sapPor1Id ?? payload.sapPor1?.id ?? null;
+    const body: VendorLabelInfoDto = {
+      ...payload,
+      deliveryNotificationId: deliveryId,
+      deliveryNotification: deliveryId !== null ? { id: deliveryId } : null,
+      sapPor1Id,
+      sapPor1: sapPor1Id !== null ? { id: sapPor1Id } : null,
+    };
     return this.http.put<VendorLabelInfoDto>(
       `${this.url}/vendor-label-infos/${payload.id}`,
-      payload,
+      body,
     );
   }
 

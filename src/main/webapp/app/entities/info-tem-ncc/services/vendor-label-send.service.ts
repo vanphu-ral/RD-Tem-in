@@ -19,6 +19,10 @@ import {
   VendorLabelInfoDto,
 } from "./info-tem-ncc.service";
 import { boxLocation } from "../shared/box-location.util";
+import {
+  buildDefaultUserData4,
+  DEFAULT_USERDATA,
+} from "../shared/scan-item-columns.util";
 
 /** 1 thùng (vendor-label-info) cần gửi + thông tin vật tư / PO của nó */
 export interface SendBoxEntry {
@@ -175,16 +179,17 @@ export class VendorLabelSendService {
   }
 
   private toPanacimRows(entries: SendBoxEntry[]): TemPanacimExportInput[] {
+    // Trống → mặc định giống dialog chi tiết lô (lot-detail-dialog) để khớp dữ liệu đang hiển thị
     return entries.map((e) => ({
       reelId: toText(e.record.reelId),
       partNumber: toText(e.partNumber) || toText(e.record.partNumber),
       vendor: toText(e.record.vendor) || toText(e.vendorCode),
       lot: toText(e.record.lot),
-      userData1: toText(e.record.userData1),
-      userData2: toText(e.record.userData2),
-      userData3: toText(e.record.userData3),
-      userData4: toText(e.record.userData4),
-      userData5: toText(e.record.userData5),
+      userData1: toText(e.record.userData1) || DEFAULT_USERDATA,
+      userData2: toText(e.record.userData2) || DEFAULT_USERDATA,
+      userData3: toText(e.record.userData3) || DEFAULT_USERDATA,
+      userData4: toText(e.record.userData4) || this.defaultUserData4(e),
+      userData5: toText(e.record.userData5) || toText(e.poCode),
       initialQuantity:
         e.record.initialQuantity === null ||
         e.record.initialQuantity === undefined
@@ -196,6 +201,16 @@ export class VendorLabelSendService {
       manufacturingDate: toText(e.record.manufacturingDate) || null,
       sapCode: toText(e.record.sapCode) || toText(e.sapCode),
     }));
+  }
+
+  /** UD4 mặc định = Mã SAP + "-" + MFG (ddMMyyyy) — như lot-detail-dialog.buildUserData4 */
+  private defaultUserData4(e: SendBoxEntry): string {
+    const mfg = this.parseDate(e.record.manufacturingDate);
+    const ymd = mfg ? this.formatDateYyyyMmDd(mfg).replace(/-/g, "") : "";
+    return buildDefaultUserData4({
+      sapCode: toText(e.record.sapCode) || toText(e.sapCode),
+      manufacturingDate: ymd,
+    });
   }
 
   /** PUT từng thùng với cờ đã gửi → true nếu lưu được hết */
