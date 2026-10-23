@@ -332,6 +332,8 @@ export class ScanImportDialogComponent
   private locationSearchTimer: ReturnType<typeof setTimeout> | null = null;
   private activeLocationTrigger: MatAutocompleteTrigger | null = null;
   private scanLocationSeq = 0;
+  /** Lần gửi ngầm tổng SL thực nhận gần nhất khi ẩn / đóng tab (ms) */
+  private lastUnloadSyncAt = 0;
 
   constructor(
     private dialogRef: MatDialogRef<
@@ -396,6 +398,25 @@ export class ScanImportDialogComponent
     if (this.locationSearchTimer) {
       clearTimeout(this.locationSearchTimer);
       this.locationSearchTimer = null;
+    }
+    // Đóng màn scan → báo BE gửi tổng SL thực nhận sang gateway (ngầm)
+    const deliveryId = this.data.deliveryNotificationId ?? null;
+    if (deliveryId !== null) {
+      this.infoTemNccService.syncScanTotal(deliveryId, "FE_CLOSE");
+    }
+  }
+
+  /** Đóng tab / tải lại trang / đăng xuất (chuyển trang) → gửi ngầm (keepalive) */
+  @HostListener("window:pagehide")
+  onPageHide(): void {
+    this.syncScanTotalOnUnload("FE_PAGEHIDE");
+  }
+
+  /** Ẩn tab / chuyển app (mobile) → gửi ngầm; BE chỉ gửi khi có thay đổi */
+  @HostListener("document:visibilitychange")
+  onVisibilityChange(): void {
+    if (document.visibilityState === "hidden") {
+      this.syncScanTotalOnUnload("FE_HIDDEN");
     }
   }
 
@@ -2233,6 +2254,17 @@ export class ScanImportDialogComponent
     }, 50);
   }
 
+  /** Gửi ngầm khi trang sắp đóng / bị ẩn — tối đa 1 lần / 10 giây */
+  private syncScanTotalOnUnload(trigger: string): void {
+    const deliveryId = this.data.deliveryNotificationId ?? null;
+    const now = Date.now();
+    if (deliveryId === null || now - this.lastUnloadSyncAt < 10000) {
+      return;
+    }
+    this.lastUnloadSyncAt = now;
+    this.infoTemNccService.syncScanTotalOnUnload(deliveryId, trigger);
+  }
+
   /** Báo panel Tổng hợp tải lại */
   private bumpSummary(): void {
     this.summaryRefresh++;
@@ -2360,17 +2392,69 @@ export class ScanImportDialogComponent
       this.notificationService.warning("Quét mã pallet trước khi quét vị trí.");
       return;
     }
-    // Tab Pallet: mọi thùng của pallet đang quét (không động tới pallet khác);
-    // tab Thùng: các thùng lẻ chưa có vị trí
-    const pending: ScanBoxRow[] = onPalletTab
-      ? (this.palletRows.find((p) => p.palletCode === activeCode)?.boxes ?? [])
-      : this.boxRows.filter((b) => !toText(b.location));
+    if (!onPalletTab) {
+      // Tab Thùng: các thùng lẻ chưa có vị trí
+      const pending = this.boxRows
+        .filter((b) => !toText(b.location))
+        .map((row) => ({ record: this.boxRecords.get(row.id), row }));
+      this.applyLocationToBoxes(location, pending, "");
+      return;
+    }
+    // Tab Pallet: mọi thùng của pallet đang quét (không động tới pallet khác) —
+    // gồm cả thùng đã có sẵn trên pallet từ trước (vendorLabelInfoList), không chỉ thùng vừa scan
+    const localBoxes =
+      this.palletRows.find((p) => p.palletCode === activeCode)?.boxes ?? [];
+    this.savingCount++;
+    this.infoTemNccService
+      .getPalletBySerial(activeCode)
+      .pipe(catchError(() => of(null)))
+      .subscribe((pallet) => {
+        this.savingCount--;
+        const pending: Array<{
+          record: VendorLabelInfoDto | undefined;
+          row?: ScanBoxRow;
+        }> = localBoxes.map((row) => ({
+          record: this.boxRecords.get(row.id),
+          row,
+        }));
+        const localIds = new Set(
+          pending.map((p) => p.record?.id).filter((id) => !!id),
+        );
+        for (const rec of pallet?.vendorLabelInfoList ?? []) {
+          if (!rec?.id || localIds.has(rec.id)) {
+            continue;
+          }
+          localIds.add(rec.id);
+          // Thùng đang hiện ở danh sách thùng lẻ → cập nhật luôn dòng đó
+          const row = this.boxRows.find((r) => r.dbId === rec.id);
+          // Ưu tiên bản ghi đã lưu của đơn (đủ deliveryNotificationId / sapPor1Id —
+          // response pallet có thể thiếu); không dùng pendingInfoEdits để khỏi lưu luôn thay đổi chưa "Cập nhật"
+          const record =
+            (row ? this.boxRecords.get(row.id) : undefined) ??
+            this.lastInfoBoxes.find((b) => b.id === rec.id) ??
+            rec;
+          pending.push({ record, row });
+        }
+        this.applyLocationToBoxes(location, pending, activeCode);
+      });
+  }
+
+  /** PUT vị trí cho từng thùng; xong → cập nhật pallet (nếu có) + tải lại panel thông tin */
+  private applyLocationToBoxes(
+    location: string,
+    pending: Array<{
+      record: VendorLabelInfoDto | undefined;
+      row?: ScanBoxRow;
+    }>,
+    palletCode: string,
+  ): void {
     if (!pending.length) {
       this.notificationService.warning(
-        onPalletTab
-          ? `Pallet "${activeCode}" chưa có thùng nào.`
+        palletCode
+          ? `Pallet "${palletCode}" chưa có thùng nào.`
           : "Không có thùng nào chưa gán vị trí.",
       );
+      this.cdr.markForCheck();
       return;
     }
 
@@ -2393,21 +2477,22 @@ export class ScanImportDialogComponent
           `Đã gán vị trí "${location}" cho ${ok} thùng.`,
         );
       }
-      if (onPalletTab && ok) {
-        const pallet = this.palletRows.find((p) => p.palletCode === activeCode);
+      if (palletCode && ok) {
+        const pallet = this.palletRows.find((p) => p.palletCode === palletCode);
         if (pallet) {
           pallet.locationLabel = location;
         }
-        this.setPalletLocation(activeCode, location);
+        this.setPalletLocation(palletCode, location);
       }
       if (ok) {
         this.bumpSummary();
+        // Panel thông tin (LOT) đọc infoRecords → tải lại để không hiện / áp lại vị trí cũ
+        this.loadInfoData();
       }
       this.cdr.markForCheck();
     };
 
-    for (const box of pending) {
-      const record = this.boxRecords.get(box.id);
+    for (const { record, row: box } of pending) {
       if (!record?.id) {
         failed++;
         done();
@@ -2422,14 +2507,18 @@ export class ScanImportDialogComponent
       this.infoTemNccService.updateVendorLabelInfo(body).subscribe({
         next: (saved) => {
           this.savingCount--;
-          this.boxRecords.set(box.id, {
+          const merged: VendorLabelInfoDto = {
             ...body,
             ...(saved ?? {}),
             deliveryNotificationId:
               saved?.deliveryNotificationId ?? body.deliveryNotificationId,
             sapPor1Id: saved?.sapPor1Id ?? body.sapPor1Id,
-          });
-          box.location = location;
+          };
+          if (box) {
+            this.boxRecords.set(box.id, merged);
+            box.location = location;
+          }
+          this.infoRecords.set(record.id, merged);
           // Thùng đang có thay đổi chờ "Cập nhật" → giữ vị trí mới, không ghi đè bằng giá trị cũ
           const pendingEdit = this.pendingInfoEdits.get(record.id);
           if (pendingEdit) {

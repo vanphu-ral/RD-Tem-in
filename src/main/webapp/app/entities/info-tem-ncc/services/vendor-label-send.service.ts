@@ -12,6 +12,7 @@ import {
   generateTemPanacimCsvBlob,
   generateTemPanacimCsvContent,
   TemPanacimExportInput,
+  toPanacimText,
 } from "app/entities/generate-tem-in/receiving-supplies/tem-panacim-export.util";
 import {
   InfoTemNccService,
@@ -170,7 +171,7 @@ export class VendorLabelSendService {
   ): { fileName: string; content: string; rowCount: number } {
     const rows = this.toPanacimRows(entries);
     return {
-      fileName: `CSV_UP_Panacim_${fileTag}_${new Date().toISOString().split("T")[0]}.csv`,
+      fileName: `CSV_UP_Panacim_${this.toSafeFileTag(fileTag)}_${new Date().toISOString().split("T")[0]}.csv`,
       content: generateTemPanacimCsvContent(rows, (date) =>
         this.formatDateYyyyMmDd(date),
       ),
@@ -201,6 +202,18 @@ export class VendorLabelSendService {
       manufacturingDate: toText(e.record.manufacturingDate) || null,
       sapCode: toText(e.record.sapCode) || toText(e.sapCode),
     }));
+  }
+
+  /**
+   * Tag trong tên file: bỏ dấu + thay ký tự không hợp lệ (vd số thông báo "272/KDVT-RĐ" → "272_KDVT-RD").
+   * "/" trong tên file khiến backend ghi vào thư mục con không tồn tại trên share.
+   */
+  private toSafeFileTag(fileTag: string): string {
+    return (
+      toPanacimText(fileTag)
+        .replace(/[^A-Za-z0-9._-]+/g, "_")
+        .replace(/^_+|_+$/g, "") || "ALL"
+    );
   }
 
   /** UD4 mặc định = Mã SAP + "-" + MFG (ddMMyyyy) — như lot-detail-dialog.buildUserData4 */

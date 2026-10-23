@@ -84,6 +84,76 @@
         Scan pallet hoặc thùng của các {{ codeNoun }} đã chọn ở danh sách. Kết
         quả hiển thị ở vùng bên phải.
       </p>
+
+      <!-- Tổng quan phiên: nhìn nhanh các phiếu, kho chuyển, tiến độ -->
+      <div class="we-ov" *ngIf="showOverview">
+        <div class="we-ov-head">
+          <span class="we-ov-title">Tổng quan</span>
+          <span class="we-ov-session" *ngIf="overviewSessionId !== null"
+            >Phiên #{{ overviewSessionId }}</span
+          >
+          <span class="we-ov-badge" *ngIf="overviewSessionStatus">{{
+            overviewSessionStatus
+          }}</span>
+        </div>
+
+        <ng-container *ngIf="overviewTotals as t">
+          <div class="we-ov-stats">
+            <div class="we-ov-stat">
+              <span>Yêu cầu</span>
+              <strong>{{ ws.requests.length }}</strong>
+              <small>{{ t.enough }} đủ SL</small>
+            </div>
+            <div class="we-ov-stat">
+              <span>Thùng</span>
+              <strong>{{ t.boxes | number }}</strong>
+              <small>đã scan</small>
+            </div>
+            <div class="we-ov-stat">
+              <span>Tiến độ</span>
+              <strong [class.ok]="t.percent >= 100">{{ t.percent }}%</strong>
+              <small>{{ t.scanned | number }}/{{ t.required | number }}</small>
+            </div>
+          </div>
+          <div class="we-ov-bar" [class.ok]="t.percent >= 100">
+            <span [style.width.%]="t.percent > 100 ? 100 : t.percent"></span>
+          </div>
+        </ng-container>
+
+        <div class="we-ov-list">
+          <button
+            type="button"
+            class="we-ov-req"
+            *ngFor="let r of ws.requests"
+            [class.ok]="isEnough(r)"
+            (click)="revealRequest(r)"
+          >
+            <div class="we-ov-req-top">
+              <span class="we-ov-code">{{ r.code }}</span>
+              <span class="we-ov-chip">{{ r.items.length }} vật tư</span>
+              <span class="we-ov-state">{{
+                isEnough(r) ? "Đủ SL" : "Chưa đủ"
+              }}</span>
+            </div>
+            <div class="we-ov-route" *ngIf="requestRoute(r) as route">
+              <span class="we-ov-whs">{{ route.from }}</span>
+              <mat-icon>arrow_forward</mat-icon>
+              <span class="we-ov-whs to">{{ route.to }}</span>
+            </div>
+            <div class="we-ov-progress">
+              <div class="we-ov-bar sm" [class.ok]="isEnough(r)">
+                <span [style.width.%]="progressPercent(r)"></span>
+              </div>
+              <span class="we-ov-qty"
+                >{{ progressScanned(r) | number }}/{{ requiredTotal(r) | number
+                }}<ng-container *ngIf="summaryBoxCount(r) !== null">
+                  · {{ summaryBoxCount(r) | number }} thùng</ng-container
+                ></span
+              >
+            </div>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- Cột phải -->
@@ -101,6 +171,7 @@
           <div
             class="we-req"
             *ngFor="let r of ws.requests"
+            [id]="'we-req-' + r.code"
             [class.enough]="isEnough(r)"
           >
             <div class="we-req-head" (click)="toggleRequest(r)">
@@ -108,9 +179,11 @@
               <span class="we-chip" *ngIf="r.sapCode">SAP {{ r.sapCode }}</span>
               <span class="we-chip">{{ r.items.length }} vật tư</span>
               <span class="we-chip"
-                >Tiến độ {{ scannedTotal(r) | number }}/{{
+                >Tiến độ {{ progressScanned(r) | number }}/{{
                   requiredTotal(r) | number
-                }}</span
+                }}<ng-container *ngIf="summaryBoxCount(r) !== null">
+                  · {{ summaryBoxCount(r) | number }} thùng</ng-container
+                ></span
               >
               <span class="we-spacer"></span>
               <button
@@ -192,9 +265,15 @@
                         {{ i.requiredQty | number }}
                         <span class="pl-sub" *ngIf="i.uom">{{ i.uom }}</span>
                       </td>
-                      <td class="num">{{ boxesOf(i).length | number }}</td>
+                      <td class="num">{{ itemBoxCount(r, i) | number }}</td>
                       <td class="num scanned" [attr.data-state]="itemState(i)">
                         {{ i.scannedQty | number }}
+                        <span
+                          class="pl-sub"
+                          *ngIf="priorScanOf(r) as prior"
+                          matTooltip="Đã scan ở các phiên khác của phiếu này"
+                          >{{ prior.qty | number }} ở phiên khác</span
+                        >
                       </td>
                       <td class="num">
                         {{
@@ -703,6 +782,16 @@
       <section class="we-panel we-scanned">
         <div class="we-panel-head">
           <h3>Thông tin đã scan</h3>
+          <button
+            *ngIf="hasSession && (ws.boxes.length || savedBoxCount)"
+            type="button"
+            class="we-del-all"
+            [disabled]="isDeletingBoxes || isCompleting || isCancelling"
+            (click)="onDeleteAllBoxes()"
+          >
+            <mat-icon>delete_sweep</mat-icon>
+            {{ isDeletingBoxes ? "Đang xoá..." : "Xoá tất cả" }}
+          </button>
         </div>
         <div class="we-subtabs">
           <button
@@ -841,6 +930,7 @@
                     type="button"
                     class="we-del"
                     matTooltip="Bỏ thùng"
+                    [disabled]="isDeletingBoxes"
                     (click)="removeBox(b)"
                   >
                     <mat-icon>delete_outline</mat-icon>
@@ -901,6 +991,12 @@
                       *ngIf="b.sent"
                       matTooltip="Đã lưu vào phiên"
                       >Đã lưu</span
+                    >
+                    <span
+                      class="pl-exported"
+                      *ngIf="isBoxExported(b)"
+                      matTooltip="Thùng đang ở kho nhận / đã hết tồn — coi là đã xuất, không xoá được"
+                      >Đã xuất</span
                     >
                     <span class="pl-unsent" *ngIf="!b.sent && isBoxSaving(b)"
                       >Đang lưu...</span
@@ -983,7 +1079,10 @@
                   <button
                     type="button"
                     class="we-del"
-                    matTooltip="Bỏ thùng"
+                    [matTooltip]="
+                      isBoxExported(b) ? 'Đã xuất — không xoá được' : 'Bỏ thùng'
+                    "
+                    [disabled]="isDeletingBoxes || isBoxExported(b)"
                     (click)="removeBox(b)"
                   >
                     <mat-icon>delete_outline</mat-icon>
@@ -1021,6 +1120,7 @@
                     type="button"
                     class="we-del"
                     matTooltip="Bỏ pallet (và các thùng trên pallet)"
+                    [disabled]="isDeletingBoxes"
                     (click)="removePallet(p)"
                   >
                     <mat-icon>delete_outline</mat-icon>
@@ -1092,10 +1192,12 @@
 
   <!-- Footer -->
   <div class="we-footer">
+    <!-- Phiên đã có thùng → ẩn Hủy (xoá hết thùng mới hủy được phiên) -->
     <button
+      *ngIf="canCancelSession"
       type="button"
       class="we-btn cancel"
-      [disabled]="isCompleting || isCancelling"
+      [disabled]="isCompleting || isCancelling || isDeletingBoxes"
       (click)="onCancel()"
     >
       {{ isCancelling ? "Đang hủy..." : "Hủy" }}
@@ -1330,7 +1432,8 @@
             <div class="mx-card-main">
               <div class="mx-loc">{{ r.code }}</div>
               <div class="mx-sub">
-                {{ r.items.length }} vật tư · {{ scannedTotal(r) | number }}/{{
+                {{ r.items.length }} vật tư ·
+                {{ progressScanned(r) | number }}/{{
                   requiredTotal(r) | number
                 }}
               </div>
@@ -1359,13 +1462,7 @@
             }}</mat-icon>
           </div>
           <div class="mx-req-bar">
-            <span
-              [style.width.%]="
-                requiredTotal(r)
-                  ? (scannedTotal(r) / requiredTotal(r)) * 100
-                  : 0
-              "
-            ></span>
+            <span [style.width.%]="progressPercent(r)"></span>
           </div>
 
           <div class="mx-items" *ngIf="isExpanded(r)">
@@ -1404,7 +1501,7 @@
                       : "Thiếu " + (targetQty(i) - i.scannedQty | number)
                   }}</span
                 >
-                <span class="mx-tag">{{ boxesOf(i).length }} thùng</span>
+                <span class="mx-tag">{{ itemBoxCount(r, i) }} thùng</span>
                 <span class="mx-tag" *ngIf="i.warehouseCode || i.toWhsCode"
                   >Kho {{ i.warehouseCode || "?" }} →
                   {{ i.toWhsCode || "?" }}</span
@@ -1551,6 +1648,16 @@
 
     <!-- ===== Tab: Đã scan ===== -->
     <ng-container *ngIf="mobileTab === 'scanned'">
+      <button
+        *ngIf="hasSession && (ws.boxes.length || savedBoxCount)"
+        type="button"
+        class="mx-del-all"
+        [disabled]="isDeletingBoxes || isCompleting || isCancelling"
+        (click)="onDeleteAllBoxes()"
+      >
+        <mat-icon>delete_sweep</mat-icon>
+        {{ isDeletingBoxes ? "Đang xoá..." : "Xoá tất cả thùng" }}
+      </button>
       <div class="mx-bulk" *ngIf="ws.boxes.length">
         <input
           [(ngModel)]="bulkLocation"
@@ -1598,6 +1705,7 @@
           <span class="pl-unsent" *ngIf="isPlanning && !b.sent">Chưa gửi</span>
           <ng-container *ngIf="hasSession">
             <span class="pl-before" *ngIf="b.sent">Đã lưu</span>
+            <span class="pl-exported" *ngIf="isBoxExported(b)">Đã xuất</span>
             <span class="pl-unsent" *ngIf="!b.sent && isBoxSaving(b)"
               >Đang lưu...</span
             >
@@ -1611,6 +1719,7 @@
           <button
             type="button"
             class="mx-del"
+            [disabled]="isDeletingBoxes || isBoxExported(b)"
             (click)="removeBox(b)"
             aria-label="Bỏ thùng"
           >
@@ -1737,10 +1846,10 @@
           {{ isSending ? "Đang gửi..." : "Gửi" }}
         </button>
         <button
-          *ngIf="hasSession"
+          *ngIf="hasSession && canCancelSession"
           type="button"
           class="mx-submit cancel"
-          [disabled]="isCompleting || isCancelling"
+          [disabled]="isCompleting || isCancelling || isDeletingBoxes"
           (click)="onCancel()"
         >
           {{ isCancelling ? "Đang hủy..." : "Hủy" }}

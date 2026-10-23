@@ -69,6 +69,8 @@ interface DnlnvlMaterialDto {
 interface DnlnvlDetailDto {
   detail?: {
     partNumberCode?: string | null;
+    /** Mã part (vd 1N4148W) — khoá nhóm dòng vật tư */
+    partNumberName?: string | null;
     /** SL cần của dòng (requiredQuantity của đề nghị = tổng estReqdQty) */
     estReqdQty?: number | string | null;
     deletedAt?: string | null;
@@ -172,6 +174,48 @@ export const TRANSFER_SESSION_STATUS = {
   COMPLETED: "completed",
 } as const;
 
+/** Nhãn hiển thị trạng thái phiên xuất chuyển kho */
+export const TRANSFER_SESSION_STATUS_LABELS: Record<string, string> = {
+  [TRANSFER_SESSION_STATUS.NEW]: "Mới tạo",
+  [TRANSFER_SESSION_STATUS.EXPORTING]: "Đang xuất",
+  [TRANSFER_SESSION_STATUS.COMPLETED]: "Hoàn thành",
+};
+
+/**
+ * Lọc header danh sách phiên → query param JHipster Criteria (`<trường>.<toán tử>=giá trị`).
+ * Gửi `status=new` trần sẽ bị BE báo 400 (không chuyển được sang StringFilter).
+ * Ngày (yyyy-MM-dd, giờ địa phương) → khoảng [00:00, 00:00 hôm sau) của InstantFilter.
+ * owtqDocEntry: Criteria của BE chưa có trường này → không gửi (lọc ở FE theo trang đang xem).
+ */
+function toSessionCriteria(
+  filters: Record<string, string>,
+): Record<string, string> {
+  const params: Record<string, string> = {};
+  const text = (key: string): string => (filters[key] ?? "").trim();
+  const dayRange = (key: string): void => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text(key));
+    if (!m) {
+      return;
+    }
+    const start = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    params[`${key}.greaterThanOrEqual`] = start.toISOString();
+    params[`${key}.lessThan`] = end.toISOString();
+  };
+  if (text("status")) {
+    params["status.equals"] = text("status");
+  }
+  for (const key of ["note", "createdBy"]) {
+    if (text(key)) {
+      params[`${key}.contains`] = text(key);
+    }
+  }
+  dayRange("createdAt");
+  dayRange("updatedAt");
+  return params;
+}
+
 /** Phiên xuất chuyển kho — 1 phiên gom nhiều phiếu OWTQ */
 export interface WarehouseTransferSessionDto {
   id?: number | null;
@@ -205,8 +249,15 @@ interface WarehouseTransferSessionDetailDto {
   session?: WarehouseTransferSessionDto | null;
   /** Các phiếu của phiên — owtqDocEntry = docEntry của /owtq/{docEntry} */
   owtqSessions?: Array<{ owtqDocEntry?: number | null } | null> | null;
-  /** Các thùng đã scan trong phiên */
-  details?: Array<{ reelId?: string | null } | null> | null;
+  /** Các thùng đã scan trong phiên (id = id bản ghi warehouse-transfer-details) */
+  details?: Array<{ id?: number | null; reelId?: string | null } | null> | null;
+}
+
+/** 1 thùng đã lưu trong phiên */
+export interface TransferSessionBox {
+  /** id bản ghi warehouse-transfer-details — dùng khi xoá thùng */
+  id: number | null;
+  reelId: string;
 }
 
 /** Chi tiết 1 phiên xuất chuyển kho */
@@ -220,6 +271,8 @@ export interface WarehouseTransferSessionDetail {
   requestCodes: string[];
   /** ReelID các thùng đã scan */
   reelIds: string[];
+  /** Các thùng đã lưu trong phiên (kèm id bản ghi) */
+  boxes: TransferSessionBox[];
 }
 
 /** 1 dòng tab Đang xử lý — 1 phiên xuất chuyển kho */
@@ -741,11 +794,26 @@ export class WarehouseExportService {
     pageIndex: number,
     pageSize: number,
     kind: "request" | "planning" = "request",
+    /**
+     * Xuất chuyển kho: lọc theo param của GET /owtq (docEntry, docDate, docDueDate, filler,
+     * toWhsCode, uPurNvGiao, uPurNvNhan, remark). Ô trống không gửi; ngày dạng yyyy-MM-dd.
+     */
+    filters: Record<string, string> = {},
   ): Observable<ExportRequestListPage> {
     if (kind === "request") {
+      const params: Record<string, string | number> = {
+        page: pageIndex,
+        size: pageSize,
+      };
+      for (const [key, value] of Object.entries(filters)) {
+        const v = (value ?? "").trim();
+        if (v) {
+          params[key] = v;
+        }
+      }
       return forkJoin([
         this.http.get<OwtqPageDto>(`${environment.planningSapApiUrl}/owtq`, {
-          params: { page: pageIndex, size: pageSize },
+          params,
         }),
         this.getSapWarehouseNames(),
       ]).pipe(
@@ -858,6 +926,7 @@ export class WarehouseExportService {
   /**
    * Lưu 1 thùng đã scan vào phiên — POST {testApiUrl}/warehouse-transfer-details.
    * Thông tin thùng lấy từ bản ghi /api/inventory (cùng tên trường); SL xuất = quantityOverride.
+   * Trả về id bản ghi vừa tạo (null nếu BE không trả).
    */
   saveTransferDetail(
     sessionId: number,
@@ -865,7 +934,7 @@ export class WarehouseExportService {
     /** Phiếu (owtqDocEntry) + dòng WTQ1 (lineNum) mà thùng được phân vào */
     link: { owtqDocEntry?: number; lineNum?: number },
     user: string,
-  ): Observable<void> {
+  ): Observable<number | null> {
     const raw = box.inventoryRaw ?? {};
     const str = (key: string): string | null => {
       const v = raw[key];
@@ -894,7 +963,8 @@ export class WarehouseExportService {
           expirationDate: str("expirationDate") ?? box.expirationRaw ?? null,
           manufacturingDate: str("manufacturingDate"),
           sapCode: box.materialCode || null,
-          status: "scanned",
+          // Giữ nguyên status của bản ghi tồn kho (3 / 6 / 19) — không ghi giá trị riêng
+          status: str("status"),
           createdBy: user,
           createdAt: now,
           updatedBy: user,
@@ -904,8 +974,34 @@ export class WarehouseExportService {
           warehouseTransferSessionId: sessionId,
           warehouseTransferSession: { id: sessionId },
         })
-        .pipe(map(() => undefined))
+        .pipe(
+          map((res) => {
+            const id = Number((res as { id?: unknown } | null)?.id);
+            return Number.isFinite(id) ? id : null;
+          }),
+        )
     );
+  }
+
+  /**
+   * SL / số thùng đã scan của 1 phiếu (gộp mọi phiên) —
+   * GET /warehouse-transfer-details/summary/{owtqDocEntry}. Lỗi / không có → null.
+   */
+  getTransferDetailSummary(
+    owtqDocEntry: string,
+  ): Observable<TransferDetailSummary | null> {
+    return this.http
+      .get<TransferDetailSummary | null>(
+        `${environment.baseInTemApiUrl}/warehouse-transfer-details/summary/${encodeURIComponent(owtqDocEntry)}`,
+      )
+      .pipe(catchError(() => of(null)));
+  }
+
+  /** Xoá 1 thùng khỏi phiên — DELETE /warehouse-transfer-details/{id} */
+  deleteTransferDetail(id: number): Observable<void> {
+    return this.http
+      .delete(`${environment.baseInTemApiUrl}/warehouse-transfer-details/${id}`)
+      .pipe(map(() => undefined));
   }
 
   /** Danh sách kho (khu vực) — GET /api/location/area (1 lần / phiên) */
@@ -962,16 +1058,13 @@ export class WarehouseExportService {
     /** Lọc theo header (tên param → giá trị); giá trị rỗng không gửi */
     filters: Record<string, string> = {},
   ): Observable<TransferSessionPage> {
-    const params: Record<string, string | number> = {
+    const params: Record<string, string | number | boolean> = {
       page: pageIndex,
       size: pageSize,
+      // Bỏ phiên đã xoá mềm ngay ở BE để phân trang / tổng số đúng
+      "deletedAt.specified": false,
+      ...toSessionCriteria(filters),
     };
-    for (const [key, value] of Object.entries(filters)) {
-      const v = value.trim();
-      if (v) {
-        params[key] = v;
-      }
-    }
     return this.http
       .get<WarehouseTransferSessionPageDto>(
         `${environment.baseInTemApiUrl}/warehouse-transfer-sessions`,
@@ -1044,6 +1137,12 @@ export class WarehouseExportService {
                 .filter(Boolean),
             ),
           ],
+          boxes: (dto.details ?? [])
+            .map((d) => ({
+              id: d?.id ?? null,
+              reelId: (d?.reelId ?? "").trim(),
+            }))
+            .filter((d) => !!d.reelId),
         })),
       );
   }
@@ -1214,8 +1313,9 @@ export class WarehouseExportService {
   }
 
   /**
-   * dnlnvl/full → yêu cầu xuất của WO. Mã part hiển thị tạm = partNumberCode (API không có
-   * tên part) — màn Xuất kho cập nhật thành partNumber của kho khi tra tồn các thùng.
+   * dnlnvl/full → yêu cầu xuất của WO. Nhóm dòng vật tư theo detail.partNumberName (mã part,
+   * vd 1N4148W); dòng thiếu name → theo partNumberCode như cũ (màn Xuất kho thay bằng
+   * partNumber của kho khi tra tồn). partNumberCode vẫn giữ để đối chiếu partId của kho.
    */
   private toPlanningRequest(
     full: DnlnvlFullDto[],
@@ -1233,24 +1333,36 @@ export class WarehouseExportService {
           continue;
         }
         for (const d of dn.details ?? []) {
-          // Mỗi part của dòng đề nghị (detail.partNumberCode) = 1 dòng vật tư;
+          // Mỗi mã part của dòng đề nghị (detail.partNumberName) = 1 dòng vật tư;
           // SL cần = tổng estReqdQty (khớp requiredQuantity của BE)
           const code = text(d?.detail?.partNumberCode);
-          if (!d || !code || d.detail?.deletedAt) {
+          const name = text(d?.detail?.partNumberName);
+          const key = name || code;
+          if (!d || !key || d.detail?.deletedAt) {
             continue;
           }
-          const item = items.get(code) ?? {
-            materialCode: code,
+          const item = items.get(key.toLowerCase()) ?? {
+            materialCode: key,
             materialName: "",
-            partCode: code,
+            partCode: code || undefined,
             altPartCodes: [] as string[],
             requiredQty: 0,
             scannedQty: 0,
             warehouseCode: "",
             reels: [] as ExportPlannedReel[],
           };
+          // Cùng mã part nhưng khác partNumberCode → giữ làm code thay thế để đối chiếu kho
+          if (code && !item.partCode) {
+            item.partCode = code;
+          } else if (
+            code &&
+            code !== item.partCode &&
+            !item.altPartCodes!.includes(code)
+          ) {
+            item.altPartCodes!.push(code);
+          }
           item.requiredQty += Number(d.detail?.estReqdQty) || 0;
-          items.set(code, item);
+          items.set(key.toLowerCase(), item);
           for (const mat of d.materials ?? []) {
             const reelId = text(mat?.materialName);
             if (
@@ -1264,7 +1376,11 @@ export class WarehouseExportService {
             seenReels.add(reelId.toLowerCase());
             // Cuộn có thể là part thay thế (partNumberCode khác part của dòng)
             const reelPart = text(mat.partNumberCode) || code;
-            if (reelPart !== code && !item.altPartCodes!.includes(reelPart)) {
+            if (
+              reelPart &&
+              reelPart !== item.partCode &&
+              !item.altPartCodes!.includes(reelPart)
+            ) {
               item.altPartCodes!.push(reelPart);
             }
             const scannedBefore = Number(mat.scanCheck) === 1;

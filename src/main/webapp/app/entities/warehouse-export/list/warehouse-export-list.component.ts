@@ -22,7 +22,7 @@ import { debounceTime, take } from "rxjs/operators";
 import {
   ExportRequestListPage,
   ExportRequestListRow,
-  TRANSFER_SESSION_STATUS,
+  TRANSFER_SESSION_STATUS_LABELS,
   TransferSessionPage,
   TransferSessionRow,
   WarehouseExportService,
@@ -83,6 +83,36 @@ const EMPTY_SESSION_FILTERS: SessionFilters = {
   updatedAt: "",
 };
 
+/**
+ * Lọc ở header tab Tất cả phiếu (Xuất chuyển kho) → query param của GET /owtq
+ * (key = tên param). Ngày dạng yyyy-MM-dd, text lọc theo chuỗi con (BE).
+ */
+interface RequestFilters {
+  docEntry: string;
+  docDate: string;
+  docDueDate: string;
+  /** Từ kho */
+  filler: string;
+  /** Đến kho */
+  toWhsCode: string;
+  /** Người giao */
+  uPurNvGiao: string;
+  /** Người nhận */
+  uPurNvNhan: string;
+  remark: string;
+}
+
+const EMPTY_REQUEST_FILTERS: RequestFilters = {
+  docEntry: "",
+  docDate: "",
+  docDueDate: "",
+  filler: "",
+  toWhsCode: "",
+  uPurNvGiao: "",
+  uPurNvNhan: "",
+  remark: "",
+};
+
 /** Màn hình hẹp → danh sách dạng card */
 const MOBILE_BREAKPOINT = 768;
 
@@ -95,11 +125,8 @@ interface TabPageCache<T> {
 }
 
 /** Trạng thái phiên (BE) → nhãn hiển thị */
-const SESSION_STATUS_LABELS: Record<string, string> = {
-  [TRANSFER_SESSION_STATUS.NEW]: "Mới tạo",
-  [TRANSFER_SESSION_STATUS.EXPORTING]: "Đang xuất",
-  [TRANSFER_SESSION_STATUS.COMPLETED]: "Hoàn thành",
-};
+const SESSION_STATUS_LABELS: Record<string, string> =
+  TRANSFER_SESSION_STATUS_LABELS;
 
 /**
  * Tab danh sách (chỉ Xuất chuyển kho): Tất cả phiếu (SAP) / Đang xử lý (phiên xuất chuyển kho)
@@ -157,6 +184,8 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
   readonly sessionColumns = SESSION_COLUMNS;
   /** Tab Đang xử lý: lọc ở header (gửi theo param) */
   sessionFilters: SessionFilters = { ...EMPTY_SESSION_FILTERS };
+  /** Lọc header tab Tất cả phiếu (Xuất chuyển kho) */
+  requestFilters: RequestFilters = { ...EMPTY_REQUEST_FILTERS };
   /** Lựa chọn lọc Trạng thái */
   readonly sessionStatusOptions = Object.entries(SESSION_STATUS_LABELS).map(
     ([value, label]) => ({ value, label }),
@@ -202,6 +231,7 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
   private selected = new Set<string>();
   /** Gõ ô lọc → chờ gõ xong mới gọi API */
   private sessionFilter$ = new Subject<void>();
+  private requestFilter$ = new Subject<void>();
   private subscriptions = new Subscription();
   /** Dòng của trang hiện tại / dòng của các chip */
   private pageRows: ExportRequestListRow[] = [];
@@ -236,6 +266,12 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscriptions.add(
       this.sessionFilter$.pipe(debounceTime(400)).subscribe(() => {
+        this.pageIndex = 0;
+        this.loadPage(true);
+      }),
+    );
+    this.subscriptions.add(
+      this.requestFilter$.pipe(debounceTime(400)).subscribe(() => {
         this.pageIndex = 0;
         this.loadPage(true);
       }),
@@ -290,6 +326,30 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  /** Ô lọc header tab Tất cả phiếu: chỉ Xuất chuyển kho (GET /owtq nhận param lọc) */
+  get showRequestFilters(): boolean {
+    return this.config.mode === "request" && this.tab === "all";
+  }
+
+  /** Có đang lọc ở header tab Tất cả phiếu */
+  get hasRequestFilter(): boolean {
+    return (
+      this.showRequestFilters &&
+      Object.values(this.requestFilters).some((v) => v.trim() !== "")
+    );
+  }
+
+  /** Đổi ô lọc header (tab Tất cả phiếu) → tải lại trang đầu theo bộ lọc */
+  onRequestFilterChange(): void {
+    this.requestFilter$.next();
+  }
+
+  clearRequestFilters(): void {
+    this.requestFilters = { ...EMPTY_REQUEST_FILTERS };
+    this.pageIndex = 0;
+    this.loadPage(true);
   }
 
   /** Có đang lọc ở header tab Đang xử lý */
@@ -609,7 +669,7 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
 
   /** Trang đã cache của tab đang mở — đúng trang / cỡ trang hiện tại mới dùng */
   private cachedPage<T>(): TabPageCache<T> | null {
-    if (this.isFilteredSessions()) {
+    if (this.isFilteredSessions() || this.hasRequestFilter) {
       return null;
     }
     const cached = this.exportService.listCache.get(this.cacheKey()) as
@@ -669,14 +729,21 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
             return;
           }
           this.listLoading = false;
-          this.sessionSource.data = page.rows;
+          // Mã phiếu: Criteria BE chưa có → lọc tại FE trong trang vừa tải
+          const owtq = this.sessionFilters.owtqDocEntry.trim().toLowerCase();
+          const rows = owtq
+            ? page.rows.filter((r) =>
+                r.requestCodes.some((c) => c.toLowerCase().includes(owtq)),
+              )
+            : page.rows;
+          this.sessionSource.data = rows;
           // BE chưa trả totalElements → trang đầy thì cho sang trang sau
           this.total =
             page.total ??
             pageIndex * pageSize +
               page.rows.length +
               (page.rows.length === pageSize ? 1 : 0);
-          this.storePage(page.rows, this.total);
+          this.storePage(rows, this.total);
         },
         error: () => {
           this.listLoading = false;
@@ -711,6 +778,7 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
             this.pageIndex,
             this.pageSize,
             this.config.mode,
+            this.showRequestFilters ? { ...this.requestFilters } : {},
           )
         : this.exportService.getExportTrackingList(
             tab,

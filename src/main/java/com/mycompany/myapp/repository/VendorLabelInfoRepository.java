@@ -47,4 +47,29 @@ public interface VendorLabelInfoRepository
     List<VendorLabelInfoUserData5SumDTO> sumInitialQuantityByUserData5(
         @Param("userData5") String userData5
     );
+
+    /**
+     * Tổng {@code initial_quantity} theo dòng PO (sap_por1_id) của 1 đơn giao hàng —
+     * SL thực nhận gửi gateway. Mỗi phần tử: [sapPor1Id (Long), tổng (Long)].
+     */
+    @Query(
+        "select v.sapPor1.id, sum(coalesce(v.initialQuantity, 0))" +
+        " from VendorLabelInfo v" +
+        " where v.deliveryNotification.id = :deliveryNotificationId" +
+        " and v.sapPor1 is not null" +
+        " group by v.sapPor1.id"
+    )
+    List<Object[]> sumInitialQuantityBySapPor1(
+        @Param("deliveryNotificationId") Long deliveryNotificationId
+    );
+
+    /** Id các đơn giao hàng có thùng tạo / sửa từ thời điểm {@code since} (nạp lại khi khởi động) */
+    @Query(
+        "select distinct v.deliveryNotification.id from VendorLabelInfo v" +
+        " where v.deliveryNotification is not null" +
+        " and (v.createdAt >= :since or v.updatedAt >= :since)"
+    )
+    List<Long> findDeliveryNotificationIdsChangedSince(
+        @Param("since") java.time.Instant since
+    );
 }
