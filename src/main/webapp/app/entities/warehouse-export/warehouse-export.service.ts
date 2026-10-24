@@ -249,8 +249,24 @@ interface WarehouseTransferSessionDetailDto {
   session?: WarehouseTransferSessionDto | null;
   /** Các phiếu của phiên — owtqDocEntry = docEntry của /owtq/{docEntry} */
   owtqSessions?: Array<{ owtqDocEntry?: number | null } | null> | null;
-  /** Các thùng đã scan trong phiên (id = id bản ghi warehouse-transfer-details) */
-  details?: Array<{ id?: number | null; reelId?: string | null } | null> | null;
+  /** Các thùng đã scan trong phiên (bản ghi warehouse-transfer-details) */
+  details?: Array<WarehouseTransferDetailDto | null> | null;
+}
+
+/** Bản ghi warehouse-transfer-details (chỉ các trường dùng tới) */
+interface WarehouseTransferDetailDto {
+  id?: number | null;
+  reelId?: string | null;
+  partNumber?: string | null;
+  lot?: string | null;
+  /** SL xuất đã lưu */
+  quantityOverride?: number | null;
+  /** Vị trí chuyển đến đã chọn */
+  locationOverride?: string | null;
+  sapCode?: string | null;
+  expirationDate?: string | null;
+  manufacturingDate?: string | null;
+  owtqDocEntry?: number | null;
 }
 
 /** 1 thùng đã lưu trong phiên */
@@ -258,6 +274,17 @@ export interface TransferSessionBox {
   /** id bản ghi warehouse-transfer-details — dùng khi xoá thùng */
   id: number | null;
   reelId: string;
+  /** SL xuất đã lưu (quantityOverride) */
+  quantity: number;
+  /** Vị trí chuyển đến đã lưu (locationOverride) */
+  location: string;
+  lot: string;
+  partNumber: string;
+  /** Mã vật tư SAP */
+  sapCode: string;
+  /** Giá trị gốc đã lưu (epoch / chuỗi) */
+  expirationDate: string;
+  manufacturingDate: string;
 }
 
 /** Chi tiết 1 phiên xuất chuyển kho */
@@ -638,6 +665,31 @@ export class WarehouseExportService {
     return this.getDnlnvlFull(wo).pipe(
       map((full) => (full ? this.toPlanningRequest(full, wo) : null)),
     );
+  }
+
+  /**
+   * Thùng đã lưu trong phiên nhưng không còn tra được trong kho (đã xuất / đã dùng) →
+   * dựng lại từ bản ghi warehouse-transfer-details để vẫn hiện ở "Thông tin đã scan".
+   * Tồn = 0, vị trí = vị trí chuyển đến đã lưu.
+   */
+  sessionBoxToScannedBox(b: TransferSessionBox): ExportScannedBox {
+    return {
+      reelId: b.reelId,
+      materialCode: b.sapCode,
+      quantity: b.quantity,
+      lot: b.lot,
+      mfgDate: this.formatInventoryDate(b.manufacturingDate),
+      palletCode: "",
+      location: b.location,
+      inventoryQty: 0,
+      expirationDate: this.formatInventoryDate(b.expirationDate),
+      inventoryStatus: "Không còn trong kho",
+      partNumber: b.partNumber || undefined,
+      expirationRaw: b.expirationDate,
+      sent: true,
+      // Không biết vị trí trước khi xuất — đặt rỗng để không xoá ô vị trí chuyển đến
+      sourceLocation: "",
+    };
   }
 
   /**
@@ -1138,10 +1190,19 @@ export class WarehouseExportService {
             ),
           ],
           boxes: (dto.details ?? [])
-            .map((d) => ({
-              id: d?.id ?? null,
-              reelId: (d?.reelId ?? "").trim(),
-            }))
+            .map(
+              (d): TransferSessionBox => ({
+                id: d?.id ?? null,
+                reelId: (d?.reelId ?? "").trim(),
+                quantity: Number(d?.quantityOverride) || 0,
+                location: (d?.locationOverride ?? "").trim(),
+                lot: (d?.lot ?? "").trim(),
+                partNumber: (d?.partNumber ?? "").trim(),
+                sapCode: (d?.sapCode ?? "").trim(),
+                expirationDate: (d?.expirationDate ?? "").trim(),
+                manufacturingDate: (d?.manufacturingDate ?? "").trim(),
+              }),
+            )
             .filter((d) => !!d.reelId),
         })),
       );

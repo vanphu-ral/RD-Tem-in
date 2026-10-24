@@ -662,30 +662,22 @@
                         </td>
                       </tr>
 
-                      <!-- Từng thùng Planning ↔ Kho (kho: chỉ có sau khi scan) -->
+                      <!-- Từng thùng khuyến nghị (Đối chiếu: Đã scan theo scanCheck / kết quả tra kho khi scan) -->
                       <tr *ngIf="isNodeOpen(r, p.key)" class="pl-detail-row">
                         <td colspan="10">
                           <table class="we-table pl-reels">
                             <thead>
                               <tr>
-                                <th rowspan="2" class="pl-check"></th>
-                                <th rowspan="2">ReelID</th>
-                                <th colspan="2" class="pl-src">Planning</th>
-                                <th colspan="2" class="pl-inv">
-                                  Kho (Inventory)
-                                </th>
-                                <th rowspan="2">Đối chiếu</th>
-                              </tr>
-                              <tr>
-                                <th class="pl-src">Mã part</th>
-                                <th class="num pl-src">SL</th>
-                                <th class="pl-inv">Trạng thái</th>
-                                <th class="pl-inv">Vị trí</th>
+                                <th class="pl-check"></th>
+                                <th>ReelID</th>
+                                <th>Mã part</th>
+                                <th class="num">Số lượng</th>
+                                <th>Đối chiếu</th>
                               </tr>
                             </thead>
                             <tbody>
                               <tr *ngIf="!p.reels.length">
-                                <td colspan="7" class="pl-none">
+                                <td colspan="5" class="pl-none">
                                   Planning chưa chỉ định thùng nào cho part này.
                                 </td>
                               </tr>
@@ -701,16 +693,8 @@
                                       : "check_box_outline_blank"
                                   }}</mat-icon>
                                 </td>
+                                <td class="mono">{{ x.reelId }}</td>
                                 <td class="mono">
-                                  {{ x.reelId }}
-                                  <span
-                                    class="pl-before"
-                                    *ngIf="x.scannedBefore"
-                                    matTooltip="BE đã ghi nhận scan (scanCheck = 1)"
-                                    >Đã scan trước</span
-                                  >
-                                </td>
-                                <td class="mono pl-src">
                                   {{ x.partCode || p.item.materialCode }}
                                   <span
                                     class="pl-sub"
@@ -721,40 +705,9 @@
                                     >Part thay thế</span
                                   >
                                 </td>
-                                <td class="num pl-src">
+                                <td class="num">
                                   {{ x.quantity | number }}
                                 </td>
-                                <ng-container
-                                  *ngIf="x.inventory as inv; else noInv"
-                                >
-                                  <td class="pl-inv">
-                                    {{ inv.status || "—" }}
-                                  </td>
-                                  <td class="pl-inv">
-                                    {{ inv.location || "—" }}
-                                    <span
-                                      class="pl-sub"
-                                      *ngIf="
-                                        areaOf(
-                                          inv.locationId,
-                                          inv.location
-                                        ) as a
-                                      "
-                                      >{{ a.areaName }}</span
-                                    >
-                                  </td>
-                                </ng-container>
-                                <ng-template #noInv>
-                                  <td colspan="2" class="pl-inv pl-none">
-                                    {{
-                                      x.inventoryError
-                                        ? "Không tra được tồn kho"
-                                        : x.inventory === null
-                                          ? "Không có trong kho"
-                                          : "Chưa scan"
-                                    }}
-                                  </td>
-                                </ng-template>
                                 <td>
                                   <span
                                     class="pl-badge"
@@ -1001,13 +954,6 @@
                     <span class="pl-unsent" *ngIf="!b.sent && isBoxSaving(b)"
                       >Đang lưu...</span
                     >
-                    <span
-                      class="pl-unsent retry"
-                      *ngIf="!b.sent && !isBoxSaving(b)"
-                      matTooltip="Lưu lỗi — bấm để thử lại"
-                      (click)="saveSessionBoxes()"
-                      >Chưa lưu</span
-                    >
                   </ng-container>
                 </td>
                 <td class="mono">{{ b.materialCode }}</td>
@@ -1019,6 +965,7 @@
                     type="number"
                     min="1"
                     [max]="b.inventoryQty ?? null"
+                    [disabled]="isBoxExported(b)"
                     [class.invalid]="qtyError(b)"
                     [ngModel]="b.quantity"
                     (ngModelChange)="onBoxQtyChange(b, $event)"
@@ -1063,6 +1010,7 @@
                   <input
                     class="we-cell-input loc"
                     [class.invalid]="locationIssue(b)"
+                    [disabled]="isBoxExported(b)"
                     [(ngModel)]="b.location"
                     [matAutocomplete]="locAuto"
                     (ngModelChange)="onLocationSearch($event, b)"
@@ -1709,12 +1657,6 @@
             <span class="pl-unsent" *ngIf="!b.sent && isBoxSaving(b)"
               >Đang lưu...</span
             >
-            <span
-              class="pl-unsent retry"
-              *ngIf="!b.sent && !isBoxSaving(b)"
-              (click)="saveSessionBoxes()"
-              >Chưa lưu</span
-            >
           </ng-container>
           <button
             type="button"
@@ -1782,6 +1724,7 @@
               inputmode="numeric"
               min="1"
               [class.invalid]="qtyError(b)"
+              [disabled]="isBoxExported(b)"
               [ngModel]="b.quantity"
               (ngModelChange)="onBoxQtyChange(b, $event)"
             />
@@ -1790,6 +1733,7 @@
             <span>{{ isPlanning ? "Vị trí" : "Vị trí chuyển đến" }}</span>
             <input
               [class.invalid]="locationIssue(b)"
+              [disabled]="isBoxExported(b)"
               [(ngModel)]="b.location"
               [matAutocomplete]="locAutoM"
               (ngModelChange)="onLocationSearch($event, b)"

@@ -44,6 +44,7 @@ import {
 import {
   TRANSFER_SESSION_STATUS,
   TRANSFER_SESSION_STATUS_LABELS,
+  TransferSessionBox,
   WarehouseExportService,
 } from "./warehouse-export.service";
 import { ExportHistoryDialogComponent } from "./export-history-dialog/export-history-dialog.component";
@@ -122,6 +123,7 @@ type ScannedTab = "box" | "pallet";
 
 /** Đối chiếu 1 thùng khuyến nghị (Planning) với tồn kho (Inventory) */
 type ReelReadiness =
+  | "scanned"
   | "unchecked"
   | "error"
   | "missing"
@@ -131,6 +133,8 @@ type ReelReadiness =
   | "ready";
 
 const READINESS_LABELS: Record<ReelReadiness, string> = {
+  // BE đã ghi nhận scan (dnlnvl/full: materials[].scanCheck = 1)
+  scanned: "Đã scan",
   // Chưa scan → chưa tra /inventory (SL theo Planning = SL tồn của thùng)
   unchecked: "Chưa scan",
   error: "Lỗi tra cứu",
@@ -328,6 +332,8 @@ export class WarehouseExportDialogComponent
    * → coi như đã xuất (không xoá được), key = reelId viết thường.
    */
   private unrestoredReelKeys = new Set<string>();
+  /** Bản ghi thùng đã lưu của phiên (từ chi tiết phiên) — dựng lại thùng khi mở lại phiên */
+  private sessionBoxes = new Map<string, TransferSessionBox>();
   /**
    * Xuất chuyển kho: SL / số thùng đã scan của phiếu ở CÁC PHIÊN KHÁC (không có trên màn hình) =
    * summary BE (gộp mọi phiên) − thùng đã lưu của phiên đang mở, chốt lúc tải summary.
@@ -463,6 +469,10 @@ export class WarehouseExportDialogComponent
 
   /** Đối chiếu thùng khuyến nghị (Planning) với kho (Inventory) */
   reelReadiness(i: ExportRequestItem, reel: ExportPlannedReel): ReelReadiness {
+    // scanCheck = 1 → đã scan, không cần đối chiếu kho nữa
+    if (reel.scannedBefore) {
+      return "scanned";
+    }
     if (reel.inventoryError) {
       return "error";
     }
@@ -1341,8 +1351,11 @@ export class WarehouseExportDialogComponent
       return;
     }
     this.bulkLocation = location;
+    // Thùng đã xuất giữ nguyên vị trí đã chuyển đến
     for (const b of this.ws.boxes) {
-      b.location = location;
+      if (!this.isBoxExported(b)) {
+        b.location = location;
+      }
     }
     for (const pallet of this.ws.pallets) {
       pallet.location = location;
@@ -1806,7 +1819,7 @@ export class WarehouseExportDialogComponent
   /**
    * Xuất chuyển kho theo phiên: tự lưu ngay sau khi scan (thùng / pallet) —
    * POST /warehouse-transfer-details từng thùng chưa lưu (song song có giới hạn).
-   * Thùng lỗi giữ "Chưa lưu" → lần scan sau tự thử lại, hoặc bấm nhãn để thử lại.
+   * Thùng lưu lỗi → bỏ khỏi danh sách, báo người dùng scan lại thùng đó.
    */
   saveSessionBoxes(): void {
     const sessionId = this.dialogData?.sessionId;
@@ -1859,9 +1872,11 @@ export class WarehouseExportDialogComponent
         }
         const failed = results.filter((r) => !r.ok).map((r) => r.box.reelId);
         if (failed.length) {
+          // Không giữ thùng lưu lỗi trên bảng — người dùng scan lại thùng đó
+          this.removeLocalBoxes(failed);
           this.notificationService.error(
             `Không lưu được ${failed.length} thùng vào phiên: ${failed.slice(0, 5).join(", ")}` +
-              `${failed.length > 5 ? "…" : ""} — bấm "Chưa lưu" để thử lại.`,
+              `${failed.length > 5 ? "…" : ""} — đã bỏ khỏi danh sách, vui lòng scan lại.`,
           );
         }
         this.cdr.markForCheck();
@@ -2311,6 +2326,9 @@ export class WarehouseExportDialogComponent
         this.isBusy = false;
         this.session = detail.session as TransferSessionRecord | null;
         this.setSavedDetails(detail.boxes);
+        this.sessionBoxes = new Map(
+          detail.boxes.map((b) => [this.reelKey(b.reelId), b]),
+        );
         const codes = detail.requestCodes.length
           ? detail.requestCodes
           : fallbackCodes;
@@ -2473,20 +2491,40 @@ export class WarehouseExportDialogComponent
         // Thùng của phiên đã lưu ở BE → không gửi lại
         found.forEach((b) => (b.sent = true));
         this.prepareTransferBoxes(found);
+        // Khôi phục SL xuất / vị trí chuyển đến đã lưu của phiên
+        for (const b of found) {
+          const saved = this.sessionBoxes.get(this.reelKey(b.reelId));
+          if (saved?.quantity) {
+            b.quantity = saved.quantity;
+          }
+          if (saved?.location && !b.location) {
+            b.location = saved.location;
+          }
+        }
         const missing = ids.filter((id) => !byId.get(id));
+        // Không còn trong kho (đã xuất / đã dùng) → dựng từ bản ghi đã lưu, vẫn hiện ở bảng
+        const rebuilt = missing
+          .map((id) => this.sessionBoxes.get(this.reelKey(id)))
+          .filter((b): b is TransferSessionBox => !!b)
+          .map((b) => this.exportService.sessionBoxToScannedBox(b));
+        this.prepareTransferBoxes(rebuilt);
         if (this.hasSession) {
           missing.forEach((id) =>
             this.unrestoredReelKeys.add(this.reelKey(id)),
           );
         }
-        if (found.length) {
-          this.ws.boxes = [...this.ws.boxes, ...found];
+        const restored = [...found, ...rebuilt];
+        if (restored.length) {
+          this.ws.boxes = [...this.ws.boxes, ...restored];
           this.scannedTab = "box";
           this.recalcScanned();
         }
-        if (missing.length) {
+        const lost = missing.length - rebuilt.length;
+        if (lost > 0) {
           this.notificationService.warning(
-            `Không tra được ${missing.length} thùng đã scan của phiên: ${missing.join(", ")}.`,
+            `Không tra được ${lost} thùng đã scan của phiên: ${missing
+              .filter((id) => !this.sessionBoxes.has(this.reelKey(id)))
+              .join(", ")}.`,
           );
         }
         this.cdr.markForCheck();

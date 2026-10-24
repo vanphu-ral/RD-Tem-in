@@ -975,6 +975,11 @@ $mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     background: #f1f5f9;
     color: #475569;
   }
+
+  &[data-state="scanned"] {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
 }
 
 /* Nút Gợi ý lấy hàng theo vị trí */
