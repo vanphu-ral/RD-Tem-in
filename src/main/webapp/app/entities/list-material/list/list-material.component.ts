@@ -60,7 +60,7 @@ import {
   faCircleExclamation,
   faWarehouse,
 } from "@fortawesome/free-solid-svg-icons";
-import { extractReelIdFromScan } from "../services/scan-code.util";
+import { extractReelIdBeforeHash } from "../services/scan-code.util";
 
 interface sumary_mode {
   value: string;
@@ -728,8 +728,8 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
       this.scanTimeoutId = null;
     }
 
-    const code = extractReelIdFromScan(rawValue).toLowerCase();
-    if (!code) {
+    const code = extractReelIdBeforeHash(rawValue).toLowerCase();
+    if (!rawValue.trim()) {
       this.openError("Không nhận diện được mã vật tư!");
       this.exitScanMode();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -740,8 +740,11 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isScanMode = false;
     this.scanPending = true;
 
+    // ReelID trước dấu # → không có thì tra tem NCC theo nguyên chuỗi scan
     this.materialService
-      .getInventoryScanById(code)
+      .lookupInventoryByScan(rawValue, (id) =>
+        this.materialService.getInventoryScanById(id.toLowerCase()),
+      )
       .pipe(
         takeUntil(this.ngUnsubscribe),
         finalize(() => {
@@ -750,7 +753,7 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
         }),
       )
       .subscribe({
-        next: (raw) => {
+        next: ({ item: raw, reelId, viaLabel }) => {
           if (raw) {
             this.dataSource.data = this.materialService.mergeChecked([raw]);
             this.length = 1;
@@ -760,7 +763,11 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
               this.playAlertSoundSuccess();
             }, 500);
           } else {
-            this.openError(`Không tìm thấy vật tư: ${code}`);
+            this.openError(
+              viaLabel
+                ? `Thùng ${reelId} có tem NCC nhưng không có trong kho.`
+                : `Không tìm thấy vật tư: ${code || rawValue.trim()}`,
+            );
             setTimeout(() => {
               this.playAlertSound();
             }, 500);

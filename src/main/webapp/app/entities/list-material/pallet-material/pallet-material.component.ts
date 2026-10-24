@@ -9,7 +9,7 @@ import {
 } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { forkJoin, from, Observable, of, take } from "rxjs";
-import { catchError, map, switchMap } from "rxjs/operators";
+import { catchError, map, shareReplay, switchMap } from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
 import { NotificationService } from "../services/notification.service";
 import { WarehouseCacheService } from "../services/warehouse-cache.service";
@@ -481,6 +481,9 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     }
     const serial = this.selectedSerial;
     const tasks: Array<Observable<boolean>> = [];
+    // Thùng không có palletBoxMappingId trong chi tiết pallet → tra GET /pallet-box-mappings (1 lần)
+    const mappings$ = this.lazyBoxMappings();
+    const unresolved: string[] = [];
 
     for (const r of this.rows) {
       if (r.pendingAdd) {
@@ -490,13 +493,15 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
         continue;
       }
       if (r.pendingRemove) {
-        const mappingId = Number(
-          r.record?.palletBoxMapping?.id ?? r.record?.palletBoxMappingId ?? 0,
-        );
         tasks.push(
-          mappingId > 0
-            ? this.safe(this.palletService.removeBoxFromPallet(mappingId))
-            : of(false),
+          this.removeRowFromPallet(serial, r, mappings$).pipe(
+            map((res): boolean => {
+              if (res === "notFound") {
+                unresolved.push(r.reelId || r.key);
+              }
+              return res === true;
+            }),
+          ),
         );
         continue;
       }
@@ -556,6 +561,13 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       } else {
         this.notificationService.warning(
           `Cập nhật ${ok}/${results.length} thao tác, ${failed} thao tác lỗi.`,
+        );
+      }
+      if (unresolved.length) {
+        this.notificationService.error(
+          `Không tìm thấy liên kết pallet để gỡ ${unresolved.length} thùng: ${unresolved
+            .slice(0, 5)
+            .join(", ")}${unresolved.length > 5 ? "…" : ""}`,
         );
       }
       this.pendingPalletLocation = null;
@@ -618,8 +630,8 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
         this.detail = detail;
         // Cập nhật luôn số thùng / tổng SL của thẻ pallet đang mở
         this.applySummary(summarizePallet(serial, detail));
-        this.rows = (detail?.vendorLabelInfoList ?? []).map((b) =>
-          this.toRow(b),
+        this.rows = (detail?.vendorLabelInfoList ?? []).map((b, i) =>
+          this.toRow(b, i),
         );
         if (!detail) {
           this.notificationService.warning(
@@ -1100,10 +1112,16 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     );
   }
 
-  private toRow(b: PalletBoxRecord): BoxRow {
-    const reelId = String(b.reelId ?? "");
+  private toRow(b: PalletBoxRecord, index = 0): BoxRow {
+    // Thùng chỉ có liên kết pallet (không có tem NCC): ReelID lấy từ mapping
+    const reelId = String(b.reelId ?? b.palletBoxMapping?.reelIdBox ?? "");
+    const mappingId = this.mappingIdOf(b);
     return {
-      key: `box-${b.id}`,
+      key: b.id
+        ? `box-${b.id}`
+        : mappingId
+          ? `map-${mappingId}`
+          : `row-${index}-${reelId}`,
       record: b,
       reelId,
       partNumber: String(b.partNumber ?? "") || "—",
@@ -1174,8 +1192,9 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     if (!d) {
       return;
     }
+    const mappings$ = this.lazyBoxMappings();
     const tasks: Array<Observable<boolean>> = rows.map((r) =>
-      r.record ? this.exportOneBox(r.record) : of(false),
+      this.exportOneBox(serial, r, mappings$),
     );
     if (rows.length >= this.activeRows.length) {
       tasks.push(
@@ -1220,22 +1239,76 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
    * Xuất hàng 1 thùng: gỡ khỏi pallet (DELETE /pallet-box-mappings/{mappingId})
    * rồi đặt số lượng = 0 (PUT /vendor-label-infos/{id}). Gỡ lỗi thì không đổi số lượng.
    */
-  private exportOneBox(box: PalletBoxRecord): Observable<boolean> {
-    const mappingId = Number(
-      box.palletBoxMapping?.id ?? box.palletBoxMappingId ?? 0,
+  private exportOneBox(
+    serial: string,
+    r: BoxRow,
+    mappings$: Observable<PalletBoxMappingRow[]>,
+  ): Observable<boolean> {
+    const box = r.record;
+    return this.removeRowFromPallet(serial, r, mappings$).pipe(
+      switchMap((removed): Observable<boolean> => {
+        if (removed !== true) {
+          return of(false);
+        }
+        // Thùng chỉ có mapping (không có tem NCC) → không có bản ghi để đặt SL = 0
+        if (!box?.id) {
+          return of(true);
+        }
+        return this.palletService.updateBox({
+          ...box,
+          initialQuantity: 0,
+          palletBoxMappingId: null,
+        });
+      }),
+      catchError(() => of(false)),
     );
-    const remove$: Observable<boolean> =
-      mappingId > 0
-        ? this.palletService.removeBoxFromPallet(mappingId)
-        : of(true);
-    return remove$.pipe(
+  }
+
+  /** id liên kết pallet–thùng có sẵn trong chi tiết pallet (0 = không có) */
+  private mappingIdOf(b: PalletBoxRecord | null | undefined): number {
+    return Number(b?.palletBoxMapping?.id ?? b?.palletBoxMappingId ?? 0) || 0;
+  }
+
+  /** GET /pallet-box-mappings — chỉ gọi khi cần, dùng chung trong 1 lần cập nhật */
+  private lazyBoxMappings(): Observable<PalletBoxMappingRow[]> {
+    return this.palletService.getBoxMappings().pipe(
+      catchError(() => of([] as PalletBoxMappingRow[])),
+      shareReplay(1),
+    );
+  }
+
+  /**
+   * Gỡ 1 thùng khỏi pallet: DELETE /pallet-box-mappings/{id}. id lấy từ chi tiết pallet; không có
+   * (API chi tiết trả palletBoxMappingId = null) → tra theo serialPallet + ReelID.
+   * true = đã gỡ, false = lỗi API, "notFound" = không tìm thấy liên kết.
+   */
+  private removeRowFromPallet(
+    serial: string,
+    r: BoxRow,
+    mappings$: Observable<PalletBoxMappingRow[]>,
+  ): Observable<boolean | "notFound"> {
+    const direct = this.mappingIdOf(r.record);
+    const reel = r.reelId.trim().toLowerCase();
+    const id$: Observable<number> =
+      direct > 0
+        ? of(direct)
+        : mappings$.pipe(
+            map(
+              (list) =>
+                list.find(
+                  (m) =>
+                    (m.serialPallet ?? "").trim() === serial.trim() &&
+                    !!reel &&
+                    (m.reelIdBox ?? "").trim().toLowerCase() === reel,
+                )?.id ?? 0,
+            ),
+          );
+    return id$.pipe(
       switchMap(
-        (): Observable<boolean> =>
-          this.palletService.updateBox({
-            ...box,
-            initialQuantity: 0,
-            palletBoxMappingId: null,
-          }),
+        (id): Observable<boolean | "notFound"> =>
+          id > 0
+            ? this.palletService.removeBoxFromPallet(id)
+            : of("notFound" as const),
       ),
       catchError(() => of(false)),
     );

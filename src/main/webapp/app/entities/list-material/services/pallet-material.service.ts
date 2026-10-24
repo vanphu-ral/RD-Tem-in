@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { EMPTY, from, Observable, of, throwError } from "rxjs";
-import { catchError, map, mergeMap } from "rxjs/operators";
+import { catchError, map, mergeMap, switchMap } from "rxjs/operators";
 import { environment } from "app/environments/environment.development";
 import { PalletMngtService } from "app/entities/pallet-management/list/pallet-mngt.service";
 
@@ -161,20 +161,18 @@ export class PalletMaterialService {
       .pipe(map((rows) => (Array.isArray(rows) ? rows : [])));
   }
 
-  /** Không tồn tại (404 / rỗng) → null */
+  /**
+   * Chi tiết pallet để thao tác (gỡ / xuất / đổi vị trí). Không tồn tại (404 / rỗng) → null.
+   * Chuẩn hoá thùng vì API chi tiết trả thiếu:
+   *  - thùng có tem NCC nhưng palletBoxMappingId = null → tra GET /pallet-box-mappings
+   *    theo serialPallet + ReelID để có id gỡ (DELETE /pallet-box-mappings/{id});
+   *  - thùng chỉ có liên kết (không có tem NCC: id / reelId = null) → reelId lấy từ
+   *    palletBoxMapping.reelIdBox, id = -mappingId (id tạm, chỉ để phân biệt các dòng).
+   */
   getPalletDetail(serial: string): Observable<PalletMngtDetail | null> {
-    return this.http
-      .get<PalletMngtDetail | null>(
-        `${this.url}/pallet-mngts/serial-pallet/${encodeURIComponent(serial.trim())}`,
-      )
-      .pipe(
-        map((res) => (res && res.id ? res : null)),
-        catchError((err: unknown) =>
-          err instanceof HttpErrorResponse && err.status === 404
-            ? of(null)
-            : throwError(() => err),
-        ),
-      );
+    return this.fetchPalletDetail(serial).pipe(
+      switchMap((detail) => (detail ? this.withBoxMappings(detail) : of(null))),
+    );
   }
 
   /**
@@ -188,7 +186,7 @@ export class PalletMaterialService {
     return from(serials).pipe(
       mergeMap(
         (serial) =>
-          this.getPalletDetail(serial).pipe(
+          this.fetchPalletDetail(serial).pipe(
             map((detail) => summarizePallet(serial, detail)),
             catchError(() => EMPTY),
           ),
@@ -238,10 +236,75 @@ export class PalletMaterialService {
 
   /** PUT /vendor-label-infos/{id} — gửi lại nguyên bản ghi thùng */
   updateBox(box: PalletBoxRecord): Observable<boolean> {
+    // Thùng chỉ có liên kết pallet (id tạm ≤ 0, không có tem NCC) → không có bản ghi để PUT
+    if (!(Number(box.id) > 0)) {
+      return of(true);
+    }
     const body: Record<string, unknown> = { ...box };
     delete body["palletBoxMapping"];
     return this.http
       .put<unknown>(`${this.url}/vendor-label-infos/${box.id}`, body)
       .pipe(map((): boolean => true));
+  }
+
+  /** GET /pallet-mngts/serial-pallet/{serial} — dữ liệu gốc (404 / rỗng → null) */
+  private fetchPalletDetail(
+    serial: string,
+  ): Observable<PalletMngtDetail | null> {
+    return this.http
+      .get<PalletMngtDetail | null>(
+        `${this.url}/pallet-mngts/serial-pallet/${encodeURIComponent(serial.trim())}`,
+      )
+      .pipe(
+        map((res) => (res && res.id ? res : null)),
+        catchError((err: unknown) =>
+          err instanceof HttpErrorResponse && err.status === 404
+            ? of(null)
+            : throwError(() => err),
+        ),
+      );
+  }
+
+  /** Điền ReelID / id liên kết còn thiếu của các thùng trong chi tiết pallet */
+  private withBoxMappings(
+    detail: PalletMngtDetail,
+  ): Observable<PalletMngtDetail> {
+    const mappingIdOf = (b: PalletBoxRecord): number =>
+      Number(b.palletBoxMapping?.id ?? b.palletBoxMappingId ?? 0) || 0;
+    const boxes: PalletBoxRecord[] = (detail.vendorLabelInfoList ?? []).map(
+      (b) => {
+        const mappingId = mappingIdOf(b);
+        return {
+          ...b,
+          reelId: b.reelId ?? b.palletBoxMapping?.reelIdBox ?? null,
+          id: b.id ?? (mappingId ? -mappingId : 0),
+        };
+      },
+    );
+    const needLookup = boxes.some((b) => !mappingIdOf(b) && !!b.reelId);
+    if (!needLookup) {
+      return of({ ...detail, vendorLabelInfoList: boxes });
+    }
+    const serial = (detail.serialPallet ?? "").trim();
+    return this.getBoxMappings().pipe(
+      catchError(() => of([] as PalletBoxMappingRow[])),
+      map((mappings) => {
+        const byReel = new Map(
+          mappings
+            .filter((m) => (m.serialPallet ?? "").trim() === serial)
+            .map((m) => [(m.reelIdBox ?? "").trim().toLowerCase(), m.id]),
+        );
+        return {
+          ...detail,
+          vendorLabelInfoList: boxes.map((b) => {
+            if (mappingIdOf(b)) {
+              return b;
+            }
+            const id = byReel.get((b.reelId ?? "").trim().toLowerCase());
+            return id ? { ...b, palletBoxMappingId: id } : b;
+          }),
+        };
+      }),
+    );
   }
 }
