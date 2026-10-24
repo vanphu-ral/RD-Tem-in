@@ -24,6 +24,7 @@ import { ApplicationConfigService } from "app/core/config/application-config.ser
 import { AuthServerProvider } from "app/core/auth/auth-session.service";
 import { MatTableDataSource } from "@angular/material/table";
 import { WarehouseCacheService } from "./warehouse-cache.service";
+import { extractReelIdBeforeHash } from "./scan-code.util";
 
 // #region Interfaces
 export interface RawGraphQLLocation {
@@ -1361,6 +1362,56 @@ export class ListMaterialService {
       }),
     );
   }
+  /**
+   * Scan Danh sách vật tư / Cập nhật vật tư:
+   *  1. Tra inventory theo ReelID = phần trước dấu # đầu tiên của chuỗi scan.
+   *  2. Không có → GET {baseInTemApiUrl}/vendor-label-infos/qrcode/{chuỗi scan} (tem NCC)
+   *     → tra inventory theo reelId của tem.
+   * Không thấy ở cả 2 → item undefined (viaLabel = true nếu có tem NCC nhưng không có trong kho).
+   */
+  public lookupInventoryByScan(
+    rawScan: string,
+    lookup: (reelId: string) => Observable<RawGraphQLMaterial | undefined>,
+  ): Observable<{
+    item: RawGraphQLMaterial | undefined;
+    reelId: string;
+    viaLabel: boolean;
+  }> {
+    const raw = (rawScan ?? "").trim();
+    const reelId = extractReelIdBeforeHash(raw);
+    const first$: Observable<RawGraphQLMaterial | undefined> = reelId
+      ? lookup(reelId)
+      : of(undefined);
+    return first$.pipe(
+      switchMap((item) => {
+        if (item) {
+          return of({ item, reelId, viaLabel: false });
+        }
+        return this.findVendorLabelReelIds(raw).pipe(
+          switchMap((ids) => {
+            const labelReel = ids.find(
+              (id) => id.toLowerCase() !== reelId.toLowerCase(),
+            );
+            if (!labelReel) {
+              return of({
+                item: undefined,
+                reelId,
+                viaLabel: ids.length > 0,
+              });
+            }
+            return lookup(labelReel).pipe(
+              map((found) => ({
+                item: found,
+                reelId: labelReel,
+                viaLabel: true,
+              })),
+            );
+          }),
+        );
+      }),
+    );
+  }
+
   public getInventoryScanById(
     materialId: string,
   ): Observable<RawGraphQLMaterial | undefined> {
@@ -2147,5 +2198,28 @@ export class ListMaterialService {
     );
 
     return { request: requestHeader, detail: requestDetails };
+  }
+
+  /** Tem NCC theo nguyên chuỗi QR — GET /vendor-label-infos/qrcode/{qr} → các reelId (lỗi → rỗng) */
+  private findVendorLabelReelIds(rawScan: string): Observable<string[]> {
+    if (!rawScan) {
+      return of([]);
+    }
+    return this.http
+      .get<Array<{
+        reelId?: string | null;
+      } | null> | null>(
+        `${environment.baseInTemApiUrl}/vendor-label-infos/qrcode/${encodeURIComponent(rawScan)}`,
+      )
+      .pipe(
+        map((list) => [
+          ...new Set(
+            (list ?? [])
+              .map((x) => (x?.reelId ?? "").trim())
+              .filter((id) => !!id),
+          ),
+        ]),
+        catchError(() => of([] as string[])),
+      );
   }
 }

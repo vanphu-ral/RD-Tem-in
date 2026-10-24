@@ -55,7 +55,7 @@ import { MaterialItem } from "../dialog/list-material-update-dialog";
 import { BreakpointObserver } from "@angular/cdk/layout";
 import { PendingMaterialService } from "../services/pending-material.service";
 import { DialogContentExampleDialogComponent } from "../confirm-dialog/confirm-dialog.component";
-import { extractReelIdFromScan } from "../services/scan-code.util";
+import { extractReelIdBeforeHash } from "../services/scan-code.util";
 
 interface sumary_mode {
   value: string;
@@ -628,15 +628,18 @@ export class ListMaterialUpdateComponent
     }
 
     this.scanTimeoutId = setTimeout(() => {
-      const code = extractReelIdFromScan(rawValue);
+      const code = extractReelIdBeforeHash(rawValue);
       this.isLoading = true;
 
       this.ngZone.runOutsideAngular(() => {
+        // ReelID trước dấu # → không có thì tra tem NCC theo nguyên chuỗi scan
         this.materialService
-          .fetchMaterialById(code)
+          .lookupInventoryByScan(rawValue, (id) =>
+            this.materialService.fetchMaterialById(id),
+          )
           .pipe(takeUntil(this.ngUnsubscribe))
           .subscribe({
-            next: (raw) => {
+            next: ({ item: raw, reelId, viaLabel }) => {
               this.ngZone.run(() => {
                 this.isLoading = false;
                 this.scanInput.nativeElement.value = "";
@@ -646,7 +649,11 @@ export class ListMaterialUpdateComponent
                   this.materialService.selectItems([raw.inventoryId]);
                   this.playAlertSoundSuccess();
                 } else {
-                  this.openError(`Không tìm thấy vật tư: ${code}`);
+                  this.openError(
+                    viaLabel
+                      ? `Thùng ${reelId} có tem NCC nhưng không có trong kho.`
+                      : `Không tìm thấy vật tư: ${code || rawValue.trim()}`,
+                  );
                   this.playAlertSound();
                 }
 
@@ -746,7 +753,7 @@ export class ListMaterialUpdateComponent
   }
 
   handleScanInput(scanString: string, event?: KeyboardEvent): void {
-    const inventoryTerm = extractReelIdFromScan(scanString);
+    const inventoryTerm = extractReelIdBeforeHash(scanString);
     if (!inventoryTerm) {
       console.warn("[handleScanInput] - Chuỗi scan không hợp lệ hoặc rỗng");
       return;

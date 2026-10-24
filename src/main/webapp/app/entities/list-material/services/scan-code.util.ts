@@ -11,3 +11,13 @@ export function extractReelIdFromScan(raw: string | null | undefined): string {
   }
   return value.split("#")[0].trim();
 }
+
+/**
+ * Danh sách vật tư / Cập nhật vật tư: ReelID = phần trước dấu # đầu tiên (không xét dấu ;).
+ * Không ra kết quả thì tra tiếp tem NCC theo nguyên chuỗi scan (xem lookupInventoryByScan).
+ */
+export function extractReelIdBeforeHash(
+  raw: string | null | undefined,
+): string {
+  return (raw ?? "").trim().split("#")[0].trim();
+}
