@@ -5,6 +5,8 @@ import java.io.Serializable;
 import java.time.Instant;
 import javax.persistence.*;
 import javax.validation.constraints.*;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 /**
  * A VendorLabelInfo.
@@ -131,8 +133,8 @@ public class VendorLabelInfo implements Serializable {
     @Column(name = "sap_code", length = 20)
     private String sapCode;
 
-    @Lob
-    @Column(name = "vendor_qr_code")
+    @Size(max = 510)
+    @Column(name = "vendor_qr_code", length = 510)
     private String vendorQrCode;
 
     @Size(max = 50)
@@ -164,10 +166,12 @@ public class VendorLabelInfo implements Serializable {
     private Boolean sapSendStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "delivery_notification_id", referencedColumnName = "id")
     private DeliveryNotification deliveryNotification;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "sap_por1_id", referencedColumnName = "id")
     @JsonIgnoreProperties(
         value = { "deliveryNotification" },

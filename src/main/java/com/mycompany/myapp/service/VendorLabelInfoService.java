@@ -239,4 +239,17 @@ public class VendorLabelInfoService {
             userData5
         );
     }
+
+    @Transactional(value = "partner5TransactionManager", readOnly = true)
+    public List<VendorLabelInfoDTO> findLabalInfoByQRCode(String vendorQrCode) {
+        LOG.debug(
+            "Request to get VendorLabelInfo list by vendorQrCode : {}",
+            vendorQrCode
+        );
+        return vendorLabelInfoRepository
+            .findByVendorQrCodeOrderByReelIdAsc(vendorQrCode)
+            .stream()
+            .map(vendorLabelInfoMapper::toDto)
+            .collect(Collectors.toList());
+    }
 }

@@ -27,6 +27,13 @@ public interface VendorLabelInfoRepository
 
     boolean existsByReelId(String reelId);
 
+    @Query(
+        "select v from VendorLabelInfo v where v.vendorQrCode = :vendorQrCode order by v.reelId asc"
+    )
+    List<VendorLabelInfo> findByVendorQrCodeOrderByReelIdAsc(
+        @Param("vendorQrCode") String vendorQrCode
+    );
+
     List<VendorLabelInfo> findByReelIdIn(Collection<String> reelIds);
 
     /**

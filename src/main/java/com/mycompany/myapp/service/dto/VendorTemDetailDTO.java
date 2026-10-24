@@ -101,6 +101,7 @@ public class VendorTemDetailDTO implements Serializable {
     @Size(max = 510)
     private String vendorAdditionalData;
 
+    @Size(max = 510)
     private String vendorQrCode;
 
     @Size(max = 50)

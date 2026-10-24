@@ -318,4 +318,23 @@ public class VendorLabelInfoResource {
             vendorLabelInfoService.sumInitialQuantityByUserData5(userData5);
         return ResponseEntity.ok(result);
     }
+
+    /**
+     * {@code GET  /vendor-label-infos/qrcode/{vendorQrCode}} : get all the vendorLabelInfos by vendorQrCode.
+     *
+     * @param vendorQrCode the value of {@code vendor_qr_code} to filter on.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of vendorLabelInfos in body.
+     */
+    @GetMapping("/qrcode/{vendorQrCode}")
+    public ResponseEntity<List<VendorLabelInfoDTO>> findLabalInfoByQRCode(
+        @PathVariable String vendorQrCode
+    ) {
+        LOG.debug(
+            "REST request to get VendorLabelInfo list by vendorQrCode : {}",
+            vendorQrCode
+        );
+        List<VendorLabelInfoDTO> result =
+            vendorLabelInfoService.findLabalInfoByQRCode(vendorQrCode);
+        return ResponseEntity.ok(result);
+    }
 }

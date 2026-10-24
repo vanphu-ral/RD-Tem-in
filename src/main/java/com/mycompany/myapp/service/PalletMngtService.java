@@ -182,20 +182,16 @@ public class PalletMngtService {
         for (PalletBoxMapping palletBoxMapping : palletBoxMappingList) {
             VendorLabelInfo vendorLabelInfo =
                 palletBoxMapping.getVendorLabelInfo();
-            if (vendorLabelInfo == null) {
-                continue;
-            }
             PalletVendorLabelInfoItemDTO itemDTO =
                 new PalletVendorLabelInfoItemDTO();
-            BeanUtils.copyProperties(
-                vendorLabelInfoMapper.toDto(vendorLabelInfo),
-                itemDTO,
-                "deliveryNotification",
-                "sapPor1",
-                "palletBoxMapping"
-            );
             itemDTO.setPalletBoxMappingId(palletBoxMapping.getId());
             itemDTO.setPalletBoxMapping(toBoxMappingDTO(palletBoxMapping));
+            if (vendorLabelInfo != null) {
+                BeanUtils.copyProperties(
+                    vendorLabelInfoMapper.toDto(vendorLabelInfo),
+                    itemDTO
+                );
+            }
             result.add(itemDTO);
         }
         return result;
