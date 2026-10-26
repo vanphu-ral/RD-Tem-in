@@ -8,7 +8,7 @@ import {
 } from "@angular/core";
 import { Router } from "@angular/router";
 import { forkJoin, Observable, of, take } from "rxjs";
-import { catchError, switchMap } from "rxjs/operators";
+import { catchError, map, switchMap } from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
 import { NotificationService } from "../../services/notification.service";
 import { WarehouseCacheService } from "../../services/warehouse-cache.service";
@@ -895,20 +895,41 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
       : null;
   }
 
+  /**
+   * Đổi vị trí pallet + mọi thùng trong pallet: thùng có trong kho → cập nhật tồn kho
+   * (POST api/request); chưa có trong kho (404) → PUT /vendor-label-infos/{id} (như desktop).
+   */
   private saveLocation(location: string): void {
     const tasks: Array<Observable<boolean>> = [];
-    for (const c of this.locationTargets) {
-      for (const b of c.detail?.vendorLabelInfoList ?? []) {
-        tasks.push(
-          this.safe(
-            this.palletService.updateBox({
-              ...b,
-              storageUnit: location,
-              subStorageUnit: null,
+    const boxes = this.locationTargets.flatMap(
+      (c) => c.detail?.vendorLabelInfoList ?? [],
+    );
+    if (boxes.length) {
+      tasks.push(
+        this.palletService
+          .updateBoxLocations(
+            boxes.map((b) => ({
+              reelId: String(b.reelId ?? b.palletBoxMapping?.reelIdBox ?? ""),
+              record: b,
+              location,
+            })),
+            this.currentUser,
+          )
+          .pipe(
+            map((res: { ok: boolean; failedReels: string[] }): boolean => {
+              if (res.failedReels.length) {
+                this.notificationService.error(
+                  `Không cập nhật được vị trí ${res.failedReels.length} thùng: ${res.failedReels
+                    .slice(0, 5)
+                    .join(", ")}${res.failedReels.length > 5 ? "…" : ""}`,
+                );
+              }
+              return res.ok;
             }),
           ),
-        );
-      }
+      );
+    }
+    for (const c of this.locationTargets) {
       if (c.detail) {
         tasks.push(this.safe(this.updatePallet(c.detail, undefined, location)));
       }

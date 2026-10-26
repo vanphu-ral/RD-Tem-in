@@ -1,9 +1,26 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpErrorResponse } from "@angular/common/http";
-import { EMPTY, from, Observable, of, throwError } from "rxjs";
+import { EMPTY, forkJoin, from, Observable, of, throwError } from "rxjs";
 import { catchError, map, mergeMap, switchMap } from "rxjs/operators";
 import { environment } from "app/environments/environment.development";
 import { PalletMngtService } from "app/entities/pallet-management/list/pallet-mngt.service";
+import {
+  inventory_update_requests_detail,
+  ListMaterialService,
+  RawGraphQLMaterial,
+} from "./list-material.service";
+import { WarehouseCacheService } from "./warehouse-cache.service";
+
+/** 1 thùng cần đổi vị trí (Quản lý pallet desktop / mobile) */
+export interface PalletBoxLocationChange {
+  reelId: string;
+  /** Bản ghi thùng (vendor-label-info) trong chi tiết pallet — dùng khi thùng chưa có trong kho */
+  record?: PalletBoxRecord | null;
+  /** Vị trí mới (tên trong danh sách vị trí) */
+  location: string;
+  /** Tồn kho đã có sẵn (không cần GET /api/inventory lại) */
+  inventory?: RawGraphQLMaterial;
+}
 
 /** Pallet trong danh sách quản lý (GET /pallet-mngts) */
 export interface PalletMngtRow {
@@ -119,6 +136,8 @@ export class PalletMaterialService {
   constructor(
     private http: HttpClient,
     private palletMngtService: PalletMngtService,
+    private materialService: ListMaterialService,
+    private warehouseCache: WarehouseCacheService,
   ) {}
 
   /**
@@ -235,6 +254,126 @@ export class PalletMaterialService {
   }
 
   /** PUT /vendor-label-infos/{id} — gửi lại nguyên bản ghi thùng */
+  /**
+   * Đổi vị trí các thùng, từng thùng:
+   *  1. GET /api/inventory/{ReelID} có → cập nhật tồn kho như dialog cập nhật vật tư
+   *     (POST api/request, MOVE, tự phê duyệt).
+   *  2. Không có trong kho (404) → PUT /vendor-label-infos/{id} (bản ghi thùng của chi tiết pallet,
+   *     storageUnit = vị trí mới, subStorageUnit trống).
+   *  3. Vẫn lỗi / vị trí không có trong danh sách → ReelID vào failedReels.
+   */
+  updateBoxLocations(
+    boxes: PalletBoxLocationChange[],
+    currentUser: string,
+  ): Observable<{ ok: boolean; failedReels: string[] }> {
+    if (!boxes.length) {
+      return of({ ok: true, failedReels: [] });
+    }
+    const failedReels: string[] = [];
+    const fail = (b: PalletBoxLocationChange): void => {
+      failedReels.push(b.reelId || String(b.record?.id ?? "?"));
+    };
+    type InvLookup = { inv: RawGraphQLMaterial | undefined; notFound: boolean };
+    const inventories$: Observable<InvLookup[]> = forkJoin(
+      boxes.map(
+        (b): Observable<InvLookup> =>
+          b.inventory
+            ? of({ inv: b.inventory, notFound: false })
+            : this.materialService.fetchMaterialById(b.reelId).pipe(
+                // fetchMaterialById: 404 → undefined, lỗi khác → throw
+                map((inv): InvLookup => ({ inv, notFound: !inv })),
+                catchError(() => of({ inv: undefined, notFound: false })),
+              ),
+      ),
+    );
+    const names = [...new Set(boxes.map((b) => b.location))];
+    const locationIds$ = from(
+      Promise.all(names.map((n) => this.findLocationId(n))),
+    );
+    return forkJoin([inventories$, locationIds$]).pipe(
+      switchMap(([lookups, ids]) => {
+        const idByName = new Map<string, number>();
+        names.forEach((n, i) => {
+          const id = ids[i];
+          if (id) {
+            idByName.set(n, id);
+          }
+        });
+        const detail: inventory_update_requests_detail[] = [];
+        const inInventory: PalletBoxLocationChange[] = [];
+        const labelTasks: Array<Observable<boolean>> = [];
+        boxes.forEach((b, i) => {
+          const { inv, notFound } = lookups[i];
+          if (inv) {
+            const locationId = idByName.get(b.location);
+            if (!locationId) {
+              fail(b);
+              return;
+            }
+            const qty = String(inv.quantity ?? "");
+            inInventory.push(b);
+            detail.push({
+              id: inv.inventoryId != null ? Number(inv.inventoryId) : null,
+              materialId: String(inv.materialIdentifier ?? b.reelId),
+              updatedBy: currentUser,
+              createdTime: "",
+              updatedTime: "",
+              productCode: String(inv.partNumber ?? ""),
+              productName: String(inv.partNumber ?? ""),
+              quantity: qty,
+              quantityChange: qty,
+              type: "MOVE",
+              locationId: String(locationId),
+              locationName: b.location,
+              expiredTime: String(inv.expirationDate ?? ""),
+              status: "APPROVE",
+              requestId: null,
+            });
+            return;
+          }
+          // Chưa có trong kho (404) → cập nhật bản ghi thùng (tem NCC)
+          if (notFound && b.record && Number(b.record.id) > 0) {
+            labelTasks.push(
+              this.updateBox({
+                ...b.record,
+                // storageUnit = vị trí kho, subStorageUnit trống (cùng quy ước Nhập tem NCC)
+                storageUnit: b.location,
+                subStorageUnit: null,
+              }).pipe(
+                catchError(() => of(false)),
+                map((ok: boolean): boolean => {
+                  if (!ok) {
+                    fail(b);
+                  }
+                  return ok;
+                }),
+              ),
+            );
+            return;
+          }
+          fail(b);
+        });
+        const inventory$: Observable<boolean> = detail.length
+          ? this.materialService
+              .postAutoApprovedUpdate(detail, currentUser)
+              .pipe(
+                map((): boolean => true),
+                catchError(() => {
+                  inInventory.forEach(fail);
+                  return of(false);
+                }),
+              )
+          : of(true);
+        return forkJoin([inventory$, ...labelTasks]);
+      }),
+      map(() => ({ ok: failedReels.length === 0, failedReels })),
+      catchError(() => {
+        boxes.forEach(fail);
+        return of({ ok: false, failedReels });
+      }),
+    );
+  }
+
   updateBox(box: PalletBoxRecord): Observable<boolean> {
     // Thùng chỉ có liên kết pallet (id tạm ≤ 0, không có tem NCC) → không có bản ghi để PUT
     if (!(Number(box.id) > 0)) {
@@ -306,5 +445,21 @@ export class PalletMaterialService {
         };
       }),
     );
+  }
+
+  /** Vị trí (tên / tên đầy đủ) → locationId theo danh sách vị trí (IndexedDB); không có → null */
+  private async findLocationId(value: string): Promise<number | null> {
+    const lower = value.trim().toLowerCase();
+    if (!lower) {
+      return null;
+    }
+    await this.warehouseCache.ensureSynced();
+    const list = await this.warehouseCache.searchByName(value.trim());
+    const found = list.find(
+      (w) =>
+        String(w.locationFullName ?? "").toLowerCase() === lower ||
+        String(w.locationName ?? "").toLowerCase() === lower,
+    );
+    return found ? Number(found.locationId) || null : null;
   }
 }

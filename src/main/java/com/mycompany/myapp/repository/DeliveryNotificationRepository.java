@@ -1,7 +1,9 @@
 package com.mycompany.myapp.repository;
 
 import com.mycompany.myapp.domain.DeliveryNotification;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.stereotype.Repository;
 
@@ -18,4 +20,9 @@ public interface DeliveryNotificationRepository
         String deliveryNotificationCode
     );
     void deleteByDeliveryNotificationCode(String deliveryNotificationCode);
+
+    /** Các đơn (chưa xoá) của 1 phiếu lịch giao hàng */
+    List<DeliveryNotification> findByDeliveryIdAndDeletedAtIsNull(
+        UUID deliveryId
+    );
 }

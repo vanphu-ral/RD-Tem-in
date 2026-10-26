@@ -32,25 +32,12 @@ public class VendorLabelInfoService {
 
     private final VendorLabelInfoMapper vendorLabelInfoMapper;
 
-    /** Đánh dấu đơn có thùng thay đổi → gửi tổng SL thực nhận sang gateway */
-    private final ScanTotalChangeTracker scanTotalChangeTracker;
-
     public VendorLabelInfoService(
         VendorLabelInfoRepository vendorLabelInfoRepository,
-        VendorLabelInfoMapper vendorLabelInfoMapper,
-        ScanTotalChangeTracker scanTotalChangeTracker
+        VendorLabelInfoMapper vendorLabelInfoMapper
     ) {
         this.vendorLabelInfoRepository = vendorLabelInfoRepository;
         this.vendorLabelInfoMapper = vendorLabelInfoMapper;
-        this.scanTotalChangeTracker = scanTotalChangeTracker;
-    }
-
-    /** Id đơn giao hàng của thùng (null nếu chưa gắn đơn) */
-    private static Long deliveryIdOf(VendorLabelInfo vendorLabelInfo) {
-        return vendorLabelInfo == null ||
-            vendorLabelInfo.getDeliveryNotification() == null
-            ? null
-            : vendorLabelInfo.getDeliveryNotification().getId();
     }
 
     /**
@@ -73,9 +60,6 @@ public class VendorLabelInfoService {
 
         if (existing.isPresent()) {
             VendorLabelInfo vendorLabelInfo = existing.get();
-            scanTotalChangeTracker.markChangedAfterCommit(
-                deliveryIdOf(vendorLabelInfo)
-            );
             // Update deliveryNotificationId and sapPor1Id from the new request body
             if (vendorLabelInfoDTO.getDeliveryNotificationId() != null) {
                 DeliveryNotification dn = new DeliveryNotification();
@@ -92,9 +76,6 @@ public class VendorLabelInfoService {
             vendorLabelInfo.setUpdatedBy(vendorLabelInfoDTO.getCreatedBy());
 
             vendorLabelInfo = vendorLabelInfoRepository.save(vendorLabelInfo);
-            scanTotalChangeTracker.markChangedAfterCommit(
-                deliveryIdOf(vendorLabelInfo)
-            );
             return vendorLabelInfoMapper.toDto(vendorLabelInfo);
         }
 
@@ -103,9 +84,6 @@ public class VendorLabelInfoService {
             vendorLabelInfoDTO
         );
         vendorLabelInfo = vendorLabelInfoRepository.save(vendorLabelInfo);
-        scanTotalChangeTracker.markChangedAfterCommit(
-            deliveryIdOf(vendorLabelInfo)
-        );
         return vendorLabelInfoMapper.toDto(vendorLabelInfo);
     }
 
@@ -117,23 +95,10 @@ public class VendorLabelInfoService {
      */
     public VendorLabelInfoDTO update(VendorLabelInfoDTO vendorLabelInfoDTO) {
         LOG.debug("Request to update VendorLabelInfo : {}", vendorLabelInfoDTO);
-        if (vendorLabelInfoDTO.getId() != null) {
-            scanTotalChangeTracker.markChangedAfterCommit(
-                vendorLabelInfoRepository
-                    .findById(vendorLabelInfoDTO.getId())
-                    .map(VendorLabelInfoService::deliveryIdOf)
-                    .orElse(null)
-            );
-        }
         VendorLabelInfo vendorLabelInfo = vendorLabelInfoMapper.toEntity(
             vendorLabelInfoDTO
         );
         vendorLabelInfo = vendorLabelInfoRepository.save(vendorLabelInfo);
-        scanTotalChangeTracker.markChangedAfterCommit(
-            deliveryIdOf(vendorLabelInfo) != null
-                ? deliveryIdOf(vendorLabelInfo)
-                : vendorLabelInfoDTO.getDeliveryNotificationId()
-        );
         return vendorLabelInfoMapper.toDto(vendorLabelInfo);
     }
 
@@ -154,9 +119,6 @@ public class VendorLabelInfoService {
         return vendorLabelInfoRepository
             .findById(vendorLabelInfoDTO.getId())
             .map(existingVendorLabelInfo -> {
-                scanTotalChangeTracker.markChangedAfterCommit(
-                    deliveryIdOf(existingVendorLabelInfo)
-                );
                 vendorLabelInfoMapper.partialUpdate(
                     existingVendorLabelInfo,
                     vendorLabelInfoDTO
@@ -165,12 +127,6 @@ public class VendorLabelInfoService {
                 return existingVendorLabelInfo;
             })
             .map(vendorLabelInfoRepository::save)
-            .map(saved -> {
-                scanTotalChangeTracker.markChangedAfterCommit(
-                    deliveryIdOf(saved)
-                );
-                return saved;
-            })
             .map(vendorLabelInfoMapper::toDto);
     }
 
@@ -210,12 +166,6 @@ public class VendorLabelInfoService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete VendorLabelInfo : {}", id);
-        scanTotalChangeTracker.markChangedAfterCommit(
-            vendorLabelInfoRepository
-                .findById(id)
-                .map(VendorLabelInfoService::deliveryIdOf)
-                .orElse(null)
-        );
         vendorLabelInfoRepository.deleteById(id);
     }
 

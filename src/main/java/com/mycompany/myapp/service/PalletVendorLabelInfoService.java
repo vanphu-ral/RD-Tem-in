@@ -67,17 +67,13 @@ public class PalletVendorLabelInfoService {
 
     private final SapPor1R1Repository sapPor1R1Repository;
 
-    /** Đánh dấu đơn có thùng mới → gửi tổng SL thực nhận sang gateway */
-    private final ScanTotalChangeTracker scanTotalChangeTracker;
-
     public PalletVendorLabelInfoService(
         VendorLabelInfoRepository vendorLabelInfoRepository,
         VendorLabelInfoMapper vendorLabelInfoMapper,
         PalletBoxMappingRepository palletBoxMappingRepository,
         PalletMngtRepository palletMngtRepository,
         DeliveryNotificationRepository deliveryNotificationRepository,
-        SapPor1R1Repository sapPor1R1Repository,
-        ScanTotalChangeTracker scanTotalChangeTracker
+        SapPor1R1Repository sapPor1R1Repository
     ) {
         this.vendorLabelInfoRepository = vendorLabelInfoRepository;
         this.vendorLabelInfoMapper = vendorLabelInfoMapper;
@@ -85,7 +81,6 @@ public class PalletVendorLabelInfoService {
         this.palletMngtRepository = palletMngtRepository;
         this.deliveryNotificationRepository = deliveryNotificationRepository;
         this.sapPor1R1Repository = sapPor1R1Repository;
-        this.scanTotalChangeTracker = scanTotalChangeTracker;
     }
 
     /**
@@ -174,13 +169,6 @@ public class PalletVendorLabelInfoService {
         List<VendorLabelInfo> savedVendorLabelInfoList =
             vendorLabelInfoRepository.saveAll(vendorLabelInfoList);
         vendorLabelInfoRepository.flush();
-        for (VendorLabelInfo saved : savedVendorLabelInfoList) {
-            if (saved.getDeliveryNotification() != null) {
-                scanTotalChangeTracker.markChangedAfterCommit(
-                    saved.getDeliveryNotification().getId()
-                );
-            }
-        }
 
         List<PalletBoxMapping> palletBoxMappingList = new ArrayList<>(
             savedVendorLabelInfoList.size()

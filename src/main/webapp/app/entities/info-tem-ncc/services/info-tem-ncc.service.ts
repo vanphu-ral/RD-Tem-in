@@ -336,36 +336,6 @@ export class InfoTemNccService {
     );
   }
 
-  /**
-   * Tiến trình ngầm: báo BE gửi tổng SL thực nhận (quantityReceived) của đơn sang gateway —
-   * POST /delivery-notifications/{id}/scan-total-sync. BE chỉ gửi khi đơn có thay đổi chưa gửi.
-   * Không cần kết quả, lỗi bỏ qua (BE có job gửi bù mỗi 5 phút).
-   */
-  syncScanTotal(deliveryNotificationId: number, trigger: string): void {
-    this.http
-      .post(
-        `${this.url}/delivery-notifications/${deliveryNotificationId}/scan-total-sync`,
-        null,
-        { params: { trigger } },
-      )
-      .subscribe({ error: () => undefined });
-  }
-
-  /**
-   * Như syncScanTotal nhưng dùng được khi đóng tab / ẩn tab: fetch keepalive (trình duyệt vẫn
-   * gửi request sau khi trang đã đóng), không chờ kết quả.
-   */
-  syncScanTotalOnUnload(deliveryNotificationId: number, trigger: string): void {
-    try {
-      void fetch(
-        `${this.url}/delivery-notifications/${deliveryNotificationId}/scan-total-sync?trigger=${encodeURIComponent(trigger)}`,
-        { method: "POST", keepalive: true, credentials: "include" },
-      ).catch(() => undefined);
-    } catch {
-      // trình duyệt không hỗ trợ keepalive → BE job gửi bù
-    }
-  }
-
   /** Các thùng đã scan của đơn */
   getVendorLabelInfosByDelivery(
     deliveryId: number,

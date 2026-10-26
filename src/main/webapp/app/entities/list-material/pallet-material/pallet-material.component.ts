@@ -25,10 +25,15 @@ import {
 } from "../services/pallet-material.service";
 import { DialogContentExampleDialogComponent } from "../confirm-dialog/confirm-dialog.component";
 import {
-  inventory_update_requests_detail,
   ListMaterialService,
   RawGraphQLMaterial,
 } from "../services/list-material.service";
+
+/** Kết quả đổi vị trí thùng (PalletMaterialService.updateBoxLocations) */
+interface LocationUpdateResult {
+  ok: boolean;
+  failedReels: string[];
+}
 
 /** Chế độ ô scan: chọn pallet / thêm thùng / gỡ thùng / cập nhật vị trí */
 type ScanMode = "pallet" | "add" | "remove" | "location";
@@ -505,26 +510,32 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
         );
         continue;
       }
-      if (r.newLocation !== null && r.record) {
-        // storageUnit = vị trí kho, subStorageUnit trống (cùng quy ước Nhập tem NCC)
-        tasks.push(
-          this.safe(
-            this.palletService.updateBox({
-              ...r.record,
-              storageUnit: r.newLocation,
-              subStorageUnit: null,
-            }),
-          ),
-        );
-      }
     }
 
-    // Thùng đổi vị trí (kể cả thùng vừa quét thêm) → cập nhật thêm vị trí tồn kho (DB inventory)
+    // Thùng đổi vị trí (kể cả thùng vừa quét thêm): inventory trước, không có (404) → tem NCC
     const moved = this.rows.filter(
       (r) => r.newLocation !== null && !r.pendingRemove,
     );
+    const locationFailed: string[] = [];
     if (moved.length) {
-      tasks.push(this.updateInventoryLocations(moved));
+      tasks.push(
+        this.palletService
+          .updateBoxLocations(
+            moved.map((r) => ({
+              reelId: r.reelId,
+              record: r.record,
+              location: r.newLocation ?? "",
+              inventory: r.inventory,
+            })),
+            this.currentUser,
+          )
+          .pipe(
+            map((res: LocationUpdateResult): boolean => {
+              locationFailed.push(...res.failedReels);
+              return res.ok;
+            }),
+          ),
+      );
     }
 
     const remaining = this.activeRows.length;
@@ -561,6 +572,13 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
       } else {
         this.notificationService.warning(
           `Cập nhật ${ok}/${results.length} thao tác, ${failed} thao tác lỗi.`,
+        );
+      }
+      if (locationFailed.length) {
+        this.notificationService.error(
+          `Không cập nhật được vị trí ${locationFailed.length} thùng: ${locationFailed
+            .slice(0, 5)
+            .join(", ")}${locationFailed.length > 5 ? "…" : ""}`,
         );
       }
       if (unresolved.length) {
@@ -1045,71 +1063,6 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
           locationFullName: String(found.locationFullName ?? ""),
         }
       : null;
-  }
-
-  /**
-   * Cập nhật vị trí tồn kho (DB inventory — khác DB vendor-label-info) cho các thùng đổi vị trí:
-   * như dialog cập nhật vật tư (list-material/dialog) — 1 request MOVE tự phê duyệt
-   * (POST api/request, status APPROVE). Thùng chưa có thông tin tồn kho → GET /api/inventory/{reelId}.
-   */
-  private updateInventoryLocations(rows: BoxRow[]): Observable<boolean> {
-    const locations = [...new Set(rows.map((r) => r.newLocation ?? ""))];
-    const inventories$ = forkJoin(
-      rows.map((r) =>
-        r.inventory
-          ? of(r.inventory)
-          : this.materialService
-              .fetchMaterialById(r.reelId)
-              .pipe(catchError(() => of(undefined))),
-      ),
-    );
-    const locationIds$ = from(
-      Promise.all(locations.map((name) => this.findLocation(name))),
-    );
-    return forkJoin([inventories$, locationIds$]).pipe(
-      switchMap(([inventories, locs]) => {
-        const idByName = new Map<string, string>();
-        locations.forEach((name, i) => {
-          const loc = locs[i];
-          if (loc) {
-            idByName.set(name, String(loc.locationId));
-          }
-        });
-        const detail: inventory_update_requests_detail[] = [];
-        rows.forEach((r, i) => {
-          const inv = inventories[i];
-          const name = r.newLocation ?? "";
-          if (!inv || !idByName.has(name)) {
-            return;
-          }
-          const qty = String(inv.quantity ?? r.quantity ?? "");
-          detail.push({
-            id: inv.inventoryId != null ? Number(inv.inventoryId) : null,
-            materialId: String(inv.materialIdentifier ?? r.reelId),
-            updatedBy: this.currentUser,
-            createdTime: "",
-            updatedTime: "",
-            productCode: String(inv.partNumber ?? ""),
-            productName: String(inv.partNumber ?? ""),
-            quantity: qty,
-            quantityChange: qty,
-            type: "MOVE",
-            locationId: idByName.get(name) ?? "",
-            locationName: name,
-            expiredTime: String(inv.expirationDate ?? ""),
-            status: "APPROVE",
-            requestId: null,
-          });
-        });
-        if (!detail.length) {
-          return of(false);
-        }
-        return this.materialService
-          .postAutoApprovedUpdate(detail, this.currentUser)
-          .pipe(map((): boolean => detail.length === rows.length));
-      }),
-      catchError(() => of(false)),
-    );
   }
 
   private toRow(b: PalletBoxRecord, index = 0): BoxRow {
