@@ -203,6 +203,11 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
   search = "";
   /** Mã đã nhập (mỗi mã 1 chip) — danh sách bên dưới chỉ hiển thị các mã này */
   codes: string[] = [];
+  /** Dropdown "Đã chọn N mã": mở / ô tìm / trang */
+  pickerOpen = false;
+  pickerSearch = "";
+  pickerPage = 0;
+  readonly pickerPageSize = 10;
   /** Mã đang tra (chưa có kết quả) */
   pending = new Set<string>();
 
@@ -447,6 +452,75 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Mã trong dropdown: mã đã nhập + Enter, rồi tới các mã đã tích chọn khác */
+  get pickedCodes(): string[] {
+    return [
+      ...this.codes,
+      ...[...this.selected].filter((c) => !this.codes.includes(c)),
+    ];
+  }
+
+  get pickerFiltered(): string[] {
+    const term = this.pickerSearch.trim().toLowerCase();
+    return term
+      ? this.pickedCodes.filter((c) => c.toLowerCase().includes(term))
+      : this.pickedCodes;
+  }
+
+  get pickerPageCount(): number {
+    return Math.max(
+      1,
+      Math.ceil(this.pickerFiltered.length / this.pickerPageSize),
+    );
+  }
+
+  get pickerPageItems(): string[] {
+    const page = Math.min(this.pickerPage, this.pickerPageCount - 1);
+    return this.pickerFiltered.slice(
+      page * this.pickerPageSize,
+      (page + 1) * this.pickerPageSize,
+    );
+  }
+
+  togglePicker(): void {
+    this.pickerOpen = !this.pickerOpen;
+    this.pickerSearch = "";
+    this.pickerPage = 0;
+  }
+
+  onPickerSearch(): void {
+    this.pickerPage = 0;
+  }
+
+  setPickerPage(delta: number): void {
+    this.pickerPage = Math.min(
+      Math.max(0, this.pickerPage + delta),
+      this.pickerPageCount - 1,
+    );
+  }
+
+  isCodeSelected(code: string): boolean {
+    return this.selected.has(code);
+  }
+
+  isEnteredCode(code: string): boolean {
+    return this.codes.includes(code);
+  }
+
+  /** Tích / bỏ tích 1 mã trong dropdown (cùng trạng thái chọn với bảng) */
+  togglePickedCode(code: string, checked: boolean): void {
+    if (checked) {
+      this.selected.add(code);
+    } else {
+      this.selected.delete(code);
+    }
+  }
+
+  /** Bỏ chọn tất cả mã đang lọc trong dropdown */
+  unpickAll(): void {
+    this.pickerFiltered.forEach((c) => this.togglePickedCode(c, false));
+  }
+
   /** Bỏ 1 chip → bỏ dòng + bỏ chọn của mã đó */
   removeCode(code: string): void {
     this.codes = this.codes.filter((c) => c !== code);
@@ -531,6 +605,12 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
     return SESSION_STATUS_LABELS[status.toLowerCase()] ?? status;
   }
 
+  /** Màu badge trạng thái phiên: mới tạo / đang xuất / hoàn thành / khác */
+  sessionStatusTone(status: string): string {
+    const s = (status ?? "").toLowerCase();
+    return s === "new" || s === "exporting" || s === "completed" ? s : "other";
+  }
+
   /** Icon xem ở 1 phiên: mở màn Xuất kho theo chi tiết phiên */
   openSessionDetail(row: TransferSessionRow): void {
     this.openDetail([], row.id);
@@ -595,6 +675,8 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
       )
       .afterClosed()
       .subscribe((done) => {
+        // Đóng chi tiết xuất (xuất xong / hủy phiên / đóng) → về danh sách chính, bỏ mã đã chọn
+        this.resetPicks();
         if (sessionId != null && !done) {
           // Phiên có thể đã đổi trạng thái (đã scan thùng) → tab Đang xử lý tải lại khi mở
           this.exportService.listCache.delete(this.cacheKey("processing"));
@@ -603,13 +685,23 @@ export class WarehouseExportListComponent implements OnInit, OnDestroy {
           }
         }
         if (done) {
-          // Đã xuất xong → bỏ chip/dòng của các mã đã xuất + tải lại trang danh sách
-          requestCodes.forEach((code) => this.removeCode(code));
+          // Đã xuất xong / hủy phiên → tải lại trang danh sách
           this.clearListCache();
           this.loadPage(true);
           this.loadProcessingCount(true);
         }
       });
+  }
+
+  /** Bỏ hết mã đã nhập + mã đã tích, đóng dropdown → bảng về danh sách chính */
+  private resetPicks(): void {
+    this.codes = [];
+    this.chipRows = [];
+    this.selected.clear();
+    this.pickerOpen = false;
+    this.pickerSearch = "";
+    this.pickerPage = 0;
+    this.refreshView();
   }
 
   /** Có chip → chỉ hiện các mã đã nhập; chưa có → trang danh sách hiện tại */

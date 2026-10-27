@@ -9,7 +9,7 @@ import {
   Optional,
   ViewChild,
 } from "@angular/core";
-import { forkJoin, from, Observable, of, Subscription } from "rxjs";
+import { forkJoin, from, Observable, of, Subscription, throwError } from "rxjs";
 import {
   catchError,
   concatMap,
@@ -44,9 +44,23 @@ import {
 import {
   TRANSFER_SESSION_STATUS,
   TRANSFER_SESSION_STATUS_LABELS,
+  splitFromComment,
   TransferSessionBox,
   WarehouseExportService,
 } from "./warehouse-export.service";
+import {
+  printTransferRequests,
+  TransferPrintDoc,
+} from "./print/transfer-request-print.util";
+import { openSplitReelDialog } from "./split-reel-dialog/split-reel-dialog.component";
+import { VendorNccPrintDialogComponent } from "app/entities/generate-tem-in/receiving-supplies/vendor-ncc-print-dialog/vendor-ncc-print-dialog.component";
+import {
+  buildSplitInventoryPayload,
+  SPLIT_BUSINESS_TYPE,
+  SplitInventoryService,
+} from "app/entities/info-tem-ncc/shared/split-inventory.service";
+import { openSplitLabelPrintDialog } from "./split-label-print-dialog/split-label-print-dialog.component";
+import { SplitPrintLabel, toLabelDate } from "./rd-label/rd-label.model";
 import { ExportHistoryDialogComponent } from "./export-history-dialog/export-history-dialog.component";
 import {
   PickSuggestionDialogComponent,
@@ -64,6 +78,12 @@ import {
 } from "./warehouse-export.models";
 
 type MainTab = "request" | "planning";
+
+/** id bản ghi phiên vừa lưu trước khi tách (null = không lưu mới) — gỡ lại khi tách lỗi */
+interface SplitSessionSave {
+  parentId: number | null;
+  childId: number | null;
+}
 
 /** Dữ liệu nhập / scan của 1 tab */
 interface ExportWorkspace {
@@ -265,6 +285,8 @@ export class WarehouseExportDialogComponent
 
   isBusy = false;
   isCompleting = false;
+  /** Đang tra tồn kho trước khi in Đề nghị lĩnh */
+  isPrinting = false;
   /** Đang xoá mềm phiên (nút Hủy) */
   isCancelling = false;
   /** Đang xoá thùng khỏi phiên */
@@ -355,6 +377,7 @@ export class WarehouseExportDialogComponent
     private warehouseCache: WarehouseCacheService,
     private accountService: AccountService,
     private listMaterialService: ListMaterialService,
+    private splitInventoryService: SplitInventoryService,
     @Optional()
     @Inject(MAT_DIALOG_DATA)
     private dialogData: WarehouseExportDialogData | null,
@@ -735,6 +758,70 @@ export class WarehouseExportDialogComponent
       ...new Set(r.items.map((i) => (i.warehouseCode ?? "").trim())),
     ];
     return codes.length === 1 ? codes[0] : "";
+  }
+
+  /**
+   * Xuất chuyển kho — "Xuất đề nghị lĩnh": in phiếu ĐỀ NGHỊ LĨNH VẬT TƯ (A4 ngang, theo mẫu SAP),
+   * mọi yêu cầu chung 1 phiếu. Thực xuất = SL đã scan; Số lô / Ngày SX theo các thùng đã scan;
+   * Tồn kho = tổng tồn đã tra (chưa tra → trống).
+   */
+  onPrintRequests(): void {
+    this.mobileMenuOpen = false;
+    const requests = this.ws.requests.filter((r) => r.items.length);
+    if (!requests.length) {
+      this.notificationService.warning(
+        `Chưa có ${this.codeNoun} nào để xuất đề nghị lĩnh.`,
+      );
+      return;
+    }
+    if (this.isPrinting) {
+      return;
+    }
+    // Tồn kho: mã chưa tra xong → tra trước (bảng mã SAP → vị trí, tải 1 lần / phiên) rồi mới in
+    const missing = [
+      ...new Set(
+        requests
+          .flatMap((r) => r.items)
+          .filter((i) => {
+            const st = this.itemStock(i);
+            return !st || st.loading || st.error;
+          })
+          .map((i) => i.materialCode.trim())
+          .filter(Boolean),
+      ),
+    ];
+    if (!missing.length) {
+      this.buildAndPrint(requests, new Map<string, number>());
+      return;
+    }
+    this.isPrinting = true;
+    forkJoin(
+      missing.map((code) =>
+        this.exportService.getSapLocations(code).pipe(
+          map(
+            (res: { locations: Array<{ qty: number }> }): [string, number] => [
+              code.toLowerCase(),
+              res.locations.reduce((s, l) => s + l.qty, 0),
+            ],
+          ),
+          catchError(() => of<[string, number] | null>(null)),
+        ),
+      ),
+    ).subscribe((pairs) => {
+      this.isPrinting = false;
+      const stock = new Map<string, number>();
+      for (const p of pairs) {
+        if (p) {
+          stock.set(p[0], p[1]);
+        }
+      }
+      if (stock.size < missing.length) {
+        this.notificationService.warning(
+          "Không tra được tồn kho của một số vật tư — cột Tồn kho xưởng để trống.",
+        );
+      }
+      this.buildAndPrint(requests, stock);
+    });
   }
 
   /** Mở / đóng dòng vật tư — mở lần đầu thì tra vị trí của mã đó */
@@ -1565,12 +1652,8 @@ export class WarehouseExportDialogComponent
           );
           this.scanFeedback(false);
         } else {
-          this.scanFeedback(true);
-          this.prepareTransferBoxes([box]);
-          this.ws.boxes = [...this.ws.boxes, box];
-          this.scannedTab = "box";
-          this.recalcScanned();
-          this.saveSessionBoxes();
+          this.acceptScannedBox(box);
+          return;
         }
         this.focus(this.boxInput);
       },
@@ -1579,6 +1662,69 @@ export class WarehouseExportDialogComponent
         this.notificationService.error(`Lỗi khi tra thùng "${reelId}".`);
       },
     });
+  }
+
+  /** Xuất chuyển kho: thùng xuất ít hơn SL trong thùng mà chưa tách tem phần dư */
+  needsSplit(b: ExportScannedBox): boolean {
+    return (
+      !this.isPlanning &&
+      !b.split &&
+      b.inventoryQty !== undefined &&
+      b.quantity > 0 &&
+      b.quantity < b.inventoryQty &&
+      !this.isBoxExported(b)
+    );
+  }
+
+  /** Xuất chuyển kho: thùng còn tách tem được (chưa tách, chưa xuất, SL trong thùng > 1) */
+  canSplit(b: ExportScannedBox): boolean {
+    return (
+      !this.isPlanning &&
+      !b.split &&
+      !this.isBoxExported(b) &&
+      (b.inventoryQty ?? b.quantity) > 1
+    );
+  }
+
+  /**
+   * Nút "Tách tem" ở dòng thùng — người dùng chủ động tách lúc nào cũng được.
+   * Gợi ý SL xuất: SL đang xuất nếu ít hơn SL trong thùng; còn lại = SL còn cần của mã vật tư
+   * (tính cả thùng này), tối đa SL trong thùng.
+   */
+  onSplitBox(b: ExportScannedBox): void {
+    const boxQty = b.inventoryQty ?? b.quantity;
+    const need = this.remainingNeed(b.materialCode) + b.quantity;
+    const suggested =
+      b.quantity < boxQty ? b.quantity : Math.min(Math.max(1, need), boxQty);
+    this.openSplit(
+      b,
+      suggested,
+      () => {
+        this.recalcScanned();
+      },
+      need,
+    );
+  }
+
+  /** In lại tem tách (kể cả mã tách khôi phục khi mở lại phiên) — tra tồn kho tem tách để lấy dữ liệu mới nhất */
+  reprintSplit(box: ExportScannedBox, template: "rd" | "vendor"): void {
+    const split = box.split;
+    if (!split) {
+      return;
+    }
+    if (template === "vendor") {
+      this.printSplitLabel(box);
+      return;
+    }
+    this.isBusy = true;
+    this.exportService
+      .getBox(split.reelId)
+      .pipe(catchError(() => of(null)))
+      .subscribe((child: ExportScannedBox | null) => {
+        this.isBusy = false;
+        this.printSplitLabelRd(box, child);
+        this.cdr.markForCheck();
+      });
   }
 
   /** Bỏ thùng: thùng đã lưu vào phiên → xác nhận rồi DELETE ở BE; chưa lưu → bỏ khỏi bảng */
@@ -1890,6 +2036,19 @@ export class WarehouseExportDialogComponent
     if (!this.ws.requests.length || !this.ws.boxes.length) {
       this.notificationService.warning(
         "Cần nhập mã yêu cầu và scan ít nhất 1 thùng trước khi hoàn thành.",
+      );
+      return;
+    }
+    const unsplit = this.ws.boxes.filter((b) => this.needsSplit(b));
+    if (unsplit.length) {
+      this.notificationService.warning(
+        `Còn ${unsplit.length} thùng xuất ít hơn SL trong thùng nhưng chưa tách tem phần dư ` +
+          `(${unsplit
+            .slice(0, 3)
+            .map((b) => b.reelId)
+            .join(
+              ", ",
+            )}${unsplit.length > 3 ? "…" : ""}) — bấm "Tách tem" ở dòng thùng.`,
       );
       return;
     }
@@ -2517,6 +2676,7 @@ export class WarehouseExportDialogComponent
         if (restored.length) {
           this.ws.boxes = [...this.ws.boxes, ...restored];
           this.scannedTab = "box";
+          this.attachSavedSplits();
           this.recalcScanned();
         }
         const lost = missing.length - rebuilt.length;
@@ -3391,6 +3551,553 @@ export class WarehouseExportDialogComponent
     }
     this.ws.allocation = allocation;
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Thùng scan hợp lệ: nhiều hơn SL còn cần của mã vật tư (mọi yêu cầu trong phiên) → mở tách tem
+   * (tem gốc đi theo SL xuất, phần dư sinh tem mới ở lại kho); đủ / thiếu → thêm luôn.
+   */
+  private acceptScannedBox(box: ExportScannedBox): void {
+    const need = this.remainingNeed(box.materialCode);
+    if (!this.isPlanning && need > 0 && box.quantity > need) {
+      this.openSplit(box, need, () => this.addScannedBox(box));
+      return;
+    }
+    this.addScannedBox(box);
+  }
+
+  private addScannedBox(box: ExportScannedBox): void {
+    this.scanFeedback(true);
+    this.prepareTransferBoxes([box]);
+    this.ws.boxes = [...this.ws.boxes, box];
+    this.scannedTab = "box";
+    this.recalcScanned();
+    this.saveSessionBoxes();
+    this.focus(this.boxInput);
+  }
+
+  /** SL còn cần của 1 mã vật tư trên mọi yêu cầu đang mở (cần xuất − đã scan) */
+  private remainingNeed(materialCode: string): number {
+    return this.findItems(materialCode).reduce(
+      (s, i) => s + Math.max(0, this.targetQty(i) - i.scannedQty),
+      0,
+    );
+  }
+
+  /**
+   * Dialog tách tem: xác nhận → SL xuất = SL theo tem gốc; có phần dư → tạo tem tách ở vị trí
+   * cũ rồi in ngay / đưa vào hàng chờ in. Hủy → không làm gì (thùng mới scan không được thêm).
+   */
+  private openSplit(
+    box: ExportScannedBox,
+    suggestedQty: number,
+    onAccepted: () => void,
+    needQty = suggestedQty,
+  ): void {
+    const boxQty = box.inventoryQty ?? box.quantity;
+    const location = box.sourceLocation ?? box.location;
+    openSplitReelDialog(this.dialog, {
+      reelId: box.reelId,
+      materialCode: box.materialCode,
+      materialName: this.findItems(box.materialCode)[0]?.materialName ?? "",
+      partNumber: box.partNumber ?? "",
+      lot: box.lot,
+      mfgDate: box.mfgDate,
+      location,
+      boxQty,
+      suggestedQty,
+      needQty,
+      takenReelIds: this.ws.boxes.flatMap((b) =>
+        b.split ? [b.reelId, b.split.reelId] : [b.reelId],
+      ),
+      rdLabel: this.buildRdLabel(box, null, "", 0),
+    }).subscribe(
+      (
+        res:
+          | {
+              exportQty: number;
+              remainderQty: number;
+              newReelId: string | null;
+              printNow: boolean;
+              printTemplate: "rd" | "vendor";
+            }
+          | undefined,
+      ) => {
+        if (!res) {
+          this.notificationService.info(
+            `Đã hủy — thùng "${box.reelId}" chưa được thêm / tách.`,
+          );
+          this.focus(this.boxInput);
+          return;
+        }
+        box.quantity = res.exportQty;
+        if (!res.newReelId || res.remainderQty <= 0) {
+          onAccepted();
+          return;
+        }
+        const newReelId = res.newReelId;
+        this.isBusy = true;
+        // Lưu vào phiên trước (thùng cha + mã tách) → lưu được mới gửi PanaCIM tách
+        this.persistSplitInSession(box, newReelId, res.remainderQty)
+          .pipe(
+            switchMap((saved) =>
+              this.exportService
+                .splitReelOnPana({
+                  reelId: box.reelId,
+                  splitQty: res.remainderQty,
+                  newReelId,
+                  comment:
+                    `Tách tem xuất chuyển kho` +
+                    (this.dialogData?.sessionId != null
+                      ? ` - phiên #${this.dialogData.sessionId}`
+                      : ""),
+                })
+                .pipe(
+                  catchError(() =>
+                    of({
+                      newBox: null as ExportScannedBox | null,
+                      error: `Lỗi khi tách tem thùng "${box.reelId}".` as
+                        | string
+                        | null,
+                    }),
+                  ),
+                  map((out) => ({ saved, out })),
+                ),
+            ),
+          )
+          .subscribe({
+            next: ({
+              saved,
+              out,
+            }: {
+              saved: SplitSessionSave;
+              out: {
+                newBox: ExportScannedBox | null;
+                error: string | null;
+                uncertain?: boolean;
+              };
+            }) => {
+              this.isBusy = false;
+              if (out.error !== null || !out.newBox) {
+                // PanaCIM chắc chắn chưa tách → gỡ các bản ghi vừa lưu vào phiên;
+                // đã gửi nhưng chưa tra được mã mới → giữ lại để mở lại phiên vẫn thấy
+                if (!out.uncertain) {
+                  this.rollbackSplitSave(box, saved);
+                }
+                this.notificationService.error(
+                  out.error ??
+                    `Tách tem thùng "${box.reelId}" không thành công.`,
+                );
+                this.focus(this.boxInput);
+                this.cdr.markForCheck();
+                return;
+              }
+              // Tem gốc giữ phần xuất đi (tồn sau tách = SL xuất)
+              box.inventoryQty = res.exportQty;
+              box.split = {
+                reelId: newReelId,
+                quantity: res.remainderQty,
+                location,
+                printStatus: res.printNow ? undefined : "queued",
+              };
+              onAccepted();
+              if (saved.parentId != null || saved.childId != null) {
+                this.markSessionExporting();
+                this.loadRequestSummaries(this.ws.requests.map((r) => r.code));
+              }
+              this.saveSplitInventory(box, out.newBox);
+              this.notificationService.success(
+                `Đã tách: tem gốc ${box.reelId} xuất ${res.exportQty.toLocaleString("vi-VN")}, ` +
+                  `tem mới ${newReelId} (${res.remainderQty.toLocaleString("vi-VN")}) ở lại ${location || "kho"}.`,
+              );
+              if (res.printNow && res.printTemplate === "rd") {
+                this.printSplitLabelRd(box, out.newBox);
+              } else if (res.printNow) {
+                this.printSplitLabel(box);
+              } else {
+                this.queueSplitLabel(box);
+              }
+            },
+            error: () => {
+              this.isBusy = false;
+              this.notificationService.error(
+                `Chưa lưu được mã tách ${newReelId} vào phiên — chưa tách tem thùng "${box.reelId}", vui lòng thử lại.`,
+              );
+              this.focus(this.boxInput);
+              this.cdr.markForCheck();
+            },
+          });
+      },
+    );
+  }
+
+  /**
+   * Trước khi tách trên PanaCIM: lưu vào phiên (POST /warehouse-transfer-details)
+   * 1) thùng cha nếu chưa lưu (SL xuất = SL theo tem gốc), 2) mã tách để tham chiếu: SL xuất = 0,
+   * không vị trí chuyển đến, initialQuantity = SL tách, parentMaterialIdentifier + comments
+   * SPLIT_FROM = ReelID thùng cha → mở lại phiên vẫn thấy và in lại được.
+   * Không có phiên → không lưu gì. Lỗi → Observable lỗi (chưa tách); bản ghi đã lưu được gỡ lại.
+   */
+  private persistSplitInSession(
+    parent: ExportScannedBox,
+    newReelId: string,
+    remainderQty: number,
+  ): Observable<SplitSessionSave> {
+    const sessionId = this.dialogData?.sessionId;
+    const none: SplitSessionSave = { parentId: null, childId: null };
+    if (!this.hasSession || sessionId == null) {
+      return of(none);
+    }
+    const child: ExportScannedBox = {
+      ...parent,
+      reelId: newReelId,
+      quantity: 0,
+      location: "",
+      split: undefined,
+      sent: undefined,
+    };
+    return this.accountService.identity().pipe(
+      take(1),
+      switchMap((account) => {
+        const user = account?.login ?? "unknown";
+        const saveParent$: Observable<number | null | undefined> = parent.sent
+          ? of(undefined)
+          : this.exportService.saveTransferDetail(
+              sessionId,
+              parent,
+              this.transferLinkOf(parent),
+              user,
+            );
+        return saveParent$.pipe(
+          switchMap((parentId) => {
+            const saved: SplitSessionSave = {
+              // undefined = thùng cha đã có trong phiên từ trước (không gỡ khi rollback)
+              parentId: parentId === undefined ? null : parentId,
+              childId: null,
+            };
+            if (parentId !== undefined) {
+              parent.sent = true;
+              this.savedDetailIds.set(this.reelKey(parent.reelId), parentId);
+            }
+            return this.exportService
+              .saveTransferDetail(
+                sessionId,
+                child,
+                this.transferLinkOf(parent),
+                user,
+                {
+                  parentMaterialIdentifier: parent.reelId,
+                  comments: splitFromComment(parent.reelId),
+                  initialQuantity: remainderQty,
+                },
+              )
+              .pipe(
+                map((childId) => {
+                  this.savedDetailIds.set(this.reelKey(newReelId), childId);
+                  return { ...saved, childId };
+                }),
+                catchError((err: unknown) => {
+                  this.rollbackSplitSave(parent, saved);
+                  return throwError(() => err);
+                }),
+              );
+          }),
+        );
+      }),
+    );
+  }
+
+  /**
+   * Tách thành công trên PanaCIM → lưu lịch sử tách (POST /split-inventories), nghiệp vụ
+   * "Chuyển kho", businessSourceId = mã lệnh chuyển kho (owtqDocEntry). Lỗi chỉ cảnh báo.
+   */
+  private saveSplitInventory(
+    parent: ExportScannedBox,
+    child: ExportScannedBox,
+  ): void {
+    const split = parent.split;
+    if (!split) {
+      return;
+    }
+    this.accountService
+      .identity()
+      .pipe(
+        take(1),
+        switchMap((account) =>
+          this.splitInventoryService.save(
+            buildSplitInventoryPayload({
+              sources: [child.inventoryRaw, parent.inventoryRaw],
+              businessSourceId:
+                this.transferLinkOf(parent).owtqDocEntry ?? null,
+              businessType: SPLIT_BUSINESS_TYPE.transfer,
+              reelId: split.reelId,
+              parentReelId: parent.reelId,
+              quantity: split.quantity,
+              user: account?.login ?? "unknown",
+              overrides: {
+                lot: child.lot || parent.lot || null,
+                partNumber: child.partNumber ?? parent.partNumber ?? null,
+                sapCode: parent.materialCode || null,
+                locationOverride: split.location || null,
+              },
+            }),
+          ),
+        ),
+      )
+      .subscribe({
+        error: () =>
+          this.notificationService.warning(
+            `Đã tách nhưng chưa lưu được lịch sử tách tem ${split.reelId}.`,
+          ),
+      });
+  }
+
+  /** Tách không thành công → xoá bản ghi vừa lưu vào phiên (mã tách, thùng cha nếu vừa lưu mới) */
+  private rollbackSplitSave(
+    parent: ExportScannedBox,
+    saved: SplitSessionSave,
+  ): void {
+    const ids: number[] = [];
+    if (saved.childId != null) {
+      ids.push(saved.childId);
+    }
+    if (saved.parentId != null) {
+      ids.push(saved.parentId);
+      parent.sent = false;
+      this.savedDetailIds.delete(this.reelKey(parent.reelId));
+    }
+    ids.forEach((id) =>
+      this.exportService
+        .deleteTransferDetail(id)
+        .pipe(catchError(() => of(undefined)))
+        .subscribe(),
+    );
+  }
+
+  /** Mở lại phiên: gắn các mã tách đã lưu (parentMaterialIdentifier) vào thùng cha */
+  private attachSavedSplits(): void {
+    for (const saved of this.sessionBoxes.values()) {
+      if (!saved.parentReelId) {
+        continue;
+      }
+      const parent = this.ws.boxes.find(
+        (b) => this.reelKey(b.reelId) === this.reelKey(saved.parentReelId),
+      );
+      if (parent && !parent.split) {
+        parent.split = {
+          reelId: saved.reelId,
+          quantity: saved.initialQuantity,
+          location: parent.sourceLocation ?? "",
+        };
+      }
+    }
+  }
+
+  /** In tem tách ngay — dialog In tem nhà cung cấp (như tách thùng ở Nhập tem NCC) */
+  private printSplitLabel(box: ExportScannedBox): void {
+    const split = box.split;
+    if (!split) {
+      return;
+    }
+    this.dialog.open(VendorNccPrintDialogComponent, {
+      width: "100vw",
+      height: "100vh",
+      maxWidth: "100vw",
+      maxHeight: "100vh",
+      panelClass: "vendor-ncc-print-dialog-panel",
+      data: {
+        labels: [
+          {
+            id: split.reelId,
+            reelId: split.reelId,
+            qrCode: split.reelId,
+            sapCode: box.materialCode,
+            partNumber: box.partNumber ?? "",
+            vendorItemName:
+              this.findItems(box.materialCode)[0]?.materialName ?? "",
+            quantity: split.quantity,
+            weight: "",
+            meas: "",
+            poNo: "",
+            invoiceNo: "",
+            boxNo: "",
+            vendorName: "",
+            madeIn: "",
+            color: "",
+            operator: "",
+            grossNetWeight: "",
+            contractNo: "",
+            batchNo: box.lot,
+            mfgDate: box.mfgDate,
+          },
+        ],
+        requestLabel: "tach-tem-xuat",
+      },
+    });
+  }
+
+  /** In tem tách theo mẫu Rạng Đông (giống Preview In Tem ở Nhận vật tư) */
+  private printSplitLabelRd(
+    box: ExportScannedBox,
+    child: ExportScannedBox | null,
+  ): void {
+    const split = box.split;
+    if (!split) {
+      return;
+    }
+    openSplitLabelPrintDialog(this.dialog, [
+      this.buildRdLabel(box, child, split.reelId, split.quantity),
+    ]);
+  }
+
+  /**
+   * Tem mẫu Rạng Đông cho tem tách: thông tin lấy từ bản ghi tồn kho của tem tách (vừa tạo
+   * trên PanaCIM), thiếu thì lấy theo tem gốc. child = null → chỉ theo tem gốc (preview).
+   */
+  private buildRdLabel(
+    box: ExportScannedBox,
+    child: ExportScannedBox | null,
+    reelId: string,
+    quantity: number,
+  ): SplitPrintLabel {
+    const raws = [child?.inventoryRaw ?? {}, box.inventoryRaw ?? {}];
+    const field = (key: string): string => {
+      for (const raw of raws) {
+        const v = raw[key];
+        const text = v === null || v === undefined ? "" : String(v).trim();
+        if (text) {
+          return text;
+        }
+      }
+      return "";
+    };
+    return {
+      id: reelId,
+      qrCode: reelId,
+      reelId,
+      sapCode: box.materialCode,
+      productName:
+        this.findItems(box.materialCode)[0]?.materialName ??
+        field("materialName"),
+      partNumber: child?.partNumber ?? box.partNumber ?? field("partNumber"),
+      lot: child?.lot ?? box.lot,
+      initialQuantity: quantity,
+      vendor: field("vendor"),
+      userData1: field("userData1"),
+      userData2: field("userData2"),
+      userData3: field("userData3"),
+      userData5: field("userData5"),
+      storageUnit: field("storageUnit"),
+      manufacturingDate: toLabelDate(field("manufacturingDate") || box.mfgDate),
+      expirationDate: toLabelDate(field("expirationDate")),
+      arrivalDate: toLabelDate(field("receivedDate")),
+    };
+  }
+
+  /** Lưu tem tách vào hàng chờ in (in hàng loạt sau ở khu máy in) */
+  private queueSplitLabel(box: ExportScannedBox): void {
+    const split = box.split;
+    if (!split) {
+      return;
+    }
+    this.exportService
+      .queueSplitLabel({
+        reelId: split.reelId,
+        originalReelId: box.reelId,
+        quantity: split.quantity,
+        location: split.location,
+        materialCode: box.materialCode,
+      })
+      .subscribe({
+        next: (ok: boolean) => {
+          if (ok) {
+            this.notificationService.info(
+              `Tem ${split.reelId} đã vào hàng chờ in.`,
+            );
+          } else {
+            this.notificationService.error(
+              `Không đưa được tem ${split.reelId} vào hàng chờ in.`,
+            );
+          }
+        },
+        error: () => {
+          this.notificationService.error(
+            `Lỗi khi đưa tem ${split.reelId} vào hàng chờ in.`,
+          );
+        },
+      });
+  }
+
+  /** Gom thùng đã scan theo lô + ngày SX → mỗi lô 1 dòng trên phiếu (SL = tổng SL các thùng) */
+  private batchesOf(
+    boxes: ExportScannedBox[],
+  ): Array<{ lot: string; mfgDate: string; qty: number }> {
+    const byLot = new Map<
+      string,
+      { lot: string; mfgDate: string; qty: number }
+    >();
+    for (const b of boxes) {
+      const lot = (b.lot ?? "").trim();
+      const mfgDate = (b.mfgDate ?? "").trim();
+      const key = `${lot.toLowerCase()}|${mfgDate}`;
+      const batch = byLot.get(key) ?? { lot, mfgDate, qty: 0 };
+      batch.qty += Number(b.quantity) || 0;
+      byLot.set(key, batch);
+    }
+    return [...byLot.values()];
+  }
+
+  /** Dựng phiếu Đề nghị lĩnh vật tư rồi in (fetchedStock: tồn vừa tra cho mã chưa có) */
+  private buildAndPrint(
+    requests: ExportRequest[],
+    fetchedStock: Map<string, number>,
+  ): void {
+    const uniq = (values: string[]): string[] => [
+      ...new Set(values.map((v) => v.trim()).filter(Boolean)),
+    ];
+    // Đầu phiếu OWTQ (deliveryDate / fromLabel / toLabel) — khai báo tại chỗ
+    const infoOf = (
+      r: ExportRequest,
+    ): { deliveryDate: string; fromLabel: string; toLabel: string } =>
+      (
+        r as {
+          transferInfo?: {
+            deliveryDate: string;
+            fromLabel: string;
+            toLabel: string;
+          };
+        }
+      ).transferInfo ?? { deliveryDate: "", fromLabel: "", toLabel: "" };
+    const doc: TransferPrintDoc = {
+      deliveryDate: uniq(requests.map((r) => infoOf(r).deliveryDate)).join(
+        ", ",
+      ),
+      lines: requests.flatMap((r) =>
+        r.items.map((i) => {
+          const stock = this.itemStock(i);
+          const boxes = this.boxesOf(i);
+          return {
+            requestCode: r.code,
+            itemCode: i.materialCode,
+            itemName: i.materialName,
+            partNumber: i.partNumbers ?? "",
+            batches: this.batchesOf(boxes),
+            uom: i.uom ?? "",
+            requestedQty: i.requiredQty,
+            stockQty:
+              stock && !stock.loading && !stock.error
+                ? this.itemStockQty(i)
+                : (fetchedStock.get(i.materialCode.trim().toLowerCase()) ??
+                  null),
+            issuedQty: i.scannedQty,
+            fromLabel: infoOf(r).fromLabel,
+            toLabel: infoOf(r).toLabel,
+            note: "",
+          };
+        }),
+      ),
+    };
+    printTransferRequests(doc);
   }
 
   private emptyWorkspace(): ExportWorkspace {

@@ -17,6 +17,7 @@
             >
               <fa-icon [icon]="faListCheck"></fa-icon>
               <span class="btn-text">Cập nhật</span>
+              <span class="m-label">Cập nhật</span>
             </button>
             <div class="cart-badge">{{ checkedCount() }}</div>
           </div>
@@ -31,12 +32,34 @@
         >
           <fa-icon [icon]="faCrosshairs" class="scan-btn-icon"></fa-icon>
           <span class="btn-text">Scan</span>
+          <span class="m-label">Scan thùng</span>
+        </button>
+        <!-- Scan pallet (quản lý vật tư theo pallet) -->
+        <button
+          class="btn-scan"
+          mat-button
+          routerLink="/list-material/pallet-material"
+        >
+          <fa-icon [icon]="faLayerGroup" class="scan-btn-icon"></fa-icon>
+          <span class="btn-text">Scan pallet</span>
+          <span class="m-label">Scan pallet</span>
+        </button>
+        <!-- Tem tách chờ in (tách từ chuyển kho / nhập tem NCC) -->
+        <button
+          class="btn-scan"
+          mat-button
+          routerLink="/list-material/split-labels"
+        >
+          <fa-icon [icon]="faPrint" class="scan-btn-icon"></fa-icon>
+          <span class="btn-text">Tem tách chờ in</span>
+          <span class="m-label">Tem chờ in</span>
         </button>
         <!-- <div *ngIf="scanError" class="scan-error">{{ scanError }}</div> -->
         <!-- Refresh -->
         <button class="btn-refresh" mat-button (click)="refreshScan()">
           <fa-icon [icon]="faRotateRight" class="scan-btn-icon"></fa-icon>
           <span class="btn-text">Refresh</span>
+          <span class="m-label">Làm mới</span>
         </button>
         <!-- <div *ngIf="isScanMode && !scanResult">
           <mat-spinner diameter="20"></mat-spinner>
@@ -48,6 +71,7 @@
         <button mat-button [matMenuTriggerFor]="menu" class="btn-view">
           <fa-icon [icon]="faEye"></fa-icon>
           <span class="btn-text">View</span>
+          <span class="m-label">Chế độ xem</span>
           <!-- <mat-icon class="icon-down">keyboard_arrow_down</mat-icon> -->
         </button>
         <mat-menu #menu="matMenu">
@@ -65,6 +89,7 @@
         >
           <fa-icon [icon]="faTableColumns"></fa-icon>
           <span class="btn-text">Columns</span>
+          <span class="m-label">Chọn cột</span>
           <!-- <mat-icon class="icon-down">keyboard_arrow_down</mat-icon> -->
         </button>
 
@@ -106,6 +131,7 @@
         >
           <fa-icon [icon]="faDownload"></fa-icon>
           <span class="btn-text">Xuất Excel</span>
+          <span class="m-label">Xuất Excel</span>
         </button>
         <button
           class="btn-warehouse-summary"
@@ -114,6 +140,7 @@
         >
           <fa-icon [icon]="faWarehouse"></fa-icon>
           <span class="btn-text">Dashboard</span>
+          <span class="m-label">Tổng quan kho</span>
         </button>
       </div>
     </div>

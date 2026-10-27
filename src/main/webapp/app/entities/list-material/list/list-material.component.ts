@@ -59,6 +59,8 @@ import {
   faTableColumns,
   faCircleExclamation,
   faWarehouse,
+  faLayerGroup,
+  faPrint,
 } from "@fortawesome/free-solid-svg-icons";
 import { extractReelIdBeforeHash } from "../services/scan-code.util";
 
@@ -95,6 +97,9 @@ export class ListMaterialComponent implements OnInit, AfterViewInit, OnDestroy {
   faDownload = faDownload;
   faFilter = faFilter;
   faCrosshairs = faCrosshairs;
+  /** Icon nút "Scan pallet" — khác icon nút Scan thùng */
+  faLayerGroup = faLayerGroup;
+  faPrint = faPrint;
   faRotateRight = faRotateRight;
   faListCheck = faListCheck;
   faEye = faEye;

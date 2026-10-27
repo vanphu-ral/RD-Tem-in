@@ -7,7 +7,7 @@
       <button
         type="button"
         class="pm-back"
-        routerLink="/list-material/update-list"
+        routerLink="/list-material"
         title="Quay lại"
       >
         <mat-icon>arrow_back</mat-icon>
@@ -17,10 +17,26 @@
         <p>Quản lý thùng vật tư đang được chứa trong pallet</p>
       </div>
     </div>
-    <button type="button" class="pm-btn primary" (click)="openScan('pallet')">
-      <mat-icon>add</mat-icon>
-      Scan mã pallet
-    </button>
+    <div class="pm-header-actions">
+      <button
+        type="button"
+        class="pm-btn primary"
+        [class.on]="scanMode === 'pallet'"
+        (click)="openScan('pallet')"
+      >
+        <mat-icon>add</mat-icon>
+        Scan mã pallet
+      </button>
+      <button
+        type="button"
+        class="pm-btn primary"
+        [class.on]="scanMode === 'box'"
+        (click)="openScan('box')"
+      >
+        <mat-icon>qr_code_scanner</mat-icon>
+        Scan mã thùng
+      </button>
+    </div>
   </div>
 
   <div class="pm-body">
@@ -142,6 +158,26 @@
         <!-- Thanh scan theo chế độ -->
         <div class="pm-scan" *ngIf="scanMode" [attr.data-mode]="scanMode">
           <span class="pm-scan-title">{{ scanTitle }}</span>
+          <!-- Chế độ scan: pallet / thùng -->
+          <div
+            class="pm-scan-modes"
+            *ngIf="scanMode === 'pallet' || scanMode === 'box'"
+          >
+            <button
+              type="button"
+              [class.active]="scanMode === 'pallet'"
+              (click)="switchScanMode('pallet')"
+            >
+              Pallet
+            </button>
+            <button
+              type="button"
+              [class.active]="scanMode === 'box'"
+              (click)="switchScanMode('box')"
+            >
+              Thùng
+            </button>
+          </div>
           <div class="pm-scan-input">
             <mat-icon>qr_code_scanner</mat-icon>
             <input
@@ -221,7 +257,8 @@
                 </th>
                 <th>Reel ID</th>
                 <th>Part Number</th>
-                <th>Quantity</th>
+                <th>Tên vật tư</th>
+                <th>Số lượng trong thùng</th>
                 <th>Vị trí</th>
                 <th>Số lô</th>
                 <th>Ngày sản xuất</th>
@@ -233,10 +270,10 @@
             </thead>
             <tbody>
               <tr *ngIf="isLoadingDetail">
-                <td colspan="11" class="pm-empty">Đang tải...</td>
+                <td colspan="12" class="pm-empty">Đang tải...</td>
               </tr>
               <tr *ngIf="!isLoadingDetail && !rows.length">
-                <td colspan="11" class="pm-empty">Pallet chưa có thùng nào.</td>
+                <td colspan="12" class="pm-empty">Pallet chưa có thùng nào.</td>
               </tr>
               <ng-container *ngIf="!isLoadingDetail">
                 <tr
@@ -254,7 +291,25 @@
                   </td>
                   <td class="reel">{{ r.reelId }}</td>
                   <td>{{ r.partNumber }}</td>
-                  <td class="qty">{{ r.quantity | number }}</td>
+                  <td class="mat-name" [title]="r.itemCode">
+                    {{ r.materialName || "—" }}
+                  </td>
+                  <td class="qty">
+                    <input
+                      class="qty-input"
+                      type="number"
+                      min="0"
+                      [class.changed]="r.newQuantity !== null"
+                      [disabled]="r.pendingRemove"
+                      [ngModel]="r.newQuantity ?? r.quantity"
+                      (ngModelChange)="onQuantityChange(r, $event)"
+                      [title]="
+                        r.newQuantity !== null
+                          ? 'Số lượng cũ: ' + (r.quantity | number)
+                          : ''
+                      "
+                    />
+                  </td>
                   <td>
                     <ng-container *ngIf="r.newLocation !== null; else oldLoc">
                       <span class="loc-old">{{ r.location || "—" }}</span>

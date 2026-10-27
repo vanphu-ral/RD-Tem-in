@@ -47,6 +47,17 @@
     >
       Lịch sử xuất kho
     </button> -->
+    <!-- Xuất chuyển kho: in phiếu Đề nghị lĩnh vật tư (mỗi yêu cầu 1 phiếu) -->
+    <button
+      type="button"
+      class="we-history we-print-btn"
+      *ngIf="!isPlanning && ws.requests.length"
+      [disabled]="isPrinting"
+      (click)="onPrintRequests()"
+    >
+      <mat-icon>print</mat-icon>
+      {{ isPrinting ? "Đang tra tồn kho..." : "Xuất đề nghị lĩnh" }}
+    </button>
   </div>
 
   <!-- ===== Cả 2 tab dùng chung giao diện; dữ liệu theo tab (ws) ===== -->
@@ -932,111 +943,166 @@
               <tr *ngIf="!ws.boxes.length">
                 <td colspan="15" class="we-empty-cell">Chưa scan thùng nào.</td>
               </tr>
-              <tr
+              <ng-container
                 *ngFor="let b of ws.boxes; let idx = index; trackBy: trackBox"
               >
-                <td class="col-no">{{ idx + 1 }}</td>
-                <td class="mono">
-                  {{ b.reelId }}
-                  <ng-container *ngIf="hasSession">
+                <tr>
+                  <td class="col-no">{{ idx + 1 }}</td>
+                  <td class="mono">
+                    {{ b.reelId }}
+                    <ng-container *ngIf="hasSession">
+                      <span
+                        class="pl-before"
+                        *ngIf="b.sent"
+                        matTooltip="Đã lưu vào phiên"
+                        >Đã lưu</span
+                      >
+                      <span
+                        class="pl-exported"
+                        *ngIf="isBoxExported(b)"
+                        matTooltip="Thùng đang ở kho nhận / đã hết tồn — coi là đã xuất, không xoá được"
+                        >Đã xuất</span
+                      >
+                      <span class="pl-unsent" *ngIf="!b.sent && isBoxSaving(b)"
+                        >Đang lưu...</span
+                      >
+                    </ng-container>
+                    <button
+                      type="button"
+                      class="we-split-btn"
+                      *ngIf="canSplit(b)"
+                      [class.warn]="needsSplit(b)"
+                      [matTooltip]="
+                        needsSplit(b)
+                          ? 'SL xuất ít hơn SL trong thùng — cần tách tem cho phần dư ở lại kho'
+                          : 'Tách tem: tem gốc đi theo SL xuất, phần dư sinh tem mới ở lại kho'
+                      "
+                      (click)="onSplitBox(b)"
+                    >
+                      <mat-icon>content_cut</mat-icon> Tách tem
+                    </button>
+                  </td>
+                  <td class="mono">{{ b.materialCode }}</td>
+                  <td class="mono">{{ b.partNumber || "—" }}</td>
+                  <td class="num">{{ b.inventoryQty ?? 0 | number }}</td>
+                  <td class="num">
+                    <input
+                      class="we-cell-input qty"
+                      type="number"
+                      min="1"
+                      [max]="b.inventoryQty ?? null"
+                      [disabled]="isBoxExported(b)"
+                      [class.invalid]="qtyError(b)"
+                      [ngModel]="b.quantity"
+                      (ngModelChange)="onBoxQtyChange(b, $event)"
+                    />
+                    <div class="loc-error qty-error" *ngIf="qtyError(b) as e">
+                      {{ e }}
+                    </div>
+                  </td>
+                  <td>{{ b.lot || "—" }}</td>
+                  <td>{{ b.mfgDate || "—" }}</td>
+                  <td>{{ b.expirationDate || "—" }}</td>
+                  <td>
                     <span
-                      class="pl-before"
-                      *ngIf="b.sent"
-                      matTooltip="Đã lưu vào phiên"
-                      >Đã lưu</span
+                      *ngIf="b.inventoryStatus; else noValue"
+                      class="we-badge"
+                      [ngClass]="stockStatusTone(b.inventoryStatus)"
+                      >{{ b.inventoryStatus }}</span
+                    >
+                  </td>
+                  <td>{{ b.palletCode || "—" }}</td>
+                  <td>
+                    <span
+                      *ngIf="b.sourceLocation; else noValue"
+                      class="we-badge loc"
+                      >{{ b.sourceLocation }}</span
+                    >
+                  </td>
+                  <td class="dest-area">
+                    <span
+                      *ngIf="b.destWhsCode; else noValue"
+                      class="we-badge dest"
+                      [class.unknown]="!destAreaOf(b)"
+                      [matTooltip]="
+                        destAreaOf(b)
+                          ? ''
+                          : 'Không tìm thấy kho có mã đuôi -' + b.destWhsCode
+                      "
+                      >{{ destAreaLabel(b) }}</span
+                    >
+                  </td>
+                  <td>
+                    <input
+                      class="we-cell-input loc"
+                      [class.invalid]="locationIssue(b)"
+                      [disabled]="isBoxExported(b)"
+                      [(ngModel)]="b.location"
+                      [matAutocomplete]="locAuto"
+                      (ngModelChange)="onLocationSearch($event, b)"
+                      (focus)="onLocationSearch(b.location, b)"
+                      (change)="onBoxLocationCommit(b)"
+                      [matTooltip]="locationIssue(b) ?? ''"
+                      placeholder="Vị trí"
+                    />
+                    <div class="loc-error" *ngIf="locationIssue(b) as issue">
+                      {{ issue }}
+                    </div>
+                  </td>
+                  <td class="col-del">
+                    <button
+                      type="button"
+                      class="we-del"
+                      [matTooltip]="
+                        isBoxExported(b)
+                          ? 'Đã xuất — không xoá được'
+                          : 'Bỏ thùng'
+                      "
+                      [disabled]="isDeletingBoxes || isBoxExported(b)"
+                      (click)="removeBox(b)"
+                    >
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+                <!-- Mã tách (phần ở lại kho) — dòng con của thùng cha -->
+                <tr class="we-split-row" *ngIf="b.split as sp">
+                  <td class="col-no"></td>
+                  <td colspan="14">
+                    <span class="we-split-tree">↳</span>
+                    <span class="mono we-split-reel">{{ sp.reelId }}</span>
+                    <span class="we-split-tag">Tách từ {{ b.reelId }}</span>
+                    <span class="we-split-qty"
+                      >{{ sp.quantity | number }} · ở lại kho{{
+                        sp.location ? " (" + sp.location + ")" : ""
+                      }}</span
                     >
                     <span
-                      class="pl-exported"
-                      *ngIf="isBoxExported(b)"
-                      matTooltip="Thùng đang ở kho nhận / đã hết tồn — coi là đã xuất, không xoá được"
-                      >Đã xuất</span
+                      class="we-split-st queued"
+                      *ngIf="sp.printStatus === 'queued'"
+                      >Chờ in</span
                     >
-                    <span class="pl-unsent" *ngIf="!b.sent && isBoxSaving(b)"
-                      >Đang lưu...</span
-                    >
-                  </ng-container>
-                </td>
-                <td class="mono">{{ b.materialCode }}</td>
-                <td class="mono">{{ b.partNumber || "—" }}</td>
-                <td class="num">{{ b.inventoryQty ?? 0 | number }}</td>
-                <td class="num">
-                  <input
-                    class="we-cell-input qty"
-                    type="number"
-                    min="1"
-                    [max]="b.inventoryQty ?? null"
-                    [disabled]="isBoxExported(b)"
-                    [class.invalid]="qtyError(b)"
-                    [ngModel]="b.quantity"
-                    (ngModelChange)="onBoxQtyChange(b, $event)"
-                  />
-                  <div class="loc-error qty-error" *ngIf="qtyError(b) as e">
-                    {{ e }}
-                  </div>
-                </td>
-                <td>{{ b.lot || "—" }}</td>
-                <td>{{ b.mfgDate || "—" }}</td>
-                <td>{{ b.expirationDate || "—" }}</td>
-                <td>
-                  <span
-                    *ngIf="b.inventoryStatus; else noValue"
-                    class="we-badge"
-                    [ngClass]="stockStatusTone(b.inventoryStatus)"
-                    >{{ b.inventoryStatus }}</span
-                  >
-                </td>
-                <td>{{ b.palletCode || "—" }}</td>
-                <td>
-                  <span
-                    *ngIf="b.sourceLocation; else noValue"
-                    class="we-badge loc"
-                    >{{ b.sourceLocation }}</span
-                  >
-                </td>
-                <td class="dest-area">
-                  <span
-                    *ngIf="b.destWhsCode; else noValue"
-                    class="we-badge dest"
-                    [class.unknown]="!destAreaOf(b)"
-                    [matTooltip]="
-                      destAreaOf(b)
-                        ? ''
-                        : 'Không tìm thấy kho có mã đuôi -' + b.destWhsCode
-                    "
-                    >{{ destAreaLabel(b) }}</span
-                  >
-                </td>
-                <td>
-                  <input
-                    class="we-cell-input loc"
-                    [class.invalid]="locationIssue(b)"
-                    [disabled]="isBoxExported(b)"
-                    [(ngModel)]="b.location"
-                    [matAutocomplete]="locAuto"
-                    (ngModelChange)="onLocationSearch($event, b)"
-                    (focus)="onLocationSearch(b.location, b)"
-                    (change)="onBoxLocationCommit(b)"
-                    [matTooltip]="locationIssue(b) ?? ''"
-                    placeholder="Vị trí"
-                  />
-                  <div class="loc-error" *ngIf="locationIssue(b) as issue">
-                    {{ issue }}
-                  </div>
-                </td>
-                <td class="col-del">
-                  <button
-                    type="button"
-                    class="we-del"
-                    [matTooltip]="
-                      isBoxExported(b) ? 'Đã xuất — không xoá được' : 'Bỏ thùng'
-                    "
-                    [disabled]="isDeletingBoxes || isBoxExported(b)"
-                    (click)="removeBox(b)"
-                  >
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
-                </td>
-              </tr>
+                    <span class="we-split-print">
+                      <button
+                        type="button"
+                        title="In tem tách theo mẫu Rạng Đông"
+                        [disabled]="isBusy"
+                        (click)="reprintSplit(b, 'rd')"
+                      >
+                        <mat-icon>print</mat-icon> Tem RĐ
+                      </button>
+                      <button
+                        type="button"
+                        title="In tem tách theo mẫu NCC"
+                        [disabled]="isBusy"
+                        (click)="reprintSplit(b, 'vendor')"
+                      >
+                        <mat-icon>print</mat-icon> Tem NCC
+                      </button>
+                    </span>
+                  </td>
+                </tr>
+              </ng-container>
             </tbody>
           </table>
 
@@ -1199,6 +1265,13 @@
         (click)="openMobilePick()"
       >
         <mat-icon>place</mat-icon> Gợi ý lấy hàng
+      </button>
+      <button
+        type="button"
+        *ngIf="!isPlanning && ws.requests.length"
+        (click)="onPrintRequests()"
+      >
+        <mat-icon>print</mat-icon> Xuất đề nghị lĩnh
       </button>
       <!-- <button
         type="button"
@@ -1745,6 +1818,39 @@
         <div class="loc-error mx-box-error" *ngIf="qtyError(b) as e">
           SL xuất: {{ e }}
         </div>
+        <div class="we-split" *ngIf="b.split as sp">
+          <mat-icon>content_cut</mat-icon>
+          Tem tách <b>{{ sp.reelId }}</b> · {{ sp.quantity | number }} ở lại
+          <span class="we-split-st queued" *ngIf="sp.printStatus === 'queued'"
+            >Chờ in</span
+          >
+          <span class="we-split-print">
+            <button
+              type="button"
+              [disabled]="isBusy"
+              (click)="reprintSplit(b, 'rd')"
+            >
+              <mat-icon>print</mat-icon> Tem RĐ
+            </button>
+            <button
+              type="button"
+              [disabled]="isBusy"
+              (click)="reprintSplit(b, 'vendor')"
+            >
+              <mat-icon>print</mat-icon> Tem NCC
+            </button>
+          </span>
+        </div>
+        <button
+          type="button"
+          class="we-split-btn wide"
+          *ngIf="canSplit(b)"
+          [class.warn]="needsSplit(b)"
+          (click)="onSplitBox(b)"
+        >
+          <mat-icon>content_cut</mat-icon>
+          {{ needsSplit(b) ? "Tách tem phần dư (bắt buộc)" : "Tách tem" }}
+        </button>
         <div class="loc-error mx-box-error" *ngIf="locationIssue(b) as issue">
           {{ issue }}
         </div>

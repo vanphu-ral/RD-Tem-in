@@ -1,0 +1,271 @@
+<div class="sl-page">
+  <header class="sl-header">
+    <div class="sl-title">
+      <a class="sl-back" routerLink="/list-material" title="Danh sách vật tư">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <div>
+        <h2>Tem tách chờ in</h2>
+        <p>Tem tách từ Xuất chuyển kho và Nhập tem NCC · {{ total }} tem</p>
+      </div>
+    </div>
+    <div class="sl-actions">
+      <span class="sl-count" *ngIf="selected.size"
+        >Đã chọn <b>{{ selected.size }}</b></span
+      >
+      <button
+        type="button"
+        class="sl-btn primary"
+        [disabled]="!selected.size"
+        (click)="print('rd')"
+      >
+        <mat-icon>print</mat-icon> In tem Rạng Đông
+      </button>
+      <button
+        type="button"
+        class="sl-btn"
+        [disabled]="!selected.size"
+        (click)="print('vendor')"
+      >
+        <mat-icon>print</mat-icon> In tem NCC
+      </button>
+    </div>
+  </header>
+
+  <!-- Bộ lọc (lọc phía BE) -->
+  <section class="sl-filters">
+    <label>
+      <span>Trạng thái in</span>
+      <select [(ngModel)]="printFilter" (ngModelChange)="applyFilter()">
+        <option value="all">Tất cả</option>
+        <option value="unprinted">Chưa in</option>
+        <option value="printed">Đã in</option>
+      </select>
+    </label>
+    <label>
+      <span>Nguồn</span>
+      <select [(ngModel)]="source" (ngModelChange)="applyFilter()">
+        <option *ngFor="let s of sources" [value]="s.value">
+          {{ s.label }}
+        </option>
+      </select>
+    </label>
+    <label>
+      <span>Mã lệnh / mã đơn</span>
+      <input
+        type="text"
+        inputmode="numeric"
+        [(ngModel)]="sourceId"
+        (keydown.enter)="applyFilter()"
+        placeholder="vd 125864"
+      />
+    </label>
+    <label class="grow">
+      <span>Tìm theo</span>
+      <div class="sl-search">
+        <select [(ngModel)]="searchField">
+          <option *ngFor="let f of searchFields" [value]="f.value">
+            {{ f.label }}
+          </option>
+        </select>
+        <input
+          type="text"
+          [(ngModel)]="search"
+          (keydown.enter)="applyFilter()"
+          placeholder="Nhập rồi Enter"
+        />
+      </div>
+    </label>
+    <div class="sl-filter-btns">
+      <button type="button" class="sl-btn primary" (click)="applyFilter()">
+        <mat-icon>search</mat-icon> Tìm
+      </button>
+      <button type="button" class="sl-btn" (click)="resetFilter()">
+        <mat-icon>restart_alt</mat-icon> Đặt lại
+      </button>
+    </div>
+  </section>
+
+  <div class="sl-state" *ngIf="isLoading">Đang tải…</div>
+  <div class="sl-state error" *ngIf="!isLoading && loadError">
+    {{ loadError }}
+    <button type="button" class="sl-btn" (click)="load()">Thử lại</button>
+  </div>
+  <div class="sl-state" *ngIf="!isLoading && !loadError && !items.length">
+    Không có tem tách nào.
+  </div>
+
+  <ng-container *ngIf="!isLoading && !loadError && items.length">
+    <!-- Desktop: bảng -->
+    <div class="sl-table-wrap">
+      <table class="sl-table">
+        <thead>
+          <tr>
+            <th class="col-check">
+              <input
+                type="checkbox"
+                [checked]="allSelected"
+                [indeterminate]="someSelected"
+                (change)="toggleAll()"
+                title="Chọn tất cả trong trang"
+              />
+            </th>
+            <th>ReelID tem tách</th>
+            <th>Tem gốc</th>
+            <th>Mã SAP</th>
+            <th>Tên vật tư</th>
+            <th>Part number</th>
+            <th>Lô</th>
+            <th class="num">SL</th>
+            <th>Vị trí</th>
+            <th>Nguồn</th>
+            <th>Mã lệnh / đơn</th>
+            <th>Người tách</th>
+            <th>Thời gian</th>
+            <th>Trạng thái in</th>
+            <th class="col-act"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let r of items; trackBy: trackById"
+            [class.selected]="selected.has(r.id)"
+            (click)="toggle(r)"
+          >
+            <td class="col-check" (click)="$event.stopPropagation()">
+              <input
+                type="checkbox"
+                [checked]="selected.has(r.id)"
+                (change)="toggle(r)"
+              />
+            </td>
+            <td class="mono strong">{{ r.reelId }}</td>
+            <td class="mono">{{ r.parentMaterialIdentifier || "—" }}</td>
+            <td>{{ sapOf(r) || "—" }}</td>
+            <td class="name" [title]="nameOf(r)">{{ nameOf(r) || "—" }}</td>
+            <td>{{ r.partNumber || "—" }}</td>
+            <td>{{ r.lot || "—" }}</td>
+            <td class="num strong">{{ r.initialQuantity | number }}</td>
+            <td>{{ r.locationOverride || r.storageUnit || "—" }}</td>
+            <td>
+              <span class="sl-source" [class.transfer]="isTransfer(r)">{{
+                sourceLabel(r)
+              }}</span>
+            </td>
+            <td>{{ r.businessSourceId ?? "—" }}</td>
+            <td>{{ r.createdBy || "—" }}</td>
+            <td class="nowrap">
+              {{ r.createdAt ? (r.createdAt | date: "dd/MM/yyyy HH:mm") : "—" }}
+            </td>
+            <td>
+              <span class="sl-print-st" [class.done]="r.printStatus">{{
+                r.printStatus ? "Đã in" : "Chưa in"
+              }}</span>
+            </td>
+            <td class="col-act" (click)="$event.stopPropagation()">
+              <button
+                type="button"
+                class="sl-icon-btn"
+                title="In tem Rạng Đông"
+                (click)="print('rd', [r])"
+              >
+                <mat-icon>print</mat-icon>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile: thẻ -->
+    <div class="sl-cards">
+      <label class="sl-card-all">
+        <input
+          type="checkbox"
+          [checked]="allSelected"
+          [indeterminate]="someSelected"
+          (change)="toggleAll()"
+        />
+        Chọn tất cả trong trang
+      </label>
+      <div
+        class="sl-card"
+        *ngFor="let r of items; trackBy: trackById"
+        [class.selected]="selected.has(r.id)"
+      >
+        <div class="sl-card-head">
+          <input
+            type="checkbox"
+            [checked]="selected.has(r.id)"
+            (change)="toggle(r)"
+          />
+          <span class="mono strong">{{ r.reelId }}</span>
+          <span class="sl-print-st" [class.done]="r.printStatus">{{
+            r.printStatus ? "Đã in" : "Chưa in"
+          }}</span>
+        </div>
+        <div class="sl-card-body">
+          <div>
+            <span>Tem gốc</span
+            ><b class="mono">{{ r.parentMaterialIdentifier || "—" }}</b>
+          </div>
+          <div>
+            <span>Vật tư</span
+            ><b>{{ sapOf(r) || "—" }} · {{ nameOf(r) || "—" }}</b>
+          </div>
+          <div>
+            <span>Lô · SL</span
+            ><b>{{ r.lot || "—" }} · {{ r.initialQuantity | number }}</b>
+          </div>
+          <div>
+            <span>Nguồn</span
+            ><b>{{ sourceLabel(r) }} · {{ r.businessSourceId ?? "—" }}</b>
+          </div>
+          <div>
+            <span>Tách lúc</span
+            ><b
+              >{{
+                r.createdAt ? (r.createdAt | date: "dd/MM/yyyy HH:mm") : "—"
+              }}
+              · {{ r.createdBy || "—" }}</b
+            >
+          </div>
+        </div>
+        <div class="sl-card-actions">
+          <button type="button" class="sl-btn" (click)="print('rd', [r])">
+            <mat-icon>print</mat-icon> Tem RĐ
+          </button>
+          <button type="button" class="sl-btn" (click)="print('vendor', [r])">
+            <mat-icon>print</mat-icon> Tem NCC
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Phân trang -->
+  <footer class="sl-pager" *ngIf="total > 0">
+    <span>Trang {{ page + 1 }} / {{ totalPages }} · {{ total }} tem</span>
+    <div class="sl-pager-btns">
+      <button
+        type="button"
+        class="sl-icon-btn"
+        [disabled]="page === 0 || isLoading"
+        (click)="goPage(page - 1)"
+      >
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <button
+        type="button"
+        class="sl-icon-btn"
+        [disabled]="page >= totalPages - 1 || isLoading"
+        (click)="goPage(page + 1)"
+      >
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <select [(ngModel)]="size" (ngModelChange)="onSizeChange()">
+        <option *ngFor="let s of pageSizes" [ngValue]="s">{{ s }}/trang</option>
+      </select>
+    </div>
+  </footer>
+</div>

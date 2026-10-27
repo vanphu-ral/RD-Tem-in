@@ -29,6 +29,11 @@ import {
   buildSplitQrCode,
   buildSplitReelId,
 } from "../../shared/box-split.util";
+import {
+  buildSplitInventoryPayload,
+  SPLIT_BUSINESS_TYPE,
+  SplitInventoryService,
+} from "../../shared/split-inventory.service";
 import { openVendorNccLabelPrint } from "../../shared/split-label-print.util";
 
 /** Dòng PO của đơn có thể nhận thùng (cùng mã vật tư) — khai báo local tránh import vòng */
@@ -115,6 +120,7 @@ export class SplitBoxDialogComponent implements OnInit {
     private infoTemNccService: InfoTemNccService,
     private notificationService: NotificationService,
     private accountService: AccountService,
+    private splitInventoryService: SplitInventoryService,
   ) {}
 
   ngOnInit(): void {
@@ -291,6 +297,7 @@ export class SplitBoxDialogComponent implements OnInit {
           this.notificationService.success(
             `Đã tách thùng "${originalReel}": ${into} vào PO ${line.poCode}, ${excess} sang thùng mới "${newReel}".`,
           );
+          this.saveSplitInventory(rec, remainder, originalReel, excess);
           if (!qr.quantityReplaced) {
             this.notificationService.warning(
               `Không xác định được SL trên mã QR của thùng gốc — QR thùng "${newReel}" chỉ đổi ReelID, kiểm tra lại trước khi in.`,
@@ -307,6 +314,48 @@ export class SplitBoxDialogComponent implements OnInit {
             ),
           );
         },
+      });
+  }
+
+  /**
+   * Lưu lịch sử tách (POST /split-inventories), nghiệp vụ "Nhập tem NCC",
+   * businessSourceId = mã đơn nhập kho (deliveryNotificationId). Lỗi chỉ cảnh báo.
+   */
+  saveSplitInventory(
+    original: VendorLabelInfoDto,
+    remainder: VendorLabelInfoDto,
+    originalReel: string,
+    quantity: number,
+  ): void {
+    const sourceId =
+      original.deliveryNotificationId ??
+      original.deliveryNotification?.id ??
+      null;
+    const reelId = toText(remainder.reelId);
+    this.splitInventoryService
+      .save(
+        buildSplitInventoryPayload({
+          sources: [
+            remainder as unknown as Record<string, unknown>,
+            original as unknown as Record<string, unknown>,
+          ],
+          businessSourceId: sourceId,
+          businessType: SPLIT_BUSINESS_TYPE.vendorLabel,
+          reelId,
+          parentReelId: originalReel,
+          quantity,
+          user: this.currentUser || toText(original.createdBy) || "unknown",
+          overrides: {
+            locationOverride: remainder.locationOverride ?? null,
+            comments: remainder.comments ?? null,
+          },
+        }),
+      )
+      .subscribe({
+        error: () =>
+          this.notificationService.warning(
+            `Đã tách nhưng chưa lưu được lịch sử tách thùng "${reelId}".`,
+          ),
       });
   }
 

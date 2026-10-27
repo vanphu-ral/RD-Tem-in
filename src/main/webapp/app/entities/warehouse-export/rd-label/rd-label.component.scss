@@ -1,0 +1,196 @@
+// Giữ đúng kích thước / bố cục Preview In Tem ở receiving-supplies (600 × 200 px)
+:host {
+  display: block;
+  width: 600px;
+}
+
+.label {
+  width: 600px;
+  height: 200px;
+  page-break-after: always;
+  background: white;
+}
+
+.label-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: 3rem;
+  padding: 1rem;
+  font-family: Arial, sans-serif;
+}
+
+.col-left {
+  width: 28mm;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.qr-box {
+  width: 24mm;
+  height: 24mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid;
+  border-radius: 5px;
+  padding-top: 6px;
+}
+
+.msd-info {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.msd-title {
+  margin-bottom: 1px;
+}
+
+.msd-item {
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1.2rem;
+}
+
+.col-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+}
+
+.logo-box {
+  height: 6mm;
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  height: 5mm;
+  width: auto;
+}
+
+.sap-code {
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 0.3px;
+}
+
+.part-number {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.reel-id-tem {
+  font-size: 16px;
+}
+
+.info-grid-tem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+  width: 100%;
+  line-height: 1rem;
+}
+
+.info-row-tem {
+  display: flex;
+  gap: 2mm;
+  font-size: 10px;
+}
+
+.info-label-tem {
+  min-width: 12mm;
+}
+
+.info-value-tem {
+  font-weight: lighter;
+}
+
+.qty-big {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.col-right {
+  width: 32mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  font-size: 6pt;
+}
+
+.rank-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+}
+
+.rank-item-small {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.rank-val {
+  font-weight: bold;
+}
+
+.storage-unit {
+  color: rgb(0, 0, 0);
+  text-align: right;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.barcode-box {
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 0.5mm;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.bc-line {
+  display: flex;
+  justify-content: space-between;
+}
+
+.bc-item-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3mm;
+}
+
+.bc-label {
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.bc-code {
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.bc-svg {
+  height: 15px;
+  display: flex;
+  align-items: center;
+  align-self: end;
+}
+
+.bc-svg svg {
+  width: 100%;
+  height: 100%;
+}
+
+.product-name-small {
+  font-size: 10px;
+  text-align: right;
+  line-height: 0.4;
+  font-weight: bold;
+  margin-top: -12px;
+  margin-right: 1rem;
+}

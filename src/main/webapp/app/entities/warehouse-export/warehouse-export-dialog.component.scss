@@ -3220,3 +3220,163 @@ $mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   margin-left: 6px;
   font-size: 11px;
 }
+
+/* Nút Xuất đề nghị lĩnh (header chi tiết xuất) */
+.we-print-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+}
+
+/* Tách tem (Xuất chuyển kho): tem tách của phần dư + nút tách */
+.we-split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: #15803d;
+  font-family: inherit;
+  font-size: 12px;
+
+  mat-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+  }
+
+  b {
+    font-family: "SFMono-Regular", Consolas, monospace;
+  }
+}
+
+.we-split-st {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #dcfce7;
+  color: #15803d;
+  font-weight: 600;
+
+  &.queued {
+    background: #fef3c7;
+    color: #b45309;
+  }
+}
+
+.we-split-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  mat-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+  }
+
+  &:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+  }
+
+  // Bắt buộc tách (SL xuất < SL trong thùng, chưa tách)
+  &.warn {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    color: #b45309;
+  }
+
+  &.wide {
+    justify-content: center;
+    width: 100%;
+    min-height: 40px;
+    font-size: 14px;
+  }
+}
+
+/* Dòng con: mã tách ngay dưới thùng cha */
+.we-split-row td {
+  padding-top: 4px;
+  padding-bottom: 6px;
+  border-top: 1px dashed #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 13px;
+}
+
+.we-split-tree {
+  margin-right: 6px;
+  color: #86efac;
+  font-weight: 700;
+}
+
+.we-split-reel {
+  font-weight: 700;
+}
+
+.we-split-tag {
+  margin: 0 8px;
+  padding: 0 6px;
+  border: 1px solid #86efac;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 12px;
+}
+
+.we-split-qty {
+  margin-right: 8px;
+}
+
+// In / in lại tem tách
+.we-split-print {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 8px;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid #93c5fd;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    mat-icon {
+      width: 16px;
+      height: 16px;
+      font-size: 16px;
+    }
+
+    &:hover:not(:disabled) {
+      background: #dbeafe;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+}

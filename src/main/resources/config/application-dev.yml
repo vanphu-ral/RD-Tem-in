@@ -281,3 +281,7 @@ jhipster:
 application:
   sap:
     goods-receipt-po-url: http://192.168.68.3:8082/api/PostGoodsReceiptPO
+  panacim:
+    mes-api-url: http://172.168.6.3/PanaCIMMC/MesApi/ExecuteTransaction
+    user-name: RD00698
+    user-id: ""

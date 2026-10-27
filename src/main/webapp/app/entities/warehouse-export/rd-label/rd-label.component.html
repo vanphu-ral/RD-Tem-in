@@ -1,0 +1,84 @@
+<div class="label">
+  <div class="label-content">
+    <div class="col-left">
+      <div class="qr-box">
+        <qrcode
+          [qrdata]="label.qrCode || ' '"
+          [width]="100"
+          [margin]="0"
+          [errorCorrectionLevel]="'M'"
+        >
+        </qrcode>
+      </div>
+      <div class="msd-info">
+        <div class="msd-title">MSD:</div>
+        <div class="msd-item">Date: {{ label.manufacturingDate }}</div>
+        <div class="msd-item">Exp: {{ label.expirationDate }}</div>
+      </div>
+    </div>
+    <div class="col-center">
+      <div class="logo-box">
+        <img
+          src="content/images/logo-rang-dong.svg"
+          alt="Logo"
+          class="logo-img"
+        />
+      </div>
+      <div class="sap-code">{{ label.sapCode }}</div>
+      <div class="part-number">{{ label.partNumber }}</div>
+      <div class="reel-id-tem">{{ label.reelId }}</div>
+      <div class="info-grid-tem">
+        <div class="info-row-tem">
+          <span class="info-label-tem">Qty:</span>
+          <span class="info-value-tem qty-big">{{
+            label.initialQuantity
+          }}</span>
+        </div>
+        <div class="info-row-tem">
+          <span class="info-label-tem">Vendor:</span>
+          <span class="info-value-tem">{{ label.vendor }}</span>
+        </div>
+        <div class="info-row-tem">
+          <span class="info-label-tem">LOT:</span>
+          <span class="info-value-tem">{{ label.lot }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-right">
+      <div class="rank-section">
+        <div class="rank-item-small">
+          <span>Rank M:</span>
+          <span class="rank-val">{{ label.userData1 }}</span>
+        </div>
+        <div class="rank-item-small">
+          <span>Rank A:</span>
+          <span class="rank-val">{{ label.userData2 }}</span>
+        </div>
+        <div class="rank-item-small">
+          <span>Rank Q:</span>
+          <span class="rank-val">{{ label.userData3 }}</span>
+        </div>
+      </div>
+      <div class="storage-unit">{{ label.storageUnit }}</div>
+      <div class="barcode-box">
+        <div class="bc-item-compact">
+          <div class="bc-line">
+            <div class="bc-label">NN:</div>
+            <div class="bc-code">
+              {{ formatArrivalDate(label.arrivalDate) }}
+            </div>
+          </div>
+          <div class="bc-svg"><svg #nnSvg></svg></div>
+        </div>
+        <div class="bc-item-compact">
+          <div class="bc-line">
+            <div class="bc-label">Po:</div>
+            <div class="bc-code">{{ label.userData5 }}</div>
+          </div>
+          <div class="bc-svg"><svg #poSvg></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="product-name-small">{{ label.productName }}</div>
+</div>

@@ -1,0 +1,360 @@
+$text: #1e293b;
+$muted: #64748b;
+
+.sr {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 16px;
+  color: $text;
+  font-size: 14px;
+}
+
+.sr-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  > mat-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    border-radius: 50%;
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 24px;
+    box-sizing: border-box;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 2px 0 0;
+    color: $muted;
+    font-size: 13px;
+  }
+}
+
+.mono {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.sr-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  span {
+    flex-shrink: 0;
+    color: $muted;
+  }
+
+  strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+}
+
+.sr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  > span {
+    font-weight: 600;
+  }
+
+  input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    // 16px: tránh iOS tự zoom khi focus
+    font-size: 16px;
+    font-weight: 700;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    &.invalid {
+      border-color: #dc2626;
+    }
+  }
+}
+
+.sr-error {
+  color: #dc2626;
+}
+
+.sr-hint {
+  color: $muted;
+}
+
+.sr-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sr-part {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 10px;
+
+  .lbl {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  strong {
+    font-size: 20px;
+  }
+
+  .mono {
+    overflow-wrap: anywhere;
+    font-size: 11px;
+  }
+
+  &.out {
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  &.stay {
+    background: #f0fdf4;
+    color: #15803d;
+
+    &.none {
+      background: #f1f5f9;
+      color: $muted;
+    }
+  }
+}
+
+.sr-note {
+  margin: 0;
+  color: $muted;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sr-print {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  .lbl {
+    width: 100%;
+    font-weight: 600;
+  }
+
+  label {
+    display: inline-flex;
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    cursor: pointer;
+
+    &.on {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+  }
+}
+
+.sr-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.sr-btn {
+  height: 44px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &.primary {
+    border-color: #1e4976;
+    background: #1e4976;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+// ===== 2 cột: thông tin tách (trái) · preview tem (phải) =====
+.sr-body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.sr-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sr-right {
+  position: sticky;
+  top: 0;
+  min-width: 0;
+}
+
+.sr-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.sr-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    color: #3b82f6;
+  }
+
+  .tag {
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 12px;
+  }
+}
+
+// Tem RD 600 × 200 px → phóng / thu theo bề rộng cột (--scale tính trong TS)
+.sr-stage {
+  --scale: 1;
+  height: calc(200px * var(--scale));
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+
+  jhi-rd-label {
+    transform: scale(var(--scale));
+    transform-origin: top left;
+  }
+}
+
+.sr-ncc {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #000;
+  font-size: 15px;
+  line-height: 1.5;
+
+  .sr-ncc-qr {
+    flex-shrink: 0;
+  }
+
+  .sr-ncc-info {
+    min-width: 0;
+  }
+
+  .name {
+    margin-bottom: 4px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .key {
+    display: inline-block;
+    min-width: 84px;
+    font-weight: 600;
+  }
+
+  .reel {
+    margin-top: 2px;
+    font-size: 13px;
+    word-break: break-all;
+  }
+}
+
+.sr-preview-hint {
+  margin: 0;
+  color: $muted;
+  font-size: 12px;
+}
+
+.sr-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 12px;
+  color: $muted;
+  text-align: center;
+
+  mat-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 760px) {
+  .sr-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sr-right {
+    position: static;
+  }
+}

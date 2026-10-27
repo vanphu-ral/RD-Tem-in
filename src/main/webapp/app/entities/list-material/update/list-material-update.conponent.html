@@ -10,11 +10,13 @@
     <div class="group-buttons-main">
       <div class="group-buttons primary">
         <button
+          class="btn-back"
           routerLink="list-material"
           (click)="goBackToList()"
           mat-raised-button
         >
           <fa-icon [icon]="faArrowLeft"></fa-icon>
+          <span class="m-label">Quay lại</span>
         </button>
         <button
           class="btn-scan"
@@ -24,17 +26,10 @@
         >
           <fa-icon [icon]="faCrosshairs" class="scan-btn-icon"></fa-icon>
           <span class="btn-text">Scan</span>
-        </button>
-        <button
-          class="btn-scan"
-          mat-button
-          routerLink="/list-material/pallet-material"
-        >
-          <fa-icon [icon]="faLayerGroup" class="scan-btn-icon"></fa-icon>
-          <span class="btn-text">Scan pallet</span>
+          <span class="m-label">Scan thùng</span>
         </button>
         <!-- <div *ngIf="scanError" class="scan-error">{{ scanError }}</div> -->
-        <div>
+        <div class="scan-location-wrap">
           <mat-form-field
             appearance="fill"
             floatLabel="always"
@@ -55,11 +50,16 @@
         </div> -->
       </div>
       <div class="group-buttons secondary">
-        <div *ngIf="(checkedCount$ | async) as count">
+        <div class="btn-update-wrap" *ngIf="(checkedCount$ | async) as count">
           <div *ngIf="count > 0">
-            <button (click)="openEditSelectedDialog()" mat-raised-button>
+            <button
+              class="btn-update"
+              (click)="openEditSelectedDialog()"
+              mat-raised-button
+            >
               <fa-icon [icon]="faPenToSquare"></fa-icon>
               <span class="btn-text"> Cập nhật</span>
+              <span class="m-label">Cập nhật {{ count }} vật tư</span>
             </button>
           </div>
         </div>
@@ -70,6 +70,7 @@
         >
           <fa-icon [icon]="faTableColumns"></fa-icon>
           <span class="btn-text">Columns</span>
+          <span class="m-label">Chọn cột</span>
         </button>
         <mat-menu #menucolumnselect="matMenu">
           <section class="example-section" (click)="$event.stopPropagation()">
@@ -123,6 +124,7 @@
         >
           <fa-icon [icon]="faDownload"></fa-icon>
           <span class="btn-text">Xuất Excel</span>
+          <span class="m-label">Xuất Excel</span>
         </button>
       </div>
     </div>

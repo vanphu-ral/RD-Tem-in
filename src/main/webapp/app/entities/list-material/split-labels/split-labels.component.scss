@@ -1,0 +1,438 @@
+$text: #1e293b;
+$muted: #64748b;
+$border: #e2e8f0;
+$primary: #2563eb;
+
+:host {
+  display: block;
+}
+
+.sl-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  color: $text;
+  font-size: 14px;
+}
+
+.sl-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 2px 0 0;
+    color: $muted;
+    font-size: 13px;
+  }
+}
+
+.sl-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sl-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: $text;
+  background: #f1f5f9;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+.sl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sl-count {
+  color: $muted;
+}
+
+.sl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: $text;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+
+  &.primary {
+    border-color: $primary;
+    background: $primary;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.sl-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: $primary;
+  cursor: pointer;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.sl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid $border;
+  border-radius: 10px;
+  background: #f8fafc;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+
+    > span {
+      color: $muted;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    &.grow {
+      flex: 1;
+      min-width: 260px;
+    }
+  }
+
+  select,
+  input {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+  }
+}
+
+.sl-search {
+  display: flex;
+
+  select {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border-left: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+}
+
+.sl-filter-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.sl-state {
+  padding: 32px 12px;
+  color: $muted;
+  text-align: center;
+
+  &.error {
+    color: #b91c1c;
+  }
+}
+
+.sl-table-wrap {
+  overflow-x: auto;
+  border: 1px solid $border;
+  border-radius: 10px;
+}
+
+.sl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid $border;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    cursor: pointer;
+
+    &:hover {
+      background: #f8fafc;
+    }
+
+    &.selected {
+      background: #eff6ff;
+    }
+  }
+
+  .col-check {
+    width: 36px;
+    text-align: center;
+  }
+
+  .col-act {
+    width: 48px;
+    text-align: center;
+  }
+
+  .num {
+    text-align: right;
+  }
+
+  .name {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.mono {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.strong {
+  font-weight: 700;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.sl-source {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3e8ff;
+  color: #7e22ce;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.transfer {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+}
+
+.sl-print-st {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.done {
+    background: #dcfce7;
+    color: #15803d;
+  }
+}
+
+.sl-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: $muted;
+
+  select {
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+  }
+}
+
+.sl-pager-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// Mobile: thẻ thay bảng
+.sl-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sl-page {
+    padding: 12px;
+  }
+
+  .sl-actions {
+    width: 100%;
+
+    .sl-btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  .sl-filters {
+    label,
+    label.grow {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+  }
+
+  .sl-filter-btns {
+    width: 100%;
+
+    .sl-btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  .sl-table-wrap {
+    display: none;
+  }
+
+  .sl-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sl-card-all {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: $muted;
+  }
+
+  .sl-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid $border;
+    border-radius: 10px;
+    background: #fff;
+
+    &.selected {
+      border-color: #93c5fd;
+      background: #eff6ff;
+    }
+  }
+
+  .sl-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .mono {
+      flex: 1;
+      min-width: 0;
+      word-break: break-all;
+    }
+  }
+
+  .sl-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+
+    > div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+
+      span {
+        flex-shrink: 0;
+        color: $muted;
+      }
+
+      b {
+        text-align: right;
+        word-break: break-word;
+      }
+    }
+  }
+
+  .sl-card-actions {
+    display: flex;
+    gap: 8px;
+
+    .sl-btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}

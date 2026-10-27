@@ -80,6 +80,29 @@
       <div class="ss-lots" *ngIf="mat.expanded">
         <div class="ss-lots-head" *ngIf="mat.lots.length">
           {{ mat.lots.length }} thùng · Tổng SL {{ boxQty(mat) | number }}
+          <!-- Đã gửi / chưa gửi (chỉ thùng đã scan): SAP và PanaCIM -->
+          <div class="ss-send-stats">
+            <ng-container
+              *ngFor="
+                let t of [
+                  { key: 'sap', label: 'SAP' },
+                  { key: 'pana', label: 'PanaCIM' },
+                ]
+              "
+            >
+              <ng-container *ngIf="sendStats(mat, $any(t.key)) as st">
+                <span class="ss-send-target">{{ t.label }}</span>
+                <span class="ss-send-cell sent"
+                  >Đã gửi <b>{{ st.sentBoxes }}</b> thùng ·
+                  <b>{{ st.sentQty | number }}</b></span
+                >
+                <span class="ss-send-cell unsent" [class.zero]="!st.unsentBoxes"
+                  >Chưa gửi <b>{{ st.unsentBoxes }}</b> thùng ·
+                  <b>{{ st.unsentQty | number }}</b></span
+                >
+              </ng-container>
+            </ng-container>
+          </div>
         </div>
         <div class="ss-lot-empty" *ngIf="!mat.lots.length">
           Chưa có thùng nào được scan.

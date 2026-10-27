@@ -15,14 +15,35 @@
   <!-- ================= DANH SÁCH PALLET ================= -->
   <ng-container *ngIf="screen === 'list'">
     <div class="mp-body">
+      <!-- Chế độ scan: pallet / thùng -->
+      <div class="mp-modes">
+        <button
+          type="button"
+          [class.active]="listScanMode === 'pallet'"
+          (click)="setListScanMode('pallet')"
+        >
+          Pallet
+        </button>
+        <button
+          type="button"
+          [class.active]="listScanMode === 'box'"
+          (click)="setListScanMode('box')"
+        >
+          Thùng
+        </button>
+      </div>
       <div class="mp-scan-row">
-        <div class="mp-input">
+        <div class="mp-input" [attr.data-mode]="listScanMode">
           <mat-icon>qr_code_2</mat-icon>
           <input
             #mainInputRef
             [(ngModel)]="palletInput"
-            (keydown.enter)="onApplyPallet()"
-            placeholder="Quét / nhập mã pallet"
+            (keydown.enter)="onListScan()"
+            [placeholder]="
+              listScanMode === 'pallet'
+                ? 'Quét / nhập mã pallet'
+                : 'Quét mã thùng → mở pallet chứa thùng'
+            "
             autocomplete="off"
           />
         </div>
@@ -30,7 +51,7 @@
           type="button"
           class="mp-apply"
           [disabled]="isLoading"
-          (click)="onApplyPallet()"
+          (click)="onListScan()"
         >
           Áp dụng
         </button>
@@ -157,6 +178,17 @@
         <span class="mp-chip">{{ location(c) }}</span>
       </div>
 
+      <div class="mp-input block" data-mode="box">
+        <mat-icon>qr_code_scanner</mat-icon>
+        <input
+          #mainInputRef
+          [(ngModel)]="detailScan"
+          (keydown.enter)="onDetailScan()"
+          placeholder="Quét mã thùng để chọn..."
+          autocomplete="off"
+        />
+      </div>
+
       <div class="mp-section-head">
         <span>Thùng trong pallet</span>
         <span class="mp-selected">Đã chọn {{ boxChecked.size }}</span>
@@ -182,20 +214,62 @@
         <div class="mp-box-body">
           <div class="mp-reel">{{ b.reelId }}</div>
           <div class="mp-part">{{ b.partNumber || "—" }}</div>
+          <div class="mp-name" *ngIf="boxName(b)">{{ boxName(b) }}</div>
           <div class="mp-box-grid">
-            <span class="lbl">SỐ LƯỢNG</span
-            ><strong>{{ b.initialQuantity | number }}</strong>
             <span class="lbl">SỐ LÔ</span><strong>{{ b.lot || "—" }}</strong>
             <span class="lbl">VỊ TRÍ</span
             ><strong>{{ b.subStorageUnit || "—" }}</strong>
             <span class="lbl">STATUS</span
             ><span class="mp-status">{{ boxStatus(b) }}</span>
           </div>
+          <!-- Số lượng trong thùng: dòng riêng cuối card -->
+          <label class="mp-qty-row" (click)="$event.stopPropagation()">
+            <span class="lbl">SỐ LƯỢNG TRONG THÙNG</span>
+            <input
+              class="mp-qty-input"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              [class.changed]="boxQty.has(b.id)"
+              [ngModel]="boxQtyValue(b)"
+              (ngModelChange)="onBoxQtyChange(b, $event)"
+            />
+          </label>
         </div>
       </div>
     </div>
 
     <div class="mp-footer">
+      <button
+        type="button"
+        class="mp-btn primary mp-qty-save"
+        *ngIf="boxQty.size"
+        [disabled]="isSaving"
+        (click)="onSaveQuantities()"
+      >
+        Cập nhật số lượng ({{ boxQty.size }} thùng)
+      </button>
+      <!-- Chuyển vị trí: thùng đã tích / cả pallet (thùng chuyển theo) — 2 nút tách riêng -->
+      <div class="mp-row2 mp-loc-actions">
+        <button
+          type="button"
+          class="mp-btn"
+          [disabled]="isSaving || !boxChecked.size"
+          (click)="openBoxLocation()"
+        >
+          <mat-icon>open_with</mat-icon>
+          Chuyển thùng đã chọn ({{ boxChecked.size }})
+        </button>
+        <button
+          type="button"
+          class="mp-btn"
+          [disabled]="isSaving"
+          (click)="openPalletLocation()"
+        >
+          <mat-icon>pallet</mat-icon>
+          Chuyển cả pallet
+        </button>
+      </div>
       <div class="mp-row3" [class.cols-2]="!showExport">
         <button type="button" class="mp-btn" (click)="openBoxScan('add', c)">
           Thêm thùng
@@ -319,7 +393,13 @@
     <div class="mp-body">
       <div class="mp-hero">
         <div class="mp-hero-icon plain"><mat-icon>open_with</mat-icon></div>
-        <h2>Chuyển pallet đến vị trí mới?</h2>
+        <h2>
+          {{
+            locationBoxes
+              ? "Chuyển " + locationBoxes.length + " thùng đến vị trí mới?"
+              : "Chuyển pallet đến vị trí mới?"
+          }}
+        </h2>
       </div>
 
       <label class="mp-label">Vị trí mới</label>
@@ -355,8 +435,14 @@
 
       <p class="mp-note">
         <mat-icon>info</mat-icon>
-        Toàn bộ thùng trong pallet sẽ được cập nhật theo. Không cần scan lại
-        từng thùng.
+        <ng-container *ngIf="!locationBoxes"
+          >Toàn bộ thùng trong pallet sẽ được cập nhật theo. Không cần scan lại
+          từng thùng.</ng-container
+        >
+        <ng-container *ngIf="locationBoxes"
+          >Chỉ các thùng đã chọn được cập nhật, vị trí pallet giữ
+          nguyên.</ng-container
+        >
       </p>
 
       <button

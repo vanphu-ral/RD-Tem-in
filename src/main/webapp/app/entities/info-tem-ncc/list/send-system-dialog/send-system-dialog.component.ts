@@ -106,6 +106,33 @@ export class SendSystemDialogComponent {
     return mat.lots.reduce((s, l) => s + (l.quantity || 0), 0);
   }
 
+  /**
+   * Tổng hợp gửi của các thùng đã scan (SAP hoặc PanaCIM): số thùng + tổng SL đã gửi / chưa gửi
+   */
+  sendStats(
+    mat: SendSystemMaterial,
+    target: "sap" | "pana",
+  ): {
+    sentBoxes: number;
+    sentQty: number;
+    unsentBoxes: number;
+    unsentQty: number;
+  } {
+    const stats = { sentBoxes: 0, sentQty: 0, unsentBoxes: 0, unsentQty: 0 };
+    for (const l of mat.lots) {
+      const sent = target === "sap" ? l.sent : l.panaSent;
+      const qty = l.quantity || 0;
+      if (sent) {
+        stats.sentBoxes++;
+        stats.sentQty += qty;
+      } else {
+        stats.unsentBoxes++;
+        stats.unsentQty += qty;
+      }
+    }
+    return stats;
+  }
+
   /** Số thùng đã gửi SAP */
   sentCount(mat: SendSystemMaterial): number {
     return mat.lots.filter((l) => l.sent).length;

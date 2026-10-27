@@ -617,3 +617,66 @@
   color: #6b7280;
   white-space: nowrap;
 }
+
+/* Tên vật tư + ô sửa số lượng trong thùng */
+.mat-name {
+  max-width: 260px;
+  white-space: normal;
+}
+
+.qty-input {
+  width: 96px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+  text-align: right;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+
+  &.changed {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    font-weight: 600;
+  }
+
+  &:disabled {
+    background: transparent;
+    border-color: transparent;
+  }
+}
+
+/* Header: 2 nút scan pallet / thùng */
+.pm-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Thanh scan: chuyển chế độ pallet / thùng */
+.pm-scan-modes {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: #e2e8f0;
+
+  button {
+    height: 30px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #475569;
+    font-weight: 600;
+    cursor: pointer;
+
+    &.active {
+      background: #fff;
+      color: #1e3a5f;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+    }
+  }
+}

@@ -1,0 +1,21 @@
+<div class="slp" [id]="modalId">
+  <div class="slp-header">
+    <div class="slp-title">
+      <button mat-raised-button color="primary" type="button" (click)="print()">
+        <mat-icon>print</mat-icon> In
+      </button>
+      <h5>Preview In Tem ({{ labels.length }} tem)</h5>
+    </div>
+    <button mat-icon-button type="button" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+  <div class="slp-body">
+    <div class="print-preview-container">
+      <jhi-rd-label
+        *ngFor="let label of labels; trackBy: trackByLabel"
+        [label]="label"
+      ></jhi-rd-label>
+    </div>
+  </div>
+</div>

@@ -161,6 +161,29 @@ const TRANSFER_DETAIL_RAW_FIELDS = [
   "vendorQrCode",
 ];
 
+/** Đánh dấu mã tách trong cột comments: SPLIT_FROM:<ReelID thùng cha> */
+const SPLIT_FROM_PREFIX = "SPLIT_FROM:";
+
+/** Ghi chú lưu cho mã tách (cột comments) */
+export function splitFromComment(parentReelId: string): string {
+  return `${SPLIT_FROM_PREFIX}${parentReelId}`;
+}
+
+/** ReelID thùng cha của 1 bản ghi phiên: parentMaterialIdentifier, không có → đọc từ comments */
+function parentReelOf(d: {
+  parentMaterialIdentifier?: string | null;
+  comments?: string | null;
+}): string {
+  const direct = (d.parentMaterialIdentifier ?? "").trim();
+  if (direct) {
+    return direct;
+  }
+  const comments = (d.comments ?? "").trim();
+  return comments.startsWith(SPLIT_FROM_PREFIX)
+    ? comments.slice(SPLIT_FROM_PREFIX.length).trim()
+    : "";
+}
+
 /** Số request summary tiến độ chạy song song (danh sách Xuất chuyển kho) */
 const SUMMARY_CONCURRENCY = 6;
 
@@ -267,6 +290,11 @@ interface WarehouseTransferDetailDto {
   expirationDate?: string | null;
   manufacturingDate?: string | null;
   owtqDocEntry?: number | null;
+  initialQuantity?: number | null;
+  /** Mã tách: ReelID thùng cha (BE bổ sung cột) */
+  parentMaterialIdentifier?: string | null;
+  /** Mã tách: "SPLIT_FROM:<ReelID cha>" — dự phòng khi BE chưa có parentMaterialIdentifier */
+  comments?: string | null;
 }
 
 /** 1 thùng đã lưu trong phiên */
@@ -285,6 +313,10 @@ export interface TransferSessionBox {
   /** Giá trị gốc đã lưu (epoch / chuỗi) */
   expirationDate: string;
   manufacturingDate: string;
+  /** SL ban đầu (mã tách: SL phần tách ở lại kho) */
+  initialQuantity: number;
+  /** Mã tách: ReelID thùng cha ("" = thùng xuất bình thường) */
+  parentReelId: string;
 }
 
 /** Chi tiết 1 phiên xuất chuyển kho */
@@ -622,7 +654,15 @@ export class WarehouseExportService {
     return this.getOwtq(code).pipe(
       map((dto) =>
         dto
-          ? { code: String(dto.docEntry), items: this.toOwtqItems(dto) }
+          ? {
+              code: String(dto.docEntry),
+              items: this.toOwtqItems(dto),
+              transferInfo: {
+                deliveryDate: this.formatUsDate(dto.docDueDate ?? dto.docDate),
+                fromLabel: (dto.uPurNvGiao ?? "").trim() || (dto.filler ?? ""),
+                toLabel: (dto.uPurNvNhan ?? "").trim() || (dto.toWhsCode ?? ""),
+              },
+            }
           : null,
       ),
     );
@@ -986,6 +1026,8 @@ export class WarehouseExportService {
     /** Phiếu (owtqDocEntry) + dòng WTQ1 (lineNum) mà thùng được phân vào */
     link: { owtqDocEntry?: number; lineNum?: number },
     user: string,
+    /** Trường bổ sung (vd parentMaterialIdentifier của mã tách) */
+    extra: Record<string, unknown> = {},
   ): Observable<number | null> {
     const raw = box.inventoryRaw ?? {};
     const str = (key: string): string | null => {
@@ -1025,6 +1067,7 @@ export class WarehouseExportService {
           sapSendStatus: false,
           warehouseTransferSessionId: sessionId,
           warehouseTransferSession: { id: sessionId },
+          ...extra,
         })
         .pipe(
           map((res) => {
@@ -1182,9 +1225,16 @@ export class WarehouseExportService {
                 .map(String),
             ),
           ],
+          // Mã tách (có thùng cha / SL xuất đúng bằng 0) chỉ để tham chiếu — không khôi phục thành thùng xuất
           reelIds: [
             ...new Set(
               (dto.details ?? [])
+                .filter(
+                  (d) =>
+                    !parentReelOf(d ?? {}) &&
+                    // quantityOverride null = thùng chưa lưu SL riêng (vẫn là thùng xuất); chỉ đúng 0 mới là mã tách
+                    d?.quantityOverride !== 0,
+                )
                 .map((d) => (d?.reelId ?? "").trim())
                 .filter(Boolean),
             ),
@@ -1201,6 +1251,8 @@ export class WarehouseExportService {
                 sapCode: (d?.sapCode ?? "").trim(),
                 expirationDate: (d?.expirationDate ?? "").trim(),
                 manufacturingDate: (d?.manufacturingDate ?? "").trim(),
+                initialQuantity: Number(d?.initialQuantity) || 0,
+                parentReelId: parentReelOf(d ?? {}),
               }),
             )
             .filter((d) => !!d.reelId),
@@ -1269,6 +1321,157 @@ export class WarehouseExportService {
   }
 
   /** Gửi thông tin đã scan cho người duyệt — TODO: chưa có API, đang trả dữ liệu mẫu */
+  /**
+   * Xuất chuyển kho — tách tem trên PanaCIM (transaction SplitQuantity qua BE proxy
+   * POST /api/panacim/split-quantity). Tra lại tồn thùng gốc ngay trước khi tách;
+   * phần tách (splitQty) sinh ReelID newReelId ở lại vị trí hiện tại, thùng gốc giữ phần còn lại.
+   * Tách xong tra lại ReelID mới để xác nhận đã có trong kho.
+   */
+  splitReelOnPana(params: {
+    reelId: string;
+    splitQty: number;
+    newReelId: string;
+    comment: string;
+  }): Observable<{
+    newBox: ExportScannedBox | null;
+    error: string | null;
+    /** true = đã gửi tách thành công nhưng chưa tra được mã mới (có thể đã tách) */
+    uncertain?: boolean;
+  }> {
+    const fail = (
+      error: string,
+    ): Observable<{ newBox: ExportScannedBox | null; error: string | null }> =>
+      of({ newBox: null, error });
+    return this.listMaterialService.getInventoryScanById(params.reelId).pipe(
+      switchMap((rawInv) => {
+        const raw = (rawInv ?? null) as unknown as Record<
+          string,
+          unknown
+        > | null;
+        if (!raw) {
+          return fail(`Không tra được thùng "${params.reelId}" trong kho.`);
+        }
+        const text = (k: string): string =>
+          raw[k] === null || raw[k] === undefined ? "" : String(raw[k]).trim();
+        const available = Number(raw["availableQuantity"]) || 0;
+        const status = text("calculatedStatus") || "Available";
+        if (status.toLowerCase() !== "available") {
+          return fail(`Thùng "${params.reelId}" không khả dụng (${status}).`);
+        }
+        if (params.splitQty <= 0 || params.splitQty >= available) {
+          return fail(
+            `SL tách (${params.splitQty}) phải nhỏ hơn tồn hiện tại của thùng (${available}).`,
+          );
+        }
+        const qty = params.splitQty;
+        const partId = text("partId");
+        const nv = (
+          name: string,
+          value: unknown,
+        ): { name: string; value: unknown } => ({
+          name,
+          value,
+        });
+        const payload = {
+          entityType: 1451,
+          transaction: "SplitQuantity",
+          parameters: [
+            nv("materials", [
+              nv("material", [
+                nv("inventoryId", text("inventoryId")),
+                nv("partId", partId),
+                nv("partNumber", text("partNumber")),
+                nv("locationId", text("locationId")),
+                nv("locationName", text("locationName")),
+                nv(
+                  "materialIdentifier",
+                  text("materialIdentifier") || params.reelId,
+                ),
+                nv("materialTraceId", text("materialTraceId")),
+                nv("materialTraceKey", ""),
+                nv("status", status),
+                // Phần tách ở lại đúng vị trí hiện tại
+                nv("toLocationId", text("locationId")),
+                nv("toLocationName", text("locationName")),
+                nv("toCarrierId", 0),
+                nv("toCarrierName", ""),
+                nv("toCarrierSlot", ""),
+                nv("quantity", qty),
+                nv("reasonCode", "OTHER"),
+                nv("printerName", ""),
+                nv("comment", params.comment),
+                nv("partSpecificData", [nv("materialTraceDataList", [])]),
+                nv("splicedMaterialIdentifier", ""),
+                // Giữ 2 phần tử như bản test đã chạy được
+                nv("splitInstanceQuantity", [
+                  nv("splitInstanceQuantity", String(qty)),
+                  nv("splitInstanceQuantity", String(qty)),
+                ]),
+                nv("partquantityData", `${partId}#${qty}`),
+                nv("materialIdsToSplit", params.newReelId),
+              ]),
+            ]),
+            nv("disableRecordHistory", false),
+          ],
+        };
+        return this.http
+          .post(
+            this.applicationConfigService.getEndpointFor(
+              "/api/panacim/split-quantity",
+            ),
+            payload,
+            { responseType: "text" },
+          )
+          .pipe(
+            switchMap((body: string) => {
+              // PanaCIM có thể trả 200 kèm errorCode (vd 100061 "User Name is mandatory") → chưa tách
+              const panaError = this.panaErrorOf(body);
+              if (panaError) {
+                return fail(`Tách tem thất bại: ${panaError}`);
+              }
+              return this.getBox(params.newReelId).pipe(
+                map((newBox) => ({
+                  newBox,
+                  error: newBox
+                    ? null
+                    : `Đã gửi tách nhưng chưa tra được mã mới "${params.newReelId}" trong kho — kiểm tra lại trên PanaCIM.`,
+                  uncertain: !newBox,
+                })),
+              );
+            }),
+            catchError((err: unknown) =>
+              fail(
+                `Tách tem thất bại: ${
+                  err instanceof HttpErrorResponse
+                    ? typeof err.error === "string" && err.error.trim()
+                      ? err.error.trim().slice(0, 200)
+                      : err.message
+                    : "lỗi không xác định"
+                }`,
+              ),
+            ),
+          );
+      }),
+      catchError(() =>
+        fail(`Không tra được thùng "${params.reelId}" trong kho.`),
+      ),
+    );
+  }
+
+  /**
+   * Xuất chuyển kho — đưa tem tách vào hàng chờ in (in hàng loạt sau ở khu máy in).
+   * TODO: chưa có API hàng chờ in — đang trả kết quả giả (luôn thành công).
+   */
+  queueSplitLabel(payload: {
+    reelId: string;
+    originalReelId: string;
+    quantity: number;
+    location: string;
+    materialCode: string;
+  }): Observable<boolean> {
+    return of(!!payload.reelId).pipe(delay(150));
+  }
+
   send(
     requests: ExportRequest[],
     boxes: ExportScannedBox[],
@@ -1858,6 +2061,23 @@ export class WarehouseExportService {
     };
   }
 
+  /** Body PanaCIM MesApi có errorCode khác 0 → message lỗi; ngược lại null */
+  private panaErrorOf(body: string): string | null {
+    try {
+      const res = JSON.parse(body) as {
+        errorCode?: number | string | null;
+        message?: string | null;
+      } | null;
+      const code = Number(res?.errorCode ?? 0);
+      if (res && Number.isFinite(code) && code !== 0) {
+        return `${res.message ?? "lỗi PanaCIM"} (mã ${code})`;
+      }
+    } catch {
+      // Body không phải JSON → coi như thành công, kiểm tra bằng tra tồn kho mã mới
+    }
+    return null;
+  }
+
   private toScannedBox(
     reelId: string,
     inv: ExportReelInventory,
@@ -2073,6 +2293,12 @@ export class WarehouseExportService {
       });
     }
     return [...byCode.values()];
+  }
+
+  /** "2026-10-26T00:00:00" → "10/26/2026" (định dạng ngày trên phiếu SAP) */
+  private formatUsDate(value?: string | null): string {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value ?? "");
+    return m ? `${m[2]}/${m[3]}/${m[1]}` : "";
   }
 
   /** "2026-10-12T00:00:00" → "12/10/2026" */

@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { EMPTY, forkJoin, from, Observable, of, throwError } from "rxjs";
-import { catchError, map, mergeMap, switchMap } from "rxjs/operators";
+import { catchError, map, mergeMap, switchMap, toArray } from "rxjs/operators";
 import { environment } from "app/environments/environment.development";
 import { PalletMngtService } from "app/entities/pallet-management/list/pallet-mngt.service";
 import {
@@ -11,13 +11,15 @@ import {
 } from "./list-material.service";
 import { WarehouseCacheService } from "./warehouse-cache.service";
 
-/** 1 thùng cần đổi vị trí (Quản lý pallet desktop / mobile) */
+/** 1 thùng cần đổi vị trí và / hoặc số lượng (Quản lý pallet desktop / mobile) */
 export interface PalletBoxLocationChange {
   reelId: string;
   /** Bản ghi thùng (vendor-label-info) trong chi tiết pallet — dùng khi thùng chưa có trong kho */
   record?: PalletBoxRecord | null;
-  /** Vị trí mới (tên trong danh sách vị trí) */
-  location: string;
+  /** Vị trí mới (tên trong danh sách vị trí); trống / null = giữ vị trí hiện tại */
+  location?: string | null;
+  /** Số lượng mới trong thùng; null / undefined = giữ số lượng hiện tại */
+  quantity?: number | null;
   /** Tồn kho đã có sẵn (không cần GET /api/inventory lại) */
   inventory?: RawGraphQLMaterial;
 }
@@ -230,6 +232,24 @@ export class PalletMaterialService {
       .pipe(map((rows) => (Array.isArray(rows) ? rows : [])));
   }
 
+  /**
+   * Pallet đang chứa 1 thùng (theo ReelID) — tra GET /pallet-box-mappings (BE chưa có lọc theo
+   * ReelID). Không thuộc pallet nào → null.
+   */
+  findPalletSerialOfReel(reelId: string): Observable<string | null> {
+    const reel = reelId.trim().toLowerCase();
+    if (!reel) {
+      return of(null);
+    }
+    return this.getBoxMappings().pipe(
+      map(
+        (rows) =>
+          rows.find((m) => (m.reelIdBox ?? "").trim().toLowerCase() === reel)
+            ?.serialPallet ?? null,
+      ),
+    );
+  }
+
   /** Gỡ thùng khỏi pallet — id = palletBoxMapping.id */
   removeBoxFromPallet(mappingId: number): Observable<boolean> {
     return this.http
@@ -255,11 +275,11 @@ export class PalletMaterialService {
 
   /** PUT /vendor-label-infos/{id} — gửi lại nguyên bản ghi thùng */
   /**
-   * Đổi vị trí các thùng, từng thùng:
+   * Đổi vị trí và / hoặc số lượng các thùng, từng thùng:
    *  1. GET /api/inventory/{ReelID} có → cập nhật tồn kho như dialog cập nhật vật tư
-   *     (POST api/request, MOVE, tự phê duyệt).
-   *  2. Không có trong kho (404) → PUT /vendor-label-infos/{id} (bản ghi thùng của chi tiết pallet,
-   *     storageUnit = vị trí mới, subStorageUnit trống).
+   *     (POST api/request, MOVE, tự phê duyệt: quantityChange = SL mới, vị trí mới / giữ nguyên).
+   *  2. Không có trong kho (404) → PUT /vendor-label-infos/{id} (bản ghi thùng của chi tiết pallet:
+   *     storageUnit = vị trí mới, initialQuantity = SL mới).
    *  3. Vẫn lỗi / vị trí không có trong danh sách → ReelID vào failedReels.
    */
   updateBoxLocations(
@@ -286,7 +306,9 @@ export class PalletMaterialService {
               ),
       ),
     );
-    const names = [...new Set(boxes.map((b) => b.location))];
+    const names = [
+      ...new Set(boxes.map((b) => (b.location ?? "").trim()).filter(Boolean)),
+    ];
     const locationIds$ = from(
       Promise.all(names.map((n) => this.findLocationId(n))),
     );
@@ -304,8 +326,16 @@ export class PalletMaterialService {
         const labelTasks: Array<Observable<boolean>> = [];
         boxes.forEach((b, i) => {
           const { inv, notFound } = lookups[i];
+          const newLocation = (b.location ?? "").trim();
+          const hasQty = b.quantity !== null && b.quantity !== undefined;
           if (inv) {
-            const locationId = idByName.get(b.location);
+            // Không đổi vị trí → giữ vị trí hiện tại của thùng trong kho
+            const locationId = newLocation
+              ? idByName.get(newLocation)
+              : Number(inv.locationId) || null;
+            const locationName = newLocation
+              ? newLocation
+              : String(inv.locationFullName || inv.locationName || "");
             if (!locationId) {
               fail(b);
               return;
@@ -321,10 +351,10 @@ export class PalletMaterialService {
               productCode: String(inv.partNumber ?? ""),
               productName: String(inv.partNumber ?? ""),
               quantity: qty,
-              quantityChange: qty,
+              quantityChange: hasQty ? String(b.quantity) : qty,
               type: "MOVE",
               locationId: String(locationId),
-              locationName: b.location,
+              locationName,
               expiredTime: String(inv.expirationDate ?? ""),
               status: "APPROVE",
               requestId: null,
@@ -337,8 +367,10 @@ export class PalletMaterialService {
               this.updateBox({
                 ...b.record,
                 // storageUnit = vị trí kho, subStorageUnit trống (cùng quy ước Nhập tem NCC)
-                storageUnit: b.location,
-                subStorageUnit: null,
+                ...(newLocation
+                  ? { storageUnit: newLocation, subStorageUnit: null }
+                  : {}),
+                ...(hasQty ? { initialQuantity: b.quantity } : {}),
               }).pipe(
                 catchError(() => of(false)),
                 map((ok: boolean): boolean => {
@@ -371,6 +403,40 @@ export class PalletMaterialService {
         boxes.forEach(fail);
         return of({ ok: false, failedReels });
       }),
+    );
+  }
+
+  /** Mã vật tư của thùng: sapCode, không có → phần trước "-" của userData4 */
+  itemCodeOf(b: { sapCode?: unknown; userData4?: unknown }): string {
+    const sap = String(b.sapCode ?? "").trim();
+    if (sap) {
+      return sap;
+    }
+    return (
+      this.materialService.extractItemCodeFromUserData4(
+        String(b.userData4 ?? ""),
+      ) ?? ""
+    );
+  }
+
+  /** Tên vật tư theo mã (cùng nguồn / cache với trang Danh sách vật tư) */
+  getMaterialNames(codes: string[]): Observable<Map<string, string>> {
+    const uniq = [...new Set(codes.map((c) => c.trim()).filter(Boolean))];
+    if (!uniq.length) {
+      return of(new Map<string, string>());
+    }
+    // item-data theo mã (có cache itemName trong ListMaterialService), tối đa 5 mã song song
+    return from(uniq).pipe(
+      mergeMap(
+        (code) =>
+          this.materialService.getItemDataByItemCode(code).pipe(
+            map((data): [string, string] => [code, data?.itemName ?? ""]),
+            catchError(() => of<[string, string]>([code, ""])),
+          ),
+        5,
+      ),
+      toArray(),
+      map((pairs) => new Map(pairs)),
     );
   }
 

@@ -6,6 +6,7 @@ import { ListMaterialComponent } from "../list/list-material.component";
 import { ListMaterialUpdateComponent } from "../update/list-material-update.component";
 import { ListMaterialSumaryComponent } from "../sumary/list-material-sumary.component";
 import { PalletMaterialComponent } from "../pallet-material/pallet-material.component";
+import { SplitLabelsComponent } from "../split-labels/split-labels.component";
 
 const listMaterialRoute: Routes = [
   {
@@ -30,6 +31,12 @@ const listMaterialRoute: Routes = [
     path: "pallet-material",
     component: PalletMaterialComponent,
     data: { pageTitle: "Quản lý vật tư theo pallet" },
+    canActivate: [UserRouteAccessService],
+  },
+  {
+    path: "split-labels",
+    component: SplitLabelsComponent,
+    data: { pageTitle: "Tem tách chờ in" },
     canActivate: [UserRouteAccessService],
   },
   // {

@@ -32,38 +32,97 @@
         Đã xuất
       </button>
     </div>
-    <!-- Ô nhập mã + chip các mã đã nhập ngay bên dưới (tab Tất cả phiếu) -->
+    <!-- Ô nhập mã + Enter; "Đã chọn N mã" ở cuối ô → dropdown các mã đã nhập / đã chọn -->
     <div class="wel-search-box" *ngIf="tab === 'all'">
-      <input
-        class="wel-search"
-        [(ngModel)]="search"
-        (keydown.enter)="onSearchEnter()"
-        [placeholder]="config.searchPlaceholder"
-        autocomplete="off"
-      />
-      <div class="wel-chips" *ngIf="codes.length || pending.size">
-        <span class="wel-chip" *ngFor="let code of codes">
-          {{ code }}
-          <button
-            type="button"
-            class="wel-chip-x"
-            [attr.aria-label]="'Bỏ mã ' + code"
-            (click)="removeCode(code)"
-          >
-            <mat-icon>close</mat-icon>
-          </button>
-        </span>
-        <span class="wel-chip pending" *ngFor="let code of pending">
-          {{ code }}…
-        </span>
+      <div class="wel-search-wrap">
+        <input
+          class="wel-search"
+          [(ngModel)]="search"
+          (keydown.enter)="onSearchEnter()"
+          [placeholder]="config.searchPlaceholder"
+          autocomplete="off"
+        />
+        <span class="wel-picked-pending" *ngIf="pending.size"
+          >Đang tra {{ pending.size }}…</span
+        >
         <button
           type="button"
-          class="wel-chip-clear"
-          *ngIf="codes.length > 1"
-          (click)="clearCodes()"
+          class="wel-picked"
+          *ngIf="pickedCodes.length"
+          [class.open]="pickerOpen"
+          (click)="togglePicker()"
         >
-          Xóa tất cả
+          Đã chọn {{ selectedCount }} mã
+          <mat-icon>{{ pickerOpen ? "expand_less" : "expand_more" }}</mat-icon>
         </button>
+      </div>
+
+      <div
+        class="wel-picker-backdrop"
+        *ngIf="pickerOpen"
+        (click)="pickerOpen = false"
+      ></div>
+      <div class="wel-picker" *ngIf="pickerOpen">
+        <div class="wel-picker-search">
+          <mat-icon>search</mat-icon>
+          <input
+            [(ngModel)]="pickerSearch"
+            (ngModelChange)="onPickerSearch()"
+            placeholder="Tìm trong danh sách..."
+            autocomplete="off"
+          />
+        </div>
+        <div class="wel-picker-links">
+          <button type="button" (click)="unpickAll()">Bỏ chọn tất cả</button>
+          <button
+            type="button"
+            class="danger"
+            *ngIf="codes.length"
+            (click)="clearCodes()"
+          >
+            Xóa mã đã nhập
+          </button>
+        </div>
+        <div class="wel-picker-list">
+          <div class="wel-picker-empty" *ngIf="!pickerFiltered.length">
+            Không có mã nào.
+          </div>
+          <div class="wel-picker-item" *ngFor="let code of pickerPageItems">
+            <mat-checkbox
+              color="primary"
+              [checked]="isCodeSelected(code)"
+              (change)="togglePickedCode(code, $event.checked)"
+              >{{ code }}</mat-checkbox
+            >
+            <button
+              type="button"
+              class="wel-picker-x"
+              *ngIf="isEnteredCode(code)"
+              [attr.aria-label]="'Bỏ mã ' + code"
+              matTooltip="Bỏ mã đã nhập"
+              (click)="removeCode(code)"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+        <div class="wel-picker-pager" *ngIf="pickerPageCount > 1">
+          <button
+            type="button"
+            [disabled]="pickerPage === 0"
+            (click)="setPickerPage(-1)"
+          >
+            ‹ Trang trước
+          </button>
+          <span>{{ pickerPage + 1 }} / {{ pickerPageCount }}</span>
+          <button
+            type="button"
+            [disabled]="pickerPage >= pickerPageCount - 1"
+            (click)="setPickerPage(1)"
+          >
+            Trang sau ›
+          </button>
+        </div>
       </div>
     </div>
     <button
@@ -406,9 +465,11 @@
             </div>
           </th>
           <td mat-cell *matCellDef="let row">
-            <span class="wel-status doing">{{
-              sessionStatusLabel(row.status)
-            }}</span>
+            <span
+              class="wel-session-badge"
+              [attr.data-tone]="sessionStatusTone(row.status)"
+              >{{ sessionStatusLabel(row.status) }}</span
+            >
           </td>
         </ng-container>
 
@@ -608,9 +669,11 @@
               <span class="wcard-label">Phiên</span>
               <span class="wcard-code">#{{ row.id }}</span>
             </div>
-            <span class="wcard-status doing">{{
-              sessionStatusLabel(row.status)
-            }}</span>
+            <span
+              class="wel-session-badge"
+              [attr.data-tone]="sessionStatusTone(row.status)"
+              >{{ sessionStatusLabel(row.status) }}</span
+            >
             <button
               type="button"
               class="wel-view"

@@ -88,6 +88,18 @@ export interface ExportRequest {
   sapWo?: string;
   /** Khuyến nghị Planning: tổng hợp theo WO từ /dnlnvl/full (BE tính) */
   planningSummary?: ExportPlanningSummary;
+  /** Xuất chuyển kho: thông tin đầu phiếu OWTQ — dùng in "Đề nghị lĩnh vật tư" */
+  transferInfo?: ExportTransferInfo;
+}
+
+/** Đầu phiếu yêu cầu chuyển kho (OWTQ) */
+export interface ExportTransferInfo {
+  /** Ngày giao hàng (docDueDate) — MM/dd/yyyy như phiếu SAP */
+  deliveryDate: string;
+  /** Kho hàng đi (uPurNvGiao, không có → mã kho filler) */
+  fromLabel: string;
+  /** Kho hàng đến (uPurNvNhan, không có → mã kho toWhsCode) */
+  toLabel: string;
 }
 
 /** Khuyến nghị Planning: SL cần / số cuộn đã scan / SL đã scan của cả WO */
@@ -134,6 +146,21 @@ export interface ExportScannedBox {
   destWhsCode?: string;
   /** Xuất chuyển kho: vị trí hiện tại của thùng (location = vị trí mới cần chuyển đến) */
   sourceLocation?: string;
+  /**
+   * Xuất chuyển kho: tem tách của phần dư. Tem gốc (reelId) đi theo SL xuất,
+   * phần còn lại sinh tem mới ở vị trí cũ.
+   */
+  split?: ExportSplitReel;
+}
+
+/** Tem tách (phần dư ở lại kho xuất) */
+export interface ExportSplitReel {
+  reelId: string;
+  quantity: number;
+  /** Vị trí kho cũ (tem tách ở lại) */
+  location: string;
+  /** Đã in ngay / đưa vào hàng chờ in (mở lại phiên → không rõ) */
+  printStatus?: "printed" | "queued";
 }
 
 /** Pallet đã scan để xuất (kèm các thùng trên pallet) */

@@ -57,7 +57,8 @@ interface ConfirmState {
 })
 export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
   /** Hiện chức năng Xuất hàng (gỡ thùng khỏi pallet + số lượng thùng = 0) */
-  readonly showExport = true;
+  /** Mobile: ẩn Scan xuất hàng / Xuất hàng */
+  readonly showExport = false;
 
   @ViewChild("mainInputRef") mainInputRef?: ElementRef<HTMLInputElement>;
 
@@ -70,6 +71,18 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
   /** Pallet đang xem chi tiết / đang scan thùng */
   current: PalletCard | null = null;
   boxChecked = new Set<number>();
+  /** Màn danh sách: ô scan đang quét pallet hay thùng */
+  listScanMode: "pallet" | "box" = "pallet";
+  /** Màn chi tiết: ô scan thùng (quét liên tục để chọn thùng) */
+  detailScan = "";
+  /** Chuyển vị trí từ màn chi tiết: chỉ các thùng đã chọn (null = cả pallet) */
+  locationBoxes: PalletBoxRecord[] | null = null;
+  /** Chuyển vị trí cả pallet mở từ màn chi tiết → xong / quay lại về chi tiết */
+  locationFromDetail = false;
+  /** Số lượng mới đã sửa (chưa gửi) theo id thùng */
+  boxQty = new Map<number, number>();
+  /** Tên vật tư theo mã vật tư (như Danh sách vật tư) */
+  materialNames = new Map<string, string>();
 
   boxScanMode: BoxScanMode = "remove";
   boxInput = "";
@@ -203,13 +216,125 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
     return c.detail?.locationName ?? c.row?.locationName ?? "—";
   }
 
+  /** Tên vật tư của thùng */
+  boxName(b: PalletBoxRecord): string {
+    return this.materialNames.get(this.palletService.itemCodeOf(b)) ?? "";
+  }
+
+  /** Số lượng đang hiển thị (đã sửa / gốc) */
+  boxQtyValue(b: PalletBoxRecord): number {
+    return this.boxQty.get(b.id) ?? Number(b.initialQuantity ?? 0);
+  }
+
+  /** Sửa số lượng trong thùng — bấm "Cập nhật số lượng" mới gửi */
+  onBoxQtyChange(b: PalletBoxRecord, value: number | string | null): void {
+    const qty = Number(value);
+    const next = new Map(this.boxQty);
+    if (
+      value === null ||
+      value === "" ||
+      !Number.isFinite(qty) ||
+      qty < 0 ||
+      Math.floor(qty) === Number(b.initialQuantity ?? 0)
+    ) {
+      next.delete(b.id);
+    } else {
+      next.set(b.id, Math.floor(qty));
+    }
+    this.boxQty = next;
+  }
+
+  /** Gửi số lượng đã sửa: api/request (thùng có trong kho) / PUT tem NCC (404) */
+  onSaveQuantities(): void {
+    const c = this.current;
+    const edited = this.currentBoxes.filter((b) => this.boxQty.has(b.id));
+    if (!c || !edited.length) {
+      return;
+    }
+    this.askConfirm({
+      title: "Cập nhật số lượng",
+      message: `Cập nhật số lượng ${edited.length} thùng trong pallet ${c.serial}?`,
+      confirmText: "Cập nhật",
+      danger: false,
+      onConfirm: () => this.saveQuantities(c, edited),
+    });
+  }
+
   boxStatus(b: PalletBoxRecord): string {
     return String(b.status ?? "") || "Available";
   }
 
   // ==================== Màn danh sách ====================
 
+  setListScanMode(mode: "pallet" | "box"): void {
+    this.listScanMode = mode;
+    this.palletInput = "";
+    this.focusMain();
+  }
+
+  /** Enter ở ô scan màn danh sách: theo chế độ pallet / thùng */
+  onListScan(): void {
+    if (this.listScanMode === "pallet") {
+      this.onApplyPallet();
+      return;
+    }
+    const code = this.palletInput.split("#")[0].trim();
+    this.palletInput = "";
+    this.scanBoxCode(code);
+  }
+
+  /** Enter ở ô scan thùng màn chi tiết → chọn thùng (thuộc pallet khác → chuyển sang pallet đó) */
+  onDetailScan(): void {
+    const code = this.detailScan.split("#")[0].trim();
+    this.detailScan = "";
+    this.scanBoxCode(code);
+  }
+
+  /** Chi tiết: chuyển vị trí các thùng đã chọn (vị trí pallet giữ nguyên) */
+  openBoxLocation(): void {
+    const c = this.current;
+    const boxes = this.checkedBoxes;
+    if (!c || !boxes.length) {
+      this.notificationService.warning("Chọn thùng cần chuyển vị trí.");
+      return;
+    }
+    this.locationTargets = [c];
+    this.locationBoxes = boxes;
+    this.newLocation = "";
+    this.locationOptions = [];
+    this.screen = "location";
+    this.focusMain();
+  }
+
+  /** Chi tiết: chuyển vị trí cả pallet — mọi thùng trong pallet chuyển theo */
+  openPalletLocation(): void {
+    const c = this.current;
+    if (!c) {
+      return;
+    }
+    this.withDetail([c], () => {
+      this.locationTargets = [c];
+      this.locationBoxes = null;
+      this.locationFromDetail = true;
+      this.newLocation = "";
+      this.locationOptions = [];
+      this.screen = "location";
+      this.focusMain();
+    });
+  }
+
   onBack(): void {
+    if (
+      this.screen === "location" &&
+      (this.locationBoxes !== null || this.locationFromDetail) &&
+      this.current
+    ) {
+      this.locationBoxes = null;
+      this.locationFromDetail = false;
+      this.screen = "detail";
+      this.focusMain();
+      return;
+    }
     if (this.screen === "list") {
       void this.router.navigate(["/list-material/update-list"]);
       return;
@@ -294,12 +419,26 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
     c.checked = !c.checked;
   }
 
-  openDetail(c: PalletCard): void {
+  /**
+   * Mở chi tiết pallet: mặc định tích chọn tất cả thùng; mở từ scan thùng → chỉ chọn thùng đó.
+   */
+  openDetail(c: PalletCard, selectReels: string[] = []): void {
     this.withDetail([c], () => {
       this.current = c;
-      this.boxChecked = new Set<number>();
+      const boxes = c.detail?.vendorLabelInfoList ?? [];
+      const reels = new Set(selectReels.map((r) => r.toLowerCase()));
+      this.boxChecked = new Set(
+        boxes
+          .filter((b) => !reels.size || reels.has(this.reelOf(b).toLowerCase()))
+          .map((b) => b.id),
+      );
+      this.detailScan = "";
+      this.boxQty = new Map<number, number>();
+      this.loadMaterialNames(c.detail?.vendorLabelInfoList ?? []);
       this.detailOrigin = true;
       this.screen = "detail";
+      // Focus ô scan thùng để quét liên tục
+      this.focusMain();
     });
   }
 
@@ -329,6 +468,7 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
     }
     this.withDetail(targets, () => {
       this.locationTargets = targets;
+      this.locationFromDetail = false;
       this.newLocation = "";
       this.locationOptions = [];
       this.screen = "location";
@@ -629,6 +769,126 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
     this.focusMain();
   }
 
+  /** ReelID của thùng (thùng chỉ có liên kết pallet → reelIdBox) */
+  private reelOf(b: PalletBoxRecord): string {
+    return String(b.reelId ?? b.palletBoxMapping?.reelIdBox ?? "");
+  }
+
+  /**
+   * Scan mã thùng: thuộc pallet đang mở → tích chọn; không → tìm pallet chứa thùng
+   * (GET /pallet-box-mappings), mở chi tiết pallet đó và chọn thùng. Ô scan giữ focus.
+   */
+  private scanBoxCode(code: string): void {
+    if (!code || this.isLoading) {
+      this.focusMain();
+      return;
+    }
+    const reel = code.toLowerCase();
+    if (this.screen === "detail" && this.current) {
+      const box = this.currentBoxes.find(
+        (b) => this.reelOf(b).toLowerCase() === reel,
+      );
+      if (box) {
+        if (this.boxChecked.has(box.id)) {
+          this.notificationService.info(`Thùng "${code}" đã được chọn.`);
+        } else {
+          this.boxChecked = new Set(this.boxChecked).add(box.id);
+          this.notificationService.success(`Đã chọn thùng "${code}".`);
+        }
+        this.focusMain();
+        return;
+      }
+      if (this.boxQty.size) {
+        this.notificationService.warning(
+          `Thùng "${code}" không thuộc pallet ${this.current.serial}. Cập nhật số lượng đã sửa trước khi chuyển pallet.`,
+        );
+        this.focusMain();
+        return;
+      }
+    }
+    this.isLoading = true;
+    this.palletService.findPalletSerialOfReel(code).subscribe({
+      next: (serial: string | null) => {
+        this.isLoading = false;
+        if (!serial) {
+          this.notificationService.error(
+            `Thùng "${code}" không thuộc pallet nào.`,
+          );
+          this.focusMain();
+          return;
+        }
+        const existing = this.cards.find(
+          (c) => c.serial.toLowerCase() === serial.toLowerCase(),
+        );
+        const card: PalletCard = existing ?? {
+          serial,
+          row: null,
+          detail: null,
+          checked: false,
+        };
+        if (!existing) {
+          this.cards = [card, ...this.cards];
+        }
+        // Tải lại chi tiết để có đủ thùng mới nhất
+        card.detail = null;
+        this.openDetail(card, [code]);
+        this.notificationService.success(
+          `Thùng "${code}" thuộc pallet ${serial}.`,
+        );
+      },
+      error: () => {
+        this.isLoading = false;
+        this.notificationService.error(
+          `Không tra được pallet của thùng "${code}".`,
+        );
+        this.focusMain();
+      },
+    });
+  }
+
+  private saveQuantities(c: PalletCard, boxes: PalletBoxRecord[]): void {
+    const task = this.palletService
+      .updateBoxLocations(
+        boxes.map((b) => ({
+          reelId: String(b.reelId ?? b.palletBoxMapping?.reelIdBox ?? ""),
+          record: b,
+          quantity: this.boxQty.get(b.id) ?? null,
+        })),
+        this.currentUser,
+      )
+      .pipe(
+        map((res: { ok: boolean; failedReels: string[] }): boolean => {
+          if (res.failedReels.length) {
+            this.notificationService.error(
+              `Không cập nhật được số lượng ${res.failedReels.length} thùng: ${res.failedReels
+                .slice(0, 5)
+                .join(", ")}${res.failedReels.length > 5 ? "…" : ""}`,
+            );
+          }
+          return res.ok;
+        }),
+      );
+    this.runTasks([task], "Cập nhật số lượng thành công!", [c], () => {
+      this.boxQty = new Map<number, number>();
+    });
+  }
+
+  /** Tên vật tư theo mã của các thùng (cùng nguồn / cache với Danh sách vật tư) */
+  private loadMaterialNames(boxes: PalletBoxRecord[]): void {
+    const codes = boxes
+      .map((b) => this.palletService.itemCodeOf(b))
+      .filter(Boolean);
+    if (!codes.length) {
+      return;
+    }
+    this.palletService
+      .getMaterialNames(codes)
+      .subscribe((names: Map<string, string>) => {
+        this.materialNames = new Map([...this.materialNames, ...names]);
+        this.cdr.markForCheck();
+      });
+  }
+
   private askConfirm(state: ConfirmState): void {
     this.confirmState = state;
   }
@@ -901,9 +1161,11 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
    */
   private saveLocation(location: string): void {
     const tasks: Array<Observable<boolean>> = [];
-    const boxes = this.locationTargets.flatMap(
-      (c) => c.detail?.vendorLabelInfoList ?? [],
-    );
+    // Từ màn chi tiết → chỉ các thùng đã chọn; từ danh sách → mọi thùng của pallet
+    const onlyBoxes = this.locationBoxes;
+    const boxes =
+      onlyBoxes ??
+      this.locationTargets.flatMap((c) => c.detail?.vendorLabelInfoList ?? []);
     if (boxes.length) {
       tasks.push(
         this.palletService
@@ -930,13 +1192,21 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
       );
     }
     for (const c of this.locationTargets) {
-      if (c.detail) {
+      if (c.detail && !onlyBoxes) {
         tasks.push(this.safe(this.updatePallet(c.detail, undefined, location)));
       }
     }
-    this.runTasks(tasks, "Cập nhật thành công!", this.locationTargets, () =>
-      this.goList(),
-    );
+    this.runTasks(tasks, "Cập nhật thành công!", this.locationTargets, () => {
+      if ((onlyBoxes !== null || this.locationFromDetail) && this.current) {
+        this.locationBoxes = null;
+        this.locationFromDetail = false;
+        this.boxChecked.clear();
+        this.screen = "detail";
+        this.focusMain();
+        return;
+      }
+      this.goList();
+    });
   }
 
   /**

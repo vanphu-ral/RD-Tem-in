@@ -517,71 +517,12 @@ $muted: #6b7280;
   font-style: italic;
 }
 
-/* Chip mã đã nhập */
 .wel-search-box {
   display: flex;
   flex-direction: column;
   gap: 6px;
   max-width: 520px;
   padding-top: 2px;
-}
-
-.wel-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.wel-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 30px;
-  padding: 0 4px 0 12px;
-  border-radius: 999px;
-  background: #e0e7ff;
-  color: #3730a3;
-  font-size: 13px;
-  font-weight: 600;
-
-  &.pending {
-    padding-right: 12px;
-    background: #f1f5f9;
-    color: $muted;
-  }
-}
-
-.wel-chip-x {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-
-  &:hover {
-    background: rgba(55, 48, 163, 0.15);
-  }
-
-  mat-icon {
-    width: 16px;
-    height: 16px;
-    font-size: 16px;
-  }
-}
-
-.wel-chip-clear {
-  border: none;
-  background: none;
-  color: #dc2626;
-  font-size: 13px;
-  cursor: pointer;
 }
 
 /* Tab: Tất cả phiếu / Đang xử lý / Đã xuất */
@@ -629,4 +570,311 @@ $muted: #6b7280;
   font-size: 12px;
   line-height: 20px;
   text-align: center;
+}
+
+/* Ô nhập mã + nhãn "Đã chọn N mã" (dropdown) */
+.wel-search-box {
+  position: relative;
+}
+
+.wel-search-wrap {
+  display: flex;
+  align-items: stretch;
+  width: 340px;
+  max-width: 100%;
+  height: 36px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+
+  &:focus-within {
+    border-color: $header;
+    box-shadow: 0 0 0 2px rgba(91, 141, 239, 0.18);
+  }
+
+  .wel-search {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: 100%;
+    border: none;
+    box-shadow: none;
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
+}
+
+.wel-picked-pending {
+  align-self: center;
+  padding: 0 8px;
+  color: $muted;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Ô liền bên phải ô nhập, ngăn bằng vạch dọc (kiểu nút search gắn liền input) */
+.wel-picked {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  padding: 0 6px 0 12px;
+  border: none;
+  border-left: 1px solid #d1d5db;
+  border-radius: 0;
+  background: #f8fafc;
+  color: #1e3a5f;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    color: #64748b;
+  }
+
+  &:hover,
+  &.open {
+    background: #eef2f7;
+  }
+}
+
+.wel-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.wel-picker {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  border: 1px solid $border;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+}
+
+.wel-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 10px 6px;
+  padding: 0 10px;
+  height: 34px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+
+  mat-icon {
+    color: #9ca3af;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    font-size: 13px;
+  }
+}
+
+.wel-picker-links {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  white-space: nowrap;
+  padding: 0 12px 6px;
+  border-bottom: 1px solid #f1f5f9;
+
+  button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #3b5bdb;
+    font-size: 13px;
+    cursor: pointer;
+
+    &.danger {
+      margin-left: auto;
+      color: #dc2626;
+    }
+  }
+}
+
+.wel-picker-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px 4px;
+}
+
+.wel-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 4px;
+
+  ::ng-deep .mdc-label {
+    font-size: 13px;
+  }
+}
+
+.wel-picker-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+
+  &:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+}
+
+.wel-picker-empty {
+  padding: 16px;
+  color: $muted;
+  font-size: 13px;
+  text-align: center;
+}
+
+.wel-picker-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 13px;
+
+  span {
+    color: $muted;
+  }
+
+  button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #3b5bdb;
+    font-size: 13px;
+    cursor: pointer;
+
+    &:disabled {
+      color: #cbd5e1;
+      cursor: default;
+    }
+  }
+}
+
+/* Mobile: ô nhập + "Đã chọn x mã" và panel chiếm hết chiều ngang, dễ chạm */
+@media (max-width: 768px) {
+  .wel-search-wrap {
+    width: 100%;
+    height: 40px;
+  }
+
+  .wel-picked {
+    padding: 0 8px 0 12px;
+  }
+
+  .wel-picker {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+  }
+
+  .wel-picker-search {
+    height: 38px;
+
+    input {
+      // 16px: tránh iOS tự zoom khi focus
+      font-size: 16px;
+    }
+  }
+
+  .wel-picker-links {
+    flex-wrap: wrap;
+    row-gap: 6px;
+
+    button {
+      padding: 4px 0;
+      font-size: 14px;
+    }
+  }
+
+  .wel-picker-list {
+    max-height: 50vh;
+  }
+
+  .wel-picker-item {
+    min-height: 44px;
+  }
+
+  .wel-picker-x {
+    width: 36px;
+    height: 36px;
+  }
+
+  .wel-picker-pager button {
+    padding: 8px 4px;
+    font-size: 14px;
+  }
+}
+
+/* Badge trạng thái phiên (tab Tất cả phiên): viền + nền nhạt theo trạng thái */
+.wel-session-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+
+  &[data-tone="new"] {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  &[data-tone="exporting"] {
+    border-color: #fcd34d;
+    background: #fffbeb;
+    color: #b45309;
+  }
+
+  &[data-tone="completed"] {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #15803d;
+  }
 }

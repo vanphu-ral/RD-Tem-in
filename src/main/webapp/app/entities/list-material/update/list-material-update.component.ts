@@ -21,7 +21,6 @@ import {
   faChevronRight,
   faFilter,
   faCrosshairs,
-  faLayerGroup,
   faRotateRight,
   faListCheck,
   faEye,
@@ -91,8 +90,6 @@ export class ListMaterialUpdateComponent
   faDownload = faDownload;
   faFilter = faFilter;
   faCrosshairs = faCrosshairs;
-  /** Icon nút "Scan pallet" — khác icon nút Scan thùng */
-  faLayerGroup = faLayerGroup;
   faRotateRight = faRotateRight;
   faListCheck = faListCheck;
   faEye = faEye;

@@ -1,0 +1,198 @@
+<div class="sr">
+  <div class="sr-head">
+    <mat-icon>content_cut</mat-icon>
+    <div>
+      <h2>Tách tem thùng</h2>
+      <p>Thùng có nhiều hơn số lượng cần xuất</p>
+    </div>
+  </div>
+
+  <div class="sr-body">
+    <div class="sr-left">
+      <div class="sr-info">
+        <div>
+          <span>Tem gốc</span><strong class="mono">{{ data.reelId }}</strong>
+        </div>
+        <div>
+          <span>Vật tư</span
+          ><strong
+            >{{ data.materialCode
+            }}<ng-container *ngIf="data.materialName">
+              · {{ data.materialName }}</ng-container
+            ></strong
+          >
+        </div>
+        <div *ngIf="data.lot || data.mfgDate">
+          <span>Lô / NSX</span
+          ><strong>{{ data.lot || "—" }} · {{ data.mfgDate || "—" }}</strong>
+        </div>
+        <div>
+          <span>SL trong thùng</span><strong>{{ data.boxQty | number }}</strong>
+        </div>
+      </div>
+
+      <label class="sr-field">
+        <span>Số lượng xuất đi (theo tem gốc)</span>
+        <input
+          type="number"
+          inputmode="numeric"
+          min="1"
+          [max]="data.boxQty"
+          [(ngModel)]="exportQty"
+          (ngModelChange)="refreshPreview()"
+          [class.invalid]="error"
+          (keydown.enter)="confirm()"
+        />
+        <small class="sr-error" *ngIf="error as e">{{ e }}</small>
+        <small class="sr-hint" *ngIf="!error"
+          >SL còn cần của các yêu cầu: {{ data.needQty | number }}</small
+        >
+      </label>
+
+      <!-- Phân bổ: tem gốc đi / tem tách ở lại -->
+      <div class="sr-split">
+        <div class="sr-part out">
+          <span class="lbl">Xuất đi · tem gốc</span>
+          <strong>{{ exportQty || 0 | number }}</strong>
+          <span class="mono">{{ data.reelId }}</span>
+        </div>
+        <div class="sr-part stay" [class.none]="!remainderQty">
+          <span class="lbl">Ở lại kho · tem mới</span>
+          <strong>{{ remainderQty | number }}</strong>
+          <span class="mono" *ngIf="remainderQty">{{ newReelId }}</span>
+          <span *ngIf="!remainderQty">Không tách</span>
+        </div>
+      </div>
+
+      <ng-container *ngIf="remainderQty">
+        <p class="sr-note">
+          Tem mới giữ nguyên vật tư, lô, ngày SX; ở lại vị trí
+          <b>{{ data.location || "cũ" }}</b
+          >. Tem gốc in SL {{ data.boxQty | number }} — có thể ghi tay SL thực
+          xuất lên tem khi giao.
+        </p>
+        <div class="sr-print">
+          <span class="lbl">In tem tách</span>
+          <label [class.on]="printNow">
+            <input
+              type="radio"
+              name="srPrint"
+              [value]="true"
+              [(ngModel)]="printNow"
+            />
+            In ngay
+          </label>
+          <label [class.on]="!printNow">
+            <input
+              type="radio"
+              name="srPrint"
+              [value]="false"
+              [(ngModel)]="printNow"
+            />
+            Lưu hàng chờ in
+          </label>
+        </div>
+        <div class="sr-print">
+          <span class="lbl">Mẫu tem</span>
+          <label [class.on]="printTemplate === 'rd'">
+            <input
+              type="radio"
+              name="srTemplate"
+              value="rd"
+              [(ngModel)]="printTemplate"
+            />
+            Tem Rạng Đông
+          </label>
+          <label [class.on]="printTemplate === 'vendor'">
+            <input
+              type="radio"
+              name="srTemplate"
+              value="vendor"
+              [(ngModel)]="printTemplate"
+            />
+            Tem NCC
+          </label>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Preview mẫu tem tách đang chọn -->
+    <section class="sr-right">
+      <div class="sr-preview-card">
+        <div class="sr-preview-head">
+          <mat-icon>visibility</mat-icon>
+          <span>Xem trước tem tách</span>
+          <span class="tag" *ngIf="remainderQty">{{
+            printTemplate === "rd" ? "Tem Rạng Đông" : "Tem NCC"
+          }}</span>
+        </div>
+
+        <ng-container *ngIf="remainderQty; else noSplit">
+          <div
+            #rdStage
+            class="sr-stage rd"
+            *ngIf="printTemplate === 'rd'"
+            [style.--scale]="previewScale"
+          >
+            <jhi-rd-label [label]="previewLabel"></jhi-rd-label>
+          </div>
+
+          <div class="sr-ncc" *ngIf="printTemplate === 'vendor'">
+            <div class="sr-ncc-qr">
+              <qrcode
+                [qrdata]="newReelId"
+                [width]="140"
+                [margin]="0"
+                [errorCorrectionLevel]="'M'"
+              ></qrcode>
+            </div>
+            <div class="sr-ncc-info">
+              <div class="name">
+                {{ data.materialName || data.materialCode }}
+              </div>
+              <div>
+                <span class="key">Mã part:</span>{{ data.partNumber || "—" }}
+              </div>
+              <div>
+                <span class="key">Số lượng:</span
+                >{{ remainderQty | number }} PCS
+              </div>
+              <div><span class="key">Lô:</span>{{ data.lot || "—" }}</div>
+              <div><span class="key">NSX:</span>{{ data.mfgDate || "—" }}</div>
+              <div class="mono reel">{{ newReelId }}</div>
+            </div>
+          </div>
+
+          <p class="sr-preview-hint">
+            {{
+              printNow
+                ? "Tem sẽ in ngay sau khi tách thành công."
+                : "Tem được lưu hàng chờ, in sau ở khu máy in."
+            }}
+            <ng-container *ngIf="printTemplate === 'vendor'">
+              Khổ tem NCC chọn ở bước in.</ng-container
+            >
+          </p>
+        </ng-container>
+        <ng-template #noSplit>
+          <div class="sr-preview-empty">
+            <mat-icon>inventory_2</mat-icon>
+            Xuất cả thùng — không sinh tem tách.
+          </div>
+        </ng-template>
+      </div>
+    </section>
+  </div>
+
+  <div class="sr-actions">
+    <button type="button" class="sr-btn" (click)="cancel()">Hủy</button>
+    <button
+      type="button"
+      class="sr-btn primary"
+      [disabled]="!!error"
+      (click)="confirm()"
+    >
+      {{ remainderQty ? "Xác nhận tách" : "Xuất cả thùng" }}
+    </button>
+  </div>
+</div>

@@ -1172,23 +1172,26 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       item.storage_unit = storageCode;
     });
 
+    // Chỉ gửi field snake_case có trong WarehouseNoteInfoApprovalRequestDTO: ObjectMapper của BE
+    // bật FAIL_ON_UNKNOWN_PROPERTIES → gửi thêm id / camelCase là 400 "Unable to convert http message".
+    // time_update do BE tự cập nhật khi PATCH.
+    const totalQuantity = Number(this.editForm.get(["totalQuantity"])!.value);
+    const version = this.editForm.get(["version"])!.value;
     const updateDTO = {
-      id: id,
-      maLenhSanXuat: this.editForm.get(["maLenhSanXuat"])!.value,
-      sapCode: this.editForm.get(["sapCode"])!.value,
-      sapName: this.editForm.get(["sapName"])!.value,
-      workOrderCode: this.editForm.get(["workOrderCode"])!.value,
-      version: this.editForm.get(["version"])!.value,
-      storageCode: storageCode,
+      ma_lenh_san_xuat: this.editForm.get(["maLenhSanXuat"])!.value,
+      sap_code: this.editForm.get(["sapCode"])!.value,
+      sap_name: this.editForm.get(["sapName"])!.value,
+      work_order_code: this.editForm.get(["workOrderCode"])!.value,
+      version: version == null ? null : String(version),
       storage_code: storageCode,
-      totalQuantity: this.editForm.get(["totalQuantity"])!.value,
-      createBy: this.editForm.get(["createBy"])!.value,
-      entryTime: this.editForm.get(["entryTime"])!.value,
-      trangThai: this.editForm.get(["trangThai"])!.value,
+      total_quantity: Number.isFinite(totalQuantity)
+        ? Math.round(totalQuantity)
+        : null,
+      create_by: this.editForm.get(["createBy"])!.value,
+      trang_thai: this.editForm.get(["trangThai"])!.value,
       comment: this.editForm.get(["comment"])!.value,
-      timeUpdate: dayjs().toISOString(),
-      groupName: this.editForm.get(["groupName"])!.value,
-      comment2: this.editForm.get(["comment2"])!.value,
+      group_name: this.editForm.get(["groupName"])!.value,
+      comment_2: this.editForm.get(["comment2"])!.value,
     };
 
     return this.http

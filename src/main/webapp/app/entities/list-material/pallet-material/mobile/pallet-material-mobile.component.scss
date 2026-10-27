@@ -482,3 +482,123 @@
 .mp-row3.cols-2 {
   grid-template-columns: repeat(2, 1fr);
 }
+
+/* Tên vật tư + ô sửa số lượng trong thùng */
+.mp-name {
+  margin-top: 2px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mp-qty-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+
+  .lbl {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+  }
+}
+
+.mp-qty-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  // 16px: tránh iOS tự zoom khi focus
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+
+  &.changed {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
+}
+
+.mp-qty-save {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.mp-btn.primary {
+  border-color: #1e4976;
+  background: #1e4976;
+  color: #fff;
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+/* Chế độ scan pallet / thùng */
+.mp-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #e2e8f0;
+
+  button {
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #475569;
+    font-weight: 700;
+
+    &.active {
+      background: #fff;
+      color: #1e3a5f;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+    }
+  }
+}
+
+.mp-input[data-mode="box"] {
+  border-color: #f59e0b;
+}
+
+// Chuyển vị trí: 2 nút cạnh nhau (thùng đã chọn / cả pallet)
+.mp-loc-actions {
+  margin-bottom: 8px;
+
+  .mp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 44px;
+    padding: 4px 6px;
+    font-size: 13px;
+    line-height: 1.2;
+    text-align: center;
+
+    mat-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+    }
+
+    &:disabled {
+      opacity: 0.45;
+    }
+  }
+}

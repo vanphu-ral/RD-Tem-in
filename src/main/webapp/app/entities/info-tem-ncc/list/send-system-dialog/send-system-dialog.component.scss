@@ -417,3 +417,43 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* Đã gửi / chưa gửi (SAP, PanaCIM) ở đầu danh sách thùng */
+.ss-send-stats {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 4px 6px;
+  align-items: center;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.ss-send-target {
+  color: #374151;
+  font-weight: 700;
+}
+
+.ss-send-cell {
+  padding: 3px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+
+  b {
+    font-weight: 700;
+  }
+
+  &.sent {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  &.unsent {
+    background: #fef3c7;
+    color: #b45309;
+
+    &.zero {
+      background: #f1f5f9;
+      color: #94a3b8;
+    }
+  }
+}
