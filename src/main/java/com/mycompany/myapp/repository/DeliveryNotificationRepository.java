@@ -21,6 +21,13 @@ public interface DeliveryNotificationRepository
     );
     void deleteByDeliveryNotificationCode(String deliveryNotificationCode);
 
+    /** Đơn (chưa xoá) theo mã thông báo giao hàng — id nhỏ nhất trước */
+    List<
+        DeliveryNotification
+    > findByDeliveryNotificationCodeAndDeletedAtIsNullOrderByIdAsc(
+        String deliveryNotificationCode
+    );
+
     /** Các đơn (chưa xoá) của 1 phiếu lịch giao hàng */
     List<DeliveryNotification> findByDeliveryIdAndDeletedAtIsNull(
         UUID deliveryId

@@ -73,7 +73,10 @@ import {
   InfoTemNccService,
   toText,
 } from "../../services/info-tem-ncc.service";
-import { completeOrderFlow } from "../../shared/complete-order.flow";
+import {
+  completeOrderFlow,
+  markOrderScanning,
+} from "../../shared/complete-order.flow";
 import {
   ScanBoxRow,
   ScanImportDialogData,
@@ -297,6 +300,8 @@ export class ScanImportDialogComponent
   savingCount = 0;
 
   private currentUser = "";
+  /** Đã chuyển đơn sang SCANNING (chỉ gọi 1 lần / lần mở dialog) */
+  private orderScanningMarked = false;
   /** ReelID đã có trong đơn + đã scan/đang lưu trong phiên — chặn trùng */
   private usedReelIds = new Set<string>();
   /** Bản ghi thùng đầy đủ theo id dòng — dùng cho PUT / DELETE */
@@ -1728,6 +1733,7 @@ export class ScanImportDialogComponent
             saved?.deliveryNotificationId ?? payload.deliveryNotificationId,
           sapPor1Id: saved?.sapPor1Id ?? payload.sapPor1Id,
         };
+        this.ensureOrderScanning(record.deliveryNotificationId);
         const row = this.toBoxRow(record, this.nowTime());
         if (noPoMatched) {
           this.notificationService.warning(
@@ -1759,6 +1765,23 @@ export class ScanImportDialogComponent
         this.notificationService.error(`Lưu thùng "${reelId}" thất bại.`);
         this.cdr.markForCheck();
       },
+    });
+  }
+
+  /** Thùng đầu tiên lưu thành công → đơn New chuyển sang SCANNING (lỗi thì lần scan sau thử lại) */
+  private ensureOrderScanning(deliveryId: number | null | undefined): void {
+    if (
+      this.orderScanningMarked ||
+      deliveryId === null ||
+      deliveryId === undefined
+    ) {
+      return;
+    }
+    this.orderScanningMarked = true;
+    markOrderScanning(this.infoTemNccService, deliveryId).subscribe((done) => {
+      if (!done) {
+        this.orderScanningMarked = false;
+      }
     });
   }
 

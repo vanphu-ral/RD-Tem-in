@@ -13,8 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,12 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Chỉ đọc: tổng SL thực nhận (quantityReceived = tổng initial_quantity các thùng đã scan) của
- * từng dòng PO thuộc 1 phiếu lịch giao hàng (deliveryId) — tính từ DB tại thời điểm gọi, là tổng
- * cộng dồn mọi lần scan (xoá thùng → tổng giảm theo).
+ * từng dòng PO thuộc 1 đơn thông báo giao hàng (noticeNo = delivery_notification_code) — tính từ DB
+ * tại thời điểm gọi, là tổng cộng dồn mọi lần scan (xoá thùng → tổng giảm theo).
  */
 @Service
 @Transactional(value = "partner5TransactionManager", readOnly = true)
 public class ScanTotalQueryService {
+
+    /** Đơn mới tạo (chưa scan) / đã có thùng scan vào — khớp trạng thái web lưu */
+    private static final String STATUS_NEW = "New";
+    private static final String STATUS_SCANNING = "SCANNING";
 
     private static final Logger LOG = LoggerFactory.getLogger(
         ScanTotalQueryService.class
@@ -48,60 +50,56 @@ public class ScanTotalQueryService {
     }
 
     /**
-     * Mọi dòng PO của phiếu lịch giao hàng: dòng của các đơn (chưa xoá) mang deliveryId này +
-     * dòng PO mang thẳng deliveryId (gộp, không trùng). Không có dòng nào → empty.
+     * Đơn (chưa xoá) mang mã thông báo noticeNo: dòng PO của đơn + dòng PO chưa gắn đơn nào nhưng
+     * mang deliveryId của đơn (gộp, không trùng). Không có đơn → empty; đơn chưa có dòng → lines rỗng.
      */
-    public Optional<ScanTotalPayloadDTO> findByDeliveryId(UUID deliveryId) {
-        LOG.debug("Request to get scan totals of deliveryId {}", deliveryId);
-        Map<Long, SapPor1R1> lines = new LinkedHashMap<>();
+    public Optional<ScanTotalPayloadDTO> findByNoticeNo(String noticeNo) {
+        LOG.debug("Request to get scan totals of noticeNo {}", noticeNo);
         List<DeliveryNotification> deliveries =
-            deliveryNotificationRepository.findByDeliveryIdAndDeletedAtIsNull(
-                deliveryId
+            deliveryNotificationRepository.findByDeliveryNotificationCodeAndDeletedAtIsNullOrderByIdAsc(
+                noticeNo
             );
-        List<Long> deliveryNotificationIds = deliveries
-            .stream()
-            .map(DeliveryNotification::getId)
-            .collect(Collectors.toList());
-        if (!deliveryNotificationIds.isEmpty()) {
-            sapPor1R1Repository
-                .findByDeliveryNotificationIdInOrderByIdAsc(
-                    deliveryNotificationIds
-                )
-                .forEach(line -> lines.put(line.getId(), line));
-        }
-        sapPor1R1Repository
-            .findByDeliveryIdOrderByIdAsc(deliveryId)
-            .forEach(line -> lines.putIfAbsent(line.getId(), line));
-        if (lines.isEmpty()) {
+        if (deliveries.isEmpty()) {
             return Optional.empty();
+        }
+        DeliveryNotification dn = deliveries.get(0);
+
+        Map<Long, SapPor1R1> lines = new LinkedHashMap<>();
+        sapPor1R1Repository
+            .findByDeliveryNotificationIdOrderByIdAsc(dn.getId())
+            .forEach(line -> lines.put(line.getId(), line));
+        if (dn.getDeliveryId() != null) {
+            sapPor1R1Repository
+                .findByDeliveryIdOrderByIdAsc(dn.getDeliveryId())
+                .stream()
+                .filter(line -> line.getDeliveryNotification() == null)
+                .forEach(line -> lines.putIfAbsent(line.getId(), line));
         }
 
         Map<Long, Long> received = new HashMap<>();
-        for (Object[] row : vendorLabelInfoRepository.sumInitialQuantityBySapPor1Ids(
-            lines.keySet()
-        )) {
-            received.put(
-                ((Number) row[0]).longValue(),
-                row[1] == null ? 0L : ((Number) row[1]).longValue()
-            );
+        if (!lines.isEmpty()) {
+            for (Object[] row : vendorLabelInfoRepository.sumInitialQuantityBySapPor1Ids(
+                lines.keySet()
+            )) {
+                received.put(
+                    ((Number) row[0]).longValue(),
+                    row[1] == null ? 0L : ((Number) row[1]).longValue()
+                );
+            }
         }
 
         ScanTotalPayloadDTO payload = new ScanTotalPayloadDTO();
-        payload.setDeliveryId(deliveryId.toString());
-        // Thông tin đơn: lấy đơn đầu tiên (id nhỏ nhất) mang deliveryId này; không có → null
-        deliveries
-            .stream()
-            .min(java.util.Comparator.comparing(DeliveryNotification::getId))
-            .ifPresent(dn -> {
-                payload.setInvoiceNumber(dn.getInvoiceNumber());
-                payload.setContractCode(dn.getContractCode());
-                payload.setType(dn.getType());
-                payload.setVendorCode(dn.getVendorCode());
-                payload.setVendorName(dn.getVendorName());
-                payload.setNoticeDate(text(dn.getNoticeDate()));
-                payload.setFactory(dn.getFactory());
-                payload.setSource(dn.getSource());
-            });
+        payload.setNoticeNo(dn.getDeliveryNotificationCode());
+        payload.setStatus(statusOf(dn, received));
+        payload.setDeliveryId(text(dn.getDeliveryId()));
+        payload.setInvoiceNumber(dn.getInvoiceNumber());
+        payload.setContractCode(dn.getContractCode());
+        payload.setType(dn.getType());
+        payload.setVendorCode(dn.getVendorCode());
+        payload.setVendorName(dn.getVendorName());
+        payload.setNoticeDate(text(dn.getNoticeDate()));
+        payload.setFactory(dn.getFactory());
+        payload.setSource(dn.getSource());
         payload.setGeneratedAt(Instant.now().toString());
         for (SapPor1R1 line : lines.values()) {
             payload
@@ -109,6 +107,26 @@ public class ScanTotalQueryService {
                 .add(toLine(line, received.getOrDefault(line.getId(), 0L)));
         }
         return Optional.of(payload);
+    }
+
+    /**
+     * Trạng thái đơn đã lưu; đơn cũ còn New (rỗng) nhưng đã có thùng scan (tạo trước khi web lưu
+     * SCANNING) → trả SCANNING.
+     */
+    private static String statusOf(
+        DeliveryNotification dn,
+        Map<Long, Long> received
+    ) {
+        String status = dn.getStatus() == null ? "" : dn.getStatus().trim();
+        boolean isNew = status.isEmpty() || STATUS_NEW.equalsIgnoreCase(status);
+        if (!isNew) {
+            return status;
+        }
+        boolean scanned = received
+            .values()
+            .stream()
+            .anyMatch(qty -> qty > 0);
+        return scanned ? STATUS_SCANNING : STATUS_NEW;
     }
 
     private static ScanTotalLineDTO toLine(SapPor1R1 line, long received) {

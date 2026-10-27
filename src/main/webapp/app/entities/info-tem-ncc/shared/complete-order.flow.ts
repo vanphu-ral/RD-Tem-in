@@ -1,11 +1,15 @@
 import { MatDialog } from "@angular/material/dialog";
-import { forkJoin } from "rxjs";
+import { forkJoin, Observable, of } from "rxjs";
+import { catchError, map, switchMap } from "rxjs/operators";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import { InfoTemNccService } from "../services/info-tem-ncc.service";
 import { openChoiceDialog } from "./choice-dialog/choice-dialog.component";
 import {
   buildCompletedOrderPayload,
+  buildOrderStatusPayload,
+  DELIVERY_STATUS_SCANNING,
   isOrderCompleted,
+  isOrderNew,
   orderCompletionBlockers,
 } from "./order-completion.util";
 
@@ -89,4 +93,27 @@ export function completeOrderFlow(
       notificationService.error("Không tải được thông tin đơn để kiểm tra.");
     },
   });
+}
+
+/**
+ * Đã scan thùng vào đơn → đơn đang New thì PUT trạng thái SCANNING (đơn đã SCANNING / COMPLETED giữ nguyên).
+ * Phát true khi không cần gọi lại (đã đổi / không phải đơn New); lỗi → false (không chặn luồng scan).
+ */
+export function markOrderScanning(
+  infoTemNccService: InfoTemNccService,
+  deliveryId: number,
+): Observable<boolean> {
+  return infoTemNccService.getDeliveryNotificationDetail(deliveryId).pipe(
+    switchMap((detail): Observable<boolean> => {
+      if (!isOrderNew(detail)) {
+        return of(true);
+      }
+      return infoTemNccService
+        .updateDeliveryNotification(
+          buildOrderStatusPayload(detail, DELIVERY_STATUS_SCANNING),
+        )
+        .pipe(map((): boolean => true));
+    }),
+    catchError(() => of(false)),
+  );
 }

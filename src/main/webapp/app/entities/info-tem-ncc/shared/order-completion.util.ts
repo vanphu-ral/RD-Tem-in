@@ -8,6 +8,9 @@ import {
 /** Trạng thái đơn đã hoàn thành (list hiển thị "Đã hoàn thành" khi status = COMPLETED) */
 export const DELIVERY_STATUS_COMPLETED = "COMPLETED";
 
+/** Đơn đã có thùng scan vào (tạo đơn = New → scan thùng đầu tiên = SCANNING → Hoàn thành = COMPLETED) */
+export const DELIVERY_STATUS_SCANNING = "SCANNING";
+
 /** Cờ đã gửi có thể là boolean / string / number — rỗng, false, 0 = chưa gửi */
 function isFlagOn(value: unknown): boolean {
   const t = toText(value).toLowerCase();
@@ -82,12 +85,20 @@ export function orderCompletionBlockers(
   return reasons;
 }
 
-/**
- * Payload PUT /delivery-notifications/{id} đánh dấu đơn đã hoàn thành.
- * Chỉ gửi các trường backend nhận (DTO không cho trường lạ — vd sapPor1R1List, vendorCode).
- */
+/** Payload PUT /delivery-notifications/{id} đánh dấu đơn đã hoàn thành */
 export function buildCompletedOrderPayload(
   detail: DeliveryNotificationDetailDto,
+): DeliveryNotificationDto {
+  return buildOrderStatusPayload(detail, DELIVERY_STATUS_COMPLETED);
+}
+
+/**
+ * Payload PUT /delivery-notifications/{id} đổi trạng thái đơn.
+ * Chỉ gửi các trường backend nhận (DTO không cho trường lạ — vd sapPor1R1List, vendorCode).
+ */
+export function buildOrderStatusPayload(
+  detail: DeliveryNotificationDetailDto,
+  status: string,
 ): DeliveryNotificationDto {
   const payload: DeliveryNotificationDto = {
     id: detail.id,
@@ -98,7 +109,7 @@ export function buildCompletedOrderPayload(
     contNo: detail.contNo,
     entryDate: detail.entryDate,
     numberOfPo: detail.numberOfPo,
-    status: DELIVERY_STATUS_COMPLETED,
+    status,
     source: detail.source ?? null,
     // Giữ nguyên các trường mới của đơn
     deliveryId: detail.deliveryId,
@@ -115,6 +126,12 @@ export function buildCompletedOrderPayload(
     payload.numberOfItem = detail.numberOfItem;
   }
   return payload;
+}
+
+/** Đơn chưa scan thùng nào (New / rỗng) → scan thùng đầu tiên cần chuyển sang SCANNING */
+export function isOrderNew(detail: DeliveryNotificationDto): boolean {
+  const status = toText(detail.status).toUpperCase();
+  return status === "" || status === "NEW";
 }
 
 /** Đơn đã ở trạng thái hoàn thành */

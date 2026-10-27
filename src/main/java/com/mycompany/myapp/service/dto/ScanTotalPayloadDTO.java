@@ -5,12 +5,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Tổng SL thực nhận của 1 phiếu lịch giao hàng (deliveryId) — trả cho gateway gọi lấy:
- * mọi dòng PO của phiếu, mỗi dòng kèm quantityReceived tính tại thời điểm gọi.
+ * Tổng SL thực nhận của 1 đơn thông báo giao hàng (noticeNo) — trả cho gateway gọi lấy:
+ * mọi dòng PO của đơn, mỗi dòng kèm quantityReceived tính tại thời điểm gọi.
  */
 public class ScanTotalPayloadDTO implements Serializable {
 
-    /** Phiếu lịch giao hàng (GUID) */
+    /** Mã thông báo giao hàng — delivery_notification.delivery_notification_code */
+    private String noticeNo;
+
+    /** Trạng thái đơn: New (chưa scan) / SCANNING (đang scan) / COMPLETED (hoàn thành) — delivery_notification.status */
+    private String status;
+
+    /** Phiếu lịch giao hàng (GUID) — delivery_notification.delivery_id */
     private String deliveryId;
 
     /** Số hóa đơn — delivery_notification.invoice_number */
@@ -41,6 +47,22 @@ public class ScanTotalPayloadDTO implements Serializable {
     private String generatedAt;
 
     private List<ScanTotalLineDTO> lines = new ArrayList<>();
+
+    public String getNoticeNo() {
+        return noticeNo;
+    }
+
+    public void setNoticeNo(String noticeNo) {
+        this.noticeNo = noticeNo;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 
     public String getDeliveryId() {
         return deliveryId;

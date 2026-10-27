@@ -3,7 +3,6 @@ package com.mycompany.myapp.web.rest;
 import com.mycompany.myapp.service.ScanTotalQueryService;
 import com.mycompany.myapp.service.dto.ScanTotalPayloadDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -11,9 +10,10 @@ import org.springframework.web.bind.annotation.*;
 import tech.jhipster.web.util.ResponseUtil;
 
 /**
- * API cho gateway gọi lấy tổng SL thực nhận theo phiếu lịch giao hàng:
- * {@code GET /api/scan-totals/{deliveryId}} — mọi dòng PO của phiếu, mỗi dòng kèm
- * quantityReceived (tổng cộng dồn các thùng đã scan, tính tại thời điểm gọi).
+ * API cho gateway gọi lấy tổng SL thực nhận theo đơn thông báo giao hàng:
+ * {@code GET /api/scan-totals/{noticeNo}} (hoặc {@code GET /api/scan-totals?noticeNo=...}) — noticeNo là
+ * mã thông báo giao hàng (delivery_notification_code); trả trạng thái đơn + mọi dòng PO của đơn, mỗi
+ * dòng kèm quantityReceived (tổng cộng dồn các thùng đã scan, tính tại thời điểm gọi).
  */
 @RestController
 @RequestMapping("/api/scan-totals")
@@ -32,29 +32,37 @@ public class ScanTotalResource {
     }
 
     /**
-     * @param deliveryId GUID phiếu lịch giao hàng.
-     * @return 200 + dữ liệu; 404 nếu phiếu không có dòng PO nào; 400 nếu deliveryId sai định dạng.
+     * @param noticeNo mã thông báo giao hàng.
+     * @return 200 + dữ liệu; 404 nếu không có đơn (chưa xoá) mang mã này; 400 nếu noticeNo rỗng.
      */
-    @GetMapping("/{deliveryId}")
-    public ResponseEntity<ScanTotalPayloadDTO> getByDeliveryId(
-        @PathVariable("deliveryId") String deliveryId
+    @GetMapping("/{noticeNo}")
+    public ResponseEntity<ScanTotalPayloadDTO> getByNoticeNo(
+        @PathVariable("noticeNo") String noticeNo
     ) {
-        LOG.debug(
-            "REST request to get scan totals of deliveryId {}",
-            deliveryId
-        );
-        UUID id;
-        try {
-            id = UUID.fromString(deliveryId.trim());
-        } catch (IllegalArgumentException ex) {
+        return findByNoticeNo(noticeNo);
+    }
+
+    /** Như trên, noticeNo truyền qua query param (mã có ký tự đặc biệt như "/") */
+    @GetMapping
+    public ResponseEntity<ScanTotalPayloadDTO> getByNoticeNoParam(
+        @RequestParam(value = "noticeNo", required = false) String noticeNo
+    ) {
+        return findByNoticeNo(noticeNo);
+    }
+
+    private ResponseEntity<ScanTotalPayloadDTO> findByNoticeNo(
+        String noticeNo
+    ) {
+        LOG.debug("REST request to get scan totals of noticeNo {}", noticeNo);
+        if (noticeNo == null || noticeNo.isBlank()) {
             throw new BadRequestAlertException(
-                "deliveryId không đúng định dạng GUID",
+                "noticeNo không được để trống",
                 ENTITY_NAME,
-                "deliveryIdInvalid"
+                "noticeNoRequired"
             );
         }
         return ResponseUtil.wrapOrNotFound(
-            scanTotalQueryService.findByDeliveryId(id)
+            scanTotalQueryService.findByNoticeNo(noticeNo.trim())
         );
     }
 }
