@@ -53,13 +53,15 @@
       "VendorLabelInfo",
       "OwtqWarehouseTransferSession",
       "WarehouseTransferDetail",
-      "WarehouseTransferSession"
+      "WarehouseTransferSession",
+      "ScanPallet",
+      "SplitInventory"
     ],
     "entitySuffix": "",
     "jhiPrefix": "jhi",
     "jhipsterVersion": "8.2.1",
     "languages": ["en", "fr"],
-    "lastLiquibaseTimestamp": 1792393159000,
+    "lastLiquibaseTimestamp": 1793084397000,
     "messageBroker": false,
     "nativeLanguage": "en",
     "otherModules": [],

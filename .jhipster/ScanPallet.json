@@ -1,0 +1,29 @@
+{
+  "annotations": {
+    "changelogDate": "20261027065956"
+  },
+  "applications": "*",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "serialPallet",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "30"
+    },
+    {
+      "fieldName": "businessSourceId",
+      "fieldType": "Long"
+    },
+    {
+      "fieldName": "businessType",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "50"
+    }
+  ],
+  "name": "ScanPallet",
+  "relationships": [],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}

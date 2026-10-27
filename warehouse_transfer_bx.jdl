@@ -1,24 +1,14 @@
-
-
-entity WarehouseTransferSession {
-status String maxlength(50)
-note String maxlength(255)
-createdAt Instant
-createdBy String maxlength(50)
-updatedAt Instant
-updatedBy String maxlength(50)
-deletedAt Instant
-deletedBy String maxlength(50)
+entity ScanPallet {
+serialPallet String maxlength(30)
+businessSourceId Long
+businessType String maxlength(50)
 }
 
-entity OwtqWarehouseTransferSession {
-warehouseTransferSessionId Long
-owtqDocEntry Long
-}
-
-entity WarehouseTransferDetail {
-lineNum Long
+entity SplitInventory {
+businessSourceId Long
+businessType String maxlength(50)
 reelId String maxlength(50)
+parentMaterialIdentifier String maxlength(50)
 partNumber String maxlength(50)
 vendor String maxlength(20)
 lot String maxlength(30)
@@ -46,27 +36,17 @@ expirationDate String maxlength(20)
 manufacturingDate String maxlength(20)
 partClass String maxlength(20)
 sapCode String maxlength(20)
-vendorQrCode TextBlob
+vendorQrCode String required maxlength(510)
 status String maxlength(50)
 createdBy String maxlength(20)
 createdAt Instant
 updatedBy String maxlength(20)
 updatedAt Instant
-panaSendStatus Boolean
-sapSendStatus Boolean
+printStatus Boolean
 }
 
-// Relationships
-relationship OneToMany {
-WarehouseTransferSession{details} to WarehouseTransferDetail{warehouseTransferSession}
-}
-
-relationship ManyToOne {
-OwtqWarehouseTransferSession{warehouseTransferSession} to WarehouseTransferSession
-}
-
-// Options
-paginate WarehouseTransferSession with pagination
-filter WarehouseTransferSession
-service * with serviceImpl
-dto * with mapstruct
+// Optional configurations
+paginate SplitInventory with pagination
+filter SplitInventory
+service all with serviceImpl
+dto all with mapstruct

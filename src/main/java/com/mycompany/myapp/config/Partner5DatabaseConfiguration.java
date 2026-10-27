@@ -27,6 +27,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
     includeFilters = @ComponentScan.Filter(
         type = FilterType.ASSIGNABLE_TYPE,
         classes = {
+            com.mycompany.myapp.repository.ScanPalletRepository.class,
+            com.mycompany.myapp.repository.SplitInventoryRepository.class,
             com.mycompany.myapp.repository.PalletMngtRepository.class,
             com.mycompany.myapp.repository.PalletBoxMappingRepository.class,
             com.mycompany.myapp.repository.DeliveryNotificationRepository.class,

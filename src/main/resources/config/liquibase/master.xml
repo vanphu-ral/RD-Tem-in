@@ -41,6 +41,8 @@
     <include file="config/liquibase/changelog/20261019065917_added_entity_OwtqWarehouseTransferSession.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261019065918_added_entity_WarehouseTransferDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261019065919_added_entity_WarehouseTransferSession.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261027065956_added_entity_ScanPallet.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261027065957_added_entity_SplitInventory.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog -->
     <include file="config/liquibase/changelog/20260309010238_added_entity_constraints_PoDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260309010239_added_entity_constraints_VendorTemDetail.xml" relativeToChangelogFile="false"/>
