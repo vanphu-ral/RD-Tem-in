@@ -170,6 +170,8 @@ export interface ExportScannedPallet {
   boxes: ExportScannedBox[];
   /** Tổng số ReelID trên pallet (kể cả thùng không tra được trong kho) */
   reelCount?: number;
+  /** Xuất chuyển kho theo phiên: id bản ghi scan-pallets (undefined = chưa lưu / đang lưu) */
+  scanId?: number | null;
 }
 
 /** Lịch sử xuất kho — 1 vật tư trong phiếu xuất */

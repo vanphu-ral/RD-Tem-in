@@ -13,9 +13,6 @@ public class ScanTotalLineDTO implements Serializable {
     /** Mã dòng do Smart sinh (GUID) — sap_por1_r1.line_id */
     private String lineId;
 
-    /** Phiếu lịch giao hàng (GUID) — sap_por1_r1.delivery_id */
-    private String deliveryId;
-
     private String poSmart;
 
     /** Số PO trên ERP/SAP — sap_por1_r1.doc_entry */
@@ -69,14 +66,6 @@ public class ScanTotalLineDTO implements Serializable {
 
     public void setLineId(String lineId) {
         this.lineId = lineId;
-    }
-
-    public String getDeliveryId() {
-        return deliveryId;
-    }
-
-    public void setDeliveryId(String deliveryId) {
-        this.deliveryId = deliveryId;
     }
 
     public String getPoSmart() {

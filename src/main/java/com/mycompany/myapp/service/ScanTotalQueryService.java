@@ -19,8 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Chỉ đọc: tổng SL thực nhận (quantityReceived = tổng initial_quantity các thùng đã scan) của
- * từng dòng PO thuộc 1 đơn thông báo giao hàng (noticeNo = delivery_notification_code) — tính từ DB
+ * Dựng payload gửi gateway (chỉ đọc): tổng SL thực nhận (quantityReceived = tổng initial_quantity các thùng đã scan) của
+ * từng dòng PO thuộc 1 đơn thông báo giao hàng (deliveryId = delivery_notification_code) — tính từ DB
  * tại thời điểm gọi, là tổng cộng dồn mọi lần scan (xoá thùng → tổng giảm theo).
  */
 @Service
@@ -49,21 +49,25 @@ public class ScanTotalQueryService {
         this.vendorLabelInfoRepository = vendorLabelInfoRepository;
     }
 
-    /**
-     * Đơn (chưa xoá) mang mã thông báo noticeNo: dòng PO của đơn + dòng PO chưa gắn đơn nào nhưng
-     * mang deliveryId của đơn (gộp, không trùng). Không có đơn → empty; đơn chưa có dòng → lines rỗng.
-     */
-    public Optional<ScanTotalPayloadDTO> findByNoticeNo(String noticeNo) {
-        LOG.debug("Request to get scan totals of noticeNo {}", noticeNo);
-        List<DeliveryNotification> deliveries =
-            deliveryNotificationRepository.findByDeliveryNotificationCodeAndDeletedAtIsNullOrderByIdAsc(
-                noticeNo
-            );
-        if (deliveries.isEmpty()) {
-            return Optional.empty();
-        }
-        DeliveryNotification dn = deliveries.get(0);
+    /** Payload của đơn theo id (đơn không tồn tại / đã xoá → empty) */
+    public Optional<ScanTotalPayloadDTO> findByDeliveryNotificationId(
+        Long deliveryNotificationId
+    ) {
+        LOG.debug(
+            "Request to build scan totals of DeliveryNotification {}",
+            deliveryNotificationId
+        );
+        return deliveryNotificationRepository
+            .findById(deliveryNotificationId)
+            .filter(dn -> dn.getDeletedAt() == null)
+            .map(this::build);
+    }
 
+    /**
+     * Dòng PO của đơn + dòng PO chưa gắn đơn nào nhưng mang deliveryId của đơn (gộp, không trùng);
+     * đơn chưa có dòng → lines rỗng.
+     */
+    private ScanTotalPayloadDTO build(DeliveryNotification dn) {
         Map<Long, SapPor1R1> lines = new LinkedHashMap<>();
         sapPor1R1Repository
             .findByDeliveryNotificationIdOrderByIdAsc(dn.getId())
@@ -89,9 +93,9 @@ public class ScanTotalQueryService {
         }
 
         ScanTotalPayloadDTO payload = new ScanTotalPayloadDTO();
-        payload.setNoticeNo(dn.getDeliveryNotificationCode());
+        payload.setDeliveryNotificationId(dn.getId());
+        payload.setDeliveryId(dn.getDeliveryNotificationCode());
         payload.setStatus(statusOf(dn, received));
-        payload.setDeliveryId(text(dn.getDeliveryId()));
         payload.setInvoiceNumber(dn.getInvoiceNumber());
         payload.setContractCode(dn.getContractCode());
         payload.setType(dn.getType());
@@ -106,7 +110,7 @@ public class ScanTotalQueryService {
                 .getLines()
                 .add(toLine(line, received.getOrDefault(line.getId(), 0L)));
         }
-        return Optional.of(payload);
+        return payload;
     }
 
     /**
@@ -132,7 +136,6 @@ public class ScanTotalQueryService {
     private static ScanTotalLineDTO toLine(SapPor1R1 line, long received) {
         ScanTotalLineDTO dto = new ScanTotalLineDTO();
         dto.setLineId(text(line.getLineId()));
-        dto.setDeliveryId(text(line.getDeliveryId()));
         dto.setPoSmart(line.getPoSmart());
         dto.setPoErp(line.getDocEntry());
         dto.setPrNumber(line.getPrNumber());

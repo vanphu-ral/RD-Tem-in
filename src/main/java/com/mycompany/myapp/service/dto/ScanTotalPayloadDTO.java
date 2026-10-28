@@ -1,23 +1,25 @@
 package com.mycompany.myapp.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Tổng SL thực nhận của 1 đơn thông báo giao hàng (noticeNo) — trả cho gateway gọi lấy:
- * mọi dòng PO của đơn, mỗi dòng kèm quantityReceived tính tại thời điểm gọi.
+ * Tổng SL thực nhận của 1 đơn thông báo giao hàng (deliveryId = mã thông báo) — BE tự POST sang gateway:
+ * mọi dòng PO của đơn, mỗi dòng kèm quantityReceived tính tại thời điểm gửi.
  */
 public class ScanTotalPayloadDTO implements Serializable {
 
+    /** Id đơn giao hàng (delivery_notification.id) — nội bộ RD (log / kết quả gửi), không gửi gateway */
+    @JsonIgnore
+    private Long deliveryNotificationId;
+
     /** Mã thông báo giao hàng — delivery_notification.delivery_notification_code */
-    private String noticeNo;
+    private String deliveryId;
 
     /** Trạng thái đơn: New (chưa scan) / SCANNING (đang scan) / COMPLETED (hoàn thành) — delivery_notification.status */
     private String status;
-
-    /** Phiếu lịch giao hàng (GUID) — delivery_notification.delivery_id */
-    private String deliveryId;
 
     /** Số hóa đơn — delivery_notification.invoice_number */
     private String invoiceNumber;
@@ -48,20 +50,12 @@ public class ScanTotalPayloadDTO implements Serializable {
 
     private List<ScanTotalLineDTO> lines = new ArrayList<>();
 
-    public String getNoticeNo() {
-        return noticeNo;
+    public Long getDeliveryNotificationId() {
+        return deliveryNotificationId;
     }
 
-    public void setNoticeNo(String noticeNo) {
-        this.noticeNo = noticeNo;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
+    public void setDeliveryNotificationId(Long deliveryNotificationId) {
+        this.deliveryNotificationId = deliveryNotificationId;
     }
 
     public String getDeliveryId() {
@@ -70,6 +64,14 @@ public class ScanTotalPayloadDTO implements Serializable {
 
     public void setDeliveryId(String deliveryId) {
         this.deliveryId = deliveryId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getInvoiceNumber() {

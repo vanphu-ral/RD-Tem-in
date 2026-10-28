@@ -77,6 +77,8 @@ export function completeOrderFlow(
             next: () => {
               setBusy?.(false);
               notificationService.success("Đã hoàn thành đơn.");
+              // Gửi ngay trạng thái COMPLETED + tổng SL thực nhận sang gateway
+              infoTemNccService.syncScanTotal(deliveryId, "FE_COMPLETED", true);
               onCompleted();
             },
             error: () => {

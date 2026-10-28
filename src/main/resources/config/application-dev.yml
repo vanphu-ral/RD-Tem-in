@@ -285,3 +285,9 @@ application:
     mes-api-url: http://172.168.6.3/PanaCIMMC/MesApi/ExecuteTransaction
     user-name: RD00698
     user-id: ""
+  # Gửi tổng SL thực nhận (scan NCC) sang gateway — enabled=false hoặc url trống → chỉ ghi log (dry-run)
+  scan-total-gateway:
+    enabled: false
+    url: ""
+    timeout-ms: 10000
+    job-interval-ms: 300000

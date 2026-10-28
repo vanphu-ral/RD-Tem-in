@@ -1123,24 +1123,107 @@
               <tr *ngIf="!ws.pallets.length">
                 <td colspan="6" class="we-empty-cell">Chưa scan pallet nào.</td>
               </tr>
-              <tr *ngFor="let p of ws.pallets; let idx = index">
-                <td class="col-no">{{ idx + 1 }}</td>
-                <td class="mono">{{ p.palletCode }}</td>
-                <td class="num">{{ p.boxes.length }}</td>
-                <td class="num">{{ palletQty(p) | number }}</td>
-                <td>{{ p.location || "—" }}</td>
-                <td class="col-del">
-                  <button
-                    type="button"
-                    class="we-del"
-                    matTooltip="Bỏ pallet (và các thùng trên pallet)"
-                    [disabled]="isDeletingBoxes"
-                    (click)="removePallet(p)"
-                  >
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
-                </td>
-              </tr>
+              <ng-container *ngFor="let p of ws.pallets; let idx = index">
+                <tr
+                  class="we-pallet-row"
+                  [class.open]="isPalletExpanded(p)"
+                  (click)="togglePallet(p)"
+                >
+                  <td class="col-no">{{ idx + 1 }}</td>
+                  <td class="mono">
+                    <mat-icon class="we-pallet-caret">{{
+                      isPalletExpanded(p) ? "expand_more" : "chevron_right"
+                    }}</mat-icon>
+                    {{ p.palletCode }}
+                  </td>
+                  <td class="num">{{ p.boxes.length }}</td>
+                  <td class="num">{{ palletQty(p) | number }}</td>
+                  <td>{{ p.location || "—" }}</td>
+                  <td class="col-del">
+                    <button
+                      type="button"
+                      class="we-del"
+                      matTooltip="Bỏ pallet (và các thùng trên pallet)"
+                      [disabled]="isDeletingBoxes"
+                      (click)="$event.stopPropagation(); removePallet(p)"
+                    >
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+                <!-- Thùng trên pallet (cũng hiện ở tab Thùng) -->
+                <tr class="we-pallet-boxes" *ngIf="isPalletExpanded(p)">
+                  <td></td>
+                  <td colspan="5">
+                    <div class="we-empty-cell" *ngIf="!p.boxes.length">
+                      Pallet không còn thùng nào trong phiên.
+                    </div>
+                    <table class="we-subtable" *ngIf="p.boxes.length">
+                      <thead>
+                        <tr>
+                          <th class="col-no">#</th>
+                          <th>Reelid</th>
+                          <th>Mã vật tư</th>
+                          <th>Part number</th>
+                          <th class="num">SL xuất</th>
+                          <th>Số lô</th>
+                          <th>HSD</th>
+                          <th>Vị trí chuyển đến</th>
+                          <th class="col-del"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          *ngFor="
+                            let b of p.boxes;
+                            let j = index;
+                            trackBy: trackBox
+                          "
+                        >
+                          <td class="col-no">{{ j + 1 }}</td>
+                          <td class="mono">
+                            {{ b.reelId }}
+                            <ng-container *ngIf="hasSession">
+                              <span class="pl-before" *ngIf="b.sent"
+                                >Đã lưu</span
+                              >
+                              <span class="pl-exported" *ngIf="isBoxExported(b)"
+                                >Đã xuất</span
+                              >
+                              <span
+                                class="pl-unsent"
+                                *ngIf="!b.sent && isBoxSaving(b)"
+                                >Đang lưu...</span
+                              >
+                            </ng-container>
+                          </td>
+                          <td class="mono">{{ b.materialCode }}</td>
+                          <td class="mono">{{ b.partNumber || "—" }}</td>
+                          <td class="num">{{ b.quantity | number }}</td>
+                          <td>{{ b.lot || "—" }}</td>
+                          <td>{{ b.expirationDate || "—" }}</td>
+                          <td>{{ b.location || "—" }}</td>
+                          <td class="col-del">
+                            <button
+                              type="button"
+                              class="we-del"
+                              [matTooltip]="
+                                isBoxExported(b)
+                                  ? 'Đã xuất — không xoá được'
+                                  : 'Bỏ thùng khỏi pallet / phiên'
+                              "
+                              [disabled]="isDeletingBoxes || isBoxExported(b)"
+                              (click)="removeBox(b)"
+                            >
+                              <mat-icon>delete_outline</mat-icon>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              </ng-container>
             </tbody>
           </table>
         </div>

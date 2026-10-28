@@ -46,6 +46,7 @@ import {
   TRANSFER_SESSION_STATUS_LABELS,
   splitFromComment,
   TransferSessionBox,
+  TransferSessionPallet,
   WarehouseExportService,
 } from "./warehouse-export.service";
 import {
@@ -282,6 +283,8 @@ export class WarehouseExportDialogComponent
 
   mainTab: MainTab = "request";
   scannedTab: ScannedTab = "box";
+  /** Tab Pallet: mã pallet (viết thường) đang mở rộng xem thùng */
+  expandedPallets = new Set<string>();
 
   isBusy = false;
   isCompleting = false;
@@ -356,6 +359,8 @@ export class WarehouseExportDialogComponent
   private unrestoredReelKeys = new Set<string>();
   /** Bản ghi thùng đã lưu của phiên (từ chi tiết phiên) — dựng lại thùng khi mở lại phiên */
   private sessionBoxes = new Map<string, TransferSessionBox>();
+  /** Pallet đã scan của phiên (từ chi tiết phiên) — dựng lại tab Pallet khi mở lại phiên */
+  private sessionPallets: TransferSessionPallet[] = [];
   /**
    * Xuất chuyển kho: SL / số thùng đã scan của phiếu ở CÁC PHIÊN KHÁC (không có trên màn hình) =
    * summary BE (gộp mọi phiên) − thùng đã lưu của phiên đang mở, chốt lúc tải summary.
@@ -1588,11 +1593,13 @@ export class WarehouseExportDialogComponent
           return;
         }
         this.prepareTransferBoxes(usable);
-        this.ws.pallets = [...this.ws.pallets, { ...pallet, boxes: usable }];
+        const scannedPallet: ExportScannedPallet = { ...pallet, boxes: usable };
+        this.ws.pallets = [...this.ws.pallets, scannedPallet];
         this.ws.boxes = [...this.ws.boxes, ...usable];
         this.scanFeedback(true);
         this.recalcScanned();
         this.saveSessionBoxes();
+        this.saveScanPallet(scannedPallet);
         this.notificationService.success(
           `Đã thêm pallet "${pallet.palletCode}" (${usable.length} thùng)` +
             (skipped
@@ -1747,6 +1754,12 @@ export class WarehouseExportDialogComponent
   /** Bỏ pallet (và các thùng trên pallet): có thùng đã lưu vào phiên → xác nhận rồi DELETE */
   removePallet(pallet: ExportScannedPallet): void {
     const reelIds = pallet.boxes.map((b) => b.reelId);
+    if (!reelIds.length) {
+      // Pallet đã lưu nhưng không còn thùng nào trên bảng → chỉ xoá bản ghi pallet
+      this.ws.pallets = this.ws.pallets.filter((p) => p !== pallet);
+      this.dropScanPallet(pallet);
+      return;
+    }
     const exported = reelIds.filter((id) => this.isReelExported(id));
     if (exported.length) {
       this.warnExportedNotDeletable(exported);
@@ -1798,6 +1811,18 @@ export class WarehouseExportDialogComponent
 
   palletQty(p: ExportScannedPallet): number {
     return p.boxes.reduce((s, b) => s + b.quantity, 0);
+  }
+
+  /** Tab Pallet: mở / đóng danh sách thùng trên pallet */
+  togglePallet(p: ExportScannedPallet): void {
+    const key = this.reelKey(p.palletCode);
+    if (!this.expandedPallets.delete(key)) {
+      this.expandedPallets.add(key);
+    }
+  }
+
+  isPalletExpanded(p: ExportScannedPallet): boolean {
+    return this.expandedPallets.has(this.reelKey(p.palletCode));
   }
 
   // ==================== HÀNH ĐỘNG ====================
@@ -2343,9 +2368,20 @@ export class WarehouseExportDialogComponent
     const keep = (b: ExportScannedBox): boolean =>
       !keys.has(this.reelKey(b.reelId));
     this.ws.boxes = this.ws.boxes.filter(keep);
-    this.ws.pallets = this.ws.pallets
-      .map((p) => ({ ...p, boxes: p.boxes.filter(keep) }))
-      .filter((p) => p.boxes.length > 0);
+    // Giữ nguyên object pallet (POST scan-pallets đang chờ dùng để đối chiếu)
+    const emptied: ExportScannedPallet[] = [];
+    for (const p of this.ws.pallets) {
+      const before = p.boxes.length;
+      p.boxes = p.boxes.filter(keep);
+      if (before > 0 && !p.boxes.length) {
+        emptied.push(p);
+      }
+    }
+    if (emptied.length) {
+      // Pallet hết thùng → bỏ khỏi phiên (DELETE /scan-pallets/{id})
+      this.ws.pallets = this.ws.pallets.filter((p) => !emptied.includes(p));
+      emptied.forEach((p) => this.dropScanPallet(p));
+    }
     this.recalcScanned();
   }
 
@@ -2488,6 +2524,7 @@ export class WarehouseExportDialogComponent
         this.sessionBoxes = new Map(
           detail.boxes.map((b) => [this.reelKey(b.reelId), b]),
         );
+        this.sessionPallets = detail.pallets;
         const codes = detail.requestCodes.length
           ? detail.requestCodes
           : fallbackCodes;
@@ -2617,6 +2654,100 @@ export class WarehouseExportDialogComponent
       });
   }
 
+  /**
+   * Xuất chuyển kho theo phiên: lưu pallet vừa scan — POST /scan-pallets
+   * (businessSourceId = id phiên, businessType "Chuyển kho"). Lỗi chỉ cảnh báo, thùng vẫn giữ.
+   */
+  private saveScanPallet(pallet: ExportScannedPallet): void {
+    const sessionId = this.dialogData?.sessionId;
+    if (!this.hasSession || sessionId == null) {
+      return;
+    }
+    this.exportService.saveScanPallet(pallet.palletCode, sessionId).subscribe({
+      next: (id) => {
+        pallet.scanId = id;
+        // Pallet bị bỏ khi đang lưu → xoá luôn bản ghi vừa tạo
+        if (!this.ws.pallets.includes(pallet)) {
+          this.dropScanPallet(pallet);
+        }
+      },
+      error: () => {
+        this.notificationService.warning(
+          `Chưa lưu được thông tin pallet "${pallet.palletCode}" vào phiên (các thùng vẫn đã lưu).`,
+        );
+      },
+    });
+  }
+
+  /** Bỏ pallet khỏi phiên — DELETE /scan-pallets/{id} (chưa biết id → tra theo mã pallet + phiên) */
+  private dropScanPallet(pallet: ExportScannedPallet): void {
+    const sessionId = this.dialogData?.sessionId;
+    // scanId undefined = chưa lưu / đang POST (POST xong sẽ tự xoá nếu pallet đã bị bỏ)
+    if (!this.hasSession || sessionId == null || pallet.scanId === undefined) {
+      return;
+    }
+    const id$: Observable<number | null> =
+      pallet.scanId !== null
+        ? of(pallet.scanId)
+        : this.exportService.findScanPalletId(pallet.palletCode, sessionId);
+    id$
+      .pipe(
+        switchMap(
+          (id): Observable<void> =>
+            id === null
+              ? throwError(() => new Error("scan-pallet not found"))
+              : this.exportService.deleteScanPallet(id),
+        ),
+      )
+      .subscribe({
+        next: () => {
+          const key = this.reelKey(pallet.palletCode);
+          this.sessionPallets = this.sessionPallets.filter(
+            (p) => this.reelKey(p.palletCode) !== key,
+          );
+        },
+        error: () => {
+          this.notificationService.warning(
+            `Chưa xoá được pallet "${pallet.palletCode}" khỏi phiên — thử lại sau.`,
+          );
+        },
+      });
+  }
+
+  /**
+   * Mở lại phiên: dựng tab Pallet từ scannedPallets của chi tiết phiên — thùng trên pallet là
+   * chính các thùng đã khôi phục ở tab Thùng (cùng object, hiện ở cả 2 tab).
+   */
+  private attachSessionPallets(): void {
+    if (!this.sessionPallets.length) {
+      return;
+    }
+    const byReel = new Map(
+      this.ws.boxes.map((b) => [this.reelKey(b.reelId), b]),
+    );
+    const added: ExportScannedPallet[] = [];
+    for (const sp of this.sessionPallets) {
+      const key = this.reelKey(sp.palletCode);
+      if (this.ws.pallets.some((p) => this.reelKey(p.palletCode) === key)) {
+        continue;
+      }
+      const boxes = sp.reelIds
+        .map((id) => byReel.get(this.reelKey(id)))
+        .filter((b): b is ExportScannedBox => !!b);
+      boxes.forEach((b) => (b.palletCode = b.palletCode || sp.palletCode));
+      added.push({
+        palletCode: sp.palletCode,
+        location: boxes[0]?.sourceLocation ?? "",
+        boxes,
+        reelCount: sp.reelIds.length,
+        scanId: sp.id,
+      });
+    }
+    if (added.length) {
+      this.ws.pallets = [...this.ws.pallets, ...added];
+    }
+  }
+
   /** Nạp lại các thùng đã scan của phiên (tra lại tồn kho từng thùng) */
   private restoreBoxes(reelIds: string[]): void {
     const ids = reelIds.filter(
@@ -2624,6 +2755,7 @@ export class WarehouseExportDialogComponent
         !this.ws.boxes.some((b) => b.reelId.toLowerCase() === id.toLowerCase()),
     );
     if (!ids.length) {
+      this.attachSessionPallets();
       return;
     }
     this.isBusy = true;
@@ -2679,6 +2811,7 @@ export class WarehouseExportDialogComponent
           this.attachSavedSplits();
           this.recalcScanned();
         }
+        this.attachSessionPallets();
         const lost = missing.length - rebuilt.length;
         if (lost > 0) {
           this.notificationService.warning(

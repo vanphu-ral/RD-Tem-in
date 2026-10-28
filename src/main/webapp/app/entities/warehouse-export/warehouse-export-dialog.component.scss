@@ -3380,3 +3380,57 @@ $mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     }
   }
 }
+
+// Tab Pallet: dòng pallet mở rộng → bảng thùng trên pallet
+.we-pallet-row {
+  cursor: pointer;
+
+  &:hover > td {
+    background: #f8fafc;
+  }
+
+  &.open > td {
+    background: #eff6ff;
+  }
+
+  .we-pallet-caret {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    vertical-align: middle;
+    color: #64748b;
+  }
+}
+
+.we-pallet-boxes > td {
+  padding: 4px 8px 10px !important;
+  background: #f8fafc;
+}
+
+.we-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+
+  th,
+  td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  th {
+    color: #475569;
+    font-weight: 600;
+    background: #f1f5f9;
+  }
+
+  .num {
+    text-align: right;
+  }
+
+  .mono {
+    font-family: monospace;
+  }
+}

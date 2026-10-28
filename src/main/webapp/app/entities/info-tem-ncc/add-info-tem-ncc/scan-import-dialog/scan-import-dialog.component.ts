@@ -337,6 +337,8 @@ export class ScanImportDialogComponent
   private locationSearchTimer: ReturnType<typeof setTimeout> | null = null;
   private activeLocationTrigger: MatAutocompleteTrigger | null = null;
   private scanLocationSeq = 0;
+  /** Lần gửi ngầm tổng SL thực nhận gần nhất khi ẩn / đóng tab (ms) */
+  private lastUnloadSyncAt = 0;
 
   constructor(
     private dialogRef: MatDialogRef<
@@ -401,6 +403,25 @@ export class ScanImportDialogComponent
     if (this.locationSearchTimer) {
       clearTimeout(this.locationSearchTimer);
       this.locationSearchTimer = null;
+    }
+    // Đóng màn scan → báo BE gửi tổng SL thực nhận sang gateway (ngầm)
+    const deliveryId = this.data.deliveryNotificationId ?? null;
+    if (deliveryId !== null) {
+      this.infoTemNccService.syncScanTotal(deliveryId, "FE_CLOSE");
+    }
+  }
+
+  /** Đóng tab / tải lại trang / đăng xuất (chuyển trang) → gửi ngầm (keepalive) */
+  @HostListener("window:pagehide")
+  onPageHide(): void {
+    this.syncScanTotalOnUnload("FE_PAGEHIDE");
+  }
+
+  /** Ẩn tab / chuyển app (mobile) → gửi ngầm; BE chỉ gửi khi có thay đổi */
+  @HostListener("document:visibilitychange")
+  onVisibilityChange(): void {
+    if (document.visibilityState === "hidden") {
+      this.syncScanTotalOnUnload("FE_HIDDEN");
     }
   }
 
@@ -2254,6 +2275,17 @@ export class ScanImportDialogComponent
     setTimeout(() => {
       this.locationInputRef?.nativeElement?.focus();
     }, 50);
+  }
+
+  /** Gửi ngầm khi trang sắp đóng / bị ẩn — tối đa 1 lần / 10 giây */
+  private syncScanTotalOnUnload(trigger: string): void {
+    const deliveryId = this.data.deliveryNotificationId ?? null;
+    const now = Date.now();
+    if (deliveryId === null || now - this.lastUnloadSyncAt < 10000) {
+      return;
+    }
+    this.lastUnloadSyncAt = now;
+    this.infoTemNccService.syncScanTotalOnUnload(deliveryId, trigger);
   }
 
   /** Báo panel Tổng hợp tải lại */

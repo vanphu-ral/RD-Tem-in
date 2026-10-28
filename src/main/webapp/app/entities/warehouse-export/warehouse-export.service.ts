@@ -274,6 +274,32 @@ interface WarehouseTransferSessionDetailDto {
   owtqSessions?: Array<{ owtqDocEntry?: number | null } | null> | null;
   /** Các thùng đã scan trong phiên (bản ghi warehouse-transfer-details) */
   details?: Array<WarehouseTransferDetailDto | null> | null;
+  /** Các pallet đã scan của phiên (POST /scan-pallets) + thùng trên pallet */
+  scannedPallets?: Array<{
+    id?: number | null;
+    serialPallet?: string | null;
+    boxes?: Array<WarehouseTransferDetailDto | null> | null;
+  } | null> | null;
+}
+
+/** Nghiệp vụ của bản ghi scan-pallets */
+export const SCAN_PALLET_BUSINESS_TYPE = { transfer: "Chuyển kho" } as const;
+
+/** Bản ghi /scan-pallets */
+interface ScanPalletDto {
+  id?: number | null;
+  serialPallet?: string | null;
+  businessSourceId?: number | null;
+  businessType?: string | null;
+}
+
+/** 1 pallet đã scan của phiên */
+export interface TransferSessionPallet {
+  /** id bản ghi scan-pallets (null = BE chưa trả, tra lại khi xoá) */
+  id: number | null;
+  palletCode: string;
+  /** ReelID các thùng trên pallet */
+  reelIds: string[];
 }
 
 /** Bản ghi warehouse-transfer-details (chỉ các trường dùng tới) */
@@ -332,6 +358,8 @@ export interface WarehouseTransferSessionDetail {
   reelIds: string[];
   /** Các thùng đã lưu trong phiên (kèm id bản ghi) */
   boxes: TransferSessionBox[];
+  /** Các pallet đã scan của phiên */
+  pallets: TransferSessionPallet[];
 }
 
 /** 1 dòng tab Đang xử lý — 1 phiên xuất chuyển kho */
@@ -1092,6 +1120,54 @@ export class WarehouseExportService {
       .pipe(catchError(() => of(null)));
   }
 
+  /** Lưu pallet đã scan vào phiên — POST /scan-pallets → id bản ghi (BE không trả → null) */
+  saveScanPallet(
+    serialPallet: string,
+    businessSourceId: number,
+  ): Observable<number | null> {
+    const body: ScanPalletDto = {
+      serialPallet,
+      businessSourceId,
+      businessType: SCAN_PALLET_BUSINESS_TYPE.transfer,
+    };
+    return this.http
+      .post<ScanPalletDto | null>(
+        `${environment.baseInTemApiUrl}/scan-pallets`,
+        body,
+      )
+      .pipe(map((res): number | null => res?.id ?? null));
+  }
+
+  /** id bản ghi scan-pallets của pallet trong phiên (chi tiết phiên chưa trả id) — GET /scan-pallets */
+  findScanPalletId(
+    serialPallet: string,
+    businessSourceId: number,
+  ): Observable<number | null> {
+    const key = serialPallet.trim().toLowerCase();
+    return this.http
+      .get<
+        ScanPalletDto[] | null
+      >(`${environment.baseInTemApiUrl}/scan-pallets`)
+      .pipe(
+        map((list): number | null => {
+          const found = (list ?? []).filter(
+            (p) =>
+              (p.serialPallet ?? "").trim().toLowerCase() === key &&
+              p.businessSourceId === businessSourceId &&
+              p.businessType === SCAN_PALLET_BUSINESS_TYPE.transfer,
+          );
+          return found.length ? (found[found.length - 1].id ?? null) : null;
+        }),
+      );
+  }
+
+  /** Xoá pallet khỏi phiên — DELETE /scan-pallets/{id} */
+  deleteScanPallet(id: number): Observable<void> {
+    return this.http
+      .delete(`${environment.baseInTemApiUrl}/scan-pallets/${id}`)
+      .pipe(map(() => undefined));
+  }
+
   /** Xoá 1 thùng khỏi phiên — DELETE /warehouse-transfer-details/{id} */
   deleteTransferDetail(id: number): Observable<void> {
     return this.http
@@ -1256,6 +1332,17 @@ export class WarehouseExportService {
               }),
             )
             .filter((d) => !!d.reelId),
+          pallets: (dto.scannedPallets ?? [])
+            .map(
+              (p): TransferSessionPallet => ({
+                id: p?.id ?? null,
+                palletCode: (p?.serialPallet ?? "").trim(),
+                reelIds: (p?.boxes ?? [])
+                  .map((b) => (b?.reelId ?? "").trim())
+                  .filter(Boolean),
+              }),
+            )
+            .filter((p) => !!p.palletCode),
         })),
       );
   }
