@@ -68,4 +68,14 @@ public interface VendorLabelInfoRepository
     List<Object[]> sumInitialQuantityBySapPor1Ids(
         @Param("sapPor1Ids") Collection<Long> sapPor1Ids
     );
+
+    /** Id các đơn giao hàng có thùng tạo / sửa từ thời điểm {@code since} (nạp lại khi khởi động) */
+    @Query(
+        "select distinct v.deliveryNotification.id from VendorLabelInfo v" +
+        " where v.deliveryNotification is not null" +
+        " and (v.createdAt >= :since or v.updatedAt >= :since)"
+    )
+    List<Long> findDeliveryNotificationIdsChangedSince(
+        @Param("since") java.time.Instant since
+    );
 }
