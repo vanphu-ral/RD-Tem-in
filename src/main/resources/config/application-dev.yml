@@ -287,7 +287,7 @@ application:
     user-id: ""
   # Gửi tổng SL thực nhận (scan NCC) sang gateway — enabled=false hoặc url trống → chỉ ghi log (dry-run)
   scan-total-gateway:
-    enabled: false
-    url: ""
+    enabled: true
+    url: https://ral-imes-gateway.rangdong.com.vn:59008/mrp/api/smart/receipt-updates
     timeout-ms: 10000
     job-interval-ms: 300000
