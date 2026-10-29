@@ -49,7 +49,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
       "/api/warehouse-note-infos-approval",
     );
 
-  resourceUrlQMS = "http://192.168.18.124:8449/production/check-step";
+  resourceUrlQMS = "http:192.168.68.86:9091/qms/production/check-step";
   // resourceUrlQMS = "http://192.168.68.92/qms/production/check-step";
   // resourceUrlWarehouseNoteApprovalInfo = "http://192.168.68.77:8085/api/warehouse-note-infos-approval";
   selectedAllResult?: boolean;
@@ -626,7 +626,7 @@ export class ChiTietLenhSanXuatUpdateComponent implements OnInit {
                       //tạo nhập kho
                       this.http
                         .post<any>(
-                          "http://192.168.18.124:8449/store-check/create",
+                          "http:192.168.68.86:9091/qms/store-check/create",
                           requestPayload,
                           {
                             // this.http
