@@ -678,8 +678,9 @@
           <span *ngIf="listTab === 'box'">Thông tin thùng</span>
           <span *ngIf="listTab === 'pallet'">Danh sách Pallet đã quét</span>
           <strong *ngIf="listTab === 'box'">{{ boxRows.length }} thùng</strong>
+          <!-- Tổng pallet đã quét của đơn (danh sách mobile chỉ hiện pallet đang quét) -->
           <strong *ngIf="listTab === 'pallet'"
-            >{{ visiblePalletRows.length }} pallet</strong
+            >{{ palletRows.length }} pallet</strong
           >
         </div>
 
