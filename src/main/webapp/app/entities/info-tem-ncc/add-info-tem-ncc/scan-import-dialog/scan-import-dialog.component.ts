@@ -57,6 +57,7 @@ import {
   VendorQrMappingConfig,
 } from "../../shared/vendor-qr-mapping.util";
 import { boxLocation, locationFields } from "../../shared/box-location.util";
+import { normalizeLocationScan } from "app/entities/list-material/services/scan-code.util";
 import {
   clearQueueReason,
   QUEUE_REASON_HINTS,
@@ -585,9 +586,22 @@ export class ScanImportDialogComponent
     );
   }
 
-  /** Gõ / quét vào ô vị trí → gợi ý từ danh sách vị trí (IndexedDB) */
+  /**
+   * Gõ / quét vào ô vị trí → gợi ý từ danh sách vị trí (IndexedDB).
+   * Chuỗi scan có tiền tố "LO" (vd "LOT-06-01") → tự cắt còn "T-06-01" (như ô Quét kho ở Danh sách vật tư).
+   */
   onScanLocationInput(value: string): void {
-    const term = toText(value);
+    const typed = toText(value);
+    const term = normalizeLocationScan(typed);
+    if (/^LO/i.test(typed)) {
+      // Hiện lại mã đã cắt trong ô (sau nhịp ngModel hiện tại)
+      setTimeout(() => {
+        if (this.locationCode === value) {
+          this.locationCode = term;
+          this.cdr.markForCheck();
+        }
+      });
+    }
     const seq = ++this.scanLocationSeq;
     if (!term) {
       this.scanLocationOptions = [];
@@ -2204,7 +2218,7 @@ export class ScanImportDialogComponent
    * có → áp (pallet đang quét hoặc thùng lẻ chưa có vị trí); không → báo snackbar.
    */
   private applyScannedLocation(raw: string, after: () => void): void {
-    const value = toText(raw);
+    const value = normalizeLocationScan(toText(raw));
     this.locationCode = "";
     this.scanLocationOptions = [];
     if (!value) {
