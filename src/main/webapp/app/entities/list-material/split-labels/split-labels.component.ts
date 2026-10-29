@@ -15,6 +15,7 @@ import { VendorNccPrintDialogComponent } from "app/entities/generate-tem-in/rece
 import type { VendorLabelInfoDto } from "app/entities/info-tem-ncc/services/info-tem-ncc.service";
 import { openSplitLabelPrintDialog } from "app/entities/warehouse-export/split-label-print-dialog/split-label-print-dialog.component";
 import {
+  buildRdQrCode,
   SplitPrintLabel,
   toLabelDate,
 } from "app/entities/warehouse-export/rd-label/rd-label.model";
@@ -319,12 +320,39 @@ export class SplitLabelsComponent implements OnInit {
       });
   }
 
+  /**
+   * QR tem Rạng Đông ghép từ thông tin thùng:
+   * reelId#partNumber#vendor#lot#ud1#ud2#ud3#ud4#ud5(PO)#SL#msl#vị trí#ngày SX#HSD#mã vật tư
+   * (ud1–3 trống → NO; msl trống → 1; ud4 trống → mã vật tư-yyMMdd ngày SX).
+   */
+  private rdQrOf(r: SplitInventoryRecord): string {
+    const text = (v: string | null | undefined): string => (v ?? "").trim();
+    const qr: string = buildRdQrCode({
+      reelId: r.reelId,
+      partNumber: text(r.partNumber),
+      vendor: text(r.vendor),
+      lot: text(r.lot),
+      userData1: text(r.userData1),
+      userData2: text(r.userData2),
+      userData3: text(r.userData3),
+      userData4: text(r.userData4),
+      userData5: text(r.userData5),
+      quantity: Number(r.initialQuantity) || 0,
+      msl: text(r.msdLevel),
+      location: text(r.locationOverride) || text(r.storageUnit),
+      manufacturingDate: r.manufacturingDate,
+      expirationDate: r.expirationDate,
+      sapCode: this.sapOf(r),
+    });
+    return qr;
+  }
+
   /** Bản ghi tem tách → tem mẫu Rạng Đông */
   private toRdLabel(r: SplitInventoryRecord): SplitPrintLabel {
     const text = (v: string | null | undefined): string => (v ?? "").trim();
     return {
       id: String(r.id),
-      qrCode: text(r.vendorQrCode) || r.reelId,
+      qrCode: this.rdQrOf(r),
       reelId: r.reelId,
       sapCode: this.sapOf(r),
       productName: this.nameOf(r),

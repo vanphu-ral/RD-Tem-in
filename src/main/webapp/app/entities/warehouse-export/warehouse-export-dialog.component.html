@@ -920,28 +920,12 @@
                 <th>Pallet</th>
                 <th>Vị trí hiện tại</th>
                 <th>Kho chuyển đến</th>
-                <th class="col-loc">
-                  <div class="th-loc">
-                    <span>Vị trí chuyển đến</span>
-                    <input
-                      class="we-cell-input loc head"
-                      [(ngModel)]="bulkLocation"
-                      [matAutocomplete]="bulkLocAuto"
-                      (ngModelChange)="onLocationSearch($event)"
-                      (focus)="onLocationSearch(bulkLocation)"
-                      (keydown.enter)="applyLocationToAll()"
-                      [disabled]="!ws.boxes.length"
-                      placeholder="Vị trí..."
-                      matTooltip="Nhập / chọn vị trí rồi Enter để áp cho mọi thùng"
-                    />
-                  </div>
-                </th>
                 <th class="col-del"></th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="!ws.boxes.length">
-                <td colspan="15" class="we-empty-cell">Chưa scan thùng nào.</td>
+                <td colspan="14" class="we-empty-cell">Chưa scan thùng nào.</td>
               </tr>
               <ng-container
                 *ngFor="let b of ws.boxes; let idx = index; trackBy: trackBox"
@@ -1032,23 +1016,6 @@
                       >{{ destAreaLabel(b) }}</span
                     >
                   </td>
-                  <td>
-                    <input
-                      class="we-cell-input loc"
-                      [class.invalid]="locationIssue(b)"
-                      [disabled]="isBoxExported(b)"
-                      [(ngModel)]="b.location"
-                      [matAutocomplete]="locAuto"
-                      (ngModelChange)="onLocationSearch($event, b)"
-                      (focus)="onLocationSearch(b.location, b)"
-                      (change)="onBoxLocationCommit(b)"
-                      [matTooltip]="locationIssue(b) ?? ''"
-                      placeholder="Vị trí"
-                    />
-                    <div class="loc-error" *ngIf="locationIssue(b) as issue">
-                      {{ issue }}
-                    </div>
-                  </td>
                   <td class="col-del">
                     <button
                       type="button"
@@ -1068,7 +1035,7 @@
                 <!-- Mã tách (phần ở lại kho) — dòng con của thùng cha -->
                 <tr class="we-split-row" *ngIf="b.split as sp">
                   <td class="col-no"></td>
-                  <td colspan="14">
+                  <td colspan="13">
                     <span class="we-split-tree">↳</span>
                     <span class="mono we-split-reel">{{ sp.reelId }}</span>
                     <span class="we-split-tag">Tách từ {{ b.reelId }}</span>
@@ -1168,7 +1135,6 @@
                           <th class="num">SL xuất</th>
                           <th>Số lô</th>
                           <th>HSD</th>
-                          <th>Vị trí chuyển đến</th>
                           <th class="col-del"></th>
                         </tr>
                       </thead>
@@ -1202,7 +1168,6 @@
                           <td class="num">{{ b.quantity | number }}</td>
                           <td>{{ b.lot || "—" }}</td>
                           <td>{{ b.expirationDate || "—" }}</td>
-                          <td>{{ b.location || "—" }}</td>
                           <td class="col-del">
                             <button
                               type="button"

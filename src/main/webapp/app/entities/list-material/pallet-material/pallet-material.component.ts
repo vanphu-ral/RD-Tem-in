@@ -13,6 +13,7 @@ import { catchError, map, shareReplay, switchMap } from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
 import { NotificationService } from "../services/notification.service";
 import { WarehouseCacheService } from "../services/warehouse-cache.service";
+import { normalizeLocationScan } from "../services/scan-code.util";
 import {
   PalletBoxRecord,
   PalletMaterialService,
@@ -362,7 +363,17 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
     if (this.scanMode !== "location") {
       return;
     }
-    const term = value.trim();
+    // Chuỗi scan vị trí: bỏ "LO", -SLSLOT/-SLRACK, ký tự rác cuối (như ô Quét kho)
+    const term = normalizeLocationScan(value);
+    if (/^LO/i.test(value.trim())) {
+      // Chuỗi scan có tiền tố "LO" → hiện lại mã đã cắt trong ô (sau nhịp ngModel hiện tại)
+      setTimeout(() => {
+        if (this.scanValue === value) {
+          this.scanValue = term;
+          this.cdr.markForCheck();
+        }
+      });
+    }
     const seq = ++this.locationSeq;
     if (!term) {
       this.locationOptions = [];
@@ -1119,7 +1130,7 @@ export class PalletMaterialComponent implements OnInit, AfterViewInit {
    * (pallet chưa có thùng vẫn đổi được vị trí pallet). Bấm "Xác nhận cập nhật" mới gửi.
    */
   private applyLocation(value: string): void {
-    const input = value.trim();
+    const input = normalizeLocationScan(value);
     if (!input) {
       return;
     }

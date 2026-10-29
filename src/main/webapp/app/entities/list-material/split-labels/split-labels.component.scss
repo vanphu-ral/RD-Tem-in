@@ -197,6 +197,7 @@ $primary: #2563eb;
 
 .sl-table-wrap {
   overflow-x: auto;
+  background: #fff;
   border: 1px solid $border;
   border-radius: 10px;
 }
@@ -225,6 +226,12 @@ $primary: #2563eb;
 
   tbody tr {
     cursor: pointer;
+    // Nền trắng mặc định (không chỉ khi hover)
+    background: #fff;
+
+    > td {
+      background: transparent;
+    }
 
     &:hover {
       background: #f8fafc;

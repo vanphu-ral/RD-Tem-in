@@ -12,6 +12,7 @@ import { catchError, map, switchMap } from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
 import { NotificationService } from "../../services/notification.service";
 import { WarehouseCacheService } from "../../services/warehouse-cache.service";
+import { normalizeLocationScan } from "../../services/scan-code.util";
 import {
   PalletBoxRecord,
   PalletMaterialService,
@@ -662,7 +663,17 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
   // ==================== Màn chuyển vị trí ====================
 
   onLocationInput(value: string): void {
-    const term = value.trim();
+    // Chuỗi scan vị trí: bỏ "LO", -SLSLOT/-SLRACK, ký tự rác cuối (như ô Quét kho)
+    const term = normalizeLocationScan(value);
+    if (/^LO/i.test(value.trim())) {
+      // Chuỗi scan có tiền tố "LO" → hiện lại mã đã cắt trong ô (sau nhịp ngModel hiện tại)
+      setTimeout(() => {
+        if (this.newLocation === value) {
+          this.newLocation = term;
+          this.cdr.markForCheck();
+        }
+      });
+    }
     const seq = ++this.locationSeq;
     if (!term) {
       this.locationOptions = [];
@@ -684,7 +695,7 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
 
   /** Quét vị trí (máy scan gửi Enter) → kiểm tra có trong danh sách vị trí ngay */
   onLocationEnter(): void {
-    const input = this.newLocation.trim();
+    const input = normalizeLocationScan(this.newLocation);
     if (!input) {
       return;
     }
@@ -719,7 +730,7 @@ export class PalletMaterialMobileComponent implements OnInit, AfterViewInit {
    * subStorageUnit trống) + PUT pallet (locationName).
    */
   onConfirmLocation(): void {
-    const input = this.newLocation.trim();
+    const input = normalizeLocationScan(this.newLocation);
     if (!input) {
       this.notificationService.warning("Quét hoặc chọn vị trí mới.");
       this.focusMain();
