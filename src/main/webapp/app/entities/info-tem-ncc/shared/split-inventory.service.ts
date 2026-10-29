@@ -129,6 +129,9 @@ export function buildSplitInventoryPayload(params: {
   const now = new Date().toISOString();
   return {
     ...text,
+    // BE bắt buộc vendorQrCode (@NotNull); thùng tồn kho PanaCIM không có QR NCC → dùng ReelID tem tách
+    // (QR in trên tem Rạng Đông cũng là ReelID)
+    vendorQrCode: text.vendorQrCode ?? params.reelId,
     businessSourceId: params.businessSourceId,
     businessType: params.businessType,
     reelId: params.reelId,

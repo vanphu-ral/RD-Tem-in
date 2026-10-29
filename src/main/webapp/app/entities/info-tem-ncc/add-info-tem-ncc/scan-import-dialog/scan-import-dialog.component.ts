@@ -47,6 +47,7 @@ import {
 import { forkJoin, Observable, of, take } from "rxjs";
 import { catchError, map, switchMap } from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
+import { HttpErrorResponse } from "@angular/common/http";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
 import { downloadVendorImportSampleExcel } from "../../shared/import-sample.util";
 import {
@@ -1778,15 +1779,58 @@ export class ScanImportDialogComponent
         this.bumpSummary();
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.savingCount--;
         this.inFlightBoxes.delete(reelId);
         this.usedReelIds.delete(reelId);
         this.addReceived(matchedRow?.id ?? null, -quantity);
-        this.notificationService.error(`Lưu thùng "${reelId}" thất bại.`);
+        // Hiện mã HTTP + API đã gọi + nội dung lỗi gốc (chẩn đoán lỗi trên mobile, không debug được)
+        const base = `Lưu thùng "${reelId}"${palletCode ? ` vào pallet ${palletCode}` : ""} thất bại`;
+        console.error(`[scan-import] ${base}`, err, payload);
+        this.notificationService.error(
+          `${base} — ${this.describeSaveError(err)}`,
+        );
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /**
+   * Mô tả lỗi lưu thùng: "HTTP <status> <API> · <nội dung lỗi gốc>".
+   * status 0 = request không tới được máy chủ / bị trình duyệt chặn hoặc huỷ (CORS, mạng, ẩn trang…).
+   */
+  private describeSaveError(err: unknown): string {
+    if (err instanceof HttpErrorResponse) {
+      const api = (err.url ?? "").replace(/^https?:\/\/[^/]+/i, "") || "?";
+      const head = `HTTP ${err.status}${err.statusText ? ` ${err.statusText}` : ""} · ${api}`;
+      if (err.status === 0) {
+        return `${head} · không kết nối được máy chủ (mạng / CORS / request bị huỷ)`;
+      }
+      const body: unknown = err.error;
+      let detail = "";
+      if (typeof body === "string") {
+        detail = body;
+      } else if (body && typeof body === "object") {
+        const b = body as {
+          title?: string;
+          detail?: string;
+          message?: string;
+          fieldErrors?: Array<{ field?: string; message?: string }>;
+        };
+        const fields = (b.fieldErrors ?? [])
+          .map((f) => `${f.field ?? "?"}: ${f.message ?? ""}`)
+          .join(", ");
+        detail = [b.title, b.detail, b.message, fields]
+          .filter((x): x is string => !!x && !!x.trim())
+          .join(" | ");
+      }
+      detail = (detail || err.message).replace(/\s+/g, " ").trim();
+      return `${head} · ${detail.length > 300 ? `${detail.slice(0, 300)}…` : detail}`;
+    }
+    if (err instanceof Error) {
+      return `${err.name}: ${err.message}`;
+    }
+    return `Lỗi không xác định: ${String(err)}`;
   }
 
   /** Thùng đầu tiên lưu thành công → đơn New chuyển sang SCANNING (lỗi thì lần scan sau thử lại) */

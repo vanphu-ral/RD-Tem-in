@@ -36,7 +36,10 @@ import { AccountService } from "app/core/auth/account.service";
 import { ListMaterialService } from "app/entities/list-material/services/list-material.service";
 import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
-import { extractReelIdFromScan } from "app/entities/list-material/services/scan-code.util";
+import {
+  extractReelIdFromScan,
+  normalizeLocationScan,
+} from "app/entities/list-material/services/scan-code.util";
 import {
   openChoiceDialog,
   openChoiceDialog3,
@@ -61,7 +64,12 @@ import {
   SplitInventoryService,
 } from "app/entities/info-tem-ncc/shared/split-inventory.service";
 import { openSplitLabelPrintDialog } from "./split-label-print-dialog/split-label-print-dialog.component";
-import { SplitPrintLabel, toLabelDate } from "./rd-label/rd-label.model";
+import {
+  buildRdQrCode,
+  rebuildRdQrCode,
+  SplitPrintLabel,
+  toLabelDate,
+} from "./rd-label/rd-label.model";
 import { ExportHistoryDialogComponent } from "./export-history-dialog/export-history-dialog.component";
 import {
   PickSuggestionDialogComponent,
@@ -1438,7 +1446,8 @@ export class WarehouseExportDialogComponent
 
   /** Áp vị trí ở header cho cả cột (mọi thùng đã scan của tab đang mở) */
   applyLocationToAll(value?: string): void {
-    const location = (value ?? this.bulkLocation).trim();
+    // Chuỗi scan vị trí (LO..., -SLSLOT...) → chuẩn hoá như ô Quét kho của Danh sách vật tư
+    const location = normalizeLocationScan(value ?? this.bulkLocation);
     if (!location || !this.ws.boxes.length) {
       return;
     }
@@ -1616,7 +1625,8 @@ export class WarehouseExportDialogComponent
   }
 
   onBoxEnter(): void {
-    const reelId = extractReelIdFromScan(this.ws.boxCode);
+    const rawScan = this.ws.boxCode.trim();
+    const reelId = extractReelIdFromScan(rawScan);
     if (!reelId || this.isBusy || !this.ensureRequest()) {
       return;
     }
@@ -1632,10 +1642,29 @@ export class WarehouseExportDialogComponent
       return;
     }
     this.isBusy = true;
-    this.exportService.getBox(reelId).subscribe({
-      next: (box) => {
+    // ReelID trước dấu # → không có thì tra tem NCC theo nguyên chuỗi QR
+    this.exportService.getBoxByScan(rawScan).subscribe({
+      next: ({ box, reelId: foundReel }) => {
         this.isBusy = false;
         this.ws.boxCode = "";
+        if (
+          box &&
+          foundReel !== reelId &&
+          this.ws.boxes.some(
+            (b) => b.reelId.toLowerCase() === foundReel.toLowerCase(),
+          )
+        ) {
+          this.notificationService.warning(
+            `Thùng "${foundReel}" đã được scan.`,
+          );
+          this.scanFeedback(false);
+          this.focus(this.boxInput);
+          return;
+        }
+        if (box && rawScan.includes("#")) {
+          // Giữ chuỗi QR đầy đủ của tem gốc → tách tem dựng lại QR tem mới
+          box.scanCode = rawScan;
+        }
         if (!box) {
           this.notificationService.error(
             `Mã thùng không tồn tại trong hệ thống ("${reelId}").`,
@@ -3867,8 +3896,8 @@ export class WarehouseExportDialogComponent
   /**
    * Trước khi tách trên PanaCIM: lưu vào phiên (POST /warehouse-transfer-details)
    * 1) thùng cha nếu chưa lưu (SL xuất = SL theo tem gốc), 2) mã tách để tham chiếu: SL xuất = 0,
-   * không vị trí chuyển đến, initialQuantity = SL tách, parentMaterialIdentifier + comments
-   * SPLIT_FROM = ReelID thùng cha → mở lại phiên vẫn thấy và in lại được.
+   * không vị trí chuyển đến, initialQuantity = SL tách, comments SPLIT_FROM = ReelID thùng cha
+   * → mở lại phiên vẫn thấy và in lại được.
    * Không có phiên → không lưu gì. Lỗi → Observable lỗi (chưa tách); bản ghi đã lưu được gỡ lại.
    */
   private persistSplitInSession(
@@ -3919,7 +3948,8 @@ export class WarehouseExportDialogComponent
                 this.transferLinkOf(parent),
                 user,
                 {
-                  parentMaterialIdentifier: parent.reelId,
+                  // BE warehouse-transfer-details không có parentMaterialIdentifier (gửi trường lạ → 400)
+                  // → ReelID cha chỉ lưu ở comments, mở lại phiên đọc bằng parentReelOf
                   comments: splitFromComment(parent.reelId),
                   initialQuantity: remainderQty,
                 },
@@ -3968,6 +3998,12 @@ export class WarehouseExportDialogComponent
               quantity: split.quantity,
               user: account?.login ?? "unknown",
               overrides: {
+                vendorQrCode: this.splitQrCode(
+                  parent,
+                  child,
+                  split.reelId,
+                  split.quantity,
+                ),
                 lot: child.lot || parent.lot || null,
                 partNumber: child.partNumber ?? parent.partNumber ?? null,
                 sapCode: parent.materialCode || null,
@@ -4087,6 +4123,56 @@ export class WarehouseExportDialogComponent
    * Tem mẫu Rạng Đông cho tem tách: thông tin lấy từ bản ghi tồn kho của tem tách (vừa tạo
    * trên PanaCIM), thiếu thì lấy theo tem gốc. child = null → chỉ theo tem gốc (preview).
    */
+  /**
+   * Chuỗi QR tem tách (lưu vendorQrCode + in tem RĐ): thùng gốc có chuỗi QR đã scan → giữ nguyên
+   * các trường, thay ReelID + SL; không có → ghép từ thông tin tồn kho của tem tách / thùng gốc.
+   */
+  private splitQrCode(
+    box: ExportScannedBox,
+    child: ExportScannedBox | null,
+    reelId: string,
+    quantity: number,
+  ): string {
+    const fromScan: string | null = rebuildRdQrCode(
+      box.scanCode,
+      reelId,
+      quantity,
+    );
+    if (fromScan) {
+      return fromScan;
+    }
+    const raws = [child?.inventoryRaw ?? {}, box.inventoryRaw ?? {}];
+    const field = (key: string): string => {
+      for (const raw of raws) {
+        const v = raw[key];
+        const text = v === null || v === undefined ? "" : String(v).trim();
+        if (text) {
+          return text;
+        }
+      }
+      return "";
+    };
+    const built: string = buildRdQrCode({
+      reelId,
+      partNumber: child?.partNumber ?? box.partNumber ?? field("partNumber"),
+      vendor: field("vendor"),
+      lot: child?.lot ?? box.lot ?? field("lotNumber"),
+      userData1: field("userData1"),
+      userData2: field("userData2"),
+      userData3: field("userData3"),
+      userData4: field("userData4"),
+      userData5: field("userData5"),
+      quantity,
+      msl: field("msdLevel"),
+      // Vị trí kho thật của thùng gốc (vị trí hiện tại lúc scan, không phải vị trí chuyển đến)
+      location: (box.sourceLocation ?? "").trim() || field("locationName"),
+      manufacturingDate: field("manufacturingDate") || box.mfgDate,
+      expirationDate: field("expirationDate") || box.expirationRaw,
+      sapCode: box.materialCode || field("sapCode"),
+    });
+    return built;
+  }
+
   private buildRdLabel(
     box: ExportScannedBox,
     child: ExportScannedBox | null,
@@ -4106,7 +4192,7 @@ export class WarehouseExportDialogComponent
     };
     return {
       id: reelId,
-      qrCode: reelId,
+      qrCode: this.splitQrCode(box, child, reelId, quantity),
       reelId,
       sapCode: box.materialCode,
       productName:

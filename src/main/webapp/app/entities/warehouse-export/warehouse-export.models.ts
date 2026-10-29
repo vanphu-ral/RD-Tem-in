@@ -142,6 +142,8 @@ export interface ExportScannedBox {
   sent?: boolean;
   /** Bản ghi gốc /api/inventory/{reelId} */
   inventoryRaw?: Record<string, unknown>;
+  /** Chuỗi scan nguyên bản (QR tem đầy đủ "ReelID#Part#...") — dựng QR tem tách */
+  scanCode?: string;
   /** Xuất chuyển kho: mã kho SAP chuyển đến (whsCode của dòng vật tư, vd 05) */
   destWhsCode?: string;
   /** Xuất chuyển kho: vị trí hiện tại của thùng (location = vị trí mới cần chuyển đến) */

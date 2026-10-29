@@ -1412,6 +1412,11 @@ export class ListMaterialService {
     );
   }
 
+  /** ReelID của tem NCC theo nguyên chuỗi QR scan (GET vendor-label-infos/qrcode/{chuỗi}) */
+  public findReelIdsByVendorQr(rawScan: string): Observable<string[]> {
+    return this.findVendorLabelReelIds((rawScan ?? "").trim());
+  }
+
   public getInventoryScanById(
     materialId: string,
   ): Observable<RawGraphQLMaterial | undefined> {

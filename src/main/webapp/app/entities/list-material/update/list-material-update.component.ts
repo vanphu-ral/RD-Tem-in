@@ -54,7 +54,10 @@ import { MaterialItem } from "../dialog/list-material-update-dialog";
 import { BreakpointObserver } from "@angular/cdk/layout";
 import { PendingMaterialService } from "../services/pending-material.service";
 import { DialogContentExampleDialogComponent } from "../confirm-dialog/confirm-dialog.component";
-import { extractReelIdBeforeHash } from "../services/scan-code.util";
+import {
+  extractReelIdBeforeHash,
+  normalizeLocationScan,
+} from "../services/scan-code.util";
 
 interface sumary_mode {
   value: string;
@@ -1121,19 +1124,8 @@ export class ListMaterialUpdateComponent
   }
   // #endregion
   private processScanInput(scanValue: string): string {
-    let result = scanValue;
-
-    result = result.replace(/^LO/i, "");
-
-    result = result.replace(/-SL(SLOT|RACK)/gi, "-$1");
-
-    result = result.replace(/--+/g, "-");
-
-    result = result.replace(/[^A-Za-z0-9-]+$/g, "");
-
-    result = result.replace(/-(SLOT|RACK)/i, " - $1");
-
-    return result.trim();
+    const normalized: string = normalizeLocationScan(scanValue);
+    return normalized;
   }
   private checkFocusLoop(): void {
     if (

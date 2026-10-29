@@ -14,6 +14,7 @@ import {
 import { ApplicationConfigService } from "app/core/config/application-config.service";
 import { environment } from "app/environments/environment";
 import { ListMaterialService } from "app/entities/list-material/services/list-material.service";
+import { extractReelIdFromScan } from "app/entities/list-material/services/scan-code.util";
 import { PalletMngtService } from "app/entities/pallet-management/list/pallet-mngt.service";
 import {
   ExportHistoryFilter,
@@ -1352,6 +1353,40 @@ export class WarehouseExportService {
    * materialCode = mã SAP (phần đầu userData4) → đối chiếu với itemCode của phiếu SAP.
    * SL xuất mặc định = tồn khả dụng (availableQuantity).
    */
+  /**
+   * Scan thùng (giống Danh sách vật tư): tra tồn kho theo ReelID = phần trước dấu # đầu tiên;
+   * không có → tra tem NCC theo nguyên chuỗi scan (vendor-label-infos/qrcode) rồi tra theo ReelID của tem.
+   * reelId = ReelID tìm thấy (hoặc ReelID trước dấu # nếu không thấy).
+   */
+  getBoxByScan(
+    rawScan: string,
+  ): Observable<{ box: ExportScannedBox | null; reelId: string }> {
+    const raw = (rawScan ?? "").trim();
+    const reelId = extractReelIdFromScan(raw);
+    const first$: Observable<ExportScannedBox | null> = reelId
+      ? this.getBox(reelId)
+      : of(null);
+    return first$.pipe(
+      switchMap((box) => {
+        if (box !== null || !raw || raw === reelId) {
+          return of({ box, reelId });
+        }
+        return this.listMaterialService.findReelIdsByVendorQr(raw).pipe(
+          switchMap((ids) => {
+            const labelReel = ids.find(
+              (id) => id.toLowerCase() !== reelId.toLowerCase(),
+            );
+            return labelReel
+              ? this.getBox(labelReel).pipe(
+                  map((found) => ({ box: found, reelId: labelReel })),
+                )
+              : of({ box: null, reelId });
+          }),
+        );
+      }),
+    );
+  }
+
   getBox(reelId: string, palletCode = ""): Observable<ExportScannedBox | null> {
     return this.getReelInventory(reelId).pipe(
       map((inv) => (inv ? this.toScannedBox(reelId, inv, palletCode) : null)),

@@ -1,5 +1,6 @@
 import { AccountService } from "app/core/auth/account.service";
-import { take } from "rxjs";
+import { Observable, of, take } from "rxjs";
+import { catchError, map, shareReplay } from "rxjs/operators";
 import {
   Component,
   OnInit,
@@ -22,7 +23,11 @@ import {
 
 import { DialogContentExampleDialogComponent } from "./confirm-dialog/confirm-dialog.component";
 import { NotificationService } from "app/entities/list-material/services/notification.service";
-import { PoImportTem } from "app/entities/list-material/services/info-tem-ncc.service";
+import {
+  ManagerTemNccService,
+  PoImportTem,
+  SapOcrd,
+} from "app/entities/list-material/services/info-tem-ncc.service";
 import { ScanImportDialogComponent } from "../add-info-tem-ncc/scan-import-dialog/scan-import-dialog.component";
 import { ScanImportDialogData } from "../add-info-tem-ncc/scan-import-dialog/scan-import.models";
 import {
@@ -258,6 +263,8 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   private expandedDeliveryIds = new Set<number>();
   private expandedPoIds = new Set<string>();
   private readonly mobileBreakpoint = 768;
+  /** Danh sách NCC SAP (tải 1 lần khi bấm Bắt đầu nhập kho) — tra mã kịch bản scan */
+  private sapVendors$?: Observable<SapOcrd[]>;
 
   constructor(
     private dialog: MatDialog,
@@ -266,6 +273,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     private router: Router,
     private infoTemNccService: InfoTemNccService,
     private accountService: AccountService,
+    private managerTemNccService: ManagerTemNccService,
   ) {}
 
   ngOnInit(): void {
@@ -374,44 +382,11 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const isMobile =
-      typeof window !== "undefined" &&
-      window.innerWidth <= this.mobileBreakpoint;
-    const data: ScanImportDialogData = {
-      deliveryNotice: delivery.deliveryNotice,
-      vehicleNumber: delivery.vehicleNumber,
-      contractCode: delivery.contractCode,
-      vendorCode: delivery.pos[0]?.vendorCode ?? "",
-      scenarioCode: delivery.pos[0]?.vendorCode ?? "",
-      warehouse: delivery.pos[0]?.warehouseKeeper,
-      poCode: delivery.pos[0]?.poCode,
-      deliveryNotificationId: delivery.id,
-      arrivalDate: delivery.importDate,
-      // id vật tư = sapPor1Id
-      parentItems: delivery.pos.flatMap((po) =>
-        po.materials.map((m) => ({
-          id: m.id,
-          partNumber: m.partNumber,
-          sapCode: m.materialCode,
-          orderQty: m.poQuantity,
-          materialName: m.materialName,
-          poCode: po.poCode,
-        })),
-      ),
-    };
-
-    this.dialog.open(ScanImportDialogComponent, {
-      width: isMobile ? "100vw" : "96vw",
-      maxWidth: isMobile ? "100vw" : "1400px",
-      height: isMobile ? "100vh" : "90vh",
-      maxHeight: isMobile ? "100dvh" : "92vh",
-      panelClass: isMobile
-        ? ["scan-import-dialog-panel", "scan-import-dialog-panel--mobile"]
-        : ["scan-import-dialog-panel"],
-      autoFocus: false,
-      disableClose: true,
-      data,
-    });
+    // Kịch bản scan giống trang chi tiết đơn: mã NCC tra theo danh sách NCC SAP
+    // (theo mã, không có thì theo tên) — mã NCC lưu trên đơn có thể không phải mã kịch bản
+    this.resolveVendorCode(delivery).subscribe((vendorCode: string) =>
+      this.openScanDialog(delivery, vendorCode),
+    );
   }
 
   onImportSystem(po: PoItem, event?: Event): void {
@@ -1035,5 +1010,85 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   private isSapSent(value: unknown): boolean {
     const t = toText(value).toLowerCase();
     return t !== "" && t !== "false" && t !== "0";
+  }
+
+  /** Mở dialog scan nhập kho của đơn với mã NCC (kịch bản scan) đã tra */
+  private openScanDialog(
+    delivery: DeliveryNoticeItem,
+    vendorCode: string,
+  ): void {
+    const isMobile =
+      typeof window !== "undefined" &&
+      window.innerWidth <= this.mobileBreakpoint;
+    const data: ScanImportDialogData = {
+      deliveryNotice: delivery.deliveryNotice,
+      vehicleNumber: delivery.vehicleNumber,
+      contractCode: delivery.contractCode,
+      vendorCode,
+      scenarioCode: vendorCode,
+      warehouse: delivery.pos[0]?.warehouseKeeper,
+      poCode: delivery.pos[0]?.poCode,
+      deliveryNotificationId: delivery.id,
+      arrivalDate: delivery.importDate,
+      // id vật tư = sapPor1Id
+      parentItems: delivery.pos.flatMap((po) =>
+        po.materials.map((m) => ({
+          id: m.id,
+          partNumber: m.partNumber,
+          sapCode: m.materialCode,
+          orderQty: m.poQuantity,
+          materialName: m.materialName,
+          poCode: po.poCode,
+        })),
+      ),
+      // Thùng đã có của đơn → báo trùng ngay khi scan (như trang chi tiết đơn)
+      existingReelIds: delivery.pos
+        .flatMap((po) => po.materials.flatMap((m) => m.boxes ?? []))
+        .map((b) => toText(b.reelId))
+        .filter(Boolean),
+    };
+
+    this.dialog.open(ScanImportDialogComponent, {
+      width: isMobile ? "100vw" : "96vw",
+      maxWidth: isMobile ? "100vw" : "1400px",
+      height: isMobile ? "100vh" : "90vh",
+      maxHeight: isMobile ? "100dvh" : "92vh",
+      panelClass: isMobile
+        ? ["scan-import-dialog-panel", "scan-import-dialog-panel--mobile"]
+        : ["scan-import-dialog-panel"],
+      autoFocus: false,
+      disableClose: true,
+      data,
+    });
+  }
+
+  /**
+   * Mã NCC của đơn theo danh sách NCC SAP — cùng cách trang chi tiết đơn (applyOrderVendor):
+   * khớp mã trước, không có thì khớp tên; không tra được → giữ mã trên đơn.
+   */
+  private resolveVendorCode(delivery: DeliveryNoticeItem): Observable<string> {
+    const code = toText(delivery.pos[0]?.vendorCode);
+    const name = toText(delivery.pos[0]?.vendorName);
+    this.sapVendors$ ??= this.managerTemNccService.getSapOcrds().pipe(
+      catchError(() => of([] as SapOcrd[])),
+      shareReplay(1),
+    );
+    return this.sapVendors$.pipe(
+      take(1),
+      map((list) => {
+        const find = (value: string): SapOcrd | undefined => {
+          const v = value.toLowerCase();
+          if (!v) {
+            return undefined;
+          }
+          return (
+            list.find((o) => toText(o.cardCode).toLowerCase() === v) ??
+            list.find((o) => toText(o.cardName).toLowerCase() === v)
+          );
+        };
+        const found = find(code) ?? find(name);
+        return toText(found?.cardCode) || code || name;
+      }),
+    );
   }
 }

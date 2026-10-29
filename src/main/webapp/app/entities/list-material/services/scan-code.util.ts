@@ -21,3 +21,18 @@ export function extractReelIdBeforeHash(
 ): string {
   return (raw ?? "").trim().split("#")[0].trim();
 }
+
+/**
+ * Chuẩn hoá chuỗi scan vị trí kho (giống ô Quét kho ở Cập nhật vật tư): bỏ tiền tố "LO",
+ * "-SLSLOT/-SLRACK" → "-SLOT/-RACK", gộp "--", bỏ ký tự rác cuối, "-SLOT" → " - SLOT".
+ */
+export function normalizeLocationScan(raw: string | null | undefined): string {
+  return (raw ?? "")
+    .trim()
+    .replace(/^LO/i, "")
+    .replace(/-SL(SLOT|RACK)/gi, "-$1")
+    .replace(/--+/g, "-")
+    .replace(/[^A-Za-z0-9-]+$/g, "")
+    .replace(/-(SLOT|RACK)/i, " - $1")
+    .trim();
+}
