@@ -37,6 +37,8 @@ export interface DeliveryNotificationDto {
   noticeDate?: string | null;
   /** Nhà máy, VD "LED" */
   factory?: string | null;
+  /** Số lần đã gửi SAP của đơn — FE tăng 1 sau mỗi lần gửi thành công */
+  numberOfSapSubmissions?: number | null;
   deletedAt: string | null;
   deletedBy: string | null;
   createdBy: string | null;
@@ -167,6 +169,9 @@ export interface PalletDetailDto {
 export interface SapPor1R1Dto {
   id: number;
   lineNum: string | null;
+  baseDocNum?: string | null;
+  uomCode?: string | null;
+  lineVendor?: string | null;
   itemCode: string | null;
   dscription: string | null;
   quantity: number | null;

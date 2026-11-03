@@ -30,7 +30,11 @@ export class MainComponent implements OnInit {
 
   ngOnInit(): void {
     // try to log in automatically
-    this.accountService.identity().subscribe();
+    this.accountService.identity().subscribe((account) => {
+      if (account !== null || !this.accountService.isBackendUnreachable()) {
+        this.loginService.checkSsoSession(account !== null);
+      }
+    });
 
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {

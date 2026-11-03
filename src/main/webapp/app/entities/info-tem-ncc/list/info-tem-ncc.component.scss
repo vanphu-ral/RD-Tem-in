@@ -109,7 +109,8 @@
 }
 
 .col-vendor {
-  max-width: 220px;
+  // Theo độ rộng đã kéo ở tiêu đề (jhiResizableColumn), mặc định 220px
+  max-width: var(--col-w-vendorName, 220px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

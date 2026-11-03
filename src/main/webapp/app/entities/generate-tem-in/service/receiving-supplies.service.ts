@@ -423,6 +423,17 @@ export class ReceivingSuppliesService {
     );
   }
 
+  /** Gửi SAP qua gateway (BE proxy) — body phân cấp đơn → PO → vật tư → thùng */
+  postGoodsReceiptGateway(payload: object): Observable<string> {
+    return this.http.post(
+      this.applicationConfigService.getEndpointFor(
+        "api/post-goods-receipt-po/gateway",
+      ),
+      payload,
+      { responseType: "text" },
+    );
+  }
+
   /** GET /api/sap-po-info/{oporDocEntry} */
   getSapPoInfo(poNumber: string): Observable<SapPoInfoResponse | null> {
     const po = poNumber.trim();

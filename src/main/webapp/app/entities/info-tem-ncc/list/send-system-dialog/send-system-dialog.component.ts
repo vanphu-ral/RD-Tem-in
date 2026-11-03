@@ -9,6 +9,7 @@ import { NotificationService } from "app/entities/list-material/services/notific
 import { resolveHttpErrorMessage } from "app/entities/generate-tem-in/service/receiving-supplies.service";
 import { VendorLabelInfoDto } from "../../services/info-tem-ncc.service";
 import {
+  SAP_ALLOW_RESEND,
   SendBoxEntry,
   SendResult,
   VendorLabelSendService,
@@ -145,7 +146,7 @@ export class SendSystemDialogComponent {
 
   /** Thùng còn gửi được (chưa gửi SAP hoặc chưa gửi PanaCIM) */
   isLotSelectable(lot: SendSystemLot): boolean {
-    return !lot.sent || !lot.panaSent;
+    return SAP_ALLOW_RESEND || !lot.sent || !lot.panaSent;
   }
 
   canSelect(mat: SendSystemMaterial): boolean {
@@ -187,12 +188,12 @@ export class SendSystemDialogComponent {
     return Math.min(100, Math.round((mat.receivedQty / mat.poQty) * 100));
   }
 
-  /** Gửi SAP các thùng đã chọn, chưa gửi SAP (post-goods-receipt-po) */
+  /** Gửi SAP các thùng đã chọn, chưa gửi SAP (qua gateway) */
   onSendSap(): void {
     this.sendTo(
       "SAP",
-      (lot) => !lot.sent,
-      (entries) => this.vendorLabelSendService.sendSap(entries),
+      (lot) => SAP_ALLOW_RESEND || !lot.sent,
+      (entries) => this.vendorLabelSendService.sendSapGateway(entries),
       (lot) => (lot.sent = true),
     );
   }

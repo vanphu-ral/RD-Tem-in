@@ -1,5 +1,6 @@
 import { NgModule } from "@angular/core";
 import { SharedModule } from "app/shared/shared.module";
+import { ResizableColumnDirective } from "app/shared/resizable-column/resizable-column.directive";
 import { CommonModule } from "@angular/common";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
@@ -88,6 +89,7 @@ import { MiniPagerComponent } from "./shared/mini-pager/mini-pager.component";
     MatExpansionModule,
     PalletDialogsModule,
     MiniPagerComponent,
+    ResizableColumnDirective,
   ],
 
   declarations: [

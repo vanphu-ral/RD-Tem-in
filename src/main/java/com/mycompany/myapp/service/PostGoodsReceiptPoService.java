@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -25,23 +26,75 @@ public class PostGoodsReceiptPoService {
 
     private final RestTemplate restTemplate;
     private final ApplicationProperties applicationProperties;
+    private final GatewayTokenProvider gatewayTokenProvider;
 
     public PostGoodsReceiptPoService(
         RestTemplate restTemplate,
-        ApplicationProperties applicationProperties
+        ApplicationProperties applicationProperties,
+        GatewayTokenProvider gatewayTokenProvider
     ) {
         this.restTemplate = restTemplate;
         this.applicationProperties = applicationProperties;
+        this.gatewayTokenProvider = gatewayTokenProvider;
     }
 
     public ResponseEntity<Object> forwardToSap(Map<String, Object> payload) {
+        return forward(
+            applicationProperties.getSap().getGoodsReceiptPoUrl(),
+            payload,
+            null
+        );
+    }
+
+    /** Gửi SAP qua gateway; chưa cấu hình URL → 503, FE không đánh dấu thùng đã gửi */
+    public ResponseEntity<Object> forwardToGateway(
+        Map<String, Object> payload
+    ) {
         String targetUrl = applicationProperties
             .getSap()
-            .getGoodsReceiptPoUrl();
+            .getGatewayGoodsReceiptUrl();
+        if (targetUrl == null || targetUrl.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                "Chưa cấu hình endpoint gateway gửi SAP."
+            );
+        }
+        ResponseEntity<Object> res;
+        try {
+            res = forward(
+                targetUrl,
+                payload,
+                gatewayTokenProvider.getAccessToken()
+            );
+            if (res.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                // Token bị thu hồi / hết hạn sớm → đăng nhập lại, gửi lại 1 lần
+                gatewayTokenProvider.invalidate();
+                res = forward(
+                    targetUrl,
+                    payload,
+                    gatewayTokenProvider.getAccessToken()
+                );
+            }
+        } catch (IllegalStateException | RestClientException ex) {
+            log.error("Gateway GRPO failed: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(
+                "Gửi SAP qua gateway thất bại: " + ex.getMessage()
+            );
+        }
+        return res;
+    }
+
+    private ResponseEntity<Object> forward(
+        String targetUrl,
+        Map<String, Object> payload,
+        String bearerToken
+    ) {
         log.debug("Forwarding PostGoodsReceiptPO to {}", targetUrl);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        if (bearerToken != null) {
+            headers.setBearerAuth(bearerToken);
+        }
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(
             payload,
             headers

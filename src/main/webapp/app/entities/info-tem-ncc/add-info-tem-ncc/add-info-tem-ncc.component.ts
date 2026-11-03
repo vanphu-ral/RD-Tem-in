@@ -2,20 +2,14 @@ import {
   Component,
   OnInit,
   AfterViewInit,
+  TemplateRef,
   ViewChild,
   ChangeDetectorRef,
 } from "@angular/core";
-import {
-  animate,
-  state,
-  style,
-  transition,
-  trigger,
-} from "@angular/animations";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
-import { MatDialog } from "@angular/material/dialog";
+import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { ActivatedRoute, Router } from "@angular/router";
 import { forkJoin, Observable, of, take } from "rxjs";
 import { map } from "rxjs/operators";
@@ -33,6 +27,7 @@ import {
 } from "../services/info-tem-ncc.service";
 import {
   isSendFlagOn,
+  SAP_ALLOW_RESEND,
   SendBoxEntry,
   VendorLabelSendService,
 } from "../services/vendor-label-send.service";
@@ -164,19 +159,6 @@ export interface MaterialFilterValues {
   standalone: false,
   templateUrl: "./add-info-tem-ncc.component.html",
   styleUrls: ["./add-info-tem-ncc.component.scss"],
-  animations: [
-    trigger("detailExpand", [
-      state(
-        "collapsed",
-        style({ height: "0px", minHeight: "0", overflow: "hidden" }),
-      ),
-      state("expanded", style({ height: "*", overflow: "hidden" })),
-      transition(
-        "expanded <=> collapsed",
-        animate("220ms cubic-bezier(0.4, 0.0, 0.2, 1)"),
-      ),
-    ]),
-  ],
 })
 export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   displayedColumns = [
@@ -261,6 +243,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   /** PO đã gọi lấy part-numbers (chỉ gọi khi expand PO lần đầu) */
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild("poDetailDialog") poDetailDialog!: TemplateRef<unknown>;
   private partLoadedPoIds = new Set<number>();
   /** Thùng đã scan nhưng chưa thuộc dòng PO nào của đơn */
   private unassignedBoxes: VendorLabelInfoDto[] = [];
@@ -275,7 +258,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   private materialFilters = new Map<number, MaterialFilterValues>();
   private lotFilters = new Map<number, { lot: string }>();
 
-  private expandedPoIds = new Set<number>();
+  /** PO đang mở dialog chi tiết (theo mã, dữ liệu tải lại vẫn giữ đúng PO) */
+  private detailPoCode: string | null = null;
+  private poDetailRef: MatDialogRef<unknown> | null = null;
   private expandedMaterialIds = new Set<number>();
   private readonly SCENARIO_DISPLAY_LIMIT = 50;
   private readonly VENDOR_DISPLAY_LIMIT = 50;
@@ -606,18 +591,35 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     );
   }
 
-  togglePo(row: AddPoItem, event?: Event): void {
-    event?.stopPropagation();
-    if (this.expandedPoIds.has(row.id)) {
-      this.expandedPoIds.delete(row.id);
-    } else {
-      this.expandedPoIds.add(row.id);
-      this.loadPartNumbers(row);
-    }
+  /** Số lần đơn đã gửi SAP (BE trả numberOfSapSubmissions trong detail) */
+  get sapSubmissionCount(): number {
+    return Number(this.loadedOrder?.numberOfSapSubmissions) || 0;
   }
 
-  isPoExpanded(row: AddPoItem): boolean {
-    return this.expandedPoIds.has(row.id);
+  get detailPo(): AddPoItem | undefined {
+    return this.dataSource.data.find((p) => p.poCode === this.detailPoCode);
+  }
+
+  /** Mở chi tiết vật tư của PO (dialog full màn) */
+  openPoDetail(row: AddPoItem, event?: Event): void {
+    event?.stopPropagation();
+    this.loadPartNumbers(row);
+    this.detailPoCode = row.poCode;
+    this.poDetailRef = this.dialog.open(this.poDetailDialog, {
+      width: "100vw",
+      height: "100vh",
+      maxWidth: "100vw",
+      maxHeight: "100vh",
+      autoFocus: false,
+    });
+    this.poDetailRef.afterClosed().subscribe(() => {
+      this.detailPoCode = null;
+      this.poDetailRef = null;
+    });
+  }
+
+  closePoDetail(): void {
+    this.poDetailRef?.close();
   }
 
   toggleMaterial(m: AddMaterialItem, event?: Event): void {
@@ -948,7 +950,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     );
   }
 
-  /** Gửi SAP các thùng chưa gửi của PO (giống receiving-supplies: post-goods-receipt-po) */
+  /** Gửi SAP các thùng chưa gửi của PO (qua gateway) */
   onSendSAP(row: AddPoItem, event?: Event): void {
     event?.stopPropagation();
     this.sendSapFor([row], `PO ${row.poCode}`);
@@ -1166,7 +1168,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       return;
     }
     const all = pos.flatMap((po) => this.collectSendEntries(po, () => true));
-    const entries = all.filter((e) => !isSendFlagOn(e.record.sapSendStatus));
+    const entries = all.filter(
+      (e) => SAP_ALLOW_RESEND || !isSendFlagOn(e.record.sapSendStatus),
+    );
     if (!entries.length) {
       this.notificationService.warning(
         all.length
@@ -1187,7 +1191,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         return;
       }
       this.isSendingSap = true;
-      this.vendorLabelSendService.sendSap(entries).subscribe({
+      // Gửi qua gateway (thay PostGoodsReceiptPO cũ — sendSap): chỉ các thùng chưa gửi
+      this.vendorLabelSendService.sendSapGateway(entries).subscribe({
         next: (res) => {
           this.isSendingSap = false;
           this.notifySendResult(res.count, res.statusSaved, "SAP");
@@ -1352,6 +1357,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       type: base?.type,
       noticeDate: base?.noticeDate,
       factory: base?.factory,
+      numberOfSapSubmissions: base?.numberOfSapSubmissions,
       deletedAt: base?.deletedAt ?? null,
       deletedBy: base?.deletedBy ?? null,
       createdBy: base?.createdBy ?? null,
@@ -1619,7 +1625,6 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         this.orderInfo.contractCode = detail.contractCode ?? "";
         this.orderInfo.contNo = detail.contNo ?? "";
 
-        this.expandedPoIds.clear();
         this.expandedMaterialIds.clear();
         this.partLoadedPoIds.clear();
         this.materialPageStates.clear();

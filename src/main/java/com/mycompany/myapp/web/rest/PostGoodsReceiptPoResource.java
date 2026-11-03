@@ -36,4 +36,13 @@ public class PostGoodsReceiptPoResource {
         log.debug("REST request to proxy PostGoodsReceiptPO");
         return postGoodsReceiptPoService.forwardToSap(payload);
     }
+
+    /** Gửi SAP qua gateway: body phân cấp đơn → PO → vật tư → thùng */
+    @PostMapping("/post-goods-receipt-po/gateway")
+    public ResponseEntity<Object> postGoodsReceiptPoGateway(
+        @RequestBody Map<String, Object> payload
+    ) {
+        log.debug("REST request to proxy goods receipt to gateway");
+        return postGoodsReceiptPoService.forwardToGateway(payload);
+    }
 }

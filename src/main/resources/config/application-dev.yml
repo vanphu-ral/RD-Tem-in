@@ -281,6 +281,12 @@ jhipster:
 application:
   sap:
     goods-receipt-po-url: http://192.168.68.3:8082/api/PostGoodsReceiptPO
+    # Gửi SAP qua gateway (GRPO) — trống: từ chối gửi
+    gateway-goods-receipt-url: https://ral-imes-gateway.rangdong.com.vn:59008/po-sap/api/grpo
+    # Đăng nhập gateway lấy access_token (Bearer, hết hạn 30 phút — BE tự lấy lại)
+    gateway-auth-url: https://ral-imes-gateway.rangdong.com.vn:59008/oauth/me?route=RD-MES-ERP-PO-Smart
+    gateway-auth-username: gateway_auth
+    gateway-auth-password: "RangD0ng@6789!"
   panacim:
     mes-api-url: http://172.168.6.3/PanaCIMMC/MesApi/ExecuteTransaction
     user-name: RD00698

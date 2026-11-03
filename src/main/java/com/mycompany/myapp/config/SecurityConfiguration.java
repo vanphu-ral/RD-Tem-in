@@ -4,6 +4,7 @@ import com.mycompany.myapp.security.*;
 import com.mycompany.myapp.security.oauth2.AudienceValidator;
 import com.mycompany.myapp.security.oauth2.CustomClaimConverter;
 import com.mycompany.myapp.security.oauth2.JwtGrantedAuthorityConverter;
+import com.mycompany.myapp.security.oauth2.SilentSsoLoginSupport;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -58,7 +59,10 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+        HttpSecurity http,
+        ClientRegistrationRepository clientRegistrationRepository
+    ) throws Exception {
         http
             .csrf()
             .disable()
@@ -134,6 +138,15 @@ public class SecurityConfiguration {
             .permitAll()
             .and()
             .oauth2Login()
+            // ?silent=true → prompt=none: còn phiên SSO thì tự đăng nhập, chưa có thì về /?sso=none
+            .authorizationEndpoint()
+            .authorizationRequestResolver(
+                SilentSsoLoginSupport.authorizationRequestResolver(
+                    clientRegistrationRepository
+                )
+            )
+            .and()
+            .failureHandler(SilentSsoLoginSupport.failureHandler())
             .and()
             .oauth2ResourceServer()
             .jwt()

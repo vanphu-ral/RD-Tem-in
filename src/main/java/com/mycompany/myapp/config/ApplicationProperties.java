@@ -159,6 +159,48 @@ public class ApplicationProperties {
         private String goodsReceiptPoUrl =
             "http://192.168.68.3:8082/api/PostGoodsReceiptPO";
 
+        /** URL gateway nhận gửi SAP theo đơn → PO → vật tư (GRPO); trống → từ chối gửi */
+        private String gatewayGoodsReceiptUrl = "";
+
+        /** API đăng nhập gateway (POST {username, password} → access_token Bearer) */
+        private String gatewayAuthUrl = "";
+
+        private String gatewayAuthUsername = "";
+
+        private String gatewayAuthPassword = "";
+
+        public String getGatewayAuthUrl() {
+            return gatewayAuthUrl;
+        }
+
+        public void setGatewayAuthUrl(String gatewayAuthUrl) {
+            this.gatewayAuthUrl = gatewayAuthUrl;
+        }
+
+        public String getGatewayAuthUsername() {
+            return gatewayAuthUsername;
+        }
+
+        public void setGatewayAuthUsername(String gatewayAuthUsername) {
+            this.gatewayAuthUsername = gatewayAuthUsername;
+        }
+
+        public String getGatewayAuthPassword() {
+            return gatewayAuthPassword;
+        }
+
+        public void setGatewayAuthPassword(String gatewayAuthPassword) {
+            this.gatewayAuthPassword = gatewayAuthPassword;
+        }
+
+        public String getGatewayGoodsReceiptUrl() {
+            return gatewayGoodsReceiptUrl;
+        }
+
+        public void setGatewayGoodsReceiptUrl(String gatewayGoodsReceiptUrl) {
+            this.gatewayGoodsReceiptUrl = gatewayGoodsReceiptUrl;
+        }
+
         public String getGoodsReceiptPoUrl() {
             return goodsReceiptPoUrl;
         }

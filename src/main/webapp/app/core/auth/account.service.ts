@@ -1,18 +1,19 @@
-import { Injectable } from '@angular/core';
-import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { Observable, ReplaySubject, of } from 'rxjs';
-import { shareReplay, tap, catchError } from 'rxjs/operators';
+import { Injectable } from "@angular/core";
+import { Router } from "@angular/router";
+import { HttpClient } from "@angular/common/http";
+import { Observable, ReplaySubject, of } from "rxjs";
+import { shareReplay, tap, catchError } from "rxjs/operators";
 
-import { StateStorageService } from 'app/core/auth/state-storage.service';
-import { ApplicationConfigService } from '../config/application-config.service';
-import { Account } from 'app/core/auth/account.model';
+import { StateStorageService } from "app/core/auth/state-storage.service";
+import { ApplicationConfigService } from "../config/application-config.service";
+import { Account } from "app/core/auth/account.model";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AccountService {
   private userIdentity: Account | null = null;
   private authenticationState = new ReplaySubject<Account | null>(1);
   private accountCache$?: Observable<Account> | null;
+  private unreachable = false;
 
   constructor(
     private http: HttpClient,
@@ -36,7 +37,9 @@ export class AccountService {
     if (!Array.isArray(authorities)) {
       authorities = [authorities];
     }
-    return this.userIdentity.authorities.some((authority: string) => authorities.includes(authority));
+    return this.userIdentity.authorities.some((authority: string) =>
+      authorities.includes(authority),
+    );
   }
 
   identity(force?: boolean): Observable<Account | null> {
@@ -50,7 +53,18 @@ export class AccountService {
         shareReplay(),
       );
     }
-    return this.accountCache$.pipe(catchError(() => of(null)));
+    return this.accountCache$.pipe(
+      catchError((err: { status?: number }) => {
+        // Chưa đăng nhập BE có thể trả 401 / 500; 0, 502–504 = không kết nối được BE
+        this.unreachable = [0, 502, 503, 504].includes(err.status ?? 0);
+        return of(null);
+      }),
+    );
+  }
+
+  /** Lần gọi /api/account gần nhất lỗi do không kết nối được BE (không phải chưa đăng nhập) */
+  isBackendUnreachable(): boolean {
+    return this.unreachable;
   }
 
   isAuthenticated(): boolean {
@@ -62,7 +76,9 @@ export class AccountService {
   }
 
   private fetch(): Observable<Account> {
-    return this.http.get<Account>(this.applicationConfigService.getEndpointFor('api/account'));
+    return this.http.get<Account>(
+      this.applicationConfigService.getEndpointFor("api/account"),
+    );
   }
 
   private navigateToStoredUrl(): void {

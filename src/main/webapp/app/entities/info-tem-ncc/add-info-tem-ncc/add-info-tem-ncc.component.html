@@ -190,6 +190,10 @@
         </button>
         <!-- Gửi cả đơn: gom thùng chưa gửi của tất cả PO (logic như nút trên từng dòng PO) -->
         <div class="send-all-actions" *ngIf="dataSource.data.length">
+          <span class="sap-submit-count" matTooltip="Số lần đơn đã gửi SAP">
+            <mat-icon>history</mat-icon>
+            Đã gửi SAP: {{ sapSubmissionCount }} lần
+          </span>
           <span class="send-all-label">Gửi cả đơn:</span>
           <button
             mat-stroked-button
@@ -229,13 +233,7 @@
     <mat-card-content>
       <div class="text-center" *ngIf="isLoadingDetail">Đang tải dữ liệu...</div>
       <div class="table-container">
-        <table
-          mat-table
-          [dataSource]="dataSource"
-          matSort
-          class="main-table"
-          multiTemplateDataRows
-        >
+        <table mat-table [dataSource]="dataSource" matSort class="main-table">
           <ng-container matColumnDef="expand">
             <th mat-header-cell *matHeaderCellDef class="col-expand">
               <div class="th-wrap no-filter"></div>
@@ -244,11 +242,10 @@
               <button
                 mat-icon-button
                 type="button"
-                (click)="togglePo(row, $event)"
+                matTooltip="Xem chi tiết vật tư"
+                (click)="openPoDetail(row, $event)"
               >
-                <mat-icon>{{
-                  isPoExpanded(row) ? "expand_less" : "expand_more"
-                }}</mat-icon>
+                <mat-icon>open_in_full</mat-icon>
               </button>
             </td>
           </ng-container>
@@ -418,6 +415,7 @@
                 <button
                   mat-icon-button
                   type="button"
+                  class="act-pana"
                   matTooltip="Gửi PanaCIM"
                   [disabled]="isSendingPanacim"
                   (click)="onUploadPanaCIM(row, $event)"
@@ -427,6 +425,7 @@
                 <button
                   mat-icon-button
                   type="button"
+                  class="act-sap"
                   matTooltip="Gửi SAP"
                   [disabled]="isSendingSap"
                   (click)="onSendSAP(row, $event)"
@@ -436,6 +435,7 @@
                 <button
                   mat-icon-button
                   type="button"
+                  class="act-wms"
                   matTooltip="Gửi WMS TQ"
                   (click)="onSendWMS(row, $event)"
                 >
@@ -444,242 +444,12 @@
                 <button
                   mat-icon-button
                   type="button"
+                  class="act-edit"
                   matTooltip="Điền thêm thông tin"
                   (click)="onEditInfo(row, $event)"
                 >
                   <mat-icon>edit_document</mat-icon>
                 </button>
-              </div>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="expandedDetail">
-            <td
-              mat-cell
-              *matCellDef="let row"
-              [attr.colspan]="displayedColumns.length"
-              class="expanded-cell"
-            >
-              <div
-                class="expand-wrapper"
-                [@detailExpand]="isPoExpanded(row) ? 'expanded' : 'collapsed'"
-              >
-                <div class="material-panel" *ngIf="isPoExpanded(row)">
-                  <div class="material-title">
-                    Chi tiết vật tư trong PO
-                    <strong>{{ row.poCode }}</strong>
-                  </div>
-
-                  <div class="material-table-wrap">
-                    <table class="material-table">
-                      <thead>
-                        <tr>
-                          <th class="col-stt">STT</th>
-                          <th class="col-expand"></th>
-                          <th>
-                            Mã vật tư
-                            <input
-                              class="nested-filter"
-                              [(ngModel)]="getMaterialFilter(row).materialCode"
-                              (ngModelChange)="onMaterialFilterChange(row)"
-                              placeholder="Lọc..."
-                            />
-                          </th>
-                          <th>
-                            Tên vật tư
-                            <input
-                              class="nested-filter"
-                              [(ngModel)]="getMaterialFilter(row).materialName"
-                              (ngModelChange)="onMaterialFilterChange(row)"
-                              placeholder="Lọc..."
-                            />
-                          </th>
-                          <th>
-                            Partnumber
-                            <input
-                              class="nested-filter"
-                              [(ngModel)]="getMaterialFilter(row).partNumber"
-                              (ngModelChange)="onMaterialFilterChange(row)"
-                              placeholder="Lọc..."
-                            />
-                          </th>
-                          <th>
-                            Mã kho
-                            <input
-                              class="nested-filter"
-                              [(ngModel)]="getMaterialFilter(row).warehouseCode"
-                              (ngModelChange)="onMaterialFilterChange(row)"
-                              placeholder="Lọc..."
-                            />
-                          </th>
-                          <th>Số lượng lô</th>
-                          <th>Số lượng theo PO</th>
-                          <!-- Tạm ẩn: SL trong lần giao -->
-                          <!-- <th>Số lượng trong lần giao</th> -->
-                          <th>Số lượng đã scan</th>
-                          <th>Số pallet</th>
-                          <th>Số thùng</th>
-                          <th>Người nhập</th>
-                          <th>Mã đã scan</th>
-                          <th>Mã đã gửi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <ng-container
-                          *ngFor="let m of pagedMaterials(row); let mi = index"
-                        >
-                          <tr
-                            class="material-row"
-                            [class.expanded]="isMaterialExpanded(m)"
-                            (click)="toggleMaterial(m, $event)"
-                          >
-                            <td>{{ materialRowNo(row, mi) }}</td>
-                            <td (click)="$event.stopPropagation()">
-                              <button
-                                mat-icon-button
-                                type="button"
-                                (click)="toggleMaterial(m, $event)"
-                              >
-                                <mat-icon>{{
-                                  isMaterialExpanded(m)
-                                    ? "expand_less"
-                                    : "expand_more"
-                                }}</mat-icon>
-                              </button>
-                            </td>
-                            <td>{{ m.materialCode }}</td>
-                            <td>{{ m.materialName }}</td>
-                            <td>{{ m.partNumber || "—" }}</td>
-                            <td>{{ m.warehouseCode }}</td>
-                            <td>{{ m.lotCount }}</td>
-                            <td>{{ m.poQuantity }}</td>
-                            <!-- Tạm ẩn: SL trong lần giao (chưa có dữ liệu) -->
-                            <!-- <td>—</td> -->
-                            <td>{{ m.receivedQuantity }}</td>
-                            <td>{{ m.palletCount }}</td>
-                            <td>{{ m.boxCount }}</td>
-                            <td>{{ m.importedBy || "—" }}</td>
-                            <td class="col-progress">
-                              <div class="progress-wrap">
-                                <div class="progress-track">
-                                  <div
-                                    class="progress-fill"
-                                    [ngClass]="progressClass(m.scannedProgress)"
-                                    [style.width.%]="
-                                      progressWidth(m.scannedProgress)
-                                    "
-                                  ></div>
-                                </div>
-                                <span
-                                  [title]="
-                                    m.receivedQuantity + ' / ' + m.poQuantity
-                                  "
-                                  >{{ formatPercent(m.scannedProgress) }}</span
-                                >
-                              </div>
-                            </td>
-                            <td class="col-progress">
-                              <div class="progress-wrap">
-                                <div class="progress-track">
-                                  <div
-                                    class="progress-fill"
-                                    [ngClass]="progressClass(m.sentProgress)"
-                                    [style.width.%]="
-                                      progressWidth(m.sentProgress)
-                                    "
-                                  ></div>
-                                </div>
-                                <span
-                                  [title]="
-                                    m.sentQuantity + ' / ' + m.poQuantity
-                                  "
-                                  >{{ formatPercent(m.sentProgress) }}</span
-                                >
-                              </div>
-                            </td>
-                          </tr>
-
-                          <tr
-                            *ngIf="isMaterialExpanded(m)"
-                            class="lot-expand-row"
-                          >
-                            <td colspan="14" class="lot-expand-cell">
-                              <div class="lot-panel">
-                                <div class="lot-table-wrap">
-                                  <table class="lot-table">
-                                    <thead>
-                                      <tr>
-                                        <th>
-                                          Lot
-                                          <input
-                                            class="nested-filter"
-                                            [(ngModel)]="getLotFilter(m).lot"
-                                            (ngModelChange)="
-                                              onLotFilterChange(m)
-                                            "
-                                            placeholder="Lọc lot..."
-                                          />
-                                        </th>
-                                        <th>Mã kho</th>
-                                        <th>Số lượng</th>
-                                        <th>Số lượng thùng</th>
-                                        <th>Ngày sản xuất</th>
-                                        <th>Hạn sử dụng</th>
-                                        <th>Thao tác</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      <tr *ngFor="let lot of pagedLots(m)">
-                                        <td>{{ lot.lotNumber }}</td>
-                                        <td>{{ lot.warehouseCode }}</td>
-                                        <td>{{ lot.quantity }}</td>
-                                        <td>{{ lot.boxCount }}</td>
-                                        <td>{{ lot.manufacturingDate }}</td>
-                                        <td>{{ lot.expirationDate }}</td>
-                                        <td>
-                                          <button
-                                            mat-icon-button
-                                            type="button"
-                                            matTooltip="Xem"
-                                            (click)="
-                                              onViewLot(lot, m);
-                                              $event.stopPropagation()
-                                            "
-                                          >
-                                            <mat-icon>visibility</mat-icon>
-                                          </button>
-                                        </td>
-                                      </tr>
-                                      <tr *ngIf="!getFilteredLots(m).length">
-                                        <td colspan="7" class="empty-cell">
-                                          Không có lot
-                                        </td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-                                  <jhi-mini-pager
-                                    [total]="getFilteredLots(m).length"
-                                    [pageIndex]="getLotPageState(m).pageIndex"
-                                    [pageSize]="getLotPageState(m).pageSize"
-                                    [pageSizeOptions]="nestedPageSizeOptions"
-                                    (pageChange)="onLotPage(m, $event)"
-                                  ></jhi-mini-pager>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        </ng-container>
-                      </tbody>
-                    </table>
-                  </div>
-                  <jhi-mini-pager
-                    [total]="getFilteredMaterials(row).length"
-                    [pageIndex]="getMaterialPageState(row).pageIndex"
-                    [pageSize]="getMaterialPageState(row).pageSize"
-                    [pageSizeOptions]="nestedPageSizeOptions"
-                    (pageChange)="onMaterialPage(row, $event)"
-                  ></jhi-mini-pager>
-                </div>
               </div>
             </td>
           </ng-container>
@@ -692,13 +462,7 @@
             mat-row
             *matRowDef="let row; columns: displayedColumns"
             class="data-row"
-            [class.row-expanded]="isPoExpanded(row)"
-            (click)="togglePo(row)"
-          ></tr>
-          <tr
-            mat-row
-            *matRowDef="let row; columns: ['expandedDetail']"
-            class="detail-row"
+            (click)="openPoDetail(row)"
           ></tr>
         </table>
       </div>
@@ -712,3 +476,228 @@
     </mat-card-content>
   </mat-card>
 </div>
+
+<!-- Đang gửi SAP: chặn thao tác, spinner giữa màn -->
+<div class="sending-overlay" *ngIf="isSendingSap">
+  <div class="sending-box">
+    <mat-spinner diameter="36"></mat-spinner>
+    <span>Đang gửi SAP...</span>
+  </div>
+</div>
+
+<!-- Chi tiết vật tư của PO: dialog full màn -->
+<ng-template #poDetailDialog>
+  <div class="po-detail-dialog" *ngIf="detailPo as row">
+    <div class="po-detail-header">
+      <h2>
+        Chi tiết vật tư trong PO
+        <strong>{{ row.poCode }}</strong>
+      </h2>
+      <button
+        mat-icon-button
+        type="button"
+        matTooltip="Đóng"
+        (click)="closePoDetail()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="po-detail-body">
+      <div class="material-panel">
+        <div class="material-table-wrap">
+          <table class="material-table">
+            <thead>
+              <tr>
+                <th class="col-stt">STT</th>
+                <th class="col-expand"></th>
+                <th>
+                  Mã vật tư
+                  <input
+                    class="nested-filter"
+                    [(ngModel)]="getMaterialFilter(row).materialCode"
+                    (ngModelChange)="onMaterialFilterChange(row)"
+                    placeholder="Lọc..."
+                  />
+                </th>
+                <th>
+                  Tên vật tư
+                  <input
+                    class="nested-filter"
+                    [(ngModel)]="getMaterialFilter(row).materialName"
+                    (ngModelChange)="onMaterialFilterChange(row)"
+                    placeholder="Lọc..."
+                  />
+                </th>
+                <th>
+                  Partnumber
+                  <input
+                    class="nested-filter"
+                    [(ngModel)]="getMaterialFilter(row).partNumber"
+                    (ngModelChange)="onMaterialFilterChange(row)"
+                    placeholder="Lọc..."
+                  />
+                </th>
+                <th>
+                  Mã kho
+                  <input
+                    class="nested-filter"
+                    [(ngModel)]="getMaterialFilter(row).warehouseCode"
+                    (ngModelChange)="onMaterialFilterChange(row)"
+                    placeholder="Lọc..."
+                  />
+                </th>
+                <th>Số lượng lô</th>
+                <th>Số lượng theo PO</th>
+                <!-- Tạm ẩn: SL trong lần giao -->
+                <!-- <th>Số lượng trong lần giao</th> -->
+                <th>Số lượng đã scan</th>
+                <th>Số pallet</th>
+                <th>Số thùng</th>
+                <th>Người nhập</th>
+                <th>Mã đã scan</th>
+                <th>Mã đã gửi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container
+                *ngFor="let m of pagedMaterials(row); let mi = index"
+              >
+                <tr
+                  class="material-row"
+                  [class.expanded]="isMaterialExpanded(m)"
+                  (click)="toggleMaterial(m, $event)"
+                >
+                  <td>{{ materialRowNo(row, mi) }}</td>
+                  <td (click)="$event.stopPropagation()">
+                    <button
+                      mat-icon-button
+                      type="button"
+                      (click)="toggleMaterial(m, $event)"
+                    >
+                      <mat-icon>{{
+                        isMaterialExpanded(m) ? "expand_less" : "expand_more"
+                      }}</mat-icon>
+                    </button>
+                  </td>
+                  <td>{{ m.materialCode }}</td>
+                  <td>{{ m.materialName }}</td>
+                  <td>{{ m.partNumber || "—" }}</td>
+                  <td>{{ m.warehouseCode }}</td>
+                  <td>{{ m.lotCount }}</td>
+                  <td>{{ m.poQuantity }}</td>
+                  <!-- Tạm ẩn: SL trong lần giao (chưa có dữ liệu) -->
+                  <!-- <td>—</td> -->
+                  <td>{{ m.receivedQuantity }}</td>
+                  <td>{{ m.palletCount }}</td>
+                  <td>{{ m.boxCount }}</td>
+                  <td>{{ m.importedBy || "—" }}</td>
+                  <td class="col-progress">
+                    <div class="progress-wrap">
+                      <div class="progress-track">
+                        <div
+                          class="progress-fill"
+                          [ngClass]="progressClass(m.scannedProgress)"
+                          [style.width.%]="progressWidth(m.scannedProgress)"
+                        ></div>
+                      </div>
+                      <span
+                        [title]="m.receivedQuantity + ' / ' + m.poQuantity"
+                        >{{ formatPercent(m.scannedProgress) }}</span
+                      >
+                    </div>
+                  </td>
+                  <td class="col-progress">
+                    <div class="progress-wrap">
+                      <div class="progress-track">
+                        <div
+                          class="progress-fill"
+                          [ngClass]="progressClass(m.sentProgress)"
+                          [style.width.%]="progressWidth(m.sentProgress)"
+                        ></div>
+                      </div>
+                      <span [title]="m.sentQuantity + ' / ' + m.poQuantity">{{
+                        formatPercent(m.sentProgress)
+                      }}</span>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr *ngIf="isMaterialExpanded(m)" class="lot-expand-row">
+                  <td colspan="14" class="lot-expand-cell">
+                    <div class="lot-panel">
+                      <div class="lot-table-wrap">
+                        <table class="lot-table">
+                          <thead>
+                            <tr>
+                              <th>
+                                Lot
+                                <input
+                                  class="nested-filter"
+                                  [(ngModel)]="getLotFilter(m).lot"
+                                  (ngModelChange)="onLotFilterChange(m)"
+                                  placeholder="Lọc lot..."
+                                />
+                              </th>
+                              <th>Mã kho</th>
+                              <th>Số lượng</th>
+                              <th>Số lượng thùng</th>
+                              <th>Ngày sản xuất</th>
+                              <th>Hạn sử dụng</th>
+                              <th>Thao tác</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let lot of pagedLots(m)">
+                              <td>{{ lot.lotNumber }}</td>
+                              <td>{{ lot.warehouseCode }}</td>
+                              <td>{{ lot.quantity }}</td>
+                              <td>{{ lot.boxCount }}</td>
+                              <td>{{ lot.manufacturingDate }}</td>
+                              <td>{{ lot.expirationDate }}</td>
+                              <td>
+                                <button
+                                  mat-icon-button
+                                  type="button"
+                                  class="act-view"
+                                  matTooltip="Xem"
+                                  (click)="
+                                    onViewLot(lot, m); $event.stopPropagation()
+                                  "
+                                >
+                                  <mat-icon>visibility</mat-icon>
+                                </button>
+                              </td>
+                            </tr>
+                            <tr *ngIf="!getFilteredLots(m).length">
+                              <td colspan="7" class="empty-cell">
+                                Không có lot
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <jhi-mini-pager
+                          [total]="getFilteredLots(m).length"
+                          [pageIndex]="getLotPageState(m).pageIndex"
+                          [pageSize]="getLotPageState(m).pageSize"
+                          [pageSizeOptions]="nestedPageSizeOptions"
+                          (pageChange)="onLotPage(m, $event)"
+                        ></jhi-mini-pager>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+        <jhi-mini-pager
+          [total]="getFilteredMaterials(row).length"
+          [pageIndex]="getMaterialPageState(row).pageIndex"
+          [pageSize]="getMaterialPageState(row).pageSize"
+          [pageSizeOptions]="nestedPageSizeOptions"
+          (pageChange)="onMaterialPage(row, $event)"
+        ></jhi-mini-pager>
+      </div>
+    </div>
+  </div>
+</ng-template>

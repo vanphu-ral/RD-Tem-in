@@ -1,7 +1,9 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { forkJoin, Observable, of, throwError } from "rxjs";
-import { catchError, map, switchMap } from "rxjs/operators";
+import { catchError, map, switchMap, take } from "rxjs/operators";
+import { AccountService } from "app/core/auth/account.service";
+import { Account } from "app/core/auth/account.model";
 import {
   GoodsReceiptPoLine,
   GoodsReceiptPoPayload,
@@ -15,11 +17,14 @@ import {
   toPanacimText,
 } from "app/entities/generate-tem-in/receiving-supplies/tem-panacim-export.util";
 import {
+  DeliveryNotificationDetailDto,
   InfoTemNccService,
+  SapPor1R1Dto,
   toText,
   VendorLabelInfoDto,
 } from "./info-tem-ncc.service";
 import { boxLocation } from "../shared/box-location.util";
+import { buildOrderStatusPayload } from "../shared/order-completion.util";
 import {
   buildDefaultUserData4,
   DEFAULT_USERDATA,
@@ -37,6 +42,47 @@ export interface SendBoxEntry {
   /** Vendor fallback khi thùng không có vendor */
   vendorCode: string;
 }
+
+/** Body gửi SAP qua gateway: đơn → PO → vật tư */
+export interface SapGatewayPayload {
+  noticeNo: string;
+  deliveryNotificationId: number;
+  vendorName: string;
+  /** Mã NCC của đơn (đơn không lưu mã → lineVendor của dòng PO) */
+  vendorCode: string;
+  factory: string;
+  entryDate: string;
+  sentBy: string;
+  pos: SapGatewayPo[];
+}
+
+export interface SapGatewayPo {
+  docEntry: number;
+  docNum: string;
+  items: SapGatewayItem[];
+}
+
+export interface SapGatewayItem {
+  lineNum: number;
+  itemCode: string;
+  itemName: string;
+  uom: string;
+  whsCode: string;
+  /** SL theo PO */
+  quantityPo: number;
+  /** Tổng SL đã scan của dòng (mọi đợt) */
+  quantityScanned: number;
+  /** SL gửi đợt này = tổng SL các thùng chưa gửi của dòng */
+  quantitySend: number;
+  /** Ngày giao hàng thực tế = thời điểm ấn gửi đợt này (ISO); khác entryDate = ngày tạo phiếu */
+  deliveryDate: string;
+}
+
+/**
+ * TẠM THỜI (test gateway): cho gửi SAP lại cả thùng đã gửi (sapSendStatus = true).
+ * Test xong đặt lại false → chỉ gửi thùng chưa gửi như cũ.
+ */
+export const SAP_ALLOW_RESEND = true;
 
 export interface SendResult {
   count: number;
@@ -60,7 +106,76 @@ export class VendorLabelSendService {
     private http: HttpClient,
     private receivingService: ReceivingSuppliesService,
     private infoTemNccService: InfoTemNccService,
+    private accountService: AccountService,
   ) {}
+
+  /**
+   * Gửi SAP qua gateway: dựng body từ chi tiết đơn mới nhất (bỏ thùng đã gửi ở nơi khác) →
+   * POST post-goods-receipt-po/gateway → đánh dấu sapSendStatus = true cho các thùng đợt này.
+   */
+  sendSapGateway(entries: SendBoxEntry[]): Observable<SendResult> {
+    const orderId = entries[0]?.record.deliveryNotificationId ?? null;
+    if (orderId === null) {
+      return throwError(() => new Error("Thùng chưa thuộc đơn giao hàng nào."));
+    }
+    const account$: Observable<Account | null> = this.accountService
+      .identity()
+      .pipe(take(1));
+    return account$.pipe(
+      switchMap((account) =>
+        this.sendSapGatewayAs(orderId, entries, account?.login ?? "unknown"),
+      ),
+    );
+  }
+
+  /** Dựng body gửi gateway (không POST); thùng thiếu / sai vị trí → lỗi, không gửi */
+  buildSapGatewayPayload(
+    deliveryNotificationId: number,
+    entries: SendBoxEntry[],
+    user: string,
+  ): Observable<{
+    payload: SapGatewayPayload;
+    sending: SendBoxEntry[];
+    detail: DeliveryNotificationDetailDto;
+  }> {
+    const invalid = entries.filter((e) =>
+      validateStorageUnitForSap(boxLocation(e.record)),
+    );
+    if (invalid.length) {
+      const sample = invalid
+        .slice(0, 3)
+        .map((e) => toText(e.record.reelId))
+        .join(", ");
+      return throwError(
+        () =>
+          new Error(
+            `Còn ${invalid.length} thùng chưa gán vị trí hợp lệ (${sample}${invalid.length > 3 ? "…" : ""}) — gán vị trí trước khi gửi SAP.`,
+          ),
+      );
+    }
+    return this.infoTemNccService
+      .getDeliveryNotificationDetail(deliveryNotificationId)
+      .pipe(
+        map((detail) => {
+          const lines = detail.sapPor1R1List ?? [];
+          const unsent = new Set(
+            lines
+              .flatMap((l) => l.vendorLabelInfoList ?? [])
+              .filter((b) => SAP_ALLOW_RESEND || !isSendFlagOn(b.sapSendStatus))
+              .map((b) => b.id),
+          );
+          const sending = entries.filter((e) => unsent.has(e.record.id));
+          if (!sending.length) {
+            throw new Error("Các thùng đã được gửi SAP trước đó.");
+          }
+          return {
+            payload: this.toGatewayPayload(detail, lines, sending, user),
+            sending,
+            detail,
+          };
+        }),
+      );
+  }
 
   /**
    * Gửi SAP: lấy DocEntry theo PO (sap-po-info) → POST post-goods-receipt-po { OPDN }
@@ -252,6 +367,115 @@ export class VendorLabelSendService {
       return of(true);
     }
     return forkJoin(updates).pipe(map((results) => results.every(Boolean)));
+  }
+
+  private sendSapGatewayAs(
+    deliveryNotificationId: number,
+    entries: SendBoxEntry[],
+    user: string,
+  ): Observable<SendResult> {
+    return this.buildSapGatewayPayload(
+      deliveryNotificationId,
+      entries,
+      user,
+    ).pipe(
+      switchMap(({ payload, sending, detail }): Observable<SendResult> => {
+        const post$: Observable<string> =
+          this.receivingService.postGoodsReceiptGateway(payload);
+        return post$.pipe(
+          switchMap(
+            (): Observable<SendResult> =>
+              forkJoin([
+                this.markSent(sending, { sapSendStatus: true }),
+                this.countSapSubmission(detail),
+              ]).pipe(
+                map(
+                  ([boxesSaved, countSaved]): SendResult => ({
+                    count: sending.length,
+                    statusSaved: boxesSaved && countSaved,
+                  }),
+                ),
+              ),
+          ),
+        );
+      }),
+    );
+  }
+
+  /** PUT đơn cha tăng numberOfSapSubmissions thêm 1 → true nếu lưu được */
+  private countSapSubmission(
+    detail: DeliveryNotificationDetailDto,
+  ): Observable<boolean> {
+    const payload = buildOrderStatusPayload(detail, toText(detail.status));
+    payload.status = detail.status;
+    payload.numberOfSapSubmissions =
+      (Number(detail.numberOfSapSubmissions) || 0) + 1;
+    return this.infoTemNccService.updateDeliveryNotification(payload).pipe(
+      map((): boolean => true),
+      catchError(() => of(false)),
+    );
+  }
+
+  private toGatewayPayload(
+    detail: DeliveryNotificationDetailDto,
+    lines: SapPor1R1Dto[],
+    sending: SendBoxEntry[],
+    user: string,
+  ): SapGatewayPayload {
+    const entryById = new Map(sending.map((e) => [e.record.id, e]));
+    const pos = new Map<string, SapGatewayPo>();
+    const deliveryDate = new Date().toISOString();
+    for (const line of lines) {
+      const allBoxes = line.vendorLabelInfoList ?? [];
+      const lineEntries = allBoxes
+        .map((b) => entryById.get(b.id))
+        .filter((e): e is SendBoxEntry => !!e);
+      if (!lineEntries.length) {
+        continue;
+      }
+      const docEntry = Number.parseInt(toText(line.docEntry), 10);
+      if (Number.isNaN(docEntry)) {
+        throw new Error(
+          `Dòng vật tư ${toText(line.itemCode)} chưa có DocEntry của PO.`,
+        );
+      }
+      const key = String(docEntry);
+      const po: SapGatewayPo = pos.get(key) ?? {
+        docEntry,
+        docNum: toText(line.baseDocNum),
+        items: [],
+      };
+      pos.set(key, po);
+      po.items.push({
+        lineNum: Number(line.lineNum ?? 0),
+        itemCode: toText(line.itemCode),
+        itemName: toText(line.dscription),
+        uom: toText(line.uomCode),
+        whsCode: toText(line.whsCode),
+        quantityPo: Number(line.quantity ?? 0),
+        quantityScanned: allBoxes.reduce(
+          (sum, b) => sum + Number(b.initialQuantity ?? 0),
+          0,
+        ),
+        quantitySend: lineEntries.reduce(
+          (sum, e) => sum + Number(e.record.initialQuantity ?? 0),
+          0,
+        ),
+        deliveryDate,
+      });
+    }
+    return {
+      noticeNo: toText(detail.deliveryNotificationCode),
+      deliveryNotificationId: detail.id,
+      vendorName: toText(detail.vendorName),
+      vendorCode:
+        toText(detail.vendorCode) ||
+        toText(lines.find((l) => toText(l.lineVendor))?.lineVendor),
+      factory: toText(detail.factory),
+      entryDate: toText(detail.entryDate),
+      sentBy: user,
+      pos: [...pos.values()],
+    };
   }
 
   private buildOpdnLine(e: SendBoxEntry, docEntry: number): GoodsReceiptPoLine {

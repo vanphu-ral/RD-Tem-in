@@ -125,6 +125,9 @@ export function buildOrderStatusPayload(
   if (detail.numberOfItem !== undefined) {
     payload.numberOfItem = detail.numberOfItem;
   }
+  if (detail.numberOfSapSubmissions !== undefined) {
+    payload.numberOfSapSubmissions = detail.numberOfSapSubmissions;
+  }
   return payload;
 }
 

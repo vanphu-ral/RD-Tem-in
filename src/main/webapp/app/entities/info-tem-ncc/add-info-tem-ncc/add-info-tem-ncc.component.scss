@@ -1,3 +1,7 @@
+// Đồng bộ màu bảng với các màn khác của web (Danh sách vật tư)
+$table-header: #548ce8;
+$table-border: #cbd5e1;
+
 .container {
   padding: 16px;
   background: #f3f5f7;
@@ -111,7 +115,7 @@
   width: 100%;
   max-height: calc(100vh - 360px);
   overflow: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
 }
 
@@ -121,7 +125,7 @@
 }
 
 .main-table .mat-mdc-header-row {
-  background: #2f6aa3;
+  background: $table-header;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -131,7 +135,7 @@
   color: #fff;
   font-weight: 600;
   padding: 0 6px !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
   vertical-align: top;
 }
 
@@ -167,8 +171,8 @@
 .main-table .mat-mdc-cell {
   padding: 6px 8px !important;
   font-size: 13px;
-  border-right: 1px solid #eee;
-  border-bottom: 1px solid #eee;
+  border-right: 1px solid $table-border;
+  border-bottom: 1px solid $table-border;
 }
 
 .col-expand {
@@ -195,17 +199,62 @@
 .action-buttons {
   display: flex;
   justify-content: center;
+  gap: 4px;
+}
+
+// Nút icon thao tác: nền nhạt + icon đậm theo từng chức năng
+.act-pana,
+.act-sap,
+.act-wms,
+.act-edit,
+.act-view {
+  --mdc-icon-button-state-layer-size: 34px;
+  width: 34px;
+  height: 34px;
+  padding: 5px !important;
+  border-radius: 8px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+  }
+}
+
+.act-pana {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+.act-sap {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+}
+
+.act-wms {
+  background: #ffedd5 !important;
+  color: #c2410c !important;
+}
+
+.act-edit {
+  background: #ede9fe !important;
+  color: #6d28d9 !important;
+}
+
+.act-view {
+  background: #cffafe !important;
+  color: #0e7490 !important;
 }
 
 .data-row {
   cursor: pointer;
 
   &:hover {
-    background: #f3f8fc;
-  }
-
-  &.row-expanded {
-    background: #eef5fb;
+    background: #eef3fd;
   }
 }
 
@@ -228,61 +277,62 @@
   }
 }
 
-.detail-row {
-  height: 0 !important;
+// Dialog full màn: chi tiết vật tư của PO
+.po-detail-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f3f5f7;
+}
 
-  .mat-mdc-cell {
-    padding: 0 !important;
-    border: none !important;
+.po-detail-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: $table-header;
+  color: #fff;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  button {
+    color: #fff !important;
   }
 }
 
-.expanded-cell {
-  background: #f3f7fb;
-}
-
-.expand-wrapper {
-  overflow: hidden;
-}
-
-.material-panel {
-  padding: 12px 14px 14px 28px;
-}
-
-.material-title {
-  margin: 0 0 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1f2937;
-
-  strong {
-    margin-left: 2px;
-  }
+.po-detail-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
 }
 
 .material-table-wrap,
 .lot-table-wrap {
   background: #fff;
-  border: 1px solid #cfe0f0;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .material-table,
 .lot-table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
   font-size: 13px;
 
   thead th {
-    background: #b8d4f0;
-    color: #1e3a5f;
+    background: $table-header;
+    color: #fff;
     font-weight: 600;
     font-size: 12px;
     padding: 8px 10px;
-    border: none;
-    border-bottom: 1px solid #a8c7e6;
+    border: 1px solid $table-border;
     text-align: center;
     white-space: nowrap;
     vertical-align: top;
@@ -290,16 +340,11 @@
 
   tbody td {
     padding: 8px 10px;
-    border: none;
-    border-bottom: 1px solid #e8eef5;
+    border: 1px solid $table-border;
     text-align: center;
     vertical-align: middle;
     color: #1f2937;
     background: #fff;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: none;
   }
 }
 
@@ -322,11 +367,11 @@
   cursor: pointer;
 
   &.expanded td {
-    background: #f0f7fc;
+    background: #e6eefc;
   }
 
   &:hover td {
-    background: #f8fbfe;
+    background: #eef3fd;
   }
 }
 
@@ -336,7 +381,7 @@
 }
 
 .lot-expand-cell {
-  background: #eaf2f9 !important;
+  background: #eef3fd !important;
 }
 
 .lot-panel {
@@ -344,7 +389,7 @@
 }
 
 .lot-table thead th {
-  background: #c5daf0;
+  background: #7ba7ee;
 }
 
 .col-progress {
@@ -451,6 +496,29 @@ mat-paginator {
     color: #6b7280;
   }
 
+  .sap-submit-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 26px;
+    padding: 0 10px;
+    margin-right: 4px;
+    border-radius: 13px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: default;
+
+    mat-icon {
+      width: 16px;
+      height: 16px;
+      font-size: 16px;
+    }
+  }
+
   button {
     height: 30px;
     font-size: 13px;
@@ -498,4 +566,29 @@ mat-paginator {
   font-size: 12px;
   line-height: 20px;
   text-align: center;
+}
+
+// Overlay khi đang gửi SAP
+.sending-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.25);
+}
+
+.sending-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 26px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
 }

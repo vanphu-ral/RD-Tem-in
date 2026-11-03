@@ -57,6 +57,7 @@ import {
   VendorQrMappingConfig,
 } from "../../shared/vendor-qr-mapping.util";
 import { boxLocation, locationFields } from "../../shared/box-location.util";
+import { playScanSound } from "../../shared/scan-sound.util";
 import { normalizeLocationScan } from "app/entities/list-material/services/scan-code.util";
 import {
   clearQueueReason,
@@ -1500,6 +1501,7 @@ export class ScanImportDialogComponent
           ? "Đang tải danh sách kịch bản scan — thử lại sau giây lát."
           : "Chưa chọn kịch bản scan — không tách được mã QR.",
       );
+      playScanSound(false);
       return;
     }
     const deliveryNotificationId = this.data.deliveryNotificationId ?? null;
@@ -1507,6 +1509,7 @@ export class ScanImportDialogComponent
       this.notificationService.warning(
         "Chưa có đơn giao hàng — không thể lưu thông tin thùng.",
       );
+      playScanSound(false);
       return;
     }
 
@@ -1536,12 +1539,14 @@ export class ScanImportDialogComponent
       this.notificationService.warning(
         "Không tách được ReelID từ mã vừa quét.",
       );
+      playScanSound(false);
       return;
     }
     if (this.usedReelIds.has(reelId)) {
       this.notificationService.warning(
         `ReelID "${reelId}" đã được scan trước đó.`,
       );
+      playScanSound(false);
       return;
     }
     const quantity = Number(fieldMap["initialQuantity"]) || 0;
@@ -1549,6 +1554,7 @@ export class ScanImportDialogComponent
       this.notificationService.warning(
         `Số lượng không hợp lệ (${quantity}) — mã "${reelId}" không được lưu.`,
       );
+      playScanSound(false);
       return;
     }
     // Phân bổ PO + lưu
@@ -1769,6 +1775,7 @@ export class ScanImportDialogComponent
             saved?.deliveryNotificationId ?? payload.deliveryNotificationId,
           sapPor1Id: saved?.sapPor1Id ?? payload.sapPor1Id,
         };
+        playScanSound(true);
         this.ensureOrderScanning(record.deliveryNotificationId);
         const row = this.toBoxRow(record, this.nowTime());
         if (noPoMatched) {
@@ -1799,6 +1806,7 @@ export class ScanImportDialogComponent
         this.usedReelIds.delete(reelId);
         this.addReceived(matchedRow?.id ?? null, -quantity);
         // Hiện mã HTTP + API đã gọi + nội dung lỗi gốc (chẩn đoán lỗi trên mobile, không debug được)
+        playScanSound(false);
         const base = `Lưu thùng "${reelId}"${palletCode ? ` vào pallet ${palletCode}` : ""} thất bại`;
         console.error(`[scan-import] ${base}`, err, payload);
         this.notificationService.error(
@@ -1876,6 +1884,7 @@ export class ScanImportDialogComponent
       next: (pallet) => {
         this.isCheckingPallet = false;
         if (!pallet) {
+          playScanSound(false);
           this.askCreatePallet(code);
           return;
         }
@@ -1894,6 +1903,7 @@ export class ScanImportDialogComponent
         this.notificationService.error(
           `Không kiểm tra được pallet "${code}" — vui lòng thử lại.`,
         );
+        playScanSound(false);
         this.focusPalletInput(false);
       },
     });
@@ -2161,6 +2171,7 @@ export class ScanImportDialogComponent
 
   /** Đặt pallet đang quét, chỉ hiện pallet này ở tab Pallet, focus ô thùng */
   private activatePallet(code: string, locationName = ""): void {
+    playScanSound(true);
     let row = this.palletRows.find((p) => p.palletCode === code);
     if (!row) {
       row = {
@@ -2230,6 +2241,7 @@ export class ScanImportDialogComponent
           this.notificationService.error(
             `Vị trí "${value}" không có trong danh sách vị trí.`,
           );
+          playScanSound(false);
           after();
           this.cdr.markForCheck();
           return;
@@ -2242,6 +2254,7 @@ export class ScanImportDialogComponent
       })
       .catch(() => {
         this.notificationService.error("Không kiểm tra được danh sách vị trí.");
+        playScanSound(false);
         after();
       });
   }
@@ -2471,6 +2484,7 @@ export class ScanImportDialogComponent
     const activeCode = this.activePallet?.palletCode ?? "";
     if (onPalletTab && !activeCode) {
       this.notificationService.warning("Quét mã pallet trước khi quét vị trí.");
+      playScanSound(false);
       return;
     }
     if (!onPalletTab) {
@@ -2535,6 +2549,7 @@ export class ScanImportDialogComponent
           ? `Pallet "${palletCode}" chưa có thùng nào.`
           : "Không có thùng nào chưa gán vị trí.",
       );
+      playScanSound(false);
       this.cdr.markForCheck();
       return;
     }
@@ -2545,6 +2560,7 @@ export class ScanImportDialogComponent
       if (ok + failed < pending.length) {
         return;
       }
+      playScanSound(failed === 0);
       if (!ok) {
         this.notificationService.error(
           `Gán vị trí "${location}" thất bại cho ${failed} thùng.`,
