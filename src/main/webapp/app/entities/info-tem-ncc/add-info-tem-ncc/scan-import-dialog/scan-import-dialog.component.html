@@ -1002,6 +1002,16 @@
             <strong>LOT: {{ lot.lotNumber }}</strong>
             <div class="lot-actions">
               <button
+                *ngIf="overflowInfoBoxes(lot).length as splitCount"
+                type="button"
+                class="lot-split"
+                [attr.aria-label]="'Tách thùng thừa SL (' + splitCount + ')'"
+                (click)="onSplitInfoLot(lot, $event)"
+              >
+                <mat-icon>call_split</mat-icon>
+                Tách tem ({{ splitCount }})
+              </button>
+              <button
                 type="button"
                 class="lot-edit"
                 (click)="openLotEdit(lot, $event)"

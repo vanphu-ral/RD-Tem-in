@@ -119,9 +119,10 @@ $table-border: #cbd5e1;
   border-radius: 8px;
 }
 
+/* Vừa 1 màn (không cuộn ngang): tiêu đề được xuống dòng, ô gọn; màn hẹp mới cuộn */
 .main-table {
   width: 100%;
-  min-width: 1400px;
+  min-width: 1100px;
 }
 
 .main-table .mat-mdc-header-row {
@@ -146,8 +147,8 @@ $table-border: #cbd5e1;
   padding: 8px 0 6px;
 
   > span {
-    white-space: nowrap;
     font-size: 12px;
+    line-height: 1.25;
   }
 
   &.no-filter,
@@ -169,15 +170,50 @@ $table-border: #cbd5e1;
 }
 
 .main-table .mat-mdc-cell {
-  padding: 6px 8px !important;
-  font-size: 13px;
+  padding: 4px 6px !important;
+  font-size: 12.5px;
   border-right: 1px solid $table-border;
   border-bottom: 1px solid $table-border;
 }
 
 .col-expand {
-  width: 48px;
+  width: 40px;
   text-align: center;
+}
+
+/* Cột Tiến độ PO: 2 thanh Scan / Gửi xếp chồng */
+.col-po-progress {
+  width: 150px;
+  min-width: 150px;
+}
+
+.po-progress-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  & + & {
+    margin-top: 3px;
+  }
+
+  .lbl {
+    width: 28px;
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  .progress-track {
+    min-width: 50px;
+    height: 8px;
+  }
+
+  .pct {
+    min-width: 38px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: right;
+  }
 }
 
 .col-actions {
@@ -186,7 +222,7 @@ $table-border: #cbd5e1;
 }
 
 .col-vendor {
-  max-width: 200px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -199,7 +235,7 @@ $table-border: #cbd5e1;
 .action-buttons {
   display: flex;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 // Nút icon thao tác: nền nhạt + icon đậm theo từng chức năng
@@ -208,16 +244,16 @@ $table-border: #cbd5e1;
 .act-wms,
 .act-edit,
 .act-view {
-  --mdc-icon-button-state-layer-size: 34px;
-  width: 34px;
-  height: 34px;
+  --mdc-icon-button-state-layer-size: 30px;
+  width: 30px;
+  height: 30px;
   padding: 5px !important;
-  border-radius: 8px;
+  border-radius: 7px;
 
   mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
   }
 
   &:disabled {

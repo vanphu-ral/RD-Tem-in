@@ -1332,6 +1332,28 @@
   .chev {
     color: #6b7280;
   }
+
+  .lot-split {
+    height: 32px;
+    padding: 0 10px 0 6px;
+    border-radius: 8px;
+    border: 1px solid #f59e0b;
+    background: #fffbeb;
+    color: #b45309;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    white-space: nowrap;
+    cursor: pointer;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
 }
 
 .lot-badges {

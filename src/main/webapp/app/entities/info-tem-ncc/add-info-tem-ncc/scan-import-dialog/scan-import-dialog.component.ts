@@ -81,6 +81,12 @@ import {
   markOrderScanning,
 } from "../../shared/complete-order.flow";
 import {
+  SplitBoxDialogComponent,
+  SplitBoxDialogData,
+  SplitBoxDialogResult,
+  SplitBoxResult,
+} from "../split-box-dialog/split-box-dialog.component";
+import {
   ScanBoxRow,
   ScanImportDialogData,
   ScanImportDialogResult,
@@ -997,6 +1003,84 @@ export class ScanImportDialogComponent
       this.expandedLotIds.add(mat.lots[0].id);
       this.expandedLotIds = new Set(this.expandedLotIds);
     }
+  }
+
+  /** Hàng chờ: thùng Thừa SL trong LOT — tách được (như desktop) */
+  overflowInfoBoxes(lot: MobileInfoLot): VendorLabelInfoDto[] {
+    if (!this.infoLotsFromUnassigned) {
+      return [];
+    }
+    return lot.boxes.flatMap((b) => {
+      const rec =
+        b.queueReason === "overflow"
+          ? this.infoRecords.get(b.recordId)
+          : undefined;
+      return rec ? [rec] : [];
+    });
+  }
+
+  /**
+   * Tách thùng Thừa SL của LOT (hàng chờ) — dùng chung dialog tách thùng của desktop:
+   * phần vừa đủ vào PO, phần dư thành thùng mới ở hàng chờ. Mỗi lần tách 1 mã vật tư.
+   */
+  onSplitInfoLot(lot: MobileInfoLot, event: Event): void {
+    event.stopPropagation();
+    const overflow = this.overflowInfoBoxes(lot);
+    if (!overflow.length) {
+      return;
+    }
+    const sapCode = toText(overflow[0].sapCode);
+    const code = sapCode.toLowerCase();
+    const boxes = overflow.filter(
+      (b) => toText(b.sapCode).toLowerCase() === code,
+    );
+    const lines = (this.lastInfoDetail?.sapPor1R1List ?? []).filter(
+      (l) => toText(l.itemCode).toLowerCase() === code,
+    );
+    const records = [...this.infoRecords.values()];
+    const data: SplitBoxDialogData = {
+      sapCode,
+      partNumber:
+        toText(boxes[0].partNumber) ||
+        (this.partsBySapCode.get(sapCode) ?? [])[0] ||
+        "",
+      materialName: toText(lines[0]?.dscription),
+      boxes,
+      poLines: lines.map((l) => ({
+        id: l.id,
+        poCode: toText(l.docEntry),
+        orderQty: Number(l.quantity ?? 0),
+        receivedQty: records
+          .filter((b) => b.sapPor1Id === l.id)
+          .reduce((s, b) => s + Number(b.initialQuantity ?? 0), 0),
+      })),
+      takenReelIds: [
+        ...records.map((b) => toText(b.reelId)),
+        ...this.usedReelIds,
+      ],
+      vendorName: toText(this.lastInfoDetail?.vendorName),
+      invoiceNumber: toText(this.lastInfoDetail?.invoiceNumber),
+      contractCode: toText(this.lastInfoDetail?.contractCode),
+    };
+    this.dialog
+      .open<SplitBoxDialogComponent, SplitBoxDialogData, SplitBoxDialogResult>(
+        SplitBoxDialogComponent,
+        {
+          width: "960px",
+          maxWidth: "96vw",
+          maxHeight: "92vh",
+          autoFocus: false,
+          disableClose: true,
+          data,
+        },
+      )
+      .afterClosed()
+      .subscribe((result) => {
+        const results = result?.results ?? [];
+        if (results.length) {
+          this.onInfoBoxesSplit(results);
+        }
+      });
   }
 
   /** Xóa thùng ở lớp LOT (Chi tiết thông tin) — DELETE + bỏ khỏi danh sách scan */
@@ -2357,6 +2441,34 @@ export class ScanImportDialogComponent
     }
     this.lastUnloadSyncAt = now;
     this.infoTemNccService.syncScanTotalOnUnload(deliveryId, trigger);
+  }
+
+  /**
+   * Sau khi tách: thùng gốc (giảm SL, đã vào PO) cập nhật vào danh sách scan, cộng SL đã
+   * nhận của dòng PO; ReelID thùng dư đánh dấu đã dùng → tải lại Chi tiết thông tin.
+   */
+  private onInfoBoxesSplit(results: SplitBoxResult[]): void {
+    for (const r of results) {
+      const rows = [
+        ...this.boxRows,
+        ...this.palletRows.flatMap((p) => p.boxes),
+      ];
+      for (const row of rows.filter((x) => x.dbId === r.original.id)) {
+        this.boxRecords.set(row.id, r.original);
+        row.quantity = Number(r.original.initialQuantity ?? 0);
+        row.poCode =
+          toText(
+            (this.data.parentItems ?? []).find((p) => p.id === r.poLineId)
+              ?.poCode,
+          ) || row.poCode;
+      }
+      this.pendingInfoEdits.delete(r.original.id);
+      this.addReceived(r.poLineId, r.intoPoQty);
+      this.usedReelIds.add(toText(r.remainder.reelId));
+    }
+    this.bumpSummary();
+    this.loadInfoData();
+    this.cdr.markForCheck();
   }
 
   /** Báo panel Tổng hợp tải lại */

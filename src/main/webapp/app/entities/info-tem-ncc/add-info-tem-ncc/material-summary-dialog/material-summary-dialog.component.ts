@@ -148,6 +148,10 @@ const EMPTY_PO: AddPoItem = {
   importBatch: null,
   materialTypeCount: 0,
   totalQuantity: 0,
+  scannedQuantity: 0,
+  sentQuantity: 0,
+  scannedProgress: 0,
+  sentProgress: 0,
   status: "WAITING",
   materials: [],
 };

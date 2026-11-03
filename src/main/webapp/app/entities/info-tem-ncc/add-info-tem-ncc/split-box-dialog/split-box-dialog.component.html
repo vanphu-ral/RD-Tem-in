@@ -37,9 +37,11 @@
       <tbody>
         <ng-container *ngFor="let row of rows">
           <tr [class.done]="row.state === 'done'">
-            <td class="reel">{{ row.record.reelId }}</td>
-            <td class="num">{{ row.quantity | number }}</td>
-            <td>
+            <td class="reel" data-label="ReelID">{{ row.record.reelId }}</td>
+            <td class="num" data-label="SL thùng">
+              {{ row.quantity | number }}
+            </td>
+            <td data-label="PO nhận">
               <select
                 class="sb-input"
                 [(ngModel)]="row.lineId"
@@ -51,8 +53,10 @@
                 </option>
               </select>
             </td>
-            <td class="num">{{ remainingText(lineOf(row)) }}</td>
-            <td class="num">
+            <td class="num" data-label="PO còn nhận">
+              {{ remainingText(lineOf(row)) }}
+            </td>
+            <td class="num" data-label="SL dư tách">
               <input
                 class="sb-input qty"
                 type="number"
@@ -63,7 +67,7 @@
                 (keydown.enter)="onSplit(row)"
               />
             </td>
-            <td class="num strong">
+            <td class="num strong" data-label="SL vào PO">
               {{ intoPo(row) === null ? "—" : (intoPo(row) | number) }}
             </td>
             <td class="actions">

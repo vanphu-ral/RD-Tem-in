@@ -135,6 +135,12 @@ export interface AddPoItem {
   importBatch: number | null;
   materialTypeCount: number;
   totalQuantity: number;
+  /** Tổng SL đã scan (mọi thùng của các vật tư trong PO) */
+  scannedQuantity: number;
+  /** Tổng SL đã gửi (thùng đã gửi cả SAP + PanaCIM) */
+  sentQuantity: number;
+  scannedProgress: number;
+  sentProgress: number;
   status: "IMPORTING" | "WAITING";
   materials: AddMaterialItem[];
 }
@@ -174,7 +180,9 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     "importBatch",
     "materialTypeCount",
     "totalQuantity",
+    "scannedQuantity",
     "status",
+    "progress",
     "actions",
   ];
 
@@ -1546,6 +1554,10 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       importBatch: null,
       materialTypeCount: materials.length,
       totalQuantity: 0,
+      scannedQuantity: materials.reduce((s, m) => s + m.receivedQuantity, 0),
+      sentQuantity: materials.reduce((s, m) => s + m.sentQuantity, 0),
+      scannedProgress: 0,
+      sentProgress: 0,
       status: "WAITING",
       materials,
     };
@@ -1667,6 +1679,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
     groups.forEach((lines, docEntry) => {
       const materials = lines.map((l) => this.mapMaterial(l));
       const received = materials.reduce((s, m) => s + m.receivedQuantity, 0);
+      const sent = materials.reduce((s, m) => s + m.sentQuantity, 0);
+      const total = materials.reduce((s, m) => s + m.poQuantity, 0);
       pos.push({
         id: ++poSeq,
         poCode: docEntry || "—",
@@ -1679,12 +1693,33 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         importDate: toText(detail.entryDate),
         importBatch: null,
         materialTypeCount: new Set(lines.map((l) => l.itemCode ?? "")).size,
-        totalQuantity: materials.reduce((s, m) => s + m.poQuantity, 0),
+        totalQuantity: total,
+        scannedQuantity: received,
+        sentQuantity: sent,
+        scannedProgress: this.toProgress(received, total),
+        sentProgress: this.toProgress(sent, total),
         status: received > 0 ? "IMPORTING" : "WAITING",
         materials,
       });
     });
     return pos;
+  }
+
+  /**
+   * % tiến độ value / total. Không làm tròn về 0 khi mới nhận rất ít so với SL PO
+   * (vd 61/150.000 = 0,04%); cho phép vượt 100% (nhận dư so với SL PO).
+   */
+  private toProgress(value: number, total: number): number {
+    if (!total || value <= 0) {
+      return 0;
+    }
+    const p = (value / total) * 100;
+    if (p >= 1) {
+      return Math.round(p * 10) / 10;
+    }
+    // < 1%: 2 số lẻ; nhỏ hơn 0,01% thì giữ giá trị thật (hiển thị "<0,01%")
+    const rounded = Math.round(p * 100) / 100;
+    return rounded > 0 ? rounded : p;
   }
 
   /** 1 dòng sapPor1R1 = 1 vật tư; vendorLabelInfoList gom theo lot, mỗi bản ghi = 1 thùng */
@@ -1700,20 +1735,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         (b) => this.isSent(b.sapSendStatus) && this.isSent(b.panaSendStatus),
       ),
     );
-    // Không làm tròn về 0 khi mới nhận rất ít so với SL PO (vd 61/150.000 = 0,04%)
-    const percent = (v: number): number => {
-      if (!poQuantity || v <= 0) {
-        return 0;
-      }
-      // Cho phép vượt 100% (nhận dư so với SL PO)
-      const p = (v / poQuantity) * 100;
-      if (p >= 1) {
-        return Math.round(p * 10) / 10;
-      }
-      // < 1%: 2 số lẻ; nhỏ hơn 0,01% thì giữ giá trị thật (hiển thị "<0,01%")
-      const rounded = Math.round(p * 100) / 100;
-      return rounded > 0 ? rounded : p;
-    };
+    const percent = (v: number): number => this.toProgress(v, poQuantity);
 
     const byLot = new Map<string, VendorLabelInfoDto[]>();
     for (const b of boxes) {
