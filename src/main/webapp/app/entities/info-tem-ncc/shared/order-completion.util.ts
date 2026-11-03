@@ -94,7 +94,7 @@ export function buildCompletedOrderPayload(
 
 /**
  * Payload PUT /delivery-notifications/{id} đổi trạng thái đơn.
- * Chỉ gửi các trường backend nhận (DTO không cho trường lạ — vd sapPor1R1List, vendorCode).
+ * Chỉ gửi các trường backend nhận (DTO không cho trường lạ — vd sapPor1R1List).
  */
 export function buildOrderStatusPayload(
   detail: DeliveryNotificationDetailDto,
@@ -105,6 +105,7 @@ export function buildOrderStatusPayload(
     deliveryNotificationCode: detail.deliveryNotificationCode,
     invoiceNumber: detail.invoiceNumber,
     contractCode: detail.contractCode,
+    vendorCode: detail.vendorCode,
     vendorName: detail.vendorName,
     contNo: detail.contNo,
     entryDate: detail.entryDate,

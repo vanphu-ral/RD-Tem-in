@@ -468,8 +468,10 @@ export class VendorLabelSendService {
       noticeNo: toText(detail.deliveryNotificationCode),
       deliveryNotificationId: detail.id,
       vendorName: toText(detail.vendorName),
+      // Mã NCC của đơn → đơn cũ chưa lưu mã: vendor trên tem → lineVendor của PO (có thể là NCC khác)
       vendorCode:
         toText(detail.vendorCode) ||
+        toText(sending.find((e) => toText(e.record.vendor))?.record.vendor) ||
         toText(lines.find((l) => toText(l.lineVendor))?.lineVendor),
       factory: toText(detail.factory),
       entryDate: toText(detail.entryDate),

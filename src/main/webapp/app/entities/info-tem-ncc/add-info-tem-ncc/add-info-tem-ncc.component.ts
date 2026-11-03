@@ -337,6 +337,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
         deliveryNotificationCode: code,
         invoiceNumber: (this.orderInfo.invoiceNumber ?? "").trim(),
         contractCode: (this.orderInfo.contractCode ?? "").trim(),
+        vendorCode: this.orderVendorCode(),
         vendorName: this.orderVendorName(),
         contNo: (this.orderInfo.contNo ?? "").trim(),
         entryDate:
@@ -1348,7 +1349,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       deliveryNotificationCode: (this.orderInfo.deliveryNotice ?? "").trim(),
       invoiceNumber: (this.orderInfo.invoiceNumber ?? "").trim(),
       contractCode: (this.orderInfo.contractCode ?? "").trim(),
-      // vendorCode: this.orderVendorCode(),
+      vendorCode: this.orderVendorCode(),
       vendorName: this.orderVendorName(),
       contNo: (this.orderInfo.contNo ?? "").trim(),
       entryDate:

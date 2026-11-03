@@ -85,7 +85,9 @@ export interface CreateDeliveryNotificationPayload {
   deliveryNotificationCode: string;
   invoiceNumber: string;
   contractCode: string;
-  /** Tên NCC (cardName) — POST không gửi vendorCode (backend báo 400) */
+  /** Mã NCC (cardCode) */
+  vendorCode: string;
+  /** Tên NCC (cardName) */
   vendorName: string;
   contNo: string;
   entryDate: string;
