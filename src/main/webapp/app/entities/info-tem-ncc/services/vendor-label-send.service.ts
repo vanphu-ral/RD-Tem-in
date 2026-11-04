@@ -52,6 +52,9 @@ export interface SapGatewayPayload {
   vendorCode: string;
   factory: string;
   entryDate: string;
+  /** Người tạo đơn (thông báo giao hàng) — đơn từ Smart là người tạo bên Smart */
+  createdBy: string;
+  /** Người đang đăng nhập bấm gửi */
   sentBy: string;
   pos: SapGatewayPo[];
 }
@@ -70,9 +73,13 @@ export interface SapGatewayItem {
   whsCode: string;
   /** SL theo PO */
   quantityPo: number;
-  /** Tổng SL đã scan của dòng (mọi đợt) */
+  /** Số lô — 1 vật tư nhiều lô → lặp lại item, mỗi lô 1 item */
+  lotNumber: string;
+  /** Hạn sử dụng của lô (yyyy-MM-dd) */
+  expiredDate: string;
+  /** Tổng SL đã scan của vật tư trong lô này (mọi đợt) */
   quantityScanned: number;
-  /** SL gửi đợt này = tổng SL các thùng chưa gửi của dòng */
+  /** SL gửi đợt này = tổng SL các thùng gửi đợt này trong lô */
   quantitySend: number;
   /** Ngày giao hàng thực tế = thời điểm ấn gửi đợt này (ISO); khác entryDate = ngày tạo phiếu */
   deliveryDate: string;
@@ -416,12 +423,53 @@ export class VendorLabelSendService {
     );
   }
 
+  /**
+   * SAP: cùng mã vật tư + số lô chỉ được 1 HSD. Lô (của thùng gửi đợt này) có thùng mang
+   * HSD khác nhau / thiếu HSD → lỗi, liệt kê để người dùng sửa HSD chung cho lô.
+   */
+  private validateLotExpiry(
+    lines: SapPor1R1Dto[],
+    sending: SendBoxEntry[],
+  ): void {
+    const sendingIds = new Set(sending.map((e) => e.record.id));
+    const problems: string[] = [];
+    for (const line of lines) {
+      const boxes = line.vendorLabelInfoList ?? [];
+      const lots = new Set(
+        boxes.filter((b) => sendingIds.has(b.id)).map((b) => toText(b.lot)),
+      );
+      for (const lot of lots) {
+        const dates = new Set(
+          boxes
+            .filter((b) => toText(b.lot) === lot)
+            .map((b) =>
+              this.formatDateYyyyMmDd(this.parseDate(b.expirationDate)),
+            ),
+        );
+        const label = `${toText(line.itemCode)} / lô ${lot || "(trống)"}`;
+        if (dates.has("")) {
+          problems.push(`${label}: có thùng chưa có HSD`);
+        } else if (dates.size > 1) {
+          problems.push(
+            `${label}: ${dates.size} HSD (${[...dates].join(", ")})`,
+          );
+        }
+      }
+    }
+    if (problems.length) {
+      throw new Error(
+        `Mỗi lô chỉ được 1 hạn sử dụng khi gửi SAP — sửa HSD chung cho lô rồi gửi lại: ${problems.join("; ")}`,
+      );
+    }
+  }
+
   private toGatewayPayload(
     detail: DeliveryNotificationDetailDto,
     lines: SapPor1R1Dto[],
     sending: SendBoxEntry[],
     user: string,
   ): SapGatewayPayload {
+    this.validateLotExpiry(lines, sending);
     const entryById = new Map(sending.map((e) => [e.record.id, e]));
     const pos = new Map<string, SapGatewayPo>();
     const deliveryDate = new Date().toISOString();
@@ -446,22 +494,32 @@ export class VendorLabelSendService {
         items: [],
       };
       pos.set(key, po);
-      po.items.push({
-        lineNum: Number(line.lineNum ?? 0),
-        itemCode: toText(line.itemCode),
-        itemName: toText(line.dscription),
-        uom: toText(line.uomCode),
-        whsCode: toText(line.whsCode),
-        quantityPo: Number(line.quantity ?? 0),
-        quantityScanned: allBoxes.reduce(
-          (sum, b) => sum + Number(b.initialQuantity ?? 0),
-          0,
-        ),
-        quantitySend: lineEntries.reduce(
-          (sum, e) => sum + Number(e.record.initialQuantity ?? 0),
-          0,
-        ),
-        deliveryDate,
+      // Vật tư có nhiều lô → mỗi số lô là 1 item, chỉ lô có thùng gửi đợt này
+      // (SAP: 1 số lô chỉ 1 HSD — đã kiểm tra ở validateLotExpiry)
+      const lotKey = (b: VendorLabelInfoDto): string => toText(b.lot);
+      const sendingLots = new Map<string, VendorLabelInfoDto[]>();
+      for (const e of lineEntries) {
+        const k = lotKey(e.record);
+        sendingLots.set(k, [...(sendingLots.get(k) ?? []), e.record]);
+      }
+      const sumQty = (list: VendorLabelInfoDto[]): number =>
+        list.reduce((sum, b) => sum + Number(b.initialQuantity ?? 0), 0);
+      sendingLots.forEach((lotBoxes, k) => {
+        po.items.push({
+          lineNum: Number(line.lineNum ?? 0),
+          itemCode: toText(line.itemCode),
+          itemName: toText(line.dscription),
+          uom: toText(line.uomCode),
+          whsCode: toText(line.whsCode),
+          quantityPo: Number(line.quantity ?? 0),
+          lotNumber: toText(lotBoxes[0].lot),
+          expiredDate: this.formatDateYyyyMmDd(
+            this.parseDate(lotBoxes[0].expirationDate),
+          ),
+          quantityScanned: sumQty(allBoxes.filter((b) => lotKey(b) === k)),
+          quantitySend: sumQty(lotBoxes),
+          deliveryDate,
+        });
       });
     }
     return {
@@ -475,6 +533,7 @@ export class VendorLabelSendService {
         toText(lines.find((l) => toText(l.lineVendor))?.lineVendor),
       factory: toText(detail.factory),
       entryDate: toText(detail.entryDate),
+      createdBy: toText(detail.createdBy),
       sentBy: user,
       pos: [...pos.values()],
     };

@@ -595,9 +595,12 @@ export class MaterialSummaryDialogComponent implements OnInit {
     }
     lot.mfgDate = date;
     lot.manufacturingDate = date ? this.formatDisplayDate(date) : "";
-    this.recalcExpiry(lot);
     for (const box of lot.boxes) {
-      this.applyMfg(box, lot.manufacturingDate, lot);
+      box.manufacturingDate = lot.manufacturingDate;
+      box.mfgDate = this.parseDisplayDate(lot.manufacturingDate);
+    }
+    if (lot.expiryOffset != null) {
+      this.recalcLotExpiry(lot, lot.manufacturingDate);
     }
     sap.lastUpdated = this.nowText();
     lot.lastUpdated = sap.lastUpdated;
@@ -613,30 +616,28 @@ export class MaterialSummaryDialogComponent implements OnInit {
   }
 
   /**
-   * Chọn số tháng/năm HSD ở hàng SAP hoặc lô → tính HSD cho hàng đó và áp xuống
-   * các lô / thùng bên dưới (mỗi dòng tính từ MFG của chính nó) — payload gửi theo thùng.
+   * Chọn số tháng/năm HSD ở hàng SAP hoặc lô → tính HSD theo TỪNG LÔ rồi gán chung cho
+   * mọi thùng trong lô (SAP: 1 số lô chỉ 1 HSD). Lô có thùng khác MFG → tính từ MFG
+   * sớm nhất của lô, không tính riêng từng thùng.
    */
   onExpiryOffsetChange(
     row: SummarySapRow | SummaryLotRow,
     offset: number | null,
   ): void {
     row.expiryOffset = offset;
-    this.recalcExpiry(row);
     if (offset == null) {
       return;
     }
-    const lots: SummaryLotRow[] = "lots" in row ? row.lots : [];
-    const boxes: SummaryBoxRow[] =
-      "lots" in row ? row.lots.flatMap((l) => l.boxes) : row.boxes;
-    for (const target of [...lots, ...boxes]) {
-      target.expiryMode = row.expiryMode;
-      target.expiryOffset = offset;
-      if (!toText(target.manufacturingDate)) {
-        // Dòng chưa có MFG → tính theo MFG của hàng cha
-        target.manufacturingDate = row.manufacturingDate;
-        target.mfgDate = this.parseDisplayDate(row.manufacturingDate);
-      }
-      this.recalcExpiry(target);
+    const lots: SummaryLotRow[] = "lots" in row ? row.lots : [row];
+    for (const lot of lots) {
+      lot.expiryMode = row.expiryMode;
+      lot.expiryOffset = offset;
+      this.recalcLotExpiry(lot, row.manufacturingDate);
+    }
+    if ("lots" in row) {
+      row.expirationDate = this.commonValue(
+        row.lots.map((l) => l.expirationDate),
+      );
     }
   }
 
@@ -1409,5 +1410,43 @@ export class MaterialSummaryDialogComponent implements OnInit {
     }
     const pad = (n: number): string => String(n).padStart(2, "0");
     return `${pad(latest.getDate())}/${pad(latest.getMonth() + 1)}/${latest.getFullYear()} ${pad(latest.getHours())}:${pad(latest.getMinutes())}`;
+  }
+
+  /** HSD của lô = MFG lô (chung / sớm nhất của thùng / của hàng cha) + offset → gán cho mọi thùng */
+  private recalcLotExpiry(lot: SummaryLotRow, fallbackMfg: string): void {
+    const base =
+      toText(lot.manufacturingDate) ||
+      this.earliestDisplayDate(lot.boxes.map((b) => b.manufacturingDate)) ||
+      toText(fallbackMfg);
+    const probe: ExpiryControls & {
+      manufacturingDate: string;
+      expirationDate: string;
+    } = {
+      expiryMode: lot.expiryMode,
+      expiryOffset: lot.expiryOffset,
+      mfgDate: null,
+      manufacturingDate: base,
+      expirationDate: lot.expirationDate,
+    };
+    this.recalcExpiry(probe);
+    lot.expirationDate = probe.expirationDate;
+    for (const box of lot.boxes) {
+      box.expiryMode = lot.expiryMode;
+      box.expiryOffset = lot.expiryOffset;
+      box.expirationDate = lot.expirationDate;
+    }
+  }
+
+  /** Ngày sớm nhất (dd/MM/yyyy) trong danh sách; không có → "" */
+  private earliestDisplayDate(values: string[]): string {
+    const dates = values
+      .map((v) => this.parseDisplayDate(v))
+      .filter((d): d is Date => !!d);
+    if (!dates.length) {
+      return "";
+    }
+    return this.formatDisplayDate(
+      new Date(Math.min(...dates.map((d) => d.getTime()))),
+    );
   }
 }

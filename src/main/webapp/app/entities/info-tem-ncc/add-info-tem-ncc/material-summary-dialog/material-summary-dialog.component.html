@@ -193,8 +193,8 @@
                   <input
                     class="cell-input hsd-result"
                     [(ngModel)]="sap.expirationDate"
-                    readonly
-                    placeholder="—"
+                    placeholder="dd/MM/yyyy"
+                    title="Chọn số tháng/năm hoặc gõ HSD rồi Enter để áp cho mọi lô"
                     (keydown.enter)="onSapFieldEnter(sap, 'expirationDate')"
                   />
                 </div>
@@ -407,8 +407,8 @@
                               <input
                                 class="cell-input hsd-result"
                                 [(ngModel)]="lot.expirationDate"
-                                readonly
-                                placeholder="—"
+                                placeholder="dd/MM/yyyy"
+                                title="Chọn số tháng/năm hoặc gõ HSD rồi Enter — áp chung cho mọi thùng trong lô"
                                 (keydown.enter)="
                                   onLotFieldEnter(sap, lot, 'expirationDate')
                                 "

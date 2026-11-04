@@ -1222,7 +1222,14 @@ export class ScanImportDialogComponent
     if (!elot?.expiryOffset) {
       return;
     }
-    const mfg = this.toApiDate(elot.mfgDate);
+    // Lô có thùng khác MFG (ô MFG trống) → tính từ MFG sớm nhất của lô; HSD áp chung cả lô
+    const boxMfgs = elot.boxes
+      .map((b) =>
+        this.toApiDate(this.infoRecords.get(b.recordId)?.manufacturingDate),
+      )
+      .filter((d) => /^\d{8}$/.test(d))
+      .sort();
+    const mfg = this.toApiDate(elot.mfgDate) || (boxMfgs[0] ?? "");
     if (!/^\d{8}$/.test(mfg)) {
       this.notificationService.warning(
         "Nhập Ngày sản xuất (dd/MM/yyyy) để tự tính Hạn sử dụng.",
