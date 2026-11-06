@@ -52,7 +52,7 @@ export interface SapGatewayPayload {
   vendorCode: string;
   factory: string;
   entryDate: string;
-  /** Người tạo đơn (thông báo giao hàng) — đơn từ Smart là người tạo bên Smart */
+  /** User SSO chọn ở màn xác nhận gửi SAP (mặc định user đang đăng nhập) */
   createdBy: string;
   /** Người đang đăng nhập bấm gửi */
   sentBy: string;
@@ -120,7 +120,10 @@ export class VendorLabelSendService {
    * Gửi SAP qua gateway: dựng body từ chi tiết đơn mới nhất (bỏ thùng đã gửi ở nơi khác) →
    * POST post-goods-receipt-po/gateway → đánh dấu sapSendStatus = true cho các thùng đợt này.
    */
-  sendSapGateway(entries: SendBoxEntry[]): Observable<SendResult> {
+  sendSapGateway(
+    entries: SendBoxEntry[],
+    createdBy: string,
+  ): Observable<SendResult> {
     const orderId = entries[0]?.record.deliveryNotificationId ?? null;
     if (orderId === null) {
       return throwError(() => new Error("Thùng chưa thuộc đơn giao hàng nào."));
@@ -130,7 +133,12 @@ export class VendorLabelSendService {
       .pipe(take(1));
     return account$.pipe(
       switchMap((account) =>
-        this.sendSapGatewayAs(orderId, entries, account?.login ?? "unknown"),
+        this.sendSapGatewayAs(
+          orderId,
+          entries,
+          account?.login ?? "unknown",
+          createdBy,
+        ),
       ),
     );
   }
@@ -140,6 +148,7 @@ export class VendorLabelSendService {
     deliveryNotificationId: number,
     entries: SendBoxEntry[],
     user: string,
+    createdBy: string,
   ): Observable<{
     payload: SapGatewayPayload;
     sending: SendBoxEntry[];
@@ -176,7 +185,13 @@ export class VendorLabelSendService {
             throw new Error("Các thùng đã được gửi SAP trước đó.");
           }
           return {
-            payload: this.toGatewayPayload(detail, lines, sending, user),
+            payload: this.toGatewayPayload(
+              detail,
+              lines,
+              sending,
+              user,
+              createdBy,
+            ),
             sending,
             detail,
           };
@@ -380,11 +395,13 @@ export class VendorLabelSendService {
     deliveryNotificationId: number,
     entries: SendBoxEntry[],
     user: string,
+    createdBy: string,
   ): Observable<SendResult> {
     return this.buildSapGatewayPayload(
       deliveryNotificationId,
       entries,
       user,
+      createdBy,
     ).pipe(
       switchMap(({ payload, sending, detail }): Observable<SendResult> => {
         const post$: Observable<string> =
@@ -468,6 +485,7 @@ export class VendorLabelSendService {
     lines: SapPor1R1Dto[],
     sending: SendBoxEntry[],
     user: string,
+    createdBy: string,
   ): SapGatewayPayload {
     this.validateLotExpiry(lines, sending);
     const entryById = new Map(sending.map((e) => [e.record.id, e]));
@@ -533,7 +551,7 @@ export class VendorLabelSendService {
         toText(lines.find((l) => toText(l.lineVendor))?.lineVendor),
       factory: toText(detail.factory),
       entryDate: toText(detail.entryDate),
-      createdBy: toText(detail.createdBy),
+      createdBy,
       sentBy: user,
       pos: [...pos.values()],
     };

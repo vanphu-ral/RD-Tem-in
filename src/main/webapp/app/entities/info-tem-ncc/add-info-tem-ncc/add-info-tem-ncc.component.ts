@@ -1195,25 +1195,27 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       entries,
       all.length - entries.length,
       pos.length === 1 ? undefined : scopeLabel,
-    ).subscribe((ok) => {
-      if (!ok) {
+    ).subscribe((confirmed) => {
+      if (!confirmed) {
         return;
       }
       this.isSendingSap = true;
       // Gửi qua gateway (thay PostGoodsReceiptPO cũ — sendSap): chỉ các thùng chưa gửi
-      this.vendorLabelSendService.sendSapGateway(entries).subscribe({
-        next: (res) => {
-          this.isSendingSap = false;
-          this.notifySendResult(res.count, res.statusSaved, "SAP");
-          this.reloadDetail();
-        },
-        error: (err: unknown) => {
-          this.isSendingSap = false;
-          this.notificationService.error(
-            resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
-          );
-        },
-      });
+      this.vendorLabelSendService
+        .sendSapGateway(entries, confirmed.createdBy)
+        .subscribe({
+          next: (res) => {
+            this.isSendingSap = false;
+            this.notifySendResult(res.count, res.statusSaved, "SAP");
+            this.reloadDetail();
+          },
+          error: (err: unknown) => {
+            this.isSendingSap = false;
+            this.notificationService.error(
+              resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
+            );
+          },
+        });
       // gửi test payload
       // this.isSendingSap = true;
       // this.vendorLabelSendService.buildSapPayload(entries).subscribe({

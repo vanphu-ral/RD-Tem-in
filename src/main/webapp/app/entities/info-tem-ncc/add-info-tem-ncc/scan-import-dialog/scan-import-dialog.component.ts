@@ -327,6 +327,8 @@ export class ScanImportDialogComponent
     string,
     { parentId: number | null; qty: number }
   >();
+  /** Việc chờ các thùng đang POST lưu xong (vd quét vị trí ngay sau khi quét thùng) */
+  private afterBoxesSaved: Array<() => void> = [];
   /** Bản ghi pallet-mngt theo mã (để PUT trạng thái), key = serialPallet */
   private palletRecords = new Map<string, PalletRecord>();
   /** Bản ghi thùng cho màn Chi tiết thông tin (key = id bản ghi) */
@@ -1855,6 +1857,7 @@ export class ScanImportDialogComponent
       next: (saved) => {
         this.savingCount--;
         this.inFlightBoxes.delete(reelId);
+        this.flushAfterBoxesSaved();
         // Backend không trả bản ghi → giữ payload đã gửi (không có id thì không PUT/DELETE được)
         const record: VendorLabelInfoDto = {
           ...payload,
@@ -1894,6 +1897,7 @@ export class ScanImportDialogComponent
       error: (err: unknown) => {
         this.savingCount--;
         this.inFlightBoxes.delete(reelId);
+        this.flushAfterBoxesSaved();
         this.usedReelIds.delete(reelId);
         this.addReceived(matchedRow?.id ?? null, -quantity);
         // Hiện mã HTTP + API đã gọi + nội dung lỗi gốc (chẩn đoán lỗi trên mobile, không debug được)
@@ -2339,9 +2343,18 @@ export class ScanImportDialogComponent
         }
         // Có pallet đang quét → áp cho pallet đó; không → các thùng lẻ chưa có vị trí
         this.listTab = this.activePallet ? "pallet" : "box";
-        this.submitLocationScan(found);
         after();
         this.cdr.markForCheck();
+        // Thùng vừa quét còn đang lưu (chưa có id / chưa lên danh sách) → đợi lưu xong
+        // mới gán, tránh bỏ sót thùng (hay gặp trên mobile mạng chậm)
+        if (this.inFlightBoxes.size) {
+          this.notificationService.info(
+            `Đang lưu ${this.inFlightBoxes.size} thùng — sẽ gán vị trí "${found}" ngay khi lưu xong.`,
+          );
+          this.afterBoxesSaved.push(() => this.submitLocationScan(found));
+          return;
+        }
+        this.submitLocationScan(found);
       })
       .catch(() => {
         this.notificationService.error("Không kiểm tra được danh sách vị trí.");
@@ -2750,6 +2763,20 @@ export class ScanImportDialogComponent
         },
       });
     }
+  }
+
+  /** Hết thùng đang lưu → chạy các việc đang chờ (gán vị trí) */
+  private flushAfterBoxesSaved(): void {
+    if (this.inFlightBoxes.size || !this.afterBoxesSaved.length) {
+      return;
+    }
+    const jobs = this.afterBoxesSaved;
+    this.afterBoxesSaved = [];
+    // Sau nhịp hiện tại: dòng thùng vừa lưu đã vào boxRows / pallet
+    setTimeout(() => {
+      jobs.forEach((job) => job());
+      this.cdr.markForCheck();
+    });
   }
 
   private removeBoxFromPalletLocal(

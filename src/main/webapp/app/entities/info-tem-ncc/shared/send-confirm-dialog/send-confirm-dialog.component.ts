@@ -1,21 +1,85 @@
-import { ChangeDetectionStrategy, Component, Inject } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  Inject,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
+import {
+  AbstractControl,
+  FormControl,
+  ReactiveFormsModule,
+  ValidationErrors,
+} from "@angular/forms";
+import { MatAutocompleteModule } from "@angular/material/autocomplete";
 import { MatButtonModule } from "@angular/material/button";
+import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatIconModule } from "@angular/material/icon";
+import { MatInputModule } from "@angular/material/input";
 import {
   MAT_DIALOG_DATA,
   MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from "@angular/material/dialog";
-import { Observable } from "rxjs";
-import { map } from "rxjs/operators";
+import { combineLatest, Observable, of } from "rxjs";
+import {
+  catchError,
+  distinctUntilChanged,
+  map,
+  shareReplay,
+  startWith,
+  take,
+} from "rxjs/operators";
+import { AccountService } from "app/core/auth/account.service";
 import { toText } from "../../services/info-tem-ncc.service";
+import { SsoUser, SsoUserService } from "../../services/sso-user.service";
 import type { SendBoxEntry } from "../../services/vendor-label-send.service";
+
+/** Kết quả khi bấm Xác nhận gửi */
+export interface SendConfirmResult {
+  /** sapUser của user được chọn (chỉ khi gửi SAP) → createdBy trong body gửi SAP; PanaCIM: "" */
+  createdBy: string;
+}
+
+/** Số user tối đa hiện trong panel autocomplete */
+const SSO_USER_LIMIT = 50;
+
+/** "mã user - họ tên" (không có họ tên → chỉ mã user) */
+export function ssoUserLabel(u: SsoUser | null | string): string {
+  if (!u || typeof u === "string") {
+    return u ?? "";
+  }
+  const name = ssoUserName(u);
+  return name ? `${u.username} - ${name}` : u.username;
+}
+
+/** Họ tên user ("" nếu SSO không có họ tên) */
+function ssoUserName(u: SsoUser): string {
+  return [u.firstName, u.lastName].filter(Boolean).join(" ");
+}
+
+/** Chữ thường, bỏ dấu tiếng Việt — để tìm "nguyen" ra "Nguyễn" */
+function normalize(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/đ/gi, "d")
+    .toLowerCase();
+}
+
+/** Bắt buộc chọn 1 user trong danh sách (gõ chữ tự do không hợp lệ), user phải có sapUser */
+function selectedUserValidator(c: AbstractControl): ValidationErrors | null {
+  if (!c.value || typeof c.value !== "object") {
+    return { required: true };
+  }
+  return (c.value as SsoUser).sapUser ? null : { noSapUser: true };
+}
 
 /**
  * Mở modal xác nhận gửi kèm thống kê: số thùng, số LOT (theo mã SAP + lot),
- * tổng số lượng của các thùng sẽ gửi, số thùng đã gửi bị bỏ qua → true nếu Xác nhận.
+ * tổng số lượng của các thùng sẽ gửi, số thùng đã gửi bị bỏ qua → kết quả nếu Xác nhận
+ * (null nếu Hủy). Gửi SAP: bắt buộc chọn user (createdBy), mặc định user đang đăng nhập.
  * scopeLabel: tiêu đề phạm vi gửi thay cho "PO …" (vd gửi cả đơn); các thùng thuộc
  * nhiều PO → hiện thêm bảng số thùng / số lượng theo từng PO.
  */
@@ -26,7 +90,7 @@ export function openSendConfirm(
   entries: SendBoxEntry[],
   skippedCount: number,
   scopeLabel?: string,
-): Observable<boolean> {
+): Observable<SendConfirmResult | null> {
   const lots = new Set(
     entries.map((e) => `${toText(e.sapCode)}|${toText(e.record.lot)}`),
   );
@@ -52,7 +116,7 @@ export function openSendConfirm(
     skippedCount,
   };
   return dialog
-    .open<SendConfirmDialogComponent, SendConfirmDialogData, boolean>(
+    .open<SendConfirmDialogComponent, SendConfirmDialogData, SendConfirmResult>(
       SendConfirmDialogComponent,
       {
         width: "92vw",
@@ -62,7 +126,7 @@ export function openSendConfirm(
       },
     )
     .afterClosed()
-    .pipe(map((result) => result === true));
+    .pipe(map((result) => result ?? null));
 }
 
 export interface SendConfirmDialogData {
@@ -93,7 +157,16 @@ export interface SendConfirmPoRow {
 @Component({
   selector: "jhi-send-confirm-dialog",
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
+    MatAutocompleteModule,
+    MatFormFieldModule,
+    MatInputModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="send-confirm">
@@ -144,16 +217,49 @@ export interface SendConfirmPoRow {
           Bỏ qua {{ data.skippedCount | number }} thùng đã gửi
           {{ data.target }}.
         </p>
+        <mat-form-field
+          *ngIf="isSap"
+          appearance="outline"
+          class="sc-user"
+          subscriptSizing="dynamic"
+        >
+          <mat-label>User gửi (người tạo)</mat-label>
+          <input
+            type="text"
+            matInput
+            [formControl]="userCtrl"
+            [matAutocomplete]="userAuto"
+            placeholder="Tìm theo mã user hoặc họ tên"
+          />
+          <mat-autocomplete
+            #userAuto="matAutocomplete"
+            [displayWith]="userLabel"
+          >
+            <mat-option *ngFor="let u of users$ | async" [value]="u">
+              {{ userLabel(u) }}
+            </mat-option>
+          </mat-autocomplete>
+          <mat-error *ngIf="userCtrl.hasError('required')">
+            Chọn một user trong danh sách.
+          </mat-error>
+          <mat-error *ngIf="userCtrl.hasError('noSapUser')">
+            User này chưa được khai báo tài khoản SAP (sap_user) trên SSO.
+          </mat-error>
+          <mat-hint *ngIf="loadError" class="sc-user-error">
+            Không tải được danh sách user từ SSO.
+          </mat-hint>
+        </mat-form-field>
       </mat-dialog-content>
       <mat-dialog-actions align="end">
-        <button mat-button type="button" (click)="dialogRef.close(false)">
+        <button mat-button type="button" (click)="dialogRef.close()">
           Hủy
         </button>
         <button
           mat-raised-button
           color="primary"
           type="button"
-          (click)="dialogRef.close(true)"
+          [disabled]="isSap && userCtrl.invalid"
+          (click)="confirm()"
         >
           Xác nhận gửi
         </button>
@@ -229,12 +335,101 @@ export interface SendConfirmPoRow {
         width: 16px;
         height: 16px;
       }
+      .sc-user {
+        width: 100%;
+        margin-top: 16px;
+      }
+      .sc-user-error {
+        color: #b91c1c;
+      }
     `,
   ],
 })
 export class SendConfirmDialogComponent {
+  readonly isSap: boolean;
+  readonly userLabel = ssoUserLabel;
+  readonly userCtrl = new FormControl<SsoUser | string | null>(null, {
+    validators: selectedUserValidator,
+  });
+  loadError = false;
+  /** Gõ → lọc trong cache theo mã user / họ tên (không phân biệt hoa thường, dấu), tối đa 50 */
+  readonly users$: Observable<SsoUser[]>;
+
   constructor(
-    public dialogRef: MatDialogRef<SendConfirmDialogComponent, boolean>,
+    public dialogRef: MatDialogRef<
+      SendConfirmDialogComponent,
+      SendConfirmResult
+    >,
     @Inject(MAT_DIALOG_DATA) public data: SendConfirmDialogData,
-  ) {}
+    ssoUserService: SsoUserService,
+    accountService: AccountService,
+    cdr: ChangeDetectorRef,
+  ) {
+    this.isSap = data.target === "SAP";
+    // Danh sách user lấy từ cache (SsoUserService) — chỉ gọi Keycloak khi cache trống / hết hạn
+    const allUsers$ = this.isSap
+      ? ssoUserService.getAllUsers().pipe(
+          catchError((err: unknown) => {
+            console.error("Fetch SSO users error:", err);
+            this.loadError = true;
+            cdr.markForCheck();
+            return of<SsoUser[]>([]);
+          }),
+          shareReplay(1),
+        )
+      : of<SsoUser[]>([]);
+    this.users$ = combineLatest([
+      allUsers$,
+      this.userCtrl.valueChanges.pipe(
+        startWith(""),
+        map((v) => (typeof v === "string" ? normalize(v.trim()) : "")),
+        distinctUntilChanged(),
+      ),
+    ]).pipe(
+      map(([users, term]) =>
+        (term
+          ? users.filter(
+              (u) =>
+                normalize(u.username).includes(term) ||
+                normalize(ssoUserName(u)).includes(term),
+            )
+          : users
+        ).slice(0, SSO_USER_LIMIT),
+      ),
+    );
+    if (this.isSap) {
+      // Mặc định: user đang đăng nhập — lấy từ danh sách Keycloak để có sapUser
+      combineLatest([accountService.identity().pipe(take(1)), allUsers$])
+        .pipe(
+          take(1),
+          map(([account, users]) =>
+            account
+              ? (users.find((u) => u.username === account.login) ?? {
+                  username: account.login,
+                  firstName: account.firstName,
+                  lastName: account.lastName,
+                })
+              : null,
+          ),
+        )
+        .subscribe((user) => {
+          if (user && !this.userCtrl.value) {
+            this.userCtrl.setValue(user);
+            this.userCtrl.markAsTouched();
+            cdr.markForCheck();
+          }
+        });
+    }
+  }
+
+  confirm(): void {
+    const user = this.userCtrl.value;
+    if (this.isSap && this.userCtrl.invalid) {
+      return;
+    }
+    // createdBy = sapUser của user được chọn (validator đã đảm bảo có)
+    this.dialogRef.close({
+      createdBy: user && typeof user === "object" ? (user.sapUser ?? "") : "",
+    });
+  }
 }

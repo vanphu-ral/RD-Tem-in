@@ -193,7 +193,8 @@ export class SendSystemDialogComponent {
     this.sendTo(
       "SAP",
       (lot) => SAP_ALLOW_RESEND || !lot.sent,
-      (entries) => this.vendorLabelSendService.sendSapGateway(entries),
+      (entries, createdBy) =>
+        this.vendorLabelSendService.sendSapGateway(entries, createdBy),
       (lot) => (lot.sent = true),
     );
   }
@@ -224,7 +225,11 @@ export class SendSystemDialogComponent {
   private sendTo(
     target: string,
     notSentYet: (lot: SendSystemLot) => boolean,
-    send: (entries: SendBoxEntry[]) => Observable<SendResult>,
+    /** createdBy: user chọn ở màn xác nhận (chỉ gửi SAP) */
+    send: (
+      entries: SendBoxEntry[],
+      createdBy: string,
+    ) => Observable<SendResult>,
     markSent: (lot: SendSystemLot) => void,
   ): void {
     if (this.isSending) {
@@ -272,7 +277,7 @@ export class SendSystemDialogComponent {
         return;
       }
       this.isSending = true;
-      send(entries).subscribe({
+      send(entries, ok.createdBy).subscribe({
         next: (res) => {
           this.isSending = false;
           this.changed = true;
