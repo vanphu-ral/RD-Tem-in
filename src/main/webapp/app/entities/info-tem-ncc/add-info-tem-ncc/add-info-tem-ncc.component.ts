@@ -82,6 +82,7 @@ import { completeOrderFlow } from "../shared/complete-order.flow";
 import { ScanImportDialogComponent } from "./scan-import-dialog/scan-import-dialog.component";
 import { ScanImportDialogData } from "./scan-import-dialog/scan-import.models";
 import { boxLocation } from "../shared/box-location.util";
+import { ConfirmDialogComponent } from "app/entities/pallet-note-management/confirm-dialog/confirm-dialog.component";
 
 /** Cấp 3 – lot */
 export interface AddLotItem {
@@ -252,6 +253,12 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild("poDetailDialog") poDetailDialog!: TemplateRef<unknown>;
+  @ViewChild("rejectDialog") rejectDialog!: TemplateRef<unknown>;
+  rejectDialogRef: MatDialogRef<unknown> | null = null;
+  /** Từ chối nhận: PO đang mở rộng, PO chọn toàn bộ, vật tư được chọn */
+  rejectExpandedPos = new Set<AddPoItem>();
+  rejectSelectedPos = new Set<AddPoItem>();
+  rejectSelectedMaterials = new Set<AddMaterialItem>();
   private partLoadedPoIds = new Set<number>();
   /** Thùng đã scan nhưng chưa thuộc dòng PO nào của đơn */
   private unassignedBoxes: VendorLabelInfoDto[] = [];
@@ -629,6 +636,106 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
 
   closePoDetail(): void {
     this.poDetailRef?.close();
+  }
+
+  get rejectSelectedCount(): number {
+    return this.rejectSelectedPos.size + this.rejectSelectedMaterials.size;
+  }
+
+  /** Mở dialog từ chối nhận: chọn PO / vật tư trong đơn */
+  openRejectDialog(): void {
+    this.rejectExpandedPos.clear();
+    this.rejectSelectedPos.clear();
+    this.rejectSelectedMaterials.clear();
+    this.rejectDialogRef = this.dialog.open(this.rejectDialog, {
+      width: "95vw",
+      height: "90vh",
+      maxWidth: "95vw",
+      maxHeight: "90vh",
+      autoFocus: false,
+    });
+    this.rejectDialogRef.afterClosed().subscribe(() => {
+      this.rejectDialogRef = null;
+    });
+  }
+
+  toggleRejectExpand(po: AddPoItem): void {
+    if (!po.materials.length) {
+      return;
+    }
+    if (this.rejectExpandedPos.has(po)) {
+      this.rejectExpandedPos.delete(po);
+    } else {
+      this.rejectExpandedPos.add(po);
+    }
+  }
+
+  isRejectPoSelected(po: AddPoItem): boolean {
+    return this.rejectSelectedPos.has(po);
+  }
+
+  isRejectPoPartial(po: AddPoItem): boolean {
+    return (
+      !this.rejectSelectedPos.has(po) &&
+      po.materials.some((m) => this.rejectSelectedMaterials.has(m))
+    );
+  }
+
+  toggleRejectPo(po: AddPoItem, checked: boolean): void {
+    if (checked) {
+      this.rejectSelectedPos.add(po);
+      po.materials.forEach((m) => this.rejectSelectedMaterials.add(m));
+    } else {
+      this.rejectSelectedPos.delete(po);
+      po.materials.forEach((m) => this.rejectSelectedMaterials.delete(m));
+    }
+  }
+
+  toggleRejectMaterial(
+    po: AddPoItem,
+    m: AddMaterialItem,
+    checked: boolean,
+  ): void {
+    if (checked) {
+      this.rejectSelectedMaterials.add(m);
+    } else {
+      this.rejectSelectedMaterials.delete(m);
+    }
+    // PO được chọn khi toàn bộ vật tư của PO được chọn
+    if (po.materials.every((x) => this.rejectSelectedMaterials.has(x))) {
+      this.rejectSelectedPos.add(po);
+    } else {
+      this.rejectSelectedPos.delete(po);
+    }
+  }
+
+  isAllRejectSelected(): boolean {
+    const pos = this.dataSource.data;
+    return pos.length > 0 && pos.every((po) => this.rejectSelectedPos.has(po));
+  }
+
+  toggleAllReject(checked: boolean): void {
+    this.dataSource.data.forEach((po) => this.toggleRejectPo(po, checked));
+  }
+
+  onConfirmReject(): void {
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: "420px",
+        data: {
+          title: "Xác nhận từ chối nhận",
+          message: `Bạn có chắc chắn muốn từ chối nhận ${this.rejectSelectedPos.size} PO, ${this.rejectSelectedMaterials.size} vật tư đã chọn không?`,
+          confirmText: "Từ chối",
+          cancelText: "Hủy",
+          type: "danger",
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          this.notificationService.info("Chức năng này đang phát triển");
+        }
+      });
   }
 
   toggleMaterial(m: AddMaterialItem, event?: Event): void {

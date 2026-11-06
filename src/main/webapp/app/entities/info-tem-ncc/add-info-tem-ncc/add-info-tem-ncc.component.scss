@@ -10,6 +10,9 @@ $table-border: #cbd5e1;
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 12px;
 
   .d-flex {
@@ -480,6 +483,108 @@ $table-border: #cbd5e1;
 .empty-cell {
   color: #9ca3af;
   font-style: italic;
+}
+
+// Dialog từ chối nhận
+.reject-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 14px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+
+  .reject-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .reject-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #fdecee;
+    color: #dc3545;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  button {
+    color: #6b7280;
+  }
+}
+
+.col-check {
+  width: 48px;
+}
+
+// Checkbox trên header bảng (nền xanh) → viền / nền trắng cho dễ thấy
+.head-check {
+  --mdc-checkbox-unselected-icon-color: #fff;
+  --mdc-checkbox-unselected-hover-icon-color: #fff;
+  --mdc-checkbox-unselected-focus-icon-color: #fff;
+  --mdc-checkbox-selected-icon-color: #fff;
+  --mdc-checkbox-selected-hover-icon-color: #fff;
+  --mdc-checkbox-selected-focus-icon-color: #fff;
+  --mdc-checkbox-selected-checkmark-color: #{$table-header};
+}
+
+.reject-po-row td {
+  font-weight: 500;
+}
+
+.reject-material-row td {
+  background: #f8fafc;
+  color: #4b5563;
+}
+
+// Dòng đã chọn từ chối → tô đỏ nhạt
+.material-row.reject-selected td,
+.reject-material-row.reject-selected td {
+  background: #fef2f2;
+}
+
+.reject-footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fff;
+  border-top: 1px solid $table-border;
+
+  .reject-count {
+    margin-right: auto;
+    font-size: 13px;
+    color: #4b5563;
+
+    strong {
+      color: #dc3545;
+    }
+  }
 }
 
 mat-paginator {

@@ -58,6 +58,8 @@ import {
 } from "../../shared/vendor-qr-mapping.util";
 import { boxLocation, locationFields } from "../../shared/box-location.util";
 import { playScanSound } from "../../shared/scan-sound.util";
+import { autoExpiryDates } from "../../shared/auto-expiry.util";
+import { OrderSummaryPanelComponent } from "../order-summary-panel/order-summary-panel.component";
 import { normalizeLocationScan } from "app/entities/list-material/services/scan-code.util";
 import {
   clearQueueReason,
@@ -228,6 +230,8 @@ export class ScanImportDialogComponent
 {
   @ViewChild("palletInputRef") palletInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild("wsRef") wsRef?: ElementRef<HTMLElement>;
+  @ViewChild(OrderSummaryPanelComponent)
+  summaryPanel?: OrderSummaryPanelComponent;
   @ViewChild("wsTopRef") wsTopRef?: ElementRef<HTMLElement>;
   @ViewChild("boxInputRef") boxInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild("locationInputRef")
@@ -335,6 +339,8 @@ export class ScanImportDialogComponent
   private infoRecords = new Map<number, VendorLabelInfoDto>();
   /** Thay đổi đã "Áp dụng" nhưng chưa gửi — key = id bản ghi, value = payload PUT đầy đủ */
   private pendingInfoEdits = new Map<number, VendorLabelInfoDto>();
+  /** HSD tự điền (NSX + 2 năm, chưa lưu) cho thùng chưa có HSD — key = id bản ghi, value = yyyyMMdd */
+  private autoHsd = new Map<number, string>();
   private lastInfoDetail: DeliveryNotificationDetailDto | null = null;
   private lastInfoBoxes: VendorLabelInfoDto[] = [];
   /** Part number lấy từ OITM theo mã SAP (key = sapCode) */
@@ -495,7 +501,8 @@ export class ScanImportDialogComponent
 
   /** Số thùng đã sửa, chờ bấm "Cập nhật" */
   get pendingInfoCount(): number {
-    return this.pendingInfoEdits.size;
+    return new Set([...this.pendingInfoEdits.keys(), ...this.autoHsd.keys()])
+      .size;
   }
 
   /** Mobile: tab Pallet chỉ hiện pallet đang quét (và các thùng của nó); desktop: tất cả */
@@ -895,7 +902,7 @@ export class ScanImportDialogComponent
   }
 
   onCancel(): void {
-    this.dialogRef.close(null);
+    this.confirmLeaveUnsaved(() => this.dialogRef.close(null));
   }
 
   onConfirm(): void {
@@ -930,11 +937,13 @@ export class ScanImportDialogComponent
   }
 
   onSaveDraft(): void {
-    this.dialogRef.close({
-      mode: this.mode,
-      boxRows: [...this.boxRows],
-      palletRows: [...this.palletRows],
-    });
+    this.confirmLeaveUnsaved(() =>
+      this.dialogRef.close({
+        mode: this.mode,
+        boxRows: [...this.boxRows],
+        palletRows: [...this.palletRows],
+      }),
+    );
   }
 
   onDetailInfo(): void {
@@ -1284,7 +1293,24 @@ export class ScanImportDialogComponent
     if (this.isSavingLot) {
       return;
     }
-    const payloads = [...this.pendingInfoEdits.values()];
+    // Thùng đã sửa + thùng có HSD tự điền (chưa có HSD thì lưu kèm HSD tự điền)
+    const payloads: VendorLabelInfoDto[] = [];
+    const ids = new Set([
+      ...this.pendingInfoEdits.keys(),
+      ...this.autoHsd.keys(),
+    ]);
+    ids.forEach((id) => {
+      const base = this.pendingInfoEdits.get(id) ?? this.infoRecords.get(id);
+      if (!base) {
+        return;
+      }
+      const auto = this.autoHsd.get(id);
+      payloads.push({
+        ...base,
+        expirationDate: toText(base.expirationDate) || (auto ?? null),
+        palletBoxMapping: undefined,
+      });
+    });
     if (!payloads.length) {
       this.notificationService.info("Không có thùng nào thay đổi.");
       return;
@@ -1302,6 +1328,7 @@ export class ScanImportDialogComponent
       for (const r of results) {
         if (r.ok) {
           this.pendingInfoEdits.delete(r.id);
+          this.autoHsd.delete(r.id);
         }
       }
       const ok = results.filter((r) => r.ok).length;
@@ -1884,6 +1911,8 @@ export class ScanImportDialogComponent
           this.boxRows = [row, ...this.boxRows];
           this.listTab = "box";
         }
+        // Thùng mới chưa có HSD → tự điền NSX + 2 năm (chưa lưu)
+        this.applyAutoHsd([...this.boxRecords.values()]);
         // Panel Tổng hợp: tải lại + chuyển sang PO của thùng, nhấp sáng dòng
         this.followSignal = {
           poCode: toText(row.poCode),
@@ -2596,6 +2625,7 @@ export class ScanImportDialogComponent
             }
           }
         });
+        this.applyAutoHsd(records);
         this.cdr.markForCheck();
       },
       error: () => {
@@ -2856,6 +2886,47 @@ export class ScanImportDialogComponent
   /** Modal lựa chọn 2 nút (thay window.confirm) — gọn, dễ bấm trên mobile */
   private confirmAction(data: ChoiceDialogData): Observable<boolean> {
     return openChoiceDialog(this.dialog, data);
+  }
+
+  /** Còn thùng sửa / HSD tự điền chưa lưu → hỏi lại trước khi đóng màn scan */
+  private confirmLeaveUnsaved(leave: () => void): void {
+    // Thùng sửa chưa "Cập nhật" (mobile) + HSD tự điền + ô đang sửa chưa Lưu ở bảng Tổng hợp (desktop)
+    const count = new Set([
+      ...this.pendingInfoEdits.keys(),
+      ...this.autoHsd.keys(),
+      ...(this.summaryPanel?.unsavedBoxIds() ?? []),
+    ]).size;
+    if (!count) {
+      leave();
+      return;
+    }
+    this.confirmAction({
+      title: "Có thay đổi chưa lưu",
+      message: `Còn ${count} thùng có thay đổi chưa lưu (HSD tự điền, Rank, MSL, UserData, vị trí…). Bạn chắc chắn muốn thoát?`,
+      confirmText: "Thoát",
+      cancelText: "Ở lại",
+      tone: "warning",
+    }).subscribe((ok) => {
+      if (ok) {
+        leave();
+      }
+    });
+  }
+
+  /**
+   * Tính lại HSD tự điền từ toàn bộ thùng của đơn (thùng chưa có HSD: NSX + 2 năm,
+   * theo NSX sớm nhất của lô) rồi hiện lên danh sách thùng / pallet.
+   */
+  private applyAutoHsd(records: VendorLabelInfoDto[]): void {
+    this.autoHsd = autoExpiryDates(records);
+    const rows = [...this.boxRows, ...this.palletRows.flatMap((p) => p.boxes)];
+    for (const row of rows) {
+      const rec = this.boxRecords.get(row.id);
+      if (rec) {
+        row.hsd =
+          toText(rec.expirationDate) || (this.autoHsd.get(rec.id) ?? "");
+      }
+    }
   }
 
   /** Dựng dòng hiển thị từ bản ghi thùng + lưu bản ghi để PUT/DELETE */
@@ -3176,6 +3247,7 @@ export class ScanImportDialogComponent
         this.isLoadingInfo = false;
         this.lastInfoDetail = detail;
         this.lastInfoBoxes = boxes;
+        this.applyAutoHsd(boxes);
         this.buildInfoData(detail, boxes);
         this.cdr.markForCheck();
       },
@@ -3204,7 +3276,11 @@ export class ScanImportDialogComponent
       : lines.flatMap((l) => l.vendorLabelInfoList ?? []);
     for (const raw of source) {
       // Thùng đã "Áp dụng" nhưng chưa gửi → hiển thị theo giá trị đã sửa
-      const b = this.pendingInfoEdits.get(raw.id) ?? raw;
+      const edited = this.pendingInfoEdits.get(raw.id) ?? raw;
+      const auto = toText(edited.expirationDate)
+        ? undefined
+        : this.autoHsd.get(raw.id);
+      const b = auto ? { ...edited, expirationDate: auto } : edited;
       this.infoRecords.set(b.id, b);
       const lineId = b.sapPor1Id ?? null;
       if (lineId !== null && lineIds.has(lineId)) {

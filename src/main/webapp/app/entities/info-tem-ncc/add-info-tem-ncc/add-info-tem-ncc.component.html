@@ -11,6 +11,16 @@
       </button>
       <h1>Nhập thông tin TEM từ NCC</h1>
     </div>
+    <button
+      mat-raised-button
+      color="warn"
+      type="button"
+      class="reject-btn"
+      (click)="openRejectDialog()"
+    >
+      <mat-icon>block</mat-icon>
+      Từ chối nhận
+    </button>
   </div>
 
   <!-- Header: thông tin giao hàng -->
@@ -759,6 +769,150 @@
           (pageChange)="onMaterialPage(row, $event)"
         ></jhi-mini-pager>
       </div>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Từ chối nhận: chọn PO / vật tư -->
+<ng-template #rejectDialog>
+  <div class="po-detail-dialog">
+    <div class="reject-header">
+      <div class="reject-title">
+        <span class="reject-icon"><mat-icon>block</mat-icon></span>
+        <div>
+          <h2>Từ chối nhận vật tư</h2>
+          <p>Chọn PO hoặc vật tư trong đơn không nhận</p>
+        </div>
+      </div>
+      <button
+        mat-icon-button
+        type="button"
+        matTooltip="Đóng"
+        (click)="rejectDialogRef?.close()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="po-detail-body">
+      <div class="material-table-wrap">
+        <table class="material-table">
+          <thead>
+            <tr>
+              <th class="col-expand"></th>
+              <th class="col-check">
+                <mat-checkbox
+                  color="primary"
+                  class="head-check"
+                  [checked]="isAllRejectSelected()"
+                  [indeterminate]="
+                    !isAllRejectSelected() && rejectSelectedCount > 0
+                  "
+                  [disabled]="!dataSource.data.length"
+                  (change)="toggleAllReject($event.checked)"
+                ></mat-checkbox>
+              </th>
+              <th>Mã PO / Mã vật tư</th>
+              <th>Tên vật tư</th>
+              <th>Partnumber</th>
+              <th>Mã kho</th>
+              <th>Số mã vật tư</th>
+              <th>Số lượng theo PO</th>
+              <th>Số lượng đã scan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let po of dataSource.data">
+              <tr
+                class="material-row reject-po-row"
+                [class.expanded]="rejectExpandedPos.has(po)"
+                [class.reject-selected]="
+                  isRejectPoSelected(po) || isRejectPoPartial(po)
+                "
+                (click)="toggleRejectExpand(po)"
+              >
+                <td (click)="$event.stopPropagation()">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [disabled]="!po.materials.length"
+                    (click)="toggleRejectExpand(po)"
+                  >
+                    <mat-icon>{{
+                      rejectExpandedPos.has(po) ? "expand_less" : "expand_more"
+                    }}</mat-icon>
+                  </button>
+                </td>
+                <td (click)="$event.stopPropagation()">
+                  <mat-checkbox
+                    color="primary"
+                    [checked]="isRejectPoSelected(po)"
+                    [indeterminate]="isRejectPoPartial(po)"
+                    (change)="toggleRejectPo(po, $event.checked)"
+                  ></mat-checkbox>
+                </td>
+                <td>
+                  <strong>{{ po.poCode }}</strong>
+                </td>
+                <td>—</td>
+                <td>—</td>
+                <td>{{ po.warehouseKeeper }}</td>
+                <td>{{ po.materialTypeCount }}</td>
+                <td>{{ po.totalQuantity | number }}</td>
+                <td>{{ po.scannedQuantity | number }}</td>
+              </tr>
+              <ng-container *ngIf="rejectExpandedPos.has(po)">
+                <tr
+                  *ngFor="let m of po.materials"
+                  class="reject-material-row"
+                  [class.reject-selected]="rejectSelectedMaterials.has(m)"
+                >
+                  <td></td>
+                  <td>
+                    <mat-checkbox
+                      color="primary"
+                      [checked]="rejectSelectedMaterials.has(m)"
+                      (change)="toggleRejectMaterial(po, m, $event.checked)"
+                    ></mat-checkbox>
+                  </td>
+                  <td>{{ m.materialCode }}</td>
+                  <td>{{ m.materialName }}</td>
+                  <td>{{ m.partNumber || "—" }}</td>
+                  <td>{{ m.warehouseCode }}</td>
+                  <td>—</td>
+                  <td>{{ m.poQuantity | number }}</td>
+                  <td>{{ m.receivedQuantity | number }}</td>
+                </tr>
+              </ng-container>
+            </ng-container>
+            <tr *ngIf="!dataSource.data.length">
+              <td colspan="9" class="empty-cell">Không có PO trong đơn</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="reject-footer">
+      <span class="reject-count">
+        Đã chọn: <strong>{{ rejectSelectedPos.size }}</strong> PO ·
+        <strong>{{ rejectSelectedMaterials.size }}</strong> vật tư
+      </span>
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="rejectDialogRef?.close()"
+      >
+        Hủy
+      </button>
+      <button
+        mat-raised-button
+        color="warn"
+        type="button"
+        [disabled]="!rejectSelectedCount"
+        (click)="onConfirmReject()"
+      >
+        <mat-icon>block</mat-icon>
+        Xác nhận từ chối
+      </button>
     </div>
   </div>
 </ng-template>

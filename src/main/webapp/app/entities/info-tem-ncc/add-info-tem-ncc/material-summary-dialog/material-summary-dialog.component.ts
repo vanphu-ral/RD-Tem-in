@@ -43,6 +43,7 @@ import {
   SplitBoxDialogResult,
 } from "../split-box-dialog/split-box-dialog.component";
 import { openVendorNccLabelPrint } from "../../shared/split-label-print.util";
+import { autoExpiryDates } from "../../shared/auto-expiry.util";
 
 export type ExpiryMode = "month" | "year";
 
@@ -749,6 +750,17 @@ export class MaterialSummaryDialogComponent implements OnInit {
       });
   }
 
+  /** id các thùng đang sửa trên bảng mà chưa lưu (MFG, HSD, vị trí, Rank, UserData, MSL, PO) */
+  unsavedBoxIds(): number[] {
+    return this.rows.flatMap((sap) =>
+      sap.lots.flatMap((lot) =>
+        lot.boxes.flatMap((box) =>
+          box.record?.id && this.buildUpdatePayload(box) ? [box.record.id] : [],
+        ),
+      ),
+    );
+  }
+
   onCancel(): void {
     if (this.isSaving) {
       return;
@@ -1217,11 +1229,19 @@ export class MaterialSummaryDialogComponent implements OnInit {
   /** Dựng bảng từ dữ liệu thật: vật tư → lô → thùng (vendorLabelInfoList của API detail) */
   private buildRowsFromPo(po: AddPoItem): SummarySapRow[] {
     const materials: AddMaterialItem[] = po?.materials ?? [];
+    // Màn Scan: thùng chưa có HSD → tự điền NSX + 2 năm (chưa lưu, bấm Lưu mới PUT)
+    const autoHsd = this.embedded
+      ? autoExpiryDates(
+          materials.flatMap((m) =>
+            (m.lots ?? []).flatMap((l) => l.boxes ?? []),
+          ),
+        )
+      : new Map<number, string>();
     return materials.map((m) => {
       const lots: SummaryLotRow[] = (m.lots ?? []).map((lot) => {
         // Mã kho SAP = whsCode của dòng vật tư trong PO
         const boxes: SummaryBoxRow[] = (lot.boxes ?? []).map((b) =>
-          this.toBoxRow(b, m.warehouseCode),
+          this.toBoxRow(b, m.warehouseCode, autoHsd.get(b.id)),
         );
         const lotMfg = this.commonValue(boxes.map((b) => b.manufacturingDate));
         return {
@@ -1269,7 +1289,11 @@ export class MaterialSummaryDialogComponent implements OnInit {
   }
 
   /** 1 bản ghi vendor-label-info = 1 thùng; mã thùng = ReelID */
-  private toBoxRow(b: VendorLabelInfoDto, whsCode: string): SummaryBoxRow {
+  private toBoxRow(
+    b: VendorLabelInfoDto,
+    whsCode: string,
+    autoHsd?: string,
+  ): SummaryBoxRow {
     const mfg = this.toDisplayDate(toText(b.manufacturingDate));
     return {
       id: b.id,
@@ -1277,7 +1301,9 @@ export class MaterialSummaryDialogComponent implements OnInit {
       reelId: toText(b.reelId),
       quantity: Number(b.initialQuantity ?? 0),
       manufacturingDate: mfg,
-      expirationDate: this.toDisplayDate(toText(b.expirationDate)),
+      expirationDate: this.toDisplayDate(
+        toText(b.expirationDate) || (autoHsd ?? ""),
+      ),
       location: boxLocation(b),
       warehouseCode: toText(whsCode),
       userData1: toText(b.userData1),

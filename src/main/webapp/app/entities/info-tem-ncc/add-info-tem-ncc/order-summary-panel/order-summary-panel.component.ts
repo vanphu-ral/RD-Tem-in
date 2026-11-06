@@ -4,11 +4,13 @@ import {
   Input,
   OnDestroy,
   Output,
+  ViewChild,
 } from "@angular/core";
 import { Observable, Subscription } from "rxjs";
 import { toText } from "../../services/info-tem-ncc.service";
 import { AddPoItem } from "../add-info-tem-ncc.component";
 import {
+  MaterialSummaryDialogComponent,
   MaterialSummaryDialogData,
   SummaryHighlight,
   UnassignedPoLine,
@@ -59,6 +61,8 @@ export class OrderSummaryPanelComponent implements OnDestroy {
   /** Hàm tải dữ liệu cả đơn (trả OrderWorkspaceData) */
   @Input() loader: (() => Observable<unknown>) | null = null;
   @Output() saved = new EventEmitter<number>();
+  @ViewChild(MaterialSummaryDialogComponent)
+  summary?: MaterialSummaryDialogComponent;
 
   data: OrderWorkspaceData | null = null;
   cards: PoCard[] = [];
@@ -105,6 +109,11 @@ export class OrderSummaryPanelComponent implements OnDestroy {
       lot: signal.lot,
       seq: signal.seq,
     };
+  }
+
+  /** id các thùng đang sửa trên bảng tổng hợp mà chưa lưu */
+  unsavedBoxIds(): number[] {
+    return this.summary?.unsavedBoxIds() ?? [];
   }
 
   get isUnassignedSelected(): boolean {

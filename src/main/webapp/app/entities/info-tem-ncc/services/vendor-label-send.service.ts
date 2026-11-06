@@ -274,6 +274,84 @@ export class VendorLabelSendService {
     entries: SendBoxEntry[],
     fileTag: string,
   ): Observable<SendResult> {
+    return this.withCompleteDetailRecords(entries).pipe(
+      switchMap((fresh) => this.postPanacim(fresh, fileTag)),
+    );
+  }
+
+  /** Dựng nội dung CSV gửi PanaCIM (không gửi) — đúng file sẽ upload lên /api/csv-upload */
+  buildPanacimCsv(
+    entries: SendBoxEntry[],
+    fileTag: string,
+  ): { fileName: string; content: string; rowCount: number } {
+    const rows = this.toPanacimRows(entries);
+    return {
+      fileName: `CSV_UP_Panacim_${this.toSafeFileTag(fileTag)}_${new Date().toISOString().split("T")[0]}.csv`,
+      content: generateTemPanacimCsvContent(rows, (date) =>
+        this.formatDateYyyyMmDd(date),
+      ),
+      rowCount: rows.length,
+    };
+  }
+
+  /**
+   * Lấy bản ghi thùng mới nhất từ chi tiết đơn; thùng thiếu Vị trí kho / NSX / HSD
+   * → lỗi liệt kê thùng + trường thiếu, không gửi.
+   */
+  private withCompleteDetailRecords(
+    entries: SendBoxEntry[],
+  ): Observable<SendBoxEntry[]> {
+    const orderIds = [
+      ...new Set(entries.map((e) => e.record.deliveryNotificationId ?? null)),
+    ];
+    if (!orderIds.length || orderIds.includes(null)) {
+      return throwError(() => new Error("Thùng chưa thuộc đơn giao hàng nào."));
+    }
+    return forkJoin(
+      orderIds.map((id) =>
+        this.infoTemNccService.getDeliveryNotificationDetail(id!),
+      ),
+    ).pipe(
+      map((details) => {
+        const byId = new Map(
+          details
+            .flatMap((d) => d.sapPor1R1List ?? [])
+            .flatMap((l) => l.vendorLabelInfoList ?? [])
+            .map((b) => [b.id, b]),
+        );
+        const problems: string[] = [];
+        const fresh = entries.map((e) => {
+          const rec = byId.get(e.record.id);
+          const reel = toText(e.record.reelId);
+          if (!rec) {
+            problems.push(`${reel}: không có trong chi tiết đơn`);
+            return e;
+          }
+          const missing = [
+            boxLocation(rec) ? "" : "Vị trí kho",
+            toText(rec.manufacturingDate) ? "" : "NSX",
+            toText(rec.expirationDate) ? "" : "HSD",
+          ].filter(Boolean);
+          if (missing.length) {
+            problems.push(`${reel}: thiếu ${missing.join(", ")}`);
+          }
+          return { ...e, record: rec };
+        });
+        if (problems.length) {
+          const shown = problems.slice(0, 10).join("; ");
+          throw new Error(
+            `Còn ${problems.length} thùng thiếu thông tin, chưa gửi PanaCIM — ${shown}${problems.length > 10 ? "; …" : ""}`,
+          );
+        }
+        return fresh;
+      }),
+    );
+  }
+
+  private postPanacim(
+    entries: SendBoxEntry[],
+    fileTag: string,
+  ): Observable<SendResult> {
     const { fileName, rowCount } = this.buildPanacimCsv(entries, fileTag);
     const blob = generateTemPanacimCsvBlob(
       this.toPanacimRows(entries),
@@ -299,21 +377,6 @@ export class VendorLabelSendService {
           );
         }),
       );
-  }
-
-  /** Dựng nội dung CSV gửi PanaCIM (không gửi) — đúng file sẽ upload lên /api/csv-upload */
-  buildPanacimCsv(
-    entries: SendBoxEntry[],
-    fileTag: string,
-  ): { fileName: string; content: string; rowCount: number } {
-    const rows = this.toPanacimRows(entries);
-    return {
-      fileName: `CSV_UP_Panacim_${this.toSafeFileTag(fileTag)}_${new Date().toISOString().split("T")[0]}.csv`,
-      content: generateTemPanacimCsvContent(rows, (date) =>
-        this.formatDateYyyyMmDd(date),
-      ),
-      rowCount: rows.length,
-    };
   }
 
   private toPanacimRows(entries: SendBoxEntry[]): TemPanacimExportInput[] {
