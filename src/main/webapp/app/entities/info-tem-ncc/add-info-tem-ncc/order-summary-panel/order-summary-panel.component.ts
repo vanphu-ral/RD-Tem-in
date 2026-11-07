@@ -116,6 +116,11 @@ export class OrderSummaryPanelComponent implements OnDestroy {
     return this.summary?.unsavedBoxIds() ?? [];
   }
 
+  /** Số dòng vật tư đổi mã kho SAP mà chưa lưu */
+  unsavedWhsCount(): number {
+    return this.summary?.unsavedWhsCount() ?? 0;
+  }
+
   get isUnassignedSelected(): boolean {
     return this.selectedKey === UNASSIGNED_KEY;
   }

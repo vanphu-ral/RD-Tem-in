@@ -225,11 +225,47 @@
                 </mat-autocomplete>
               </td>
               <td>
+                <!-- Hàng chờ (chưa có PO): không có dòng PO để đổi mã kho -->
                 <span
+                  *ngIf="isUnassigned; else whsEdit"
                   class="whs-readonly"
                   matTooltip="Mã kho SAP theo dòng PO"
                   >{{ sap.warehouseCode || "—" }}</span
                 >
+                <ng-template #whsEdit>
+                  <input
+                    #whsInput
+                    class="cell-input whs-input"
+                    [class.whs-changed]="isWhsChanged(sap)"
+                    [value]="displaySapWarehouse(sap.warehouseCode)"
+                    [matAutocomplete]="sapWhsAuto"
+                    (input)="onSapWarehouseSearch(whsInput.value)"
+                    (focus)="onSapWarehouseSearch('')"
+                    (blur)="onSapWarehouseBlur(sap, whsInput)"
+                    (keydown.enter)="whsInput.blur()"
+                    [placeholder]="isLoadingSapWarehouses ? 'Đang tải...' : '—'"
+                    [matTooltip]="
+                      isWhsChanged(sap)
+                        ? 'Đã đổi mã kho — bấm Xác nhận cập nhật để lưu'
+                        : 'Mã kho SAP theo dòng PO'
+                    "
+                  />
+                  <mat-autocomplete
+                    #sapWhsAuto="matAutocomplete"
+                    panelWidth="300px"
+                    [displayWith]="displaySapWarehouse"
+                    (optionSelected)="
+                      onSapWarehouseSelected(sap, $event.option.value)
+                    "
+                  >
+                    <mat-option
+                      *ngFor="let w of filteredSapWarehouses"
+                      [value]="w.whsCode"
+                    >
+                      {{ w.whsCode }} - {{ w.whsName }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </ng-template>
               </td>
               <td>
                 <span

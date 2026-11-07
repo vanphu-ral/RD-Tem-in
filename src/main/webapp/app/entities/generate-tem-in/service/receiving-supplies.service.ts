@@ -9,12 +9,15 @@ import {
   last,
   map,
   of,
+  retry,
+  shareReplay,
   switchMap,
   take,
   throwError,
 } from "rxjs";
 import { ApplicationConfigService } from "app/core/config/application-config.service";
 import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
+import { NotificationService } from "app/entities/list-material/services/notification.service";
 import { environment } from "app/environments/environment";
 import { ExcelImportData } from "../models/list-product-of-request.model";
 
@@ -322,10 +325,16 @@ export class ReceivingSuppliesService {
   private isFetchingWarehouses = false;
   private warehouseInitPromise: Promise<void> | null = null;
 
+  /** Kho SAP (/owhs): tải 1 lần / lần tải trang, dùng chung mọi màn */
+  private sapWarehouses$: Observable<SapOwhsDto[]> | null = null;
+  /** Đã lỗi sau 3 lần thử → không gọi lại tới khi tải lại trang */
+  private sapWarehousesFailed = false;
+
   constructor(
     private http: HttpClient,
     private applicationConfigService: ApplicationConfigService,
     private warehouseCache: WarehouseCacheService,
+    private notificationService: NotificationService,
   ) {}
 
   /** Tạo / truy vấn đơn nhập từ SAP PO. */
@@ -555,11 +564,26 @@ export class ReceivingSuppliesService {
 
   /** Như getSapWarehouses nhưng không nuốt lỗi — nơi gọi tự retry / báo lỗi. */
   getSapWarehousesOrError(): Observable<SapOwhsDto[]> {
-    return this.http
+    if (this.sapWarehousesFailed) {
+      return throwError(() => new Error("Không tải được danh sách kho SAP."));
+    }
+    // Gọi tối đa 3 lần (1 + 2 lần thử lại); thành công thì giữ kết quả cho cả trang
+    this.sapWarehouses$ ??= this.http
       .get<SapOwhsDto[]>(`${this.baseUrl}/owhs`)
       .pipe(
         map((rows) => (rows ?? []).filter((r) => Boolean(r.whsCode?.trim()))),
+        retry({ count: 2, delay: 1000 }),
+        catchError((err: unknown) => {
+          this.sapWarehousesFailed = true;
+          this.sapWarehouses$ = null;
+          this.notificationService.error(
+            "Không tải được danh sách kho SAP — tải lại trang để thử lại.",
+          );
+          return throwError(() => err);
+        }),
+        shareReplay(1),
       );
+    return this.sapWarehouses$;
   }
 
   /** Lấy sản phẩm đơn từ GraphQL (WhsCode, sapSendStatus). */

@@ -297,6 +297,13 @@ export class InfoTemNccService {
       .pipe(map((): boolean => true));
   }
 
+  /** PATCH /sap-por-1-r-1-s/{id} — chỉ đổi mã kho SAP (whsCode) của dòng vật tư; trường khác giữ nguyên */
+  patchSapPor1WhsCode(id: number, whsCode: string): Observable<boolean> {
+    return this.http
+      .patch<unknown>(`${this.url}/sap-por-1-r-1-s/${id}`, { id, whsCode })
+      .pipe(map((): boolean => true));
+  }
+
   /** PUT /delivery-notifications/{id} — cập nhật đơn (kể cả xóa mềm: deletedAt / deletedBy) */
   updateDeliveryNotification(
     payload: DeliveryNotificationDto,

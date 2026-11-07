@@ -655,6 +655,12 @@ tr.flash > td {
   color: #111827;
 }
 
+// Ô mã kho SAP đã đổi, chưa lưu
+.whs-input.whs-changed {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
 /* Hàng chờ: nút tách thùng thừa SL */
 .summary-table .lot-table .col-action {
   width: auto;

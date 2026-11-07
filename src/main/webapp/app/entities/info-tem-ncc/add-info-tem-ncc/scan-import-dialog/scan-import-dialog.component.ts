@@ -2891,18 +2891,19 @@ export class ScanImportDialogComponent
   /** Còn thùng sửa / HSD tự điền chưa lưu → hỏi lại trước khi đóng màn scan */
   private confirmLeaveUnsaved(leave: () => void): void {
     // Thùng sửa chưa "Cập nhật" (mobile) + HSD tự điền + ô đang sửa chưa Lưu ở bảng Tổng hợp (desktop)
-    const count = new Set([
-      ...this.pendingInfoEdits.keys(),
-      ...this.autoHsd.keys(),
-      ...(this.summaryPanel?.unsavedBoxIds() ?? []),
-    ]).size;
+    const count =
+      new Set([
+        ...this.pendingInfoEdits.keys(),
+        ...this.autoHsd.keys(),
+        ...(this.summaryPanel?.unsavedBoxIds() ?? []),
+      ]).size + (this.summaryPanel?.unsavedWhsCount() ?? 0);
     if (!count) {
       leave();
       return;
     }
     this.confirmAction({
       title: "Có thay đổi chưa lưu",
-      message: `Còn ${count} thùng có thay đổi chưa lưu (HSD tự điền, Rank, MSL, UserData, vị trí…). Bạn chắc chắn muốn thoát?`,
+      message: `Còn ${count} thay đổi chưa lưu (HSD tự điền, Rank, MSL, UserData, vị trí, mã kho…). Bạn chắc chắn muốn thoát?`,
       confirmText: "Thoát",
       cancelText: "Ở lại",
       tone: "warning",

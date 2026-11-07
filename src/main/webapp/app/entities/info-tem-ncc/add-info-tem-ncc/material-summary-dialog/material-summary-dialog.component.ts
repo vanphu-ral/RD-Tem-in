@@ -44,6 +44,10 @@ import {
 } from "../split-box-dialog/split-box-dialog.component";
 import { openVendorNccLabelPrint } from "../../shared/split-label-print.util";
 import { autoExpiryDates } from "../../shared/auto-expiry.util";
+import {
+  ReceivingSuppliesService,
+  SapOwhsDto,
+} from "app/entities/generate-tem-in/service/receiving-supplies.service";
 
 export type ExpiryMode = "month" | "year";
 
@@ -191,6 +195,10 @@ export class MaterialSummaryDialogComponent implements OnInit {
   /** Autocomplete vị trí — tìm trong IndexedDB (WarehouseCacheService) */
   locationOptions: CachedWarehouse[] = [];
   isLoadingLocations = false;
+  /** Danh sách kho SAP (/owhs) cho ô Mã kho ở hàng vật tư — tải khi focus lần đầu */
+  sapWarehouses: SapOwhsDto[] = [];
+  filteredSapWarehouses: SapOwhsDto[] = [];
+  isLoadingSapWarehouses = false;
   /** Đang gửi PUT cập nhật thùng */
   isSaving = false;
   /** Số thùng đã lưu từ dialog "Cập nhật thông tin vật tư" (để báo màn gọi tải lại) */
@@ -211,6 +219,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
     private notificationService: NotificationService,
     private warehouseCache: WarehouseCacheService,
     private infoTemNccService: InfoTemNccService,
+    private receivingService: ReceivingSuppliesService,
   ) {
     this.data = data ?? { po: EMPTY_PO };
   }
@@ -761,6 +770,99 @@ export class MaterialSummaryDialogComponent implements OnInit {
     );
   }
 
+  /** Số dòng vật tư đổi mã kho SAP mà chưa lưu */
+  unsavedWhsCount(): number {
+    return this.rows.filter((sap) => this.isWhsChanged(sap)).length;
+  }
+
+  /** Mã kho của dòng vật tư khác mã kho đã lưu (dòng PO) */
+  isWhsChanged(sap: SummarySapRow): boolean {
+    if (this.isUnassigned) {
+      return false;
+    }
+    const saved = this.data.po?.materials.find((m) => m.id === sap.id);
+    return !!saved && toText(sap.warehouseCode) !== toText(saved.warehouseCode);
+  }
+
+  /** Gõ / focus ô Mã kho → lọc theo mã hoặc tên kho (tải /owhs lần đầu) */
+  onSapWarehouseSearch(keyword: string): void {
+    if (!this.sapWarehouses.length) {
+      // Service tải 1 lần / trang (lỗi 3 lần thì thôi) → ở đây chỉ gọi khi chưa có danh sách,
+      // không tự gọi lại sau khi nhận về (tránh lặp vô hạn khi lỗi / rỗng)
+      if (!this.isLoadingSapWarehouses) {
+        this.isLoadingSapWarehouses = true;
+        this.receivingService.getSapWarehouses().subscribe((list) => {
+          this.isLoadingSapWarehouses = false;
+          this.sapWarehouses = list;
+          this.filterSapWarehouses(keyword);
+        });
+      }
+      return;
+    }
+    this.filterSapWarehouses(keyword);
+  }
+
+  /** Lọc danh sách kho đã tải theo mã / tên */
+  filterSapWarehouses(keyword: string): void {
+    const term = toText(keyword).toLowerCase();
+    this.filteredSapWarehouses = term
+      ? this.sapWarehouses.filter(
+          (w) =>
+            toText(w.whsCode).toLowerCase().includes(term) ||
+            toText(w.whsName).toLowerCase().includes(term),
+        )
+      : [...this.sapWarehouses];
+  }
+
+  /** Hiển thị "whsCode - whsName" (chưa tải danh sách → chỉ mã) */
+  displaySapWarehouse = (code: string | null): string => {
+    const c = toText(code);
+    const whs = this.sapWarehouses.find((w) => w.whsCode === c);
+    return whs ? `${whs.whsCode} - ${whs.whsName}` : c;
+  };
+
+  /**
+   * Rời ô Mã kho sau khi gõ tay → trả về text hiển thị lại trong ô.
+   * Có danh sách kho: chỉ nhận mã có trong danh sách (gõ "mã" hoặc "mã - tên"), sai → báo + giữ giá trị cũ.
+   * Không tải được danh sách: nhận nguyên mã đã gõ (người dùng tự biết mã kho).
+   */
+  onSapWarehouseBlur(sap: SummarySapRow, input: HTMLInputElement): void {
+    // Đợi 1 nhịp: bấm chọn option thì optionSelected chạy trước (ô đã hiện "mã - tên" mới),
+    // tránh báo nhầm phần đang gõ dở là mã sai
+    setTimeout(() => {
+      input.value = this.onSapWarehouseTyped(sap, input.value);
+    }, 150);
+  }
+
+  onSapWarehouseTyped(sap: SummarySapRow, text: string): string {
+    const typed = toText(text);
+    const current = toText(sap.warehouseCode);
+    if (!typed || typed === this.displaySapWarehouse(current)) {
+      return this.displaySapWarehouse(current);
+    }
+    const code = toText(typed.split(" - ")[0]);
+    if (this.sapWarehouses.length) {
+      const found = this.sapWarehouses.find(
+        (w) => toText(w.whsCode).toLowerCase() === code.toLowerCase(),
+      );
+      if (!found) {
+        this.notificationService.warning(
+          `Mã kho "${code}" không có trong danh sách kho SAP.`,
+        );
+        return this.displaySapWarehouse(current);
+      }
+      this.applyWhs(sap, found.whsCode);
+    } else {
+      this.applyWhs(sap, code);
+    }
+    return this.displaySapWarehouse(sap.warehouseCode);
+  }
+
+  /** Chọn kho ở hàng vật tư → áp cho lô / thùng bên dưới (hiển thị); bấm cập nhật mới PATCH */
+  onSapWarehouseSelected(sap: SummarySapRow, code: string): void {
+    this.applyWhs(sap, toText(code));
+  }
+
   onCancel(): void {
     if (this.isSaving) {
       return;
@@ -790,17 +892,36 @@ export class MaterialSummaryDialogComponent implements OnInit {
         }
       }
     }
-    if (!payloads.length) {
-      this.notificationService.info("Không có thùng nào thay đổi.");
+    // Dòng vật tư đổi mã kho SAP → PATCH /sap-por-1-r-1-s/{id}
+    const whsRows = this.rows.filter((sap) => this.isWhsChanged(sap));
+    if (!payloads.length && !whsRows.length) {
+      this.notificationService.info("Không có thay đổi nào.");
       return;
     }
 
-    const requests: Array<Observable<boolean>> = payloads.map((payload) =>
-      this.infoTemNccService.updateVendorLabelInfo(payload).pipe(
-        map(() => true),
-        catchError(() => of(false)),
+    const requests: Array<Observable<boolean>> = [
+      ...payloads.map((payload) =>
+        this.infoTemNccService.updateVendorLabelInfo(payload).pipe(
+          map(() => true),
+          catchError(() => of(false)),
+        ),
       ),
-    );
+      ...whsRows.map((sap) =>
+        this.infoTemNccService
+          .patchSapPor1WhsCode(sap.id, toText(sap.warehouseCode))
+          .pipe(
+            map(() => {
+              // Đã lưu → coi mã kho mới là giá trị gốc (hết "chưa lưu")
+              const m = this.data.po?.materials.find((x) => x.id === sap.id);
+              if (m) {
+                m.warehouseCode = toText(sap.warehouseCode);
+              }
+              return true;
+            }),
+            catchError(() => of(false)),
+          ),
+      ),
+    ];
     this.isSaving = true;
     forkJoin(requests).subscribe((results) => {
       this.isSaving = false;
@@ -808,13 +929,13 @@ export class MaterialSummaryDialogComponent implements OnInit {
       const failed = results.length - ok;
       if (!ok) {
         this.notificationService.error(
-          `Cập nhật thất bại ${failed} thùng — vui lòng thử lại.`,
+          `Cập nhật thất bại ${failed} mục — vui lòng thử lại.`,
         );
         return;
       }
       if (failed) {
         this.notificationService.warning(
-          `Cập nhật ${ok}/${results.length} thùng thành công, ${failed} thùng lỗi.`,
+          `Cập nhật ${ok}/${results.length} mục thành công, ${failed} mục lỗi.`,
         );
         return;
       }
@@ -826,7 +947,13 @@ export class MaterialSummaryDialogComponent implements OnInit {
           `Cập nhật ${ok} thùng; ${unmatched} thùng có PO không chứa mã vật tư đó nên vẫn ở "Hàng chờ vật tư".`,
         );
       } else {
-        this.notificationService.success(`Cập nhật thành công ${ok} thùng.`);
+        const parts = [
+          payloads.length ? `${payloads.length} thùng` : "",
+          whsRows.length ? `${whsRows.length} mã kho` : "",
+        ].filter(Boolean);
+        this.notificationService.success(
+          `Cập nhật thành công ${parts.join(", ")}.`,
+        );
       }
       if (this.embedded) {
         this.saved.emit(ok);
@@ -852,8 +979,19 @@ export class MaterialSummaryDialogComponent implements OnInit {
         }
       }
     }
+    const pendingWhs = new Map(
+      this.rows
+        .filter((sap) => this.isWhsChanged(sap))
+        .map((sap) => [sap.id, sap.warehouseCode]),
+    );
     beforeRebuild?.();
     this.rows = this.buildRowsFromPo(this.data.po);
+    for (const sap of this.rows) {
+      const whs = pendingWhs.get(sap.id);
+      if (whs !== undefined) {
+        this.applyWhs(sap, whs);
+      }
+    }
     for (const sap of this.rows) {
       let sapTouched = false;
       for (const lot of sap.lots) {
@@ -939,6 +1077,17 @@ export class MaterialSummaryDialogComponent implements OnInit {
     this.lotDialogUpdated += saved.length;
     if (this.embedded) {
       this.saved.emit(saved.length);
+    }
+  }
+
+  /** Gán mã kho SAP cho hàng vật tư + lô + thùng bên dưới (mã kho theo dòng PO) */
+  private applyWhs(sap: SummarySapRow, whsCode: string): void {
+    sap.warehouseCode = whsCode;
+    for (const lot of sap.lots) {
+      lot.warehouseCode = whsCode;
+      for (const box of lot.boxes) {
+        box.warehouseCode = whsCode;
+      }
     }
   }
 
