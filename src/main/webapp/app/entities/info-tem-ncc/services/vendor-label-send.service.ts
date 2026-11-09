@@ -89,7 +89,7 @@ export interface SapGatewayItem {
  * TẠM THỜI (test gateway): cho gửi SAP lại cả thùng đã gửi (sapSendStatus = true).
  * Test xong đặt lại false → chỉ gửi thùng chưa gửi như cũ.
  */
-export const SAP_ALLOW_RESEND = true;
+export const SAP_ALLOW_RESEND = false;
 
 export interface SendResult {
   count: number;

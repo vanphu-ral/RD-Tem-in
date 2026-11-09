@@ -130,28 +130,6 @@
   }
 }
 
-.per-row {
-  .stepper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    input {
-      width: 56px;
-      height: 36px;
-      text-align: center;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      font-weight: 600;
-    }
-
-    button {
-      min-width: 40px;
-      padding: 0;
-    }
-  }
-}
-
 .hint {
   margin: 6px 0 0;
   font-size: 12px;

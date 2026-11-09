@@ -6,11 +6,7 @@ import { PalletItem, PalletLabelSize } from "./pallet-management.model";
 export interface PalletPrintOptions {
   pallets: PalletItem[];
   labelSize: PalletLabelSize;
-  labelsPerRow: number;
 }
-
-const PRINT_ROOT_ID = "pallet-label-print-root";
-const PRINT_STYLE_ID = "pallet-label-print-style";
 
 function escapeHtml(value: string): string {
   return String(value ?? "")
@@ -41,160 +37,110 @@ function toBarcodeDataUrl(text: string): string {
   return canvas.toDataURL("image/png");
 }
 
-function buildPrintCss(
-  labelSize: PalletLabelSize,
-  labelsPerRow: number,
-): string {
+/** Khổ tem (mm) = khổ 1 trang in: QR 100×100, barcode rộng 100 × cao 40 */
+function labelPageSize(labelSize: PalletLabelSize): { w: number; h: number } {
+  return labelSize === "100x100" ? { w: 100, h: 100 } : { w: 100, h: 40 };
+}
+
+/**
+ * CSS tài liệu in: mỗi tem pallet là 1 trang, khổ trang = khổ tem, không lề.
+ * Chạy trong iframe riêng — không dính CSS in của app (Bootstrap `@page { size: a3 }`,
+ * `body { min-width: 992px }` làm sai khổ trang và co tem).
+ */
+function buildPrintCss(labelSize: PalletLabelSize): string {
   const isQr = labelSize === "100x100";
-  const perRow = isQr ? Math.min(2, Math.max(1, labelsPerRow)) : 1;
-  const labelWidth = isQr ? "100mm" : "100mm";
-  const labelHeight = isQr ? "100mm" : "40mm";
-
+  const { w, h } = labelPageSize(labelSize);
   return `
-    #${PRINT_ROOT_ID} {
-      display: none;
-    }
-
-    @media print {
-      @page { size: A4; margin: 8mm; }
-
-      body * {
-        visibility: hidden !important;
-      }
-
-      #${PRINT_ROOT_ID},
-      #${PRINT_ROOT_ID} * {
-        visibility: visible !important;
-      }
-
-      #${PRINT_ROOT_ID} {
-        display: block !important;
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        background: #fff;
-        z-index: 99999;
-      }
-
-      .cdk-overlay-container,
-      .cdk-global-overlay-wrapper,
-      .mat-mdc-dialog-container {
-        display: none !important;
-      }
-
-      #${PRINT_ROOT_ID} .sheet {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4mm;
-        align-content: flex-start;
-      }
-
-      #${PRINT_ROOT_ID} .label {
-        width: calc((100% - ${(perRow - 1) * 4}mm) / ${perRow});
-        max-width: ${labelWidth};
-        height: ${labelHeight};
-        border: 1px solid #222;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 3mm;
-        page-break-inside: avoid;
-        overflow: hidden;
-        box-sizing: border-box;
-      }
-
-      #${PRINT_ROOT_ID} .label img {
-        max-width: 100%;
-        max-height: ${isQr ? "72mm" : "22mm"};
-        object-fit: contain;
-      }
-
-      #${PRINT_ROOT_ID} .code {
-        margin-top: 2mm;
-        font-size: ${isQr ? "11px" : "12px"};
-        font-weight: 700;
-        text-align: center;
-        word-break: break-all;
-        line-height: 1.25;
-        font-family: Arial, Helvetica, sans-serif;
-      }
-    }
-  `;
+@page { size: ${w}mm ${h}mm; margin: 0; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+html, body { margin: 0; padding: 0; background: #fff; }
+.label {
+  width: ${w}mm; height: ${h}mm; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: ${isQr ? "4mm" : "2mm 3mm"};
+  page-break-after: always; break-after: page;
+}
+.label:last-child { page-break-after: auto; break-after: auto; }
+.label img { display: block; ${isQr ? "width: 78mm; height: 78mm;" : "width: 94mm; height: 26mm;"} object-fit: contain; }
+.code {
+  margin-top: ${isQr ? "2mm" : "1mm"}; font: 700 ${isQr ? "14pt" : "11pt"}/1.2 Arial, Helvetica, sans-serif;
+  text-align: center; word-break: break-all;
+}
+`;
 }
 
-function ensurePrintStyle(
-  labelSize: PalletLabelSize,
-  labelsPerRow: number,
-): void {
-  let styleEl = document.getElementById(
-    PRINT_STYLE_ID,
-  ) as HTMLStyleElement | null;
-  if (!styleEl) {
-    styleEl = document.createElement("style");
-    styleEl.id = PRINT_STYLE_ID;
-    document.head.appendChild(styleEl);
-  }
-  styleEl.textContent = buildPrintCss(labelSize, labelsPerRow);
+/** Chờ mọi ảnh trong tài liệu tải xong (lỗi cũng bỏ qua) */
+function waitImages(doc: Document): Promise<void> {
+  const images = Array.from(doc.images).filter((img) => !img.complete);
+  return Promise.all(
+    images.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+        }),
+    ),
+  ).then(() => undefined);
 }
 
-function cleanupPrintRoot(): void {
-  document.getElementById(PRINT_ROOT_ID)?.remove();
-}
-
-/** In ngay trên trang hiện tại (giống Ctrl+P), không mở popup. */
+/**
+ * In tem pallet trong iframe ẩn chỉ chứa tài liệu tem (mỗi tem 1 trang).
+ * iframe gỡ khi đóng hộp thoại in (hoặc sau 60s nếu trình duyệt không bắn afterprint).
+ */
 export async function printPalletLabels(
   options: PalletPrintOptions,
 ): Promise<void> {
-  const { pallets, labelSize, labelsPerRow } = options;
+  const { pallets, labelSize } = options;
   if (!pallets.length) {
     return;
   }
 
   const isQr = labelSize === "100x100";
   const cards: string[] = [];
-
   for (const pallet of pallets) {
     const code = pallet.serialPallet ?? "";
     const img = isQr ? await toQrDataUrl(code) : toBarcodeDataUrl(code);
-    cards.push(`
-      <div class="label">
-        <img src="${img}" alt="${escapeHtml(code)}" />
-        <div class="code">${escapeHtml(code)}</div>
-      </div>
-    `);
+    cards.push(
+      `<div class="label"><img src="${img}" alt="${escapeHtml(code)}" /><div class="code">${escapeHtml(code)}</div></div>`,
+    );
   }
+  const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>In tem pallet</title>
+<style>${buildPrintCss(labelSize)}</style>
+</head>
+<body>${cards.join("")}</body>
+</html>`;
 
-  cleanupPrintRoot();
-  ensurePrintStyle(labelSize, labelsPerRow);
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  const win = iframe.contentWindow;
+  if (!doc || !win) {
+    iframe.remove();
+    return;
+  }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  await waitImages(doc);
 
-  const root = document.createElement("div");
-  root.id = PRINT_ROOT_ID;
-  root.innerHTML = `<div class="sheet">${cards.join("")}</div>`;
-  document.body.appendChild(root);
-
-  const onAfterPrint = (): void => {
-    cleanupPrintRoot();
-    window.removeEventListener("afterprint", onAfterPrint);
+  let removed = false;
+  const cleanup = (): void => {
+    if (!removed) {
+      removed = true;
+      iframe.remove();
+    }
   };
-  window.addEventListener("afterprint", onAfterPrint);
-
-  // Đợi ảnh decode xong rồi mới mở hộp thoại in hệ thống
-  await Promise.all(
-    Array.from(root.querySelectorAll("img")).map((img) =>
-      img.complete
-        ? Promise.resolve()
-        : new Promise<void>((resolve) => {
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-          }),
-    ),
-  );
-
-  window.print();
+  win.addEventListener("afterprint", cleanup);
+  win.focus();
+  win.print();
+  setTimeout(cleanup, 60000);
 }
 
 /** Ảnh barcode kèm kích thước gốc (để giữ tỉ lệ khi đặt vào PDF) */
@@ -216,58 +162,41 @@ function toBarcodeImage(text: string): { url: string; w: number; h: number } {
 }
 
 /**
- * Xuất tem pallet ra file PDF (A4, lề 8mm, khoảng cách 4mm — cùng bố cục với bản in)
+ * Xuất tem pallet ra file PDF — mỗi tem 1 trang, khổ trang = khổ tem (cùng bố cục với bản in)
  * và tải xuống luôn, không mở hộp thoại in.
  */
 export async function exportPalletLabelsPdf(
   options: PalletPrintOptions,
   fileName = `tem-pallet-${new Date().toISOString().slice(0, 10)}.pdf`,
 ): Promise<void> {
-  const { pallets, labelSize, labelsPerRow } = options;
+  const { pallets, labelSize } = options;
   if (!pallets.length) {
     return;
   }
   const isQr = labelSize === "100x100";
-  const perRow = isQr ? Math.min(2, Math.max(1, labelsPerRow)) : 1;
+  const { w: labelW, h: labelH } = labelPageSize(labelSize);
+  const orientation = labelW > labelH ? "landscape" : "portrait";
 
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 8;
-  const gap = 4;
-  const usableW = pageW - margin * 2;
-  const labelW = Math.min(100, (usableW - (perRow - 1) * gap) / perRow);
-  const labelH = isQr ? labelW : 40;
+  const doc = new jsPDF({ unit: "mm", format: [labelW, labelH], orientation });
   const pad = 3;
   const textH = 6;
+  const boxW = labelW - pad * 2;
+  const boxH = labelH - pad * 2 - textH;
 
-  let x = margin;
-  let y = margin;
-  let col = 0;
-
-  for (const pallet of pallets) {
-    const code = pallet.serialPallet ?? "";
-    if (y + labelH > pageH - margin) {
-      doc.addPage();
-      y = margin;
-      x = margin;
-      col = 0;
+  for (let i = 0; i < pallets.length; i++) {
+    const code = pallets[i].serialPallet ?? "";
+    if (i > 0) {
+      doc.addPage([labelW, labelH], orientation);
     }
 
-    doc.setDrawColor(34, 34, 34);
-    doc.setLineWidth(0.3);
-    doc.rect(x, y, labelW, labelH);
-
-    const boxW = labelW - pad * 2;
-    const boxH = labelH - pad * 2 - textH;
     if (isQr) {
       const url = await toQrDataUrl(code);
-      const size = Math.min(boxW, boxH, 72);
+      const size = Math.min(boxW, boxH, 80);
       doc.addImage(
         url,
         "PNG",
-        x + (labelW - size) / 2,
-        y + pad + (boxH - size) / 2,
+        (labelW - size) / 2,
+        pad + (boxH - size) / 2,
         size,
         size,
       );
@@ -276,35 +205,26 @@ export async function exportPalletLabelsPdf(
       const ratio = img.w / img.h;
       let w = boxW;
       let h = w / ratio;
-      if (h > Math.min(boxH, 22)) {
-        h = Math.min(boxH, 22);
+      if (h > Math.min(boxH, 24)) {
+        h = Math.min(boxH, 24);
         w = h * ratio;
       }
       doc.addImage(
         img.url,
         "PNG",
-        x + (labelW - w) / 2,
-        y + pad + (boxH - h) / 2,
+        (labelW - w) / 2,
+        pad + (boxH - h) / 2,
         w,
         h,
       );
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(isQr ? 11 : 12);
-    doc.text(code, x + labelW / 2, y + labelH - pad - 1.5, {
+    doc.setFontSize(isQr ? 14 : 12);
+    doc.text(code, labelW / 2, labelH - pad - 1, {
       align: "center",
       maxWidth: boxW,
     });
-
-    col++;
-    if (col >= perRow) {
-      col = 0;
-      x = margin;
-      y += labelH + gap;
-    } else {
-      x += labelW + gap;
-    }
   }
 
   doc.save(fileName);

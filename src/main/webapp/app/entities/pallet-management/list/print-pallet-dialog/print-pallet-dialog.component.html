@@ -60,32 +60,6 @@
         </button>
       </div>
 
-      <div class="per-row" *ngIf="showLabelsPerRow">
-        <div class="section-title">Số tem mỗi hàng</div>
-        <div class="stepper">
-          <button
-            mat-stroked-button
-            type="button"
-            (click)="decreasePerRow()"
-            [disabled]="labelsPerRow <= 1"
-          >
-            −
-          </button>
-          <input matInput type="number" [ngModel]="labelsPerRow" readonly />
-          <button
-            mat-stroked-button
-            type="button"
-            (click)="increasePerRow()"
-            [disabled]="labelsPerRow >= 2"
-          >
-            +
-          </button>
-        </div>
-        <p class="hint">
-          Khổ 100×100: tối đa 2 tem / hàng (phù hợp khổ giấy A4).
-        </p>
-      </div>
-
       <div class="preview-block">
         <div class="section-title">Xem trước tem</div>
         <div

@@ -23,7 +23,6 @@ import { exportPalletLabelsPdf, printPalletLabels } from "../pallet-print.util";
 })
 export class PrintPalletDialogComponent implements OnInit, AfterViewInit {
   labelSize: PalletLabelSize = "100x100";
-  labelsPerRow = 2;
   selectedIds = new Set<number>();
   isPrinting = false;
 
@@ -43,7 +42,6 @@ export class PrintPalletDialogComponent implements OnInit, AfterViewInit {
     } else {
       this.data.pallets.forEach((p) => this.selectedIds.add(p.id));
     }
-    this.applySizeDefaults();
   }
 
   ngAfterViewInit(): void {
@@ -65,10 +63,6 @@ export class PrintPalletDialogComponent implements OnInit, AfterViewInit {
   }
 
   get isQrMode(): boolean {
-    return this.labelSize === "100x100";
-  }
-
-  get showLabelsPerRow(): boolean {
     return this.labelSize === "100x100";
   }
 
@@ -106,23 +100,8 @@ export class PrintPalletDialogComponent implements OnInit, AfterViewInit {
       return;
     }
     this.labelSize = size;
-    this.applySizeDefaults();
     this.lastBarcodeValue = "";
     this.scheduleBarcodeRender();
-  }
-
-  decreasePerRow(): void {
-    if (!this.showLabelsPerRow) {
-      return;
-    }
-    this.labelsPerRow = Math.max(1, this.labelsPerRow - 1);
-  }
-
-  increasePerRow(): void {
-    if (!this.showLabelsPerRow) {
-      return;
-    }
-    this.labelsPerRow = Math.min(2, this.labelsPerRow + 1);
   }
 
   toggleAll(checked: boolean): void {
@@ -179,7 +158,6 @@ export class PrintPalletDialogComponent implements OnInit, AfterViewInit {
         {
           pallets: selected,
           labelSize: this.labelSize,
-          labelsPerRow: this.showLabelsPerRow ? this.labelsPerRow : 1,
         },
         fileName,
       );
@@ -202,18 +180,9 @@ export class PrintPalletDialogComponent implements OnInit, AfterViewInit {
       await printPalletLabels({
         pallets: selected,
         labelSize: this.labelSize,
-        labelsPerRow: this.showLabelsPerRow ? this.labelsPerRow : 1,
       });
     } finally {
       this.isPrinting = false;
-    }
-  }
-
-  private applySizeDefaults(): void {
-    if (this.labelSize === "40x100") {
-      this.labelsPerRow = 1;
-    } else {
-      this.labelsPerRow = Math.min(2, Math.max(1, this.labelsPerRow || 2));
     }
   }
 
