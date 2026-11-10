@@ -49,7 +49,7 @@
               >
                 <option [ngValue]="null">— Chọn PO —</option>
                 <option *ngFor="let l of lines" [ngValue]="l.id">
-                  PO {{ l.poCode }}
+                  PO {{ l.poCode }} · còn {{ remainingText(l) }}
                 </option>
               </select>
             </td>

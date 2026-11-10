@@ -31,9 +31,11 @@ import {
 import {
   clearQueueReason,
   countQueueReasons,
+  isSplittableReason,
   QUEUE_REASON_HINTS,
   QUEUE_REASON_LABELS,
   QueueReason,
+  queueReasonCode,
   queueReasonOf,
 } from "../../shared/queue-reason.util";
 import { boxLocation, locationFields } from "../../shared/box-location.util";
@@ -466,13 +468,13 @@ export class MaterialSummaryDialogComponent implements OnInit {
     return QUEUE_REASON_HINTS[reason];
   }
 
-  /** Hàng chờ: thùng Thừa SL trong lô — tách được */
+  /** Hàng chờ: thùng Cần tách tem / Thừa SL trong lô — tách được */
   overflowBoxes(lot: SummaryLotRow): VendorLabelInfoDto[] {
     if (!this.isUnassigned) {
       return [];
     }
     return lot.boxes.flatMap((b) =>
-      b.record && queueReasonOf(b.record) === "overflow" ? [b.record] : [],
+      b.record && isSplittableReason(queueReasonOf(b.record)) ? [b.record] : [],
     );
   }
 
@@ -761,10 +763,13 @@ export class MaterialSummaryDialogComponent implements OnInit {
 
   /** id các thùng đang sửa trên bảng mà chưa lưu (MFG, HSD, vị trí, Rank, UserData, MSL, PO) */
   unsavedBoxIds(): number[] {
+    const alloc = this.allocatePoLines();
     return this.rows.flatMap((sap) =>
       sap.lots.flatMap((lot) =>
         lot.boxes.flatMap((box) =>
-          box.record?.id && this.buildUpdatePayload(box) ? [box.record.id] : [],
+          box.record?.id && this.buildUpdatePayload(box, alloc)
+            ? [box.record.id]
+            : [],
         ),
       ),
     );
@@ -882,10 +887,11 @@ export class MaterialSummaryDialogComponent implements OnInit {
       return;
     }
     const payloads: VendorLabelInfoDto[] = [];
+    const alloc = this.allocatePoLines();
     for (const sap of this.rows) {
       for (const lot of sap.lots) {
         for (const box of lot.boxes) {
-          const payload = this.buildUpdatePayload(box);
+          const payload = this.buildUpdatePayload(box, alloc);
           if (payload) {
             payloads.push(payload);
           }
@@ -940,11 +946,26 @@ export class MaterialSummaryDialogComponent implements OnInit {
         return;
       }
       const unmatched = this.isUnassigned
-        ? payloads.filter((p) => toText(p.userData5) && !p.sapPor1Id).length
-        : 0;
-      if (unmatched) {
+        ? payloads.filter((p) => toText(p.userData5) && !p.sapPor1Id)
+        : [];
+      if (unmatched.length) {
+        const count = (reason: QueueReason | null): number =>
+          unmatched.filter((p) =>
+            reason
+              ? p.status === queueReasonCode(reason)
+              : !isSplittableReason(queueReasonOf(p)),
+          ).length;
+        const parts = [
+          count("needSplit")
+            ? `${count("needSplit")} thùng lớn hơn SL còn nhận của PO (Cần tách tem — bấm Tách tem)`
+            : "",
+          count("overflow")
+            ? `${count("overflow")} thùng do PO đã đủ SL (Thừa SL)`
+            : "",
+          count(null) ? `${count(null)} thùng do PO không có vật tư này` : "",
+        ].filter(Boolean);
         this.notificationService.warning(
-          `Cập nhật ${ok} thùng; ${unmatched} thùng có PO không chứa mã vật tư đó nên vẫn ở "Hàng chờ vật tư".`,
+          `Cập nhật ${ok} thùng; vẫn ở "Hàng chờ vật tư": ${parts.join("; ")}.`,
         );
       } else {
         const parts = [
@@ -969,11 +990,12 @@ export class MaterialSummaryDialogComponent implements OnInit {
    */
   private rebuildPreservingEdits(beforeRebuild?: () => void): void {
     const pending = new Map<number, SummaryBoxRow>();
+    const alloc = this.allocatePoLines();
     for (const sap of this.rows) {
       for (const lot of sap.lots) {
         for (const box of lot.boxes) {
           const id = box.record?.id;
-          if (id && this.buildUpdatePayload(box)) {
+          if (id && this.buildUpdatePayload(box, alloc)) {
             pending.set(id, box);
           }
         }
@@ -1140,7 +1162,10 @@ export class MaterialSummaryDialogComponent implements OnInit {
   }
 
   /** Bản ghi gốc + giá trị đang sửa; không đổi gì → null (không gửi) */
-  private buildUpdatePayload(box: SummaryBoxRow): VendorLabelInfoDto | null {
+  private buildUpdatePayload(
+    box: SummaryBoxRow,
+    poAllocation: Map<number, number | QueueReason>,
+  ): VendorLabelInfoDto | null {
     const rec = box.record;
     if (!rec?.id) {
       return null;
@@ -1160,14 +1185,17 @@ export class MaterialSummaryDialogComponent implements OnInit {
       palletBoxMapping: undefined,
     };
     if (this.isUnassigned) {
-      // PO bổ sung → userData5 + gán vào dòng PO của đơn có cùng mã vật tư
+      // PO bổ sung → userData5 + gán vào dòng PO của đơn có cùng mã vật tư, còn đủ SL
       const po = toText(box.po);
       payload.userData5 = orNull(po);
+      const alloc = poAllocation.get(rec.id);
       payload.sapPor1Id =
-        this.resolvePoLineId(po, rec) ?? rec.sapPor1Id ?? null;
-      // Đã gán PO → bỏ mã lý do hàng chờ ở status
+        typeof alloc === "number" ? alloc : (rec.sapPor1Id ?? null);
+      // Đã gán PO → bỏ mã lý do hàng chờ ở status; không vừa dòng nào → ghi lý do ở lại
       if (payload.sapPor1Id) {
         Object.assign(payload, clearQueueReason(rec));
+      } else if (typeof alloc === "string") {
+        payload.status = queueReasonCode(alloc);
       }
     }
     const keys: Array<keyof VendorLabelInfoDto> = [
@@ -1187,28 +1215,73 @@ export class MaterialSummaryDialogComponent implements OnInit {
     return changed ? payload : null;
   }
 
-  /** Dòng PO của đơn: đúng PO + cùng mã SAP (hoặc part) với thùng */
-  private resolvePoLineId(po: string, rec: VendorLabelInfoDto): number | null {
-    if (!po) {
-      return null;
+  /**
+   * Hàng chờ: dòng PO gán cho từng thùng đã nhập PO (id thùng → id dòng PO hoặc lý do ở lại).
+   * 1 PO có thể có nhiều dòng cùng mã vật tư (khác SL) → lấp dòng trước đến hết SL rồi sang
+   * dòng sau (dòng SL = 0 coi như không giới hạn); không dòng nào còn đủ chỗ cho cả thùng
+   * → không gán, thùng ở lại hàng chờ: còn dòng nhận được 1 phần → Cần tách tem, hết → Thừa SL.
+   */
+  private allocatePoLines(): Map<number, number | QueueReason> {
+    const result = new Map<number, number | QueueReason>();
+    if (!this.isUnassigned) {
+      return result;
     }
+    const load = new Map(
+      (this.data.unassigned?.poLines ?? []).map((l) => [l.id, l.receivedQty]),
+    );
+    const remaining = (l: UnassignedPoLine): number =>
+      l.orderQty > 0
+        ? Math.max(0, l.orderQty - (load.get(l.id) ?? 0))
+        : Number.POSITIVE_INFINITY;
+    for (const sap of this.rows) {
+      for (const lot of sap.lots) {
+        for (const box of lot.boxes) {
+          const rec = box.record;
+          const po = toText(box.po);
+          if (!rec?.id || !po) {
+            continue;
+          }
+          const qty = Number(rec.initialQuantity ?? 0);
+          const lines = this.matchPoLines(po, rec);
+          const line = lines.find((l) => remaining(l) >= qty);
+          if (line) {
+            result.set(rec.id, line.id);
+            load.set(line.id, (load.get(line.id) ?? 0) + qty);
+          } else if (lines.length) {
+            result.set(
+              rec.id,
+              lines.some((l) => remaining(l) > 0) ? "needSplit" : "overflow",
+            );
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  /** Các dòng PO của đơn: đúng PO + cùng mã SAP (không có thì cùng part) với thùng */
+  private matchPoLines(
+    po: string,
+    rec: VendorLabelInfoDto,
+  ): UnassignedPoLine[] {
     const lines = (this.data.unassigned?.poLines ?? []).filter(
       (l) => toText(l.poCode).toLowerCase() === po.toLowerCase(),
     );
     const sap = toText(rec.sapCode).toLowerCase();
     const part = toText(rec.partNumber).toLowerCase();
-    const line =
-      lines.find((l) => sap && toText(l.sapCode).toLowerCase() === sap) ??
-      lines.find(
-        (l) =>
-          part &&
-          toText(l.partNumber)
-            .toLowerCase()
-            .split(",")
-            .map((p) => p.trim())
-            .includes(part),
-      );
-    return line ? line.id : null;
+    const bySap = sap
+      ? lines.filter((l) => toText(l.sapCode).toLowerCase() === sap)
+      : [];
+    if (bySap.length || !part) {
+      return bySap;
+    }
+    return lines.filter((l) =>
+      toText(l.partNumber)
+        .toLowerCase()
+        .split(",")
+        .map((p) => p.trim())
+        .includes(part),
+    );
   }
 
   /** dd/MM/yyyy (hiển thị) → yyyyMMdd (định dạng đang lưu khi scan) */

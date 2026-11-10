@@ -391,14 +391,22 @@ export class SplitBoxDialogComponent implements OnInit {
       : of(null);
   }
 
-  /** PO chọn sẵn: PO đã ghi trên thùng (lúc scan), không có thì PO còn nhận nhiều nhất */
+  /**
+   * PO chọn sẵn: PO đã ghi trên thùng (lúc scan) — PO có nhiều dòng cùng vật tư thì dòng
+   * còn đủ chỗ cho cả thùng, rồi dòng còn nhận được; không có PO thì PO còn nhận nhiều nhất
+   */
   private defaultLine(rec: VendorLabelInfoDto): SplitPoLine | undefined {
     const po = toText(rec.userData5).toLowerCase();
     const byPo = po
-      ? this.lines.find((l) => toText(l.poCode).toLowerCase() === po)
-      : undefined;
-    if (byPo) {
-      return byPo;
+      ? this.lines.filter((l) => toText(l.poCode).toLowerCase() === po)
+      : [];
+    if (byPo.length) {
+      const quantity = Number(rec.initialQuantity ?? 0);
+      return (
+        byPo.find((l) => this.remaining(l) >= quantity) ??
+        byPo.find((l) => this.remaining(l) > 0) ??
+        byPo[0]
+      );
     }
     return [...this.lines].sort(
       (a, b) => this.remaining(b) - this.remaining(a),

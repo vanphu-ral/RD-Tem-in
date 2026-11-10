@@ -63,6 +63,7 @@ import { OrderSummaryPanelComponent } from "../order-summary-panel/order-summary
 import { normalizeLocationScan } from "app/entities/list-material/services/scan-code.util";
 import {
   clearQueueReason,
+  isSplittableReason,
   QUEUE_REASON_HINTS,
   QUEUE_REASON_LABELS,
   QueueReason,
@@ -1016,16 +1017,15 @@ export class ScanImportDialogComponent
     }
   }
 
-  /** Hàng chờ: thùng Thừa SL trong LOT — tách được (như desktop) */
+  /** Hàng chờ: thùng Cần tách tem / Thừa SL trong LOT — tách được (như desktop) */
   overflowInfoBoxes(lot: MobileInfoLot): VendorLabelInfoDto[] {
     if (!this.infoLotsFromUnassigned) {
       return [];
     }
     return lot.boxes.flatMap((b) => {
-      const rec =
-        b.queueReason === "overflow"
-          ? this.infoRecords.get(b.recordId)
-          : undefined;
+      const rec = isSplittableReason(b.queueReason)
+        ? this.infoRecords.get(b.recordId)
+        : undefined;
       return rec ? [rec] : [];
     });
   }
@@ -1679,41 +1679,44 @@ export class ScanImportDialogComponent
     }
     // Phân bổ PO + lưu
     const proceed = (): void => {
-      // QR có PO → ưu tiên PO đó; không có → PO thêm trước còn đủ chỗ cho cả thùng;
-      // mọi PO cùng vật tư đều không đủ chỗ → cả thùng vào "Hàng chờ vật tư" (Thừa SL),
-      // ở hàng chờ tách thùng: phần vừa đủ vào PO, phần dư thành thùng mới.
-      // PO trên QR không khớp PO nào của vật tư này → "Hàng chờ vật tư" (Sai PO)
+      // QR có PO → ưu tiên PO đó; không có / không khớp → PO thêm trước còn đủ chỗ cho cả thùng;
+      // mọi PO cùng vật tư đều không đủ chỗ → cả thùng vào "Hàng chờ vật tư" (Cần tách tem /
+      // Thừa SL), ở hàng chờ tách thùng: phần vừa đủ vào PO, phần dư thành thùng mới.
       const qrPo = this.firstNonEmpty(
         fieldMap["userData5"],
         fieldMap["poNumber"],
       );
       const samePo = (po: unknown): boolean =>
         toText(po).toLowerCase() === qrPo.toLowerCase();
-      const qrPoMismatch =
+      // PO trên QR không khớp PO nào của vật tư này nhưng mã SAP/Part có trong đơn → bỏ qua PO
+      // trên QR, phân bổ theo vật tư như thùng không có PO (lấp dòng trước rồi sang dòng sau)
+      const qrPoIgnored =
         !!qrPo &&
         candidates.length > 0 &&
         !candidates.some((c) => samePo(c.poCode));
-      // PO trên QR không khớp nhưng vật tư chỉ có ở 1 dòng PO trong đơn → chắc chắn thuộc PO đó,
-      // bỏ qua PO trên QR; có ở nhiều PO → không biết thuộc PO nào → "Hàng chờ vật tư" (Sai PO)
-      const qrPoIgnored = qrPoMismatch && candidates.length === 1;
-      const poAmbiguous = qrPoMismatch && !qrPoIgnored;
-      const matchedRow = poAmbiguous
-        ? undefined
-        : this.pickParentForBox(candidates, qrPoIgnored ? "" : qrPo, quantity);
-      const overflowQueued =
-        candidates.length > 0 && !matchedRow && !poAmbiguous;
+      const matchedRow = this.pickParentForBox(
+        candidates,
+        qrPoIgnored ? "" : qrPo,
+        quantity,
+      );
+      const overflowQueued = candidates.length > 0 && !matchedRow;
       // Thừa SL: PO dự kiến của thùng (PO trên tem, không có thì PO đầu tiên của vật tư)
       // — lưu vào userData5 để chọn sẵn khi tách thùng
       const overflowPo = overflowQueued
         ? (candidates.find((c) => samePo(c.poCode)) ?? candidates[0])
         : undefined;
+      // Không dòng nào đủ chỗ cho cả thùng: còn dòng nhận được 1 phần → bắt buộc tách tem;
+      // mọi dòng đã đủ SL → Thừa SL
+      const maxRemaining = overflowQueued
+        ? Math.max(0, ...candidates.map((c) => this.remainingOf(c)))
+        : 0;
       let queueReason: QueueReason | null = null;
       if (!matchedRow) {
-        queueReason = poAmbiguous
-          ? "poMismatch"
-          : overflowQueued
-            ? "overflow"
-            : "noPo";
+        queueReason = overflowQueued
+          ? maxRemaining > 0
+            ? "needSplit"
+            : "overflow"
+          : "noPo";
       }
 
       let manufacturingDate = mapped("manufacturingDate")
@@ -1801,24 +1804,16 @@ export class ScanImportDialogComponent
         sapPor1Id: matchedRow?.id ?? null,
       };
 
-      if (poAmbiguous) {
-        const code = toText(candidates[0].sapCode) || scannedPartNumber;
-        const inOrder = (this.data.parentItems ?? []).some((p) =>
-          samePo(p.poCode),
-        );
-        this.notificationService.warning(
-          inOrder
-            ? `Thùng "${reelId}": PO ${qrPo} trên tem không chứa vật tư ${code}, vật tư có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`
-            : `Thùng "${reelId}": PO ${qrPo} trên tem không có trong đơn, vật tư ${code} có ở nhiều PO — đã đưa vào "Hàng chờ vật tư".`,
-        );
-      } else if (overflowQueued) {
+      if (overflowQueued) {
         const code = toText(candidates[0].sapCode) || scannedPartNumber;
         this.notificationService.warning(
-          `Thùng "${reelId}" (SL ${quantity}) vượt SL còn nhận của PO vật tư ${code} — đã đưa vào "Hàng chờ vật tư", tách thùng để nhập phần vừa đủ.`,
+          maxRemaining > 0
+            ? `Thùng "${reelId}" (SL ${quantity}) lớn hơn SL còn nhận của mọi dòng PO vật tư ${code} (còn nhiều nhất ${maxRemaining}) — đã đưa vào "Hàng chờ vật tư" (Cần tách tem): tách ${maxRemaining} vào PO, ${quantity - maxRemaining} thành thùng mới.`
+            : `Thùng "${reelId}" (SL ${quantity}): mọi dòng PO vật tư ${code} đã đủ SL — đã đưa vào "Hàng chờ vật tư" (Thừa SL).`,
         );
       } else if (qrPoIgnored && matchedRow) {
         this.notificationService.info(
-          `Thùng "${reelId}" đã thêm vào PO này ${toText(matchedRow.poCode)}.`,
+          `PO ${qrPo} trên tem không khớp PO của vật tư — thùng "${reelId}" được thêm vào PO ${toText(matchedRow.poCode)} theo mã vật tư.`,
         );
       } else if (
         matchedRow &&
@@ -1837,6 +1832,14 @@ export class ScanImportDialogComponent
 
     this.usedReelIds.add(reelId);
     proceed();
+  }
+
+  /** SL dòng PO còn nhận được (dòng SL = 0 → không giới hạn) */
+  private remainingOf(row: ParentItem): number {
+    const orderQty = Number(row.orderQty ?? 0);
+    return orderQty > 0
+      ? Math.max(0, orderQty - (this.receivedByParent.get(row.id) ?? 0))
+      : Number.POSITIVE_INFINITY;
   }
 
   /** Thêm thùng vào dòng PO thì SL đã nhận vượt SL theo PO (dòng SL = 0 coi như không giới hạn) */
@@ -2402,28 +2405,64 @@ export class ScanImportDialogComponent
     const orKeep = (value: unknown, original: unknown): unknown =>
       toText(value) ? toText(value) : original;
 
+    // SL đã gán theo dòng PO (gồm thùng đã áp dụng chưa lưu) — để lấp dòng trước rồi sang dòng sau
+    const load = new Map<number, number>();
+    this.infoRecords.forEach((r) => {
+      if (r.sapPor1Id) {
+        load.set(
+          r.sapPor1Id,
+          (load.get(r.sapPor1Id) ?? 0) + Number(r.initialQuantity ?? 0),
+        );
+      }
+    });
+    const remaining = (l: ParentItem): number => {
+      const orderQty = Number(l.orderQty ?? 0);
+      return orderQty > 0
+        ? Math.max(0, orderQty - (load.get(l.id) ?? 0))
+        : Number.POSITIVE_INFINITY;
+    };
     const payloads: VendorLabelInfoDto[] = [];
+    const notAssigned: Record<"needSplit" | "overflow" | "noLine", number> = {
+      needSplit: 0,
+      overflow: 0,
+      noLine: 0,
+    };
     for (const box of edited.boxes) {
       const rec = this.infoRecords.get(box.recordId);
       if (!rec?.id) {
         continue;
       }
-      // Thùng chưa có PO + đã nhập PO → gán vào dòng vật tư khớp PO + mã SAP/Part
+      const quantity =
+        edited.quantity === null || edited.quantity === undefined
+          ? rec.initialQuantity
+          : Number(edited.quantity);
+      // Thùng chưa có PO + đã nhập PO → gán vào dòng vật tư khớp PO + mã SAP/Part còn đủ
+      // chỗ cho cả thùng; không dòng nào đủ → ở lại hàng chờ với lý do Cần tách tem / Thừa SL
       let sapPor1Id = rec.sapPor1Id;
+      let queueStatus: Partial<Pick<VendorLabelInfoDto, "status">> = {};
       if (!sapPor1Id && poCode) {
-        sapPor1Id =
-          this.findParentByPo(
-            poCode,
-            toText(rec.sapCode),
-            toText(rec.partNumber),
-          )?.id ?? null;
+        const qty = Number(quantity ?? 0);
+        const lines = this.findParentLinesByPo(
+          poCode,
+          toText(rec.sapCode),
+          toText(rec.partNumber),
+        );
+        sapPor1Id = lines.find((l) => remaining(l) >= qty)?.id ?? null;
+        if (sapPor1Id) {
+          load.set(sapPor1Id, (load.get(sapPor1Id) ?? 0) + qty);
+        } else if (lines.length) {
+          const reason = lines.some((l) => remaining(l) > 0)
+            ? "needSplit"
+            : "overflow";
+          notAssigned[reason]++;
+          queueStatus = { status: queueReasonCode(reason) };
+        } else {
+          notAssigned.noLine++;
+        }
       }
       payloads.push({
         ...rec,
-        initialQuantity:
-          edited.quantity === null || edited.quantity === undefined
-            ? rec.initialQuantity
-            : Number(edited.quantity),
+        initialQuantity: quantity,
         userData5: orKeep(poCode, rec.userData5) as string | null,
         ...locationFields(
           orKeep(edited.location, boxLocation(rec)) as string | null,
@@ -2437,7 +2476,7 @@ export class ScanImportDialogComponent
         userData3: orKeep(edited.rankQuang, rec.userData3) as string | null,
         sapPor1Id,
         // Đã gán PO → không còn trong hàng chờ: bỏ mã lý do ở status
-        ...(sapPor1Id ? clearQueueReason(rec) : {}),
+        ...(sapPor1Id ? clearQueueReason(rec) : queueStatus),
         palletBoxMapping: undefined,
       });
     }
@@ -2449,6 +2488,22 @@ export class ScanImportDialogComponent
     if (payloads.length) {
       this.notificationService.info(
         `Đã áp dụng cho ${payloads.length} thùng — bấm "Cập nhật" để lưu.`,
+      );
+    }
+    const notAssignedParts = [
+      notAssigned.needSplit
+        ? `${notAssigned.needSplit} thùng lớn hơn SL còn nhận của PO (Cần tách tem — bấm "Tách tem")`
+        : "",
+      notAssigned.overflow
+        ? `${notAssigned.overflow} thùng do PO đã đủ SL (Thừa SL)`
+        : "",
+      notAssigned.noLine
+        ? `${notAssigned.noLine} thùng do PO không có vật tư này`
+        : "",
+    ].filter(Boolean);
+    if (notAssignedParts.length) {
+      this.notificationService.warning(
+        `Chưa gán được PO ${poCode}: ${notAssignedParts.join("; ")} — vẫn ở "Hàng chờ vật tư".`,
       );
     }
     // Dựng lại màn từ dữ liệu đã áp dụng (số thùng, tổng SL, trạng thái đủ thông tin)
@@ -3081,13 +3136,11 @@ export class ScanImportDialogComponent
   ): ParentItem | undefined {
     const fits = (c: ParentItem): boolean => !this.exceedsPo(c, quantity);
     const po = toText(qrPo).toLowerCase();
+    // PO trên QR có thể có nhiều dòng cùng vật tư → dòng nào của PO đó còn đủ chỗ
     const byPo = po
-      ? candidates.find((c) => toText(c.poCode).toLowerCase() === po)
+      ? candidates.find((c) => toText(c.poCode).toLowerCase() === po && fits(c))
       : undefined;
-    if (byPo && fits(byPo)) {
-      return byPo;
-    }
-    return candidates.find(fits);
+    return byPo ?? candidates.find(fits);
   }
 
   /** Cộng / trừ SL đã nhận của 1 dòng PO */
@@ -3459,27 +3512,27 @@ export class ScanImportDialogComponent
     );
   }
 
-  /** Dòng vật tư trong đơn theo mã PO + mã SAP (hoặc Part) */
-  private findParentByPo(
+  /**
+   * Các dòng vật tư trong đơn theo mã PO + mã SAP (không có thì Part) — 1 PO có thể có
+   * nhiều dòng cùng mã vật tư (khác SL).
+   */
+  private findParentLinesByPo(
     poCode: string,
     sapCode: string,
     partNumber: string,
-  ): ParentItem | undefined {
+  ): ParentItem[] {
     const po = poCode.toLowerCase();
     const candidates = (this.data.parentItems ?? []).filter(
       (p) => toText(p.poCode).toLowerCase() === po,
     );
-    const bySap = candidates.find(
+    const bySap = candidates.filter(
       (p) =>
         !!sapCode && toText(p.sapCode).toLowerCase() === sapCode.toLowerCase(),
     );
-    if (bySap) {
-      return bySap;
-    }
     const part = partNumber.toLowerCase();
-    return part
-      ? candidates.find((p) => this.partsOf(p).includes(part))
-      : undefined;
+    return bySap.length || !part
+      ? bySap
+      : candidates.filter((p) => this.partsOf(p).includes(part));
   }
 
   private distinctText(values: unknown[]): string {

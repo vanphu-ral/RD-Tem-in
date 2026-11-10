@@ -317,7 +317,7 @@
                         <tr>
                           <th>Số lô</th>
                           <th>Số thùng</th>
-                          <th>SL VT</th>
+                          <th>Tổng số lượng</th>
                           <th *ngIf="isUnassigned">PO</th>
                           <th *ngIf="isUnassigned">Lý do</th>
                           <th>MFG</th>
@@ -509,7 +509,7 @@
                               type="button"
                               class="view-btn split-btn"
                               [matTooltip]="
-                                'Tách thùng thừa SL (' +
+                                'Tách tem (' +
                                 overflowBoxes(lot).length +
                                 ' thùng)'
                               "

@@ -1,14 +1,22 @@
 /**
  * Lý do thùng nằm trong "Hàng chờ vật tư" — lưu ở trường status của vendor-label-info
  * lúc scan (không gửi đi PanaCIM / SAP).
- *  - overflow: vật tư có trong PO của đơn nhưng mọi PO đều không còn đủ SL
+ *  - needSplit: vật tư có dòng PO còn nhận được nhưng không dòng nào đủ chỗ cho cả thùng
+ *    → bắt buộc tách tem (phần vừa đủ vào PO, phần dư thành thùng mới)
+ *  - overflow: vật tư có trong PO của đơn nhưng mọi dòng PO đều đã đủ SL
  *  - noPo: vật tư không thuộc PO nào trong đơn (hoặc đơn chưa có PO)
  *  - poMismatch: PO trên tem (QR) không khớp PO nào của vật tư này trong đơn
  *  - splitRemainder: phần dư tách ra từ thùng Thừa SL (thùng mới, chờ nhập đơn sau)
  */
-export type QueueReason = "overflow" | "noPo" | "poMismatch" | "splitRemainder";
+export type QueueReason =
+  | "needSplit"
+  | "overflow"
+  | "noPo"
+  | "poMismatch"
+  | "splitRemainder";
 
 const CODES: Record<QueueReason, string> = {
+  needSplit: "CAN_TACH",
   overflow: "THUA_SL",
   noPo: "THIEU_PO",
   poMismatch: "SAI_PO",
@@ -19,6 +27,7 @@ const CODES: Record<QueueReason, string> = {
 const LEGACY_COMMENT_PREFIX = "HANG_CHO:";
 
 export const QUEUE_REASON_LABELS: Record<QueueReason, string> = {
+  needSplit: "Cần tách tem",
   overflow: "Thừa SL",
   noPo: "Thiếu PO",
   poMismatch: "Sai PO",
@@ -26,12 +35,19 @@ export const QUEUE_REASON_LABELS: Record<QueueReason, string> = {
 };
 
 export const QUEUE_REASON_HINTS: Record<QueueReason, string> = {
-  overflow: "Các PO cùng vật tư đã đủ số lượng — thùng dư",
+  needSplit:
+    "SL thùng lớn hơn SL còn nhận của mọi dòng PO cùng vật tư — tách tem: phần vừa đủ vào PO, phần dư thành thùng mới",
+  overflow: "Các dòng PO cùng vật tư đã đủ số lượng — thùng dư",
   noPo: "Vật tư không thuộc PO nào trong đơn",
   poMismatch: "PO trên tem không khớp PO nào của vật tư này trong đơn",
   splitRemainder:
     "Phần dư tách ra từ thùng thừa SL — thùng mới, chờ nhập vào đơn sau",
 };
+
+/** Thùng ở hàng chờ tách được vào PO (Cần tách tem / Thừa SL) */
+export function isSplittableReason(reason: QueueReason | null): boolean {
+  return reason === "needSplit" || reason === "overflow";
+}
 
 /** Giá trị status lưu khi đưa thùng vào hàng chờ */
 export function queueReasonCode(reason: QueueReason): string {
@@ -78,7 +94,7 @@ export function clearQueueReason(rec: {
   };
 }
 
-/** Đếm số thùng theo lý do → [{reason, count}] theo thứ tự overflow, splitRemainder, poMismatch, noPo */
+/** Đếm số thùng theo lý do → [{reason, count}] theo thứ tự needSplit, overflow, splitRemainder, poMismatch, noPo */
 export function countQueueReasons(
   records: Array<{
     status?: string | null;
@@ -87,6 +103,7 @@ export function countQueueReasons(
   }>,
 ): Array<{ reason: QueueReason; count: number }> {
   const counts: Record<QueueReason, number> = {
+    needSplit: 0,
     overflow: 0,
     noPo: 0,
     poMismatch: 0,
@@ -98,7 +115,15 @@ export function countQueueReasons(
       counts[reason]++;
     }
   }
-  return (["overflow", "splitRemainder", "poMismatch", "noPo"] as QueueReason[])
+  return (
+    [
+      "needSplit",
+      "overflow",
+      "splitRemainder",
+      "poMismatch",
+      "noPo",
+    ] as QueueReason[]
+  )
     .filter((r) => counts[r] > 0)
     .map((reason) => ({ reason, count: counts[reason] }));
 }

@@ -2181,6 +2181,11 @@
   vertical-align: middle;
   white-space: nowrap;
 
+  &[data-reason="needSplit"] {
+    background: #ffe4e6;
+    color: #be123c;
+  }
+
   &[data-reason="overflow"] {
     background: #fef3c7;
     color: #b45309;
