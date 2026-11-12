@@ -442,6 +442,24 @@ mat-paginator {
     opacity: 0.85;
     overflow-wrap: anywhere;
   }
+
+  /* Tên NCC: nổi hơn dòng số xe · hợp đồng */
+  .mobile-header-vendor {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 1;
+
+    mat-icon {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
 }
 
 .mobile-body {

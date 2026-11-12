@@ -45,6 +45,8 @@ export interface ScanImportDialogData {
   /** Mã thông báo giao hàng — hiện trên tiêu đề dialog */
   deliveryNotice?: string;
   vendorCode?: string;
+  /** Tên NCC — hiện trên header mobile */
+  vendorName?: string;
   warehouse?: string;
   vehicleNumber?: string;
   contractCode?: string;

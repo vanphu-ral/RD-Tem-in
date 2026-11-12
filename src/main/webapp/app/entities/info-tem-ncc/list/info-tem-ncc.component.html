@@ -832,6 +832,10 @@
     <div class="mobile-header-text">
       <!-- Giống header màn Scan: TBGH ở tiêu đề, số xe · hợp đồng ở dòng phụ -->
       <h1>Thông báo giao hàng: {{ d.deliveryNotice || "—" }}</h1>
+      <p class="mobile-header-vendor">
+        <mat-icon>business</mat-icon>
+        <span>{{ d.vendorName || d.pos[0]?.vendorName || "—" }}</span>
+      </p>
       <p>
         Số xe: {{ d.vehicleNumber || "—" }} · Hợp đồng:
         {{ d.contractCode || "—" }}

@@ -1024,6 +1024,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       deliveryNotice: delivery.deliveryNotice,
       vehicleNumber: delivery.vehicleNumber,
       contractCode: delivery.contractCode,
+      vendorName: delivery.vendorName || delivery.pos[0]?.vendorName,
       vendorCode,
       scenarioCode: vendorCode,
       warehouse: delivery.pos[0]?.warehouseKeeper,

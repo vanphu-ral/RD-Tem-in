@@ -909,6 +909,7 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       deliveryNotice: toText(this.orderInfo.deliveryNotice),
       vehicleNumber: toText(this.orderInfo.contNo),
       contractCode: toText(this.orderInfo.contractCode),
+      vendorName: toText(this.orderInfo.vendorName),
       vendorCode:
         (this.orderInfo.vendorCode ?? "").trim() ||
         (this.selectedScenario?.vendorCode ?? "").trim(),

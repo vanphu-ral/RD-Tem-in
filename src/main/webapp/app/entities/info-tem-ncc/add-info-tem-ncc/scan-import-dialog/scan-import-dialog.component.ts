@@ -378,6 +378,7 @@ export class ScanImportDialogComponent
       poCode: data?.poCode,
       deliveryNotice: data?.deliveryNotice,
       vendorCode: data?.vendorCode,
+      vendorName: data?.vendorName,
       warehouse: data?.warehouse,
       vehicleNumber: data?.vehicleNumber,
       contractCode: data?.contractCode,

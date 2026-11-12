@@ -562,6 +562,10 @@
       </button>
       <div class="m-header-text">
         <h2>{{ headerTitle }}</h2>
+        <p class="m-header-vendor">
+          <mat-icon>business</mat-icon>
+          <span>{{ data.vendorName || "—" }}</span>
+        </p>
         <p>{{ headerSubtitle }}</p>
       </div>
     </div>
@@ -601,11 +605,12 @@
           <button
             type="button"
             [class.active]="scanMode === 'box'"
-            (click)="setScanMode('box')"
+            (click)="setScanMode('box'); setListTab('box')"
           >
             <mat-icon>inventory_2</mat-icon>
             Thùng
           </button>
+          <!-- Mode → tab kết quả (1 chiều); setScanMode('pallet') đã tự chuyển tab Pallet -->
           <button
             type="button"
             [class.active]="scanMode === 'pallet'"
