@@ -9,6 +9,7 @@ public class WarehouseTransferSessionDetailDTO implements Serializable {
     private WarehouseTransferSessionDTO session;
     private List<OwtqWarehouseTransferSessionDTO> owtqSessions;
     private List<WarehouseTransferDetailDTO> details;
+    private List<ScannedPalletDTO> scannedPallets;
 
     public WarehouseTransferSessionDTO getSession() {
         return session;
@@ -32,9 +33,25 @@ public class WarehouseTransferSessionDetailDTO implements Serializable {
         return details;
     }
 
+    public List<ScannedPalletDTO> getScannedPallets() {
+        return scannedPallets;
+    }
+
+    // public List<ScannedPalletDTO> getScannedPallets() {
+    //     return scannedPallets;
+    // }
+
     public void setDetails(List<WarehouseTransferDetailDTO> details) {
         this.details = details;
     }
+
+    public void setScannedPallets(List<ScannedPalletDTO> scannedPallets) {
+        this.scannedPallets = scannedPallets;
+    }
+
+    // public void setScannedPallets(List<ScannedPalletDTO> scannedPallets) {
+    //     this.scannedPallets = scannedPallets;
+    // }
 
     @Override
     public boolean equals(Object o) {

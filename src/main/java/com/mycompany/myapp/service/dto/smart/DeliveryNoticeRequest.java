@@ -1,17 +1,20 @@
 package com.mycompany.myapp.service.dto.smart;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DeliveryNoticeRequest {
 
     @JsonProperty("Type")
     private String type;
 
     @NotBlank
-    @JsonProperty("noticeNo")
+    @JsonProperty("deliveryNotificationCode")
     private String noticeNo;
 
     @NotNull
@@ -35,10 +38,11 @@ public class DeliveryNoticeRequest {
     private String factory;
 
     @NotNull
-    @JsonProperty("dateArrivalRangDong")
+    @JsonProperty("entryDate")
     private java.time.Instant dateArrivalRangDong;
 
     @NotNull
+    @Valid
     private List<VehicleDto> vehicles;
 
     // Getters and Setters

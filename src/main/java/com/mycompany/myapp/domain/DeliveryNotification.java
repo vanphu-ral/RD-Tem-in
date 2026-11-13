@@ -92,6 +92,9 @@ public class DeliveryNotification implements Serializable {
     @Column(name = "deleted_by", length = 50)
     private String deletedBy;
 
+    @Column(name = "number_of_sap_submissions")
+    private Integer numberOfSapSubmissions;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -356,6 +359,21 @@ public class DeliveryNotification implements Serializable {
         this.deletedBy = deletedBy;
     }
 
+    public Integer getNumberOfSapSubmissions() {
+        return this.numberOfSapSubmissions;
+    }
+
+    public DeliveryNotification numberOfSapSubmissions(
+        Integer numberOfSapSubmissions
+    ) {
+        this.setNumberOfSapSubmissions(numberOfSapSubmissions);
+        return this;
+    }
+
+    public void setNumberOfSapSubmissions(Integer numberOfSapSubmissions) {
+        this.numberOfSapSubmissions = numberOfSapSubmissions;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
@@ -398,6 +416,7 @@ public class DeliveryNotification implements Serializable {
             ", vendorCode='" + getVendorCode() + "'" +
             ", noticeDate='" + getNoticeDate() + "'" +
             ", factory='" + getFactory() + "'" +
+            ", numberOfSapSubmissions=" + getNumberOfSapSubmissions() +
             ", createdAt='" + getCreatedAt() + "'" +
             ", createdBy='" + getCreatedBy() + "'" +
             ", deletedAt='" + getDeletedAt() + "'" +

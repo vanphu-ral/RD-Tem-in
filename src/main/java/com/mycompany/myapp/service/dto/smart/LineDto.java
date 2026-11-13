@@ -1,19 +1,21 @@
 package com.mycompany.myapp.service.dto.smart;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LineDto {
 
     @NotNull
     @JsonProperty("lineId")
     private UUID lineId;
 
-    @NotBlank
     @JsonProperty("deliveryId")
     private String deliveryId;
 
@@ -22,7 +24,7 @@ public class LineDto {
     private String poSmart;
 
     @NotBlank
-    @JsonProperty("poErp")
+    @JsonProperty("docEntry")
     private String poErp;
 
     @NotBlank
@@ -42,7 +44,7 @@ public class LineDto {
     @JsonProperty("itemCode")
     private String itemCode;
 
-    @JsonProperty("itemName")
+    @JsonProperty("dscription")
     private String itemName;
 
     @JsonProperty("whsCode")
@@ -66,6 +68,24 @@ public class LineDto {
 
     @JsonProperty("deliveryTurn")
     private Integer deliveryTurn;
+
+    @JsonProperty("timeEDD")
+    private Instant timeEdd;
+
+    @JsonProperty("timeETD")
+    private Instant timeEtd;
+
+    @JsonProperty("timeETA")
+    private Instant timeEta;
+
+    @JsonProperty("timePlanRecive")
+    private Instant timePlanRecive;
+
+    @JsonProperty("deliveryScheduleNo")
+    private String deliveryScheduleNo;
+
+    @JsonProperty("deliveryLineId")
+    private UUID deliveryLineId;
 
     // Getters and Setters
     public UUID getLineId() {
@@ -202,5 +222,53 @@ public class LineDto {
 
     public void setDeliveryTurn(Integer deliveryTurn) {
         this.deliveryTurn = deliveryTurn;
+    }
+
+    public Instant getTimeEdd() {
+        return timeEdd;
+    }
+
+    public void setTimeEdd(Instant timeEdd) {
+        this.timeEdd = timeEdd;
+    }
+
+    public Instant getTimeEtd() {
+        return timeEtd;
+    }
+
+    public void setTimeEtd(Instant timeEtd) {
+        this.timeEtd = timeEtd;
+    }
+
+    public Instant getTimeEta() {
+        return timeEta;
+    }
+
+    public void setTimeEta(Instant timeEta) {
+        this.timeEta = timeEta;
+    }
+
+    public Instant getTimePlanRecive() {
+        return timePlanRecive;
+    }
+
+    public void setTimePlanRecive(Instant timePlanRecive) {
+        this.timePlanRecive = timePlanRecive;
+    }
+
+    public String getDeliveryScheduleNo() {
+        return deliveryScheduleNo;
+    }
+
+    public void setDeliveryScheduleNo(String deliveryScheduleNo) {
+        this.deliveryScheduleNo = deliveryScheduleNo;
+    }
+
+    public UUID getDeliveryLineId() {
+        return deliveryLineId;
+    }
+
+    public void setDeliveryLineId(UUID deliveryLineId) {
+        this.deliveryLineId = deliveryLineId;
     }
 }

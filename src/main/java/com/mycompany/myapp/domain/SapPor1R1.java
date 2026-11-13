@@ -169,6 +169,25 @@ public class SapPor1R1 implements Serializable {
     @Column(name = "delivery_turn")
     private Integer deliveryTurn;
 
+    @Column(name = "time_edd")
+    private Instant timeEdd;
+
+    @Column(name = "time_etd")
+    private Instant timeEtd;
+
+    @Column(name = "time_eta")
+    private Instant timeEta;
+
+    @Column(name = "time_plan_recive")
+    private Instant timePlanRecive;
+
+    @Size(max = 50)
+    @Column(name = "delivery_schedule_no", length = 50)
+    private String deliveryScheduleNo;
+
+    @Column(name = "delivery_line_id")
+    private UUID deliveryLineId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "delivery_notification_id", referencedColumnName = "id")
     private DeliveryNotification deliveryNotification;
@@ -712,6 +731,84 @@ public class SapPor1R1 implements Serializable {
         this.deliveryTurn = deliveryTurn;
     }
 
+    public Instant getTimeEdd() {
+        return this.timeEdd;
+    }
+
+    public SapPor1R1 timeEdd(Instant timeEdd) {
+        this.setTimeEdd(timeEdd);
+        return this;
+    }
+
+    public void setTimeEdd(Instant timeEdd) {
+        this.timeEdd = timeEdd;
+    }
+
+    public Instant getTimeEtd() {
+        return this.timeEtd;
+    }
+
+    public SapPor1R1 timeEtd(Instant timeEtd) {
+        this.setTimeEtd(timeEtd);
+        return this;
+    }
+
+    public void setTimeEtd(Instant timeEtd) {
+        this.timeEtd = timeEtd;
+    }
+
+    public Instant getTimeEta() {
+        return this.timeEta;
+    }
+
+    public SapPor1R1 timeEta(Instant timeEta) {
+        this.setTimeEta(timeEta);
+        return this;
+    }
+
+    public void setTimeEta(Instant timeEta) {
+        this.timeEta = timeEta;
+    }
+
+    public Instant getTimePlanRecive() {
+        return this.timePlanRecive;
+    }
+
+    public SapPor1R1 timePlanRecive(Instant timePlanRecive) {
+        this.setTimePlanRecive(timePlanRecive);
+        return this;
+    }
+
+    public void setTimePlanRecive(Instant timePlanRecive) {
+        this.timePlanRecive = timePlanRecive;
+    }
+
+    public String getDeliveryScheduleNo() {
+        return this.deliveryScheduleNo;
+    }
+
+    public SapPor1R1 deliveryScheduleNo(String deliveryScheduleNo) {
+        this.setDeliveryScheduleNo(deliveryScheduleNo);
+        return this;
+    }
+
+    public void setDeliveryScheduleNo(String deliveryScheduleNo) {
+        this.deliveryScheduleNo = deliveryScheduleNo;
+    }
+
+    public UUID getDeliveryLineId() {
+        return this.deliveryLineId;
+    }
+
+    public SapPor1R1 deliveryLineId(UUID deliveryLineId) {
+        this.setDeliveryLineId(deliveryLineId);
+        return this;
+    }
+
+    public void setDeliveryLineId(UUID deliveryLineId) {
+        this.deliveryLineId = deliveryLineId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -773,6 +870,12 @@ public class SapPor1R1 implements Serializable {
             ", invoiceNo='" + getInvoiceNo() + "'" +
             ", invoiceDate='" + getInvoiceDate() + "'" +
             ", deliveryTurn=" + getDeliveryTurn() +
+            ", timeEdd=" + getTimeEdd() +
+            ", timeEtd=" + getTimeEtd() +
+            ", timeEta=" + getTimeEta() +
+            ", timePlanRecive=" + getTimePlanRecive() +
+            ", deliveryScheduleNo='" + getDeliveryScheduleNo() + "'" +
+            ", deliveryLineId='" + getDeliveryLineId() + "'" +
             ", deliveryNotification=" + getDeliveryNotification() +
             "}";
     }
