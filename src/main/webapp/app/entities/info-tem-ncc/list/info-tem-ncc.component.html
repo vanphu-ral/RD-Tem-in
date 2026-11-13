@@ -678,8 +678,11 @@
   </div>
 
   <mat-paginator
+    [length]="totalItems"
+    [pageIndex]="pageIndex"
     [pageSize]="pageSize"
     [pageSizeOptions]="pageSizeOptions"
+    (page)="onPageChange($event)"
     showFirstLastButtons
   >
   </mat-paginator>
