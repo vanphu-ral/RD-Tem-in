@@ -188,13 +188,15 @@ export class SendSystemDialogComponent {
     return Math.min(100, Math.round((mat.receivedQty / mat.poQty) * 100));
   }
 
-  /** Gửi SAP các thùng đã chọn, chưa gửi SAP (qua gateway) */
+  /**
+   * Gửi SAP các thùng đã chọn, chưa gửi SAP (qua gateway) — dialog xác nhận chọn vật tư
+   * theo kho người gửi, tự chuyển IQC về kho mình và gửi
+   */
   onSendSap(): void {
     this.sendTo(
       "SAP",
       (lot) => SAP_ALLOW_RESEND || !lot.sent,
-      (entries, createdBy) =>
-        this.vendorLabelSendService.sendSapGateway(entries, createdBy),
+      null,
       (lot) => (lot.sent = true),
     );
   }
@@ -225,11 +227,8 @@ export class SendSystemDialogComponent {
   private sendTo(
     target: string,
     notSentYet: (lot: SendSystemLot) => boolean,
-    /** createdBy: user chọn ở màn xác nhận (chỉ gửi SAP) */
-    send: (
-      entries: SendBoxEntry[],
-      createdBy: string,
-    ) => Observable<SendResult>,
+    /** Gửi sau khi xác nhận; null = dialog xác nhận tự gửi (SAP) và trả kết quả */
+    send: ((entries: SendBoxEntry[]) => Observable<SendResult>) | null,
     markSent: (lot: SendSystemLot) => void,
   ): void {
     if (this.isSending) {
@@ -255,6 +254,8 @@ export class SendSystemDialogComponent {
           partNumber: mat.partNumber ?? "",
           poCode: this.data.poCode,
           vendorCode: this.data.vendorName,
+          whsCode: mat.warehouseCode,
+          materialName: mat.materialName,
         });
       }
     }
@@ -276,27 +277,18 @@ export class SendSystemDialogComponent {
       if (!ok) {
         return;
       }
+      if (ok.sapResult) {
+        this.applySendResult(target, picked, markSent, ok.sapResult);
+        return;
+      }
+      if (!send) {
+        return;
+      }
       this.isSending = true;
-      send(entries, ok.createdBy).subscribe({
+      send(entries).subscribe({
         next: (res) => {
           this.isSending = false;
-          this.changed = true;
-          for (const lot of picked) {
-            markSent(lot);
-            lot.selected = false;
-          }
-          for (const mat of this.materials) {
-            this.syncMaterialSelected(mat);
-          }
-          if (res.statusSaved) {
-            this.notificationService.success(
-              `Đã gửi ${target} thành công (${res.count} thùng).`,
-            );
-          } else {
-            this.notificationService.warning(
-              `Đã gửi ${target} (${res.count} thùng) nhưng lưu trạng thái đã gửi thất bại.`,
-            );
-          }
+          this.applySendResult(target, picked, markSent, res);
         },
         error: (err: unknown) => {
           this.isSending = false;
@@ -306,6 +298,42 @@ export class SendSystemDialogComponent {
         },
       });
     });
+  }
+
+  /** Đánh dấu thùng đã gửi (gửi SAP theo kho: chỉ thùng có trong sentIds) + thông báo */
+  private applySendResult(
+    target: string,
+    picked: SendSystemLot[],
+    markSent: (lot: SendSystemLot) => void,
+    res: SendResult,
+  ): void {
+    this.changed = true;
+    const sentIds = res.sentIds ? new Set(res.sentIds) : null;
+    for (const lot of picked) {
+      if (!sentIds || (lot.record?.id && sentIds.has(lot.record.id))) {
+        markSent(lot);
+        lot.selected = false;
+      }
+    }
+    for (const mat of this.materials) {
+      this.syncMaterialSelected(mat);
+    }
+    if (res.statusSaved) {
+      this.notificationService.success(
+        `Đã gửi ${target} thành công (${res.count} thùng).`,
+      );
+    } else {
+      this.notificationService.warning(
+        `Đã gửi ${target} (${res.count} thùng) nhưng lưu trạng thái đã gửi thất bại.`,
+      );
+    }
+    if (res.failed?.length) {
+      this.notificationService.error(
+        `Gửi ${target} lỗi ở ${res.failed.length} kho: ${res.failed
+          .map((f) => `${f.whsCode || "(trống)"} (${f.message})`)
+          .join("; ")}`,
+      );
+    }
   }
 
   private syncMaterialSelected(mat: SendSystemMaterial): void {

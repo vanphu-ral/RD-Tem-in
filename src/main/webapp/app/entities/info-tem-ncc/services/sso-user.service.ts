@@ -1,94 +1,51 @@
 import { Injectable } from "@angular/core";
-import { HttpClient, HttpHeaders } from "@angular/common/http";
-import { Observable, throwError } from "rxjs";
-import { catchError, map, shareReplay, switchMap, tap } from "rxjs/operators";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 import { AuthServerProvider } from "app/core/auth/auth-session.service";
-import { environment } from "app/environments/environment";
 
-/** User SSO (Keycloak) */
-export interface SsoUser {
-  username: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  /** Tài khoản SAP — user attribute "sap_user" trên Keycloak */
-  sapUser?: string | null;
+/** Thông tin gửi SAP của user đang đăng nhập — đọc từ claim trong access token */
+export interface SapTokenProfile {
+  /** Tài khoản SAP — claim "sapUser" ("" nếu chưa gán) */
+  sapUser: string;
+  /** Mã kho — claim "whsCode" ("" nếu chưa gán; 1 user 1 kho) */
+  whsCode: string;
 }
 
-/** User trả về từ Keycloak Admin API (briefRepresentation=false → có attributes) */
-interface KeycloakUser {
-  username: string;
-  firstName?: string;
-  lastName?: string;
-  attributes?: Record<string, string[] | undefined>;
-}
-
-/** Thời gian giữ cache danh sách user */
-const CACHE_TTL_MS = 10 * 60 * 1000;
-
-/**
- * Danh sách toàn bộ user Keycloak (realm theo environment), cache dùng chung toàn app:
- * gọi Keycloak 1 lần, tự xóa cache sau 10 phút; lỗi → không cache (lần sau gọi lại).
- */
 @Injectable({ providedIn: "root" })
 export class SsoUserService {
-  private cache$: Observable<SsoUser[]> | null = null;
-  private clearTimer: ReturnType<typeof setTimeout> | null = null;
+  constructor(private authServer: AuthServerProvider) {}
 
-  constructor(
-    private http: HttpClient,
-    private authServer: AuthServerProvider,
-  ) {}
-
-  getAllUsers(): Observable<SsoUser[]> {
-    if (!this.cache$) {
-      this.cache$ = this.fetchAllUsers().pipe(
-        tap(() => this.scheduleClear()),
-        catchError((err: unknown) => {
-          this.clearCache();
-          return throwError(() => err);
-        }),
-        shareReplay(1),
-      );
-    }
-    return this.cache$;
-  }
-
-  clearCache(): void {
-    this.cache$ = null;
-    if (this.clearTimer) {
-      clearTimeout(this.clearTimer);
-      this.clearTimer = null;
-    }
-  }
-
-  private scheduleClear(): void {
-    if (this.clearTimer) {
-      clearTimeout(this.clearTimer);
-    }
-    this.clearTimer = setTimeout(() => this.clearCache(), CACHE_TTL_MS);
-  }
-
-  /** GET toàn bộ users (max=-1, kèm attributes để lấy sap_user) */
-  private fetchAllUsers(): Observable<SsoUser[]> {
-    const { serverUrl, realm } = environment.keycloak;
+  /** sapUser + whsCode của user đang đăng nhập (từ token, không gọi Keycloak Admin API) */
+  getCurrentSapProfile(): Observable<SapTokenProfile> {
     return this.authServer.getToken().pipe(
-      switchMap((token) =>
-        this.http.get<KeycloakUser[]>(
-          `${serverUrl}/admin/realms/${realm}/users`,
-          {
-            headers: new HttpHeaders().set("Authorization", `Bearer ${token}`),
-            params: { max: -1, briefRepresentation: false },
-          },
-        ),
-      ),
-      map((list) =>
-        list.map((u) => ({
-          username: u.username,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          sapUser: u.attributes?.["sap_user"]?.[0] ?? null,
-        })),
-      ),
+      map((token) => {
+        const claims = this.decodeToken(token);
+        return {
+          sapUser: claimText(claims["sapUser"]),
+          whsCode: claimText(claims["whsCode"]),
+        };
+      }),
     );
   }
+
+  /** Payload JWT (base64url, UTF-8) */
+  private decodeToken(token: string): Record<string, unknown> {
+    const part = token.split(".")[1];
+    if (!part) {
+      return {};
+    }
+    const json = decodeURIComponent(
+      atob(part.replace(/-/g, "+").replace(/_/g, "/"))
+        .split("")
+        .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`)
+        .join(""),
+    );
+    return JSON.parse(json) as Record<string, unknown>;
+  }
+}
+
+/** Claim dạng chuỗi hoặc mảng (lấy phần tử đầu) → chuỗi đã trim */
+function claimText(claim: unknown): string {
+  const value = Array.isArray(claim) ? (claim[0] as unknown) : claim;
+  return typeof value === "string" ? value.trim() : "";
 }

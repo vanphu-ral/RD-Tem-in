@@ -1,13 +1,21 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { forkJoin, Observable, of, throwError } from "rxjs";
-import { catchError, map, switchMap, take } from "rxjs/operators";
+import { forkJoin, from, Observable, of, throwError } from "rxjs";
+import {
+  catchError,
+  concatMap,
+  map,
+  switchMap,
+  take,
+  toArray,
+} from "rxjs/operators";
 import { AccountService } from "app/core/auth/account.service";
 import { Account } from "app/core/auth/account.model";
 import {
   GoodsReceiptPoLine,
   GoodsReceiptPoPayload,
   ReceivingSuppliesService,
+  resolveHttpErrorMessage,
   validateStorageUnitForSap,
 } from "app/entities/generate-tem-in/service/receiving-supplies.service";
 import {
@@ -41,6 +49,10 @@ export interface SendBoxEntry {
   poCode: string;
   /** Vendor fallback khi thùng không có vendor */
   vendorCode: string;
+  /** Mã kho SAP của dòng PO (whsCode) — gửi SAP nhóm theo kho */
+  whsCode?: string;
+  /** Tên vật tư — chỉ để hiển thị ở dialog xác nhận */
+  materialName?: string;
 }
 
 /** Body gửi SAP qua gateway: đơn → PO → vật tư */
@@ -52,7 +64,9 @@ export interface SapGatewayPayload {
   vendorCode: string;
   factory: string;
   entryDate: string;
-  /** User SSO chọn ở màn xác nhận gửi SAP (mặc định user đang đăng nhập) */
+  /** Mã kho của phiếu — mỗi request gửi SAP chỉ chứa vật tư của 1 kho */
+  whsCode: string;
+  /** sapUser của người gửi chọn cho kho này ở màn xác nhận */
   createdBy: string;
   /** Người đang đăng nhập bấm gửi */
   sentBy: string;
@@ -95,6 +109,34 @@ export interface SendResult {
   count: number;
   /** false nếu gửi thành công nhưng lưu trạng thái đã gửi thất bại */
   statusSaved: boolean;
+  /** Gửi SAP theo kho: id các thùng đã gửi thành công (chưa có → coi như mọi thùng) */
+  sentIds?: number[];
+  /** Gửi SAP theo kho: các kho gửi lỗi (kho khác vẫn đã gửi) */
+  failed?: SapWarehouseFailure[];
+}
+
+export interface SapWarehouseFailure {
+  whsCode: string;
+  message: string;
+}
+
+/** Kho chung — ai cũng gửi được; khi gửi chọn giữ kho IQC hoặc chuyển về kho của người gửi */
+export const IQC_WHS_CODE = "IQC";
+
+/** Bước đang chạy khi gửi SAP theo kho của người dùng */
+export type SapSendStage = "moving" | "sending";
+
+/** Kết quả gửi SAP theo kho của người dùng */
+export interface SapWarehouseSendResult extends SendResult {
+  /** Số dòng vật tư IQC đã chuyển về kho người gửi */
+  movedCount: number;
+}
+
+/** 1 request gửi SAP qua gateway = vật tư của 1 kho */
+export interface SapGatewayRequest {
+  whsCode: string;
+  payload: SapGatewayPayload;
+  sending: SendBoxEntry[];
 }
 
 /** Trạng thái gửi có thể là boolean / string / number */
@@ -117,12 +159,14 @@ export class VendorLabelSendService {
   ) {}
 
   /**
-   * Gửi SAP qua gateway: dựng body từ chi tiết đơn mới nhất (bỏ thùng đã gửi ở nơi khác) →
-   * POST post-goods-receipt-po/gateway → đánh dấu sapSendStatus = true cho các thùng đợt này.
+   * Gửi SAP qua gateway: dựng body từ chi tiết đơn mới nhất (bỏ thùng đã gửi ở nơi khác),
+   * mỗi kho (whsCode của dòng PO) 1 request → POST post-goods-receipt-po/gateway lần lượt
+   * → đánh dấu sapSendStatus = true cho thùng của các kho gửi thành công.
+   * createdByByWhs: sapUser người gửi chọn cho từng kho.
    */
   sendSapGateway(
     entries: SendBoxEntry[],
-    createdBy: string,
+    createdByByWhs: Record<string, string>,
   ): Observable<SendResult> {
     const orderId = entries[0]?.record.deliveryNotificationId ?? null;
     if (orderId === null) {
@@ -137,21 +181,106 @@ export class VendorLabelSendService {
           orderId,
           entries,
           account?.login ?? "unknown",
-          createdBy,
+          createdByByWhs,
         ),
       ),
     );
   }
 
-  /** Dựng body gửi gateway (không POST); thùng thiếu / sai vị trí → lỗi, không gửi */
-  buildSapGatewayPayload(
+  /**
+   * Gửi SAP các thùng đã chọn của người gửi kho whsCode:
+   * tải lại chi tiết đơn → dòng vật tư phải thuộc kho whsCode hoặc IQC (kho khác → lỗi, không gửi)
+   * → PATCH các dòng IQC có id trong moveLineIds sang whsCode (gửi lỗi vẫn giữ kho mới),
+   * dòng IQC còn lại giữ kho IQC → gửi gateway (1 request / kho: kho mình, IQC).
+   */
+  sendSapToWarehouse(
+    entries: SendBoxEntry[],
+    whsCode: string,
+    createdBy: string,
+    moveLineIds: ReadonlySet<number>,
+    onStage?: (stage: SapSendStage) => void,
+  ): Observable<SapWarehouseSendResult> {
+    const orderId = entries[0]?.record.deliveryNotificationId ?? null;
+    if (orderId === null) {
+      return throwError(() => new Error("Thùng chưa thuộc đơn giao hàng nào."));
+    }
+    if (!toText(whsCode)) {
+      return throwError(
+        () => new Error("Tài khoản chưa được gán kho — không gửi SAP được."),
+      );
+    }
+    return this.infoTemNccService.getDeliveryNotificationDetail(orderId).pipe(
+      switchMap((detail) => {
+        const lineById = new Map(
+          (detail.sapPor1R1List ?? []).map((l) => [l.id, l]),
+        );
+        const lineIds = [
+          ...new Set(entries.map((e) => e.record.sapPor1Id ?? null)),
+        ];
+        const problems: string[] = [];
+        const toMove: SapPor1R1Dto[] = [];
+        for (const id of lineIds) {
+          const line = id === null ? undefined : lineById.get(id);
+          if (!line) {
+            problems.push("có thùng chưa thuộc dòng vật tư nào của đơn");
+            continue;
+          }
+          const whs = toText(line.whsCode);
+          if (whs === IQC_WHS_CODE) {
+            if (moveLineIds.has(line.id)) {
+              toMove.push(line);
+            }
+          } else if (whs !== whsCode) {
+            problems.push(
+              `${toText(line.itemCode)} đang thuộc kho ${whs || "(trống)"}`,
+            );
+          }
+        }
+        if (problems.length) {
+          throw new Error(
+            `Chỉ gửi được vật tư kho ${whsCode} hoặc kho ${IQC_WHS_CODE}: ${problems.join("; ")}.`,
+          );
+        }
+        if (toMove.length) {
+          onStage?.("moving");
+        }
+        const move$: Observable<unknown> = toMove.length
+          ? forkJoin(
+              toMove.map((l) =>
+                this.infoTemNccService.patchSapPor1WhsCode(l.id, whsCode),
+              ),
+            )
+          : of(null);
+        return move$.pipe(
+          switchMap(() => {
+            onStage?.("sending");
+            return this.sendSapGateway(entries, {
+              [whsCode]: createdBy,
+              [IQC_WHS_CODE]: createdBy,
+            });
+          }),
+          map(
+            (res): SapWarehouseSendResult => ({
+              ...res,
+              movedCount: toMove.length,
+            }),
+          ),
+        );
+      }),
+    );
+  }
+
+  /**
+   * Dựng body gửi gateway theo kho (không POST): mỗi whsCode của dòng PO 1 request.
+   * Thùng thiếu / sai vị trí, kho chưa chọn người gửi → lỗi, không gửi.
+   */
+  buildSapGatewayRequests(
     deliveryNotificationId: number,
     entries: SendBoxEntry[],
     user: string,
-    createdBy: string,
+    createdByByWhs: Record<string, string>,
   ): Observable<{
-    payload: SapGatewayPayload;
-    sending: SendBoxEntry[];
+    requests: SapGatewayRequest[];
     detail: DeliveryNotificationDetailDto;
   }> {
     const invalid = entries.filter((e) =>
@@ -184,17 +313,41 @@ export class VendorLabelSendService {
           if (!sending.length) {
             throw new Error("Các thùng đã được gửi SAP trước đó.");
           }
-          return {
-            payload: this.toGatewayPayload(
-              detail,
-              lines,
-              sending,
-              user,
-              createdBy,
-            ),
-            sending,
-            detail,
-          };
+          // Kho của thùng = whsCode của dòng PO chứa thùng (theo chi tiết đơn mới nhất)
+          const whsByBox = new Map<number, string>();
+          for (const line of lines) {
+            for (const b of line.vendorLabelInfoList ?? []) {
+              whsByBox.set(b.id, toText(line.whsCode));
+            }
+          }
+          const byWhs = new Map<string, SendBoxEntry[]>();
+          for (const e of sending) {
+            const whs = whsByBox.get(e.record.id) ?? toText(e.whsCode);
+            byWhs.set(whs, [...(byWhs.get(whs) ?? []), e]);
+          }
+          const noUser = [...byWhs.keys()].filter(
+            (whs) => !toText(createdByByWhs[whs]),
+          );
+          if (noUser.length) {
+            throw new Error(
+              `Chưa chọn người gửi cho kho: ${noUser.map((w) => w || "(trống)").join(", ")}.`,
+            );
+          }
+          const requests = [...byWhs.entries()].map(
+            ([whsCode, whsSending]): SapGatewayRequest => ({
+              whsCode,
+              sending: whsSending,
+              payload: this.toGatewayPayload(
+                detail,
+                lines,
+                whsSending,
+                user,
+                toText(createdByByWhs[whsCode]),
+                whsCode,
+              ),
+            }),
+          );
+          return { requests, detail };
         }),
       );
   }
@@ -458,34 +611,65 @@ export class VendorLabelSendService {
     deliveryNotificationId: number,
     entries: SendBoxEntry[],
     user: string,
-    createdBy: string,
+    createdByByWhs: Record<string, string>,
   ): Observable<SendResult> {
-    return this.buildSapGatewayPayload(
+    return this.buildSapGatewayRequests(
       deliveryNotificationId,
       entries,
       user,
-      createdBy,
+      createdByByWhs,
     ).pipe(
-      switchMap(({ payload, sending, detail }): Observable<SendResult> => {
-        const post$: Observable<string> =
-          this.receivingService.postGoodsReceiptGateway(payload);
-        return post$.pipe(
-          switchMap(
-            (): Observable<SendResult> =>
-              forkJoin([
-                this.markSent(sending, { sapSendStatus: true }),
-                this.countSapSubmission(detail),
-              ]).pipe(
-                map(
-                  ([boxesSaved, countSaved]): SendResult => ({
-                    count: sending.length,
-                    statusSaved: boxesSaved && countSaved,
-                  }),
-                ),
+      switchMap(({ requests, detail }) =>
+        // Lần lượt từng kho: kho lỗi không chặn kho sau
+        from(requests).pipe(
+          concatMap((req) =>
+            this.receivingService.postGoodsReceiptGateway(req.payload).pipe(
+              switchMap(() =>
+                this.markSent(req.sending, { sapSendStatus: true }),
               ),
+              map((saved) => ({ req, ok: true, saved, message: "" })),
+              catchError((err: unknown) =>
+                of({
+                  req,
+                  ok: false,
+                  saved: true,
+                  message: resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
+                }),
+              ),
+            ),
           ),
-        );
-      }),
+          toArray(),
+          switchMap((results) => {
+            const done = results.filter((r) => r.ok);
+            const failed = results
+              .filter((r) => !r.ok)
+              .map(
+                (r): SapWarehouseFailure => ({
+                  whsCode: r.req.whsCode,
+                  message: r.message,
+                }),
+              );
+            if (!done.length) {
+              throw new Error(
+                failed
+                  .map((f) => `Kho ${f.whsCode || "(trống)"}: ${f.message}`)
+                  .join("; "),
+              );
+            }
+            const sent = done.flatMap((r) => r.req.sending);
+            return this.countSapSubmission(detail).pipe(
+              map(
+                (countSaved): SendResult => ({
+                  count: sent.length,
+                  statusSaved: countSaved && done.every((r) => r.saved),
+                  sentIds: sent.map((e) => e.record.id),
+                  failed,
+                }),
+              ),
+            );
+          }),
+        ),
+      ),
     );
   }
 
@@ -549,6 +733,7 @@ export class VendorLabelSendService {
     sending: SendBoxEntry[],
     user: string,
     createdBy: string,
+    whsCode: string,
   ): SapGatewayPayload {
     this.validateLotExpiry(lines, sending);
     const entryById = new Map(sending.map((e) => [e.record.id, e]));
@@ -614,6 +799,7 @@ export class VendorLabelSendService {
         toText(lines.find((l) => toText(l.lineVendor))?.lineVendor),
       factory: toText(detail.factory),
       entryDate: toText(detail.entryDate),
+      whsCode,
       createdBy,
       sentBy: user,
       pos: [...pos.values()],

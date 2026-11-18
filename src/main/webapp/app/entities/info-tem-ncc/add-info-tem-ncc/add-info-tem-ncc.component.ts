@@ -1307,23 +1307,25 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
       if (!confirmed) {
         return;
       }
-      this.isSendingSap = true;
-      // Gửi qua gateway (thay PostGoodsReceiptPO cũ — sendSap): chỉ các thùng chưa gửi
-      this.vendorLabelSendService
-        .sendSapGateway(entries, confirmed.createdBy)
-        .subscribe({
-          next: (res) => {
-            this.isSendingSap = false;
-            this.notifySendResult(res.count, res.statusSaved, "SAP");
-            this.reloadDetail();
-          },
-          error: (err: unknown) => {
-            this.isSendingSap = false;
-            this.notificationService.error(
-              resolveHttpErrorMessage(err, "Gửi SAP thất bại."),
-            );
-          },
-        });
+      // Dialog đã chuyển vật tư IQC về kho người gửi + gửi gateway (1 phiếu / kho)
+      const res = confirmed?.sapResult;
+      if (!res) {
+        return;
+      }
+      this.notifySendResult(res.count, res.statusSaved, "SAP");
+      if (res.movedCount) {
+        this.notificationService.info(
+          `Đã chuyển ${res.movedCount} vật tư kho IQC sang kho của bạn.`,
+        );
+      }
+      if (res.failed?.length) {
+        this.notificationService.error(
+          `Gửi SAP lỗi ở ${res.failed.length} kho: ${res.failed
+            .map((f) => `${f.whsCode || "(trống)"} (${f.message})`)
+            .join("; ")}`,
+        );
+      }
+      this.reloadDetail();
       // gửi test payload
       // this.isSendingSap = true;
       // this.vendorLabelSendService.buildSapPayload(entries).subscribe({
@@ -1361,6 +1363,8 @@ export class AddInfoTemNccComponent implements OnInit, AfterViewInit {
             partNumber: m.partNumber,
             poCode: po.poCode,
             vendorCode: this.orderInfo.vendorCode,
+            whsCode: m.warehouseCode,
+            materialName: m.materialName,
           })),
       ),
     );
