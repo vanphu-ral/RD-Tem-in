@@ -38,6 +38,14 @@
   line-height: 1.2 !important;
 }
 
+// Date Code: .sub-value có font-size 11pt nên cần ép lại 20pt như dòng Số lượng
+.info-table .split-content .sub-value.text-bold {
+  font-size: 20pt !important;
+  font-weight: 700 !important;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .dialog-header {
   display: flex;
   justify-content: space-between;
