@@ -38,12 +38,32 @@
   line-height: 1.2 !important;
 }
 
-// Date Code: .sub-value có font-size 11pt nên cần ép lại 20pt như dòng Số lượng
-.info-table .split-content .sub-value.text-bold {
-  font-size: 20pt !important;
-  font-weight: 700 !important;
-  min-width: 0;
-  overflow-wrap: anywhere;
+// Item No/SKU & Date Code: cùng hàng dưới PO Number, cỡ chữ/độ đậm như PO
+.info-table .big-cell {
+  width: 50%;
+  padding: 1mm 2.5mm;
+  vertical-align: middle;
+  border-right: 1px solid #000;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  .big-label {
+    font-size: 10pt;
+    font-weight: 600;
+    line-height: 1.1;
+    color: #000;
+  }
+
+  .big-value {
+    font-size: 30pt;
+    font-weight: bold;
+    line-height: 1.2;
+    color: #000;
+    min-width: 0;
+    white-space: nowrap; // luôn 1 dòng; cỡ chữ tự giảm qua getBigFontSize()
+  }
 }
 
 .dialog-header {

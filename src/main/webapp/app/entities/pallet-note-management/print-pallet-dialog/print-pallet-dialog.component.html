@@ -53,7 +53,12 @@
         </label>
       </div>
 
-      <button mat-raised-button color="accent" (click)="onDownloadPdf()">
+      <button
+        mat-raised-button
+        color="accent"
+        (click)="onDownloadPdf()"
+        color="primary"
+      >
         <mat-icon>picture_as_pdf</mat-icon>
         Xuất PDF
       </button>
@@ -160,16 +165,24 @@
                   {{ page.left.poNumber }}
                 </td>
               </tr>
-              <!-- ROW: Item No/SKU | Date Code (cỡ chữ như dòng Số lượng) -->
+              <!-- ROW: Item No/SKU | Date Code (cỡ chữ lớn như PO) -->
               <tr>
-                <td class="label-cell">Item No/SKU</td>
-                <td class="value-cell text-bold">{{ page.left.itemNoSku }}</td>
-                <td class="split-cell" colspan="2">
-                  <div class="split-content">
-                    <span class="sub-label">Date Code:</span>
-                    <span class="sub-value text-bold">{{
-                      page.left.dateCode
-                    }}</span>
+                <td class="big-cell" colspan="2">
+                  <div class="big-label">Item No/SKU</div>
+                  <div
+                    class="big-value"
+                    [style.font-size.pt]="getBigFontSize(page.left.itemNoSku)"
+                  >
+                    {{ page.left.itemNoSku }}
+                  </div>
+                </td>
+                <td class="big-cell" colspan="2">
+                  <div class="big-label">Date Code</div>
+                  <div
+                    class="big-value"
+                    [style.font-size.pt]="getBigFontSize(page.left.dateCode)"
+                  >
+                    {{ page.left.dateCode }}
                   </div>
                 </td>
               </tr>
@@ -438,16 +451,24 @@
                   {{ page.right.poNumber }}
                 </td>
               </tr>
-              <!-- ROW: Item No/SKU | Date Code (cỡ chữ như dòng Số lượng) -->
+              <!-- ROW: Item No/SKU | Date Code (cỡ chữ lớn như PO) -->
               <tr>
-                <td class="label-cell">Item No/SKU</td>
-                <td class="value-cell text-bold">{{ page.right.itemNoSku }}</td>
-                <td class="split-cell" colspan="2">
-                  <div class="split-content">
-                    <span class="sub-label">Date Code:</span>
-                    <span class="sub-value text-bold">{{
-                      page.right.dateCode
-                    }}</span>
+                <td class="big-cell" colspan="2">
+                  <div class="big-label">Item No/SKU</div>
+                  <div
+                    class="big-value"
+                    [style.font-size.pt]="getBigFontSize(page.right.itemNoSku)"
+                  >
+                    {{ page.right.itemNoSku }}
+                  </div>
+                </td>
+                <td class="big-cell" colspan="2">
+                  <div class="big-label">Date Code</div>
+                  <div
+                    class="big-value"
+                    [style.font-size.pt]="getBigFontSize(page.right.dateCode)"
+                  >
+                    {{ page.right.dateCode }}
                   </div>
                 </td>
               </tr>

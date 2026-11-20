@@ -204,6 +204,19 @@ export class PrintPalletDialogComponent implements OnInit {
     return "";
   }
 
+  /**
+   * Cỡ chữ (pt) cho Item No/SKU và Date Code: tối đa 30pt (bằng PO), tự giảm khi
+   * chuỗi dài để luôn nằm gọn 1 dòng trong ô (~58mm), không làm phiếu tràn sang trang 2.
+   */
+  getBigFontSize(value?: string | null): number {
+    const len = (value ?? "").length;
+    if (!len) {
+      return 30;
+    }
+    const ptByWidth = Math.floor(58 / (len * 0.6 * 0.3528));
+    return Math.max(8, Math.min(30, ptByWidth));
+  }
+
   shouldShowWatermark(pallet: PrintPalletData): boolean {
     return pallet.printStatus === true || this.isNotScanned(pallet);
   }
