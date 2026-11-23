@@ -80,6 +80,8 @@ export interface SapGatewayPo {
 }
 
 export interface SapGatewayItem {
+  /** Mã dòng do Smart sinh (GUID) — sap_por1_r1.line_id */
+  lineId: string;
   lineNum: number;
   itemCode: string;
   itemName: string;
@@ -772,6 +774,7 @@ export class VendorLabelSendService {
         list.reduce((sum, b) => sum + Number(b.initialQuantity ?? 0), 0);
       sendingLots.forEach((lotBoxes, k) => {
         po.items.push({
+          lineId: toText(line.lineId),
           lineNum: Number(line.lineNum ?? 0),
           itemCode: toText(line.itemCode),
           itemName: toText(line.dscription),

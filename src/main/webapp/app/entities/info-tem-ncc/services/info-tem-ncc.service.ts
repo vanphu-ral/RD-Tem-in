@@ -183,6 +183,8 @@ export interface SapPor1R1Dto {
   currency: string | null;
   /** Mã PO (DocEntry SAP) */
   docEntry: string | null;
+  /** Mã dòng do Smart sinh (GUID) — sap_por1_r1.line_id */
+  lineId?: string | null;
   vendorLabelInfoList: VendorLabelInfoDto[] | null;
 }
 
