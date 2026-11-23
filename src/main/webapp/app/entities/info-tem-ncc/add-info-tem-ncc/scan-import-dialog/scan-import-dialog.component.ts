@@ -59,6 +59,7 @@ import {
 import { boxLocation, locationFields } from "../../shared/box-location.util";
 import { playScanSound } from "../../shared/scan-sound.util";
 import { autoExpiryDates } from "../../shared/auto-expiry.util";
+import { buildDefaultUserData4 } from "../../shared/scan-item-columns.util";
 import { OrderSummaryPanelComponent } from "../order-summary-panel/order-summary-panel.component";
 import { normalizeLocationScan } from "app/entities/list-material/services/scan-code.util";
 import {
@@ -1731,7 +1732,7 @@ export class ScanImportDialogComponent
           this.data.arrivalDate ? this.toIsoDate(this.data.arrivalDate) : "",
         );
       }
-      const expirationDate = mapped("expirationDate")
+      let expirationDate = mapped("expirationDate")
         ? normalizeVendorDateToYyyyMmDd(fieldMap["expirationDate"])
         : "";
       const lot =
@@ -1745,28 +1746,71 @@ export class ScanImportDialogComponent
       );
       const orNull = (v: string): string | null => (v ? v : null);
 
+      const resolvedSap = this.firstNonEmpty(
+        matchedRow?.sapCode,
+        candidates[0]?.sapCode,
+        scannedSap,
+      );
+
+      // Điền sẵn HSD mặc định (nếu tem chưa có): ưu tiên HSD của cùng lô đã quét, hoặc NSX + 2 năm
+      if (!expirationDate) {
+        const existingSameLot = [...this.boxRecords.values()].find(
+          (b) =>
+            toText(b.lot) === lot &&
+            toText(b.sapCode) === resolvedSap &&
+            toText(b.expirationDate),
+        );
+        if (existingSameLot) {
+          expirationDate = toText(existingSameLot.expirationDate);
+        } else if (manufacturingDate) {
+          const digits = manufacturingDate.replace(/\D/g, "");
+          if (digits.length >= 8 && Number(digits.slice(0, 4)) > 1900) {
+            const d = new Date(
+              Number(digits.slice(0, 4)),
+              Number(digits.slice(4, 6)) - 1,
+              Number(digits.slice(6, 8)),
+            );
+            d.setFullYear(d.getFullYear() + 2);
+            const pad = (n: number): string => String(n).padStart(2, "0");
+            expirationDate = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+          }
+        }
+      }
+
+      // Điền sẵn mặc định UserData1-5 và MSL giống dialog Cập nhật thông tin vật tư
+      const defaultUserData4 = buildDefaultUserData4({
+        sapCode: resolvedSap,
+        manufacturingDate,
+      });
+      const userData1 = (mapped("userData1") ?? "").trim() || "NO";
+      const userData2 = (mapped("userData2") ?? "").trim() || "NO";
+      const userData3 = (mapped("userData3") ?? "").trim() || "NO";
+      const userData4 =
+        (mapped("userData4") ?? "").trim() || defaultUserData4 || "NO";
+      const poCodeVal = matchedRow
+        ? this.firstNonEmpty(matchedRow.poCode, qrPo)
+        : overflowPo
+          ? this.firstNonEmpty(overflowPo.poCode, qrPo)
+          : this.firstNonEmpty(
+              qrPo,
+              candidates.length || noPoMatched ? "" : this.data.poCode,
+            );
+      const userData5 =
+        (poCodeVal ?? "").trim() || (this.data.poCode ?? "").trim();
+      const msdLevel = (mapped("msl", "msdLevel") ?? "").trim() || "1";
+
       const payload: CreateVendorLabelInfoPayload = {
         reelId,
         partNumber: orNull(scannedPartNumber),
         vendor: orNull(vendor),
         lot: orNull(lot),
-        userData1: orNull(mapped("userData1")),
-        userData2: orNull(mapped("userData2")),
-        userData3: orNull(mapped("userData3")),
-        userData4: orNull(mapped("userData4")),
-        // Có dòng PO → mã PO của dòng đó; vào hàng chờ → chỉ giữ PO trên QR (nếu có)
-        userData5: orNull(
-          matchedRow
-            ? this.firstNonEmpty(matchedRow.poCode, qrPo)
-            : overflowPo
-              ? this.firstNonEmpty(overflowPo.poCode, qrPo)
-              : this.firstNonEmpty(
-                  qrPo,
-                  candidates.length || noPoMatched ? "" : this.data.poCode,
-                ),
-        ),
+        userData1: orNull(userData1),
+        userData2: orNull(userData2),
+        userData3: orNull(userData3),
+        userData4: orNull(userData4),
+        userData5: orNull(userData5),
         initialQuantity: quantity,
-        msdLevel: orNull(mapped("msl", "msdLevel")),
+        msdLevel: orNull(msdLevel),
         msdInitialFloorTime: null,
         msdBagSealDate: null,
         marketUsage: null,
@@ -1777,20 +1821,14 @@ export class ScanImportDialogComponent
         maximumLimit: null,
         comments: null,
         warmupTime: null,
-        // Vị trí kho gán sau (quét vị trí / form LOT); mã kho SAP = whsCode của dòng PO
+        // Vị trí kho để trống để người dùng tự gán
         storageUnit: null,
         subStorageUnit: null,
         locationOverride: orNull(mapped("locationOverride")),
         expirationDate: orNull(expirationDate),
         manufacturingDate: orNull(manufacturingDate),
         partClass: null,
-        sapCode: orNull(
-          this.firstNonEmpty(
-            matchedRow?.sapCode,
-            candidates[0]?.sapCode,
-            scannedSap,
-          ),
-        ),
+        sapCode: orNull(resolvedSap),
         vendorQrCode: rawCode,
         // Vào hàng chờ → ghi lý do (thừa SL / thiếu PO / sai PO) vào status để hiện badge
         status: queueReason ? queueReasonCode(queueReason) : null,
