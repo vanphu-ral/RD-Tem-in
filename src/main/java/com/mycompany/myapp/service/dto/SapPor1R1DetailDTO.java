@@ -66,6 +66,12 @@ public class SapPor1R1DetailDTO extends SapPor1R1DTO implements Serializable {
             this.setInvoiceNo(entity.getInvoiceNo());
             this.setInvoiceDate(entity.getInvoiceDate());
             this.setDeliveryTurn(entity.getDeliveryTurn());
+            this.setTimeEdd(entity.getTimeEdd());
+            this.setTimeEtd(entity.getTimeEtd());
+            this.setTimeEta(entity.getTimeEta());
+            this.setTimePlanRecive(entity.getTimePlanRecive());
+            this.setDeliveryScheduleNo(entity.getDeliveryScheduleNo());
+            this.setDeliveryLineId(entity.getDeliveryLineId());
         }
         this.vendorLabelInfoList = vendorLabelInfoList == null
             ? new ArrayList<>()

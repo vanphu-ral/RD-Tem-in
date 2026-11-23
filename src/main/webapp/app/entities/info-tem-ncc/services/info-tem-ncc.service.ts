@@ -185,6 +185,19 @@ export interface SapPor1R1Dto {
   docEntry: string | null;
   /** Mã dòng do Smart sinh (GUID) — sap_por1_r1.line_id */
   lineId?: string | null;
+  poSmart?: string | null;
+  prNumber?: string | null;
+  contractNo?: string | null;
+  invoiceSmartNo?: string | null;
+  invoiceNo?: string | null;
+  invoiceDate?: string | null;
+  deliveryTurn?: number | null;
+  deliveryScheduleNo?: string | null;
+  deliveryLineId?: string | null;
+  timeEdd?: string | null;
+  timeEtd?: string | null;
+  timeEta?: string | null;
+  timePlanRecive?: string | null;
   vendorLabelInfoList: VendorLabelInfoDto[] | null;
 }
 

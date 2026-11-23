@@ -130,6 +130,19 @@ public class SapPor1R1DTO implements Serializable {
 
     private Integer deliveryTurn;
 
+    private Instant timeEdd;
+
+    private Instant timeEtd;
+
+    private Instant timeEta;
+
+    private Instant timePlanRecive;
+
+    @Size(max = 50)
+    private String deliveryScheduleNo;
+
+    private UUID deliveryLineId;
+
     private DeliveryNotificationDTO deliveryNotification;
 
     @JsonIgnore
@@ -471,6 +484,54 @@ public class SapPor1R1DTO implements Serializable {
 
     public void setDeliveryTurn(Integer deliveryTurn) {
         this.deliveryTurn = deliveryTurn;
+    }
+
+    public Instant getTimeEdd() {
+        return timeEdd;
+    }
+
+    public void setTimeEdd(Instant timeEdd) {
+        this.timeEdd = timeEdd;
+    }
+
+    public Instant getTimeEtd() {
+        return timeEtd;
+    }
+
+    public void setTimeEtd(Instant timeEtd) {
+        this.timeEtd = timeEtd;
+    }
+
+    public Instant getTimeEta() {
+        return timeEta;
+    }
+
+    public void setTimeEta(Instant timeEta) {
+        this.timeEta = timeEta;
+    }
+
+    public Instant getTimePlanRecive() {
+        return timePlanRecive;
+    }
+
+    public void setTimePlanRecive(Instant timePlanRecive) {
+        this.timePlanRecive = timePlanRecive;
+    }
+
+    public String getDeliveryScheduleNo() {
+        return deliveryScheduleNo;
+    }
+
+    public void setDeliveryScheduleNo(String deliveryScheduleNo) {
+        this.deliveryScheduleNo = deliveryScheduleNo;
+    }
+
+    public UUID getDeliveryLineId() {
+        return deliveryLineId;
+    }
+
+    public void setDeliveryLineId(UUID deliveryLineId) {
+        this.deliveryLineId = deliveryLineId;
     }
 
     public DeliveryNotificationDTO getDeliveryNotification() {

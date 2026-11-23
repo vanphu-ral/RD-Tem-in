@@ -696,18 +696,18 @@
     </button>
     <div class="mobile-header-text">
       <h1>Nhập TEM từ NCC</h1>
-      <p>Tìm đơn theo chuyến xe</p>
+      <p>Tìm đơn theo mã TBGH</p>
     </div>
   </div>
 
-  <div class="mobile-body">
+  <div class="mobile-body" #mobileBody>
     <div class="mobile-filter-card">
       <div class="filter-top-row">
         <div class="filter-field flex-1">
-          <label>Số xe</label>
+          <label>Mã TBGH</label>
           <input
-            [(ngModel)]="filterValues.vehicleNumber"
-            placeholder="VD: 25A-102-1924"
+            [(ngModel)]="filterValues.deliveryNotice"
+            placeholder="VD: IPR1126/1390"
           />
         </div>
         <button
@@ -823,6 +823,17 @@
         Không tìm thấy đơn hàng phù hợp.
       </div>
     </div>
+
+    <mat-paginator
+      class="mobile-paginator"
+      *ngIf="totalItems > pageSize"
+      [length]="totalItems"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      [hidePageSize]="true"
+      (page)="onPageChange($event); mobileBody.scrollTo(0, 0)"
+    >
+    </mat-paginator>
   </div>
 </div>
 

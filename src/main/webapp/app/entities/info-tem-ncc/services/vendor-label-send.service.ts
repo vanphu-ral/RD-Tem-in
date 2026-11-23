@@ -59,6 +59,17 @@ export interface SendBoxEntry {
 export interface SapGatewayPayload {
   noticeNo: string;
   deliveryNotificationId: number;
+  /** Trạng thái đơn (delivery_notification.status) */
+  status: string | null;
+  Type: string | null;
+  noticeDate: string | null;
+  /** UUID đơn bên Smart — đơn cũ có thể null */
+  deliveryId: string | null;
+  source: string | null;
+  /** Số xe (contNo) — đơn nhiều xe chỉ lưu xe đầu tiên */
+  vehicleNo: string | null;
+  invoiceNumber: string | null;
+  contractCode: string | null;
   vendorName: string;
   /** Mã NCC của đơn (đơn không lưu mã → lineVendor của dòng PO) */
   vendorCode: string;
@@ -99,6 +110,20 @@ export interface SapGatewayItem {
   quantitySend: number;
   /** Ngày giao hàng thực tế = thời điểm ấn gửi đợt này (ISO); khác entryDate = ngày tạo phiếu */
   deliveryDate: string;
+  /** Các trường dưới lấy từ dòng Smart tương ứng (cùng docEntry + itemCode); không có → null */
+  poSmart: string | null;
+  prNumber: string | null;
+  contractNo: string | null;
+  invoiceSmartNo: string | null;
+  invoiceNo: string | null;
+  invoiceDate: string | null;
+  deliveryTurn: number | null;
+  deliveryScheduleNo: string | null;
+  deliveryLineId: string | null;
+  timeEDD: string | null;
+  timeETD: string | null;
+  timeETA: string | null;
+  timePlanRecive: string | null;
 }
 
 /**
@@ -772,9 +797,10 @@ export class VendorLabelSendService {
       }
       const sumQty = (list: VendorLabelInfoDto[]): number =>
         list.reduce((sum, b) => sum + Number(b.initialQuantity ?? 0), 0);
+      const smart = this.smartLineOf(line, lines);
       sendingLots.forEach((lotBoxes, k) => {
         po.items.push({
-          lineId: toText(line.lineId),
+          lineId: toText(smart.lineId),
           lineNum: Number(line.lineNum ?? 0),
           itemCode: toText(line.itemCode),
           itemName: toText(line.dscription),
@@ -788,12 +814,33 @@ export class VendorLabelSendService {
           quantityScanned: sumQty(allBoxes.filter((b) => lotKey(b) === k)),
           quantitySend: sumQty(lotBoxes),
           deliveryDate,
+          poSmart: toText(smart.poSmart) || null,
+          prNumber: toText(smart.prNumber) || null,
+          contractNo: toText(smart.contractNo) || null,
+          invoiceSmartNo: toText(smart.invoiceSmartNo) || null,
+          invoiceNo: toText(smart.invoiceNo) || null,
+          invoiceDate: toText(smart.invoiceDate) || null,
+          deliveryTurn: smart.deliveryTurn ?? null,
+          deliveryScheduleNo: toText(smart.deliveryScheduleNo) || null,
+          deliveryLineId: toText(smart.deliveryLineId) || null,
+          timeEDD: toText(smart.timeEdd) || null,
+          timeETD: toText(smart.timeEtd) || null,
+          timeETA: toText(smart.timeEta) || null,
+          timePlanRecive: toText(smart.timePlanRecive) || null,
         });
       });
     }
     return {
       noticeNo: toText(detail.deliveryNotificationCode),
       deliveryNotificationId: detail.id,
+      status: toText(detail.status) || null,
+      Type: toText(detail.type) || null,
+      noticeDate: toText(detail.noticeDate) || null,
+      deliveryId: toText(detail.deliveryId) || null,
+      source: toText(detail.source) || null,
+      vehicleNo: toText(detail.contNo) || null,
+      invoiceNumber: toText(detail.invoiceNumber) || null,
+      contractCode: toText(detail.contractCode) || null,
       vendorName: toText(detail.vendorName),
       // Mã NCC của đơn → đơn cũ chưa lưu mã: vendor trên tem → lineVendor của PO (có thể là NCC khác)
       vendorCode:
@@ -807,6 +854,28 @@ export class VendorLabelSendService {
       sentBy: user,
       pos: [...pos.values()],
     };
+  }
+
+  /**
+   * Thùng nằm ở dòng PO cũ (có lineNum, giá) còn lineId/poSmart/prNumber... nằm ở dòng Smart
+   * cùng docEntry + itemCode. Dòng đã có thông tin Smart → dùng chính nó; ghép được đúng 1 dòng
+   * Smart → dùng dòng đó; không có / nhiều hơn 1 → dùng dòng hiện tại (trường trống gửi trống).
+   * Chỉ mượn thông tin bổ sung — kho và số lượng vẫn theo dòng chứa thùng.
+   */
+  private smartLineOf(line: SapPor1R1Dto, lines: SapPor1R1Dto[]): SapPor1R1Dto {
+    const hasSmart = (l: SapPor1R1Dto): boolean =>
+      !!(toText(l.lineId) || toText(l.poSmart));
+    if (hasSmart(line)) {
+      return line;
+    }
+    const matches = lines.filter(
+      (o) =>
+        o.id !== line.id &&
+        hasSmart(o) &&
+        toText(o.docEntry) === toText(line.docEntry) &&
+        toText(o.itemCode) === toText(line.itemCode),
+    );
+    return matches.length === 1 ? matches[0] : line;
   }
 
   private buildOpdnLine(e: SendBoxEntry, docEntry: number): GoodsReceiptPoLine {
