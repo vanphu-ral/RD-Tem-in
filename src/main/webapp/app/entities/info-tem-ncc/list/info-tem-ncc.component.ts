@@ -1,6 +1,6 @@
 import { AccountService } from "app/core/auth/account.service";
-import { Observable, of, take } from "rxjs";
-import { catchError, map, shareReplay } from "rxjs/operators";
+import { Observable, of, take, Subject } from "rxjs";
+import { catchError, debounceTime, map, shareReplay } from "rxjs/operators";
 import {
   Component,
   OnInit,
@@ -265,6 +265,8 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   private readonly mobileBreakpoint = 768;
   /** Danh sách NCC SAP (tải 1 lần khi bấm Bắt đầu nhập kho) — tra mã kịch bản scan */
   private sapVendors$?: Observable<SapOcrd[]>;
+  /** Debounce cho bộ lọc — tránh gọi API quá nhiều khi user đang gõ */
+  private filterSubject = new Subject<void>();
 
   constructor(
     private dialog: MatDialog,
@@ -277,7 +279,10 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   ) {}
 
   ngOnInit(): void {
-    this.dataSource.filterPredicate = this.buildFilterPredicate();
+    this.filterSubject.pipe(debounceTime(350)).subscribe(() => {
+      this.pageIndex = 0;
+      this.loadData();
+    });
     this.loadData();
   }
   ngAfterViewInit(): void {
@@ -286,8 +291,9 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
 
   loadData(): void {
     this.isLoading = true;
+    const filters = this.buildCriteriaParams();
     this.infoTemNccService
-      .getDeliveryNotifications(this.pageIndex, this.pageSize)
+      .getDeliveryNotifications(this.pageIndex, this.pageSize, filters)
       .subscribe({
         next: ({ items, total }) => {
           // Sắp xếp lại phía FE phòng khi backend bỏ qua tham số sort
@@ -531,7 +537,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
   }
 
   applyFilter(): void {
-    this.dataSource.filter = JSON.stringify(this.filterValues);
+    this.filterSubject.next();
   }
 
   // ---------- Lớp 2: PO ----------
@@ -781,49 +787,105 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
       raw: dto,
     };
   }
-  private buildFilterPredicate() {
-    return (item: DeliveryNoticeItem, filterJson: string): boolean => {
-      let f: FilterValues;
-      try {
-        f = JSON.parse(filterJson || "{}");
-      } catch {
-        return true;
+  /**
+   * Map FE filterValues → JHipster Criteria query params.
+   * String fields: `.contains`; status: `.equals` (giá trị DB);
+   * importDate (Instant): range greaterThanOrEqual / lessThan cho ngày chọn;
+   * noticeDate (LocalDate): `.equals` yyyy-MM-dd;
+   * poCount / materialQuantity (Integer): `.equals`.
+   */
+  private buildCriteriaParams(): Record<string, string> {
+    const params: Record<string, string> = {};
+    const f = this.filterValues;
+
+    const addContains = (paramName: string, value: string): void => {
+      const v = (value ?? "").trim();
+      if (v) {
+        params[`${paramName}.contains`] = v;
       }
-
-      const includes = (value: string | number, query: string): boolean => {
-        const term = (query ?? "").trim().toLowerCase();
-        if (!term) {
-          return true;
-        }
-        return String(value ?? "")
-          .toLowerCase()
-          .includes(term);
-      };
-
-      const statusText = this.deliveryStatusLabel(item.status);
-      const mobileStatus = this.mobileDeliveryStatus(item.status);
-      const statusOk =
-        includes(statusText, f.status) || includes(mobileStatus, f.status);
-      return (
-        includes(item.deliveryNotice, f.deliveryNotice) &&
-        (includes(item.importDate, f.importDate) ||
-          includes(this.formatDateTime(item.importDate), f.importDate)) &&
-        includes(item.invoiceNumber, f.invoiceNumber) &&
-        includes(item.contractCode, f.contractCode) &&
-        includes(item.vendorName, f.vendorName) &&
-        includes(item.vehicleNumber, f.vehicleNumber) &&
-        includes(item.type, f.type) &&
-        // yyyy-MM-dd: so cả chuỗi gốc và dd/MM/yyyy (giống ô chọn ngày)
-        (includes(item.noticeDate, f.noticeDate) ||
-          includes(this.formatDisplayDate(item.noticeDate), f.noticeDate)) &&
-        includes(item.factory, f.factory) &&
-        includes(item.poCount, f.poCount) &&
-        includes(item.materialQuantity, f.materialQuantity) &&
-        (includes(item.source, f.source) ||
-          includes(this.sourceLabel(item.source), f.source)) &&
-        statusOk
-      );
     };
+
+    addContains("deliveryNotificationCode", f.deliveryNotice);
+    addContains("invoiceNumber", f.invoiceNumber);
+    addContains("contractCode", f.contractCode);
+    addContains("vendorName", f.vendorName);
+    addContains("contNo", f.vehicleNumber);
+    addContains("type", f.type);
+    addContains("factory", f.factory);
+    addContains("source", f.source);
+
+    // Status: FE hiển thị "Chưa hoàn thành" / "Đã hoàn thành" nhưng DB lưu "INCOMPLETE" / "COMPLETED"
+    const statusTerm = (f.status ?? "").trim();
+    if (statusTerm) {
+      const statusMap: Record<string, string> = {
+        "Chưa hoàn thành": "INCOMPLETE",
+        "Chờ nhập": "INCOMPLETE",
+        "Đã hoàn thành": "COMPLETED",
+      };
+      const dbStatus = statusMap[statusTerm] ?? statusTerm;
+      params["status.contains"] = dbStatus;
+    }
+
+    // importDate (Instant): user nhập dd/MM/yyyy → chuyển sang range [startOfDay, startOfNextDay) UTC
+    const importDateTerm = (f.importDate ?? "").trim();
+    if (importDateTerm) {
+      const parsed = this.parseDateFilter(importDateTerm);
+      if (parsed) {
+        params["entryDate.greaterThanOrEqual"] = parsed.start;
+        params["entryDate.lessThan"] = parsed.end;
+      }
+    }
+
+    // noticeDate (LocalDate): user nhập dd/MM/yyyy → gửi yyyy-MM-dd
+    const noticeDateTerm = (f.noticeDate ?? "").trim();
+    if (noticeDateTerm) {
+      const isoDate = this.toIsoDate(noticeDateTerm);
+      if (isoDate) {
+        params["noticeDate.equals"] = isoDate;
+      }
+    }
+
+    // poCount (Integer)
+    const poCountTerm = (f.poCount ?? "").trim();
+    if (poCountTerm && !isNaN(Number(poCountTerm))) {
+      params["numberOfPo.equals"] = poCountTerm;
+    }
+
+    // materialQuantity (Integer)
+    const materialQtyTerm = (f.materialQuantity ?? "").trim();
+    if (materialQtyTerm && !isNaN(Number(materialQtyTerm))) {
+      params["numberOfItem.equals"] = materialQtyTerm;
+    }
+
+    return params;
+  }
+
+  /** dd/MM/yyyy → { start: ISO start-of-day, end: ISO start-of-next-day } (UTC) */
+  private parseDateFilter(
+    value: string,
+  ): { start: string; end: string } | null {
+    const match = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(value);
+    if (!match) {
+      return null;
+    }
+    const [, dd, mm, yyyy] = match;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    if (isNaN(d.getTime())) {
+      return null;
+    }
+    const next = new Date(d);
+    next.setDate(next.getDate() + 1);
+    return { start: d.toISOString(), end: next.toISOString() };
+  }
+
+  /** dd/MM/yyyy → yyyy-MM-dd */
+  private toIsoDate(value: string): string | null {
+    const match = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(value);
+    if (!match) {
+      return null;
+    }
+    const [, dd, mm, yyyy] = match;
+    return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
   }
   /** Gọi API detail nếu chưa tải; gán kết quả vào row.pos */
   private ensureDetail(row: DeliveryNoticeItem, expandFirstPo = false): void {

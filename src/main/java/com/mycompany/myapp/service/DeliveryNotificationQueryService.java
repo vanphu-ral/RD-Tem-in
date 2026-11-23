@@ -163,6 +163,24 @@ public class DeliveryNotificationQueryService
                 )
             );
             specification = specification.and(
+                buildStringSpecification(
+                    criteria.type(),
+                    DeliveryNotification_.type
+                )
+            );
+            specification = specification.and(
+                buildRangeSpecification(
+                    criteria.noticeDate(),
+                    DeliveryNotification_.noticeDate
+                )
+            );
+            specification = specification.and(
+                buildStringSpecification(
+                    criteria.factory(),
+                    DeliveryNotification_.factory
+                )
+            );
+            specification = specification.and(
                 buildRangeSpecification(
                     criteria.createdAt(),
                     DeliveryNotification_.createdAt

@@ -265,13 +265,24 @@ export class InfoTemNccService {
   getDeliveryNotifications(
     page: number,
     size: number,
+    filters?: Record<string, string>,
   ): Observable<DeliveryNotificationPage> {
     // Mặc định đơn mới nhất lên đầu (sort theo createdAt giảm dần, id phụ)
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set("page", page)
       .set("size", size)
       .append("sort", "createdAt,desc")
       .append("sort", "id,desc");
+
+    // Gắn filter params theo JHipster Criteria format
+    if (filters) {
+      for (const [key, value] of Object.entries(filters)) {
+        if (value) {
+          params = params.set(key, value);
+        }
+      }
+    }
+
     return this.http
       .get<DeliveryNotificationDto[]>(`${this.url}/delivery-notifications`, {
         params,

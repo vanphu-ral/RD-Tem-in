@@ -44,6 +44,12 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
 
     private StringFilter source;
 
+    private StringFilter type;
+
+    private LocalDateFilter noticeDate;
+
+    private StringFilter factory;
+
     private InstantFilter createdAt;
 
     private StringFilter createdBy;
@@ -96,6 +102,15 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             .orElse(null);
         this.source = other
             .optionalSource()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.type = other.optionalType().map(StringFilter::copy).orElse(null);
+        this.noticeDate = other
+            .optionalNoticeDate()
+            .map(LocalDateFilter::copy)
+            .orElse(null);
+        this.factory = other
+            .optionalFactory()
             .map(StringFilter::copy)
             .orElse(null);
         this.createdAt = other
@@ -333,6 +348,63 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
         this.source = source;
     }
 
+    public StringFilter getType() {
+        return type;
+    }
+
+    public Optional<StringFilter> optionalType() {
+        return Optional.ofNullable(type);
+    }
+
+    public StringFilter type() {
+        if (type == null) {
+            setType(new StringFilter());
+        }
+        return type;
+    }
+
+    public void setType(StringFilter type) {
+        this.type = type;
+    }
+
+    public LocalDateFilter getNoticeDate() {
+        return noticeDate;
+    }
+
+    public Optional<LocalDateFilter> optionalNoticeDate() {
+        return Optional.ofNullable(noticeDate);
+    }
+
+    public LocalDateFilter noticeDate() {
+        if (noticeDate == null) {
+            setNoticeDate(new LocalDateFilter());
+        }
+        return noticeDate;
+    }
+
+    public void setNoticeDate(LocalDateFilter noticeDate) {
+        this.noticeDate = noticeDate;
+    }
+
+    public StringFilter getFactory() {
+        return factory;
+    }
+
+    public Optional<StringFilter> optionalFactory() {
+        return Optional.ofNullable(factory);
+    }
+
+    public StringFilter factory() {
+        if (factory == null) {
+            setFactory(new StringFilter());
+        }
+        return factory;
+    }
+
+    public void setFactory(StringFilter factory) {
+        this.factory = factory;
+    }
+
     public InstantFilter getCreatedAt() {
         return createdAt;
     }
@@ -453,6 +525,9 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             Objects.equals(numberOfItem, that.numberOfItem) &&
             Objects.equals(status, that.status) &&
             Objects.equals(source, that.source) &&
+            Objects.equals(type, that.type) &&
+            Objects.equals(noticeDate, that.noticeDate) &&
+            Objects.equals(factory, that.factory) &&
             Objects.equals(createdAt, that.createdAt) &&
             Objects.equals(createdBy, that.createdBy) &&
             Objects.equals(deletedAt, that.deletedAt) &&
@@ -475,6 +550,9 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             numberOfItem,
             status,
             source,
+            type,
+            noticeDate,
+            factory,
             createdAt,
             createdBy,
             deletedAt,
@@ -498,6 +576,9 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             optionalNumberOfItem().map(f -> "numberOfItem=" + f + ", ").orElse("") +
             optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
             optionalSource().map(f -> "source=" + f + ", ").orElse("") +
+            optionalType().map(f -> "type=" + f + ", ").orElse("") +
+            optionalNoticeDate().map(f -> "noticeDate=" + f + ", ").orElse("") +
+            optionalFactory().map(f -> "factory=" + f + ", ").orElse("") +
             optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
             optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
             optionalDeletedAt().map(f -> "deletedAt=" + f + ", ").orElse("") +
