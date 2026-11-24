@@ -11,6 +11,7 @@ import com.mycompany.myapp.service.dto.VendorLabelInfoDetailDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -25,6 +26,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import tech.jhipster.service.filter.InstantFilter;
+import tech.jhipster.service.filter.IntegerFilter;
+import tech.jhipster.service.filter.StringFilter;
 import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.PaginationUtil;
 import tech.jhipster.web.util.ResponseUtil;
@@ -51,22 +55,22 @@ public class DeliveryNotificationResource {
 
     private final DeliveryNotificationRepository deliveryNotificationRepository;
 
-    private final DeliveryNotificationQueryService deliveryNotificationQueryService;
-
     private final DeliveryNotificationDetailService deliveryNotificationDetailService;
+
+    private final DeliveryNotificationQueryService deliveryNotificationQueryService;
 
     public DeliveryNotificationResource(
         DeliveryNotificationService deliveryNotificationService,
         DeliveryNotificationRepository deliveryNotificationRepository,
-        DeliveryNotificationQueryService deliveryNotificationQueryService,
-        DeliveryNotificationDetailService deliveryNotificationDetailService
+        DeliveryNotificationDetailService deliveryNotificationDetailService,
+        DeliveryNotificationQueryService deliveryNotificationQueryService
     ) {
         this.deliveryNotificationService = deliveryNotificationService;
         this.deliveryNotificationRepository = deliveryNotificationRepository;
-        this.deliveryNotificationQueryService =
-            deliveryNotificationQueryService;
         this.deliveryNotificationDetailService =
             deliveryNotificationDetailService;
+        this.deliveryNotificationQueryService =
+            deliveryNotificationQueryService;
     }
 
     /**
@@ -238,23 +242,46 @@ public class DeliveryNotificationResource {
     }
 
     /**
-     * {@code GET  /delivery-notifications} : get all the deliveryNotifications.
+     * {@code GET  /delivery-notifications} : get all the deliveryNotifications with optional search filters.
      *
+     * @param deliveryNotificationCode the deliveryNotificationCode to filter by.
+     * @param invoiceNumber the invoiceNumber to filter by.
+     * @param contractCode the contractCode to filter by.
+     * @param vendorName the vendorName to filter by.
+     * @param contNo the contNo to filter by.
+     * @param entryDate the entryDate to filter by.
+     * @param numberOfPo the numberOfPo to filter by.
+     * @param numberOfItem the numberOfItem to filter by.
+     * @param status the status to filter by.
+     * @param source the source to filter by.
+     * @param createdAt the createdAt to filter by.
+     * @param createdBy the createdBy to filter by.
+     * @param deletedAt the deletedAt to filter by.
+     * @param deletedBy the deletedBy to filter by.
      * @param pageable the pagination information.
-     * @param criteria the criteria which the requested entities should match.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of deliveryNotifications in body.
      */
     @GetMapping("")
     public ResponseEntity<
         List<DeliveryNotificationDTO>
     > getAllDeliveryNotifications(
-        DeliveryNotificationCriteria criteria,
+        @RequestParam(required = false) String deliveryNotificationCode,
+        @RequestParam(required = false) String invoiceNumber,
+        @RequestParam(required = false) String contractCode,
+        @RequestParam(required = false) String vendorName,
+        @RequestParam(required = false) String contNo,
+        @RequestParam(required = false) Instant entryDate,
+        @RequestParam(required = false) Integer numberOfPo,
+        @RequestParam(required = false) Integer numberOfItem,
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) String source,
+        @RequestParam(required = false) Instant createdAt,
+        @RequestParam(required = false) String createdBy,
+        @RequestParam(required = false) Instant deletedAt,
+        @RequestParam(required = false) String deletedBy,
         @org.springdoc.api.annotations.ParameterObject Pageable pageable
     ) {
-        LOG.debug(
-            "REST request to get DeliveryNotifications by criteria: {}",
-            criteria
-        );
+        LOG.debug("REST request to get DeliveryNotifications with filters");
 
         // Mặc định sắp xếp bản ghi mới tạo lên đầu, chỉ áp dụng khi client không truyền sort
         Pageable sortedPageable = pageable;
@@ -272,8 +299,21 @@ public class DeliveryNotificationResource {
         }
 
         Page<DeliveryNotificationDTO> page =
-            deliveryNotificationQueryService.findByCriteria(
-                criteria,
+            deliveryNotificationService.searchDeliveryNotifications(
+                deliveryNotificationCode,
+                invoiceNumber,
+                contractCode,
+                vendorName,
+                contNo,
+                entryDate,
+                numberOfPo,
+                numberOfItem,
+                status,
+                source,
+                createdAt,
+                createdBy,
+                deletedAt,
+                deletedBy,
                 sortedPageable
             );
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
@@ -286,17 +326,107 @@ public class DeliveryNotificationResource {
     /**
      * {@code GET  /delivery-notifications/count} : count all the deliveryNotifications.
      *
-     * @param criteria the criteria which the requested entities should match.
+     * @param deliveryNotificationCode the deliveryNotificationCode to filter by.
+     * @param invoiceNumber the invoiceNumber to filter by.
+     * @param contractCode the contractCode to filter by.
+     * @param vendorName the vendorName to filter by.
+     * @param contNo the contNo to filter by.
+     * @param entryDate the entryDate to filter by.
+     * @param numberOfPo the numberOfPo to filter by.
+     * @param numberOfItem the numberOfItem to filter by.
+     * @param status the status to filter by.
+     * @param source the source to filter by.
+     * @param createdAt the createdAt to filter by.
+     * @param createdBy the createdBy to filter by.
+     * @param deletedAt the deletedAt to filter by.
+     * @param deletedBy the deletedBy to filter by.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count in body.
      */
     @GetMapping("/count")
     public ResponseEntity<Long> countDeliveryNotifications(
-        DeliveryNotificationCriteria criteria
+        @RequestParam(required = false) String deliveryNotificationCode,
+        @RequestParam(required = false) String invoiceNumber,
+        @RequestParam(required = false) String contractCode,
+        @RequestParam(required = false) String vendorName,
+        @RequestParam(required = false) String contNo,
+        @RequestParam(required = false) Instant entryDate,
+        @RequestParam(required = false) Integer numberOfPo,
+        @RequestParam(required = false) Integer numberOfItem,
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) String source,
+        @RequestParam(required = false) Instant createdAt,
+        @RequestParam(required = false) String createdBy,
+        @RequestParam(required = false) Instant deletedAt,
+        @RequestParam(required = false) String deletedBy
     ) {
-        LOG.debug(
-            "REST request to count DeliveryNotifications by criteria: {}",
+        LOG.debug("REST request to count DeliveryNotifications with filters");
+
+        // Build criteria from individual parameters
+        DeliveryNotificationCriteria criteria =
+            new DeliveryNotificationCriteria();
+
+        if (
+            deliveryNotificationCode != null &&
+            !deliveryNotificationCode.trim().isEmpty()
+        ) {
+            criteria.setDeliveryNotificationCode(new StringFilter());
             criteria
-        );
+                .getDeliveryNotificationCode()
+                .setContains(deliveryNotificationCode);
+        }
+        if (invoiceNumber != null && !invoiceNumber.trim().isEmpty()) {
+            criteria.setInvoiceNumber(new StringFilter());
+            criteria.getInvoiceNumber().setContains(invoiceNumber);
+        }
+        if (contractCode != null && !contractCode.trim().isEmpty()) {
+            criteria.setContractCode(new StringFilter());
+            criteria.getContractCode().setContains(contractCode);
+        }
+        if (vendorName != null && !vendorName.trim().isEmpty()) {
+            criteria.setVendorName(new StringFilter());
+            criteria.getVendorName().setContains(vendorName);
+        }
+        if (contNo != null && !contNo.trim().isEmpty()) {
+            criteria.setContNo(new StringFilter());
+            criteria.getContNo().setContains(contNo);
+        }
+        if (entryDate != null) {
+            criteria.setEntryDate(new InstantFilter());
+            criteria.getEntryDate().setEquals(entryDate);
+        }
+        if (numberOfPo != null) {
+            criteria.setNumberOfPo(new IntegerFilter());
+            criteria.getNumberOfPo().setEquals(numberOfPo);
+        }
+        if (numberOfItem != null) {
+            criteria.setNumberOfItem(new IntegerFilter());
+            criteria.getNumberOfItem().setEquals(numberOfItem);
+        }
+        if (status != null && !status.trim().isEmpty()) {
+            criteria.setStatus(new StringFilter());
+            criteria.getStatus().setContains(status);
+        }
+        if (source != null && !source.trim().isEmpty()) {
+            criteria.setSource(new StringFilter());
+            criteria.getSource().setContains(source);
+        }
+        if (createdAt != null) {
+            criteria.setCreatedAt(new InstantFilter());
+            criteria.getCreatedAt().setEquals(createdAt);
+        }
+        if (createdBy != null && !createdBy.trim().isEmpty()) {
+            criteria.setCreatedBy(new StringFilter());
+            criteria.getCreatedBy().setContains(createdBy);
+        }
+        if (deletedAt != null) {
+            criteria.setDeletedAt(new InstantFilter());
+            criteria.getDeletedAt().setEquals(deletedAt);
+        }
+        if (deletedBy != null && !deletedBy.trim().isEmpty()) {
+            criteria.setDeletedBy(new StringFilter());
+            criteria.getDeletedBy().setContains(deletedBy);
+        }
+
         return ResponseEntity.ok().body(
             deliveryNotificationQueryService.countByCriteria(criteria)
         );

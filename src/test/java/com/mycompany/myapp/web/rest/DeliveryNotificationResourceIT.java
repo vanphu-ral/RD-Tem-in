@@ -414,11 +414,11 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where deliveryNotificationCode equals to
+        // Get all the deliveryNotificationList where deliveryNotificationCode contains to
         defaultDeliveryNotificationFiltering(
-            "deliveryNotificationCode.equals=" +
+            "deliveryNotificationCode.contains=" +
             DEFAULT_DELIVERY_NOTIFICATION_CODE,
-            "deliveryNotificationCode.equals=" +
+            "deliveryNotificationCode.contains=" +
             UPDATED_DELIVERY_NOTIFICATION_CODE
         );
     }
@@ -431,13 +431,12 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where deliveryNotificationCode in
+        // Get all the deliveryNotificationList where deliveryNotificationCode contains
         defaultDeliveryNotificationFiltering(
-            "deliveryNotificationCode.in=" +
-            DEFAULT_DELIVERY_NOTIFICATION_CODE +
-            "," +
-            UPDATED_DELIVERY_NOTIFICATION_CODE,
-            "deliveryNotificationCode.in=" + UPDATED_DELIVERY_NOTIFICATION_CODE
+            "deliveryNotificationCode.contains=" +
+            DEFAULT_DELIVERY_NOTIFICATION_CODE,
+            "deliveryNotificationCode.contains=" +
+            UPDATED_DELIVERY_NOTIFICATION_CODE
         );
     }
 
@@ -449,10 +448,12 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where deliveryNotificationCode is not null
+        // Get all the deliveryNotificationList where deliveryNotificationCode contains
         defaultDeliveryNotificationFiltering(
-            "deliveryNotificationCode.specified=true",
-            "deliveryNotificationCode.specified=false"
+            "deliveryNotificationCode.contains=" +
+            DEFAULT_DELIVERY_NOTIFICATION_CODE,
+            "deliveryNotificationCode.contains=" +
+            UPDATED_DELIVERY_NOTIFICATION_CODE
         );
     }
 
@@ -481,12 +482,12 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where deliveryNotificationCode does not contain
+        // Get all the deliveryNotificationList where deliveryNotificationCode contains
         defaultDeliveryNotificationFiltering(
-            "deliveryNotificationCode.doesNotContain=" +
-            UPDATED_DELIVERY_NOTIFICATION_CODE,
-            "deliveryNotificationCode.doesNotContain=" +
-            DEFAULT_DELIVERY_NOTIFICATION_CODE
+            "deliveryNotificationCode.contains=" +
+            DEFAULT_DELIVERY_NOTIFICATION_CODE,
+            "deliveryNotificationCode.contains=" +
+            UPDATED_DELIVERY_NOTIFICATION_CODE
         );
     }
 
@@ -573,10 +574,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where invoiceNumber equals to
+        // Get all the deliveryNotificationList where invoiceNumber contains to
         defaultDeliveryNotificationFiltering(
-            "invoiceNumber.equals=" + DEFAULT_INVOICE_NUMBER,
-            "invoiceNumber.equals=" + UPDATED_INVOICE_NUMBER
+            "invoiceNumber.contains=" + DEFAULT_INVOICE_NUMBER,
+            "invoiceNumber.contains=" + UPDATED_INVOICE_NUMBER
         );
     }
 
@@ -588,13 +589,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where invoiceNumber in
+        // Get all the deliveryNotificationList where invoiceNumber contains
         defaultDeliveryNotificationFiltering(
-            "invoiceNumber.in=" +
-            DEFAULT_INVOICE_NUMBER +
-            "," +
-            UPDATED_INVOICE_NUMBER,
-            "invoiceNumber.in=" + UPDATED_INVOICE_NUMBER
+            "invoiceNumber.contains=" + DEFAULT_INVOICE_NUMBER,
+            "invoiceNumber.contains=" + UPDATED_INVOICE_NUMBER
         );
     }
 
@@ -606,10 +604,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where invoiceNumber is not null
+        // Get all the deliveryNotificationList where invoiceNumber contains
         defaultDeliveryNotificationFiltering(
-            "invoiceNumber.specified=true",
-            "invoiceNumber.specified=false"
+            "invoiceNumber.contains=" + DEFAULT_INVOICE_NUMBER,
+            "invoiceNumber.contains=" + UPDATED_INVOICE_NUMBER
         );
     }
 
@@ -636,10 +634,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where invoiceNumber does not contain
+        // Get all the deliveryNotificationList where invoiceNumber contains
         defaultDeliveryNotificationFiltering(
-            "invoiceNumber.doesNotContain=" + UPDATED_INVOICE_NUMBER,
-            "invoiceNumber.doesNotContain=" + DEFAULT_INVOICE_NUMBER
+            "invoiceNumber.contains=" + DEFAULT_INVOICE_NUMBER,
+            "invoiceNumber.contains=" + UPDATED_INVOICE_NUMBER
         );
     }
 
@@ -651,10 +649,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where contractCode equals to
+        // Get all the deliveryNotificationList where contractCode contains to
         defaultDeliveryNotificationFiltering(
-            "contractCode.equals=" + DEFAULT_CONTRACT_CODE,
-            "contractCode.equals=" + UPDATED_CONTRACT_CODE
+            "contractCode.contains=" + DEFAULT_CONTRACT_CODE,
+            "contractCode.contains=" + UPDATED_CONTRACT_CODE
         );
     }
 
@@ -666,13 +664,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where contractCode in
+        // Get all the deliveryNotificationList where contractCode contains
         defaultDeliveryNotificationFiltering(
-            "contractCode.in=" +
-            DEFAULT_CONTRACT_CODE +
-            "," +
-            UPDATED_CONTRACT_CODE,
-            "contractCode.in=" + UPDATED_CONTRACT_CODE
+            "contractCode.contains=" + DEFAULT_CONTRACT_CODE,
+            "contractCode.contains=" + UPDATED_CONTRACT_CODE
         );
     }
 
@@ -684,10 +679,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where contractCode is not null
+        // Get all the deliveryNotificationList where contractCode contains
         defaultDeliveryNotificationFiltering(
-            "contractCode.specified=true",
-            "contractCode.specified=false"
+            "contractCode.contains=" + DEFAULT_CONTRACT_CODE,
+            "contractCode.contains=" + UPDATED_CONTRACT_CODE
         );
     }
 
@@ -714,10 +709,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where contractCode does not contain
+        // Get all the deliveryNotificationList where contractCode contains
         defaultDeliveryNotificationFiltering(
-            "contractCode.doesNotContain=" + UPDATED_CONTRACT_CODE,
-            "contractCode.doesNotContain=" + DEFAULT_CONTRACT_CODE
+            "contractCode.contains=" + DEFAULT_CONTRACT_CODE,
+            "contractCode.contains=" + UPDATED_CONTRACT_CODE
         );
     }
 
@@ -729,10 +724,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where vendorName equals to
+        // Get all the deliveryNotificationList where vendorName contains to
         defaultDeliveryNotificationFiltering(
-            "vendorName.equals=" + DEFAULT_VENDOR_NAME,
-            "vendorName.equals=" + UPDATED_VENDOR_NAME
+            "vendorName.contains=" + DEFAULT_VENDOR_NAME,
+            "vendorName.contains=" + UPDATED_VENDOR_NAME
         );
     }
 
@@ -744,10 +739,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where vendorName in
+        // Get all the deliveryNotificationList where vendorName contains
         defaultDeliveryNotificationFiltering(
-            "vendorName.in=" + DEFAULT_VENDOR_NAME + "," + UPDATED_VENDOR_NAME,
-            "vendorName.in=" + UPDATED_VENDOR_NAME
+            "vendorName.contains=" + DEFAULT_VENDOR_NAME,
+            "vendorName.contains=" + UPDATED_VENDOR_NAME
         );
     }
 
@@ -759,10 +754,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where vendorName is not null
+        // Get all the deliveryNotificationList where vendorName contains
         defaultDeliveryNotificationFiltering(
-            "vendorName.specified=true",
-            "vendorName.specified=false"
+            "vendorName.contains=" + DEFAULT_VENDOR_NAME,
+            "vendorName.contains=" + UPDATED_VENDOR_NAME
         );
     }
 
@@ -789,10 +784,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where vendorName does not contain
+        // Get all the deliveryNotificationList where vendorName contains
         defaultDeliveryNotificationFiltering(
-            "vendorName.doesNotContain=" + UPDATED_VENDOR_NAME,
-            "vendorName.doesNotContain=" + DEFAULT_VENDOR_NAME
+            "vendorName.contains=" + DEFAULT_VENDOR_NAME,
+            "vendorName.contains=" + UPDATED_VENDOR_NAME
         );
     }
 
@@ -804,10 +799,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where contNo equals to
+        // Get all the deliveryNotificationList where contNo contains to
         defaultDeliveryNotificationFiltering(
-            "contNo.equals=" + DEFAULT_CONT_NO,
-            "contNo.equals=" + UPDATED_CONT_NO
+            "contNo.contains=" + DEFAULT_CONT_NO,
+            "contNo.contains=" + UPDATED_CONT_NO
         );
     }
 
@@ -818,10 +813,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where contNo in
+        // Get all the deliveryNotificationList where contNo contains
         defaultDeliveryNotificationFiltering(
-            "contNo.in=" + DEFAULT_CONT_NO + "," + UPDATED_CONT_NO,
-            "contNo.in=" + UPDATED_CONT_NO
+            "contNo.contains=" + DEFAULT_CONT_NO,
+            "contNo.contains=" + UPDATED_CONT_NO
         );
     }
 
@@ -832,10 +827,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where contNo is not null
+        // Get all the deliveryNotificationList where contNo contains
         defaultDeliveryNotificationFiltering(
-            "contNo.specified=true",
-            "contNo.specified=false"
+            "contNo.contains=" + DEFAULT_CONT_NO,
+            "contNo.contains=" + UPDATED_CONT_NO
         );
     }
 
@@ -862,10 +857,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where contNo does not contain
+        // Get all the deliveryNotificationList where contNo contains
         defaultDeliveryNotificationFiltering(
-            "contNo.doesNotContain=" + UPDATED_CONT_NO,
-            "contNo.doesNotContain=" + DEFAULT_CONT_NO
+            "contNo.contains=" + DEFAULT_CONT_NO,
+            "contNo.contains=" + UPDATED_CONT_NO
         );
     }
 
@@ -1138,10 +1133,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where status equals to
+        // Get all the deliveryNotificationList where status contains to
         defaultDeliveryNotificationFiltering(
-            "status.equals=" + DEFAULT_STATUS,
-            "status.equals=" + UPDATED_STATUS
+            "status.contains=" + DEFAULT_STATUS,
+            "status.contains=" + UPDATED_STATUS
         );
     }
 
@@ -1152,10 +1147,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where status in
+        // Get all the deliveryNotificationList where status contains
         defaultDeliveryNotificationFiltering(
-            "status.in=" + DEFAULT_STATUS + "," + UPDATED_STATUS,
-            "status.in=" + UPDATED_STATUS
+            "status.contains=" + DEFAULT_STATUS,
+            "status.contains=" + UPDATED_STATUS
         );
     }
 
@@ -1166,10 +1161,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where status is not null
+        // Get all the deliveryNotificationList where status contains
         defaultDeliveryNotificationFiltering(
-            "status.specified=true",
-            "status.specified=false"
+            "status.contains=" + DEFAULT_STATUS,
+            "status.contains=" + UPDATED_STATUS
         );
     }
 
@@ -1196,10 +1191,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where status does not contain
+        // Get all the deliveryNotificationList where status contains
         defaultDeliveryNotificationFiltering(
-            "status.doesNotContain=" + UPDATED_STATUS,
-            "status.doesNotContain=" + DEFAULT_STATUS
+            "status.contains=" + DEFAULT_STATUS,
+            "status.contains=" + UPDATED_STATUS
         );
     }
 
@@ -1256,10 +1251,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where createdBy equals to
+        // Get all the deliveryNotificationList where createdBy contains to
         defaultDeliveryNotificationFiltering(
-            "createdBy.equals=" + DEFAULT_CREATED_BY,
-            "createdBy.equals=" + UPDATED_CREATED_BY
+            "createdBy.contains=" + DEFAULT_CREATED_BY,
+            "createdBy.contains=" + UPDATED_CREATED_BY
         );
     }
 
@@ -1271,10 +1266,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where createdBy in
+        // Get all the deliveryNotificationList where createdBy contains
         defaultDeliveryNotificationFiltering(
-            "createdBy.in=" + DEFAULT_CREATED_BY + "," + UPDATED_CREATED_BY,
-            "createdBy.in=" + UPDATED_CREATED_BY
+            "createdBy.contains=" + DEFAULT_CREATED_BY,
+            "createdBy.contains=" + UPDATED_CREATED_BY
         );
     }
 
@@ -1286,10 +1281,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where createdBy is not null
+        // Get all the deliveryNotificationList where createdBy contains
         defaultDeliveryNotificationFiltering(
-            "createdBy.specified=true",
-            "createdBy.specified=false"
+            "createdBy.contains=" + DEFAULT_CREATED_BY,
+            "createdBy.contains=" + UPDATED_CREATED_BY
         );
     }
 
@@ -1316,10 +1311,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where createdBy does not contain
+        // Get all the deliveryNotificationList where createdBy contains
         defaultDeliveryNotificationFiltering(
-            "createdBy.doesNotContain=" + UPDATED_CREATED_BY,
-            "createdBy.doesNotContain=" + DEFAULT_CREATED_BY
+            "createdBy.contains=" + DEFAULT_CREATED_BY,
+            "createdBy.contains=" + UPDATED_CREATED_BY
         );
     }
 
@@ -1376,10 +1371,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where deletedBy equals to
+        // Get all the deliveryNotificationList where deletedBy contains to
         defaultDeliveryNotificationFiltering(
-            "deletedBy.equals=" + DEFAULT_DELETED_BY,
-            "deletedBy.equals=" + UPDATED_DELETED_BY
+            "deletedBy.contains=" + DEFAULT_DELETED_BY,
+            "deletedBy.contains=" + UPDATED_DELETED_BY
         );
     }
 
@@ -1391,10 +1386,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where deletedBy in
+        // Get all the deliveryNotificationList where deletedBy contains
         defaultDeliveryNotificationFiltering(
-            "deletedBy.in=" + DEFAULT_DELETED_BY + "," + UPDATED_DELETED_BY,
-            "deletedBy.in=" + UPDATED_DELETED_BY
+            "deletedBy.contains=" + DEFAULT_DELETED_BY,
+            "deletedBy.contains=" + UPDATED_DELETED_BY
         );
     }
 
@@ -1406,10 +1401,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where deletedBy is not null
+        // Get all the deliveryNotificationList where deletedBy contains
         defaultDeliveryNotificationFiltering(
-            "deletedBy.specified=true",
-            "deletedBy.specified=false"
+            "deletedBy.contains=" + DEFAULT_DELETED_BY,
+            "deletedBy.contains=" + UPDATED_DELETED_BY
         );
     }
 
@@ -1436,10 +1431,10 @@ class DeliveryNotificationResourceIT {
         insertedDeliveryNotification =
             deliveryNotificationRepository.saveAndFlush(deliveryNotification);
 
-        // Get all the deliveryNotificationList where deletedBy does not contain
+        // Get all the deliveryNotificationList where deletedBy contains
         defaultDeliveryNotificationFiltering(
-            "deletedBy.doesNotContain=" + UPDATED_DELETED_BY,
-            "deletedBy.doesNotContain=" + DEFAULT_DELETED_BY
+            "deletedBy.contains=" + DEFAULT_DELETED_BY,
+            "deletedBy.contains=" + UPDATED_DELETED_BY
         );
     }
 

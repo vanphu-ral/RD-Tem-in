@@ -14,6 +14,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tech.jhipster.service.QueryService;
+import tech.jhipster.service.filter.StringFilter;
 
 /**
  * Service for executing complex queries for {@link DeliveryNotification} entities in the database.
@@ -95,43 +96,82 @@ public class DeliveryNotificationQueryService
             // unless the user explicitly provides a deletedAt filter
             if (criteria.getDeletedAt() == null) {
                 specification = specification.and((root, query, cb) ->
-                    cb.isNull(root.get(DeliveryNotification_.deletedAt))
+                    cb.isNull(root.get("deletedAt"))
                 );
             }
             specification = specification.and(
                 buildRangeSpecification(criteria.id(), DeliveryNotification_.id)
             );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.deliveryNotificationCode(),
-                    DeliveryNotification_.deliveryNotificationCode
-                )
-            );
-
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.invoiceNumber(),
-                    DeliveryNotification_.invoiceNumber
-                )
-            );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.contractCode(),
-                    DeliveryNotification_.contractCode
-                )
-            );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.vendorName(),
-                    DeliveryNotification_.vendorName
-                )
-            );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.contNo(),
-                    DeliveryNotification_.contNo
-                )
-            );
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getDeliveryNotificationCode();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("deliveryNotificationCode")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getInvoiceNumber();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("invoiceNumber")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getContractCode();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("contractCode")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getVendorName();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("vendorName")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getContNo();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("contNo")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
             specification = specification.and(
                 buildRangeSpecification(
                     criteria.entryDate(),
@@ -150,60 +190,74 @@ public class DeliveryNotificationQueryService
                     DeliveryNotification_.numberOfItem
                 )
             );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.status(),
-                    DeliveryNotification_.status
-                )
-            );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.source(),
-                    DeliveryNotification_.source
-                )
-            );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.type(),
-                    DeliveryNotification_.type
-                )
-            );
-            specification = specification.and(
-                buildRangeSpecification(
-                    criteria.noticeDate(),
-                    DeliveryNotification_.noticeDate
-                )
-            );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.factory(),
-                    DeliveryNotification_.factory
-                )
-            );
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getStatus();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("status")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getSource();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("source")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
             specification = specification.and(
                 buildRangeSpecification(
                     criteria.createdAt(),
                     DeliveryNotification_.createdAt
                 )
             );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.createdBy(),
-                    DeliveryNotification_.createdBy
-                )
-            );
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getCreatedBy();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("createdBy")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
             specification = specification.and(
                 buildRangeSpecification(
                     criteria.deletedAt(),
                     DeliveryNotification_.deletedAt
                 )
             );
-            specification = specification.and(
-                buildStringSpecification(
-                    criteria.deletedBy(),
-                    DeliveryNotification_.deletedBy
-                )
-            );
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getDeletedBy();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("deletedBy")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
         }
         return specification;
     }
