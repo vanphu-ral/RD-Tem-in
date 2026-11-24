@@ -101,6 +101,12 @@
         >
           <div class="th-wrap">
             <span mat-sort-header="importDate">Ngày nhập</span>
+            <input
+              class="col-filter"
+              type="date"
+              [(ngModel)]="filterValues.importDate"
+              (ngModelChange)="applyFilter()"
+            />
           </div>
         </th>
         <td mat-cell *matCellDef="let row">
@@ -636,7 +642,7 @@
     </button>
     <div class="mobile-header-text">
       <h1>Nhập TEM từ NCC</h1>
-      <p>Tìm đơn theo mã TBGH</p>
+      <p>Tìm đơn theo số xe, mã TBGH, ngày nhập</p>
     </div>
   </div>
 
@@ -644,10 +650,10 @@
     <div class="mobile-filter-card">
       <div class="filter-top-row">
         <div class="filter-field flex-1">
-          <label>Mã TBGH</label>
+          <label>Số xe</label>
           <input
-            [(ngModel)]="filterValues.deliveryNotice"
-            placeholder="VD: IPR1126/1390"
+            [(ngModel)]="filterValues.vehicleNumber"
+            placeholder="VD: 29H-123.45"
           />
         </div>
         <button
@@ -662,6 +668,17 @@
       </div>
 
       <div class="filter-extra" *ngIf="mobileFilterExpanded">
+        <div class="filter-field">
+          <label>Mã TBGH</label>
+          <input
+            [(ngModel)]="filterValues.deliveryNotice"
+            placeholder="VD: IPR1126/1390"
+          />
+        </div>
+        <div class="filter-field">
+          <label>Ngày nhập</label>
+          <input type="date" [(ngModel)]="filterValues.importDate" />
+        </div>
         <div class="filter-field">
           <label>Mã hợp đồng</label>
           <input

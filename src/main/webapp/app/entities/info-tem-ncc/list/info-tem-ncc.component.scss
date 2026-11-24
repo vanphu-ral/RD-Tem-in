@@ -725,6 +725,19 @@ mat-paginator {
   flex-shrink: 0;
   border-radius: 12px;
   background: #fff;
+  /* Đóng băng ở cuối màn hình khi cuộn danh sách */
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Chừa chỗ để thẻ cuối không bị phân trang cố định che */
+.mobile-card-list {
+  padding-bottom: 64px;
 }
 
 /* PO detail */

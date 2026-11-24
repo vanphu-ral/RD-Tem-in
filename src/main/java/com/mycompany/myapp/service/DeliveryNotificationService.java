@@ -148,6 +148,8 @@ public class DeliveryNotificationService {
      * @param vendorName the vendorName to filter by.
      * @param contNo the contNo to filter by.
      * @param entryDate the entryDate to filter by.
+     * @param entryDateFrom entryDate lower bound (inclusive).
+     * @param entryDateTo entryDate upper bound (inclusive).
      * @param numberOfPo the numberOfPo to filter by.
      * @param numberOfItem the numberOfItem to filter by.
      * @param status the status to filter by.
@@ -167,6 +169,8 @@ public class DeliveryNotificationService {
         String vendorName,
         String contNo,
         Instant entryDate,
+        Instant entryDateFrom,
+        Instant entryDateTo,
         Integer numberOfPo,
         Integer numberOfItem,
         String status,
@@ -211,6 +215,12 @@ public class DeliveryNotificationService {
         if (entryDate != null) {
             criteria.setEntryDate(new InstantFilter());
             criteria.getEntryDate().setEquals(entryDate);
+        }
+        if (entryDateFrom != null) {
+            criteria.entryDate().setGreaterThanOrEqual(entryDateFrom);
+        }
+        if (entryDateTo != null) {
+            criteria.entryDate().setLessThanOrEqual(entryDateTo);
         }
         if (numberOfPo != null) {
             criteria.setNumberOfPo(new IntegerFilter());

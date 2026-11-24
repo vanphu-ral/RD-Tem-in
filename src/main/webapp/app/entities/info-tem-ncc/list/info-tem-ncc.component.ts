@@ -148,6 +148,8 @@ export interface FilterValues {
   contractCode: string;
   vendorName: string;
   vehicleNumber: string;
+  /** Ngày nhập (yyyy-MM-dd, từ input type="date"); rỗng = không lọc */
+  importDate: string;
   poCount: string;
   materialQuantity: string;
   status: string;
@@ -224,6 +226,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     contractCode: "",
     vendorName: "",
     vehicleNumber: "",
+    importDate: "",
     poCount: "",
     materialQuantity: "",
     status: "",
@@ -772,6 +775,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
    * Map FE filterValues → query params của GET /delivery-notifications (tham số rời).
    * Chuỗi (deliveryNotificationCode, invoiceNumber, contractCode, vendorName, contNo,
    * status, source): BE lọc "chứa" không phân biệt hoa thường;
+   * importDate → entryDateFrom/entryDateTo (khoảng trong ngày);
    * poCount → numberOfPo, materialQuantity → numberOfItem: bằng đúng giá trị (số nguyên).
    */
   private buildCriteriaParams(): Record<string, string> {
@@ -791,6 +795,13 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     addText("vendorName", f.vendorName);
     addText("contNo", f.vehicleNumber);
     addText("source", f.source);
+
+    // Ngày nhập (cả ngày theo giờ máy) → khoảng entryDateFrom..entryDateTo (ISO UTC)
+    const day = (f.importDate ?? "").trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      params["entryDateFrom"] = new Date(`${day}T00:00:00`).toISOString();
+      params["entryDateTo"] = new Date(`${day}T23:59:59.999`).toISOString();
+    }
 
     // Status: FE hiển thị "Chưa hoàn thành" / "Đã hoàn thành" nhưng DB lưu "INCOMPLETE" / "COMPLETED"
     const statusTerm = (f.status ?? "").trim();
