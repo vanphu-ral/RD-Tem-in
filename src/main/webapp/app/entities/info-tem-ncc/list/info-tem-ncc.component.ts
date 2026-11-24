@@ -144,14 +144,10 @@ export interface DeliveryNoticeItem {
 
 export interface FilterValues {
   deliveryNotice: string;
-  importDate: string;
   invoiceNumber: string;
   contractCode: string;
   vendorName: string;
   vehicleNumber: string;
-  type: string;
-  noticeDate: string;
-  factory: string;
   poCount: string;
   materialQuantity: string;
   status: string;
@@ -224,14 +220,10 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
 
   filterValues: FilterValues = {
     deliveryNotice: "",
-    importDate: "",
     invoiceNumber: "",
     contractCode: "",
     vendorName: "",
     vehicleNumber: "",
-    type: "",
-    noticeDate: "",
-    factory: "",
     poCount: "",
     materialQuantity: "",
     status: "",
@@ -525,17 +517,6 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     return raw;
   }
 
-  /** Chọn ngày ở ô lọc → điền dd/MM/yyyy (lọc chứa theo ngày hiển thị) */
-  onFilterDatePicked(key: keyof FilterValues, value: Date | null): void {
-    if (!value) {
-      return;
-    }
-    const pad = (n: number): string => String(n).padStart(2, "0");
-    this.filterValues[key] =
-      `${pad(value.getDate())}/${pad(value.getMonth() + 1)}/${value.getFullYear()}`;
-    this.applyFilter();
-  }
-
   applyFilter(): void {
     this.filterSubject.next();
   }
@@ -788,31 +769,28 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     };
   }
   /**
-   * Map FE filterValues → JHipster Criteria query params.
-   * String fields: `.contains`; status: `.equals` (giá trị DB);
-   * importDate (Instant): range greaterThanOrEqual / lessThan cho ngày chọn;
-   * noticeDate (LocalDate): `.equals` yyyy-MM-dd;
-   * poCount / materialQuantity (Integer): `.equals`.
+   * Map FE filterValues → query params của GET /delivery-notifications (tham số rời).
+   * Chuỗi (deliveryNotificationCode, invoiceNumber, contractCode, vendorName, contNo,
+   * status, source): BE lọc "chứa" không phân biệt hoa thường;
+   * poCount → numberOfPo, materialQuantity → numberOfItem: bằng đúng giá trị (số nguyên).
    */
   private buildCriteriaParams(): Record<string, string> {
     const params: Record<string, string> = {};
     const f = this.filterValues;
 
-    const addContains = (paramName: string, value: string): void => {
+    const addText = (paramName: string, value: string): void => {
       const v = (value ?? "").trim();
       if (v) {
-        params[`${paramName}.contains`] = v;
+        params[paramName] = v;
       }
     };
 
-    addContains("deliveryNotificationCode", f.deliveryNotice);
-    addContains("invoiceNumber", f.invoiceNumber);
-    addContains("contractCode", f.contractCode);
-    addContains("vendorName", f.vendorName);
-    addContains("contNo", f.vehicleNumber);
-    addContains("type", f.type);
-    addContains("factory", f.factory);
-    addContains("source", f.source);
+    addText("deliveryNotificationCode", f.deliveryNotice);
+    addText("invoiceNumber", f.invoiceNumber);
+    addText("contractCode", f.contractCode);
+    addText("vendorName", f.vendorName);
+    addText("contNo", f.vehicleNumber);
+    addText("source", f.source);
 
     // Status: FE hiển thị "Chưa hoàn thành" / "Đã hoàn thành" nhưng DB lưu "INCOMPLETE" / "COMPLETED"
     const statusTerm = (f.status ?? "").trim();
@@ -822,70 +800,22 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         "Chờ nhập": "INCOMPLETE",
         "Đã hoàn thành": "COMPLETED",
       };
-      const dbStatus = statusMap[statusTerm] ?? statusTerm;
-      params["status.contains"] = dbStatus;
-    }
-
-    // importDate (Instant): user nhập dd/MM/yyyy → chuyển sang range [startOfDay, startOfNextDay) UTC
-    const importDateTerm = (f.importDate ?? "").trim();
-    if (importDateTerm) {
-      const parsed = this.parseDateFilter(importDateTerm);
-      if (parsed) {
-        params["entryDate.greaterThanOrEqual"] = parsed.start;
-        params["entryDate.lessThan"] = parsed.end;
-      }
-    }
-
-    // noticeDate (LocalDate): user nhập dd/MM/yyyy → gửi yyyy-MM-dd
-    const noticeDateTerm = (f.noticeDate ?? "").trim();
-    if (noticeDateTerm) {
-      const isoDate = this.toIsoDate(noticeDateTerm);
-      if (isoDate) {
-        params["noticeDate.equals"] = isoDate;
-      }
+      params["status"] = statusMap[statusTerm] ?? statusTerm;
     }
 
     // poCount (Integer)
     const poCountTerm = (f.poCount ?? "").trim();
     if (poCountTerm && !isNaN(Number(poCountTerm))) {
-      params["numberOfPo.equals"] = poCountTerm;
+      params["numberOfPo"] = poCountTerm;
     }
 
     // materialQuantity (Integer)
     const materialQtyTerm = (f.materialQuantity ?? "").trim();
     if (materialQtyTerm && !isNaN(Number(materialQtyTerm))) {
-      params["numberOfItem.equals"] = materialQtyTerm;
+      params["numberOfItem"] = materialQtyTerm;
     }
 
     return params;
-  }
-
-  /** dd/MM/yyyy → { start: ISO start-of-day, end: ISO start-of-next-day } (UTC) */
-  private parseDateFilter(
-    value: string,
-  ): { start: string; end: string } | null {
-    const match = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(value);
-    if (!match) {
-      return null;
-    }
-    const [, dd, mm, yyyy] = match;
-    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-    if (isNaN(d.getTime())) {
-      return null;
-    }
-    const next = new Date(d);
-    next.setDate(next.getDate() + 1);
-    return { start: d.toISOString(), end: next.toISOString() };
-  }
-
-  /** dd/MM/yyyy → yyyy-MM-dd */
-  private toIsoDate(value: string): string | null {
-    const match = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(value);
-    if (!match) {
-      return null;
-    }
-    const [, dd, mm, yyyy] = match;
-    return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
   }
   /** Gọi API detail nếu chưa tải; gán kết quả vào row.pos */
   private ensureDetail(row: DeliveryNoticeItem, expandFirstPo = false): void {
