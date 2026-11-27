@@ -3,6 +3,7 @@ package com.mycompany.myapp.service;
 import com.mycompany.myapp.domain.DeliveryNotification;
 import com.mycompany.myapp.domain.SapPor1R1;
 import com.mycompany.myapp.domain.VendorLabelInfo;
+import com.mycompany.myapp.repository.PalletBoxMappingRepository;
 import com.mycompany.myapp.repository.VendorLabelInfoRepository;
 import com.mycompany.myapp.service.dto.VendorLabelInfoDTO;
 import com.mycompany.myapp.service.dto.VendorLabelInfoUserData5SumDTO;
@@ -35,14 +36,18 @@ public class VendorLabelInfoService {
     /** Đánh dấu đơn có thùng thay đổi → gửi tổng SL thực nhận sang gateway */
     private final ScanTotalChangeTracker scanTotalChangeTracker;
 
+    private final PalletBoxMappingRepository palletBoxMappingRepository;
+
     public VendorLabelInfoService(
         VendorLabelInfoRepository vendorLabelInfoRepository,
         VendorLabelInfoMapper vendorLabelInfoMapper,
-        ScanTotalChangeTracker scanTotalChangeTracker
+        ScanTotalChangeTracker scanTotalChangeTracker,
+        PalletBoxMappingRepository palletBoxMappingRepository
     ) {
         this.vendorLabelInfoRepository = vendorLabelInfoRepository;
         this.vendorLabelInfoMapper = vendorLabelInfoMapper;
         this.scanTotalChangeTracker = scanTotalChangeTracker;
+        this.palletBoxMappingRepository = palletBoxMappingRepository;
     }
 
     /** Id đơn giao hàng của thùng (null nếu chưa gắn đơn) */
@@ -210,12 +215,20 @@ public class VendorLabelInfoService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete VendorLabelInfo : {}", id);
-        scanTotalChangeTracker.markChangedAfterCommit(
-            vendorLabelInfoRepository
-                .findById(id)
-                .map(VendorLabelInfoService::deliveryIdOf)
-                .orElse(null)
+        Optional<VendorLabelInfo> existing = vendorLabelInfoRepository.findById(
+            id
         );
+        scanTotalChangeTracker.markChangedAfterCommit(
+            existing.map(VendorLabelInfoService::deliveryIdOf).orElse(null)
+        );
+        // Gỡ thùng khỏi pallet (pallet_box_mapping) trước khi xóa thùng
+        String reelId = existing.map(VendorLabelInfo::getReelId).orElse(null);
+        if (reelId != null) {
+            palletBoxMappingRepository.deleteAll(
+                palletBoxMappingRepository.findByReelIdBoxIn(List.of(reelId))
+            );
+            palletBoxMappingRepository.flush();
+        }
         vendorLabelInfoRepository.deleteById(id);
     }
 

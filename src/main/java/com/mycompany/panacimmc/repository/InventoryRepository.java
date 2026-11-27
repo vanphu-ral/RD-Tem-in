@@ -1013,12 +1013,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "FROM Inventory a\n" +
         "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "LEFT JOIN Area ar ON ar.Area_Id = b.Location_AreaId\n" +
-        "OUTER APPLY (\n" +
-        "    SELECT TOP 1 InventoryMaterialTraceDetail_MaterialTraceDataValue\n" +
-        "    FROM InventoryMaterialTraceDetail\n" +
-        "    WHERE InventoryMaterialTraceDetail_MaterialTraceId = a.Inventory_MaterialTraceId\n" +
-        "      AND InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +
-        ") d1\n" +
         "WHERE a.Inventory_Status IN (3,6,19)\n" +
         "AND (a.Inventory_Quantity > 0 OR a.Inventory_Status = 19)",
         nativeQuery = true
