@@ -39,6 +39,7 @@
     <include file="config/liquibase/changelog/20260925051519_added_entity_VendorLabelInfo.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261002100000_add_source_to_delivery_notification.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261002110000_add_number_of_item_to_delivery_notification.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261127000000_add_receiving_station_and_assignee_to_delivery_notification.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261019065917_added_entity_OwtqWarehouseTransferSession.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261019065918_added_entity_WarehouseTransferDetail.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261019065919_added_entity_WarehouseTransferSession.xml" relativeToChangelogFile="false"/>

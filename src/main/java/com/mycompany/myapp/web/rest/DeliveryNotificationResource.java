@@ -258,6 +258,8 @@ public class DeliveryNotificationResource {
      * @param createdBy the createdBy to filter by.
      * @param deletedAt the deletedAt to filter by.
      * @param deletedBy the deletedBy to filter by.
+     * @param receivingStation the receivingStation to filter by.
+     * @param assignee the assignee to filter by.
      * @param pageable the pagination information.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of deliveryNotifications in body.
      */
@@ -281,6 +283,8 @@ public class DeliveryNotificationResource {
         @RequestParam(required = false) String createdBy,
         @RequestParam(required = false) Instant deletedAt,
         @RequestParam(required = false) String deletedBy,
+        @RequestParam(required = false) String receivingStation,
+        @RequestParam(required = false) String assignee,
         @org.springdoc.api.annotations.ParameterObject Pageable pageable
     ) {
         LOG.debug("REST request to get DeliveryNotifications with filters");
@@ -318,6 +322,8 @@ public class DeliveryNotificationResource {
                 createdBy,
                 deletedAt,
                 deletedBy,
+                receivingStation,
+                assignee,
                 sortedPageable
             );
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(
@@ -344,6 +350,8 @@ public class DeliveryNotificationResource {
      * @param createdBy the createdBy to filter by.
      * @param deletedAt the deletedAt to filter by.
      * @param deletedBy the deletedBy to filter by.
+     * @param receivingStation the receivingStation to filter by.
+     * @param assignee the assignee to filter by.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count in body.
      */
     @GetMapping("/count")
@@ -361,7 +369,9 @@ public class DeliveryNotificationResource {
         @RequestParam(required = false) Instant createdAt,
         @RequestParam(required = false) String createdBy,
         @RequestParam(required = false) Instant deletedAt,
-        @RequestParam(required = false) String deletedBy
+        @RequestParam(required = false) String deletedBy,
+        @RequestParam(required = false) String receivingStation,
+        @RequestParam(required = false) String assignee
     ) {
         LOG.debug("REST request to count DeliveryNotifications with filters");
 
@@ -429,6 +439,14 @@ public class DeliveryNotificationResource {
         if (deletedBy != null && !deletedBy.trim().isEmpty()) {
             criteria.setDeletedBy(new StringFilter());
             criteria.getDeletedBy().setContains(deletedBy);
+        }
+        if (receivingStation != null && !receivingStation.trim().isEmpty()) {
+            criteria.setReceivingStation(new StringFilter());
+            criteria.getReceivingStation().setContains(receivingStation);
+        }
+        if (assignee != null && !assignee.trim().isEmpty()) {
+            criteria.setAssignee(new StringFilter());
+            criteria.getAssignee().setContains(assignee);
         }
 
         return ResponseEntity.ok().body(

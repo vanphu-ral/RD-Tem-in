@@ -158,6 +158,8 @@ public class DeliveryNotificationService {
      * @param createdBy the createdBy to filter by.
      * @param deletedAt the deletedAt to filter by.
      * @param deletedBy the deletedBy to filter by.
+     * @param receivingStation the receivingStation to filter by.
+     * @param assignee the assignee to filter by.
      * @param pageable the pagination information.
      * @return the list of entities.
      */
@@ -179,6 +181,8 @@ public class DeliveryNotificationService {
         String createdBy,
         Instant deletedAt,
         String deletedBy,
+        String receivingStation,
+        String assignee,
         Pageable pageable
     ) {
         LOG.debug("Request to search DeliveryNotifications with filters");
@@ -253,6 +257,14 @@ public class DeliveryNotificationService {
         if (deletedBy != null && !deletedBy.trim().isEmpty()) {
             criteria.setDeletedBy(new StringFilter());
             criteria.getDeletedBy().setContains(deletedBy);
+        }
+        if (receivingStation != null && !receivingStation.trim().isEmpty()) {
+            criteria.setReceivingStation(new StringFilter());
+            criteria.getReceivingStation().setContains(receivingStation);
+        }
+        if (assignee != null && !assignee.trim().isEmpty()) {
+            criteria.setAssignee(new StringFilter());
+            criteria.getAssignee().setContains(assignee);
         }
 
         return deliveryNotificationQueryService.findByCriteria(

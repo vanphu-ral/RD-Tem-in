@@ -95,6 +95,14 @@ public class DeliveryNotification implements Serializable {
     @Column(name = "number_of_sap_submissions")
     private Integer numberOfSapSubmissions;
 
+    @Size(max = 255)
+    @Column(name = "receiving_station", length = 255)
+    private String receivingStation;
+
+    @Size(max = 255)
+    @Column(name = "assignee", length = 255)
+    private String assignee;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -374,6 +382,32 @@ public class DeliveryNotification implements Serializable {
         this.numberOfSapSubmissions = numberOfSapSubmissions;
     }
 
+    public String getReceivingStation() {
+        return this.receivingStation;
+    }
+
+    public DeliveryNotification receivingStation(String receivingStation) {
+        this.setReceivingStation(receivingStation);
+        return this;
+    }
+
+    public void setReceivingStation(String receivingStation) {
+        this.receivingStation = receivingStation;
+    }
+
+    public String getAssignee() {
+        return this.assignee;
+    }
+
+    public DeliveryNotification assignee(String assignee) {
+        this.setAssignee(assignee);
+        return this;
+    }
+
+    public void setAssignee(String assignee) {
+        this.assignee = assignee;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
@@ -421,6 +455,8 @@ public class DeliveryNotification implements Serializable {
             ", createdBy='" + getCreatedBy() + "'" +
             ", deletedAt='" + getDeletedAt() + "'" +
             ", deletedBy='" + getDeletedBy() + "'" +
+            ", receivingStation='" + getReceivingStation() + "'" +
+            ", assignee='" + getAssignee() + "'" +
             "}";
     }
 }

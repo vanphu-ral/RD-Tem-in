@@ -73,9 +73,12 @@ public class InventoryUpdateRequestsService {
                 this.inventoryRepository.findAllByMaterialIdentifier(
                     item.getMaterialId()
                 );
-            Location location = this.locationRepository.findById(
-                inventory.getLocationId()
-            ).orElse(null);
+            Location location = null;
+            if (inventory != null && inventory.getLocationId() != null) {
+                location = this.locationRepository.findById(
+                    inventory.getLocationId()
+                ).orElse(null);
+            }
             InventoryUpdateRequestsHistory history =
                 new InventoryUpdateRequestsHistory();
             history.setMaterialId(item.getMaterialId());
@@ -85,7 +88,9 @@ public class InventoryUpdateRequestsService {
             history.setApprovedBy(requests.getApprovedBy());
             history.setReqApprover(requests.getReqApprover());
             history.setRequestCode(requests.getRequestCode());
-            history.setOldLocation(location.getLocationName());
+            history.setOldLocation(
+                location != null ? location.getLocationName() : "Unknown"
+            );
             history.setNewLocation(item.getLocationName());
             history.setRequestType(item.getType());
             history.setQuantity(item.getQuantity());

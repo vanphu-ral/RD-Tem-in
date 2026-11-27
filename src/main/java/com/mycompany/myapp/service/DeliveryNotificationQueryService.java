@@ -258,6 +258,34 @@ public class DeliveryNotificationQueryService
                     "%" + filter.getContains().trim().toLowerCase() + "%"
                 );
             });
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getReceivingStation();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("receivingStation")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
+            specification = specification.and((root, query, cb) -> {
+                StringFilter filter = criteria.getAssignee();
+                if (
+                    filter == null ||
+                    filter.getContains() == null ||
+                    filter.getContains().trim().isEmpty()
+                ) {
+                    return cb.conjunction();
+                }
+                return cb.like(
+                    cb.lower(root.get("assignee")),
+                    "%" + filter.getContains().trim().toLowerCase() + "%"
+                );
+            });
         }
         return specification;
     }

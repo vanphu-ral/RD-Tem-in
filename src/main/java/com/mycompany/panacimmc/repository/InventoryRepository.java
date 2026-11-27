@@ -871,7 +871,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         "    ,d1.InventoryMaterialTraceDetail_MaterialTraceDataValue AS userData4\n" +
         "    ,d2.InventoryMaterialTraceDetail_MaterialTraceDataValue AS lotNumber\n" +
         "FROM Inventory a\n" +
-        "INNER JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
+        "LEFT JOIN Location b ON a.Inventory_LocationId = b.Location_Id\n" +
         "INNER JOIN InventoryMaterialTrace c ON c.InventoryMaterialTrace_Id = a.Inventory_MaterialTraceId\n" +
         "LEFT JOIN InventoryMaterialTraceDetail d1 ON d1.InventoryMaterialTraceDetail_MaterialTraceId = c.InventoryMaterialTrace_Id\n" +
         "    AND d1.InventoryMaterialTraceDetail_MaterialTraceDataName = 'User data 4'\n" +

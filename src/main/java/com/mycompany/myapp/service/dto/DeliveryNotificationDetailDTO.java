@@ -47,6 +47,10 @@ public class DeliveryNotificationDetailDTO implements Serializable {
 
     private Integer numberOfSapSubmissions;
 
+    private String receivingStation;
+
+    private String assignee;
+
     private String createdBy;
 
     private Instant createdAt;
@@ -81,6 +85,8 @@ public class DeliveryNotificationDetailDTO implements Serializable {
             this.noticeDate = entity.getNoticeDate();
             this.factory = entity.getFactory();
             this.numberOfSapSubmissions = entity.getNumberOfSapSubmissions();
+            this.receivingStation = entity.getReceivingStation();
+            this.assignee = entity.getAssignee();
             this.createdBy = entity.getCreatedBy();
             this.createdAt = entity.getCreatedAt();
         }
@@ -223,6 +229,22 @@ public class DeliveryNotificationDetailDTO implements Serializable {
 
     public void setNumberOfSapSubmissions(Integer numberOfSapSubmissions) {
         this.numberOfSapSubmissions = numberOfSapSubmissions;
+    }
+
+    public String getReceivingStation() {
+        return receivingStation;
+    }
+
+    public void setReceivingStation(String receivingStation) {
+        this.receivingStation = receivingStation;
+    }
+
+    public String getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(String assignee) {
+        this.assignee = assignee;
     }
 
     public String getCreatedBy() {

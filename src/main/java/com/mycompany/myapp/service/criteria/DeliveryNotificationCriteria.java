@@ -58,6 +58,10 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
 
     private StringFilter deletedBy;
 
+    private StringFilter receivingStation;
+
+    private StringFilter assignee;
+
     private Boolean distinct;
 
     public DeliveryNotificationCriteria() {}
@@ -127,6 +131,14 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             .orElse(null);
         this.deletedBy = other
             .optionalDeletedBy()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.receivingStation = other
+            .optionalReceivingStation()
+            .map(StringFilter::copy)
+            .orElse(null);
+        this.assignee = other
+            .optionalAssignee()
             .map(StringFilter::copy)
             .orElse(null);
         this.distinct = other.distinct;
@@ -481,6 +493,44 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
         this.deletedBy = deletedBy;
     }
 
+    public StringFilter getReceivingStation() {
+        return receivingStation;
+    }
+
+    public Optional<StringFilter> optionalReceivingStation() {
+        return Optional.ofNullable(receivingStation);
+    }
+
+    public StringFilter receivingStation() {
+        if (receivingStation == null) {
+            setReceivingStation(new StringFilter());
+        }
+        return receivingStation;
+    }
+
+    public void setReceivingStation(StringFilter receivingStation) {
+        this.receivingStation = receivingStation;
+    }
+
+    public StringFilter getAssignee() {
+        return assignee;
+    }
+
+    public Optional<StringFilter> optionalAssignee() {
+        return Optional.ofNullable(assignee);
+    }
+
+    public StringFilter assignee() {
+        if (assignee == null) {
+            setAssignee(new StringFilter());
+        }
+        return assignee;
+    }
+
+    public void setAssignee(StringFilter assignee) {
+        this.assignee = assignee;
+    }
+
     public Boolean getDistinct() {
         return distinct;
     }
@@ -532,6 +582,8 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             Objects.equals(createdBy, that.createdBy) &&
             Objects.equals(deletedAt, that.deletedAt) &&
             Objects.equals(deletedBy, that.deletedBy) &&
+            Objects.equals(receivingStation, that.receivingStation) &&
+            Objects.equals(assignee, that.assignee) &&
             Objects.equals(distinct, that.distinct)
         );
     }
@@ -557,6 +609,8 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             createdBy,
             deletedAt,
             deletedBy,
+            receivingStation,
+            assignee,
             distinct
         );
     }
@@ -583,6 +637,8 @@ public class DeliveryNotificationCriteria implements Serializable, Criteria {
             optionalCreatedBy().map(f -> "createdBy=" + f + ", ").orElse("") +
             optionalDeletedAt().map(f -> "deletedAt=" + f + ", ").orElse("") +
             optionalDeletedBy().map(f -> "deletedBy=" + f + ", ").orElse("") +
+            optionalReceivingStation().map(f -> "receivingStation=" + f + ", ").orElse("") +
+            optionalAssignee().map(f -> "assignee=" + f + ", ").orElse("") +
             optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
         "}";
     }

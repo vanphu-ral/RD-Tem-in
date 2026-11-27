@@ -56,6 +56,12 @@ public class DeliveryNotificationDTO implements Serializable {
 
     private Integer numberOfSapSubmissions;
 
+    @Size(max = 255)
+    private String receivingStation;
+
+    @Size(max = 255)
+    private String assignee;
+
     private Instant createAt;
 
     @Size(max = 50)
@@ -202,6 +208,22 @@ public class DeliveryNotificationDTO implements Serializable {
         this.numberOfSapSubmissions = numberOfSapSubmissions;
     }
 
+    public String getReceivingStation() {
+        return receivingStation;
+    }
+
+    public void setReceivingStation(String receivingStation) {
+        this.receivingStation = receivingStation;
+    }
+
+    public String getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(String assignee) {
+        this.assignee = assignee;
+    }
+
     public Instant getCreatedAt() {
         return createAt;
     }
@@ -281,6 +303,8 @@ public class DeliveryNotificationDTO implements Serializable {
             ", createdBy='" + getCreatedBy() + "'" +
             ", deletedAt='" + getDeletedAt() + "'" +
             ", deletedBy='" + getDeletedBy() + "'" +
+            ", receivingStation='" + getReceivingStation() + "'" +
+            ", assignee='" + getAssignee() + "'" +
             "}";
     }
 }
