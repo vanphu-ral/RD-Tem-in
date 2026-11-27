@@ -293,6 +293,72 @@
         </td>
       </ng-container>
 
+      <!-- Khu vực xe đang ở (location IndexedDB) — sửa được khi có role -->
+      <ng-container matColumnDef="receivingStation">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          jhiResizableColumn="receivingStation"
+          resizeStorageKey="info-tem-ncc-list"
+        >
+          <div class="th-wrap">
+            <span mat-sort-header="receivingStation">Khu vực xe</span>
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <ng-container *ngIf="canEditReceiving; else stationView">
+            <input
+              class="cell-edit-input"
+              [(ngModel)]="row.receivingStation"
+              [matAutocomplete]="stationAuto"
+              (ngModelChange)="onLocationSearch($event)"
+              (focus)="onLocationSearch(row.receivingStation)"
+              (click)="$event.stopPropagation()"
+              placeholder="Chọn location..."
+            />
+            <mat-autocomplete
+              #stationAuto="matAutocomplete"
+              (optionSelected)="saveReceiving(row)"
+              (closed)="onStationClosed(row)"
+            >
+              <mat-option
+                *ngFor="let w of locationOptions"
+                [value]="w.locationFullName || w.locationName"
+              >
+                {{ w.locationFullName || w.locationName }}
+              </mat-option>
+            </mat-autocomplete>
+          </ng-container>
+          <ng-template #stationView>{{ row.receivingStation }}</ng-template>
+        </td>
+      </ng-container>
+
+      <!-- Người tiếp nhận — sửa được khi có role -->
+      <ng-container matColumnDef="assignee">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          jhiResizableColumn="assignee"
+          resizeStorageKey="info-tem-ncc-list"
+        >
+          <div class="th-wrap">
+            <span mat-sort-header="assignee">Người tiếp nhận</span>
+          </div>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <input
+            *ngIf="canEditReceiving; else assigneeView"
+            class="cell-edit-input"
+            [(ngModel)]="row.assignee"
+            (blur)="saveReceiving(row)"
+            (keydown.enter)="$any($event.target).blur()"
+            (click)="$event.stopPropagation()"
+            placeholder="Nhập người tiếp nhận..."
+          />
+          <ng-template #assigneeView>{{ row.assignee }}</ng-template>
+        </td>
+      </ng-container>
+
       <!-- Nguồn tạo -->
       <ng-container matColumnDef="source">
         <th
@@ -748,6 +814,20 @@
         </div>
         <div class="delivery-vendor">{{ row.vendorName }}</div>
         <div class="delivery-date">{{ formatDisplayDate(row.importDate) }}</div>
+        <div class="delivery-receiving">
+          <div class="delivery-receiving-text">
+            <span>Khu vực xe: {{ row.receivingStation || "—" }}</span>
+            <span>Người tiếp nhận: {{ row.assignee || "—" }}</span>
+          </div>
+          <span
+            *ngIf="canEditReceiving"
+            class="delivery-receiving-edit"
+            role="button"
+            (click)="openReceivingDialog(row, $event)"
+          >
+            <mat-icon>edit</mat-icon>
+          </span>
+        </div>
       </button>
 
       <div class="mobile-empty" *ngIf="!mobileDeliveries.length">

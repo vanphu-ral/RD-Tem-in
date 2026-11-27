@@ -386,18 +386,39 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+/* Cố định chiều cao header bảng pallet để header bảng con dính ngay bên dưới */
+$pallet-head-height: 38px;
+$pallet-row-height: 48px;
+
+.pallet-table > thead > tr > th {
+  height: $pallet-head-height;
+  box-sizing: border-box;
+}
+
+/* Đóng băng hàng pallet đang expand ngay dưới header bảng pallet */
+.pallet-table > tbody > tr.pallet-row.expanded > td {
+  position: sticky;
+  top: $pallet-head-height;
+  z-index: 2;
+  height: $pallet-row-height;
+  box-sizing: border-box;
+  background: #f8fafc;
+}
+
+/* Không đặt overflow ở wrap/bảng con — nếu có, sticky sẽ bám theo khung đó thay vì .table-wrap */
 .nested-table-wrap {
   padding: 8px 12px 12px 40px;
-  overflow-x: auto;
 }
 
 .nested-table {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  overflow: hidden;
 
   thead th {
+    position: sticky;
+    top: $pallet-head-height + $pallet-row-height;
+    z-index: 1;
     background: #eef2f7 !important;
     font-size: 11px;
   }

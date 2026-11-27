@@ -321,48 +321,46 @@
                     <th class="col-actions">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <ng-container
-                    *ngFor="
-                      let row of palletRows;
-                      let i = index;
-                      trackBy: trackPallet
-                    "
+                <!-- Mỗi pallet 1 tbody: hàng pallet expand chỉ dính trong phạm vi pallet đó -->
+                <tbody
+                  *ngFor="
+                    let row of palletRows;
+                    let i = index;
+                    trackBy: trackPallet
+                  "
+                >
+                  <tr
+                    class="pallet-row"
+                    [class.expanded]="isPalletExpanded(row)"
                   >
-                    <tr
-                      class="pallet-row"
-                      [class.expanded]="isPalletExpanded(row)"
-                    >
-                      <td class="col-expand">
-                        <button
-                          mat-icon-button
-                          type="button"
-                          class="expand-btn"
-                          (click)="togglePallet(row)"
-                        >
-                          <mat-icon>{{
-                            isPalletExpanded(row)
-                              ? "expand_less"
-                              : "expand_more"
-                          }}</mat-icon>
-                        </button>
-                      </td>
-                      <td class="col-idx">{{ i + 1 }}</td>
-                      <td class="fw">{{ row.palletCode }}</td>
-                      <td>{{ row.createdBy }}</td>
-                      <td>{{ row.boxCount }}</td>
-                      <td>{{ row.materialTypeCount }}</td>
-                      <td>{{ row.totalQty | number }}</td>
-                      <td>
-                        <span
-                          class="pallet-loc"
-                          [class.unassigned]="!palletLocation(row)"
-                          >{{ palletLocation(row) || "Chưa gán" }}</span
-                        >
-                      </td>
-                      <td class="col-note">{{ row.note || "—" }}</td>
-                      <td class="col-actions">
-                        <!-- <button
+                    <td class="col-expand">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="expand-btn"
+                        (click)="togglePallet(row)"
+                      >
+                        <mat-icon>{{
+                          isPalletExpanded(row) ? "expand_less" : "expand_more"
+                        }}</mat-icon>
+                      </button>
+                    </td>
+                    <td class="col-idx">{{ i + 1 }}</td>
+                    <td class="fw">{{ row.palletCode }}</td>
+                    <td>{{ row.createdBy }}</td>
+                    <td>{{ row.boxCount }}</td>
+                    <td>{{ row.materialTypeCount }}</td>
+                    <td>{{ row.totalQty | number }}</td>
+                    <td>
+                      <span
+                        class="pallet-loc"
+                        [class.unassigned]="!palletLocation(row)"
+                        >{{ palletLocation(row) || "Chưa gán" }}</span
+                      >
+                    </td>
+                    <td class="col-note">{{ row.note || "—" }}</td>
+                    <td class="col-actions">
+                      <!-- <button
                         mat-icon-button
                         type="button"
                         class="action-btn"
@@ -378,72 +376,71 @@
                       >
                         <mat-icon>print</mat-icon>
                       </button> -->
-                        <button
-                          mat-icon-button
-                          type="button"
-                          class="del-btn"
-                          (click)="removePalletRow(row)"
-                        >
-                          <mat-icon>delete</mat-icon>
-                        </button>
-                      </td>
-                    </tr>
-                    <tr *ngIf="isPalletExpanded(row)" class="pallet-detail-row">
-                      <td colspan="11">
-                        <div class="nested-table-wrap">
-                          <table class="data-table nested-table">
-                            <thead>
-                              <tr>
-                                <th>#</th>
-                                <th>Mã PO</th>
-                                <th>Lot</th>
-                                <th>ReelId</th>
-                                <th>Part Number</th>
-                                <th>Vendor</th>
-                                <th>Quantity</th>
-                                <th>MFGDate</th>
-                                <th>HSD</th>
-                                <th>Vị trí</th>
-                                <th></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr
-                                *ngFor="
-                                  let box of row.boxes;
-                                  let bi = index;
-                                  trackBy: trackBox
-                                "
-                              >
-                                <td>{{ bi + 1 }}</td>
-                                <td>{{ box.poCode || "—" }}</td>
-                                <td>{{ box.lot }}</td>
-                                <td>{{ box.reelId }}</td>
-                                <td>{{ box.partNumber }}</td>
-                                <td>{{ box.vendor }}</td>
-                                <td>
-                                  {{ box.quantity | number }}
-                                </td>
-                                <td>{{ box.mfgDate }}</td>
-                                <td>{{ box.hsd }}</td>
-                                <td>{{ box.location || "—" }}</td>
-                                <td>
-                                  <button
-                                    mat-icon-button
-                                    type="button"
-                                    class="del-btn"
-                                    (click)="removeBoxFromPallet(row, box)"
-                                  >
-                                    <mat-icon>delete</mat-icon>
-                                  </button>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </td>
-                    </tr>
-                  </ng-container>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="del-btn"
+                        (click)="removePalletRow(row)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="isPalletExpanded(row)" class="pallet-detail-row">
+                    <td colspan="11">
+                      <div class="nested-table-wrap">
+                        <table class="data-table nested-table">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Mã PO</th>
+                              <th>Lot</th>
+                              <th>ReelId</th>
+                              <th>Part Number</th>
+                              <th>Vendor</th>
+                              <th>Quantity</th>
+                              <th>MFGDate</th>
+                              <th>HSD</th>
+                              <th>Vị trí</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr
+                              *ngFor="
+                                let box of row.boxes;
+                                let bi = index;
+                                trackBy: trackBox
+                              "
+                            >
+                              <td>{{ bi + 1 }}</td>
+                              <td>{{ box.poCode || "—" }}</td>
+                              <td>{{ box.lot }}</td>
+                              <td>{{ box.reelId }}</td>
+                              <td>{{ box.partNumber }}</td>
+                              <td>{{ box.vendor }}</td>
+                              <td>
+                                {{ box.quantity | number }}
+                              </td>
+                              <td>{{ box.mfgDate }}</td>
+                              <td>{{ box.hsd }}</td>
+                              <td>{{ box.location || "—" }}</td>
+                              <td>
+                                <button
+                                  mat-icon-button
+                                  type="button"
+                                  class="del-btn"
+                                  (click)="removeBoxFromPallet(row, box)"
+                                >
+                                  <mat-icon>delete</mat-icon>
+                                </button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>

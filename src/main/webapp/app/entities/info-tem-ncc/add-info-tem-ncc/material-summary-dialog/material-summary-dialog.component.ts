@@ -259,6 +259,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
     this.expandForHighlight();
     this.initialized = true;
     this.loadPartNumbers();
+    this.loadProductNames();
     this.initLocationCache();
   }
 
@@ -1049,6 +1050,7 @@ export class MaterialSummaryDialogComponent implements OnInit {
     }
     this.expandForHighlight();
     this.loadPartNumbers();
+    this.loadProductNames();
   }
 
   /**
@@ -1322,6 +1324,35 @@ export class MaterialSummaryDialogComponent implements OnInit {
             }
           }
         });
+    });
+  }
+
+  /** Mã SAP chưa có tên vật tư → lấy itemName từ OITM (/api/sap-oitms/itemCode/{code}) */
+  private loadProductNames(): void {
+    const bySapCode = new Map<string, SummarySapRow[]>();
+    for (const row of this.rows) {
+      const code = toText(row.sapCode);
+      if (!code || code === "—" || toText(row.productName)) {
+        continue;
+      }
+      bySapCode.set(code, [...(bySapCode.get(code) ?? []), row]);
+    }
+    bySapCode.forEach((rows, code) => {
+      this.receivingService.getSapOitmBySapCode(code).subscribe((oitm) => {
+        const name = toText(oitm?.itemName);
+        if (!name) {
+          return;
+        }
+        for (const row of rows) {
+          row.productName = name;
+        }
+        // Đồng bộ ngược về vật tư ở trang ngoài để lần sau không gọi lại
+        for (const m of this.data.po?.materials ?? []) {
+          if (toText(m.materialCode) === code && !toText(m.materialName)) {
+            m.materialName = name;
+          }
+        }
+      });
     });
   }
 

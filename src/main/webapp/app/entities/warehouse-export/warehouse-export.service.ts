@@ -452,6 +452,75 @@ export interface ExportWarehouseArea {
   areaName: string;
 }
 
+/**
+ * Bảng map cố định mã kho SAP (/api/owhs whsCode) → mã area WMS (/api/location/area areaName),
+ * đối chiếu theo tên kho / thủ kho. Mã không có ở đây → chưa có area tương ứng.
+ */
+const SAP_WHS_AREA: Record<string, string> = {
+  "01": "RD-Warehouse", // Kho linh kiện điện tử ↔ Kho LKDT - C Ngọc Anh
+  "02": "RD-LED-02", // Kho vật tư LED (Chị Hà) ↔ Kho C Ha
+  "03": "RD-LED-03", // Kho vật tư TBCS
+  "05": "RD-LED-05", // Kho ngành ĐTTĐ
+  "11": "RD-LED-11", // Kho ngành CNPT
+  "12": "RD-LED-12", // Kho vật tư Smart (Sỹ Hải) ↔ Kho A Hai
+  "17": "RD-LED-17", // Kho vật tư SKD ↔ Kho C Huong-SKD
+  "18": "RD-TT-18", // Kho trung tâm RD ↔ Kho TT R&D
+  "19": "RD-LED-19", // Kho LKDT thủ công
+  "20": "RD-LED-20", // Kho xuất khẩu ↔ Kho vật tư Xuất khẩu
+};
+
+/** Danh sách kho SAP dự phòng (whsCode → whsName) khi GET /api/owhs lỗi */
+const SAP_WHS_FALLBACK: Array<[string, string]> = [
+  ["01", "Kho linh kiện điện tử"],
+  ["02", "Kho vật tư LED"],
+  ["03", "Kho vật tư TBCS"],
+  ["04", "Kho vật tư CLC"],
+  ["05", "Kho ngành ĐTTĐ"],
+  ["06", "Kho ngành LRSP LED 1"],
+  ["07", "Kho ngành SMART"],
+  ["08", "Kho ngành LED2"],
+  ["09", "Kho thành phẩm công ty"],
+  ["10", "Kho cơ khí xưởng"],
+  ["11", "Kho ngành CNPT"],
+  ["12", "Kho vật tư Smart"],
+  ["13", "Kho ngành CNPT 2"],
+  ["14", "Kho chị Hòa 2"],
+  ["15", "Kho Pilot TTRD"],
+  ["16", "Ngành LR Compact"],
+  ["17", "Kho vật tư SKD"],
+  ["18", "Kho trung tâm RD"],
+  ["19", "Kho LKDT thủ công"],
+  ["20", "Kho xuất khẩu"],
+  ["23", "Kho nhập tận dụng"],
+  ["24", "Kho đi đường"],
+  ["25", "Kho bảo hành"],
+  ["26", "Kho sửa chữa"],
+  ["27", "Kho xuất khẩu 02"],
+  ["IQC", "IQC"],
+];
+
+/** Mã kho SAP → mã area WMS theo bảng map ("01" → "RD-Warehouse"), không có → "" */
+export function sapWhsAreaCode(whsCode: string | null | undefined): string {
+  return SAP_WHS_AREA[(whsCode ?? "").trim().toUpperCase()] ?? "";
+}
+
+/**
+ * Nhãn kho SAP dùng chung danh sách + chi tiết: "01 - Kho linh kiện điện tử · RD-Warehouse"
+ * (không có tên SAP → giữ mã; không có area → bỏ phần area).
+ */
+export function sapWhsLabel(
+  whsCode: string | null | undefined,
+  names: Map<string, string>,
+): string {
+  const c = (whsCode ?? "").trim();
+  if (!c) {
+    return "";
+  }
+  const name = names.get(c.toLowerCase());
+  const area = sapWhsAreaCode(c);
+  return [name ? `${c} - ${name}` : c, area].filter(Boolean).join(" · ");
+}
+
 /** Tra kho theo vị trí: theo locationId và theo tên vị trí (chữ thường) */
 export interface ExportLocationAreaIndex {
   byId: Record<string, ExportWarehouseArea>;
@@ -1179,6 +1248,11 @@ export class WarehouseExportService {
   /** Danh sách kho (khu vực) — GET /api/location/area (1 lần / phiên) */
   getWarehouseAreaList(): Observable<ExportWarehouseArea[]> {
     return this.getWarehouseAreas();
+  }
+
+  /** Tên kho SAP theo mã — GET /api/owhs (1 lần / phiên) */
+  getSapWarehouseNameMap(): Observable<Map<string, string>> {
+    return this.getSapWarehouseNames();
   }
 
   /**
@@ -2322,7 +2396,7 @@ export class WarehouseExportService {
   /** OWTQ → dòng danh sách. SAP không có trạng thái / tiến độ xuất → mặc định Chờ xuất, 0% */
   /**
    * Tên kho SAP theo mã (whsCode → whsName) — GET /api/owhs, tải 1 lần / phiên.
-   * Lỗi → bảng rỗng (danh sách vẫn hiện mã kho), lần sau gọi lại.
+   * Lỗi → danh sách kho dự phòng SAP_WHS_FALLBACK, lần sau gọi lại API.
    */
   private getSapWarehouseNames(): Observable<Map<string, string>> {
     if (!this.sapWarehouseNames$) {
@@ -2347,22 +2421,19 @@ export class WarehouseExportService {
           ),
           catchError(() => {
             this.sapWarehouseNames$ = null;
-            return of(new Map<string, string>());
+            return of(
+              new Map(
+                SAP_WHS_FALLBACK.map(([code, name]): [string, string] => [
+                  code.toLowerCase(),
+                  name,
+                ]),
+              ),
+            );
           }),
           shareReplay(1),
         );
     }
     return this.sapWarehouseNames$;
-  }
-
-  /** Mã kho SAP → "01 - Kho linh kiện điện tử" (không có tên → giữ mã) */
-  private sapWarehouseLabel(
-    code: string | null | undefined,
-    names: Map<string, string>,
-  ): string {
-    const c = (code ?? "").trim();
-    const name = names.get(c.toLowerCase());
-    return c && name ? `${c} - ${name}` : c;
   }
 
   private toOwtqRow(
@@ -2373,11 +2444,11 @@ export class WarehouseExportService {
       code: String(dto.docEntry),
       proposer: dto.uPurNvGiao ?? "",
       receivingUnit: dto.uPurNvNhan ?? "",
-      issuingUnit: this.sapWarehouseLabel(dto.filler, names),
+      issuingUnit: sapWhsLabel(dto.filler, names),
       createdDate: this.formatSapDate(dto.docDate),
       requestDate: this.formatSapDate(dto.docDueDate),
       status: "Chờ xuất",
-      warehouse: this.sapWarehouseLabel(dto.toWhsCode, names),
+      warehouse: sapWhsLabel(dto.toWhsCode, names),
       description: dto.remark ?? "",
       // Tiến độ điền sau theo summary (fillTransferProgress)
       progress: 0,

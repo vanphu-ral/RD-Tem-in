@@ -301,6 +301,14 @@
                           [title]="whsLabel(i.warehouseCode)"
                           >{{ whsLabel(i.warehouseCode) }}</span
                         >
+                        <span
+                          class="we-src"
+                          *ngIf="i.warehouseCode"
+                          [class.area]="whsHasArea(i.warehouseCode)"
+                          >{{
+                            whsHasArea(i.warehouseCode) ? "AREA" : "SAP"
+                          }}</span
+                        >
                       </td>
                       <td class="num strong">
                         <ng-container
@@ -333,6 +341,12 @@
                           [class.unknown]="!areaByWhsCode(i.toWhsCode)"
                           [title]="whsLabel(i.toWhsCode)"
                           >{{ whsLabel(i.toWhsCode) }}</span
+                        >
+                        <span
+                          class="we-src"
+                          *ngIf="i.toWhsCode"
+                          [class.area]="whsHasArea(i.toWhsCode)"
+                          >{{ whsHasArea(i.toWhsCode) ? "AREA" : "SAP" }}</span
                         >
                         <ng-template #noValueItem>—</ng-template>
                       </td>

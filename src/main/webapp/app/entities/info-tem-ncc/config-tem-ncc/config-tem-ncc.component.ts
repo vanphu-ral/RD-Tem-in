@@ -119,7 +119,7 @@ export class ConfigTemNccComponent {
 
   filteredData: VendorConfig[] = [...this.allData];
   pagedData: VendorConfig[] = [];
-  pageSize = 3;
+  pageSize = 10;
   pageIndex = 0;
 
   filters = { vendorCode: "", vendorName: "" };

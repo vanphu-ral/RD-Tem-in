@@ -732,13 +732,10 @@ export class ScanImportDialogComponent
   }
 
   togglePallet(row: ScanPalletRow): void {
-    if (this.expandedPalletIds.has(row.id)) {
-      this.expandedPalletIds.delete(row.id);
-    } else {
-      this.expandedPalletIds.add(row.id);
-    }
-    // clone để Angular detect change
-    this.expandedPalletIds = new Set(this.expandedPalletIds);
+    // Chỉ cho expand 1 pallet tại một thời điểm
+    this.expandedPalletIds = this.expandedPalletIds.has(row.id)
+      ? new Set<string>()
+      : new Set([row.id]);
   }
 
   onPalletKeydown(event: KeyboardEvent): void {
@@ -2359,7 +2356,7 @@ export class ScanImportDialogComponent
     } else if (locationName) {
       row.locationLabel = locationName;
     }
-    this.expandedPalletIds = new Set([...this.expandedPalletIds, row.id]);
+    this.expandedPalletIds = new Set([row.id]);
     this.activePallet = {
       palletCode: code,
       scanningBoxCount: row.boxes.length,
@@ -3097,10 +3094,7 @@ export class ScanImportDialogComponent
         ? [pallet, ...this.palletRows]
         : [...this.palletRows, pallet];
       if (fromScan) {
-        this.expandedPalletIds = new Set([
-          ...this.expandedPalletIds,
-          pallet.id,
-        ]);
+        this.expandedPalletIds = new Set([pallet.id]);
       }
     }
     pallet.boxes = [box, ...pallet.boxes];

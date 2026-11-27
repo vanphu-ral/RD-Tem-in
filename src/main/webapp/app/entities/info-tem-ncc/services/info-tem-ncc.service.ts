@@ -39,6 +39,10 @@ export interface DeliveryNotificationDto {
   factory?: string | null;
   /** Số lần đã gửi SAP của đơn — FE tăng 1 sau mỗi lần gửi thành công */
   numberOfSapSubmissions?: number | null;
+  /** Khu vực xe đang ở — tên location (WarehouseDB) */
+  receivingStation?: string | null;
+  /** Người tiếp nhận */
+  assignee?: string | null;
   deletedAt: string | null;
   deletedBy: string | null;
   createdBy: string | null;

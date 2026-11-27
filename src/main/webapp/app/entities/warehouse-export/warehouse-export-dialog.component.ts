@@ -51,6 +51,8 @@ import {
   TransferSessionBox,
   TransferSessionPallet,
   WarehouseExportService,
+  sapWhsAreaCode,
+  sapWhsLabel,
 } from "./warehouse-export.service";
 import {
   printTransferRequests,
@@ -313,6 +315,8 @@ export class WarehouseExportDialogComponent
   locModalRequest: ExportRequest | null = null;
   /** Xuất chuyển kho: danh sách kho (khu vực) — đối chiếu whsCode SAP → kho (vd 05 → RD-LED-05) */
   warehouseAreas: WarehouseAreaRef[] = [];
+  /** Xuất chuyển kho: tên kho SAP theo mã (GET /api/owhs, khoá chữ thường) — nhãn kho */
+  sapWarehouseNames = new Map<string, string>();
 
   /** Mobile: tab đang mở, chế độ + mã của ô scan, gợi ý quét lại khi nhầm chế độ */
   mobileTab: MobileTab = "pick";
@@ -693,7 +697,7 @@ export class WarehouseExportDialogComponent
 
   /**
    * Các vị trí đang có mã vật tư, sắp theo kho → vị trí.
-   * Xuất chuyển kho: chỉ vị trí thuộc kho xuất của dòng vật tư (whsCode 19 → kho mã đuôi -19).
+   * Xuất chuyển kho: chỉ vị trí thuộc area của kho xuất (bảng map: whsCode 01 → RD-Warehouse).
    */
   itemStockLocations(i: ExportRequestItem): ItemStockLocation[] {
     const locations = this.itemStock(i)?.locations ?? [];
@@ -701,9 +705,8 @@ export class WarehouseExportDialogComponent
     if (this.isPlanning || !fromWhs) {
       return locations;
     }
-    return locations.filter(
-      (loc) => (loc.areaCode ?? "").split("-").pop()?.trim() === fromWhs,
-    );
+    const area = sapWhsAreaCode(fromWhs);
+    return locations.filter((loc) => !!area && loc.areaCode === area);
   }
 
   /** Dialog "Vị trí có vật tư": mọi vị trí đang có mã vật tư (mọi kho, không lọc kho xuất) */
@@ -718,38 +721,26 @@ export class WarehouseExportDialogComponent
 
   /** Vị trí thuộc kho xuất của dòng vật tư (đánh dấu trong dialog) */
   isFromWhsLocation(i: ExportRequestItem, loc: ItemStockLocation): boolean {
-    const fromWhs = (i.warehouseCode ?? "").trim();
-    return (
-      !!fromWhs && (loc.areaCode ?? "").split("-").pop()?.trim() === fromWhs
-    );
+    const area = sapWhsAreaCode(i.warehouseCode);
+    return !!area && loc.areaCode === area;
   }
 
-  /** Kho (khu vực) theo mã kho SAP: 05 → kho có mã đuôi -05 (RD-LED-05) */
+  /** Kho (khu vực) theo mã kho SAP qua bảng map: 01 → RD-Warehouse, 05 → RD-LED-05 */
   areaByWhsCode(whsCode: string | undefined | null): WarehouseAreaRef | null {
-    const whs = (whsCode ?? "").trim();
-    if (!whs) {
-      return null;
-    }
-    return (
-      this.warehouseAreas.find(
-        (a) => a.areaCode.split("-").pop()?.trim() === whs,
-      ) ?? null
-    );
+    const area = sapWhsAreaCode(whsCode);
+    return area
+      ? (this.warehouseAreas.find((a) => a.areaCode === area) ?? null)
+      : null;
   }
 
-  /** Nhãn kho theo mã kho SAP: "19 · RD-LED-19 · Kho LKDT thủ công" */
+  /** Nguồn nhãn kho: có trong bảng map SAP → area ([AREA]) hay chỉ có tên kho SAP ([SAP]) */
+  whsHasArea(whsCode: string | undefined | null): boolean {
+    return !!sapWhsAreaCode(whsCode);
+  }
+
+  /** Nhãn kho như ngoài danh sách: "01 - Kho linh kiện điện tử · RD-Warehouse" */
   whsLabel(whsCode: string | undefined | null): string {
-    const whs = (whsCode ?? "").trim();
-    if (!whs) {
-      return "—";
-    }
-    const area = this.areaByWhsCode(whs);
-    if (!area) {
-      return `Kho ${whs}`;
-    }
-    return area.areaName && area.areaName !== area.areaCode
-      ? `${area.areaCode} · ${area.areaName}`
-      : area.areaCode;
+    return sapWhsLabel(whsCode, this.sapWarehouseNames) || "—";
   }
 
   /** Mở dialog "Vị trí có vật tư": tra vị trí (kho xuất) các mã chưa tra */
@@ -1474,7 +1465,7 @@ export class WarehouseExportDialogComponent
     );
   }
 
-  /** Xuất chuyển kho: kho chuyển đến của thùng — whsCode SAP (05) → kho có mã đuôi -05 (RD-LED-05) */
+  /** Xuất chuyển kho: kho chuyển đến của thùng — whsCode SAP (05) → area theo bảng map (RD-LED-05) */
   destAreaOf(b: ExportScannedBox): WarehouseAreaRef | null {
     return this.areaByWhsCode(b.destWhsCode);
   }
@@ -2906,6 +2897,13 @@ export class WarehouseExportDialogComponent
 
   /** Xuất chuyển kho: tải danh sách kho 1 lần (đối chiếu kho chuyển đến) */
   private ensureWarehouseAreas(): void {
+    if (!this.sapWarehouseNames.size) {
+      // API lỗi → service trả danh sách kho dự phòng
+      this.exportService.getSapWarehouseNameMap().subscribe((names) => {
+        this.sapWarehouseNames = names;
+        this.cdr.markForCheck();
+      });
+    }
     if (this.warehouseAreas.length) {
       return;
     }

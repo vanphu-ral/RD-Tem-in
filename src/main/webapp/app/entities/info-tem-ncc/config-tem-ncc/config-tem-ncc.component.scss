@@ -63,7 +63,9 @@
 
 /* Table */
 .table-container {
-  overflow-x: auto;
+  overflow: auto;
+  /* Giới hạn chiều cao: chọn nhiều dòng/trang thì cuộn trong bảng, phân trang luôn hiện */
+  max-height: calc(100vh - 250px);
 }
 
 .vendor-table {

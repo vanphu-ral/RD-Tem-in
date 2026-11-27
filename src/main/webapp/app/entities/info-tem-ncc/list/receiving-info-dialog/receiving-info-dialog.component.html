@@ -1,0 +1,47 @@
+<h2 mat-dialog-title>Tiếp nhận xe</h2>
+<mat-dialog-content>
+  <p style="margin: 0 0 12px; color: #6b7280; font-size: 13px">
+    TBGH: <strong>{{ data.deliveryNotice || "—" }}</strong>
+  </p>
+
+  <mat-form-field appearance="outline" style="width: 100%">
+    <mat-label>Khu vực xe đang ở</mat-label>
+    <input
+      matInput
+      [(ngModel)]="receivingStation"
+      [matAutocomplete]="stationAuto"
+      (ngModelChange)="onStationInput($event)"
+      placeholder="Gõ để tìm location..."
+    />
+    <mat-autocomplete
+      #stationAuto="matAutocomplete"
+      (optionSelected)="onStationSelected()"
+    >
+      <mat-option
+        *ngFor="let w of locationOptions"
+        [value]="w.locationFullName || w.locationName"
+      >
+        {{ w.locationFullName || w.locationName }}
+      </mat-option>
+    </mat-autocomplete>
+    <mat-hint *ngIf="!stationValid" style="color: #dc2626">
+      Hãy chọn location từ danh sách
+    </mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" style="width: 100%">
+    <mat-label>Người tiếp nhận</mat-label>
+    <input matInput [(ngModel)]="assignee" (keydown.enter)="save()" />
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Hủy</button>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="!stationValid"
+    (click)="save()"
+  >
+    Lưu
+  </button>
+</mat-dialog-actions>
