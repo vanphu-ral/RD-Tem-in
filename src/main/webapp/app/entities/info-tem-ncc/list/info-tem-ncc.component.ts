@@ -50,15 +50,18 @@ import {
   toText,
   VendorLabelInfoDto,
 } from "../services/info-tem-ncc.service";
-import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
-import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
+import {
+  ReceivingStation,
+  receivingStationLabel,
+  searchReceivingStations,
+} from "../shared/receiving-station.util";
 import {
   ReceivingInfo,
   ReceivingInfoDialogComponent,
   ReceivingInfoDialogData,
 } from "./receiving-info-dialog/receiving-info-dialog.component";
 
-/** Role được sửa Khu vực xe / Người tiếp nhận trên danh sách TBGH */
+/** Role được sửa Trạm tiếp nhận / Người tiếp nhận trên danh sách TBGH */
 const RECEIVING_EDIT_ROLES = [
   "ROLE_TEM_NCC_RECEIVE",
   "ROLE_ADMIN",
@@ -151,7 +154,7 @@ export interface DeliveryNoticeItem {
   status: "INCOMPLETE" | "COMPLETED";
   /** Nguồn tạo (giá trị gốc từ API, VD: "system", "appSmart") */
   source: string;
-  /** Khu vực xe đang ở (tên location) — bind ô sửa; giá trị đã lưu nằm ở raw */
+  /** Trạm tiếp nhận đang ở (tên location) — bind ô sửa; giá trị đã lưu nằm ở raw */
   receivingStation: string;
   /** Người tiếp nhận — bind ô sửa; giá trị đã lưu nằm ở raw */
   assignee: string;
@@ -230,10 +233,11 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     "source",
     "status",
   ];
-  /** Có role sửa Khu vực xe / Người tiếp nhận (không có → chỉ xem) */
+  /** Có role sửa Trạm tiếp nhận / Người tiếp nhận (không có → chỉ xem) */
   canEditReceiving = false;
-  /** Gợi ý location (IndexedDB) cho ô Khu vực xe đang focus */
-  locationOptions: CachedWarehouse[] = [];
+  /** Gợi ý trạm tiếp nhận (danh sách cố định) cho ô đang focus */
+  stationOptions: ReceivingStation[] = [];
+  readonly stationLabel = receivingStationLabel;
   isLoading = false;
   totalItems = 0;
   pageIndex = 0;
@@ -295,7 +299,6 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     private infoTemNccService: InfoTemNccService,
     private accountService: AccountService,
     private managerTemNccService: ManagerTemNccService,
-    private warehouseCache: WarehouseCacheService,
   ) {}
 
   ngOnInit(): void {
@@ -306,9 +309,6 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
         this.canEditReceiving = !!account?.authorities?.some((a) =>
           RECEIVING_EDIT_ROLES.includes(a),
         );
-        if (this.canEditReceiving) {
-          void this.warehouseCache.ensureSynced().catch(() => undefined);
-        }
       });
     this.filterSubject.pipe(debounceTime(350)).subscribe(() => {
       this.pageIndex = 0;
@@ -780,26 +780,13 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /** Gõ Khu vực xe → tìm location trong IndexedDB */
-  onLocationSearch(term: string): void {
-    const keyword = (term ?? "").trim();
-    if (!keyword) {
-      this.locationOptions = [];
-      return;
-    }
-    void this.warehouseCache
-      .searchByName(keyword)
-      .then((list) => {
-        this.locationOptions = list.slice(0, 30);
-        this.cdr.markForCheck();
-      })
-      .catch(() => {
-        this.locationOptions = [];
-      });
+  /** Gõ Trạm tiếp nhận → lọc danh sách trạm theo mã / tên */
+  onStationSearch(term: string): void {
+    this.stationOptions = searchReceivingStations(term);
   }
 
   /**
-   * Đóng gợi ý Khu vực xe mà không chọn location: ô trống → lưu xoá;
+   * Đóng gợi ý Trạm tiếp nhận mà không chọn trạm: ô trống → lưu xoá;
    * gõ tay không chọn từ danh sách → trả về giá trị đã lưu.
    */
   onStationClosed(row: DeliveryNoticeItem): void {
@@ -814,7 +801,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /** PUT đơn với Khu vực xe / Người tiếp nhận hiện tại của row (nếu có thay đổi) */
+  /** PUT đơn với Trạm tiếp nhận / Người tiếp nhận hiện tại của row (nếu có thay đổi) */
   saveReceiving(row: DeliveryNoticeItem): void {
     const receivingStation = row.receivingStation.trim();
     const assignee = row.assignee.trim();
@@ -851,7 +838,7 @@ export class InfoTemNccComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /** Mobile: popup nhập cả Khu vực xe + Người tiếp nhận */
+  /** Mobile: popup nhập cả Trạm tiếp nhận + Người tiếp nhận */
   openReceivingDialog(row: DeliveryNoticeItem, event?: Event): void {
     event?.stopPropagation();
     this.dialog

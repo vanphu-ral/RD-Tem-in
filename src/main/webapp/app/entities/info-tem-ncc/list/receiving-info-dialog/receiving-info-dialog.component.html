@@ -5,27 +5,32 @@
   </p>
 
   <mat-form-field appearance="outline" style="width: 100%">
-    <mat-label>Khu vực xe đang ở</mat-label>
+    <mat-label>Trạm tiếp nhận</mat-label>
     <input
       matInput
       [(ngModel)]="receivingStation"
       [matAutocomplete]="stationAuto"
       (ngModelChange)="onStationInput($event)"
-      placeholder="Gõ để tìm location..."
+      placeholder="Gõ mã hoặc tên trạm..."
     />
     <mat-autocomplete
       #stationAuto="matAutocomplete"
+      class="station-panel"
+      [displayWith]="stationLabel"
       (optionSelected)="onStationSelected()"
     >
       <mat-option
-        *ngFor="let w of locationOptions"
-        [value]="w.locationFullName || w.locationName"
+        *ngFor="let s of stationOptions"
+        class="station-option"
+        [value]="s.code"
+        [title]="s.name"
       >
-        {{ w.locationFullName || w.locationName }}
+        <span class="station-code">{{ s.code }}</span>
+        <span class="station-name">{{ s.shortName }}</span>
       </mat-option>
     </mat-autocomplete>
     <mat-hint *ngIf="!stationValid" style="color: #dc2626">
-      Hãy chọn location từ danh sách
+      Hãy chọn trạm từ danh sách
     </mat-hint>
   </mat-form-field>
 

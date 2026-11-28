@@ -10,8 +10,11 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA,
 } from "@angular/material/dialog";
-import { WarehouseCacheService } from "app/entities/list-material/services/warehouse-cache.service";
-import { CachedWarehouse } from "app/entities/list-material/services/warehouse-db";
+import {
+  ReceivingStation,
+  receivingStationLabel,
+  searchReceivingStations,
+} from "../../shared/receiving-station.util";
 
 export interface ReceivingInfo {
   receivingStation: string;
@@ -22,7 +25,7 @@ export interface ReceivingInfoDialogData extends ReceivingInfo {
   deliveryNotice: string;
 }
 
-/** Mobile: popup nhập khu vực xe + người tiếp nhận của 1 TBGH */
+/** Mobile: popup nhập trạm tiếp nhận + người tiếp nhận của 1 TBGH */
 @Component({
   selector: "jhi-receiving-info-dialog",
   templateUrl: "./receiving-info-dialog.component.html",
@@ -40,32 +43,24 @@ export interface ReceivingInfoDialogData extends ReceivingInfo {
 export class ReceivingInfoDialogComponent {
   receivingStation: string;
   assignee: string;
-  locationOptions: CachedWarehouse[] = [];
-  /** Khu vực phải chọn từ danh sách (hoặc để trống) */
+  stationOptions: ReceivingStation[] = searchReceivingStations("");
+  readonly stationLabel = receivingStationLabel;
+  /** Trạm phải chọn từ danh sách (hoặc để trống) */
   stationValid = true;
 
   constructor(
     public dialogRef: MatDialogRef<ReceivingInfoDialogComponent, ReceivingInfo>,
     @Inject(MAT_DIALOG_DATA) public data: ReceivingInfoDialogData,
-    private warehouseCache: WarehouseCacheService,
   ) {
     this.receivingStation = data.receivingStation;
     this.assignee = data.assignee;
-    void this.warehouseCache.ensureSynced().catch(() => undefined);
   }
 
   onStationInput(term: string): void {
     const keyword = (term ?? "").trim();
     this.stationValid =
       !keyword || keyword === this.data.receivingStation.trim();
-    if (!keyword) {
-      this.locationOptions = [];
-      return;
-    }
-    void this.warehouseCache
-      .searchByName(keyword)
-      .then((list) => (this.locationOptions = list.slice(0, 30)))
-      .catch(() => (this.locationOptions = []));
+    this.stationOptions = searchReceivingStations(keyword);
   }
 
   onStationSelected(): void {
